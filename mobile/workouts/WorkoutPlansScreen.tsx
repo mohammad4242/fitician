@@ -5,6 +5,7 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native"
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { profileKeys, workoutKeys } from "../data/queryKeys";
 import { createProfileApi } from "../profile/profileApi";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
@@ -58,11 +59,13 @@ const generationErrorMessages: Record<WorkoutGenerationErrorKind, string> = {
   cooldown: "ساخت برنامه به‌تازگی انجام شده است؛ کمی بعد دوباره تلاش کن.",
   failed: "ساخت برنامه انجام نشد. وضعیت پروفایل و اتصال اینترنت را بررسی کن.",
   in_progress: "ساخت یک برنامهٔ دیگر در حال انجام است؛ کمی بعد وضعیت برنامه را بررسی کن.",
+  quota: "سهم بازبینی مربی در این بازه تمام شده است.",
   unsupported: "با تنظیمات فعلی، برنامه امن و قابل ساختی پیدا نشد. پروفایل تمرینی را بررسی کن.",
 };
 
 export function WorkoutPlansScreen() {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const params = useLocalSearchParams<{ cycleId?: string | string[]; planId?: string | string[] }>();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
@@ -84,6 +87,13 @@ export function WorkoutPlansScreen() {
   const [deletionError, setDeletionError] = useState<string | null>(null);
   const [hiddenDeletedPlanIds, setHiddenDeletedPlanIds] = useState<ReadonlySet<string>>(() => new Set());
   const [generatedForegroundPlan, setGeneratedForegroundPlan] = useState<WorkoutPlan | null>(null);
+  const canGenerateEntitled = entitlements.hasEntitlement("training.plan.generate");
+  const coachReviewQuota = entitlements.quotaFor("training.coach_review");
+  const coachQuotaExhausted = entitlements.hasEntitlement("training.coach_review")
+    && coachReviewQuota !== null
+    && coachReviewQuota.remaining <= 0;
+  const generationAccessReady = entitlements.snapshot !== null && !entitlements.loading;
+  const canGenerate = generationAccessReady && canGenerateEntitled && !coachQuotaExhausted;
 
   useEffect(() => {
     setSelectedPlanId(planTargetId ?? null);
@@ -219,7 +229,7 @@ export function WorkoutPlansScreen() {
   }
 
   function startGeneration() {
-    if (generation.isPending) return;
+    if (generation.isPending || !canGenerate) return;
     setGenerationError(null);
     generation.mutate();
   }
@@ -278,6 +288,20 @@ export function WorkoutPlansScreen() {
 
   return (
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
+      {generationAccessReady && !canGenerateEntitled ? (
+        <Notice
+          message="برای ساخت برنامه تمرینی جدید، دسترسی تمرین لازم است. برنامه‌ها و تاریخچه قبلی همچنان قابل مشاهده‌اند."
+          title="ساخت برنامه در دسترس نیست"
+          variant="warning"
+        />
+      ) : null}
+      {generationAccessReady && canGenerateEntitled && coachQuotaExhausted ? (
+        <Notice
+          message={coachQuotaMessage(coachReviewQuota?.reset_at ?? null)}
+          title="سهم بازبینی مربی فعلاً تمام شده"
+          variant="warning"
+        />
+      ) : null}
       <View testID="workout-plan-controls" style={styles.planControlsSection}>
         <GenerationMethodSelector
           error={generationMethodError}
@@ -287,7 +311,7 @@ export function WorkoutPlansScreen() {
         />
         {canUpdateDisplayedPlan ? (
           <Button
-            disabled={generation.isPending}
+            disabled={generation.isPending || !canGenerate}
             label="به‌روزرسانی برنامه"
             loading={generation.isPending}
             onPress={startGeneration}
@@ -357,8 +381,8 @@ export function WorkoutPlansScreen() {
 
       {!loading && !activeLoadError && !activeOffline && currentPlan === null && pendingPlanId === null ? (
         <EmptyState
-          actionLabel={generation.isPending ? "در حال ساخت برنامه" : "ساخت برنامه تمرینی"}
-          onAction={startGeneration}
+          actionLabel={canGenerate ? generation.isPending ? "در حال ساخت برنامه" : "ساخت برنامه تمرینی" : undefined}
+          onAction={canGenerate ? startGeneration : undefined}
           title="هنوز برنامهٔ فعالی نداری"
         >
           <Text style={styles.emptyBody}>با تکمیل پروفایل تمرینی می‌توانی برنامهٔ متناسب با شرایطت بسازی.</Text>
@@ -367,10 +391,14 @@ export function WorkoutPlansScreen() {
 
       {generationError !== null ? (
         <Notice
-          actionLabel={generationError === "cooldown" ? undefined : "تلاش دوباره"}
-          message={generationErrorMessages[generationError]}
-          onAction={generationError === "cooldown" || generationError === "in_progress" ? undefined : startGeneration}
-          variant={generationError === "unsupported" ? "warning" : "danger"}
+          actionLabel={generationError === "cooldown" || generationError === "quota" ? undefined : "تلاش دوباره"}
+          message={generationError === "quota"
+            ? coachQuotaMessage(coachReviewQuota?.reset_at ?? null)
+            : generationErrorMessages[generationError]}
+          onAction={generationError === "cooldown" || generationError === "in_progress" || generationError === "quota"
+            ? undefined
+            : startGeneration}
+          variant={generationError === "unsupported" || generationError === "quota" ? "warning" : "danger"}
         />
       ) : null}
 
@@ -414,6 +442,16 @@ export function WorkoutPlansScreen() {
       />
     </Screen>
   );
+}
+
+function coachQuotaMessage(resetAt: string | null): string {
+  if (resetAt === null) return generationErrorMessages.quota;
+  const date = new Date(resetAt);
+  if (Number.isNaN(date.getTime())) return generationErrorMessages.quota;
+  return `سهم بازبینی مربی در این بازه تمام شده است؛ امکان درخواست بعدی از ${new Intl.DateTimeFormat("fa-IR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date)} ممکن است.`;
 }
 
 function PlanOverview({

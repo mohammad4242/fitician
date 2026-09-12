@@ -7,7 +7,7 @@ import type {
 } from "./workoutApi";
 import type { WorkoutCycleCurrent } from "./workoutCycleApi";
 
-export type WorkoutGenerationErrorKind = "cooldown" | "failed" | "in_progress" | "unsupported";
+export type WorkoutGenerationErrorKind = "cooldown" | "failed" | "in_progress" | "quota" | "unsupported";
 export type WorkoutPlanSummaryStatus = "active" | "pending" | "inactive";
 
 export type WorkoutCycleWeekDisplay = {
@@ -26,6 +26,7 @@ export function workoutCycleWeekDisplay(cycle: WorkoutCycleCurrent): WorkoutCycl
 
 export function classifyWorkoutGenerationError(error: unknown): WorkoutGenerationErrorKind {
   if (!(error instanceof ApiError)) return "failed";
+  if (error.code === "ENTITLEMENT_QUOTA_EXCEEDED") return "quota";
   if (error.status === 429) return "cooldown";
   if (error.status === 409) return "in_progress";
   if (error.status === 422 || error.code !== null) return "unsupported";

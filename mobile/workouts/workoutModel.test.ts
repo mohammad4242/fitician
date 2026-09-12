@@ -58,6 +58,7 @@ it("distinguishes active, coach-pending, and historical plan summaries", () => {
 
 it("keeps generation failure states explicit", () => {
   expect(classifyWorkoutGenerationError(new ApiError(429, "cooldown"))).toBe("cooldown");
+  expect(classifyWorkoutGenerationError(new ApiError(429, "quota", null, "ENTITLEMENT_QUOTA_EXCEEDED"))).toBe("quota");
   expect(classifyWorkoutGenerationError(new ApiError(409, "in progress"))).toBe("in_progress");
   expect(classifyWorkoutGenerationError(new ApiError(422, "invalid"))).toBe("unsupported");
   expect(classifyWorkoutGenerationError(new ApiError(503, "provider"))).toBe("failed");

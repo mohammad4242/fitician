@@ -28,6 +28,7 @@ jest.mock("expo-video", () => {
 });
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../ui/rtl", () => ({
   getRowDirectionStyle: (direction = "rtl") => ({ direction, flexDirection: "row" }),
   getTextDirectionStyle: (direction = "rtl", textAlign = direction === "rtl" ? "auto" : "left") => ({
@@ -56,6 +57,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { languageForDirection } from "../ui/rtl";
 import { createProfileApi } from "../profile/profileApi";
 import type { WorkoutPlan, WorkoutPlanExercise, WorkoutPlanVersionSummary } from "./workoutApi";
@@ -72,6 +74,7 @@ const mockUseQueryClient = jest.mocked(useQueryClient);
 const mockUseLocalSearchParams = jest.mocked(useLocalSearchParams);
 const mockUseRouter = jest.mocked(useRouter);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockLanguageForDirection = jest.mocked(languageForDirection);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
 const mockCreateWorkoutPlanApi = jest.mocked(createWorkoutPlanApi);
@@ -155,6 +158,15 @@ beforeEach(() => {
     status: "signed_in",
     user: { email: "member@example.com", id: "member-1" },
   } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement) => entitlement === "training.plan.generate",
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
   mockUseQueryClient.mockReturnValue({
     invalidateQueries: mockInvalidateQueries,
     removeQueries: mockRemoveQueries,
@@ -223,6 +235,49 @@ test("renders the web-parity workout hierarchy and shared generation control", (
   expect(screen.getByRole("radio", { name: "موتور داخلی" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "هوش مصنوعی" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "ساخت برنامه تمرینی" })).toBeTruthy();
+});
+
+test("keeps workout history readable but locks new generation without access", () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText("ساخت برنامه در دسترس نیست")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "ساخت برنامه تمرینی" })).toBeNull();
+});
+
+test("shows the coach quota reset without hiding existing plan data", () => {
+  mockActivePlan = makePlan("active", []);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement) => entitlement === "training.plan.generate" || entitlement === "training.coach_review",
+    loading: false,
+    quotaFor: (entitlement) => entitlement === "training.coach_review" ? {
+      entitlement: "training.coach_review",
+      limit: 1,
+      remaining: 0,
+      reset_at: "2026-09-15T10:00:00Z",
+      used: 1,
+      window_days: 28,
+    } : null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText("سهم بازبینی مربی فعلاً تمام شده")).toBeTruthy();
+  expect(screen.getByTestId("workout-plan-overview-active-plan")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "به‌روزرسانی برنامه" })?.props.accessibilityState.disabled).toBe(true);
 });
 
 test("keeps exactly one inline workout video player active", () => {
