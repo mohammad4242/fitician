@@ -5,7 +5,13 @@ import { BodyAnalysisCameraButton } from "./BodyAnalysisCameraButton";
 
 const bodyAnalysisImage = require("../assets/body-analysis/bodyanalysis.jpg") as ImageSourcePropType;
 
-export function BodyAnalysisEmptyState({ onStart }: { readonly onStart: () => void }) {
+export function BodyAnalysisEmptyState({
+  disabled = false,
+  onStart,
+}: {
+  readonly disabled?: boolean;
+  readonly onStart: () => void;
+}) {
   return (
     <View style={styles.container}>
       <View style={styles.visual}>
@@ -29,7 +35,7 @@ export function BodyAnalysisEmptyState({ onStart }: { readonly onStart: () => vo
           <EmptyStep number="۲" title="برش امن چهره" subtitle="کاملاً محرمانه در گوشی" />
           <EmptyStep number="۳" title="تحلیل و دورسنجی" subtitle="نمودار و روند پیشرفت" />
         </View>
-        <BodyAnalysisCameraButton label="ثبت عکس‌های جدید" onPress={onStart} />
+        <BodyAnalysisCameraButton disabled={disabled} label="ثبت عکس‌های جدید" onPress={onStart} />
       </View>
     </View>
   );

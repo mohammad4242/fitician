@@ -14,6 +14,7 @@ jest.mock("expo-secure-store", () => ({
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("./BodyPhotoCapture", () => {
   const { Button } = jest.requireActual("../ui/components") as typeof import("../ui/components");
   return {
@@ -50,6 +51,7 @@ jest.mock("./bodyPhotoApi", () => ({ createBodyPhotoApi: jest.fn() }));
 jest.mock("../profile/profileApi", () => ({ createProfileApi: jest.fn() }));
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { getItemAsync } from "expo-secure-store";
 import { createProfileApi } from "../profile/profileApi";
 import { bodyPhotoCopy } from "./bodyAnalysisCopy";
@@ -57,6 +59,7 @@ import { BodyAnalysisWizard } from "./BodyAnalysisWizard";
 import { createBodyPhotoApi } from "./bodyPhotoApi";
 
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
 const mockCreateBodyPhotoApi = jest.mocked(createBodyPhotoApi);
 
@@ -127,6 +130,22 @@ beforeEach(() => {
     upload: jest.fn(),
     user: { id: "user-1" },
   } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement) => entitlement === "body_analysis.run",
+    loading: false,
+    quotaFor: () => ({
+      entitlement: "body_analysis.run",
+      limit: 1,
+      remaining: 1,
+      reset_at: "2026-09-15T10:00:00Z",
+      used: 0,
+      window_days: 7,
+    }),
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
   mockCreateBodyPhotoApi.mockReturnValue({ createSession, getSession, uploadPhoto } as never);
   mockCreateProfileApi.mockReturnValue({
     getProfile: jest.fn<() => Promise<typeof profile>>().mockResolvedValue(profile),
@@ -149,6 +168,40 @@ test("requires current measurements before starting a secure body-analysis sessi
   fireEvent.press(screen.getByLabelText("ذخیره و ادامه"));
 
   await waitFor(() => expect(createSession).toHaveBeenCalledWith("initial_plan"));
+});
+
+test("blocks a fresh session without the body-analysis entitlement", async () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  renderWizard(undefined, undefined, true);
+
+  expect(await screen.findByText("برای شروع تحلیل بدن، دسترسی فعال لازم است.")).toBeTruthy();
+  expect(createSession).not.toHaveBeenCalled();
+});
+
+test("allows resuming an existing session without a current entitlement", async () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  renderWizard(undefined, createdSession.id);
+
+  expect(await screen.findByLabelText("تأیید front")).toBeTruthy();
+  expect(createSession).not.toHaveBeenCalled();
 });
 
 test("shows measurements before starting a fresh session when an old draft exists", async () => {

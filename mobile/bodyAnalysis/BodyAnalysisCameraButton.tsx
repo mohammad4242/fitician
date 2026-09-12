@@ -4,9 +4,11 @@ import { AppIcon } from "../ui/components";
 import { fiticianTokens } from "../ui/tokens";
 
 export function BodyAnalysisCameraButton({
+  disabled = false,
   label,
   onPress,
 }: {
+  readonly disabled?: boolean;
   readonly label: string;
   readonly onPress: () => void;
 }) {
@@ -14,8 +16,10 @@ export function BodyAnalysisCameraButton({
     <Pressable
       accessibilityLabel={label}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
       <Text style={styles.label}>{label}</Text>
       <AppIcon color={fiticianTokens.colors.canvas} name="camera" size={20} />
@@ -39,6 +43,9 @@ const styles = StyleSheet.create({
     shadowColor: fiticianTokens.colors.aqua,
     shadowOpacity: 0.24,
     shadowRadius: 12,
+  },
+  disabled: {
+    opacity: 0.48,
   },
   label: {
     color: fiticianTokens.colors.canvas,

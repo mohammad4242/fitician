@@ -12,10 +12,12 @@ import type {
 import type { Sex } from "@fitician/core/profile";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Card, Notice, PageHeading, Sheet, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisRequirements } from "./BodyAnalysisRequirements";
+import { BodyAnalysisAccessNotice } from "./BodyAnalysisAccessNotice";
 import {
   BODY_PHOTO_VIEWS,
   createBodyPhotoFlowDraft,
@@ -26,6 +28,7 @@ import { createBodyPhotoApi } from "./bodyPhotoApi";
 import { SecureBodyPhotoDraftStore } from "./bodyPhotoDraftStore";
 import { BodyPhotoCapture, PhotoClothingGuide } from "./BodyPhotoCapture";
 import { bodyPhotoCopy } from "./bodyAnalysisCopy";
+import { resolveBodyAnalysisAccessState } from "./bodyAnalysisAccess";
 import type { BodyPhotoCapturedAsset } from "./cameraCapture";
 import { createProfileApi } from "../profile/profileApi";
 import {
@@ -45,6 +48,7 @@ export interface BodyAnalysisWizardProps {
 
 type WizardPhase =
   | "capture"
+  | "access_blocked"
   | "error"
   | "loading"
   | "requirements"
@@ -73,6 +77,7 @@ export function BodyAnalysisWizard({
   startFresh = false,
 }: BodyAnalysisWizardProps) {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const userId = auth.user?.id ?? null;
   const api = useMemo(
     () => createBodyPhotoApi(auth.request, auth.upload, auth.download),
@@ -91,11 +96,18 @@ export function BodyAnalysisWizard({
   const [operationalConsent, setOperationalConsent] = useState(false);
   const [modelTrainingConsent, setModelTrainingConsent] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
+  const [newSessionPending, setNewSessionPending] = useState(false);
   const capturedAssetsRef = useRef(capturedAssets);
   const complete = session !== null && ["front", "side", "back"].every((view) => (
     capturedAssets[view as BodyPhotoView] !== undefined
     || session.photos.some((photo) => photo.view === view)
   ));
+  const bodyAnalysisQuota = entitlements.quotaFor("body_analysis.run");
+  const bodyAnalysisAccessState = resolveBodyAnalysisAccessState(
+    entitlements.loading && entitlements.snapshot === null,
+    entitlements.hasEntitlement("body_analysis.run"),
+    bodyAnalysisQuota,
+  );
 
   useEffect(() => {
     capturedAssetsRef.current = capturedAssets;
@@ -121,9 +133,10 @@ export function BodyAnalysisWizard({
       if (!active) return;
       if (loaded.session === null) {
         setDraft(loaded.draft);
-        setPhase("requirements");
+        setNewSessionPending(true);
         return;
       }
+      setNewSessionPending(false);
       setSession(loaded.session);
       setOperationalConsent(loaded.session.operational_processing_consent?.granted ?? false);
       setModelTrainingConsent(loaded.session.model_training_consent?.granted ?? false);
@@ -139,6 +152,11 @@ export function BodyAnalysisWizard({
       active = false;
     };
   }, [api, draftStore, purpose, sessionId, startFresh, userId]);
+
+  useEffect(() => {
+    if (!newSessionPending || session !== null) return;
+    setPhase(bodyAnalysisAccessState === "allowed" ? "requirements" : "access_blocked");
+  }, [bodyAnalysisAccessState, newSessionPending, session]);
 
   useEffect(() => {
     if (userId === null) return undefined;
@@ -185,6 +203,10 @@ export function BodyAnalysisWizard({
 
   async function confirmMeasurements() {
     if (userId === null || phase === "starting") return;
+    if (bodyAnalysisAccessState !== "allowed") {
+      setPhase("access_blocked");
+      return;
+    }
     setPhase("starting");
     setError(null);
     try {
@@ -285,6 +307,18 @@ export function BodyAnalysisWizard({
         <View style={styles.loading}>
           <Skeleton accessibilityLabel="در حال آماده‌سازی تحلیل بدن" height={32} width="64%" />
           <Skeleton accessibilityLabel="در حال آماده‌سازی تحلیل بدن" height={180} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (phase === "access_blocked") {
+    return (
+      <Screen scroll={false}>
+        <View style={styles.errorState}>
+          <Text style={styles.eyebrow}>تحلیل بدن</Text>
+          <BodyAnalysisAccessNotice quota={bodyAnalysisQuota} state={bodyAnalysisAccessState} />
+          <Button label="بازگشت" onPress={exitWizard} variant="secondary" />
         </View>
       </Screen>
     );

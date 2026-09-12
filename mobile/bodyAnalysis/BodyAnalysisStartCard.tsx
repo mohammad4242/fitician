@@ -6,9 +6,11 @@ import { BodyAnalysisCameraButton } from "./BodyAnalysisCameraButton";
 const bodyAnalysisImage = require("../assets/body-analysis/bodyanalysis.jpg") as ImageSourcePropType;
 
 export function BodyAnalysisStartCard({
+  disabled = false,
   sessionCount,
   onStart,
 }: {
+  readonly disabled?: boolean;
   readonly sessionCount: number;
   readonly onStart: () => void;
 }) {
@@ -27,7 +29,7 @@ export function BodyAnalysisStartCard({
           <View style={styles.scanLine} />
         </View>
       </View>
-      <BodyAnalysisCameraButton label="شروع جلسه عکس" onPress={onStart} />
+      <BodyAnalysisCameraButton disabled={disabled} label="شروع جلسه عکس" onPress={onStart} />
     </View>
   );
 }

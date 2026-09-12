@@ -5,15 +5,18 @@ import { StyleSheet, Text, View } from "react-native";
 import type { BodyProgressTimelineItem, BodyProgressTimelineResponse } from "@fitician/core/body-photos";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Notice, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisDeleteDialog } from "./BodyAnalysisDeleteDialog";
+import { BodyAnalysisAccessNotice } from "./BodyAnalysisAccessNotice";
 import { BodyAnalysisEmptyState } from "./BodyAnalysisEmptyState";
 import { BodyAnalysisLandingHero } from "./BodyAnalysisLandingHero";
 import { BodyAnalysisStartCard } from "./BodyAnalysisStartCard";
 import { createBodyPhotoApi } from "./bodyPhotoApi";
 import { BodyProgressTimeline } from "./BodyProgressTimeline";
+import { resolveBodyAnalysisAccessState } from "./bodyAnalysisAccess";
 
 export interface BodyAnalysisHistoryScreenProps {
   readonly tabRoot?: boolean;
@@ -21,6 +24,7 @@ export interface BodyAnalysisHistoryScreenProps {
 
 export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHistoryScreenProps = {}) {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const router = useRouter();
   const api = useMemo(
     () => createBodyPhotoApi(auth.request, auth.upload, auth.download),
@@ -31,6 +35,12 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
   const [deleteTarget, setDeleteTarget] = useState<BodyProgressTimelineItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const bodyAnalysisQuota = entitlements.quotaFor("body_analysis.run");
+  const bodyAnalysisAccessState = resolveBodyAnalysisAccessState(
+    entitlements.loading && entitlements.snapshot === null,
+    entitlements.hasEntitlement("body_analysis.run"),
+    bodyAnalysisQuota,
+  );
 
   const loadTimeline = useCallback(async () => {
     setFailed(false);
@@ -74,6 +84,7 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
   }
 
   function startNewSession() {
+    if (bodyAnalysisAccessState !== "allowed") return;
     router.push({
       pathname: "/member/body-analysis-capture",
       params: { fresh: "1" },
@@ -100,12 +111,23 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
       ) : null}
 
       {timeline !== null && timeline.items.length === 0 ? (
-        <BodyAnalysisEmptyState onStart={startNewSession} />
+        <>
+          <BodyAnalysisAccessNotice quota={bodyAnalysisQuota} state={bodyAnalysisAccessState} />
+          <BodyAnalysisEmptyState
+            disabled={bodyAnalysisAccessState !== "allowed"}
+            onStart={startNewSession}
+          />
+        </>
       ) : null}
 
       {timeline !== null && timeline.items.length > 0 ? (
         <View style={styles.populatedContent}>
-          <BodyAnalysisStartCard onStart={startNewSession} sessionCount={timeline.items.length} />
+          <BodyAnalysisAccessNotice quota={bodyAnalysisQuota} state={bodyAnalysisAccessState} />
+          <BodyAnalysisStartCard
+            disabled={bodyAnalysisAccessState !== "allowed"}
+            onStart={startNewSession}
+            sessionCount={timeline.items.length}
+          />
           <BodyProgressTimeline
             authDownload={auth.download}
             items={timeline.items}

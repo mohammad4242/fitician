@@ -8,6 +8,7 @@ jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("./bodyPhotoApi", () => ({ createBodyPhotoApi: jest.fn() }));
 jest.mock("./bodyPhotoPrivateMedia", () => ({
   createPrivateBodyPhotoClient: jest.fn(() => null),
@@ -21,6 +22,7 @@ jest.mock("./bodyPhotoPrivateMedia", () => ({
 import { useRouter } from "expo-router";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createBodyPhotoApi } from "./bodyPhotoApi";
 import { BodyAnalysisHistoryScreen } from "./BodyAnalysisHistoryScreen";
 
@@ -28,6 +30,7 @@ const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockUseRouter = jest.mocked(useRouter);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreateBodyPhotoApi = jest.mocked(createBodyPhotoApi);
 
 function buildTimeline(): BodyProgressTimelineResponse {
@@ -121,6 +124,22 @@ beforeEach(() => {
     upload: jest.fn(),
     user: null,
   } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement) => entitlement === "body_analysis.run",
+    loading: false,
+    quotaFor: () => ({
+      entitlement: "body_analysis.run",
+      limit: 1,
+      remaining: 1,
+      reset_at: "2026-09-15T10:00:00Z",
+      used: 0,
+      window_days: 7,
+    }),
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
   mockDeleteSession = jest.fn(() => Promise.resolve());
   mockCreateBodyPhotoApi.mockReturnValue({
     deleteSession: mockDeleteSession,
@@ -240,4 +259,50 @@ test("renders the web empty state with scanner visual, steps, and capture CTA", 
   expect(screen.getByText("تحلیل و دورسنجی")).toBeTruthy();
   expect(screen.getByRole("button", { name: "ثبت عکس‌های جدید" })).toBeTruthy();
   expect(screen.queryByText("جلسه جدید آنالیز بدن")).toBeNull();
+});
+
+test("keeps history visible but disables a fresh analysis without access", async () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  renderHistory();
+  expect(await screen.findByText("آنالیز هوشمند ترکیب و فرم بدن")).toBeTruthy();
+  const start = screen.getByRole("button", { name: "شروع جلسه عکس" });
+  expect(start.props.accessibilityState.disabled).toBe(true);
+  fireEvent.press(start);
+  expect(mockPush).not.toHaveBeenCalledWith(expect.objectContaining({
+    pathname: "/member/body-analysis-capture",
+  }));
+  expect(screen.getByText("برای شروع تحلیل بدن، دسترسی فعال لازم است.")).toBeTruthy();
+});
+
+test("shows the rolling quota reset before a fresh analysis", async () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => true,
+    loading: false,
+    quotaFor: () => ({
+      entitlement: "body_analysis.run",
+      limit: 1,
+      remaining: 0,
+      reset_at: "2026-09-15T10:00:00Z",
+      used: 1,
+      window_days: 7,
+    }),
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  });
+
+  timelineResponse = { schema_version: "1.0", items: [] };
+  renderHistory();
+  expect(await screen.findByText(/سهم هفتگی تحلیل بدن مصرف شده است؛ دسترسی بعدی از/)).toBeTruthy();
+  expect(screen.getByText(/۲۴ شهریور ۱۴۰۵/)).toBeTruthy();
 });
