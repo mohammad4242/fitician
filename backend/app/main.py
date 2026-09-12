@@ -34,6 +34,8 @@ from app.body_analysis.router import router as body_analysis_router
 from app.body_photos.router import router as body_photo_router
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
+from app.entitlements.router import router as entitlements_router
 from app.exercises.router import router as exercises_router
 from app.notifications.router import router as notifications_router
 from app.nutrition.price_scheduler import scheduler_loop
@@ -187,7 +189,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content={"detail": safe_errors},
         )
 
+    @app.exception_handler(EntitlementRequiredError)
+    async def entitlement_required_error_handler(
+        _request: Request,
+        error: EntitlementRequiredError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "detail": {
+                    "code": "ENTITLEMENT_REQUIRED",
+                    "entitlement": error.entitlement.value,
+                    "eligible_packages": [package.value for package in error.eligible_packages],
+                }
+            },
+        )
+
+    @app.exception_handler(EntitlementQuotaExceededError)
+    async def entitlement_quota_error_handler(
+        _request: Request,
+        error: EntitlementQuotaExceededError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(error.retry_after_seconds)},
+            content={
+                "detail": {
+                    "code": "ENTITLEMENT_QUOTA_EXCEEDED",
+                    "entitlement": error.entitlement.value,
+                    "reset_at": error.reset_at.isoformat(),
+                    "retry_after_seconds": error.retry_after_seconds,
+                }
+            },
+        )
+
     app.include_router(auth_router)
+    app.include_router(entitlements_router)
     app.include_router(account_deletion_router)
     app.include_router(body_photo_router)
     app.include_router(body_analysis_router)
