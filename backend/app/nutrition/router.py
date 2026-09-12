@@ -1604,6 +1604,7 @@ def read_shopping_list(
 def update_meal_lock(
     plan_id: UUID, meal_id: UUID, payload: MealLockInput, db: DatabaseSession, user: CurrentUser
 ) -> MealLockResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return set_meal_lock(db, user.id, plan_id, meal_id, payload.is_locked)
     except PlanEditError as error:
@@ -1618,6 +1619,7 @@ def update_meal_lock(
 def update_meal_feedback(
     plan_id: UUID, meal_id: UUID, payload: MealFeedbackInput, db: DatabaseSession, user: CurrentUser
 ) -> MealFeedbackUpdateResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return save_feedback(db, user.id, plan_id, meal_id, payload.feedback_type, payload.notes)
     except PlanEditError as error:

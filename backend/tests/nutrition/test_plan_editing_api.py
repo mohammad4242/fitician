@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.entitlements.models import UserAccessGrant
 from app.nutrition.candidate_selection import quality_for_result
 from app.nutrition.enums import NutritionPlanReviewStatus
 from app.nutrition.models import (
@@ -71,6 +74,36 @@ def test_metadata_changes_do_not_invalidate_review(client: TestClient, db: Sessi
     assert persisted is not None
     assert persisted.review is not None
     assert persisted.review.status == NutritionPlanReviewStatus.PENDING
+
+
+def test_plan_metadata_mutations_require_management_entitlement(
+    client: TestClient, db: Session
+) -> None:
+    plan = _generated_plan(client, db)
+    persisted = db.scalar(select(NutritionWeeklyPlan).where(NutritionWeeklyPlan.id == plan["id"]))
+    assert persisted is not None
+    for grant in db.scalars(
+        select(UserAccessGrant).where(UserAccessGrant.user_id == persisted.user_id)
+    ).all():
+        grant.revoked_at = datetime.now(UTC)
+    db.commit()
+    meal_id = plan["days"][0]["meals"][0]["id"]
+
+    lock = client.put(
+        f"/api/v1/nutrition/plans/{plan['id']}/meals/{meal_id}/lock",
+        headers=ORIGIN,
+        json={"is_locked": True},
+    )
+    feedback = client.put(
+        f"/api/v1/nutrition/plans/{plan['id']}/meals/{meal_id}/feedback",
+        headers=ORIGIN,
+        json={"feedback_type": "liked"},
+    )
+
+    assert lock.status_code == 403
+    assert lock.json()["detail"]["code"] == "ENTITLEMENT_REQUIRED"
+    assert feedback.status_code == 403
+    assert feedback.json()["detail"]["code"] == "ENTITLEMENT_REQUIRED"
 
 
 def test_feedback_read_is_persisted_and_changes_future_candidate_scoring(
