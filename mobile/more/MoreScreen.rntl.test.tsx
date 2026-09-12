@@ -6,12 +6,14 @@ jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../ui/navigation/RouteGuards", () => ({ useMobileRouteSnapshot: jest.fn() }));
 jest.mock("../profile/profileApi", () => ({ createProfileApi: jest.fn() }));
 
 import { useRouter } from "expo-router";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createProfileApi } from "../profile/profileApi";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { MoreScreen } from "./MoreScreen";
@@ -19,6 +21,7 @@ import { MoreScreen } from "./MoreScreen";
 const mockPush = jest.fn();
 const mockUseRouter = jest.mocked(useRouter);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockUseRouteSnapshot = jest.mocked(useMobileRouteSnapshot);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
 const mockLogout = jest.fn<() => Promise<void>>();
@@ -50,6 +53,15 @@ beforeEach(() => {
     request: jest.fn(),
     status: "signed_in",
     user: { email: "member@example.com", id: "member-1", phone_number: null },
+  } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => true,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: { active_packages: ["complete_care"], entitlements: { granted: [], quotas: [] }, primary_package: "complete_care", trial: { active: false, ends_at: null } } as never,
   } as never);
   mockCreateProfileApi.mockReturnValue({
     getSharedProfile: jest.fn<() => Promise<null>>(() => new Promise(() => undefined)),
@@ -114,8 +126,31 @@ test("shows only nutrition libraries for a nutrition member", () => {
   renderMore();
 
   expect(screen.queryByRole("button", { name: "کتابخانه حرکات" })).toBeNull();
+  expect(screen.getByRole("button", { name: "تحلیل بدن" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "کاتالوگ مواد غذایی" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "کاتالوگ وعده‌های غذایی" })).toBeTruthy();
+});
+
+test("shows the centralized package label and trial expiration", () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => true,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {
+      active_packages: ["launch_trial"],
+      entitlements: { granted: [], quotas: [] },
+      primary_package: "launch_trial",
+      trial: { active: true, ends_at: "2026-10-13T12:00:00Z" },
+    } as never,
+  } as never);
+  renderMore();
+
+  expect(screen.getByTestId("member-access-summary")).toBeTruthy();
+  expect(screen.getByText("دوره آزمایشی شروع")).toBeTruthy();
+  expect(screen.getByText(/دوره آزمایشی فعال · تا/)).toBeTruthy();
 });
 
 test("shows account actions and specialist workspaces only for granted roles", () => {

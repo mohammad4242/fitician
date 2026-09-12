@@ -6,18 +6,21 @@ import { fiticianTokens } from "../ui/tokens";
 export interface QuickActionCardProps {
   readonly icon: "bodyAnalysis" | "foodLog";
   readonly image: ImageSourcePropType;
+  readonly disabled?: boolean;
   readonly onPress: () => void;
   readonly subtitle: string;
   readonly title: string;
 }
 
-export function QuickActionCard({ icon, image, onPress, subtitle, title }: QuickActionCardProps) {
+export function QuickActionCard({ disabled = false, icon, image, onPress, subtitle, title }: QuickActionCardProps) {
   return (
     <Pressable
       accessibilityLabel={title}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
       <Media accessibilityLabel="" source={image} style={styles.image} />
       <View pointerEvents="none" style={styles.scrim} />
@@ -52,6 +55,9 @@ const styles = StyleSheet.create({
     shadowRadius: fiticianTokens.shadows.soft.radius,
     elevation: fiticianTokens.shadows.soft.elevation,
     flex: 1,
+  },
+  disabled: {
+    opacity: 0.58,
   },
   content: {
     alignItems: "flex-start",

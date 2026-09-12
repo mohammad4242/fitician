@@ -14,6 +14,7 @@ jest.mock("../exercises/ExerciseMedia", () => ({
   },
 }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../ui/navigation/RouteGuards", () => ({ useMobileRouteSnapshot: jest.fn() }));
 jest.mock("../platform/connectivity", () => ({
   connectivityMonitor: {
@@ -31,6 +32,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createNutritionApi } from "../nutrition/nutritionApi";
 import { createNutritionPlanApi } from "../nutrition/nutritionPlanApi";
 import { createNutritionTrackingApi } from "../nutrition/nutritionTrackingApi";
@@ -43,6 +45,7 @@ const mockPush = jest.fn();
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseRouter = jest.mocked(useRouter);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockUseRouteSnapshot = jest.mocked(useMobileRouteSnapshot);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
 const mockCreateWorkoutApi = jest.mocked(createWorkoutPlanApi);
@@ -51,6 +54,8 @@ const mockCreateNutritionPlanApi = jest.mocked(createNutritionPlanApi);
 const mockCreateNutritionTrackingApi = jest.mocked(createNutritionTrackingApi);
 
 let productMode: "both" | "training" = "both";
+let workoutEntitled = true;
+let bodyAnalysisEntitled = true;
 
 const dailyTracking = {
   actual_totals: {
@@ -107,12 +112,23 @@ function renderHome() {
 
 beforeEach(() => {
   productMode = "both";
+  workoutEntitled = true;
+  bodyAnalysisEntitled = true;
   mockPush.mockClear();
   mockUseMobileAuth.mockReturnValue({
     download: jest.fn(),
     request: jest.fn(),
     status: "signed_in",
     user: { email: "mary@example.com", id: "user-1" },
+  } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement: string) => entitlement === "training.plan.generate" ? workoutEntitled : bodyAnalysisEntitled,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
   } as never);
   mockUseRouteSnapshot.mockImplementation(() => ({
     profile: { completionState: "complete", productMode, status: "resolved" },
@@ -212,4 +228,31 @@ test("previews a pending workout when no active plan exists", () => {
   expect(screen.getByLabelText("رسانه تمرین بارفیکس دست جمع")).toBeTruthy();
   expect(screen.getByText("در انتظار تأیید")).toBeTruthy();
   expect(screen.getByRole("button", { name: "مشاهده برنامه" })).toBeTruthy();
+});
+
+test("shows a locked workout card instead of implying generation is available to free members", () => {
+  workoutEntitled = false;
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[0] === "profile") return queryResult({ display_name: "مریم" });
+    if (key[0] === "workouts") return queryResult(null);
+    if (key[1] === "plan") return queryResult(nutritionPlan);
+    if (key[1] === "estimate") return queryResult(null);
+    return queryResult(dailyTracking);
+  });
+
+  renderHome();
+
+  expect(screen.getByText("دسترسی لازم است")).toBeTruthy();
+  expect(screen.getByText("برنامه‌ای وجود ندارد؛ ساخت برنامه با دسترسی فعلی ممکن نیست.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "مشاهده وضعیت دسترسی" })).toBeTruthy();
+});
+
+test("locks the body analysis quick action while keeping the action visible", () => {
+  bodyAnalysisEntitled = false;
+  renderHome();
+
+  const bodyAction = screen.getByRole("button", { name: "تحلیل بدن" });
+  expect(bodyAction.props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByText("برای شروع تحلیل بدن، دسترسی فعال لازم است.")).toBeTruthy();
 });

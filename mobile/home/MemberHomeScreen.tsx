@@ -5,6 +5,9 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-na
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { profileKeys, workoutKeys, nutritionKeys } from "../data/queryKeys";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
+import { BodyAnalysisAccessNotice } from "../bodyAnalysis/BodyAnalysisAccessNotice";
+import { resolveBodyAnalysisAccessState } from "../bodyAnalysis/bodyAnalysisAccess";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import { createProfileApi } from "../profile/profileApi";
 import { createNutritionApi } from "../nutrition/nutritionApi";
@@ -28,6 +31,7 @@ const homeFoodImage = require("../assets/home-food.webp") as number;
 
 export function MemberHomeScreen() {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const { width } = useWindowDimensions();
   const router = useRouter();
   const snapshot = useMobileRouteSnapshot();
@@ -49,6 +53,13 @@ export function MemberHomeScreen() {
   const productMode = snapshot.profile.productMode;
   const hasTraining = productMode === null || productMode === "training" || productMode === "both";
   const hasNutrition = productMode === "nutrition" || productMode === "both";
+  const entitlementStateReady = entitlements.snapshot !== null && !entitlements.loading;
+  const canGenerateWorkout = entitlementStateReady && entitlements.hasEntitlement("training.plan.generate");
+  const bodyAnalysisAccessState = resolveBodyAnalysisAccessState(
+    entitlements.loading || (entitlements.snapshot === null && entitlements.error === null),
+    entitlementStateReady && entitlements.hasEntitlement("body_analysis.run"),
+    entitlements.quotaFor("body_analysis.run"),
+  );
   const today = new Date().toISOString().slice(0, 10);
 
   const sharedProfileQuery = useQuery({
@@ -130,13 +141,18 @@ export function MemberHomeScreen() {
       workoutHistoryQuery.isError
       || (pendingWorkoutPlanId !== null && pendingWorkoutQuery.isError)
     );
-  const workoutState: WorkoutHomeState = pendingWorkoutPlan !== undefined
+  const resolvedWorkoutState: WorkoutHomeState = pendingWorkoutPlan !== undefined
     ? "pending"
     : waitingForPendingWorkout
       ? "loading"
       : pendingWorkoutFailed
         ? "error"
         : resolveWorkoutState(activeWorkoutState);
+  const workoutState: WorkoutHomeState = entitlementStateReady
+    && !canGenerateWorkout
+    && resolvedWorkoutState === "empty"
+    ? "locked"
+    : resolvedWorkoutState;
   const displayName = sharedProfileQuery.data?.display_name?.trim()
     || snapshot.session.user?.email?.split("@", 1)[0]
     || "دوست";
@@ -179,6 +195,7 @@ export function MemberHomeScreen() {
 
       <View style={[styles.quickGrid, getQuickActionColumns(width) === 1 && styles.quickGridStacked]}>
         <QuickActionCard
+          disabled={bodyAnalysisAccessState !== "allowed"}
           icon="bodyAnalysis"
           image={homeBodyImage}
           onPress={() => router.push({
@@ -198,6 +215,11 @@ export function MemberHomeScreen() {
           />
         ) : null}
       </View>
+
+      <BodyAnalysisAccessNotice
+        quota={entitlements.quotaFor("body_analysis.run")}
+        state={bodyAnalysisAccessState}
+      />
 
       {hasTraining && workoutState === "error" ? (
         <Text style={styles.supportingText}>برای تلاش دوباره، بخش تمرین را باز کن.</Text>

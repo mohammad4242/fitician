@@ -9,7 +9,7 @@ import { RTL_ROW } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
 import { getHomeHeroLayout } from "./homePresentation";
 
-export type WorkoutHomeState = "empty" | "error" | "loading" | "offline" | "pending" | "ready" | "stale";
+export type WorkoutHomeState = "empty" | "error" | "loading" | "locked" | "offline" | "pending" | "ready" | "stale";
 
 export interface WorkoutTodayCardProps {
   readonly day: WorkoutDay | null;
@@ -41,7 +41,7 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
             />
           ) : (
             <View style={styles.emptyMedia}>
-              <Text style={styles.emptyMediaText}>جلسه بعدی پس از آماده‌شدن برنامه اینجا دیده می‌شود.</Text>
+              <Text style={styles.emptyMediaText}>{state === "locked" ? "برای ساخت برنامه تمرینی، دسترسی فعال لازم است." : "جلسه بعدی پس از آماده‌شدن برنامه اینجا دیده می‌شود."}</Text>
             </View>
           )}
           <View pointerEvents="none" style={styles.mediaScrim} />
@@ -67,8 +67,11 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
           {state === "error" ? (
             <Text style={styles.stateText}>دریافت برنامه انجام نشد؛ از بخش تمرین دوباره تلاش کن.</Text>
           ) : null}
+          {state === "locked" ? (
+            <Text style={styles.stateText}>برنامه‌ای وجود ندارد؛ ساخت برنامه با دسترسی فعلی ممکن نیست.</Text>
+          ) : null}
           <Button
-            label={canStart ? "شروع تمرین" : "مشاهده برنامه"}
+            label={canStart ? "شروع تمرین" : state === "locked" ? "مشاهده وضعیت دسترسی" : "مشاهده برنامه"}
             onPress={() => router.push("/member/workouts")}
             style={styles.action}
           />
@@ -80,6 +83,7 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
 
 function stateLabel(state: WorkoutHomeState, hasDay: boolean): string {
   if (state === "pending") return "در انتظار تأیید";
+  if (state === "locked") return "دسترسی لازم است";
   if (state === "offline") return "آفلاین";
   if (state === "stale") return "ذخیره‌شده";
   if (state === "error") return "خطا";

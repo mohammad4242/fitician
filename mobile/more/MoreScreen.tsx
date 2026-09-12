@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Linking, Image, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
+import fa from "@fitician/core/i18n/fa";
+import type { AccessPackageCode } from "@fitician/core/entitlements";
+
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { AppIcon, Button, Card, GroupedList, Notice, PageHeading } from "../ui/components";
 import type { GroupedListItem, GroupedListSection } from "../ui/components";
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
@@ -26,6 +30,7 @@ type MoreRow = Pick<MoreDestination, "icon" | "subtitle" | "title"> & {
 
 export function MoreScreen() {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const router = useRouter();
   const snapshot = useMobileRouteSnapshot();
   const profileApi = useMemo(() => createProfileApi(auth.request), [auth.request]);
@@ -38,6 +43,7 @@ export function MoreScreen() {
     || auth.user?.phone_number?.trim()
     || "کاربر فیتشو";
   const profilePhotoUrl = sharedProfile?.profile_photo_url ?? auth.user?.profile_photo_url ?? null;
+  const accessSnapshot = entitlements.snapshot;
 
   useEffect(() => {
     let active = true;
@@ -135,6 +141,23 @@ export function MoreScreen() {
         </View>
       </Card>
 
+      <View style={styles.accessSummary} testID="member-access-summary">
+        <View style={styles.accessSummaryCopy}>
+          <Text style={styles.accessSummaryEyebrow}>دسترسی فعلی</Text>
+          <Text style={styles.accessSummaryTitle}>
+            {accessSnapshot === null
+              ? entitlements.loading
+                ? "در حال بررسی…"
+                : "وضعیت دسترسی دریافت نشد"
+              : packageLabel(accessSnapshot.primary_package)}
+          </Text>
+          {accessSnapshot?.trial.active && accessSnapshot.trial.ends_at ? (
+            <Text style={styles.accessSummarySubtitle}>دوره آزمایشی فعال · تا {formatAccessDate(accessSnapshot.trial.ends_at)}</Text>
+          ) : null}
+        </View>
+        <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={fiticianTokens.iconSize.md} />
+      </View>
+
       <GroupedList sections={sections} testID="more-groups" />
       {logoutError ? <Notice message="خروج از حساب انجام نشد. دوباره تلاش کن." variant="danger" /> : null}
       <Button disabled={logoutBusy} label="خروج از حساب" loading={logoutBusy} onPress={() => void handleLogout()} style={styles.logout} variant="danger" />
@@ -145,21 +168,19 @@ export function MoreScreen() {
 function getProductItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeof useRouter>): readonly GroupedListItem[] {
   const destinations: MoreDestination[] = [];
   if (canAccess(snapshot, "training")) {
-    destinations.push(
-      {
-        icon: "training",
-        path: "/member/exercises",
-        subtitle: "حرکت‌ها، نحوه اجرا و نکات ایمنی",
-        title: "کتابخانه حرکات",
-      },
-      {
-        icon: "bodyAnalysis",
-        path: "/member/body-analysis-history",
-        subtitle: "جلسه‌ها و تحلیل‌های ثبت‌شده",
-        title: "تحلیل بدن",
-      },
-    );
+    destinations.push({
+      icon: "training",
+      path: "/member/exercises",
+      subtitle: "حرکت‌ها، نحوه اجرا و نکات ایمنی",
+      title: "کتابخانه حرکات",
+    });
   }
+  destinations.push({
+    icon: "bodyAnalysis",
+    path: "/member/body-analysis-history",
+    subtitle: "جلسه‌ها و تحلیل‌های ثبت‌شده",
+    title: "تحلیل بدن",
+  });
   if (canAccess(snapshot, "nutrition")) {
     destinations.push(
       {
@@ -231,6 +252,16 @@ function canAccess(snapshot: MobileRouteSnapshot, capability: "training" | "nutr
   return decideMobileRoute("member", snapshot, capability).status === "allow";
 }
 
+function packageLabel(code: AccessPackageCode): string {
+  return fa.translation.entitlements.packageLabels[code];
+}
+
+function formatAccessDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+}
+
 const styles = StyleSheet.create({
   accountContact: {
     color: fiticianTokens.colors.muted,
@@ -239,6 +270,45 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
     textAlign: "right",
     writingDirection: "ltr",
+  },
+  accessSummary: {
+    alignItems: "center",
+    backgroundColor: fiticianTokens.colors.surface,
+    borderColor: fiticianTokens.colors.line,
+    borderRadius: fiticianTokens.radii.large,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: fiticianTokens.spacing[3],
+    justifyContent: "space-between",
+    padding: fiticianTokens.spacing[3],
+  },
+  accessSummaryCopy: {
+    alignItems: "stretch",
+    flex: 1,
+    gap: fiticianTokens.spacing[1],
+  },
+  accessSummaryEyebrow: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  accessSummarySubtitle: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    lineHeight: 19,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  accessSummaryTitle: {
+    color: fiticianTokens.colors.ink,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.body,
+    fontWeight: fiticianTokens.typography.fontWeight.bold,
+    textAlign: "auto",
+    writingDirection: "rtl",
   },
   logout: {
     width: "100%",
