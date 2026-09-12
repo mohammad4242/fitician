@@ -1631,8 +1631,15 @@ def update_meal_feedback(
 def preview_meal_removal(
     plan_id: UUID, meal_id: UUID, db: DatabaseSession, user: CurrentUser
 ) -> MealRemovalPreviewResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
-        return preview_remove_meal(db, user.id, plan_id, meal_id)
+        return preview_remove_meal(
+            db,
+            user.id,
+            plan_id,
+            meal_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
+        )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
 
@@ -1645,9 +1652,15 @@ def preview_meal_removal(
 def confirm_meal_removal(
     plan_id: UUID, payload: RemoveMealConfirmationInput, db: DatabaseSession, user: CurrentUser
 ) -> WeeklyPlanResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return confirm_remove_meal(
-            db, user.id, plan_id, payload.expected_plan_revision_id, payload.meal_id
+            db,
+            user.id,
+            plan_id,
+            payload.expected_plan_revision_id,
+            payload.meal_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -1660,9 +1673,15 @@ def confirm_meal_removal(
 def preview_meal_replacement(
     plan_id: UUID, payload: ReplaceMealInput, db: DatabaseSession, user: CurrentUser
 ) -> MealReplacementPreviewResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return preview_replace_meal(
-            db, user.id, plan_id, payload.meal_id, payload.replacement_meal_id
+            db,
+            user.id,
+            plan_id,
+            payload.meal_id,
+            payload.replacement_meal_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -1676,6 +1695,7 @@ def preview_meal_replacement(
 def confirm_meal_replacement(
     plan_id: UUID, payload: ReplaceMealInput, db: DatabaseSession, user: CurrentUser
 ) -> WeeklyPlanResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return confirm_replace_meal(
             db,
@@ -1684,6 +1704,7 @@ def confirm_meal_replacement(
             payload.expected_plan_revision_id,
             payload.meal_id,
             payload.replacement_meal_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -1696,9 +1717,16 @@ def confirm_meal_replacement(
 def preview_food_replacement(
     plan_id: UUID, payload: ReplaceFoodInput, db: DatabaseSession, user: CurrentUser
 ) -> FoodReplacementPreviewResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return preview_replace_food(
-            db, user.id, plan_id, payload.meal_id, payload.food_id, payload.replacement_food_id
+            db,
+            user.id,
+            plan_id,
+            payload.meal_id,
+            payload.food_id,
+            payload.replacement_food_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -1712,6 +1740,7 @@ def preview_food_replacement(
 def confirm_food_replacement(
     plan_id: UUID, payload: ReplaceFoodInput, db: DatabaseSession, user: CurrentUser
 ) -> WeeklyPlanResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return confirm_replace_food(
             db,
@@ -1721,6 +1750,7 @@ def confirm_food_replacement(
             payload.meal_id,
             payload.food_id,
             payload.replacement_food_id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -1734,9 +1764,15 @@ def confirm_food_replacement(
 def regenerate_plan_partially(
     plan_id: UUID, payload: PartialRegenerationInput, db: DatabaseSession, user: CurrentUser
 ) -> WeeklyPlanResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         return partial_regenerate(
-            db, user.id, plan_id, payload.expected_plan_revision_id, payload.day_indexes
+            db,
+            user.id,
+            plan_id,
+            payload.expected_plan_revision_id,
+            payload.day_indexes,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except PlanEditError as error:
         raise _plan_edit_error(error) from None
@@ -2061,6 +2097,7 @@ async def create_food_photo_estimate(
     accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
     language: str = Query(default="fa"),
 ) -> NutritionFoodPhotoEstimateResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_FOOD_PHOTO_ANALYZE)
     try:
         if idempotency_key is not None and not 8 <= len(idempotency_key) <= 128:
             raise FoodPhotoError("INVALID_IDEMPOTENCY_KEY")
@@ -2314,6 +2351,7 @@ async def create_lab_document(
     category: Annotated[str | None, Form()] = None,
     request_id: Annotated[UUID | None, Form()] = None,
 ) -> NutritionLabUploadResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_LABS_MANAGE)
     try:
         consume_rate_limit(
             db,
@@ -2669,6 +2707,7 @@ def acknowledge_supplement_order(
     db: DatabaseSession,
     user: CurrentUser,
 ) -> NutritionSupplementOrderResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_SUPPLEMENTS_MANAGE)
     try:
         return acknowledge_order(db, user.id, order_id, payload.adherence_note)
     except SupplementError as error:

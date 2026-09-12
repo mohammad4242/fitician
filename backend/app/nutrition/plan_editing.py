@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
@@ -291,7 +291,12 @@ def food_replacement_options(
 
 
 def preview_remove_meal(
-    db: Session, user_id: UUID, plan_id: UUID, meal_id: UUID
+    db: Session,
+    user_id: UUID,
+    plan_id: UUID,
+    meal_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
 ) -> dict[str, object]:
     plan = owned_plan(db, user_id, plan_id)
     meal = next((meal for day in plan.days for meal in day.meals if meal.id == meal_id), None)
@@ -308,7 +313,7 @@ def preview_remove_meal(
         "daily_delta": {key: -float(str(value)) for key, value in meal.nutrient_totals.items()},
         "weekly_cost_delta_irr": -meal.cost_irr,
         "new_warning_codes": ["MEAL_REMOVAL_MAY_REDUCE_ADEQUACY"],
-        "requires_physician_review": True,
+        "requires_physician_review": physician_review_allowed,
         "change_kind": "plan_defining",
     }
 
@@ -358,6 +363,7 @@ def _create_revision(
     operation: str,
     *,
     physician_id: UUID | None = None,
+    physician_review_allowed: bool = False,
 ) -> WeeklyPlanResponse:
     latest = (
         db.scalar(
@@ -370,6 +376,18 @@ def _create_revision(
     generation = db.get(NutritionPlanGeneration, plan.generation_id)
     if generation is None:
         raise PlanEditError("PLAN_GENERATION_NOT_FOUND")
+    review_required = physician_id is not None or physician_review_allowed
+    if not review_required:
+        db.execute(
+            update(NutritionWeeklyPlan)
+            .where(
+                NutritionWeeklyPlan.user_id == user_id,
+                NutritionWeeklyPlan.id != plan.id,
+                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
+            )
+            .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
+        )
+        db.flush()
     copied_generation = NutritionPlanGeneration(
         user_id=user_id,
         estimate_id=generation.estimate_id,
@@ -394,7 +412,11 @@ def _create_revision(
         revision=revision,
         supersedes_plan_id=plan.id,
         lineage_id=plan.lineage_id,
-        lifecycle_status=NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+        lifecycle_status=(
+            NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
+            if review_required
+            else NutritionPlanLifecycleStatus.ACTIVE
+        ),
         is_user_visible=True,
         start_date=plan.start_date,
         planner_policy_version=plan.planner_policy_version,
@@ -420,15 +442,21 @@ def _create_revision(
         nutrients=[
             _recalculated_nutrient(row, days, plan.input_snapshot) for row in plan.nutrients
         ],
-        review=NutritionPlanPhysicianReview(
-            status=NutritionPlanReviewStatus.IN_REVIEW
-            if physician_id
-            else NutritionPlanReviewStatus.PENDING,
-            expected_plan_revision=revision,
-            physician_user_id=physician_id,
-            assigned_at=datetime.now(UTC) if physician_id else None,
-            review_started_at=datetime.now(UTC) if physician_id else None,
-            structured_change_summary=[{"operation": operation, "source_plan_id": str(plan.id)}],
+        review=(
+            NutritionPlanPhysicianReview(
+                status=NutritionPlanReviewStatus.IN_REVIEW
+                if physician_id
+                else NutritionPlanReviewStatus.PENDING,
+                expected_plan_revision=revision,
+                physician_user_id=physician_id,
+                assigned_at=datetime.now(UTC) if physician_id else None,
+                review_started_at=datetime.now(UTC) if physician_id else None,
+                structured_change_summary=[
+                    {"operation": operation, "source_plan_id": str(plan.id)}
+                ],
+            )
+            if review_required
+            else None
         ),
     )
     if plan.review and plan.review.status in {
@@ -443,7 +471,7 @@ def _create_revision(
         plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
     db.add(new_plan)
     db.flush()
-    if physician_id is None:
+    if review_required and physician_id is None:
         review = new_plan.review
         if review is None:
             raise PlanEditError("NUTRITION_REVIEW_NOT_CREATED")
@@ -550,6 +578,7 @@ def confirm_remove_meal(
     meal_id: UUID,
     *,
     physician_id: UUID | None = None,
+    physician_review_allowed: bool = False,
 ) -> WeeklyPlanResponse:
     plan = owned_plan(db, user_id, plan_id, lock=True)
     if plan.id != expected_plan_revision_id:
@@ -577,11 +606,25 @@ def confirm_remove_meal(
                 meals=meals,
             )
         )
-    return _create_revision(db, plan, user_id, days, "remove_meal", physician_id=physician_id)
+    return _create_revision(
+        db,
+        plan,
+        user_id,
+        days,
+        "remove_meal",
+        physician_id=physician_id,
+        physician_review_allowed=physician_review_allowed,
+    )
 
 
 def preview_replace_meal(
-    db: Session, user_id: UUID, plan_id: UUID, meal_id: UUID, replacement_meal_id: UUID
+    db: Session,
+    user_id: UUID,
+    plan_id: UUID,
+    meal_id: UUID,
+    replacement_meal_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
 ) -> dict[str, object]:
     plan = owned_plan(db, user_id, plan_id)
     meals = {meal.id: meal for day in plan.days for meal in day.meals}
@@ -599,7 +642,7 @@ def preview_replace_meal(
         "replacement_meal_id": replacement.id,
         "daily_delta": _delta(target.nutrient_totals, replacement.nutrient_totals),
         "weekly_cost_delta_irr": replacement.cost_irr - target.cost_irr,
-        "requires_physician_review": True,
+        "requires_physician_review": physician_review_allowed,
         "change_kind": "plan_defining",
     }
 
@@ -611,6 +654,8 @@ def confirm_replace_meal(
     expected_plan_revision_id: UUID,
     meal_id: UUID,
     replacement_meal_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
 ) -> WeeklyPlanResponse:
     plan = owned_plan(db, user_id, plan_id, lock=True)
     _assert_editable(plan, expected_plan_revision_id)
@@ -633,7 +678,14 @@ def confirm_replace_meal(
         )
         for day in plan.days
     ]
-    return _create_revision(db, plan, user_id, days, "replace_meal")
+    return _create_revision(
+        db,
+        plan,
+        user_id,
+        days,
+        "replace_meal",
+        physician_review_allowed=physician_review_allowed,
+    )
 
 
 def preview_replace_food(
@@ -643,6 +695,8 @@ def preview_replace_food(
     meal_id: UUID,
     food_id: UUID,
     replacement_food_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
 ) -> dict[str, object]:
     plan = owned_plan(db, user_id, plan_id)
     meal = next((meal for day in plan.days for meal in day.meals if meal.id == meal_id), None)
@@ -672,7 +726,7 @@ def preview_replace_food(
         "replacement_food_id": replacement.food_id,
         "meal_delta": _delta(target.nutrient_snapshot, scaled.nutrient_snapshot),
         "cost_delta_irr": scaled.cost_irr - target.cost_irr,
-        "requires_physician_review": True,
+        "requires_physician_review": physician_review_allowed,
         "change_kind": "plan_defining",
     }
 
@@ -687,6 +741,7 @@ def confirm_replace_food(
     replacement_food_id: UUID,
     *,
     physician_id: UUID | None = None,
+    physician_review_allowed: bool = False,
 ) -> WeeklyPlanResponse:
     plan = owned_plan(db, user_id, plan_id, lock=True)
     if physician_id is None:
@@ -756,6 +811,7 @@ def confirm_replace_food(
         days,
         "replace_food",
         physician_id=physician_id,
+        physician_review_allowed=physician_review_allowed,
     )
 
 
@@ -765,6 +821,8 @@ def partial_regenerate(
     plan_id: UUID,
     expected_plan_revision_id: UUID,
     day_indexes: list[int],
+    *,
+    physician_review_allowed: bool = False,
 ) -> WeeklyPlanResponse:
     plan = owned_plan(db, user_id, plan_id, lock=True)
     _assert_editable(plan, expected_plan_revision_id)
@@ -792,7 +850,14 @@ def partial_regenerate(
         _copy_day(day, lambda meal, index=day.day_index: transform_for(index, meal))
         for day in plan.days
     ]
-    return _create_revision(db, plan, user_id, days, "partial_regeneration")
+    return _create_revision(
+        db,
+        plan,
+        user_id,
+        days,
+        "partial_regeneration",
+        physician_review_allowed=physician_review_allowed,
+    )
 
 
 def _assert_editable(plan: NutritionWeeklyPlan, expected: UUID) -> None:
