@@ -24,11 +24,24 @@ const nutritionApi = vi.hoisted(() => ({
   getDailyTracking: vi.fn(),
   getCurrentNutritionEstimate: vi.fn(),
 }));
+const entitlements = vi.hoisted(() => ({
+  value: {
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: vi.fn(() => true),
+    quotaFor: vi.fn(() => null),
+  },
+}));
 
 vi.mock("../features/auth/AuthContext", () => ({ useAuth: () => auth }));
 vi.mock("../features/profile/ProfileContext", () => ({ useProfile: () => profile }));
 vi.mock("../features/workouts/api", () => workoutApi);
 vi.mock("../features/nutrition/api", () => nutritionApi);
+vi.mock("../features/entitlements/EntitlementContext", () => ({
+  useEntitlements: () => entitlements.value,
+}));
 vi.mock("../shared/AuthenticatedHeader", () => ({ AuthenticatedHeader: () => null }));
 
 import "../i18n";
@@ -40,6 +53,8 @@ beforeEach(() => {
   nutritionApi.getLatestWeeklyNutritionPlan.mockReset();
   nutritionApi.getDailyTracking.mockReset();
   nutritionApi.getCurrentNutritionEstimate.mockReset();
+  entitlements.value.hasEntitlement.mockReset();
+  entitlements.value.hasEntitlement.mockReturnValue(true);
   nutritionApi.getLatestWeeklyNutritionPlan.mockResolvedValue(null);
   nutritionApi.getDailyTracking.mockRejectedValue(new Error("not tracked"));
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue(null);
@@ -169,6 +184,16 @@ it("starts generating a plan when the member has no active plan", async () => {
   await user.click(await screen.findByRole("button", { name: "شروع کن" }));
 
   expect(workoutApi.generateWorkoutPlan).toHaveBeenCalledOnce();
+});
+
+it("does not start workout generation without the entitlement", async () => {
+  entitlements.value.hasEntitlement.mockReturnValue(false);
+  workoutApi.getActiveWorkoutPlan.mockResolvedValue(null);
+
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+  expect(await screen.findByText("این قابلیت در دسترسی فعلی تو نیست.")).toBeInTheDocument();
+  expect(workoutApi.generateWorkoutPlan).not.toHaveBeenCalled();
 });
 
 it("links the primary CTA to the active workout plan", async () => {

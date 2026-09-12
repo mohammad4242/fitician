@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import bodyAnalysisImage from "../assets/landing/body.webp";
 import foodAnalysisImage from "../assets/landing/food.webp";
 import { useAuth } from "../features/auth/AuthContext";
+import { useEntitlements } from "../features/entitlements/EntitlementContext";
 import { ExerciseMedia } from "../features/exercises/ExerciseMedia";
 import { getCurrentNutritionEstimate, getDailyTracking, getLatestWeeklyNutritionPlan } from "../features/nutrition/api";
 import type { DailyTrackingSummary, NutritionEstimate, WeeklyPlan } from "../features/nutrition/types";
@@ -33,6 +34,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, productMode } = useProfile();
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
+  const canGenerateWorkout = hasEntitlement("training.plan.generate");
   const hasTraining = productMode === undefined || productMode === "training" || productMode === "both";
   const hasNutrition = productMode === "nutrition" || productMode === "both";
   const [planState, setPlanState] = useState<PlanState>("loading");
@@ -77,7 +80,7 @@ export function DashboardPage() {
           setNutritionEstimate(estimate);
           setDailyTracking(tracking);
           setNutritionState(latestPlan !== null
-            ? latestPlan.physician_approved ? "ready" : "pending"
+            ? latestPlan.physician_review_required === true && !latestPlan.physician_approved ? "pending" : "ready"
             : estimate !== null ? "ready" : "empty");
         }
       })
@@ -88,6 +91,7 @@ export function DashboardPage() {
   if (user === null) return null;
 
   function startWorkout() {
+    if (!canGenerateWorkout || entitlementsLoading) return;
     setGenerating(true);
     void generateWorkoutPlan()
       .then(() => navigate("/workout-plan"))
@@ -165,7 +169,13 @@ export function DashboardPage() {
                   {nextDay.exercises[0]?.exercise.media_path && <div className="command-card__media"><ExerciseMedia ambient path={nextDay.exercises[0].exercise.media_path} name={english ? nextDay.exercises[0].exercise.name_en : nextDay.exercises[0].exercise.name_fa} mediaType={nextDay.exercises[0].exercise.media_type} /></div>}
                 </>
               ) : planDuration !== undefined ? <p className="command-card__context">{t("dashboard.planDuration", { count: planDuration.toLocaleString(locale) })}</p> : null}
-              <PrimaryAction state={planState} generating={generating} onStart={startWorkout} />
+              <PrimaryAction
+                accessLoading={entitlementsLoading}
+                canGenerate={canGenerateWorkout}
+                state={planState}
+                generating={generating}
+                onStart={startWorkout}
+              />
             </article>
           )}
 
@@ -235,10 +245,30 @@ function formatMetric(value: number | null | undefined, format: (value: number) 
   return value === null || value === undefined ? "—" : `${format(value)}g`;
 }
 
-function PrimaryAction({ state, generating, onStart }: { state: PlanState; generating: boolean; onStart: () => void }) {
+function PrimaryAction({
+  accessLoading,
+  canGenerate,
+  state,
+  generating,
+  onStart,
+}: {
+  accessLoading: boolean;
+  canGenerate: boolean;
+  state: PlanState;
+  generating: boolean;
+  onStart: () => void;
+}) {
   const { t } = useTranslation();
   if (state === "ready") {
     return <Link className="fitsho-button command-card__action" to="/workout-plan">{t("dashboard.start")}</Link>;
+  }
+  if (!accessLoading && !canGenerate) {
+    return (
+      <div className="command-card__locked" role="status">
+        <strong>{t("entitlements.lockedAction")}</strong>
+        <small>{t("entitlements.upgradeHint")}</small>
+      </div>
+    );
   }
   return (
     <button className="fitsho-button command-card__action" type="button" onClick={onStart} disabled={state === "loading" || generating}>

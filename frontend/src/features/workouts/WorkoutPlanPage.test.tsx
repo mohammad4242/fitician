@@ -24,9 +24,22 @@ const profileApi = vi.hoisted(() => ({
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
 }));
+const entitlements = vi.hoisted(() => ({
+  value: {
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: vi.fn(() => true),
+    quotaFor: vi.fn(() => null),
+  },
+}));
 
 vi.mock("./api", () => api);
 vi.mock("../profile/api", () => profileApi);
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => entitlements.value,
+}));
 vi.mock("../../shared/AuthenticatedHeader", () => ({
   AuthenticatedHeader: () => <header>Fitsho</header>,
 }));
@@ -157,6 +170,8 @@ beforeEach(() => {
   api.saveCurrentWeeklyCheckIn.mockReset();
   profileApi.getProfile.mockReset();
   profileApi.updateProfile.mockReset();
+  entitlements.value.hasEntitlement.mockReset();
+  entitlements.value.hasEntitlement.mockReturnValue(true);
   api.getWorkoutPlanHistory.mockResolvedValue([]);
   api.deleteWorkoutPlan.mockResolvedValue(undefined);
   api.generateWorkoutPlan.mockResolvedValue({ plan, reused: false });
@@ -664,6 +679,17 @@ it("shows the fixed start guide and a generate action when no plan exists", asyn
   await user.click(screen.getByRole("button", { name: "ساخت برنامه" }));
 
   expect(api.generateWorkoutPlan).toHaveBeenCalledOnce();
+});
+
+it("keeps the empty workout state visible but locks generation without access", async () => {
+  entitlements.value.hasEntitlement.mockReturnValue(false);
+  api.getActiveWorkoutPlan.mockResolvedValue(null);
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByText("این قابلیت در دسترسی فعلی تو نیست.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "ساخت برنامه" })).toBeDisabled();
+  expect(api.generateWorkoutPlan).not.toHaveBeenCalled();
 });
 
 it("shows plan context without cinematic background media", async () => {

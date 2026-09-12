@@ -44,7 +44,7 @@ it("shows the five primary combined-mode destinations", () => {
 });
 
 it.each([
-  ["nutrition", ["امروز", "تغذیه", "بیشتر"], ["تمرین", "Body Analysis"]],
+  ["nutrition", ["امروز", "تغذیه", "Body Analysis", "بیشتر"], ["تمرین"]],
   ["training", ["امروز", "تمرین", "Body Analysis", "بیشتر"], ["تغذیه"]],
 ] as const)("shows capability-aware links for %s mode", (productMode, visibleLabels, hiddenLabels) => {
   vi.spyOn(profileContextModule, "useOptionalProfile").mockReturnValue({

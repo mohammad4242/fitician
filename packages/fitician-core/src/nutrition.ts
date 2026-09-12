@@ -154,6 +154,8 @@ export type WeeklyPlan = {
   is_user_visible: boolean;
   plan_role?: "budget" | "ideal" | string | null;
   physician_approved: boolean;
+  physician_review_required: boolean;
+  physician_review_status: string | null;
   review_status: string;
   physician_approved_at: string | null;
   physician_display_name: string | null;

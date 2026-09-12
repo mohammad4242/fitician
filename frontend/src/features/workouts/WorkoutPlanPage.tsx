@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { ApiError } from "../../shared/apiClient";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getProfile, updateProfile } from "../profile/api";
 import type { WorkoutGenerationMethod } from "../profile/types";
 import { ExerciseMedia } from "../exercises/ExerciseMedia";
@@ -32,6 +33,7 @@ type PlanState = "loading" | "empty" | "ready" | "error";
 type WorkoutPlanSummaryStatus = "active" | "pending" | "inactive";
 type GenerationError =
   | "cooldown"
+  | "entitlement"
   | "failed"
   | "bodyweight_level"
   | "bodyweight_days"
@@ -66,6 +68,7 @@ function getWorkoutPlanSummaryStatus(plan: WorkoutPlan, historical: boolean): Wo
 }
 
 function generationErrorMessageKey(error: GenerationError): string {
+  if (error === "entitlement") return "entitlements.lockedAction";
   if (error === "cooldown") return "workoutPlan.generateCooldown";
   if (error === "bodyweight_level") return "workoutPlan.bodyweightLevelUnsupported";
   if (error === "bodyweight_days") return "workoutPlan.bodyweightDaysUnsupported";
@@ -108,6 +111,8 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [savingGenerationMethod, setSavingGenerationMethod] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
+  const canGenerate = hasEntitlement("training.plan.generate");
   const isEnglish = i18n.resolvedLanguage === "en";
   const l = (fa: string, en: string) => isEnglish ? en : fa;
   const pendingVersionId = history.find((version) => version.status === "pending_review")?.id ?? null;
@@ -160,6 +165,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   }
 
   function generate() {
+    if (entitlementsLoading || !canGenerate || generating) return;
     setGenerating(true);
     setReused(false);
     setGenerationError(null);
@@ -187,6 +193,8 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
       .catch((error: unknown) => {
         const errorKind = error instanceof ApiError && error.status === 429
           ? "cooldown"
+          : error instanceof ApiError && error.status === 403
+            ? "entitlement"
           : error instanceof ApiError && error.code !== null
             ? bodyweightGenerationErrors[error.code] ?? "failed"
             : "failed";
@@ -291,8 +299,11 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               generating={generating}
               onClick={generate}
               update
-              disabled={generationError === "cooldown"}
+              disabled={entitlementsLoading || !canGenerate || generationError === "cooldown"}
             />
+          )}
+          {state === "ready" && currentPlan !== null && !isViewingHistorical && !entitlementsLoading && !canGenerate && (
+            <AccessLockedNotice />
           )}
         </div>
 
@@ -340,8 +351,9 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
                 <GenerateButton
                   generating={generating}
                   onClick={generate}
-                  disabled={generationError === "cooldown"}
+                  disabled={entitlementsLoading || !canGenerate || generationError === "cooldown"}
                 />
+                {!entitlementsLoading && !canGenerate && <AccessLockedNotice />}
               </section>
             )}
           </>
@@ -829,6 +841,15 @@ function FixedGuidance() {
 function GenerateButton({ generating, onClick, update = false, disabled = false }: { generating: boolean; onClick: () => void; update?: boolean; disabled?: boolean }) {
   const { t } = useTranslation();
   return <button className="workout-generate" type="button" disabled={generating || disabled} onClick={onClick}>{generating ? t("workoutPlan.generating") : t(update ? "workoutPlan.update" : "workoutPlan.generate")}</button>;
+}
+
+function AccessLockedNotice() {
+  const { t } = useTranslation();
+  return (
+    <p className="workout-status" role="status">
+      <strong>{t("entitlements.lockedAction")}</strong> {t("entitlements.upgradeHint")}
+    </p>
+  );
 }
 
 function StatusPanel({ role, message, action, onAction }: { role: "status" | "alert"; message: string; action?: string; onAction?: () => void }) {

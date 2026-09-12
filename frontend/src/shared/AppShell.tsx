@@ -14,7 +14,7 @@ const navigation = [
   { to: "/dashboard", label: "header.today", icon: "home" },
   { to: "/workout-plan", label: "header.workoutPlan", icon: "dumbbell", capability: "training" },
   { to: "/nutrition-estimate", label: "header.nutritionTargets", icon: "nutrition", capability: "nutrition" },
-  { to: "/body-progress", label: "header.bodyProgress", icon: "progress", capability: "training" },
+  { to: "/body-progress", label: "header.bodyProgress", icon: "progress" },
   { to: "/more", label: "header.more", icon: "more" },
 ] as const;
 

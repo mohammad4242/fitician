@@ -44,6 +44,8 @@ const weeklyPlan: WeeklyPlan = {
   lifecycle_status: "pending_physician_review",
   is_user_visible: true,
   physician_approved: false,
+  physician_review_required: true,
+  physician_review_status: "pending",
   review_status: "pending",
   physician_approved_at: null,
   physician_display_name: null,
