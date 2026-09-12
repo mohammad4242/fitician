@@ -29,6 +29,15 @@ export type EntitlementContextValue = {
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
 
+const unavailableEntitlements: EntitlementContextValue = {
+  snapshot: null,
+  loading: false,
+  error: null,
+  retry: () => undefined,
+  hasEntitlement: () => false,
+  quotaFor: () => null,
+};
+
 type InFlightRequest = {
   userId: string;
   promise: Promise<EntitlementSnapshot>;
@@ -126,8 +135,5 @@ export function EntitlementProvider({ children }: { children: ReactNode }) {
 
 export function useEntitlements(): EntitlementContextValue {
   const context = useContext(EntitlementContext);
-  if (context === null) {
-    throw new Error("useEntitlements must be used within EntitlementProvider");
-  }
-  return context;
+  return context ?? unavailableEntitlements;
 }

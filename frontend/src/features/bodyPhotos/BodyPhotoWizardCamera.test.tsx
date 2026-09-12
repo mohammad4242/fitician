@@ -16,6 +16,23 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => true,
+    quotaFor: () => ({
+      entitlement: "body_analysis.run",
+      limit: 1,
+      used: 0,
+      remaining: 1,
+      window_days: 7,
+      reset_at: "2026-08-11T12:00:00Z",
+    }),
+  }),
+}));
 vi.mock("./BodyAnalysisRequirementsStep", async () => {
   const { useEffect } = await import("react");
   function MockRequirements({ onConfirmed }: { onConfirmed: () => void }) {
