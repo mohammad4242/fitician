@@ -15,6 +15,7 @@ jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 
 let mockConnectivityStatus: "online" | "offline" = "online";
 jest.mock("../platform/connectivity", () => ({
@@ -29,6 +30,7 @@ jest.mock("./nutritionPlanPdfStore", () => ({ ExpoNutritionPlanPdfStore: jest.fn
 
 import { useQuery } from "@tanstack/react-query";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { fiticianTokens } from "../ui/tokens";
 import { createNutritionPlanActionsApi } from "./nutritionPlanActionsApi";
 import { NutritionPlanSection } from "./NutritionPlanSection";
@@ -37,6 +39,7 @@ import { ExpoNutritionPlanPdfStore, type StoredNutritionPlanPdf } from "./nutrit
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreatePlanApi = jest.mocked(createNutritionPlanApi);
 const mockCreateActionsApi = jest.mocked(createNutritionPlanActionsApi);
 const mockPdfStoreConstructor = jest.mocked(ExpoNutritionPlanPdfStore);
@@ -109,6 +112,7 @@ const activePlan: WeeklyPlan = {
   },
   physician_approved: true,
   physician_approved_at: "2026-09-07T00:00:00Z",
+  physician_review_required: true,
   physician_change_summary: [],
   physician_display_name: null,
   physician_user_visible_notes: null,
@@ -237,6 +241,15 @@ beforeEach(() => {
   mockShoppingLoading = false;
   mockShoppingError = false;
   mockUseMobileAuth.mockReturnValue({ download: jest.fn(), request: jest.fn() } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement: string) => entitlement === "nutrition.plan.generate" || entitlement === "nutrition.plan.manage",
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  } as never);
   mockPdfGet.mockReset();
   mockPdfSave.mockReset();
   mockPdfGet.mockResolvedValue(null);
@@ -351,6 +364,23 @@ test("shows the pending physician card, notes, and change summary", async () => 
   expect(screen.getByText("کاهش هزینه هفتگی")).toBeTruthy();
   expect(findAncestorStyle(reviewText, "borderColor")).toMatchObject({ borderColor: fiticianTokens.colors.amber });
   expect(findAncestorStyle(reviewText, "backgroundColor")).toMatchObject({ backgroundColor: fiticianTokens.colors.warningSurface });
+});
+
+test("does not present a standard nutrition plan as waiting for a physician", async () => {
+  mockDisplayedPlan = {
+    ...activePlan,
+    lifecycle_status: "active",
+    physician_approved: false,
+    physician_approved_at: null,
+    physician_review_required: false,
+    review_status: "pending",
+  };
+  renderPlan();
+  await settlePdf();
+
+  expect(screen.getByText("بررسی پزشک لازم نیست")).toBeTruthy();
+  expect(screen.queryByText("در انتظار بررسی پزشک")).toBeNull();
+  expect(screen.queryByText("پیش‌نویس موقت؛ نیازمند بررسی پزشک")).toBeNull();
 });
 
 test("starts all three web sections collapsed and reveals their content independently", async () => {

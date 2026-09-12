@@ -9,6 +9,7 @@ import type { MultipartUploadRequest } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import { ExpoPrivateMediaStore } from "../media/privateMediaStore";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
@@ -68,6 +69,7 @@ export type NutritionClinicalMode = "all" | "labs" | "supplements";
 
 export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: NutritionClinicalMode } = {}) {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
   const api = useMemo(
@@ -102,6 +104,9 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
   const visibleOrders = orders.filter(
     (order) => supplementStatusFilter === "all" || order.status === supplementStatusFilter,
   );
+  const clinicalAccessReady = entitlements.snapshot !== null && !entitlements.loading;
+  const canManageLabs = clinicalAccessReady && entitlements.hasEntitlement("nutrition.labs.manage");
+  const canManageSupplements = clinicalAccessReady && entitlements.hasEntitlement("nutrition.supplements.manage");
   const upload = auth.upload;
   const [testDate, setTestDate] = useState("");
   const [laboratoryName, setLaboratoryName] = useState("");
@@ -139,6 +144,10 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
     selection: LabSelection,
     retryKey: string | undefined = labUploadKey,
   ): Promise<void> {
+    if (!canManageLabs) {
+      setLabUploadError("برای افزودن پرونده آزمایش، دسترسی مدیریت آزمایش لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند.");
+      return;
+    }
     if (connectivityStatus === "offline") {
       setLabUploadError("بارگذاری پرونده آزمایش در حالت آفلاین انجام نمی‌شود.");
       return;
@@ -182,6 +191,10 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
   }
 
   async function chooseLabFile(source: "image" | "document"): Promise<void> {
+    if (!canManageLabs) {
+      setLabUploadError("برای افزودن پرونده آزمایش، دسترسی مدیریت آزمایش لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند.");
+      return;
+    }
     setLabUploadError(null);
     setLabUploadNotice(null);
     try {
@@ -288,6 +301,10 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
   }
 
   async function acknowledge(order: NutritionSupplementOrder): Promise<void> {
+    if (!canManageSupplements) {
+      setSupplementError("برای ثبت تأیید دستور مکمل، دسترسی مدیریت مکمل لازم است. دستورهای قبلی همچنان قابل مشاهده‌اند.");
+      return;
+    }
     const safety = supplementSafetyPresentation(order.combined_exposure_safety);
     if (safety.blocked) {
       setSupplementError(safety.message);
@@ -328,7 +345,8 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
             note={userNote}
             selectedFile={selectedFile}
             testDate={testDate}
-            disabled={labUploading || connectivityStatus === "offline"}
+            disabled={labUploading || connectivityStatus === "offline" || !canManageLabs}
+            disabledMessage={clinicalAccessReady && !canManageLabs ? "برای افزودن پرونده آزمایش، دسترسی مدیریت آزمایش لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند." : undefined}
           />
 
           <LabRequestsCard requests={requests} state={requestsState} />
@@ -347,6 +365,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
       {mode !== "labs" ? (
         <>
           <SupplementOrdersCard
+            canManage={canManageSupplements}
             error={supplementError}
             onAcknowledge={(order) => void acknowledge(order)}
             onStatusFilterChange={setSupplementStatusFilter}
@@ -380,6 +399,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
 function LabUploadCard({
   category,
   disabled,
+  disabledMessage,
   error,
   laboratoryName,
   loading,
@@ -397,6 +417,7 @@ function LabUploadCard({
 }: {
   readonly category: string;
   readonly disabled: boolean;
+  readonly disabledMessage?: string;
   readonly error: string | null;
   readonly laboratoryName: string;
   readonly loading: boolean;
@@ -454,7 +475,8 @@ function LabUploadCard({
       {selectedFile !== null ? <Text style={styles.fileName}>فایل انتخاب‌شده: {selectedFile.name}</Text> : null}
       {error !== null ? <Notice actionLabel={onRetry ? "تلاش دوباره" : undefined} message={error} onAction={onRetry} variant="danger" /> : null}
       {notice !== null ? <Notice message={notice} variant="success" /> : null}
-      {disabled && !loading ? <Notice message="برای بارگذاری پرونده آزمایش به اینترنت وصل شو." variant="offline" /> : null}
+      {disabledMessage !== undefined ? <Notice message={disabledMessage} variant="warning" /> : null}
+      {disabled && !loading && disabledMessage === undefined ? <Notice message="برای بارگذاری پرونده آزمایش به اینترنت وصل شو." variant="offline" /> : null}
     </Card>
   );
 }
@@ -557,6 +579,7 @@ function LabDocumentsCard({
 }
 
 function SupplementOrdersCard({
+  canManage,
   error,
   onAcknowledge,
   onStatusFilterChange,
@@ -566,6 +589,7 @@ function SupplementOrdersCard({
   statusFilter,
   totalOrders,
 }: {
+  readonly canManage: boolean;
   readonly error: string | null;
   readonly onAcknowledge: (order: NutritionSupplementOrder) => void;
   readonly onStatusFilterChange: (value: SupplementStatusFilter) => void;
@@ -636,7 +660,7 @@ function SupplementOrdersCard({
                   </Text>
                 </DisclosureCard>
                 {!safety.blocked && !order.acknowledged_at ? (
-                  <Button label="دستور را دیدم" onPress={() => onAcknowledge(order)} />
+                  <Button disabled={!canManage} label="دستور را دیدم" onPress={() => onAcknowledge(order)} />
                 ) : null}
                 {order.acknowledged_at ? <Text style={styles.statusText}>تأیید عضو ثبت شده است.</Text> : null}
               </View>

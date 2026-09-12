@@ -8,6 +8,7 @@ import type { components, MultipartUploadRequest } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../ui/rtl";
@@ -69,6 +70,7 @@ const entrySourceOptions: readonly (EntrySource | "all")[] = [
 
 export function NutritionTrackingSection() {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
   const entryDate = useMemo(todayIsoDate, []);
@@ -102,6 +104,8 @@ export function NutritionTrackingSection() {
   const recentFoods = stateData(recentState) ?? [];
   const catalogueFoods = stateData(catalogueState)?.items ?? [];
   const estimate = stateData(estimateState) ?? null;
+  const photoAccessReady = entitlements.snapshot !== null && !entitlements.loading;
+  const canAnalyzePhoto = photoAccessReady && entitlements.hasEntitlement("nutrition.food_photo.analyze");
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus | null>(null);
@@ -325,6 +329,10 @@ export function NutritionTrackingSection() {
   }
 
   async function choosePhoto(source: "camera" | "gallery"): Promise<void> {
+    if (!canAnalyzePhoto) {
+      setPhotoError("برای تحلیل عکس غذا، دسترسی تحلیل تصویری لازم است. ثبت دستی همچنان در دسترس است.");
+      return;
+    }
     if (!photoConsent) {
       setPhotoError("برای تخمین عکس، رضایت پردازش عکس را فعال کن.");
       return;
@@ -541,6 +549,7 @@ export function NutritionTrackingSection() {
         <FoodPhotoCard
           actionBusy={photoActionBusy}
           amounts={photoAmounts}
+          canAnalyze={canAnalyzePhoto}
           catalogueFoods={catalogueFoods}
           consent={photoConsent}
           estimate={photoEstimate}
@@ -932,6 +941,7 @@ function FoodSelector({
 function FoodPhotoCard({
   actionBusy,
   amounts,
+  canAnalyze,
   catalogueFoods,
   consent,
   estimate,
@@ -952,6 +962,7 @@ function FoodPhotoCard({
 }: {
   readonly actionBusy: boolean;
   readonly amounts: Readonly<Record<string, string>>;
+  readonly canAnalyze: boolean;
   readonly catalogueFoods: readonly FoodCatalogueItem[];
   readonly consent: boolean;
   readonly estimate: NutritionFoodPhotoEstimate | null;
@@ -1003,6 +1014,9 @@ function FoodPhotoCard({
       </View>
 
       <Text style={styles.photoDisclosure}>عکس فقط برای شناسایی تقریبی غذا از طریق سرویس هوش مصنوعی تنظیم‌شده پردازش می‌شود؛ اطلاعات حساب یا پزشکی همراه آن ارسال نمی‌شود.</Text>
+      {!canAnalyze ? (
+        <Notice message="تحلیل خودکار عکس غذا در دسترسی فعلی فعال نیست. ثبت دستی و مشاهده یا مدیریت نتایج قبلی همچنان در دسترس است." variant="warning" />
+      ) : null}
       <Pressable
         accessibilityLabel="با پردازش عکس توسط سرویس ثالث موافقم"
         accessibilityRole="checkbox"
@@ -1018,8 +1032,8 @@ function FoodPhotoCard({
       </Pressable>
 
       <View style={[styles.photoActions, RTL_ROW]}>
-        <PhotoSourceButton disabled={uploading || !consent} icon="camera" label="گرفتن عکس" onPress={onPickCamera} />
-        <PhotoSourceButton disabled={uploading || !consent} icon="foodLog" label="انتخاب از گالری" onPress={onPickGallery} />
+        <PhotoSourceButton disabled={uploading || !consent || !canAnalyze} icon="camera" label="گرفتن عکس" onPress={onPickCamera} />
+        <PhotoSourceButton disabled={uploading || !consent || !canAnalyze} icon="foodLog" label="انتخاب از گالری" onPress={onPickGallery} />
       </View>
 
       {history.length > 0 ? (

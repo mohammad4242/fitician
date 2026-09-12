@@ -24,6 +24,7 @@ jest.mock("expo-image-picker", () => ({
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../ui/navigation/BackBehaviorProvider", () => ({ useAndroidBackHandler: jest.fn() }));
 jest.mock("./nutritionTrackingApi", () => ({ createNutritionTrackingApi: jest.fn() }));
 jest.mock("./nutritionCatalogueApi", () => ({ createNutritionCatalogueApi: jest.fn() }));
@@ -32,6 +33,7 @@ jest.mock("./nutritionApi", () => ({ createNutritionApi: jest.fn() }));
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createNutritionCatalogueApi } from "./nutritionCatalogueApi";
 import { createNutritionApi } from "./nutritionApi";
 import { NutritionTrackingSection } from "./NutritionTrackingSection";
@@ -40,6 +42,7 @@ import { createNutritionTrackingApi } from "./nutritionTrackingApi";
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseQueryClient = jest.mocked(useQueryClient);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreateCatalogueApi = jest.mocked(createNutritionCatalogueApi);
 const mockCreateNutritionApi = jest.mocked(createNutritionApi);
 const mockCreateTrackingApi = jest.mocked(createNutritionTrackingApi);
@@ -208,6 +211,7 @@ type TrackingApiDouble = {
 
 let trackingApi: TrackingApiDouble;
 let currentDailyTracking: typeof dailyTracking | typeof dailyTrackingWithEntry;
+let photoEntitled = true;
 const mockUpload = jest.fn<() => Promise<unknown>>();
 
 function renderTracking() {
@@ -239,6 +243,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date("2026-09-09T08:00:00.000Z"));
   currentDailyTracking = dailyTracking;
+  photoEntitled = true;
   mockCreateTrackingApi.mockClear();
   mockCreateCatalogueApi.mockClear();
   mockCreateNutritionApi.mockClear();
@@ -267,6 +272,15 @@ beforeEach(() => {
     download: jest.fn(),
     request: jest.fn(),
     upload: mockUpload,
+  } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement: string) => entitlement !== "nutrition.food_photo.analyze" || photoEntitled,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
   } as never);
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
@@ -427,6 +441,27 @@ test("keeps photo consent required and styles the camera/gallery controls as pho
   expect(consent.props.accessibilityState).toMatchObject({ checked: true });
   expect(camera.props.accessibilityState.disabled).toBe(false);
   expect(gallery.props.accessibilityState.disabled).toBe(false);
+});
+
+test("locks only photo analysis while keeping manual tracking available", () => {
+  photoEntitled = false;
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: (entitlement: string) => entitlement !== "nutrition.food_photo.analyze",
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  } as never);
+  renderTracking();
+
+  fireEvent.press(screen.getByRole("button", { name: "ثبت دستی" }));
+  expect(screen.getByTestId("nutrition-manual-entry-panel")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "عکس وعده" }));
+  expect(screen.getByText("تحلیل خودکار عکس غذا در دسترسی فعلی فعال نیست. ثبت دستی و مشاهده یا مدیریت نتایج قبلی همچنان در دسترس است.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "گرفتن عکس" }).props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "ثبت دستی" })).toBeTruthy();
 });
 
 test("camera and gallery sources keep invoking the existing upload workflow and show the selected preview", async () => {

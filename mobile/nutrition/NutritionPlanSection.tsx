@@ -4,6 +4,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-na
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, Sheet, Skeleton } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
@@ -83,6 +84,7 @@ const planWarningMessages: Readonly<Record<string, string>> = {
 
 export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecision | null }) {
   const auth = useMobileAuth();
+  const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
   const api = useMemo(
@@ -134,7 +136,10 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
   const displayedPlan = selectedPlanId === null ? primarySelection.plan : selectedPlan;
   const historical = selectedPlanId !== null && selectedPlanId !== activePlan?.id;
   const offline = connectivityStatus === "offline";
-  const canGenerate = canGenerateNutritionEstimate(safety) && !offline;
+  const entitlementStateReady = entitlements.snapshot !== null && !entitlements.loading;
+  const canGeneratePlan = entitlementStateReady && entitlements.hasEntitlement("nutrition.plan.generate");
+  const canManagePlan = entitlementStateReady && entitlements.hasEntitlement("nutrition.plan.manage");
+  const canGenerate = canGenerateNutritionEstimate(safety) && canGeneratePlan && !offline;
   const generate = useMutation({
     mutationFn: api.generate,
     onError: (error: unknown) => setGenerationError(nutritionPlanErrorMessage(error)),
@@ -209,7 +214,7 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
       ) : null}
       <BundleChoice
         bundle={bundle}
-        disabled={!canGenerate || selectBundle.isPending}
+        disabled={!canManagePlan || selectBundle.isPending}
         onSelect={(role) => {
           if (bundle?.bundle_id === null || bundle?.bundle_id === undefined) return;
           setGenerationError(null);
@@ -221,6 +226,7 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
         <NutritionPlanCard
           api={api}
           actionsApi={actionsApi}
+          canManagePlan={canManagePlan}
           connectivityStatus={connectivityStatus}
           historical={historical}
           onPlanUpdated={handlePlanUpdated}
@@ -238,7 +244,7 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
 
       {displayedPlan === null && !loading && !loadError && !noPlanOffline ? (
         <EmptyState
-          actionLabel={canGenerate ? "ساخت برنامه غذایی" : "ارزیابی ایمنی لازم است"}
+          actionLabel={canGenerate ? "ساخت برنامه غذایی" : canGeneratePlan ? "ارزیابی ایمنی لازم است" : "دسترسی ساخت لازم است"}
           onAction={canGenerate ? startGeneration : undefined}
           title="هنوز برنامه غذایی نداری"
         >
@@ -259,8 +265,11 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
         onPress={startGeneration}
         variant="secondary"
       />
-      {!canGenerate && safety !== null ? <Notice message="ساخت برنامه تا تأیید ادامه مسیر ایمن انجام نمی‌شود." variant="warning" /> : null}
-      {!canGenerate && safety === null ? <Notice message="ابتدا ارزیابی ایمنی تغذیه را کامل کن." variant="warning" /> : null}
+      {entitlementStateReady && !canGeneratePlan ? (
+        <Notice message="برای ساخت نسخه جدید برنامه غذایی، دسترسی تغذیه هوشمند لازم است. نسخه‌های قبلی همچنان قابل مشاهده‌اند." variant="warning" />
+      ) : null}
+      {entitlementStateReady && canGeneratePlan && !canGenerate && safety !== null ? <Notice message="ساخت برنامه تا تأیید ادامه مسیر ایمن انجام نمی‌شود." variant="warning" /> : null}
+      {entitlementStateReady && canGeneratePlan && !canGenerate && safety === null ? <Notice message="ابتدا ارزیابی ایمنی تغذیه را کامل کن." variant="warning" /> : null}
     </View>
   );
 }
@@ -268,6 +277,7 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
 function NutritionPlanCard({
   actionsApi,
   api,
+  canManagePlan,
   connectivityStatus,
   historical,
   onPlanUpdated,
@@ -283,6 +293,7 @@ function NutritionPlanCard({
 }: {
   readonly actionsApi: NutritionPlanActionsApi;
   readonly api: NutritionPlanApi;
+  readonly canManagePlan: boolean;
   readonly connectivityStatus: ConnectivityStatus;
   readonly historical: boolean;
   readonly onPlanUpdated: (plan: WeeklyPlan) => void;
@@ -304,7 +315,8 @@ function NutritionPlanCard({
     queryKey: nutritionKeys.mealFeedback(plan.id),
   });
   const executable = isNutritionPlanExecutable(currentPlan, historical);
-  const editable = canEditNutritionPlan(currentPlan, historical, connectivityStatus === "offline")
+  const editable = canManagePlan
+    && canEditNutritionPlan(currentPlan, historical, connectivityStatus === "offline")
     && safety?.can_continue_onboarding === true;
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const selectedDay = currentPlan.days.find((day) => day.day_index === selectedDayIndex) ?? currentPlan.days[0] ?? null;
@@ -324,6 +336,9 @@ function NutritionPlanCard({
         <Text style={styles.eyebrow}>{planHeadingEyebrow(currentPlan, historical)}</Text>
         <Text accessibilityRole="header" style={styles.planTitle}>{planTitle(currentPlan)}</Text>
       </View>
+      {!historical && !canManagePlan ? (
+        <Notice message="دسترسی مدیریت نسخه فعلی منقضی یا غیرفعال است؛ محتوای برنامه و تاریخچه همچنان قابل مشاهده‌اند." variant="warning" />
+      ) : null}
       {historical ? <ReferencePlanNotice /> : <PhysicianReviewCard plan={currentPlan} />}
       <PlanMetadata plan={currentPlan} />
       {currentPlan.physician_user_visible_notes ? (
@@ -390,6 +405,21 @@ function NutritionPlanCard({
 }
 
 function PhysicianReviewCard({ plan }: { readonly plan: WeeklyPlan }) {
+  if (!plan.physician_review_required) {
+    return (
+      <View style={[styles.reviewCard, styles.reviewNotRequired]}>
+        <View style={[styles.reviewBadge, RTL_ROW]}>
+          <View style={[styles.doctorAvatar, styles.doctorAvatarNotRequired]}>
+            <Text style={styles.doctorEmoji}>✓</Text>
+          </View>
+          <View style={styles.reviewContent}>
+            <Text style={styles.reviewTitle}>بررسی پزشک لازم نیست</Text>
+            <Text style={styles.reviewSubtitle}>این نسخه طبق مسیر خودکار قابل استفاده است.</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
   const approved = plan.physician_approved && plan.review_status === "approved";
   return (
     <View style={[styles.reviewCard, approved ? styles.reviewApproved : styles.reviewPending]}>
@@ -2132,6 +2162,10 @@ const styles = StyleSheet.create({
     backgroundColor: fiticianTokens.colors.successSurface,
     borderColor: fiticianTokens.colors.success,
   },
+  doctorAvatarNotRequired: {
+    backgroundColor: fiticianTokens.colors.infoSurface,
+    borderColor: fiticianTokens.colors.aqua,
+  },
   reviewBadge: {
     alignItems: "center",
     gap: fiticianTokens.spacing[3],
@@ -2153,6 +2187,10 @@ const styles = StyleSheet.create({
   reviewPending: {
     backgroundColor: fiticianTokens.colors.warningSurface,
     borderColor: fiticianTokens.colors.amber,
+  },
+  reviewNotRequired: {
+    backgroundColor: fiticianTokens.colors.infoSurface,
+    borderColor: fiticianTokens.colors.aqua,
   },
   reviewSubtitle: {
     color: fiticianTokens.colors.muted,

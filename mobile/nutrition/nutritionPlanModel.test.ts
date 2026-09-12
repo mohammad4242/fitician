@@ -30,6 +30,7 @@ function plan(overrides: Partial<NutritionPlan> = {}): NutritionPlan {
     nutrients: {},
     physician_approved: true,
     physician_approved_at: "2026-09-07T00:00:00Z",
+    physician_review_required: true,
     physician_change_summary: [],
     physician_display_name: null,
     physician_user_visible_notes: null,
@@ -69,6 +70,7 @@ it("never marks historical or unapproved plans executable", () => {
   expect(isNutritionPlanExecutable(plan())).toBe(true);
   expect(isNutritionPlanExecutable(plan(), true)).toBe(false);
   expect(isNutritionPlanExecutable(plan({ physician_approved: false }))).toBe(false);
+  expect(isNutritionPlanExecutable(plan({ physician_review_required: false, physician_approved: false, review_status: "pending" }))).toBe(true);
   expect(isNutritionPlanExecutable(plan({ is_user_visible: false }))).toBe(false);
   expect(isNutritionPlanExecutable(plan({ lifecycle_status: "pending_physician_review" }))).toBe(false);
   expect(canEditNutritionPlan(plan(), false, false)).toBe(true);

@@ -22,7 +22,7 @@ export function currentWorkoutDay(plan: Pick<WorkoutPlan, "days"> | null | undef
 }
 
 export function nutritionSummary(
-  plan: Pick<WeeklyPlan, "days" | "physician_approved"> | null | undefined,
+  plan: Pick<WeeklyPlan, "days" | "physician_approved"> & Partial<Pick<WeeklyPlan, "physician_review_required">> | null | undefined,
   estimate: Pick<NutritionEstimate, "targets"> | null | undefined,
   tracking: Pick<NutritionDailyTracking, "actual_totals" | "check_in_status" | "data_status" | "entries"> | null | undefined,
   date: string,
@@ -42,7 +42,7 @@ export function nutritionSummary(
   );
   const actual = hasActual ? tracking?.actual_totals : null;
   const consumedCalories = numberValue(actual?.energy_kcal);
-  const status = plan !== null && plan !== undefined && !plan.physician_approved
+  const status = plan !== null && plan !== undefined && plan.physician_review_required === true && !plan.physician_approved
     ? "pending"
     : targetCalories === null
       ? "empty"

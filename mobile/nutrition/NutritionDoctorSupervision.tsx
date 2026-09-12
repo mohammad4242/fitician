@@ -14,20 +14,23 @@ const pendingStatuses = new Set([
 
 export function NutritionDoctorSupervision({ plan }: { readonly plan: WeeklyPlan | null }) {
   const router = useRouter();
-  const isPending = plan !== null
+  const reviewRequired = plan !== null && plan.physician_review_required === true;
+  const isPending = reviewRequired
     && !plan.physician_approved
     && (pendingStatuses.has(plan.review_status) || pendingStatuses.has(plan.lifecycle_status));
-  const isApproved = plan?.physician_approved === true
-    || ["physician_approved", "active"].includes(plan?.lifecycle_status ?? "");
+  const isApproved = reviewRequired && (plan?.physician_approved === true
+    || ["physician_approved", "active"].includes(plan?.lifecycle_status ?? ""));
   const approvalCopy = plan === null
     ? "پس از ساخت برنامه"
-    : isPending
+    : !reviewRequired
+      ? "بررسی پزشک لازم نیست"
+      : isPending
       ? "در انتظار تأیید پزشک"
       : isApproved
         ? "تأییدشده توسط پزشک"
         : "نیازمند بررسی";
   const guidanceCopy = plan?.physician_user_visible_notes
-    ?? (isPending ? "پس از بررسی پزشک" : "راهنمایی ثبت نشده");
+    ?? (!reviewRequired ? "این نسخه به بررسی پزشک نیاز ندارد" : isPending ? "پس از بررسی پزشک" : "راهنمایی ثبت نشده");
 
   return (
     <DisclosureCard

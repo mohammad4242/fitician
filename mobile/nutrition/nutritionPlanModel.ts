@@ -69,8 +69,7 @@ export function isNutritionPlanExecutable(plan: WeeklyPlan, historical = false):
   return !historical
     && plan.is_user_visible
     && plan.lifecycle_status === "active"
-    && plan.physician_approved
-    && plan.review_status === "approved";
+    && (!plan.physician_review_required || (plan.physician_approved && plan.review_status === "approved"));
 }
 
 export function canEditNutritionPlan(

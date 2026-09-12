@@ -40,3 +40,12 @@ test("shows the compact doctor card without inventing pending plan state", () =>
   fireEvent.press(screen.getByRole("button", { name: "آزمایشات من" }));
   expect(mockPush).toHaveBeenCalledWith("/member/nutrition-labs");
 });
+
+test("renders standard nutrition plans as not requiring physician review", () => {
+  render(<NutritionDoctorSupervision plan={{ physician_review_required: false } as never} />);
+
+  fireEvent.press(screen.getByRole("button", { name: "تحت نظر پزشک" }));
+  expect(screen.getByText("بررسی پزشک لازم نیست")).toBeTruthy();
+  expect(screen.queryByText("در انتظار تأیید پزشک")).toBeNull();
+  expect(screen.queryByText("در انتظار پزشک")).toBeNull();
+});

@@ -14,6 +14,7 @@ jest.mock("expo-image-picker", () => ({}));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
+jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../media/privateMediaStore", () => ({ ExpoPrivateMediaStore: class {} }));
 jest.mock("../platform/connectivity", () => ({
   connectivityMonitor: {
@@ -27,12 +28,14 @@ jest.mock("./nutritionTrackingApi", () => ({ createNutritionTrackingApi: jest.fn
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { NutritionClinicalSection } from "./NutritionClinicalSection";
 import { createNutritionTrackingApi } from "./nutritionTrackingApi";
 
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseQueryClient = jest.mocked(useQueryClient);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreateTrackingApi = jest.mocked(createNutritionTrackingApi);
 
 const order = {
@@ -92,6 +95,15 @@ beforeEach(() => {
     upload: jest.fn(),
     user: null,
   } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => true,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  } as never);
   mockUseQueryClient.mockReturnValue({ invalidateQueries: jest.fn() } as never);
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
@@ -119,4 +131,26 @@ test("shows clinical heading, status filter, and disclosure without changing sup
 
   fireEvent.press(screen.getByRole("radio", { name: "تمام‌شده" }));
   expect(screen.getByText("موردی با این وضعیت نیست")).toBeTruthy();
+});
+
+test("keeps existing clinical records readable while locking clinical writes", () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {} as never,
+  } as never);
+  render(
+    <SafeAreaProvider initialMetrics={{ frame: { height: 900, width: 400, x: 0, y: 0 }, insets: { bottom: 0, left: 0, right: 0, top: 0 } }}>
+      <NutritionClinicalSection />
+    </SafeAreaProvider>,
+  );
+
+  expect(screen.getByText("پروتئین وی")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "انتخاب تصویر" }).props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "دستور را دیدم" }).props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByText("برای افزودن پرونده آزمایش، دسترسی مدیریت آزمایش لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند.")).toBeTruthy();
 });
