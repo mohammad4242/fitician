@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { createMobileQueryClient } from "../data/queryClient";
 import { MobileQueryCacheBoundary } from "../data/MobileQueryCacheBoundary";
 import { MobileAuthProvider, useMobileAuth } from "../auth/MobileAuthProvider";
+import { EntitlementProvider } from "../entitlements/EntitlementProvider";
 import { logMobileRuntimeConfiguration } from "../config/nativeRuntimeConfig";
 import { E2ERoleNavigator } from "../e2e/RoleNavigator";
 import { connectivityMonitor } from "../platform/connectivity";
@@ -112,15 +113,17 @@ export default function RootLayout() {
           <E2ERoleNavigator />
           <NotificationPermissionBootstrap />
           <NotificationRoutingBootstrap />
-          <MobileRouteStateProviderFromAuth>
-            <AndroidBackBehaviorProvider>
-              <QueryClientProvider client={queryClient}>
-                <MobileQueryCacheBoundary>
-                  <Stack screenOptions={{ headerShown: false }} />
-                </MobileQueryCacheBoundary>
-              </QueryClientProvider>
-            </AndroidBackBehaviorProvider>
-          </MobileRouteStateProviderFromAuth>
+          <EntitlementProvider>
+            <MobileRouteStateProviderFromAuth>
+              <AndroidBackBehaviorProvider>
+                <QueryClientProvider client={queryClient}>
+                  <MobileQueryCacheBoundary>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </MobileQueryCacheBoundary>
+                </QueryClientProvider>
+              </AndroidBackBehaviorProvider>
+            </MobileRouteStateProviderFromAuth>
+          </EntitlementProvider>
         </MobileAuthProvider>
       </View>
     </SafeAreaProvider>

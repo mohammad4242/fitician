@@ -213,7 +213,7 @@ it("keeps the native profile editor in the member stack and removes its tab rout
   ).resolves.not.toMatch(/RouteEntryScreen/);
 });
 
-it("keeps Body Progress capability-aware and More as the fifth member tab", async () => {
+it("keeps Body Progress available across ProductMode domains and More as the fifth member tab", async () => {
   const source = await readFile(
     resolve(appRoot, "(member)/member/(tabs)/_layout.tsx"),
     "utf8",
@@ -228,7 +228,7 @@ it("keeps Body Progress capability-aware and More as the fifth member tab", asyn
   expect(source).toContain('name="body-analysis"');
   expect(source).toMatch(/name="workouts"[\s\S]*?href: showTraining \? undefined : null/);
   expect(source).toMatch(/name="nutrition"[\s\S]*?href: showNutrition \? undefined : null/);
-  expect(source).toMatch(/name="body-analysis"[\s\S]*?href: showTraining \? undefined : null/);
+  expect(source).not.toMatch(/name="body-analysis"[\s\S]*?href: showTraining \? undefined : null/);
   expect(source).not.toContain('name="profile"');
   await expect(
     readFile(resolve(appRoot, "(member)/member/(tabs)/more.tsx"), "utf8"),
@@ -239,7 +239,7 @@ it("opens Body Progress from the tab without replacing the capture wizard", asyn
   const tabRoute = resolve(appRoot, "(member)/member/(tabs)/body-analysis.tsx");
   const tabSource = await readFile(tabRoute, "utf8");
   expect(tabSource).toContain("BodyAnalysisHistoryScreen");
-  expect(tabSource).toContain('requiredCapability="training"');
+  expect(tabSource).not.toContain('requiredCapability="training"');
   expect(tabSource).not.toContain("BodyAnalysisWizard");
 
   const captureRoute = resolve(appRoot, "(member)/member/body-analysis-capture.tsx");
