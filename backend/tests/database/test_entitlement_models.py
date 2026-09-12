@@ -1,5 +1,13 @@
-from sqlalchemy import inspect
+from datetime import UTC, datetime, timedelta
 
+import pytest
+from sqlalchemy import select
+from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
 
 
@@ -70,3 +78,78 @@ def test_models_are_registered_in_shared_metadata() -> None:
     assert "user_access_grants" in metadata.tables
     assert "entitlement_usage_events" in metadata.tables
     assert inspect(UserAccessGrant).local_table is UserAccessGrant.__table__
+
+
+def test_postgres_constraints_allow_normal_grants_and_prevent_duplicate_semantics(
+    db: Session,
+) -> None:
+    user = User(email="entitlement-model@example.com", password_hash="hash")
+    db.add(user)
+    db.flush()
+    starts_at = datetime.now(UTC)
+
+    db.add_all(
+        [
+            UserAccessGrant(
+                user_id=user.id,
+                package_code=AccessPackageCode.TRAINING,
+                source=GrantSource.MANUAL,
+                starts_at=starts_at,
+            ),
+            UserAccessGrant(
+                user_id=user.id,
+                package_code=AccessPackageCode.TRAINING,
+                source=GrantSource.SUBSCRIPTION,
+                starts_at=starts_at + timedelta(days=30),
+            ),
+        ]
+    )
+    db.flush()
+
+    with db.begin_nested():
+        db.add(
+            UserAccessGrant(
+                user_id=user.id,
+                package_code=AccessPackageCode.LAUNCH_TRIAL,
+                source=GrantSource.LAUNCH_TRIAL,
+                starts_at=starts_at,
+                idempotency_key="launch_trial:v1",
+            )
+        )
+        db.flush()
+
+    with pytest.raises(IntegrityError, match="uq_user_access_grants_user_idempotency_key"):
+        with db.begin_nested():
+            db.add(
+                UserAccessGrant(
+                    user_id=user.id,
+                    package_code=AccessPackageCode.LAUNCH_TRIAL,
+                    source=GrantSource.LAUNCH_TRIAL,
+                    starts_at=starts_at,
+                    idempotency_key="launch_trial:v1",
+                )
+            )
+            db.flush()
+
+    db.add(
+        EntitlementUsageEvent(
+            user_id=user.id,
+            entitlement_key="body_analysis.run",
+            resource_key="body-analysis-session:one",
+            occurred_at=starts_at,
+        )
+    )
+    db.flush()
+    with pytest.raises(IntegrityError, match="uq_entitlement_usage_events_user_entitlement_resource"):
+        with db.begin_nested():
+            db.add(
+                EntitlementUsageEvent(
+                    user_id=user.id,
+                    entitlement_key="body_analysis.run",
+                    resource_key="body-analysis-session:one",
+                    occurred_at=starts_at,
+                )
+            )
+            db.flush()
+
+    assert len(db.scalars(select(UserAccessGrant).where(UserAccessGrant.user_id == user.id)).all()) == 3
