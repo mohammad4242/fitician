@@ -1,6 +1,4 @@
 import os
-import subprocess
-import sys
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -12,6 +10,12 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.main import create_app
+from tests.database_lifecycle import (
+    ensure_database_exists,
+    hold_database_lock,
+    reset_public_schema,
+    upgrade_database,
+)
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
@@ -21,13 +25,11 @@ TEST_DATABASE_URL = os.environ.get(
 
 @pytest.fixture(scope="session", autouse=True)
 def migrated_database() -> Iterator[None]:
-    environment = {**os.environ, "DATABASE_URL": TEST_DATABASE_URL}
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        check=True,
-        env=environment,
-    )
-    yield
+    ensure_database_exists(TEST_DATABASE_URL, expected_database="fitsho_test")
+    with hold_database_lock(TEST_DATABASE_URL, expected_database="fitsho_test"):
+        reset_public_schema(TEST_DATABASE_URL, expected_database="fitsho_test")
+        upgrade_database(TEST_DATABASE_URL, expected_database="fitsho_test")
+        yield
 
 
 @pytest.fixture
