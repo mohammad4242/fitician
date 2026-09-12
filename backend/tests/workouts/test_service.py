@@ -13,6 +13,10 @@ from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
 from app.body_photos.enums import BodyPhotoPurpose, BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.exceptions import EntitlementQuotaExceededError
+from app.entitlements.models import EntitlementUsageEvent
+from app.entitlements.service import grant_package
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
@@ -114,9 +118,7 @@ def _user_with_profile(db: Session, *, pure_bodyweight: bool = False) -> User:
             training_location=TrainingLocation.HOME,
             home_training_setup=HomeTrainingSetup.BODYWEIGHT_ONLY,
             available_equipment=(
-                None
-                if pure_bodyweight
-                else [Equipment.BODYWEIGHT.value, Equipment.DUMBBELL.value]
+                None if pure_bodyweight else [Equipment.BODYWEIGHT.value, Equipment.DUMBBELL.value]
             ),
             session_duration_minutes=45,
             plan_duration_weeks=4,
@@ -1045,7 +1047,14 @@ def test_generation_persists_valid_snapshot_for_pending_review(db: Session) -> N
     _seed_candidates(db)
     service = _service(db)
 
-    result = asyncio.run(service.generate(user.id))
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    result = asyncio.run(service.generate(user.id, review_required=True))
     review = db.query(WorkoutPlanReview).filter_by(source_plan_id=result.plan.id).one()
 
     assert not result.reused
@@ -1070,17 +1079,29 @@ def test_generation_keeps_existing_active_plan_when_new_plan_is_pending_review(
     _seed_candidates(db)
     active_plan = _persist_active_plan(db, user)
 
-    result = asyncio.run(_service(db).generate(user.id))
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    result = asyncio.run(_service(db).generate(user.id, review_required=True))
 
     assert result.plan.status is WorkoutPlanStatus.PENDING_REVIEW
     stored_active = db.get(WorkoutPlan, active_plan.id)
     assert stored_active is not None
     assert stored_active.status is WorkoutPlanStatus.ACTIVE
     assert stored_active.superseded_at is None
-    assert db.query(WorkoutPlan).filter(
-        WorkoutPlan.user_id == user.id,
-        WorkoutPlan.status.in_([WorkoutPlanStatus.ACTIVE, WorkoutPlanStatus.PENDING_REVIEW]),
-    ).count() == 2
+    assert (
+        db.query(WorkoutPlan)
+        .filter(
+            WorkoutPlan.user_id == user.id,
+            WorkoutPlan.status.in_([WorkoutPlanStatus.ACTIVE, WorkoutPlanStatus.PENDING_REVIEW]),
+        )
+        .count()
+        == 2
+    )
 
 
 def test_generation_reuses_the_current_pending_plan(db: Session) -> None:
@@ -1088,8 +1109,15 @@ def test_generation_reuses_the_current_pending_plan(db: Session) -> None:
     _seed_candidates(db)
     service = _service(db)
 
-    first = asyncio.run(service.generate(user.id))
-    second = asyncio.run(service.generate(user.id))
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    first = asyncio.run(service.generate(user.id, review_required=True))
+    second = asyncio.run(service.generate(user.id, review_required=True))
 
     assert second.plan.id == first.plan.id
     assert second.reused
@@ -1102,11 +1130,99 @@ def test_generation_uses_the_deterministic_domain_engine(db: Session) -> None:
     user = _user_with_profile(db)
     _seed_candidates(db)
 
-    result = asyncio.run(_service(db).generate(user.id))
+    result = asyncio.run(_service(db).generate(user.id, review_required=False))
 
-    assert result.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert result.plan.status is WorkoutPlanStatus.ACTIVE
     assert result.plan.generation_method == "deterministic_domain"
     assert result.plan.generation_method == "deterministic_domain"
+
+
+def test_direct_training_generation_is_active_without_a_review(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+
+    result = asyncio.run(_service(db).generate(user.id, review_required=False))
+
+    assert result.plan.status is WorkoutPlanStatus.ACTIVE
+    assert result.plan.activated_at is not None
+    assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 0
+
+
+def test_coach_generation_has_one_review_and_one_quota_event(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    service = _service(db)
+
+    first = asyncio.run(service.generate(user.id, review_required=True))
+    second = asyncio.run(service.generate(user.id, review_required=True))
+
+    assert first.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert second.reused
+    assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 1
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(
+            user_id=user.id,
+            entitlement_key="training.coach_review",
+            resource_key=f"workout-plan:{first.plan.id}",
+        )
+        .count()
+        == 1
+    )
+
+
+def test_coach_generation_quota_failure_leaves_no_pending_review_plan(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    db.add(
+        EntitlementUsageEvent(
+            user_id=user.id,
+            entitlement_key="training.coach_review",
+            resource_key="workout-plan:already-reviewed",
+            occurred_at=datetime.now(UTC),
+        )
+    )
+    db.commit()
+
+    with pytest.raises(EntitlementQuotaExceededError):
+        asyncio.run(_service(db).generate(user.id, review_required=True))
+
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 0
+    assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 0
+
+
+def test_review_policy_is_part_of_generation_reuse_compatibility(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    service = _service(db)
+
+    base = asyncio.run(service.generate(user.id, review_required=False))
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    coached = asyncio.run(service.generate(user.id, review_required=True))
+
+    assert not coached.reused
+    assert coached.plan.id != base.plan.id
+    assert coached.plan.status is WorkoutPlanStatus.PENDING_REVIEW
 
 
 def test_internal_generation_never_calls_ai_provider(db: Session) -> None:
@@ -1131,13 +1247,20 @@ def test_ai_provider_unavailable_falls_back_to_one_deterministic_reviewable_plan
 ) -> None:
     user = _user_with_profile(db)
     _seed_candidates(db)
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
 
     result = asyncio.run(
         _service(
             db,
             generation_method="ai",
             deterministic_fallback_enabled=True,
-        ).generate(user.id)
+        ).generate(user.id, review_required=True)
     )
 
     assert result.plan.status is WorkoutPlanStatus.PENDING_REVIEW
@@ -1195,9 +1318,16 @@ def test_ai_generation_reuses_the_current_pending_plan(
         generation_method="ai",
         deterministic_fallback_enabled=False,
     )
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
 
-    first = asyncio.run(service.generate(user.id))
-    second = asyncio.run(service.generate(user.id))
+    first = asyncio.run(service.generate(user.id, review_required=True))
+    second = asyncio.run(service.generate(user.id, review_required=True))
 
     assert first.plan.status is WorkoutPlanStatus.PENDING_REVIEW
     assert second.plan.id == first.plan.id
@@ -1260,6 +1390,13 @@ def test_ai_failure_keeps_deterministic_plan_and_does_not_duplicate_records(
         lambda **_kwargs: templates,
     )
     provider = _FailingAiCoachProvider(failure)
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
 
     result = asyncio.run(
         _service(
@@ -1267,7 +1404,7 @@ def test_ai_failure_keeps_deterministic_plan_and_does_not_duplicate_records(
             ai_coach_provider=provider,
             generation_method="ai",
             deterministic_fallback_enabled=True,
-        ).generate(user.id)
+        ).generate(user.id, review_required=True)
     )
 
     assert provider.calls == 1
@@ -1452,13 +1589,14 @@ def test_expired_plan_is_replaced_with_structured_difference(db: Session) -> Non
     replacement = asyncio.run(_service(db).generate(user.id))
 
     assert not replacement.reused
-    assert replacement.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert replacement.plan.status is WorkoutPlanStatus.ACTIVE
+    assert replacement.plan.activated_at is not None
     assert replacement.plan.previous_program_id == first.id
     assert replacement.plan.difference_summary["previous_program_id"] == str(first.id)
     stored_first = db.get(WorkoutPlan, first.id)
     assert stored_first is not None
-    assert stored_first.status is WorkoutPlanStatus.ACTIVE
-    assert stored_first.superseded_at is None
+    assert stored_first.status is WorkoutPlanStatus.SUPERSEDED
+    assert stored_first.superseded_at is not None
 
 
 def test_active_plan_is_stale_when_profile_changes(db: Session) -> None:
@@ -1528,7 +1666,7 @@ def test_specialist_correction_changes_signature_and_marks_active_plan_stale(
 
     assert active is not None and active.is_stale
     assert replacement.plan.id != first.plan.id
-    assert replacement.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert replacement.plan.status is WorkoutPlanStatus.ACTIVE
     assert replacement.plan.body_analysis_provenance["source"] == "fully_reviewed"
 
 
@@ -1577,7 +1715,7 @@ def test_failed_body_analysis_does_not_block_normal_plan_generation(db: Session)
 
     result = asyncio.run(_service(db).generate(user.id))
 
-    assert result.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert result.plan.status is WorkoutPlanStatus.ACTIVE
     assert result.plan.body_analysis_provenance == {}
 
 
@@ -1609,9 +1747,16 @@ def test_bodyweight_generation_reuses_the_current_pending_plan(db: Session) -> N
     profile.experience_level = ExperienceLevel.FIRST_MONTH
     _seed_bodyweight_template_catalog(db)
     service = _service(db)
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
 
-    first = asyncio.run(service.generate(user.id))
-    second = asyncio.run(service.generate(user.id))
+    first = asyncio.run(service.generate(user.id, review_required=True))
+    second = asyncio.run(service.generate(user.id, review_required=True))
 
     assert second.plan.id == first.plan.id
     assert second.reused
@@ -1758,9 +1903,7 @@ def test_explicit_bodyweight_without_pull_up_bar_is_normalized(db: Session) -> N
 
     request = _service(db)._to_program_request(get_profile(db, user.id), None)
 
-    assert request.available_equipment == frozenset(
-        {Equipment.BODYWEIGHT, Equipment.PULL_UP_BAR}
-    )
+    assert request.available_equipment == frozenset({Equipment.BODYWEIGHT, Equipment.PULL_UP_BAR})
 
 
 def test_bodyweight_route_precedes_ai_provider(db: Session) -> None:

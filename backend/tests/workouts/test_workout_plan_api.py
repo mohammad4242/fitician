@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID, uuid4
 
@@ -7,6 +8,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.ai.schemas import ProviderErrorCode
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.models import UserAccessGrant
+from app.entitlements.service import grant_package
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
@@ -67,6 +71,15 @@ def _register_and_complete_profile(client: TestClient, email: str) -> UUID:
     response = client.post("/api/v1/profile", headers=ORIGIN, json=PROFILE)
     assert response.status_code == 201
     return UUID(registration.json()["id"])
+
+
+def _revoke_launch_trial(db: Session, user_id: UUID) -> None:
+    trial = db.query(UserAccessGrant).filter_by(
+        user_id=user_id,
+        package_code=AccessPackageCode.LAUNCH_TRIAL,
+    ).one()
+    trial.revoked_at = datetime.now(UTC)
+    db.flush()
 
 
 def _plan(
@@ -185,6 +198,107 @@ def _store_program_engine_catalog(db: Session) -> None:
 def test_workout_plan_routes_require_authentication(client: TestClient) -> None:
     assert client.get("/api/v1/workout-plans/active").status_code == 401
     assert client.post("/api/v1/workout-plans/generate", headers=ORIGIN).status_code == 401
+
+
+def test_free_user_cannot_generate_a_workout_plan(client: TestClient, db: Session) -> None:
+    user_id = _register_and_complete_profile(client, "free-generate@example.com")
+    _revoke_launch_trial(db, user_id)
+
+    response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == {
+        "code": "ENTITLEMENT_REQUIRED",
+        "entitlement": "training.plan.generate",
+        "eligible_packages": [
+            "training",
+            "training_coach",
+            "complete",
+            "complete_care",
+        ],
+    }
+
+
+def test_training_generation_route_uses_direct_lifecycle(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = _register_and_complete_profile(client, "training-generate@example.com")
+    _revoke_launch_trial(db, user_id)
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.TRAINING,
+        source=GrantSource.MANUAL,
+        starts_at=datetime.now(UTC),
+    )
+    plan = _plan(db, user_id)
+    lifecycle: list[bool] = []
+
+    class FakeService:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
+            assert current_user_id == user_id
+            lifecycle.append(review_required)
+            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    app = cast(FastAPI, client.app)
+    app.dependency_overrides[get_workout_generation_service] = lambda: FakeService()
+    response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    app.dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == 200
+    assert lifecycle == [False]
+
+
+def test_training_coach_generation_route_uses_review_lifecycle(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = _register_and_complete_profile(client, "training-coach-generate@example.com")
+    plan = _plan(db, user_id)
+    lifecycle: list[bool] = []
+
+    class FakeService:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
+            assert current_user_id == user_id
+            lifecycle.append(review_required)
+            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    app = cast(FastAPI, client.app)
+    app.dependency_overrides[get_workout_generation_service] = lambda: FakeService()
+    response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    app.dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == 200
+    assert lifecycle == [True]
+
+
+def test_existing_workout_plan_remains_readable_after_access_expires(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = _register_and_complete_profile(client, "expired-workout-access@example.com")
+    plan = _plan(db, user_id)
+    _revoke_launch_trial(db, user_id)
+
+    response = client.get(f"/api/v1/workout-plans/{plan.id}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == str(plan.id)
 
 
 def test_active_workout_plan_returns_not_found_without_a_plan(client: TestClient) -> None:
@@ -658,7 +772,12 @@ def test_generate_uses_authenticated_user_and_returns_reuse_flag(
     called_user_ids: list[UUID] = []
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             called_user_ids.append(current_user_id)
             return WorkoutPlanGenerationResult(plan=plan, reused=True)
 
@@ -726,6 +845,8 @@ def test_generate_accepts_typed_optional_engine_evidence(client: TestClient, db:
             self,
             current_user_id: UUID,
             payload: ProgramGenerationOverrides,
+            *,
+            review_required: bool,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             captured_seed.append(payload.seed_optional)
@@ -763,6 +884,8 @@ def test_generate_rejects_multiple_or_duplicate_user_priority_overrides(
             self,
             current_user_id: UUID,
             payload: ProgramGenerationOverrides,
+            *,
+            review_required: bool,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             captured.append(payload)
@@ -788,7 +911,12 @@ def test_generate_returns_structured_professional_review_status(client: TestClie
     _register_and_complete_profile(client, "review-plan@example.com")
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             raise ProgramGenerationRejectedError("PROGRAM_REJECTED_SAFETY_STATUS", "stop_and_refer")
 
     from app.workouts.dependencies import get_workout_generation_service
@@ -834,7 +962,12 @@ def test_generate_maps_bodyweight_rejections_to_actionable_422(
     _register_and_complete_profile(client, f"{error_code.lower()}@example.com")
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             raise ProgramGenerationRejectedError(error_code)
 
     from app.workouts.dependencies import get_workout_generation_service
@@ -856,7 +989,12 @@ def test_generate_returns_construction_exhaustion_as_a_specific_422(client: Test
     _register_and_complete_profile(client, "construction-exhausted@example.com")
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             raise WorkoutConstructionUnsatisfiedError()
 
     from app.workouts.dependencies import get_workout_generation_service
@@ -879,7 +1017,12 @@ def test_generate_returns_retry_after_during_a_generation_cooldown(
     _register_and_complete_profile(client, "cooldown-plan@example.com")
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             raise GenerationCooldownError(42)
 
     from app.workouts.dependencies import get_workout_generation_service
@@ -909,7 +1052,12 @@ def test_generate_maps_provider_failures_to_safe_statuses(
     _register_and_complete_profile(client, f"provider-{error_code.value}@example.com")
 
     class FakeService:
-        async def generate(self, current_user_id: UUID) -> WorkoutPlanGenerationResult:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
             raise WorkoutGenerationFailedError(error_code)
 
     from app.workouts.dependencies import get_workout_generation_service

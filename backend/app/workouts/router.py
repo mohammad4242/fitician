@@ -11,6 +11,8 @@ from app.ai.schemas import ProviderErrorCode
 from app.auth.cookies import require_trusted_origin
 from app.auth.models import User
 from app.database.session import get_db
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import has_entitlement, require_entitlement
 from app.exercises.dependencies import require_completed_profile
 from app.exercises.media_resolver import resolve_primary_media
 from app.exercises.models import Exercise
@@ -83,7 +85,10 @@ def read_active_plan(
     db: DatabaseSession,
     user: CurrentUser,
 ) -> WorkoutPlanResponse:
-    active = service.get_active(user.id)
+    active = service.get_active(
+        user.id,
+        review_required=has_entitlement(db, user.id, EntitlementCode.TRAINING_COACH_REVIEW),
+    )
     if active is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active workout plan")
     return to_plan_response(active.plan, is_stale=active.is_stale, db=db)
@@ -100,11 +105,13 @@ async def generate_plan(
     user: CurrentUser,
     payload: ProgramGenerationOverrides | None = None,
 ) -> WorkoutPlanGenerateResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE)
+    review_required = access.has(EntitlementCode.TRAINING_COACH_REVIEW)
     try:
         result = (
-            await service.generate(user.id)
+            await service.generate(user.id, review_required=review_required)
             if payload is None
-            else await service.generate(user.id, payload)
+            else await service.generate(user.id, payload, review_required=review_required)
         )
     except GenerationCooldownError as error:
         raise HTTPException(

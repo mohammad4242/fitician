@@ -32,9 +32,7 @@ def get_current_foreground_plan(db: Session, user_id: UUID) -> WorkoutPlan | Non
         select(WorkoutPlan)
         .where(
             WorkoutPlan.user_id == user_id,
-            WorkoutPlan.status.in_(
-                [WorkoutPlanStatus.ACTIVE, WorkoutPlanStatus.PENDING_REVIEW]
-            ),
+            WorkoutPlan.status.in_([WorkoutPlanStatus.ACTIVE, WorkoutPlanStatus.PENDING_REVIEW]),
             WorkoutPlan.deleted_at.is_(None),
         )
         .order_by(
@@ -111,30 +109,34 @@ def activate_plan(
     db.add(plan)
     db.flush()
 
-    previous = db.scalar(
-        select(WorkoutPlan)
-        .where(
-            WorkoutPlan.user_id == plan.user_id,
-            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
-        )
-        .with_for_update()
+    previous_plans = list(
+        db.scalars(
+            select(WorkoutPlan)
+            .where(
+                WorkoutPlan.user_id == plan.user_id,
+                WorkoutPlan.id != plan.id,
+                WorkoutPlan.status.in_(
+                    [WorkoutPlanStatus.ACTIVE, WorkoutPlanStatus.PENDING_REVIEW]
+                ),
+                WorkoutPlan.deleted_at.is_(None),
+            )
+            .with_for_update()
+        ).all()
     )
-    if previous is not None:
-        from app.workout_reviews.repository import supersede_open_review
+    now = datetime.now(UTC)
+    from app.workout_reviews.repository import supersede_open_review
 
+    for previous in previous_plans:
         supersede_open_review(db, previous.id)
         previous.status = WorkoutPlanStatus.SUPERSEDED
-        previous.superseded_at = datetime.now(UTC)
-        db.flush()
+        previous.superseded_at = now
+    db.flush()
 
     plan.status = WorkoutPlanStatus.ACTIVE
     plan.activated_at = datetime.now(UTC)
     generation.workout_plan = plan
     generation.status = WorkoutGenerationStatus.SUCCEEDED
     generation.completed_at = datetime.now(UTC)
-    from app.workout_reviews.repository import ensure_pending_review
-
-    ensure_pending_review(db, plan)
     db.flush()
     return plan
 

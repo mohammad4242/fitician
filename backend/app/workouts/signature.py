@@ -116,6 +116,7 @@ def build_generation_request_signature(
     reference_hash: str,
     engine_version: str,
     ruleset_version: str,
+    lifecycle_policy: str = "direct",
 ) -> str:
     """Hash effective generation inputs with stable collection serialization."""
     payload = {
@@ -124,5 +125,6 @@ def build_generation_request_signature(
         "reference_hash": reference_hash,
         "engine_version": engine_version,
         "ruleset_version": ruleset_version,
+        "lifecycle_policy": lifecycle_policy,
     }
     return _canonical_hash(payload)

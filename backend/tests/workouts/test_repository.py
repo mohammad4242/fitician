@@ -78,7 +78,9 @@ def test_activate_plan_supersedes_previous_active_plan(db: Session) -> None:
     assert get_active_plan(db, user.id) is replacement
 
 
-def test_activate_plan_creates_review_and_supersedes_previous_open_review(db: Session) -> None:
+def test_activate_plan_does_not_create_review_and_supersedes_previous_open_review(
+    db: Session,
+) -> None:
     user = make_user(db)
     previous = new_plan(user.id, "a" * 64)
     previous.status = WorkoutPlanStatus.ACTIVE
@@ -101,8 +103,31 @@ def test_activate_plan_creates_review_and_supersedes_previous_open_review(db: Se
         select(WorkoutPlanReview).where(WorkoutPlanReview.source_plan_id == replacement.id)
     )
     assert previous_review.status is WorkoutReviewStatus.SUPERSEDED
-    assert replacement_review is not None
-    assert replacement_review.status is WorkoutReviewStatus.PENDING
+    assert replacement_review is None
+
+
+def test_activate_plan_supersedes_previous_pending_review_plan(db: Session) -> None:
+    user = make_user(db)
+    previous = new_plan(user.id, "a" * 64)
+    previous.status = WorkoutPlanStatus.PENDING_REVIEW
+    previous_review = WorkoutPlanReview(source_plan=previous, user_id=user.id)
+    db.add_all([previous, previous_review])
+    db.flush()
+    generation = create_generation(
+        db,
+        user_id=user.id,
+        provider="fake",
+        model_id="fake-model",
+        candidate_count=1,
+    )
+    replacement = new_plan(user.id, "c" * 64)
+
+    activate_plan(db, replacement, generation)
+
+    assert previous.status is WorkoutPlanStatus.SUPERSEDED
+    assert previous.superseded_at is not None
+    assert previous_review.status is WorkoutReviewStatus.SUPERSEDED
+    assert replacement.status is WorkoutPlanStatus.ACTIVE
 
 
 def test_persist_pending_review_plan_keeps_previous_active_plan(db: Session) -> None:
