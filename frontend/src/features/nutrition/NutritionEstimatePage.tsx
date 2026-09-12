@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { AppIcon } from "../../shared/AppIcon";
 import { DualProgressRing } from "../../shared/DualProgressRing";
 import { ProgressRing } from "../../shared/ProgressRing";
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as nutritionApi from "./api";
 import type {
   DailyTrackingSummary,
@@ -23,7 +24,10 @@ type ViewState = "loading" | "ready" | "empty" | "error";
 
 export function NutritionEstimatePage() {
   const { i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
+  const canGeneratePlan = hasEntitlement("nutrition.plan.generate");
+  const canManagePlan = hasEntitlement("nutrition.plan.manage");
   const [state, setState] = useState<ViewState>("loading");
   const [estimate, setEstimate] = useState<NutritionEstimate | null>(null);
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
@@ -102,7 +106,7 @@ export function NutritionEstimatePage() {
   }
 
   function handleSelectPlan(role: "budget" | "ideal") {
-    if (!bundleId) return;
+    if (!bundleId || !canManagePlan) return;
     setIsSelectingPlan(true);
     void nutritionApi.selectBundlePlan(bundleId, {
       selected_plan_role: role,
@@ -123,7 +127,7 @@ export function NutritionEstimatePage() {
   }
 
   function generatePlan() {
-    if (generatingPlan) return;
+    if (generatingPlan || !canGeneratePlan) return;
     setGeneratingPlan(true);
     setPlanOutcome(null);
     setFeedbackMessage(null);
@@ -192,6 +196,9 @@ export function NutritionEstimatePage() {
             onSelectPlan={handleSelectPlan}
             outcome={planOutcome}
             plan={plan}
+            canGeneratePlan={canGeneratePlan}
+            canManagePlan={canManagePlan}
+            entitlementsLoading={entitlementsLoading}
             selectedPlanRole={selectedPlanRole}
           />
         </>
@@ -213,6 +220,9 @@ function PlanArea({
   onSelectPlan,
   outcome,
   plan,
+  canGeneratePlan,
+  canManagePlan,
+  entitlementsLoading,
   selectedPlanRole = null,
 }: {
   bundleId?: string | null;
@@ -227,6 +237,9 @@ function PlanArea({
   onSelectPlan?: (role: "budget" | "ideal") => void;
   outcome: WeeklyPlanGeneration | null;
   plan: WeeklyPlan | null;
+  canGeneratePlan: boolean;
+  canManagePlan: boolean;
+  entitlementsLoading: boolean;
   selectedPlanRole?: "budget" | "ideal" | null;
 }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
@@ -245,6 +258,7 @@ function PlanArea({
             bundleId={bundleId}
             comparison={comparison}
             idealPlan={idealPlan}
+            canManagePlan={canManagePlan}
             isSelectingPlan={isSelectingPlan}
             language={language}
             onSelectPlan={onSelectPlan}
@@ -294,6 +308,9 @@ function PlanArea({
         <PlanRegenerateAction
           feedbackMessage={feedbackMessage}
           generating={generating}
+          canGeneratePlan={canGeneratePlan}
+          canManagePlan={canManagePlan}
+          entitlementsLoading={entitlementsLoading}
           language={language}
           onGenerate={onGenerate}
           outcome={outcome}
@@ -325,7 +342,8 @@ function PlanArea({
           </p>
         </div>
       )}
-      <button className="primary-button" disabled={generating} onClick={onGenerate} type="button">
+      {!entitlementsLoading && !canGeneratePlan && <p className="weekly-plan-empty__message" role="status">{l("برای ساخت برنامه جدید، دسترسی تولید برنامه تغذیه لازم است.", "Nutrition plan generation access is required to build a new plan.")}</p>}
+      <button className="primary-button" disabled={generating || entitlementsLoading || !canGeneratePlan} onClick={onGenerate} type="button">
         {generating ? l("در حال ساخت برنامه…", "Building plan…") : l("ساخت برنامه تغذیه هفتگی", "Build weekly nutrition plan")}
       </button>
     </section>
@@ -333,12 +351,18 @@ function PlanArea({
 }
 
 function PlanRegenerateAction({
+  canGeneratePlan,
+  canManagePlan,
+  entitlementsLoading,
   feedbackMessage,
   generating,
   language,
   onGenerate,
   outcome,
 }: {
+  canGeneratePlan: boolean;
+  canManagePlan: boolean;
+  entitlementsLoading: boolean;
   feedbackMessage?: string | null;
   generating: boolean;
   language: "fa" | "en";
@@ -376,7 +400,7 @@ function PlanRegenerateAction({
         </div>
         <button
           className={`nutrition-plan-regenerate__button ${generating ? "is-loading" : ""}`}
-          disabled={generating}
+          disabled={generating || entitlementsLoading || !canGeneratePlan || !canManagePlan}
           onClick={onGenerate}
           type="button"
           aria-busy={generating}
@@ -392,6 +416,12 @@ function PlanRegenerateAction({
           </span>
         </button>
       </div>
+
+      {!entitlementsLoading && (!canGeneratePlan || !canManagePlan) && (
+        <p className="nutrition-plan-regenerate__feedback" role="status">
+          {l("برای ساخت نسخه جدید، دسترسی تولید و مدیریت برنامه لازم است.", "Plan generation and management access are required to create a new revision.")}
+        </p>
+      )}
 
       {feedbackMessage && (
         <p className="nutrition-plan-regenerate__feedback" role="status">
@@ -488,6 +518,7 @@ function extractPlanMacroAverages(plan?: WeeklyPlan | null) {
 function PlanComparisonSection({
   budgetPlan,
   bundleId,
+  canManagePlan,
   comparison,
   idealPlan,
   isSelectingPlan,
@@ -497,6 +528,7 @@ function PlanComparisonSection({
 }: {
   budgetPlan?: WeeklyPlan | null;
   bundleId?: string | null;
+  canManagePlan: boolean;
   comparison: PlanComparison;
   idealPlan?: WeeklyPlan | null;
   isSelectingPlan?: boolean;
@@ -579,6 +611,7 @@ function PlanComparisonSection({
 
       {comparison.show_ideal_plan && Boolean(bundleId) && Boolean(onSelectPlan) && (
         <div className="nutrition-bundle-selection-area">
+          {!canManagePlan && <p className="nutrition-bundle-selection-prompt" role="status">{l("برای انتخاب نسخه نهایی، دسترسی مدیریت برنامه تغذیه لازم است.", "Nutrition plan management access is required to select the final version.")}</p>}
           {selectedPlanRole === null && (
             <div className="nutrition-bundle-selection-prompt" role="status">
               <span className="nutrition-bundle-selection-prompt__icon" aria-hidden="true">👉</span>
@@ -668,7 +701,7 @@ function PlanComparisonSection({
 
               <button
                 className={selectedPlanRole === "budget" ? "secondary-button is-active nutrition-bundle-card__action" : "primary-button nutrition-bundle-card__action"}
-                disabled={selectedPlanRole === "budget" || isSelectingPlan}
+                disabled={!canManagePlan || selectedPlanRole === "budget" || isSelectingPlan}
                 onClick={() => onSelectPlan?.("budget")}
                 type="button"
               >
@@ -756,7 +789,7 @@ function PlanComparisonSection({
 
               <button
                 className={selectedPlanRole === "ideal" ? "secondary-button is-active nutrition-bundle-card__action" : "primary-button nutrition-bundle-card__action"}
-                disabled={selectedPlanRole === "ideal" || isSelectingPlan}
+                disabled={!canManagePlan || selectedPlanRole === "ideal" || isSelectingPlan}
                 onClick={() => onSelectPlan?.("ideal")}
                 type="button"
               >
@@ -1057,19 +1090,25 @@ function PlanComparisonSection({
 function DoctorSupervision({ language, plan }: { language: "fa" | "en"; plan: WeeklyPlan | null }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
   const pendingStatuses = new Set(["pending", "pending_physician_review", "physician_review_in_progress", "awaiting_lab_information"]);
-  const isPending = plan !== null
+  const reviewRequired = plan?.physician_review_required === true;
+  const isPending = reviewRequired
+    && plan !== null
     && !plan.physician_approved
     && (pendingStatuses.has(plan.review_status) || pendingStatuses.has(plan.lifecycle_status));
-  const isApproved = plan?.physician_approved === true || ["physician_approved", "active"].includes(plan?.lifecycle_status ?? "");
+  const isApproved = reviewRequired && (plan?.physician_approved === true || plan?.lifecycle_status === "physician_approved");
   const approvalCopy = plan === null
     ? l("پس از ساخت برنامه", "After plan creation")
+    : !reviewRequired
+      ? l("نیازی به بررسی پزشک نیست", "No physician review required")
     : isPending
       ? l("در انتظار تأیید پزشک", "Pending physician approval")
       : isApproved
         ? l("تأییدشده توسط پزشک", "Physician approved")
         : l("نیازمند بررسی", "Review required");
   const guidanceCopy = plan?.physician_user_visible_notes
-    ?? (isPending
+    ?? (!reviewRequired
+      ? l("بررسی پزشک برای این برنامه لازم نیست", "Physician review is not required for this plan")
+      : isPending
       ? l("پس از بررسی پزشک", "After physician review")
       : l("راهنمایی ثبت نشده", "No guidance recorded"));
 
@@ -1558,4 +1597,3 @@ function WeightRateCard({
     </section>
   );
 }
-

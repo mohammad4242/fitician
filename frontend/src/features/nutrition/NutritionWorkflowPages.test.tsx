@@ -12,6 +12,17 @@ import { PhysicianNutritionReviewPage } from "./PhysicianNutritionReviewPage";
 import type { DailyTrackingSummary, NutritionAdherence, WeeklyPlan } from "./types";
 
 vi.mock("./api");
+const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => entitlementAccess.allowed,
+    quotaFor: () => null,
+  }),
+}));
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -78,6 +89,7 @@ const physicianPlan = {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  entitlementAccess.allowed = true;
   await i18n.changeLanguage("en");
   vi.mocked(api.getDailyTracking).mockResolvedValue(summary);
   vi.mocked(api.getNutritionAdherence).mockResolvedValue(adherence);
@@ -176,6 +188,18 @@ it("keeps only the selected nutrition entry workflow open and toggles it closed"
   expect(manual).toHaveAttribute("aria-expanded", "false");
   expect(photo).toHaveAttribute("aria-expanded", "false");
   expect(document.getElementById("nutrition-photo-entry-panel")).toBeNull();
+});
+
+it("keeps manual tracking available while locking food-photo analysis without access", async () => {
+  const user = userEvent.setup();
+  entitlementAccess.allowed = false;
+  render(<MemoryRouter><NutritionTrackingPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: /Log manually/i }));
+  expect(screen.getByRole("group", { name: "Exact catalogue entry" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: /Food photo/i }));
+  expect(screen.getByText("AI photo analysis is not included in your current access.")).toBeInTheDocument();
+  expect(screen.getByLabelText("Choose food photo")).toBeDisabled();
 });
 
 it("places the entry hub before totals and the check-in after adherence", async () => {
@@ -290,6 +314,20 @@ it("uploads laboratory metadata and can delete an owned document", async () => {
   await waitFor(() => expect(api.deleteLabDocument).toHaveBeenCalledWith("lab-1"));
 });
 
+it("keeps existing lab records readable while locking new uploads without access", async () => {
+  entitlementAccess.allowed = false;
+  vi.mocked(api.listLabDocuments).mockResolvedValue([{
+    id: "lab-1", original_filename: "cbc.pdf", content_type: "application/pdf", byte_size: 10,
+    test_date: today, laboratory_name: "Lab", user_note: null, category: "CBC", review_status: "uploaded",
+    review_notes: null, uploaded_at: `${today}T12:00:00Z`,
+  }]);
+  render(<MemoryRouter><NutritionLabsPage /></MemoryRouter>);
+
+  expect(await screen.findByText("cbc.pdf")).toBeInTheDocument();
+  expect(screen.getByLabelText("Choose lab file")).toBeDisabled();
+  expect(screen.getByText(/Lab management access is required/)).toBeInTheDocument();
+});
+
 it("filters the member supplement history without exposing dose editing", async () => {
   const user = userEvent.setup();
   vi.mocked(api.listSupplementOrders).mockResolvedValue([
@@ -303,6 +341,21 @@ it("filters the member supplement history without exposing dose editing", async 
   expect(screen.queryByText("Vitamin D")).not.toBeInTheDocument();
   expect(screen.getByText("Iron")).toBeInTheDocument();
   expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+});
+
+it("keeps supplement history readable while locking member acknowledgement without access", async () => {
+  entitlementAccess.allowed = false;
+  vi.mocked(api.listSupplementOrders).mockResolvedValue([{
+    id: "order-1", plan_id: "plan-1", supplement_id: "supplement-1", name: "Vitamin D", dose_amount: 1,
+    dose_unit: "unit", daily_units: 1, frequency: "daily", duration_days: 30, instructions: "After food",
+    rationale: null, status: "active", acknowledged_at: null, supplement_nutrient_contribution: {},
+    combined_exposure_safety: {},
+  }]);
+  render(<MemoryRouter><NutritionSupplementsPage /></MemoryRouter>);
+
+  expect(await screen.findByText("Vitamin D")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Acknowledge" })).toBeDisabled();
+  expect(screen.getByText(/Supplement management access is required/)).toBeInTheDocument();
 });
 
 it("lets a physician claim an exact revision and choose replacements from the canonical catalogue", async () => {

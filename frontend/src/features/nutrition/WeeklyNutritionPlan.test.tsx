@@ -9,6 +9,17 @@ import { WeeklyNutritionPlan } from "./WeeklyNutritionPlan";
 import type { WeeklyPlan } from "./types";
 
 vi.mock("./api");
+const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => entitlementAccess.allowed,
+    quotaFor: () => null,
+  }),
+}));
 
 const meal = (id: string, name: string, isLocked = false, foods = [food("food-1", "Chicken breast")]) => ({
   id,
@@ -103,6 +114,7 @@ const foodOption = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  entitlementAccess.allowed = true;
   vi.mocked(nutritionApi.getShoppingList).mockResolvedValue({
     plan_id: "plan-1", plan_revision: 1, approval_status: "pending", warning_codes: [],
     total_cost_irr: 100_000, items: [],
@@ -136,6 +148,18 @@ async function openMeal(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.queryByText("Nutrition plan") ?? screen.getByText("برنامه تغذیه"));
   await user.click(screen.getByText("LU01 — Target meal").closest("summary")!);
 }
+
+it("keeps an existing plan readable while locking plan mutations without access", async () => {
+  entitlementAccess.allowed = false;
+  render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={plan()} /></MemoryRouter>);
+
+  expect(await screen.findByText("LU01 — Target meal")).toBeInTheDocument();
+  expect(screen.getByText("Plan changes are not available")).toBeInTheDocument();
+  const user = userEvent.setup();
+  await openMeal(user);
+  expect(screen.getByRole("button", { name: "Liked" })).toBeDisabled();
+  expect(nutritionApi.saveMealFeedback).not.toHaveBeenCalled();
+});
 
 it("awaits feedback, marks the persisted choice, and switches feedback values", async () => {
   const user = userEvent.setup();

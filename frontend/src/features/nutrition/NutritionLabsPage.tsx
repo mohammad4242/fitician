@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import "./nutritionEstimate.css";
 
@@ -84,7 +85,9 @@ function requestStatus(status: string, l: (persian: string, english: string) => 
 
 export function NutritionLabsPage() {
   const { i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const fa = i18n.language === "fa";
+  const canManageLabs = hasEntitlement("nutrition.labs.manage");
   const l = (persian: string, english: string) => fa ? persian : english;
   const navigate = useNavigate();
   const [labs, setLabs] = useState<Lab[]>([]);
@@ -110,7 +113,7 @@ export function NutritionLabsPage() {
   useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function upload(file: File | undefined) {
-    if (!file) return;
+    if (!file || entitlementsLoading || !canManageLabs) return;
     setSelectedFile(file);
     setBusy(true);
     try {
@@ -193,11 +196,12 @@ export function NutritionLabsPage() {
           </label>
           <div className="nutrition-labs-upload nutrition-labs-field--full">
             <span className="nutrition-labs-field__label"><span className="nutrition-labs-field__icon"><LabIcon name="upload" size={17} /></span>{l("فایل آزمایش", "Lab file")}</span>
+            {!entitlementsLoading && !canManageLabs && <p className="nutrition-labs-alert" role="status">{l("برای ثبت فایل جدید، دسترسی مدیریت آزمایش‌ها لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند.", "Lab management access is required to add new files. Existing records remain viewable and deletable.")}</p>}
             <div className="nutrition-labs-upload__row">
               <label className="nutrition-labs-upload__button" htmlFor="nutrition-labs-file">
                 <LabIcon name="upload" size={18} />
                 <span>{selectedFile ? l("تغییر فایل", "Change file") : l("انتخاب فایل", "Choose file")}</span>
-                <input id="nutrition-labs-file" aria-label={l("انتخاب فایل آزمایش", "Choose lab file")} accept="application/pdf,image/jpeg,image/png" disabled={busy} type="file" onChange={(event) => void upload(event.target.files?.[0])} />
+                <input id="nutrition-labs-file" aria-label={l("انتخاب فایل آزمایش", "Choose lab file")} accept="application/pdf,image/jpeg,image/png" disabled={busy || entitlementsLoading || !canManageLabs} type="file" onChange={(event) => void upload(event.target.files?.[0])} />
               </label>
               <div className={`nutrition-labs-upload__filename${selectedFile ? " has-file" : ""}`} aria-live="polite">
                 <LabIcon name="file" size={19} />

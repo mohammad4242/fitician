@@ -10,6 +10,17 @@ import { WeeklyNutritionPlan } from "./WeeklyNutritionPlan";
 import type { NutritionEstimate, WeeklyPlan, WeeklyPlanGeneration } from "./types";
 
 vi.mock("./api");
+const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => entitlementAccess.allowed,
+    quotaFor: () => null,
+  }),
+}));
 vi.mock("../../shared/AuthenticatedHeader", () => ({ AuthenticatedHeader: () => null }));
 
 const target = (unit: string, values: Partial<{ minimum: number; preferred: number; preferred_maximum: number; maximum: number }> = {}) => ({
@@ -117,6 +128,7 @@ const weeklyPlan: WeeklyPlan = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  entitlementAccess.allowed = true;
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
   vi.mocked(nutritionApi.getCurrentNutritionEstimate).mockResolvedValue(estimate);
   vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue(null);
@@ -204,6 +216,16 @@ async function openFirstMeal(user: ReturnType<typeof userEvent.setup>) {
     ?? screen.getByText("LU01 — Chicken kebab, rice, and grilled tomato", { exact: true });
   await user.click(mealTitle.closest("summary")!);
 }
+
+it("locks new nutrition plan generation when the entitlement is missing", async () => {
+  entitlementAccess.allowed = false;
+  render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
+
+  const button = await screen.findByRole("button", { name: /ساخت برنامه تغذیه هفتگی|Build weekly nutrition plan/ });
+  expect(button).toBeDisabled();
+  expect(screen.getByText(/دسترسی تولید برنامه تغذیه لازم است|Nutrition plan generation access is required/)).toBeInTheDocument();
+  expect(nutritionApi.createWeeklyNutritionPlan).not.toHaveBeenCalled();
+});
 
 it("shows the safe per-100g summary and only تخمینی for an estimated recipe", async () => {
   await i18n.changeLanguage("fa");
@@ -330,6 +352,25 @@ it("keeps the red pending status for a plan awaiting physician approval", async 
 
   const supervision = (await screen.findByRole("heading", { name: "تحت نظر پزشک" })).closest("section");
   expect(within(supervision!).getByText("در انتظار تأیید پزشک")).toHaveClass("nutrition-doctor-status--pending");
+});
+
+it("does not present a standard nutrition plan as physician-pending", async () => {
+  await i18n.changeLanguage("fa");
+  vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue({
+    ...weeklyPlan,
+    lifecycle_status: "active",
+    physician_approved: false,
+    physician_review_required: false,
+    physician_review_status: null,
+    review_status: "not_required",
+    explanation_codes: [],
+  });
+
+  render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
+
+  const supervision = (await screen.findByRole("heading", { name: "تحت نظر پزشک" })).closest("section");
+  expect(within(supervision!).getByText("نیازی به بررسی پزشک نیست")).toBeInTheDocument();
+  expect(within(supervision!).queryByText("در انتظار تأیید پزشک")).not.toBeInTheDocument();
 });
 
 it("shows the catalogue meal title and thumbnail in the weekly plan", async () => {

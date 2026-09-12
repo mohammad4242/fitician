@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import type { SupplementOrder } from "./api";
 import "./nutritionEstimate.css";
 
 export function NutritionSupplementsPage() {
   const { i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const fa = i18n.language === "fa";
+  const canManageSupplements = hasEntitlement("nutrition.supplements.manage");
   const l = (p: string, e: string) => (fa ? p : e);
   const navigate = useNavigate();
   const [orders, setOrders] = useState<SupplementOrder[]>([]);
@@ -104,6 +108,12 @@ export function NutritionSupplementsPage() {
           </div>
         )}
 
+        {!entitlementsLoading && !canManageSupplements && (
+          <div className="supplement-state-card" role="status">
+            {l("برای ثبت پیگیری جدید مکمل، دسترسی مدیریت مکمل‌ها لازم است. دستورهای قبلی همچنان قابل مشاهده هستند.", "Supplement management access is required for new member updates. Existing orders remain viewable.")}
+          </div>
+        )}
+
         {!loading && visibleOrders.length === 0 ? (
           <div className="supplement-empty-card">
             <span className="supplement-empty-card__icon" aria-hidden="true">📋</span>
@@ -190,7 +200,10 @@ export function NutritionSupplementsPage() {
                     <footer className="supplement-card__footer">
                       <button
                         className="primary-button supplement-card__ack-button"
-                        onClick={() => void api.acknowledgeSupplementOrder(order.id).then(load)}
+                        disabled={entitlementsLoading || !canManageSupplements}
+                        onClick={() => {
+                          if (canManageSupplements) void api.acknowledgeSupplementOrder(order.id).then(load);
+                        }}
                         type="button"
                       >
                         {l("دیدم", "Acknowledge")}

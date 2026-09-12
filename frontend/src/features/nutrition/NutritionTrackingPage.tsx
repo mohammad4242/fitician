@@ -7,6 +7,7 @@ import {
   normalizeImageForUpload,
   UserImageNormalizationError,
 } from "../../shared/imageNormalization";
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import type { FoodPhotoEstimate, FoodPhotoEstimateItem, FoodPhotoEstimateStatus } from "./api";
 import type { DailyTrackingSummary } from "./types";
@@ -59,7 +60,9 @@ function formatFoodPhotoDate(value: string | undefined, locale: string): string 
 
 export function NutritionTrackingPage() {
   const { i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const fa = i18n.language === "fa";
+  const canAnalyzeFoodPhoto = hasEntitlement("nutrition.food_photo.analyze");
   const l = (persian: string, english: string) => (fa ? persian : english);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -144,7 +147,7 @@ export function NutritionTrackingPage() {
   }
 
   async function analyzePhoto(file: File | undefined) {
-    if (!file || !photoConsent) return;
+    if (!file || !photoConsent || entitlementsLoading || !canAnalyzeFoodPhoto) return;
     setPhotoEstimate(null);
     setError(null);
     setItemFoodSelections({});
@@ -339,12 +342,16 @@ export function NutritionTrackingPage() {
         {photoPreview ? <img alt={l("پیش‌نمایش عکس وعده", "Meal photo preview")} src={photoPreview} /> : <div><AppIcon name="camera" /><strong>{l("عکس غذا را انتخاب کن", "Choose a meal photo")}</strong></div>}
         {photoUploading && <span className="nutrition-photo-stage__busy" role="status">{l("در حال آپلود…", "Uploading…")}</span>}
       </div>
+      {!entitlementsLoading && !canAnalyzeFoodPhoto && <p className="nutrition-photo-status nutrition-photo-status--error" role="status">
+        <strong>{l("تحلیل هوشمند عکس در دسترسی فعلی تو نیست.", "AI photo analysis is not included in your current access.")}</strong>
+        <span>{l("ثبت دستی و مشاهده سوابق عکس همچنان در دسترس است.", "Manual logging and existing photo history remain available.")}</span>
+      </p>}
       <p className="nutrition-photo-disclosure">{l(
         "عکس فقط برای شناسایی تقریبی غذا از طریق سرویس هوش مصنوعی تنظیم‌شده پردازش می‌شود؛ اطلاعات حساب یا پزشکی همراه آن ارسال نمی‌شود.",
         "The image is sent only for approximate food recognition through the configured AI service. Account and medical information are not included."
       )}</p>
       <label className="nutrition-photo-consent"><input type="checkbox" checked={photoConsent} onChange={(event) => setPhotoConsent(event.target.checked)} /> {l("با پردازش عکس توسط سرویس ثالث موافقم", "I consent to third-party image processing")}</label>
-      <label className={`nutrition-photo-picker${photoConsent ? " is-enabled" : ""}`}><span>{photoPreview ? l("تغییر عکس", "Change photo") : l("انتخاب عکس", "Choose photo")}</span><input aria-label={l("انتخاب عکس غذا", "Choose food photo")} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={!photoConsent || photoUploading} onChange={(event) => { void analyzePhoto(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
+      <label className={`nutrition-photo-picker${photoConsent && canAnalyzeFoodPhoto ? " is-enabled" : ""}`}><span>{photoPreview ? l("تغییر عکس", "Change photo") : l("انتخاب عکس", "Choose photo")}</span><input aria-label={l("انتخاب عکس غذا", "Choose food photo")} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={!photoConsent || photoUploading || entitlementsLoading || !canAnalyzeFoodPhoto} onChange={(event) => { void analyzePhoto(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
       {photoHistory.length > 0 && <section className="nutrition-photo-history" aria-labelledby="nutrition-photo-history-title">
         <div className="nutrition-photo-history__heading">
           <h3 id="nutrition-photo-history-title">{l("سابقه تحلیل عکس", "Photo analysis history")}</h3>
