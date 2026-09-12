@@ -1125,6 +1125,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entitlements/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Entitlements */
+        get: operations["my_entitlements_api_v1_entitlements_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exercise-categories": {
         parameters: {
             query?: never;
@@ -2789,6 +2806,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products */
+        get: operations["products_api_v1_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile": {
         parameters: {
             query?: never;
@@ -3141,6 +3175,35 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /** AccessGrantSummaryResponse */
+        AccessGrantSummaryResponse: {
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Revoked At */
+            revoked_at: string | null;
+            source: components["schemas"]["GrantSource"];
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+        };
+        /**
+         * AccessPackageCode
+         * @enum {string}
+         */
+        AccessPackageCode: "free" | "training" | "training_coach" | "nutrition" | "nutrition_physician" | "complete" | "complete_care" | "launch_trial";
+        /**
+         * AccessPackageKind
+         * @enum {string}
+         */
+        AccessPackageKind: "free" | "subscription" | "trial";
         /** AccountDeletionCancelRequest */
         AccountDeletionCancelRequest: {
             /**
@@ -6028,6 +6091,28 @@ export type components = {
             token: string;
         };
         /**
+         * EntitlementCode
+         * @enum {string}
+         */
+        EntitlementCode: "training.plan.generate" | "training.cycle.manage" | "training.coach_review" | "nutrition.plan.generate" | "nutrition.plan.manage" | "nutrition.food_photo.analyze" | "nutrition.physician_review" | "nutrition.labs.manage" | "nutrition.supplements.manage" | "body_analysis.run";
+        /** EntitlementSnapshotResponse */
+        EntitlementSnapshotResponse: {
+            /** Active Packages */
+            active_packages: components["schemas"]["AccessPackageCode"][];
+            entitlements: components["schemas"]["EntitlementStateResponse"];
+            /** Grants */
+            grants: components["schemas"]["AccessGrantSummaryResponse"][];
+            primary_package: components["schemas"]["AccessPackageCode"];
+            trial: components["schemas"]["TrialStateResponse"];
+        };
+        /** EntitlementStateResponse */
+        EntitlementStateResponse: {
+            /** Granted */
+            granted: components["schemas"]["EntitlementCode"][];
+            /** Quotas */
+            quotas: components["schemas"]["QuotaStatusResponse"][];
+        };
+        /**
          * Equipment
          * @enum {string}
          */
@@ -6519,6 +6604,11 @@ export type components = {
             /** Credential */
             credential: string;
         };
+        /**
+         * GrantSource
+         * @enum {string}
+         */
+        GrantSource: "launch_trial" | "manual" | "promotion" | "subscription" | "admin";
         /**
          * HomeTrainingSetup
          * @enum {string}
@@ -8743,6 +8833,17 @@ export type components = {
             /** Expires In Seconds */
             expires_in_seconds: number;
         };
+        /** ProductCatalogItemResponse */
+        ProductCatalogItemResponse: {
+            code: components["schemas"]["AccessPackageCode"];
+            /** Entitlements */
+            entitlements: components["schemas"]["EntitlementCode"][];
+            /** Is Purchasable */
+            is_purchasable: boolean;
+            kind: components["schemas"]["AccessPackageKind"];
+            /** Quota Policies */
+            quota_policies: components["schemas"]["ProductQuotaPolicyResponse"][];
+        };
         /**
          * ProductMode
          * @enum {string}
@@ -8751,6 +8852,14 @@ export type components = {
         /** ProductModeSelection */
         ProductModeSelection: {
             product_mode: components["schemas"]["ProductMode"];
+        };
+        /** ProductQuotaPolicyResponse */
+        ProductQuotaPolicyResponse: {
+            entitlement: components["schemas"]["EntitlementCode"];
+            /** Limit */
+            limit: number;
+            /** Window Days */
+            window_days: number;
         };
         /**
          * ProfileCompletionState
@@ -9094,6 +9203,23 @@ export type components = {
             entry_date: string;
             /** Protein G */
             protein_g?: number | null;
+        };
+        /** QuotaStatusResponse */
+        QuotaStatusResponse: {
+            entitlement: components["schemas"]["EntitlementCode"];
+            /** Limit */
+            limit: number;
+            /** Remaining */
+            remaining: number;
+            /**
+             * Reset At
+             * Format: date-time
+             */
+            reset_at: string;
+            /** Used */
+            used: number;
+            /** Window Days */
+            window_days: number;
         };
         /** RecentTrainingHistory */
         RecentTrainingHistory: {
@@ -9656,6 +9782,13 @@ export type components = {
          * @enum {string}
          */
         TrainingTemplateSlotPriority: "core" | "accessory" | "optional";
+        /** TrialStateResponse */
+        TrialStateResponse: {
+            /** Active */
+            active: boolean;
+            /** Ends At */
+            ends_at: string | null;
+        };
         /** UserReportedMeasurementChange */
         UserReportedMeasurementChange: {
             /** Current */
@@ -10122,6 +10255,13 @@ export type components = {
             }[];
             /** Physician Display Name */
             physician_display_name: string | null;
+            /**
+             * Physician Review Required
+             * @default false
+             */
+            physician_review_required: boolean;
+            /** Physician Review Status */
+            physician_review_status?: string | null;
             /** Physician User Visible Notes */
             physician_user_visible_notes: string | null;
             /** Plan Role */
@@ -13439,6 +13579,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutReviewAccessResponse"];
+                };
+            };
+        };
+    };
+    my_entitlements_api_v1_entitlements_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementSnapshotResponse"];
                 };
             };
         };
@@ -16849,6 +17009,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    products_api_v1_products_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCatalogItemResponse"][];
                 };
             };
         };

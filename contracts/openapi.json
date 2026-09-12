@@ -377,6 +377,84 @@
         "title": "AITaskType",
         "type": "string"
       },
+      "AccessGrantSummaryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrantSource"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "package_code",
+          "source",
+          "starts_at",
+          "ends_at",
+          "revoked_at"
+        ],
+        "title": "AccessGrantSummaryResponse",
+        "type": "object"
+      },
+      "AccessPackageCode": {
+        "enum": [
+          "free",
+          "training",
+          "training_coach",
+          "nutrition",
+          "nutrition_physician",
+          "complete",
+          "complete_care",
+          "launch_trial"
+        ],
+        "title": "AccessPackageCode",
+        "type": "string"
+      },
+      "AccessPackageKind": {
+        "enum": [
+          "free",
+          "subscription",
+          "trial"
+        ],
+        "title": "AccessPackageKind",
+        "type": "string"
+      },
       "AccountDeletionCancelRequest": {
         "additionalProperties": false,
         "properties": {
@@ -8678,6 +8756,84 @@
         "title": "EmailVerificationRequest",
         "type": "object"
       },
+      "EntitlementCode": {
+        "enum": [
+          "training.plan.generate",
+          "training.cycle.manage",
+          "training.coach_review",
+          "nutrition.plan.generate",
+          "nutrition.plan.manage",
+          "nutrition.food_photo.analyze",
+          "nutrition.physician_review",
+          "nutrition.labs.manage",
+          "nutrition.supplements.manage",
+          "body_analysis.run"
+        ],
+        "title": "EntitlementCode",
+        "type": "string"
+      },
+      "EntitlementSnapshotResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "active_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AccessPackageCode"
+            },
+            "title": "Active Packages",
+            "type": "array"
+          },
+          "entitlements": {
+            "$ref": "#/components/schemas/EntitlementStateResponse"
+          },
+          "grants": {
+            "items": {
+              "$ref": "#/components/schemas/AccessGrantSummaryResponse"
+            },
+            "title": "Grants",
+            "type": "array"
+          },
+          "primary_package": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "trial": {
+            "$ref": "#/components/schemas/TrialStateResponse"
+          }
+        },
+        "required": [
+          "primary_package",
+          "active_packages",
+          "trial",
+          "entitlements",
+          "grants"
+        ],
+        "title": "EntitlementSnapshotResponse",
+        "type": "object"
+      },
+      "EntitlementStateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "granted": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementCode"
+            },
+            "title": "Granted",
+            "type": "array"
+          },
+          "quotas": {
+            "items": {
+              "$ref": "#/components/schemas/QuotaStatusResponse"
+            },
+            "title": "Quotas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "granted",
+          "quotas"
+        ],
+        "title": "EntitlementStateResponse",
+        "type": "object"
+      },
       "Equipment": {
         "enum": [
           "bodyweight",
@@ -10141,6 +10297,17 @@
         ],
         "title": "GoogleAuthRequest",
         "type": "object"
+      },
+      "GrantSource": {
+        "enum": [
+          "launch_trial",
+          "manual",
+          "promotion",
+          "subscription",
+          "admin"
+        ],
+        "title": "GrantSource",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -16400,6 +16567,44 @@
         "title": "PrivateAccessGrantResponse",
         "type": "object"
       },
+      "ProductCatalogItemResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "entitlements": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementCode"
+            },
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "is_purchasable": {
+            "title": "Is Purchasable",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AccessPackageKind"
+          },
+          "quota_policies": {
+            "items": {
+              "$ref": "#/components/schemas/ProductQuotaPolicyResponse"
+            },
+            "title": "Quota Policies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "kind",
+          "is_purchasable",
+          "entitlements",
+          "quota_policies"
+        ],
+        "title": "ProductCatalogItemResponse",
+        "type": "object"
+      },
       "ProductMode": {
         "enum": [
           "training",
@@ -16419,6 +16624,29 @@
           "product_mode"
         ],
         "title": "ProductModeSelection",
+        "type": "object"
+      },
+      "ProductQuotaPolicyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/EntitlementCode"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "window_days": {
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entitlement",
+          "limit",
+          "window_days"
+        ],
+        "title": "ProductQuotaPolicyResponse",
         "type": "object"
       },
       "ProfileCompletionState": {
@@ -17761,6 +17989,45 @@
           "calories"
         ],
         "title": "QuickApproximationInput",
+        "type": "object"
+      },
+      "QuotaStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/EntitlementCode"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "reset_at": {
+            "format": "date-time",
+            "title": "Reset At",
+            "type": "string"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          },
+          "window_days": {
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entitlement",
+          "limit",
+          "used",
+          "remaining",
+          "window_days",
+          "reset_at"
+        ],
+        "title": "QuotaStatusResponse",
         "type": "object"
       },
       "RecentTrainingHistory": {
@@ -19257,6 +19524,33 @@
         "title": "TrainingTemplateSlotPriority",
         "type": "string"
       },
+      "TrialStateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          }
+        },
+        "required": [
+          "active",
+          "ends_at"
+        ],
+        "title": "TrialStateResponse",
+        "type": "object"
+      },
       "UserReportedMeasurementChange": {
         "additionalProperties": false,
         "properties": {
@@ -20526,6 +20820,22 @@
               }
             ],
             "title": "Physician Display Name"
+          },
+          "physician_review_required": {
+            "default": false,
+            "title": "Physician Review Required",
+            "type": "boolean"
+          },
+          "physician_review_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physician Review Status"
           },
           "physician_user_visible_notes": {
             "anyOf": [
@@ -26622,6 +26932,32 @@
         ]
       }
     },
+    "/api/v1/entitlements/me": {
+      "get": {
+        "operationId": "my_entitlements_api_v1_entitlements_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementSnapshotResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Entitlements",
+        "tags": [
+          "entitlements"
+        ]
+      }
+    },
     "/api/v1/exercise-categories": {
       "get": {
         "operationId": "categories_api_v1_exercise_categories_get",
@@ -32236,6 +32572,31 @@
         "summary": "Read Recent Foods",
         "tags": [
           "nutrition"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "operationId": "products_api_v1_products_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProductCatalogItemResponse"
+                  },
+                  "title": "Response Products Api V1 Products Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Products",
+        "tags": [
+          "entitlements"
         ]
       }
     },
