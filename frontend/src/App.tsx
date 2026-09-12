@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom
 import { AdminRoute } from "./features/admin/AdminRoute";
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
 import { ProtectedRoute } from "./features/auth/ProtectedRoute";
+import { EntitlementProvider } from "./features/entitlements/EntitlementContext";
 import { ProfileProvider } from "./features/profile/ProfileContext";
 import { useProfile } from "./features/profile/ProfileContext";
 import {
@@ -184,10 +185,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ProfileProvider>
-          <AppRoutes />
-          <PwaUpdatePrompt />
-        </ProfileProvider>
+        <EntitlementProvider>
+          <ProfileProvider>
+            <AppRoutes />
+            <PwaUpdatePrompt />
+          </ProfileProvider>
+        </EntitlementProvider>
       </AuthProvider>
     </BrowserRouter>
   );
