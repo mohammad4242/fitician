@@ -1,17 +1,21 @@
 import struct
 import zlib
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
 from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
 from app.body_photos.enums import BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
 from app.config import Settings
+from app.entitlements.enums import AccessPackageCode
+from app.entitlements.models import UserAccessGrant
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -75,6 +79,44 @@ def _create_session(client: TestClient, purpose: str = "initial_plan") -> dict[s
     )
     assert response.status_code == 201
     return response.json()
+
+
+def test_free_user_cannot_start_a_new_body_analysis_session(
+    client: TestClient, db: Session
+) -> None:
+    email = "free-body-analysis@example.com"
+    _register(client, email)
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    trial = db.scalar(
+        select(UserAccessGrant).where(
+            UserAccessGrant.user_id == user.id,
+            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
+        )
+    )
+    assert trial is not None
+    trial.revoked_at = datetime.now(UTC)
+    db.commit()
+
+    response = client.post(
+        "/api/v1/body-photo-sessions",
+        headers=ORIGIN,
+        json={"purpose": "initial_plan"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == {
+        "code": "ENTITLEMENT_REQUIRED",
+        "entitlement": "body_analysis.run",
+        "eligible_packages": [
+            "training",
+            "training_coach",
+            "nutrition",
+            "nutrition_physician",
+            "complete",
+            "complete_care",
+        ],
+    }
 
 
 def _upload(

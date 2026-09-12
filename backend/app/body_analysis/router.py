@@ -39,6 +39,8 @@ from app.body_analysis.service import (
     ReviewSubmission,
 )
 from app.database.session import get_db
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import require_entitlement
 
 router = APIRouter(prefix="/api/v1/body-photo-sessions", tags=["body-analysis"])
 review_router = APIRouter(
@@ -214,6 +216,7 @@ def start_session_analysis(
     runtime: BodyAnalysisRuntimeDependency,
     payload: BodyAnalysisStartRequest,
 ) -> BodyAnalysisResponse:
+    require_entitlement(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
     try:
         service = BodyAnalysisService(db)
         analysis = service.queue(
@@ -221,6 +224,7 @@ def start_session_analysis(
             user.id,
             runtime.config,
             confirm_measurements_current=payload.confirm_measurements_current,
+            charge_quota=True,
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None
@@ -268,6 +272,7 @@ def retry_session_analysis(
             confirm_measurements_current=(
                 payload.confirm_measurements_current if payload is not None else False
             ),
+            charge_quota=True,
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None

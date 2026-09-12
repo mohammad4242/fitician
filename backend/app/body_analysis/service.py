@@ -53,6 +53,8 @@ from app.body_analysis.schemas import (
 )
 from app.body_photos.enums import BodyPhotoSessionState, BodyPhotoView
 from app.body_photos.models import BodyPhoto, BodyPhotoSession
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import consume_quota
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import enqueue_specialist_notification
@@ -281,6 +283,7 @@ class BodyAnalysisService:
         config: AnalysisExecutionConfig,
         *,
         confirm_measurements_current: bool = False,
+        charge_quota: bool = False,
     ) -> BodyAnalysis:
         photo_session = self._owner_photo_session(session_id, user_id, lock=True)
         if photo_session.state not in {
@@ -303,6 +306,13 @@ class BodyAnalysisService:
             replaces=latest,
             confirm_measurements_current=confirm_measurements_current,
         )
+        if charge_quota:
+            consume_quota(
+                self._db,
+                user_id,
+                EntitlementCode.BODY_ANALYSIS_RUN,
+                f"body-analysis-session:{photo_session.id}",
+            )
         return self._create_analysis(
             photo_session,
             config,
@@ -317,6 +327,7 @@ class BodyAnalysisService:
         config: AnalysisExecutionConfig,
         *,
         confirm_measurements_current: bool = False,
+        charge_quota: bool = False,
     ) -> BodyAnalysis:
         previous = self.get_analysis(analysis_id, user_id)
         photo_session = self._owner_photo_session(previous.session_id, user_id, lock=True)
@@ -355,6 +366,13 @@ class BodyAnalysisService:
             replaces=latest,
             confirm_measurements_current=confirm_measurements_current,
         )
+        if charge_quota:
+            consume_quota(
+                self._db,
+                user_id,
+                EntitlementCode.BODY_ANALYSIS_RUN,
+                f"body-analysis-session:{photo_session.id}",
+            )
         return self._create_analysis(
             photo_session,
             config,

@@ -41,6 +41,8 @@ from app.body_photos.service import (
 from app.body_photos.storage import BodyPhotoStorageError
 from app.config import Settings, get_settings
 from app.database.session import get_db
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import require_quota_available
 
 router = APIRouter(prefix="/api/v1/body-photo-sessions", tags=["body-photos"])
 
@@ -119,6 +121,7 @@ def create_session(
     user: CurrentUser,
     settings: AppSettings,
 ) -> BodyPhotoSessionResponse:
+    require_quota_available(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
     try:
         return _session_response(
             BodyPhotoService(db, settings).create_session(

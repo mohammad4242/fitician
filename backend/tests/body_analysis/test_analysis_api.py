@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -9,10 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.body_analysis.enums import BodyAnalysisStatus, SpecialistRole
-from app.body_analysis.models import UserSpecialistRole
+from app.body_analysis.models import BodyAnalysis, UserSpecialistRole
 from app.body_analysis.runtime import BodyAnalysisRuntime, get_body_analysis_runtime
 from app.body_analysis.service import BodyAnalysisService
 from app.body_photos.enums import BodyPhotoSessionState
+from app.entitlements.models import EntitlementUsageEvent
 
 from .test_execution_and_reviews import (
     _complete_body_profile,
@@ -222,6 +224,57 @@ def test_unconfigured_analysis_returns_safe_failure_without_changing_photo_sessi
     assert response.status_code == 503
     assert response.json() == {"detail": "Body analysis is temporarily unavailable"}
     assert photo_session.state is BodyPhotoSessionState.QUEUED
+
+
+def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
+    client: TestClient, db: Session
+) -> None:
+    _runtime_override(client)
+    email = f"quota-{uuid4()}@example.com"
+    _register(client, email)
+    owner = db.scalar(select(User).where(User.email == email))
+    assert owner is not None
+    _, photo_session = _submitted_session(db, owner)
+
+    started = client.post(
+        f"/api/v1/body-photo-sessions/{photo_session.id}/analysis",
+        headers=ORIGIN,
+        json={"confirm_measurements_current": True},
+    )
+    assert started.status_code == 202, started.text
+    analysis = db.scalar(
+        select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id)
+    )
+    assert analysis is not None
+    analysis.status = BodyAnalysisStatus.FAILED
+    db.commit()
+
+    retried = client.post(
+        f"/api/v1/body-photo-sessions/{photo_session.id}/analysis/retry",
+        headers=ORIGIN,
+        json={"confirm_measurements_current": True},
+    )
+    assert retried.status_code == 202, retried.text
+    assert len(
+        db.scalars(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.user_id == owner.id,
+                EntitlementUsageEvent.entitlement_key == "body_analysis.run",
+            )
+        ).all()
+    ) == 1
+
+    new_session = client.post(
+        "/api/v1/body-photo-sessions",
+        headers=ORIGIN,
+        json={"purpose": "progress_check"},
+    )
+    assert new_session.status_code == 429
+    detail = new_session.json()["detail"]
+    assert detail["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
+    assert detail["entitlement"] == "body_analysis.run"
+    reset_at = datetime.fromisoformat(detail["reset_at"])
+    assert reset_at > datetime.now(UTC)
 
 
 def test_v4_start_returns_structured_missing_measurement_fields(
