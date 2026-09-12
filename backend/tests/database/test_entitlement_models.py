@@ -1,8 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -58,11 +57,14 @@ def test_entitlement_constraints_and_indexes_are_named() -> None:
     assert "uq_user_access_grants_user_idempotency_key" in grant_constraints
     assert "uq_entitlement_usage_events_user_entitlement_resource" in usage_constraints
     assert {
-        column.name for column in grant_constraints["uq_user_access_grants_user_idempotency_key"].columns
+        column.name
+        for column in grant_constraints["uq_user_access_grants_user_idempotency_key"].columns
     } == {"user_id", "idempotency_key"}
     assert {
         column.name
-        for column in usage_constraints["uq_entitlement_usage_events_user_entitlement_resource"].columns
+        for column in usage_constraints[
+            "uq_entitlement_usage_events_user_entitlement_resource"
+        ].columns
     } == {"user_id", "entitlement_key", "resource_key"}
     assert any(
         index.name == "ix_entitlement_usage_events_user_entitlement_occurred"
@@ -140,7 +142,10 @@ def test_postgres_constraints_allow_normal_grants_and_prevent_duplicate_semantic
         )
     )
     db.flush()
-    with pytest.raises(IntegrityError, match="uq_entitlement_usage_events_user_entitlement_resource"):
+    with pytest.raises(
+        IntegrityError,
+        match="uq_entitlement_usage_events_user_entitlement_resource",
+    ):
         with db.begin_nested():
             db.add(
                 EntitlementUsageEvent(
@@ -152,4 +157,7 @@ def test_postgres_constraints_allow_normal_grants_and_prevent_duplicate_semantic
             )
             db.flush()
 
-    assert len(db.scalars(select(UserAccessGrant).where(UserAccessGrant.user_id == user.id)).all()) == 3
+    assert (
+        len(db.scalars(select(UserAccessGrant).where(UserAccessGrant.user_id == user.id)).all())
+        == 3
+    )

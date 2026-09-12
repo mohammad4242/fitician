@@ -1,4 +1,4 @@
-from app.entitlements.catalog import QUOTA_POLICIES, PACKAGE_CATALOG, package_definition
+from app.entitlements.catalog import PACKAGE_CATALOG, QUOTA_POLICIES, package_definition
 from app.entitlements.enums import (
     AccessPackageCode,
     AccessPackageKind,
