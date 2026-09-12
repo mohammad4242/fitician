@@ -8,6 +8,7 @@ import {
   UserImageNormalizationError,
 } from "../../shared/imageNormalization";
 import { useOptionalProfile } from "../profile/ProfileContext";
+import { useEntitlements } from "../entitlements/EntitlementContext";
 
 import {
   createBodyPhotoSession,
@@ -47,7 +48,8 @@ export function BodyPhotoWizard({
   processor?: BodyPhotoProcessor;
   purpose?: BodyPhotoPurpose;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement, quotaFor } = useEntitlements();
   const profileContext = useOptionalProfile();
   const profileSex = profileContext?.profile?.sex ?? null;
   const navigate = useNavigate();
@@ -83,6 +85,8 @@ export function BodyPhotoWizard({
   const complete = views.every((item) => (
     processed[item] !== undefined || session?.photos.some((photo) => photo.view === item) === true
   ));
+  const canRunBodyAnalysis = hasEntitlement("body_analysis.run");
+  const bodyAnalysisQuota = quotaFor("body_analysis.run");
 
   useEffect(() => {
     processedRef.current = processed;
@@ -335,6 +339,26 @@ export function BodyPhotoWizard({
         <button className="primary-button" type="button" onClick={() => navigate("/body-progress")}>{t("bodyPhotos.viewSessions")}</button>
       </section>
     );
+  }
+
+  if (!loadingExistingSession && entitlementsLoading) {
+    return <section className="body-photo-wizard body-photo-wizard--status" aria-labelledby="body-photo-title">
+      <h1 id="body-photo-title">{t("bodyPhotos.eyebrow")}</h1>
+      <p role="status">{t("bodyPhotos.loading")}</p>
+    </section>;
+  }
+
+  if (!loadingExistingSession && (!canRunBodyAnalysis || bodyAnalysisQuota?.remaining === 0)) {
+    const resetAt = bodyAnalysisQuota?.reset_at
+      ? new Intl.DateTimeFormat(i18n.resolvedLanguage === "en" ? "en" : "fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(bodyAnalysisQuota.reset_at))
+      : null;
+    return <section className="body-photo-wizard body-photo-wizard--status" aria-labelledby="body-photo-title">
+      <h1 id="body-photo-title">{t("bodyPhotos.title")}</h1>
+      <p role="status">{bodyAnalysisQuota?.remaining === 0
+        ? t("entitlements.quotaReset", { date: resetAt ?? "—" })
+        : t("entitlements.lockedAction")}</p>
+      <button className="secondary-button" type="button" onClick={() => navigate("/body-progress")}>{t("bodyPhotos.viewSessions")}</button>
+    </section>;
   }
 
   if (!requirementsConfirmed) {

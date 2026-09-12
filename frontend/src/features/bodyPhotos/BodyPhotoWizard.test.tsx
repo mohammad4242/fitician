@@ -22,8 +22,19 @@ const api = vi.hoisted(() => ({
 const ghostEditor = vi.hoisted(() => ({
   editedFile: new File(["edited"], "body-photo-edited.jpg", { type: "image/jpeg" }),
 }));
+const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
 
 vi.mock("./api", () => api);
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: null,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => entitlementAccess.allowed,
+    quotaFor: () => entitlementAccess.allowed ? { entitlement: "body_analysis.run", limit: 1, used: 0, remaining: 1, window_days: 7, reset_at: "2026-08-11T12:00:00Z" } : null,
+  }),
+}));
 vi.mock("./GhostPhotoEditor", () => ({
   GhostPhotoEditor: ({ onCancel, onConfirm, sideProfile }: {
     onCancel: () => void;
@@ -98,6 +109,7 @@ function LocationDisplay() {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  entitlementAccess.allowed = true;
   await i18n.changeLanguage("en");
   api.createBodyPhotoSession.mockResolvedValue({ id: "session-1", state: "draft", photos: [] });
   api.getBodyPhotoSession.mockResolvedValue({
@@ -123,6 +135,15 @@ it("keeps the photo workflow optional and offers a skip path", async () => {
   await user.click(screen.getByRole("link", { name: /skip photos/i }));
 
   expect(screen.getByText(/you can still receive a complete workout plan/i)).toBeInTheDocument();
+});
+
+it("blocks a fresh body-analysis capture without the run entitlement", async () => {
+  entitlementAccess.allowed = false;
+  renderWizard();
+
+  expect(await screen.findByText("This action is not included in your current access.")).toBeInTheDocument();
+  expect(screen.queryByLabelText(/front photo upload/i)).not.toBeInTheDocument();
+  expect(api.createBodyPhotoSession).not.toHaveBeenCalled();
 });
 
 it("offers HEIC and HEIF files for body-photo uploads", async () => {

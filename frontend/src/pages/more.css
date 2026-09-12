@@ -69,6 +69,23 @@
   margin-block-start: 1rem;
 }
 
+.more-access-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-lg);
+  background: var(--fitsho-surface-subtle);
+}
+
+.more-access-card div { display: grid; gap: 0.15rem; }
+.more-access-card p, .more-access-card strong, .more-access-card span { margin: 0; }
+.more-access-card p, .more-access-card span { color: var(--fitsho-muted); font-size: 0.72rem; }
+.more-access-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
+.more-access-card > span { text-align: end; }
+
 .more-group {
   min-width: 0;
   padding: 0.35rem;

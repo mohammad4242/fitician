@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../features/auth/AuthContext";
+import { useEntitlements } from "../features/entitlements/EntitlementContext";
 import { verifyPhysicianAccess } from "../features/nutrition/api";
 import { useProfile } from "../features/profile/ProfileContext";
 import { ProfilePhotoAvatar } from "../features/profile/ProfilePhoto";
@@ -15,6 +16,7 @@ import "./more.css";
 export function MorePage() {
   const { i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { snapshot } = useEntitlements();
   const { profile, productMode, status } = useProfile();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -76,7 +78,7 @@ export function MorePage() {
         <div className="more-page__grid">
           <MoreGroup title={l("محصول", "Product")}>
             {hasTraining && <MoreLink to="/exercises" icon="dumbbell" title={l("کتابخانه حرکات", "Exercise library")} subtitle={l("حرکت‌ها، اجرا و نکات ایمنی", "Exercises, execution, and safety notes")} />}
-            {hasTraining && <MoreLink to="/body-progress" icon="body" title={l("تحلیل بدن", "Body Analysis")} subtitle={l("جلسه‌ها و تحلیل‌های ثبت‌شده", "Saved sessions and analyses")} />}
+            <MoreLink to="/body-progress" icon="body" title={l("تحلیل بدن", "Body Analysis")} subtitle={l("جلسه‌ها و تحلیل‌های ثبت‌شده", "Saved sessions and analyses")} />
             {hasNutrition && <MoreLink to="/food-catalogue" icon="nutrition" title={l("کاتالوگ مواد غذایی", "Food catalogue")} subtitle={l("مرجع سریع ارزش غذایی", "Fast nutrition reference")} />}
             <MoreLink to="/meal-catalogue" icon="nutrition" title={l("کاتالوگ وعده‌های غذایی", "Meal catalogue")} subtitle={l("وعده‌هایی که فیتشو در حال حاضر پشتیبانی می‌کند", "Meals currently supported by Fitsho")} />
             {hasNutrition && <MoreLink to="/nutrition-tracking" icon="target" title={l("ثبت تغذیه", "Nutrition tracking")} subtitle={l("پیگیری ساده وضعیت روز", "Simple daily check-in")} />}
@@ -98,6 +100,18 @@ export function MorePage() {
               {user.is_admin && <MoreLink to="/admin/nutrition-monitoring" icon="settings" title={l("پایش تغذیه", "Nutrition monitoring")} />}
               {user.is_admin && <MoreLink to="/admin/ai-settings" icon="settings" title={l("تنظیمات هوش مصنوعی", "AI settings")} />}
             </MoreGroup>
+          )}
+
+          {snapshot && (
+            <section className="more-access-card" aria-label={l("وضعیت دسترسی", "Access status")}>
+              <div>
+                <p>{l("بسته فعلی", "Current package")}</p>
+                <strong>{i18n.t(`entitlements.packageLabels.${snapshot.primary_package}`, snapshot.primary_package)}</strong>
+              </div>
+              {snapshot.trial.active && snapshot.trial.ends_at && (
+                <span>{l("آزمایشی تا", "Trial ends")} {new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(snapshot.trial.ends_at))}</span>
+              )}
+            </section>
           )}
         </div>
 

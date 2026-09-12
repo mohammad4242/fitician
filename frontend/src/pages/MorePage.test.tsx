@@ -1,13 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 
 import "../i18n";
 
 const logout = vi.fn(async () => undefined);
 const auth = vi.hoisted(() => ({ isAdmin: false }));
 const profileState = vi.hoisted(() => ({ productMode: "both" as "both" | "training" | "nutrition" }));
+const entitlementState = vi.hoisted(() => ({ snapshot: null as unknown }));
 
 vi.mock("../features/auth/AuthContext", () => ({
   useAuth: () => ({
@@ -23,11 +24,25 @@ vi.mock("../features/profile/ProfileContext", () => ({
     status: "ready",
   }),
 }));
+vi.mock("../features/entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: entitlementState.snapshot,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => true,
+    quotaFor: () => null,
+  }),
+}));
 
 vi.mock("../features/nutrition/api", () => ({ verifyPhysicianAccess: vi.fn(async () => { throw new Error("denied"); }) }));
 vi.mock("../features/workoutReviews/api", () => ({ verifyCoachAccess: vi.fn(async () => { throw new Error("denied"); }) }));
 
 import { MorePage } from "./MorePage";
+
+beforeEach(() => {
+  entitlementState.snapshot = null;
+});
 
 it("signs out from the separated account action", async () => {
   auth.isAdmin = false;
@@ -48,6 +63,18 @@ it("shows the training program library in the mobile admin workspace", () => {
     "href",
     "/admin/training-program-templates",
   );
+});
+
+it("shows the current launch trial in the access summary", () => {
+  entitlementState.snapshot = {
+    primary_package: "launch_trial",
+    trial: { active: true, ends_at: "2026-09-30T12:00:00Z" },
+  };
+
+  render(<MemoryRouter><MorePage /></MemoryRouter>);
+
+  expect(screen.getByText("دوره آزمایشی شروع")).toBeInTheDocument();
+  expect(screen.getByText(/آزمایشی تا/)).toBeInTheDocument();
 });
 
 it("shows the nutrition program catalogue in the mobile admin workspace", () => {

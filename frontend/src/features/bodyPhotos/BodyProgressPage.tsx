@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { useEntitlements } from "../entitlements/EntitlementContext";
 import bodyAnalysisHeroImg from "../../assets/bodyPhotos/bodyanalysis.jpg";
 import { deleteBodyPhotoSession, getBodyProgressTimeline } from "./api";
 import { BodyTimeline } from "./BodyTimeline";
@@ -11,6 +12,7 @@ import "./bodyPhotos.css";
 
 export function BodyProgressPage() {
   const { t, i18n } = useTranslation();
+  const { loading: entitlementsLoading, hasEntitlement, quotaFor } = useEntitlements();
   const [timeline, setTimeline] = useState<BodyProgressTimelineResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<BodyProgressTimelineItem["session"] | null>(null);
@@ -43,6 +45,31 @@ export function BodyProgressPage() {
   }, [deleteTarget, deletingSessionId]);
 
   const locale = i18n.resolvedLanguage === "en" ? "en" : "fa-IR";
+  const canRunBodyAnalysis = hasEntitlement("body_analysis.run");
+  const bodyAnalysisQuota = quotaFor("body_analysis.run");
+  const startBlocked = !entitlementsLoading && (!canRunBodyAnalysis || bodyAnalysisQuota?.remaining === 0);
+
+  function startAnalysisAction(className: string, labelKey = "bodyPhotos.start") {
+    const label = t(labelKey);
+    if (entitlementsLoading) {
+      return <button className={className} disabled type="button">{label}</button>;
+    }
+    if (startBlocked) {
+      const resetAt = bodyAnalysisQuota?.reset_at
+        ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(bodyAnalysisQuota.reset_at))
+        : null;
+      return <div className="body-analysis-home__start-locked" role="status">
+        <button className={className} disabled type="button">{label}</button>
+        <span>{bodyAnalysisQuota?.remaining === 0
+          ? t("entitlements.quotaReset", { date: resetAt ?? "—" })
+          : t("entitlements.lockedAction")}</span>
+      </div>;
+    }
+    return <Link className={className} to="/body-progress/new">
+      <span className="body-analysis-home__start-icon" aria-hidden="true"><AppIcon name="camera" /></span>
+      <span>{label}</span>
+    </Link>;
+  }
 
   function openDeleteDialog(session: BodyProgressTimelineItem["session"], trigger: HTMLButtonElement) {
     deleteTriggerRef.current = trigger;
@@ -177,12 +204,7 @@ export function BodyProgressPage() {
               </div>
             </div>
 
-            <Link className="primary-button body-analysis-empty__action" to="/body-progress/new">
-              <span className="body-analysis-empty__action-icon" aria-hidden="true">
-                <AppIcon name="camera" />
-              </span>
-              <span>{t("bodyPhotos.emptyAction")}</span>
-            </Link>
+            {startAnalysisAction("primary-button body-analysis-empty__action", "bodyPhotos.emptyAction")}
           </div>
         </section>
       )}
@@ -207,12 +229,7 @@ export function BodyProgressPage() {
                 </span>
               </div>
             </div>
-            <Link className="primary-button body-analysis-home__start" to="/body-progress/new">
-              <span className="body-analysis-home__start-icon" aria-hidden="true">
-                <AppIcon name="camera" />
-              </span>
-              <span>{t("bodyPhotos.start")}</span>
-            </Link>
+            {startAnalysisAction("primary-button body-analysis-home__start")}
           </div>
           <BodyTimeline items={timeline.items} onDelete={openDeleteDialog} />
         </div>

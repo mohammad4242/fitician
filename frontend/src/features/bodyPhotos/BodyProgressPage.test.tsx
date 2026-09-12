@@ -9,7 +9,18 @@ const api = vi.hoisted(() => ({
   deleteBodyPhotoSession: vi.fn(),
   getBodyProgressTimeline: vi.fn(),
 }));
+const entitlementAccess = vi.hoisted(() => ({ allowed: true, remaining: 1, snapshot: null as unknown }));
 vi.mock("./api", () => api);
+vi.mock("../entitlements/EntitlementContext", () => ({
+  useEntitlements: () => ({
+    snapshot: entitlementAccess.snapshot,
+    loading: false,
+    error: null,
+    retry: vi.fn(),
+    hasEntitlement: () => entitlementAccess.allowed,
+    quotaFor: () => entitlementAccess.allowed ? { entitlement: "body_analysis.run", limit: 1, used: 1 - entitlementAccess.remaining, remaining: entitlementAccess.remaining, window_days: 7, reset_at: "2026-08-11T12:00:00Z" } : null,
+  }),
+}));
 
 import { BodyProgressPage } from "./BodyProgressPage";
 
@@ -33,6 +44,9 @@ function timelineResponse(sessions: Array<Record<string, unknown>>) {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  entitlementAccess.allowed = true;
+  entitlementAccess.remaining = 1;
+  entitlementAccess.snapshot = null;
   await i18n.changeLanguage("en");
 });
 
@@ -81,6 +95,26 @@ it("shows an actionable empty state without the deprecated scanner visual", asyn
     "/body-progress/new",
   );
   expect(screen.queryByText("پیشرفت بدنی")).not.toBeInTheDocument();
+});
+
+it("shows a locked body-analysis start state for free members", async () => {
+  entitlementAccess.allowed = false;
+  api.getBodyProgressTimeline.mockResolvedValue(timelineResponse([]));
+  render(<MemoryRouter><BodyProgressPage /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: "No photo registered" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Register new photos" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Register new photos" })).toBeDisabled();
+  expect(screen.getByText("This action is not included in your current access.")).toBeInTheDocument();
+});
+
+it("shows the rolling quota reset before a new body-analysis session", async () => {
+  entitlementAccess.remaining = 0;
+  api.getBodyProgressTimeline.mockResolvedValue(timelineResponse([]));
+  render(<MemoryRouter><BodyProgressPage /></MemoryRouter>);
+
+  expect(await screen.findByRole("button", { name: "Register new photos" })).toBeDisabled();
+  expect(screen.getByText(/Available again/)).toBeInTheDocument();
 });
 
 it("separates incomplete uploads from submitted analyses and marks the latest analysis", async () => {
