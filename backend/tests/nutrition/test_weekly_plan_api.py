@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import app.nutrition.plan_service as plan_service
+from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.models import UserAccessGrant
+from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     EstimateConfidence,
     FoodRole,
@@ -25,6 +29,7 @@ from app.nutrition.models import (
     NutritionFoodComposition,
     NutritionFoodPriceReference,
     NutritionPlanGeneration,
+    NutritionPlanPhysicianReview,
     NutritionProgram,
     NutritionProgramDay,
     NutritionProgramSlot,
@@ -353,6 +358,49 @@ def test_generation_returns_visible_seven_day_draft_and_creates_review(
         for day in body["plan"]["days"]
         for meal in day["meals"]
     )
+
+
+def test_base_nutrition_activates_without_physician_review(
+    client: TestClient, db: Session
+) -> None:
+    email = "base-nutrition-entitlement@example.com"
+    _register_and_estimate(client, email, meals=2, snacks=1)
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    trial = db.scalar(
+        select(UserAccessGrant).where(
+            UserAccessGrant.user_id == user.id,
+            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
+        )
+    )
+    assert trial is not None
+    trial.revoked_at = datetime.now(UTC)
+    grant_package(db, user.id, AccessPackageCode.NUTRITION, source=GrantSource.MANUAL)
+    db.flush()
+    _seed_foods_and_prices(db)
+
+    response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["plan"]["physician_review_required"] is False
+    assert body["plan"]["physician_review_status"] is None
+    assert body["plan"]["physician_approved"] is False
+    if body["selected_plan_id"] is None:
+        selection = client.post(
+            f"/api/v1/nutrition/plan-bundles/{body['bundle_id']}/select",
+            headers=ORIGIN,
+            json={"plan_id": body["budget_plan"]["id"]},
+        )
+        assert selection.status_code == 200, selection.text
+        assert selection.json()["plan"]["lifecycle_status"] == "active"
+    else:
+        assert body["plan"]["lifecycle_status"] == "active"
+    assert db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == body["plan"]["id"]
+        )
+    ) is None
     catalogue_meals = {
         str(meal.id): meal for meal in db.scalars(select(NutritionCatalogueMeal)).all()
     }

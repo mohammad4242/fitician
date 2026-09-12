@@ -7,11 +7,15 @@ from decimal import Decimal
 from hashlib import sha256
 from uuid import UUID
 
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
+from app.auth.models import User
 from app.body_analysis.enums import SpecialistRole
+from app.entitlements.enums import AccessPackageCode, EntitlementCode
+from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
+from app.entitlements.service import consume_quota, require_quota_available
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
@@ -341,8 +345,24 @@ def _backfill_comparison_metrics(
     return comp
 
 
-def generate_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanGenerationResponse:
+def generate_weekly_plan(
+    db: Session,
+    user_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
+) -> WeeklyPlanGenerationResponse:
     safety = current_safety_decision(db, user_id)
+    if (
+        safety.outcome is SafetyOutcome.AUTOMATIC_DRAFT_REQUIRES_PHYSICIAN_REVIEW
+        and not physician_review_allowed
+    ):
+        raise EntitlementRequiredError(
+            EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+            eligible_packages=(
+                AccessPackageCode.NUTRITION_PHYSICIAN,
+                AccessPackageCode.COMPLETE_CARE,
+            ),
+        )
     profile = db.get(NutritionProfile, user_id)
     if safety.outcome in {
         SafetyOutcome.PHYSICIAN_MANUAL_PLAN_REQUIRED,
@@ -906,22 +926,29 @@ def generate_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanGenerationResp
             program_id=budget_program,
         )
 
-    if (
+    if not (
         comparison_report.show_ideal_plan
         and budget_plan_model is not None
         and ideal_plan_model is not None
     ):
-        bundle.selected_plan_id = None
-        bundle.selected_plan_role = None
-        bundle.selected_at = None
-    elif budget_plan_model is not None:
-        bundle.selected_plan_id = budget_plan_model.id
-        bundle.selected_plan_role = NutritionPlanRole.BUDGET.value
-        bundle.selected_at = datetime.now(UTC)
-    elif ideal_plan_model is not None:
-        bundle.selected_plan_id = ideal_plan_model.id
-        bundle.selected_plan_role = NutritionPlanRole.IDEAL_REFERENCE.value
-        bundle.selected_at = datetime.now(UTC)
+        selected_plan = budget_plan_model or ideal_plan_model
+        if selected_plan is not None:
+            _finalize_selected_plan(
+                db,
+                bundle=bundle,
+                target_plan=selected_plan,
+                target_role=(
+                    NutritionPlanRole.BUDGET.value
+                    if budget_plan_model is not None
+                    else NutritionPlanRole.IDEAL_REFERENCE.value
+                ),
+                physician_review_allowed=physician_review_allowed,
+                bundle_plans=tuple(
+                    plan
+                    for plan in (budget_plan_model, ideal_plan_model)
+                    if plan is not None
+                ),
+            )
 
     try:
         db.commit()
@@ -1344,7 +1371,12 @@ def active_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
         )
         .where(
             NutritionWeeklyPlan.user_id == user_id,
-            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+            NutritionWeeklyPlan.lifecycle_status.in_(
+                {
+                    NutritionPlanLifecycleStatus.ACTIVE,
+                    NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+                }
+            ),
             NutritionWeeklyPlan.start_date <= date.today(),
         )
     )
@@ -1413,7 +1445,9 @@ def select_bundle_plan(
     bundle_id: UUID,
     plan_id: UUID | None = None,
     plan_role: str | None = None,
+    physician_review_allowed: bool = False,
 ) -> PlanBundleSelectResponse:
+    _lock_user_for_plan_lifecycle(db, user_id)
     bundle = db.scalar(
         select(NutritionPlanBundle)
         .where(NutritionPlanBundle.id == bundle_id, NutritionPlanBundle.user_id == user_id)
@@ -1465,19 +1499,16 @@ def select_bundle_plan(
     if target_plan is None or target_role is None:
         raise PlanSelectionInvalidError("Selected plan does not belong to the specified bundle")
 
-    target_plan.is_user_visible = True
-    if target_plan.lifecycle_status == NutritionPlanLifecycleStatus.GENERATED:
-        target_plan.lifecycle_status = NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
-
-    for other_plan, _ in plans_with_role:
-        if other_plan.id != target_plan.id:
-            other_plan.is_user_visible = False
-            other_plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
-
     now = datetime.now(UTC)
-    bundle.selected_plan_id = target_plan.id
-    bundle.selected_plan_role = target_role
-    bundle.selected_at = now
+    _finalize_selected_plan(
+        db,
+        bundle=bundle,
+        target_plan=target_plan,
+        target_role=target_role,
+        physician_review_allowed=physician_review_allowed,
+        bundle_plans=tuple(plan for plan, _ in plans_with_role),
+        now=now,
+    )
     db.commit()
 
     loaded_plan = _load_plan(db, target_plan.id)
@@ -1491,6 +1522,123 @@ def select_bundle_plan(
         selected_at=now,
         plan=weekly_plan_response(loaded_plan),
     )
+
+
+def _lock_user_for_plan_lifecycle(db: Session, user_id: UUID) -> None:
+    user = db.scalar(select(User).where(User.id == user_id).with_for_update())
+    if user is None:
+        raise WeeklyPlanBundleNotFoundError("User not found")
+
+
+def _finalize_selected_plan(
+    db: Session,
+    *,
+    bundle: NutritionPlanBundle,
+    target_plan: NutritionWeeklyPlan,
+    target_role: str,
+    physician_review_allowed: bool,
+    bundle_plans: tuple[NutritionWeeklyPlan, ...],
+    now: datetime | None = None,
+) -> None:
+    """Make one bundle candidate the member's usable plan atomically."""
+    reference = now or datetime.now(UTC)
+    target_plan.is_user_visible = True
+
+    if (
+        bundle.selected_plan_id == target_plan.id
+        and (
+            target_plan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE
+            or (
+                target_plan.review is not None
+                and target_plan.lifecycle_status
+                in {
+                    NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+                    NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS,
+                    NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+                }
+            )
+        )
+    ):
+        return
+
+    if target_plan.review is not None and not physician_review_allowed:
+        raise EntitlementRequiredError(
+            EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+            eligible_packages=(
+                AccessPackageCode.NUTRITION_PHYSICIAN,
+                AccessPackageCode.COMPLETE_CARE,
+            ),
+        )
+
+    if physician_review_allowed:
+        if target_plan.review is None:
+            try:
+                require_quota_available(
+                    db,
+                    target_plan.user_id,
+                    EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                    now=reference,
+                )
+                target_plan.lifecycle_status = NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
+                target_plan.review = NutritionPlanPhysicianReview(
+                    status=NutritionPlanReviewStatus.PENDING,
+                    expected_plan_revision=target_plan.revision,
+                )
+                db.flush()
+                review = target_plan.review
+                if review is None:
+                    raise RuntimeError("nutrition review must be created with a pending plan")
+                payload = build_notification_payload(
+                    "nutrition_review_required",
+                    data={"review_id": review.id, "plan_id": target_plan.id},
+                )
+                for physician_id in specialist_user_ids(
+                    db,
+                    (SpecialistRole.PHYSICIAN, SpecialistRole.DOCTOR),
+                ):
+                    enqueue_notification_event(
+                        db,
+                        user_id=physician_id,
+                        event_type="nutrition_review_required",
+                        category="required_reviews",
+                        deduplication_key=f"nutrition-review:{review.id}:required",
+                        payload=payload,
+                    )
+                consume_quota(
+                    db,
+                    target_plan.user_id,
+                    EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                    f"nutrition-plan:{target_plan.id}:revision:{target_plan.revision}",
+                    occurred_at=reference,
+                    now=reference,
+                )
+            except EntitlementQuotaExceededError:
+                db.rollback()
+                raise
+        elif target_plan.lifecycle_status == NutritionPlanLifecycleStatus.GENERATED:
+            target_plan.lifecycle_status = NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
+    else:
+        db.execute(
+            update(NutritionWeeklyPlan)
+            .where(
+                NutritionWeeklyPlan.user_id == target_plan.user_id,
+                NutritionWeeklyPlan.id != target_plan.id,
+                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
+            )
+            .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
+        )
+        db.flush()
+        target_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+        target_plan.review = None
+
+    for other_plan in bundle_plans:
+        if other_plan.id != target_plan.id:
+            other_plan.is_user_visible = False
+            other_plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
+
+    bundle.selected_plan_id = target_plan.id
+    bundle.selected_plan_role = target_role
+    bundle.selected_at = reference
 
 
 def latest_plan_bundle(db: Session, user_id: UUID) -> WeeklyPlanGenerationResponse | None:
@@ -1683,7 +1831,7 @@ def _persist_successful_plan(
         estimate_id=estimate.id,
         safety_decision_id=safety.id,
         revision=plan_revision,
-        lifecycle_status=NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+        lifecycle_status=NutritionPlanLifecycleStatus.GENERATED,
         is_user_visible=True,
         start_date=start_date,
         planner_policy_version=PLANNER_POLICY_VERSION,
@@ -1734,7 +1882,6 @@ def _persist_successful_plan(
         warning_codes=list(result.warning_codes),
         explanation_codes=[
             "DETERMINISTIC_PLAN",
-            "PHYSICIAN_REVIEW_REQUIRED",
             *_estimate_goal_contract_codes(estimate)[1],
         ],
         weekly_cost_irr=int(result.weekly_cost_irr),
@@ -1814,32 +1961,10 @@ def _persist_successful_plan(
             )
             for code, comparison in sorted((result.nutrient_comparisons or {}).items())
         ],
-        review=NutritionPlanPhysicianReview(
-            status=NutritionPlanReviewStatus.PENDING,
-            expected_plan_revision=plan_revision,
-        ),
+        review=None,
     )
     db.add(plan)
     db.flush()
-    review = plan.review
-    if review is None:
-        raise RuntimeError("nutrition review must be created with a pending plan")
-    payload = build_notification_payload(
-        "nutrition_review_required",
-        data={"review_id": review.id, "plan_id": plan.id},
-    )
-    for physician_id in specialist_user_ids(
-        db,
-        (SpecialistRole.PHYSICIAN, SpecialistRole.DOCTOR),
-    ):
-        enqueue_notification_event(
-            db,
-            user_id=physician_id,
-            event_type="nutrition_review_required",
-            category="required_reviews",
-            deduplication_key=f"nutrition-review:{review.id}:required",
-            payload=payload,
-        )
     return plan
 
 
@@ -2380,6 +2505,8 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
         lifecycle_status=plan.lifecycle_status.value,
         is_user_visible=plan.is_user_visible,
         plan_role=plan_role,
+        physician_review_required=plan.review is not None,
+        physician_review_status=plan.review.status.value if plan.review else None,
         physician_approved=(
             plan.lifecycle_status
             in {

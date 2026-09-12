@@ -32,6 +32,8 @@ from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.config import Settings, get_settings
 from app.database.session import get_db
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import require_entitlement
 from app.nutrition.adherence_service import (
     AdherenceError,
     adaptive_preferences,
@@ -1375,8 +1377,13 @@ def generate_plan(
     db: DatabaseSession,
     user: CurrentUser,
 ) -> WeeklyPlanGenerationResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE)
     try:
-        return generate_weekly_plan(db, user.id)
+        return generate_weekly_plan(
+            db,
+            user.id,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
+        )
     except SafetyDecisionNotFoundError:
         raise _domain_error(
             "SAFETY_SCREEN_REQUIRED", "پیش از ساخت برنامه، ارزیابی ایمنی را کامل کنید."
@@ -1395,6 +1402,7 @@ def select_plan_in_bundle(
     db: DatabaseSession,
     user: CurrentUser,
 ) -> PlanBundleSelectResponse:
+    access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
     try:
         bundle_uuid = UUID(bundle_id)
     except ValueError:
@@ -1413,6 +1421,7 @@ def select_plan_in_bundle(
             bundle_id=bundle_uuid,
             plan_id=chosen_plan_id,
             plan_role=chosen_role,
+            physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
         )
     except WeeklyPlanBundleNotFoundError:
         raise HTTPException(

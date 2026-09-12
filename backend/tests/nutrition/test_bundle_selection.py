@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.exceptions import EntitlementQuotaExceededError
+from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
+from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     NutritionPlanBudgetStatus,
     NutritionPlanLifecycleStatus,
@@ -34,12 +38,23 @@ from tests.nutrition.test_weekly_plan_api import _register_and_estimate
 def _seed_test_bundle(
     client: TestClient,
     db: Session,
+    *,
+    package: AccessPackageCode = AccessPackageCode.NUTRITION,
 ) -> tuple[User, NutritionPlanBundle, NutritionWeeklyPlan, NutritionWeeklyPlan]:
     email = f"bundle_test_{uuid4().hex[:8]}@example.com"
     _register_and_estimate(client, email, meals=3, snacks=1)
     user = db.scalar(select(User).where(User.email == email))
     assert user is not None
     user_id = user.id
+    trial = db.scalar(
+        select(UserAccessGrant).where(
+            UserAccessGrant.user_id == user_id,
+            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
+        )
+    )
+    assert trial is not None
+    trial.revoked_at = datetime.now(UTC)
+    grant_package(db, user_id, package, source=GrantSource.MANUAL)
 
     safety = db.scalar(
         select(NutritionSafetyDecision)
@@ -305,11 +320,80 @@ def test_select_bundle_plan_archives_unselected_plan(client: TestClient, db: Ses
     db.refresh(budget_plan)
 
     assert ideal_plan.is_user_visible is True
-    assert ideal_plan.lifecycle_status == NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
+    assert ideal_plan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE
 
     # Budget plan should be archived and hidden from user
     assert budget_plan.is_user_visible is False
     assert budget_plan.lifecycle_status == NutritionPlanLifecycleStatus.ARCHIVED
+
+
+def test_physician_review_is_created_only_for_selected_final_plan(
+    client: TestClient, db: Session
+) -> None:
+    user, bundle, budget_plan, ideal_plan = _seed_test_bundle(
+        client,
+        db,
+        package=AccessPackageCode.NUTRITION_PHYSICIAN,
+    )
+
+    selected = select_bundle_plan(
+        db,
+        user_id=user.id,
+        bundle_id=bundle.id,
+        plan_id=ideal_plan.id,
+        physician_review_allowed=True,
+    )
+
+    assert selected.plan.physician_review_required is True
+    db.refresh(ideal_plan)
+    db.refresh(budget_plan)
+    assert ideal_plan.lifecycle_status == NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
+    assert ideal_plan.review is not None
+    assert budget_plan.lifecycle_status == NutritionPlanLifecycleStatus.ARCHIVED
+    assert budget_plan.review is None
+    assert (
+        db.scalar(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.user_id == user.id,
+                EntitlementUsageEvent.entitlement_key == "nutrition.physician_review",
+            )
+        )
+        is not None
+    )
+
+    repeated = select_bundle_plan(
+        db,
+        user_id=user.id,
+        bundle_id=bundle.id,
+        plan_id=ideal_plan.id,
+        physician_review_allowed=True,
+    )
+    assert repeated.selected_plan_id == ideal_plan.id
+
+    with pytest.raises(EntitlementQuotaExceededError):
+        select_bundle_plan(
+            db,
+            user_id=user.id,
+            bundle_id=bundle.id,
+            plan_id=budget_plan.id,
+            physician_review_allowed=True,
+        )
+    db.refresh(bundle)
+    db.refresh(budget_plan)
+    assert bundle.selected_plan_id == ideal_plan.id
+    assert budget_plan.lifecycle_status == NutritionPlanLifecycleStatus.ARCHIVED
+    assert budget_plan.review is None
+    assert (
+        len(
+            db.scalars(
+                select(EntitlementUsageEvent).where(
+                    EntitlementUsageEvent.user_id == user.id,
+                    EntitlementUsageEvent.entitlement_key == "nutrition.physician_review",
+                )
+            ).all()
+        )
+        == 1
+    )
 
 
 def test_get_latest_plan_bundle_endpoint(client: TestClient, db: Session) -> None:
@@ -352,5 +436,3 @@ def test_select_bundle_plan_by_frontend_payload_format(client: TestClient, db: S
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert data["selected_plan_id"] == str(budget_plan.id)
-
-

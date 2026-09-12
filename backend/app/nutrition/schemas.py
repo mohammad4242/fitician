@@ -1212,6 +1212,8 @@ class WeeklyPlanResponse(BaseModel):
     lifecycle_status: str
     is_user_visible: bool
     plan_role: str | None = None
+    physician_review_required: bool = False
+    physician_review_status: str | None = None
     physician_approved: bool
     review_status: str
     physician_approved_at: datetime | None
