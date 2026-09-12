@@ -1,5 +1,24 @@
 export const FITICIAN_CORE_VERSION = "0.1.0";
 
+export {
+  accessPackageCodes,
+  accessPackageKinds,
+  entitlementCodes,
+  grantSources,
+} from "./entitlements";
+export type {
+  AccessGrantSummary,
+  AccessPackageCode,
+  AccessPackageKind,
+  EntitlementCode,
+  EntitlementSnapshot,
+  EntitlementState,
+  GrantSource,
+  ProductCatalogItem,
+  ProductQuotaPolicy,
+  QuotaStatus,
+} from "./entitlements";
+
 export type { components, paths, webhooks } from "./generated/api";
 export {
   formatPrescriptionTarget,

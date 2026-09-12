@@ -11,6 +11,18 @@ const en = {
       loading: "Preparing Fitsho…",
       retry: "Try again",
     },
+    entitlements: {
+      packageLabels: {
+        free: "Free",
+        training: "Smart Training",
+        training_coach: "Training + Coach",
+        nutrition: "Smart Nutrition",
+        nutrition_physician: "Nutrition + Physician",
+        complete: "Complete Smart",
+        complete_care: "Complete Care",
+        launch_trial: "Launch Trial",
+      },
+    },
     landing: {
       cta: "Build my plan",
       menu: {

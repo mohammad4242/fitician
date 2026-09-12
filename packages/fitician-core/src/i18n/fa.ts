@@ -11,6 +11,18 @@ const fa = {
       loading: "در حال آماده‌سازی فیتشو…",
       retry: "تلاش دوباره",
     },
+    entitlements: {
+      packageLabels: {
+        free: "رایگان",
+        training: "تمرین هوشمند",
+        training_coach: "تمرین + مربی",
+        nutrition: "تغذیه هوشمند",
+        nutrition_physician: "تغذیه + پزشک",
+        complete: "کامل هوشمند",
+        complete_care: "مراقبت کامل",
+        launch_trial: "دوره آزمایشی شروع",
+      },
+    },
     landing: {
       cta: "برنامه من را بساز",
       menu: {

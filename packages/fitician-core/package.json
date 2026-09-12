@@ -38,6 +38,10 @@
       "types": "./dist/onboarding.d.ts",
       "import": "./dist/onboarding.js"
     },
+    "./entitlements": {
+      "types": "./dist/entitlements.d.ts",
+      "import": "./dist/entitlements.js"
+    },
     "./formatters": {
       "types": "./dist/formatters.d.ts",
       "import": "./dist/formatters.js"
