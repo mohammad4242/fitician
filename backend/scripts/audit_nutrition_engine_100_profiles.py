@@ -35,6 +35,8 @@ from sqlalchemy.orm import Session
 # Ensure all SQLAlchemy models and relationships are registered
 import app.main  # noqa: F401
 from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     BudgetStyle,
     CookingSkill,
@@ -405,6 +407,12 @@ def run_100_profiles_audit(
             )
             db.add(user)
             db.flush()
+            grant_package(
+                db,
+                uid,
+                AccessPackageCode.NUTRITION_PHYSICIAN,
+                source=GrantSource.MANUAL,
+            )
 
             # 2. UserProfile
             up = UserProfile(
@@ -623,7 +631,9 @@ def run_100_profiles_audit(
 
             start_t = time.perf_counter()
             try:
-                gen_resp = generate_weekly_plan(db, uid)
+                # The audit exercises the planner itself with the physician-capable path.
+                # Public member access is decided by the nutrition router before this call.
+                gen_resp = generate_weekly_plan(db, uid, physician_review_allowed=True)
                 outcome = gen_resp.outcome
                 reason_codes = list(gen_resp.reason_codes)
                 warning_codes = list(gen_resp.warning_codes)

@@ -10,6 +10,8 @@ from app.athlete_state.schemas import (
     AthleteStateSafetyContext,
 )
 from app.athlete_state.service import AthleteStateBuilder
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.exercises.enums import MuscleGroup
 from app.profile.enums import WorkoutGenerationMethod
 from app.profile.service import get_profile
@@ -292,6 +294,12 @@ def test_difference_summary_is_complete_deterministic_and_has_no_noisy_entries(d
 
 def test_internal_generation_keeps_ai_boundary_closed(db) -> None:
     materialized = materialize_scenario(db, _scenario("novice"))
+    grant_package(
+        db,
+        materialized.user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+    )
     provider = _NeverCalledAIProvider()
     service = _service(db, provider)
     state = AthleteStateBuilder(db).build(materialized.user.id)
@@ -300,6 +308,7 @@ def test_internal_generation_keeps_ai_boundary_closed(db) -> None:
         service.generate(
             materialized.user.id,
             AthleteStateToGenerationOverridesAdapter.to_overrides(state),
+            review_required=True,
         )
     )
 

@@ -24,6 +24,8 @@ from sqlalchemy.orm import Session
 import app.main  # noqa: F401 - Register all SQLAlchemy models
 from app.auth.models import User
 from app.config import get_settings
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     BudgetStyle,
     CookingSkill,
@@ -1016,6 +1018,12 @@ def run_evaluation(profiles: list[ProfileDef]) -> list[ProfileEvalResult]:
             u = User(id=uid, email=f"omnivore_eval_{spec.index}@fitsho.test", password_hash="fake")
             db.add(u)
             db.flush()
+            grant_package(
+                db,
+                uid,
+                AccessPackageCode.NUTRITION_PHYSICIAN,
+                source=GrantSource.MANUAL,
+            )
 
             birth_date = date(2026 - spec.age, 6, 15)
             up = UserProfile(
@@ -1169,7 +1177,7 @@ def run_evaluation(profiles: list[ProfileDef]) -> list[ProfileEvalResult]:
 
             # Execute Engine
             try:
-                gen_resp = generate_weekly_plan(db, uid)
+                gen_resp = generate_weekly_plan(db, uid, physician_review_allowed=True)
                 is_success = gen_resp.outcome == "success" and gen_resp.plan is not None
 
                 t_cals = None

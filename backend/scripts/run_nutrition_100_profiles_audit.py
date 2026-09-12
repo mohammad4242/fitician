@@ -26,6 +26,8 @@ from sqlalchemy.orm import Session
 # Ensure all SQLAlchemy models and relationships are registered
 import app.main  # noqa: F401
 from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.audit_gates import (
     AUDIT_SCHEMA_VERSION,
     FROZEN_HOLDOUT_DEFINITION_VERSION,
@@ -649,6 +651,12 @@ def run_audit(profiles: list[ProfileSpec], profile_seed: int = 20260903) -> list
             u = User(id=uid, email=f"audit_user_{spec.index}@fitsho.test", password_hash="hash")
             db.add(u)
             db.flush()
+            grant_package(
+                db,
+                uid,
+                AccessPackageCode.NUTRITION_PHYSICIAN,
+                source=GrantSource.MANUAL,
+            )
 
             up = UserProfile(
                 user_id=uid,
@@ -797,7 +805,7 @@ def run_audit(profiles: list[ProfileSpec], profile_seed: int = 20260903) -> list
             generation_started = time.perf_counter()
 
             try:
-                gen_resp = generate_weekly_plan(db, uid)
+                gen_resp = generate_weekly_plan(db, uid, physician_review_allowed=True)
                 outcome = gen_resp.outcome
                 reason_codes = list(gen_resp.reason_codes)
                 warning_codes = list(gen_resp.warning_codes)

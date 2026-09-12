@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.athlete_state.generation_adapter import AthleteStateToGenerationOverridesAdapter
 from app.athlete_state.service import AthleteStateBuilder
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.exercises.enums import MuscleGroup
 from app.exercises.models import Exercise
 from app.profile.enums import WorkoutGenerationMethod
@@ -65,6 +67,12 @@ def _run_transition(
 ) -> tuple[WorkoutGenerationService, object, object, object, object, _NeverCalledAIProvider]:
     scenario = next(item for item in longitudinal_scenarios() if item.key == key)
     materialized = materialize_scenario(db, scenario)
+    grant_package(
+        db,
+        materialized.user.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+    )
     provider = _NeverCalledAIProvider()
     service = _service(db, provider)
     state = AthleteStateBuilder(db).build(materialized.user.id)
@@ -74,6 +82,7 @@ def _run_transition(
         service.generate(
             materialized.user.id,
             AthleteStateToGenerationOverridesAdapter.to_overrides(state),
+            review_required=True,
         )
     )
     return service, materialized, state, decision, result, provider

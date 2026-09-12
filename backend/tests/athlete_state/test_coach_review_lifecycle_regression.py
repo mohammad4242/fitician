@@ -9,6 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.workout_cycles.models import WorkoutCycle
 from app.workout_reviews.enums import WorkoutReviewErrorCode, WorkoutReviewStatus
 from app.workout_reviews.models import WorkoutPlanReview
@@ -63,9 +65,15 @@ def test_first_generated_plan_requires_review_before_activation_and_cycle_start(
     db: Session,
 ) -> None:
     member = _user_with_profile(db)
+    grant_package(
+        db,
+        member.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+    )
     _seed_candidates(db)
 
-    generated = asyncio.run(generation_service(db).generate(member.id))
+    generated = asyncio.run(generation_service(db).generate(member.id, review_required=True))
     source = generated.plan
     review = _review_for(db, source)
 
@@ -327,6 +335,12 @@ def test_ai_coach_generation_also_stops_at_human_review_gate(
             output_tokens=20,
         )
     )
+    grant_package(
+        db,
+        member.id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+    )
 
     generated = asyncio.run(
         generation_service(
@@ -334,7 +348,7 @@ def test_ai_coach_generation_also_stops_at_human_review_gate(
             ai_coach_provider=provider,
             generation_method="ai",
             deterministic_fallback_enabled=False,
-        ).generate(member.id)
+        ).generate(member.id, review_required=True)
     )
     review = _review_for(db, generated.plan)
 
