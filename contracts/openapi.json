@@ -21216,6 +21216,56 @@
         "title": "TemplateFocusTag",
         "type": "string"
       },
+      "TimelineNutritionEffectiveDayResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_day_number": {
+            "title": "Absolute Day Number",
+            "type": "integer"
+          },
+          "day_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Id"
+          },
+          "nutrient_totals": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Nutrient Totals",
+            "type": "object"
+          },
+          "pattern_day_index": {
+            "title": "Pattern Day Index",
+            "type": "integer"
+          },
+          "plan_id": {
+            "format": "uuid",
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id",
+          "start_date",
+          "absolute_day_number",
+          "pattern_day_index"
+        ],
+        "title": "TimelineNutritionEffectiveDayResponse",
+        "type": "object"
+      },
       "TimelineNutritionResponse": {
         "additionalProperties": false,
         "properties": {
@@ -21241,6 +21291,16 @@
               }
             ],
             "title": "Day Id"
+          },
+          "effective_today": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimelineNutritionEffectiveDayResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "nutrient_totals": {
             "additionalProperties": {

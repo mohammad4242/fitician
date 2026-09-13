@@ -10760,12 +10760,36 @@ export type components = {
          * @enum {string}
          */
         TemplateFocusTag: "full_body" | "upper_lower" | "push_pull_legs" | "body_part_rotation" | "balanced" | "lower_priority" | "chest_priority" | "back_priority" | "shoulders_priority" | "arms_priority" | "glute_priority" | "quad_priority" | "hamstrings_priority" | "strength_bias" | "compound_focus" | "specialization";
+        /** TimelineNutritionEffectiveDayResponse */
+        TimelineNutritionEffectiveDayResponse: {
+            /** Absolute Day Number */
+            absolute_day_number: number;
+            /** Day Id */
+            day_id?: string | null;
+            /** Nutrient Totals */
+            nutrient_totals?: {
+                [key: string]: number;
+            };
+            /** Pattern Day Index */
+            pattern_day_index: number;
+            /**
+             * Plan Id
+             * Format: uuid
+             */
+            plan_id: string;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+        };
         /** TimelineNutritionResponse */
         TimelineNutritionResponse: {
             /** Absolute Day Number */
             absolute_day_number?: number | null;
             /** Day Id */
             day_id?: string | null;
+            effective_today?: components["schemas"]["TimelineNutritionEffectiveDayResponse"] | null;
             /** Nutrient Totals */
             nutrient_totals?: {
                 [key: string]: number;
