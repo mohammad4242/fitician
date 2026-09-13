@@ -217,6 +217,35 @@
 .access-revoke-form label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 750; }
 .access-revoke-form textarea { min-height: 5rem; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); color: var(--fitsho-ink); font: inherit; resize: vertical; }
 
+.access-order-filters { grid-template-columns: minmax(9rem, .8fr) minmax(9rem, .8fr) minmax(12rem, 1.4fr) auto; }
+.access-order-filters label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 800; }
+.access-order-filters input, .access-order-filters select { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; }
+.access-order-filters input:focus, .access-order-filters select:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-order-list { display: grid; gap: .75rem; }
+.access-order-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-order-card > header, .access-order-card > footer { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.access-order-card h2 { margin: .2rem 0 0; direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .95rem; text-align: start; }
+.access-order-card header p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .76rem; }
+.access-order-card__status { display: grid; gap: .2rem; justify-items: end; color: var(--fitsho-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; }
+.access-order-card__status small { color: var(--fitsho-muted); font-family: inherit; font-size: .65rem; }
+.access-order-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: 0; }
+.access-order-card dl div { display: grid; gap: .18rem; min-width: 0; }
+.access-order-card dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-order-card dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
+.access-order-card > footer { align-items: center; flex-wrap: wrap; color: var(--fitsho-muted); font-size: .72rem; }
+.access-order-card > footer a { margin-inline-start: auto; }
+.access-order-detail-card, .access-transaction-card { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-order-detail-card > header, .access-transaction-card > header { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.access-order-detail-card h2 { margin: .2rem 0 0; font-size: 1.1rem; }
+.access-order-detail-card dl, .access-transaction-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.access-order-detail-card dl div, .access-transaction-card dl div { display: grid; gap: .18rem; min-width: 0; }
+.access-order-detail-card dt, .access-transaction-card dt { color: var(--fitsho-muted); font-size: .68rem; }
+.access-order-detail-card dd, .access-transaction-card dd { margin: 0; overflow-wrap: anywhere; font-size: .8rem; font-weight: 750; }
+.access-transaction-section { display: grid; gap: .8rem; margin-block-start: 1.2rem; }
+.access-transaction-list { display: grid; gap: .7rem; }
+.access-transaction-card > header strong { direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .78rem; }
+.access-transaction-card > header span { color: var(--fitsho-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; font-weight: 800; }
+
 .access-campaign-list { display: grid; gap: .75rem; }
 
 .access-campaign-card,
@@ -268,10 +297,14 @@
   .access-user-detail__actions { justify-content: start; }
   .access-detail-summary__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-grant-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-order-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-order-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-order-detail-card dl, .access-transaction-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 500px) {
   .access-admin-search { grid-template-columns: 1fr; }
+  .access-order-filters { grid-template-columns: 1fr; }
   .access-admin-form-grid { grid-template-columns: 1fr; }
   .access-campaign-card > header { align-items: flex-start; flex-direction: column; }
   .access-campaign-card > footer { flex-wrap: wrap; }
