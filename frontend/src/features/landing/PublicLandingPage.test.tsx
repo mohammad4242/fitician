@@ -23,7 +23,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("leads with the cinematic Fitsho film and a focused Persian promise", () => {
+it("leads with the cinematic Fitician film and a focused Persian promise", () => {
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
   const hero = screen.getByRole("region", { name: "هر بدن، برنامه خودش را می‌خواهد." });
@@ -104,7 +104,7 @@ it("scans the supplied analysis photo before the interactive body result", async
     expect.stringContaining("analyze"),
   );
   expect(screen.getByTestId("body-analysis-scan-line")).toBeInTheDocument();
-  expect(screen.getByTestId("fitsho-body-intelligence")).toHaveAttribute(
+  expect(screen.getByTestId("fitician-body-intelligence")).toHaveAttribute(
     "src",
     expect.stringContaining("body"),
   );

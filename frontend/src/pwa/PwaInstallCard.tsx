@@ -28,11 +28,11 @@ export function PwaInstallCard() {
       </div>
       <div className="pwa-install-card__actions">
         {state === "chromium" && (
-          <button className="fitsho-button" type="button" onClick={() => void install()}>
+          <button className="fitician-button" type="button" onClick={() => void install()}>
             {l("نصب", "Install")}
           </button>
         )}
-        <button className="fitsho-button-secondary" type="button" onClick={() => setDismissed(true)}>
+        <button className="fitician-button-secondary" type="button" onClick={() => setDismissed(true)}>
           {l("بعداً", "Later")}
         </button>
       </div>

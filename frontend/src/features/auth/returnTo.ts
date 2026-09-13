@@ -1,4 +1,4 @@
-const LOCAL_ORIGIN = "https://fitsho.local";
+const LOCAL_ORIGIN = "https://fitician.local";
 
 export function safeReturnTo(value: string | null | undefined): string {
   if (value === null || value === undefined || value === "" || value.includes("\\")) {

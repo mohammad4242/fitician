@@ -207,9 +207,9 @@ export function NutritionEstimatePage() {
   }
 
   return (
-    <main className="nutrition-estimate-page fitsho-page" dir={language === "fa" ? "rtl" : "ltr"}>
+    <main className="nutrition-estimate-page fitician-page" dir={language === "fa" ? "rtl" : "ltr"}>
       <section className="nutrition-estimate-hero">
-        <div><p className="eyebrow eyebrow--accent">{l("امروز", "Today")}</p><h1 className="fitsho-display">{l("تغذیه", "Nutrition")}</h1></div>
+        <div><p className="eyebrow eyebrow--accent">{l("امروز", "Today")}</p><h1 className="fitician-display">{l("تغذیه", "Nutrition")}</h1></div>
         <nav className="nutrition-estimate-tools" aria-label={l("ابزارهای تغذیه", "Nutrition tools")}>
           <Link className="nutrition-tool-link nutrition-tool-link--primary" to="/nutrition-tracking"><strong>{l("ثبت تغذیه", "Track food")}</strong><small>{l("دستی یا با عکس", "Manual or photo")}</small></Link>
           <Link className="nutrition-tool-link" to="/food-catalogue"><strong>{l("کاتالوگ", "Catalogue")}</strong><small>{l("مرجع مواد غذایی", "Food reference")}</small></Link>
@@ -1537,7 +1537,7 @@ function EstimateContent({ estimate, language, onRefresh, plan, timeline, tracki
           {estimate.is_stale && <button className="text-button" type="button" onClick={onRefresh}>{l("به‌روزرسانی", "Refresh")}</button>}
         </div>
       </div>
-      <div className="nutrition-target-grid nutrition-target-grid--primary fitsho-metric-strip" aria-label={l("درشت‌مغذی‌های اصلی", "Primary macronutrient targets")}>
+      <div className="nutrition-target-grid nutrition-target-grid--primary fitician-metric-strip" aria-label={l("درشت‌مغذی‌های اصلی", "Primary macronutrient targets")}>
         <TargetCard title={l("پروتئین", "Protein")} value={macro("protein_g", "protein")} note="" />
         <TargetCard title={l("کربوهیدرات", "Carbohydrate")} value={macro("carbohydrate_g", "carbohydrate")} note="" />
         <TargetCard title={l("چربی", "Fat")} value={macro("total_fat_g", "total_fat")} note="" />

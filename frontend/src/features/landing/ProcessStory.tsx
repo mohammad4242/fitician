@@ -19,7 +19,7 @@ export function ProcessStory({ reducedMotion }: { reducedMotion: boolean }) {
       <div className="process-story__stage">
         <header>
           <p className="landing-kicker">{t("landing.process.eyebrow")}</p>
-          <h2 id="landing-process-title" className="fitsho-display">{t("landing.process.title")}</h2>
+          <h2 id="landing-process-title" className="fitician-display">{t("landing.process.title")}</h2>
         </header>
         <ol className="process-steps" aria-label={t("landing.progression.label")}>
           {stages.map((stage, index) => (

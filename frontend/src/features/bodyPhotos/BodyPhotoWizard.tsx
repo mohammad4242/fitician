@@ -334,7 +334,7 @@ export function BodyPhotoWizard({
     return (
       <section className="body-photo-wizard body-photo-wizard--status" aria-labelledby="body-photo-title">
         <p className="eyebrow eyebrow--accent">{t("bodyPhotos.eyebrow")}</p>
-        <h1 id="body-photo-title" className="fitsho-display">{t("bodyPhotos.queuedTitle")}</h1>
+        <h1 id="body-photo-title" className="fitician-display">{t("bodyPhotos.queuedTitle")}</h1>
         <p role="status">{t("bodyPhotos.queuedBody")}</p>
         <button className="primary-button" type="button" onClick={() => navigate("/body-progress")}>{t("bodyPhotos.viewSessions")}</button>
       </section>
@@ -379,7 +379,7 @@ export function BodyPhotoWizard({
             <span>BIOMETRIC SCAN REVIEW</span>
           </div>
           <p className="eyebrow eyebrow--accent">{t("bodyPhotos.eyebrow")}</p>
-          <h1 id="body-photo-title" className="fitsho-display">{t("bodyPhotos.reviewTitle")}</h1>
+          <h1 id="body-photo-title" className="fitician-display">{t("bodyPhotos.reviewTitle")}</h1>
         </div>
         <PhotoClothingGuide />
         <div className="body-photo-summary" aria-label={t("bodyPhotos.summaryLabel")}>
@@ -436,7 +436,7 @@ export function BodyPhotoWizard({
           <span>HUD 3-AXIS SCANNER // 0{currentIndex + 1} OF 03</span>
         </div>
         <p className="eyebrow eyebrow--accent">{t("bodyPhotos.eyebrow")}</p>
-        <h1 id="body-photo-title" className="fitsho-display">{t("bodyPhotos.title")}</h1>
+        <h1 id="body-photo-title" className="fitician-display">{t("bodyPhotos.title")}</h1>
         <p>{t("bodyPhotos.optionalIntro")}</p>
         <Link className="body-photo-skip" to="/dashboard" onClick={() => setState("skipped")}>
           {t("bodyPhotos.skip")}

@@ -80,7 +80,7 @@ export function AdminTrainingProgramStructuresPage() {
         <header className="admin-hero admin-structure-hero">
           <div>
             <p className="eyebrow eyebrow--accent">{t("admin.structureLibrary.eyebrow")}</p>
-            <h1 className="fitsho-display">{t("admin.structureLibrary.title")}</h1>
+            <h1 className="fitician-display">{t("admin.structureLibrary.title")}</h1>
             <p>{t("admin.structureLibrary.intro")}</p>
           </div>
           <div className="admin-hero-actions">

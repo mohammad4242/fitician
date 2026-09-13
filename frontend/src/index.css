@@ -28,6 +28,7 @@ html[lang="en"] {
   font-family: "Sora Variable", system-ui, sans-serif;
 }
 
+.fitician-display,
 .fitsho-display {
   font-family: Lalezar, "Vazirmatn Variable", sans-serif;
   font-weight: 400;
@@ -35,6 +36,7 @@ html[lang="en"] {
   line-height: 1.25;
 }
 
+html[lang="en"] .fitician-display,
 html[lang="en"] .fitsho-display {
   font-family: "Sora Variable", system-ui, sans-serif;
   font-weight: 800;
@@ -1238,6 +1240,7 @@ html[dir="ltr"] .primary-button span:last-child {
 }
 
 /* Shared public-account identity */
+.auth-shell.fitician-page,
 .auth-shell.fitsho-page {
   color: var(--fitician-ink);
   background: var(--fitician-canvas);
@@ -1321,6 +1324,7 @@ html[dir="ltr"] .primary-button span:last-child {
   .auth-shell .form-panel__mobile-nav { border-bottom-color: var(--fitician-line); }
 }
 
+.fitician-page .dashboard-header,
 .fitsho-page .dashboard-header {
   width: min(100% - 2rem, var(--fitician-content-max));
   max-width: none;
@@ -1329,32 +1333,40 @@ html[dir="ltr"] .primary-button span:last-child {
   border-bottom: 1px solid var(--fitician-line);
 }
 
+.fitician-page .dashboard-header .brand-mark--dark,
 .fitsho-page .dashboard-header .brand-mark--dark { color: var(--fitician-ink); }
+.fitician-page .authenticated-nav,
 .fitsho-page .authenticated-nav {
   border: 1px solid var(--fitician-line);
   background: rgb(255 255 255 / 3%);
   backdrop-filter: blur(12px);
 }
+.fitician-page .authenticated-nav a,
 .fitsho-page .authenticated-nav a {
   color: var(--fitician-muted);
   transition: color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease);
 }
+.fitician-page .authenticated-nav a:hover,
 .fitsho-page .authenticated-nav a:hover {
   color: var(--fitician-ink);
   background: rgb(255 255 255 / 6%);
 }
+.fitician-page .authenticated-nav a[aria-current="page"],
 .fitsho-page .authenticated-nav a[aria-current="page"] {
   color: var(--fitician-canvas);
   background: var(--fitician-aqua);
   box-shadow: 0 2px 8px rgb(80 223 206 / 25%);
 }
+.fitician-page .dashboard-header .language-switcher,
 .fitsho-page .dashboard-header .language-switcher,
+.fitician-page .dashboard-header .logout-button,
 .fitsho-page .dashboard-header .logout-button {
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
   background: var(--fitician-surface);
   transition: border-color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease);
 }
+.fitician-page .member-menu-button,
 .fitsho-page .member-menu-button {
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
@@ -1362,19 +1374,23 @@ html[dir="ltr"] .primary-button span:last-child {
   transition: border-color var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 @media (hover: hover) and (pointer: fine) {
+  .fitician-page .dashboard-header .language-switcher:hover,
   .fitsho-page .dashboard-header .language-switcher:hover,
+  .fitician-page .dashboard-header .logout-button:hover,
   .fitsho-page .dashboard-header .logout-button:hover {
     border-color: var(--fitician-line-strong);
     background: var(--fitician-surface-raised);
     transform: translateY(-1px);
   }
 
+  .fitician-page .member-menu-button:hover,
   .fitsho-page .member-menu-button:hover {
     border-color: var(--fitician-line-strong);
     transform: translateY(-1px);
   }
 }
 
+.fitician-page .member-menu,
 .fitsho-page .member-menu {
   max-height: min(76svh, 38rem);
   overflow-y: auto;
@@ -1383,6 +1399,7 @@ html[dir="ltr"] .primary-button span:last-child {
   background: var(--fitician-surface-raised);
 }
 
+.fitician-page .member-menu__group + .member-menu__group,
 .fitsho-page .member-menu__group + .member-menu__group {
   border-block-start-color: var(--fitician-line);
 }
@@ -1559,13 +1576,16 @@ html[dir="ltr"] .primary-button span:last-child {
   .app-shell__nav-link { font-size: 0.62rem; }
 }
 
+.fitician-page .member-menu a,
 .fitsho-page .member-menu a,
+.fitician-page .member-menu button,
 .fitsho-page .member-menu button {
   border-color: rgb(80 223 206 / 7%);
   color: var(--fitician-ink);
   background: rgb(255 255 255 / 3%);
 }
 
+.fitician-page .member-menu__section-label,
 .fitsho-page .member-menu__section-label {
   color: var(--fitician-muted);
 }

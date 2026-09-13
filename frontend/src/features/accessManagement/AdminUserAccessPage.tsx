@@ -39,7 +39,7 @@ export function AdminUserAccessPage() {
   }
 
   return (
-    <main className="access-admin-page fitsho-page">
+    <main className="access-admin-page fitician-page">
       <div className="access-admin-page__container">
         <header className="access-admin-page__header">
           <div>

@@ -370,7 +370,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   }
 
   return (
-    <div className="workout-plan-shell fitsho-page">
+    <div className="workout-plan-shell fitician-page">
       <main className="workout-plan-main">
         <div className="workout-plan-controls">
           <section className="workout-generation-method" aria-labelledby="workout-generation-method-title">
@@ -405,7 +405,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             <header className="workout-plan-hero">
               <div className="workout-plan-hero__content">
                 <p className="eyebrow">{t("workoutPlan.eyebrow")}</p>
-                <h1 className="fitsho-display">{t("workoutPlan.title")}</h1>
+                <h1 className="fitician-display">{t("workoutPlan.title")}</h1>
                 <p>{t("workoutPlan.intro")}</p>
               </div>
               <div className="workout-plan-duration" aria-label={t("workoutPlan.duration", { count: displayedPlanDuration })}>
@@ -453,7 +453,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               <StatusPanel role="status" message={t("workoutPlan.loading")} />
             ) : (
               <section className="workout-empty" aria-labelledby="workout-empty-title">
-                <h2 id="workout-empty-title" className="fitsho-display">{t("workoutPlan.emptyTitle")}</h2>
+                <h2 id="workout-empty-title" className="fitician-display">{t("workoutPlan.emptyTitle")}</h2>
                 <p>{t("workoutPlan.emptyBody")}</p>
                 <GenerateButton
                   generating={generating}
@@ -471,7 +471,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               <div className="workout-schedule__heading">
                 <div>
                   <p className="eyebrow eyebrow--accent">{t("workoutPlan.weekly")}</p>
-                  <h2 id="workout-schedule-title" className="fitsho-display">{t("workoutPlan.scheduleTitle")}</h2>
+                  <h2 id="workout-schedule-title" className="fitician-display">{t("workoutPlan.scheduleTitle")}</h2>
                 </div>
               </div>
               {generating && <p className="workout-generating" role="status">{t("workoutPlan.generating")}</p>}
@@ -632,7 +632,7 @@ function WorkoutPlanOverview({
       <header className="workout-plan-hero">
         <div className="workout-plan-hero__content">
           <p className="eyebrow">{t("workoutPlan.eyebrow")}</p>
-          <h1 className="fitsho-display">{t("workoutPlan.title")}</h1>
+          <h1 className="fitician-display">{t("workoutPlan.title")}</h1>
           <p>{t("workoutPlan.intro")}</p>
         </div>
         <div className="workout-plan-duration" aria-label={t("workoutPlan.duration", { count: plan.plan_duration_weeks })}>
@@ -801,7 +801,7 @@ function WorkoutTimelineCard({
       <div className="workout-timeline-card__heading">
         <div>
           <p className="eyebrow eyebrow--accent">{t("workoutPlan.programTimelineEyebrow")}</p>
-          <h2 className="fitsho-display">
+          <h2 className="fitician-display">
             {workout.state === "ready_to_start" && t("workoutPlan.programReady")}
             {workout.state === "scheduled_start" && t("workoutPlan.programScheduled")}
             {workout.state === "workout_today" && t("workoutPlan.todayWorkout")}

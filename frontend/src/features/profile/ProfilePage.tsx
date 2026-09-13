@@ -296,7 +296,7 @@ function ReadyProfilePage({
       <main className="profile-page-main">
         <section className="profile-page-heading">
           <p className="eyebrow eyebrow--accent">{t("profile.eyebrow")}</p>
-          <h1 className="fitsho-display">{t("profile.title")}</h1>
+          <h1 className="fitician-display">{t("profile.title")}</h1>
           <p>{t("profile.intro")}</p>
         </section>
 
@@ -382,7 +382,7 @@ function ReadyProfilePage({
 
           {section !== "nutrition" && (
             <form className="profile-form profile-edit-form profile-wizard__page" aria-labelledby="profile-active-section" noValidate onSubmit={handleSubmit}>
-              <h2 className="fitsho-display" id="profile-active-section">{section === "personal"
+              <h2 className="fitician-display" id="profile-active-section">{section === "personal"
                 ? l("اطلاعات شخصی", "Personal information")
                 : l("اطلاعات تمرینی", "Training information")}</h2>
 
@@ -447,7 +447,7 @@ function ReadyProfilePage({
 
           {section === "nutrition" && productMode === "training" && (
             <section className="profile-wizard__page profile-optional-state">
-              <h2 className="fitsho-display">{l("اطلاعات تغذیه‌ای", "Nutrition information")}</h2>
+              <h2 className="fitician-display">{l("اطلاعات تغذیه‌ای", "Nutrition information")}</h2>
               <p>{l("پروفایل تغذیه برای مسیر فعلی اختیاری است.", "A nutrition profile is optional for your current path.")}</p>
               <div className="profile-actions profile-wizard__actions">
                 <button className="secondary-button" type="button" onClick={goBack}>{l("بازگشت", "Back")}</button>

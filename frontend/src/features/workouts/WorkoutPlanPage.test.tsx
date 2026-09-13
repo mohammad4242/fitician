@@ -50,7 +50,7 @@ vi.mock("../entitlements/EntitlementContext", () => ({
   useEntitlements: () => entitlements.value,
 }));
 vi.mock("../../shared/AuthenticatedHeader", () => ({
-  AuthenticatedHeader: () => <header>Fitsho</header>,
+  AuthenticatedHeader: () => <header>Fitician</header>,
 }));
 
 import { WorkoutPlanPage } from "./WorkoutPlanPage";
@@ -828,7 +828,7 @@ it("shows the fixed start guide and a generate action when no plan exists", asyn
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
-  expect(await screen.findByRole("heading", { name: "برنامه تمرینی من" })).toHaveClass("fitsho-display");
+  expect(await screen.findByRole("heading", { name: "برنامه تمرینی من" })).toHaveClass("fitician-display");
   expect(screen.getByText("قبل از شروع")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "ساخت برنامه" }));
 

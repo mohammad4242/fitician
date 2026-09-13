@@ -31,7 +31,7 @@ export function AppShell({ children }: AppShellProps) {
   ));
 
   return (
-    <div className="app-shell fitician-app fitsho-app">
+    <div className="app-shell fitician-app">
       <AuthenticatedHeader />
       <div className="app-shell__content">{children}</div>
       <nav className="app-shell__nav" aria-label={t("header.primaryNavigation")}>

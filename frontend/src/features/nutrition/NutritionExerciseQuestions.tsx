@@ -105,7 +105,7 @@ export function NutritionExerciseQuestions({ initialValue, fitnessGoal, onBack, 
         <span>{l(`تمرین ${index + 1} از ${questions.length}`, `Exercise ${index + 1} of ${questions.length}`)}</span>
         <progress value={index + 1} max={questions.length} />
       </div>
-      <h1 className="fitsho-display" id="nutrition-exercise-title">{titles[question]}</h1>
+      <h1 className="fitician-display" id="nutrition-exercise-title">{titles[question]}</h1>
       <p>{l("فقط همین اطلاعات برای جلوگیری از دوباره‌شماری انرژی لازم است.", "We only use these details to avoid double-counting your energy needs.")}</p>
       <form className="guided-question__form" onSubmit={submit}>
         <div className="guided-choice-grid">

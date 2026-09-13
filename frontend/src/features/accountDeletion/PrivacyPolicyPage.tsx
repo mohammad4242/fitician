@@ -13,7 +13,7 @@ export function PrivacyPolicyPage() {
     <PublicPageFrame>
       <article className="public-account-card public-account-card--reading">
         <p className="public-account-card__eyebrow">{l("حریم خصوصی", "Privacy")}</p>
-        <h1 className="fitsho-display">{l("سیاست حریم خصوصی", "Privacy policy")}</h1>
+        <h1 className="fitician-display">{l("سیاست حریم خصوصی", "Privacy policy")}</h1>
         <p className="public-account-card__lead">
           {l(
             "فیتیشن برای کمک به برنامه‌ریزی تمرین و تغذیه، اطلاعاتی را که خودت در حساب وارد می‌کنی پردازش می‌کند.",

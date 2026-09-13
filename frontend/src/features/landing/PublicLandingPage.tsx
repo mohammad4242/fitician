@@ -34,7 +34,7 @@ export function PublicLandingPage() {
 
   return (
     <main
-      className="public-landing fitsho-page"
+      className="public-landing fitician-page"
       data-language={language}
       data-reduced-motion={String(reducedMotion)}
       dir={language === "fa" ? "rtl" : "ltr"}
@@ -84,7 +84,7 @@ export function PublicLandingPage() {
       <BodyIntelligence reducedMotion={reducedMotion} />
 
       <section className="landing-final" aria-labelledby="landing-final-title">
-        <h2 id="landing-final-title" className="fitsho-display">{t("landing.final.title")}</h2>
+        <h2 id="landing-final-title" className="fitician-display">{t("landing.final.title")}</h2>
         <Link className="landing-primary-cta" to="/get-started">
           {t("landing.final.action")}<span aria-hidden="true">←</span>
         </Link>

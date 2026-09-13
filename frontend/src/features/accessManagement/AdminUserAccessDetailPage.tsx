@@ -175,7 +175,7 @@ export function AdminUserAccessDetailPage() {
   if (state === "error" || access === null) return <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.userNotFound")}</p>;
 
   return (
-    <main className="access-admin-page fitsho-page">
+    <main className="access-admin-page fitician-page">
       <div className="access-admin-page__container">
         <Link className="access-admin-back-link" to="/admin/billing/users">{t("adminAccess.backToUsers")}</Link>
         <header className="access-user-detail__header">

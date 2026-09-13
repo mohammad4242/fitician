@@ -106,11 +106,11 @@ export function BodyAnalysisResultPage() {
   }
 
   if (loading) {
-    return <main className="body-analysis-page fitsho-page"><p role="status">{t("bodyPhotos.results.loading")}</p></main>;
+    return <main className="body-analysis-page fitician-page"><p role="status">{t("bodyPhotos.results.loading")}</p></main>;
   }
   if (failed || session === null) {
     return (
-      <main className="body-analysis-page fitsho-page">
+      <main className="body-analysis-page fitician-page">
         <p className="form-error" role="alert">{t("bodyPhotos.results.loadError")}</p>
         <button className="secondary-button" type="button" onClick={() => {
           setLoading(true);
@@ -132,10 +132,10 @@ export function BodyAnalysisResultPage() {
     });
 
   return (
-    <main className="body-analysis-page fitsho-page">
+    <main className="body-analysis-page fitician-page">
       <header className="body-analysis-page__header">
         <p className="eyebrow eyebrow--accent">{t("bodyPhotos.eyebrow")}</p>
-        <h1 className="fitsho-display">{t("bodyPhotos.results.title")}</h1>
+        <h1 className="fitician-display">{t("bodyPhotos.results.title")}</h1>
         <p>{t("bodyPhotos.results.sessionDate", { date: sessionDate })}</p>
       </header>
 

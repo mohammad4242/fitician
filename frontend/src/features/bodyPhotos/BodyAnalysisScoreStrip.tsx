@@ -68,11 +68,11 @@ export function BodyAnalysisScoreStrip({ indicators }: BodyAnalysisScoreStripPro
   ];
 
   return (
-    <section className="fitsho-score-strip" aria-labelledby="fitsho-score-strip-title">
-      <header className="fitsho-score-strip__header">
-        <h2 id="fitsho-score-strip-title">{t("bodyAnalysis.indicators.title")}</h2>
+    <section className="fitician-score-strip" aria-labelledby="fitician-score-strip-title">
+      <header className="fitician-score-strip__header">
+        <h2 id="fitician-score-strip-title">{t("bodyAnalysis.indicators.title")}</h2>
       </header>
-      <div className="fitsho-score-strip__grid" role="list">
+      <div className="fitician-score-strip__grid" role="list">
         {items.map((item) => (
           <ScoreRingCard
             key={item.id}
@@ -113,13 +113,13 @@ function ScoreRingCard({
 
   return (
     <article
-      className={`fitsho-score-ring-card fitsho-score-ring-card--${tone}`}
+      className={`fitician-score-ring-card fitician-score-ring-card--${tone}`}
       data-testid="body-analysis-score-row"
       data-score-id={id}
       role="listitem"
     >
       <div
-        className="fitsho-score-ring-card__ring-wrap"
+        className="fitician-score-ring-card__ring-wrap"
         role="progressbar"
         aria-label={title}
         aria-valuemin={0}
@@ -127,7 +127,7 @@ function ScoreRingCard({
         aria-valuenow={score ?? undefined}
       >
         <svg
-          className="fitsho-score-ring-card__svg"
+          className="fitician-score-ring-card__svg"
           viewBox="0 0 88 88"
           width="76"
           height="76"
@@ -135,7 +135,7 @@ function ScoreRingCard({
         >
           {/* Background track */}
           <circle
-            className="fitsho-score-ring-card__track"
+            className="fitician-score-ring-card__track"
             cx="44"
             cy="44"
             r={radius}
@@ -145,7 +145,7 @@ function ScoreRingCard({
           {/* Progress fill */}
           {score !== null && (
             <circle
-              className={`fitsho-score-ring-card__fill fitsho-score-ring-card__fill--${tone}`}
+              className={`fitician-score-ring-card__fill fitician-score-ring-card__fill--${tone}`}
               cx="44"
               cy="44"
               r={radius}
@@ -158,19 +158,19 @@ function ScoreRingCard({
             />
           )}
         </svg>
-        <div className="fitsho-score-ring-card__center">
-          <span className="fitsho-score-ring-card__score">
+        <div className="fitician-score-ring-card__center">
+          <span className="fitician-score-ring-card__score">
             {score !== null ? `${score}%` : "—"}
           </span>
         </div>
       </div>
 
-      <div className="fitsho-score-ring-card__meta">
-        <div className="fitsho-score-ring-card__title-row">
-          <h3 className="fitsho-score-ring-card__title">{title}</h3>
+      <div className="fitician-score-ring-card__meta">
+        <div className="fitician-score-ring-card__title-row">
+          <h3 className="fitician-score-ring-card__title">{title}</h3>
           <button
             type="button"
-            className="fitsho-score-ring-card__info-btn"
+            className="fitician-score-ring-card__info-btn"
             onClick={() => setShowInfo(!showInfo)}
             aria-label={`${title} info`}
           >
@@ -182,17 +182,17 @@ function ScoreRingCard({
         </div>
 
         {statusBadge && (
-          <span className={`fitsho-score-ring-card__status-badge fitsho-score-ring-card__status-badge--${tone}`}>
+          <span className={`fitician-score-ring-card__status-badge fitician-score-ring-card__status-badge--${tone}`}>
             {statusBadge}
           </span>
         )}
 
         {subtitle && (
-          <p className="fitsho-score-ring-card__subtitle">{subtitle}</p>
+          <p className="fitician-score-ring-card__subtitle">{subtitle}</p>
         )}
 
         {showInfo && subtitle && (
-          <p className="fitsho-score-ring-card__info-popover">{subtitle}</p>
+          <p className="fitician-score-ring-card__info-popover">{subtitle}</p>
         )}
       </div>
     </article>

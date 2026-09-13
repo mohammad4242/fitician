@@ -102,33 +102,33 @@ export function BodyAnalysisProgressStrip({
   }
 
   return (
-    <section className="fitsho-progress-strip" aria-labelledby="fitsho-progress-title">
-      <header className="fitsho-progress-strip__header">
+    <section className="fitician-progress-strip" aria-labelledby="fitician-progress-title">
+      <header className="fitician-progress-strip__header">
         <div>
           <p className="eyebrow eyebrow--accent">{t("bodyAnalysis.progressStrip.subtitle")}</p>
-          <h2 id="fitsho-progress-title">{t("bodyAnalysis.progressStrip.title")}</h2>
+          <h2 id="fitician-progress-title">{t("bodyAnalysis.progressStrip.title")}</h2>
         </div>
 
         {scanPoints.length >= 2 && (
-          <div className="fitsho-progress-strip__summary">
+          <div className="fitician-progress-strip__summary">
             {bfChange !== null && (
-              <div className="fitsho-progress-strip__summary-item">
-                <span className="fitsho-progress-strip__summary-label">
+              <div className="fitician-progress-strip__summary-item">
+                <span className="fitician-progress-strip__summary-label">
                   {t("bodyAnalysis.progressStrip.bodyFatChange")}
                 </span>
                 <strong
-                  className={`fitsho-progress-strip__summary-val ${bfChange < 0 ? "fitsho-progress-strip__summary-val--pos" : ""}`}
+                  className={`fitician-progress-strip__summary-val ${bfChange < 0 ? "fitician-progress-strip__summary-val--pos" : ""}`}
                 >
                   {formatChange(bfChange, "%")}
                 </strong>
               </div>
             )}
             {weightChange !== null && (
-              <div className="fitsho-progress-strip__summary-item">
-                <span className="fitsho-progress-strip__summary-label">
+              <div className="fitician-progress-strip__summary-item">
+                <span className="fitician-progress-strip__summary-label">
                   {t("bodyAnalysis.progressStrip.weightChange")}
                 </span>
-                <strong className="fitsho-progress-strip__summary-val">
+                <strong className="fitician-progress-strip__summary-val">
                   {formatChange(weightChange, "kg")}
                 </strong>
               </div>
@@ -139,8 +139,8 @@ export function BodyAnalysisProgressStrip({
 
       {/* When only 1 scan exists */}
       {loaded && scanPoints.length <= 1 ? (
-        <div className="fitsho-progress-strip__single-state">
-          <div className="fitsho-progress-strip__single-icon" aria-hidden="true">
+        <div className="fitician-progress-strip__single-state">
+          <div className="fitician-progress-strip__single-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
             </svg>
@@ -151,24 +151,24 @@ export function BodyAnalysisProgressStrip({
           </div>
         </div>
       ) : (
-        <div className="fitsho-progress-strip__timeline" role="list" aria-label={t("bodyAnalysis.progressStrip.recentScans")}>
-          <div className="fitsho-progress-strip__line" aria-hidden="true" />
-          <div className="fitsho-progress-strip__nodes">
+        <div className="fitician-progress-strip__timeline" role="list" aria-label={t("bodyAnalysis.progressStrip.recentScans")}>
+          <div className="fitician-progress-strip__line" aria-hidden="true" />
+          <div className="fitician-progress-strip__nodes">
             {scanPoints.map((pt) => (
               <article
                 key={pt.id}
-                className={`fitsho-progress-strip__node ${pt.isCurrent ? "fitsho-progress-strip__node--current" : ""}`}
+                className={`fitician-progress-strip__node ${pt.isCurrent ? "fitician-progress-strip__node--current" : ""}`}
                 role="listitem"
               >
-                <div className="fitsho-progress-strip__dot" aria-hidden="true">
-                  {pt.isCurrent && <span className="fitsho-progress-strip__dot-pulse" />}
+                <div className="fitician-progress-strip__dot" aria-hidden="true">
+                  {pt.isCurrent && <span className="fitician-progress-strip__dot-pulse" />}
                 </div>
-                <time className="fitsho-progress-strip__date">{pt.dateStr}</time>
-                <div className="fitsho-progress-strip__metrics">
-                  <span className="fitsho-progress-strip__bf">
+                <time className="fitician-progress-strip__date">{pt.dateStr}</time>
+                <div className="fitician-progress-strip__metrics">
+                  <span className="fitician-progress-strip__bf">
                     {pt.bodyFat !== null ? `${pt.bodyFat}% BF` : "—"}
                   </span>
-                  <span className="fitsho-progress-strip__weight">
+                  <span className="fitician-progress-strip__weight">
                     {pt.weight !== null ? `${pt.weight} kg` : "—"}
                   </span>
                 </div>

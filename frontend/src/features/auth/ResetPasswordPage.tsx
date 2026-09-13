@@ -43,7 +43,7 @@ export function ResetPasswordPage() {
     <AuthShell>
       <div className="form-heading">
         <p className="eyebrow eyebrow--accent">{t("passwordRecovery.eyebrow")}</p>
-        <h2 className="fitsho-display">{t("passwordRecovery.resetTitle")}</h2>
+        <h2 className="fitician-display">{t("passwordRecovery.resetTitle")}</h2>
         <p>{t("passwordRecovery.resetSubtitle")}</p>
       </div>
       {complete ? (

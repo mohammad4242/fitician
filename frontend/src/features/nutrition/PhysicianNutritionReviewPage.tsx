@@ -163,7 +163,7 @@ export function PhysicianNutritionReviewPage() {
     <main className="physician-review-page">
       <header className="physician-review-hero">
         <button className="physician-review-back" type="button" onClick={() => navigate(-1)}>{l("بازگشت", "Back")}</button>
-        <div><p>{l("میز کار پزشک", "Physician desk")}</p><h1 className="fitsho-display">{l("صف بررسی برنامه‌های تغذیه", "Nutrition plan reviews")}</h1><span>{l("آزمایش‌ها، مکمل‌ها و نسخه را در یک پرونده بررسی کن.", "Review the plan, lab documents, and supplements in one case.")}</span></div>
+        <div><p>{l("میز کار پزشک", "Physician desk")}</p><h1 className="fitician-display">{l("صف بررسی برنامه‌های تغذیه", "Nutrition plan reviews")}</h1><span>{l("آزمایش‌ها، مکمل‌ها و نسخه را در یک پرونده بررسی کن.", "Review the plan, lab documents, and supplements in one case.")}</span></div>
         <aside className="physician-review-summary"><strong>{queues.pending.length}</strong><small>{l("پرونده در انتظار", "pending cases")}</small></aside>
       </header>
       {error && <p className="physician-review-error" role="alert">{l("عملیات پزشک انجام نشد.", "The physician operation failed.")}</p>}

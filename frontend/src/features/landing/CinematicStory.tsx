@@ -29,7 +29,7 @@ export function CinematicStory({ reducedMotion }: { reducedMotion: boolean }) {
 
         <section className="cinematic-hero" aria-labelledby="landing-hero-title">
           <div className="cinematic-hero__copy">
-            <h1 id="landing-hero-title" className="fitsho-display">{t("landing.hero.title")}</h1>
+            <h1 id="landing-hero-title" className="fitician-display">{t("landing.hero.title")}</h1>
             <p>{t("landing.hero.body")}</p>
             <Link className="landing-primary-cta" to="/get-started">
               {t("landing.cta")}<span aria-hidden="true">←</span>
@@ -56,7 +56,7 @@ function MealPhotoAnalysis() {
     >
       <div className="meal-analysis__copy">
         <p>MEAL PHOTO ANALYSIS</p>
-        <h2 id="landing-meal-title" className="fitsho-display">{t("landing.meal.title")}</h2>
+        <h2 id="landing-meal-title" className="fitician-display">{t("landing.meal.title")}</h2>
         <small>{t("landing.meal.estimate")}</small>
       </div>
       <div className="meal-analysis__visual">
@@ -102,7 +102,7 @@ function SupervisionMoment({ type }: { type: "training" | "nutrition" }) {
     >
       <div className="supervision-moment__copy">
         <p>{type.toUpperCase()}</p>
-        <h2 id={titleId} className="fitsho-display">{t(`landing.supervision.${type}.title`)}</h2>
+        <h2 id={titleId} className="fitician-display">{t(`landing.supervision.${type}.title`)}</h2>
       </div>
       <div
         className={`plan-paper plan-paper--${type}`}

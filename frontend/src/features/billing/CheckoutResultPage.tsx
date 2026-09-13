@@ -45,7 +45,7 @@ export function CheckoutResultPage() {
 
   const success = state === "success";
   return (
-    <main className="billing-page fitsho-page">
+    <main className="billing-page fitician-page">
       <div className="billing-page__container billing-page__container--narrow">
         {state === "loading" && <p className="billing-status" role="status">{t("billing.paymentPending")}</p>}
         {state !== "loading" && (

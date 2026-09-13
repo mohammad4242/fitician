@@ -11,7 +11,7 @@ export function AuthShell({ children }: AuthShellProps) {
   const { t } = useTranslation();
 
   return (
-    <main className="auth-shell fitsho-page">
+    <main className="auth-shell fitician-page">
       <section className="form-panel">
         <div className="form-panel__mobile-nav">
           <a className="brand-mark brand-mark--dark" href="/">

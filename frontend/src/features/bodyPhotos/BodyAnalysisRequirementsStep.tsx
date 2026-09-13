@@ -112,7 +112,7 @@ export function BodyAnalysisRequirementsStep({
     return (
       <section className="body-photo-wizard body-analysis-requirements" aria-labelledby="body-analysis-requirements-title">
         <p className="eyebrow eyebrow--accent">{t("bodyPhotos.measurements.eyebrow")}</p>
-        <h1 id="body-analysis-requirements-title" className="fitsho-display">
+        <h1 id="body-analysis-requirements-title" className="fitician-display">
           {t("bodyPhotos.measurements.title")}
         </h1>
         <p role="alert">{t("bodyPhotos.measurements.loadError")}</p>
@@ -128,7 +128,7 @@ export function BodyAnalysisRequirementsStep({
       <header className="body-analysis-requirements__header">
         <div className="body-analysis-requirements__heading">
           <p className="eyebrow eyebrow--accent">{t("bodyPhotos.measurements.eyebrow")}</p>
-          <h1 id="body-analysis-requirements-title" className="fitsho-display">
+          <h1 id="body-analysis-requirements-title" className="fitician-display">
             {t("bodyPhotos.measurements.title")}
           </h1>
           <p>{t("bodyPhotos.measurements.body")}</p>

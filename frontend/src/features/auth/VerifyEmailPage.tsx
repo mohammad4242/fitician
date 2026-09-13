@@ -40,7 +40,7 @@ export function VerifyEmailPage() {
     <AuthShell>
       <div className="form-heading">
         <p className="eyebrow eyebrow--accent">{t("emailVerification.eyebrow")}</p>
-        <h2 className="fitsho-display">{t("emailVerification.title")}</h2>
+        <h2 className="fitician-display">{t("emailVerification.title")}</h2>
         <p>{t("emailVerification.subtitle")}</p>
       </div>
 

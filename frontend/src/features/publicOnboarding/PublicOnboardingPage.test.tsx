@@ -50,7 +50,7 @@ import * as onboardingDraft from "./onboardingDraft";
 beforeEach(async () => {
   sessionStorage.clear();
   vi.clearAllMocks();
-  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitsho-client-id.apps.googleusercontent.com");
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitician-client-id.apps.googleusercontent.com");
   auth.register.mockResolvedValue(undefined);
   auth.login.mockResolvedValue(undefined);
   auth.loginWithPhone.mockResolvedValue(undefined);

@@ -150,7 +150,7 @@ describe("catalog selection flow", () => {
 
     expect(
       await screen.findByRole("heading", { name: "کتابخانه حرکات" }),
-    ).toHaveClass("fitsho-display");
+    ).toHaveClass("fitician-display");
     const upperBody = await screen.findByRole("button", { name: /بالاتنه.*Upper Body/ });
     expect(upperBody).toBeVisible();
     expect(await screen.findByRole("button", { name: /پایین‌تنه.*Lower Body/ })).toBeVisible();

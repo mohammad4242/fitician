@@ -211,10 +211,10 @@ function ReadyExerciseDetail({
         <details className="exercise-detail-accordion exercise-detail-overview">
           <summary className="exercise-detail-section-heading">
             <span aria-hidden="true">i</span>
-            <h2 className="fitsho-display">{t("exerciseDetail.eyebrow")}</h2>
+            <h2 className="fitician-display">{t("exerciseDetail.eyebrow")}</h2>
           </summary>
           <div className="exercise-detail-heading">
-            <h1 className="fitsho-display" dir={isEnglish ? "ltr" : "rtl"}>{name}</h1>
+            <h1 className="fitician-display" dir={isEnglish ? "ltr" : "rtl"}>{name}</h1>
             <p className="exercise-detail-heading__secondary" dir={isEnglish ? "rtl" : "ltr"}>
               {secondaryName}
             </p>
@@ -262,7 +262,7 @@ function ReadyExerciseDetail({
         <details className="exercise-detail-accordion exercise-instructions">
           <summary className="exercise-detail-section-heading">
             <span aria-hidden="true">✓</span>
-            <h2 id="instructions-heading" className="fitsho-display">{t("exerciseDetail.instructionsTitle")}</h2>
+            <h2 id="instructions-heading" className="fitician-display">{t("exerciseDetail.instructionsTitle")}</h2>
           </summary>
           <ol>
             {instructions.map((instruction) => (
@@ -274,7 +274,7 @@ function ReadyExerciseDetail({
         <details className="exercise-detail-accordion exercise-safety">
           <summary className="exercise-detail-section-heading">
             <span aria-hidden="true">!</span>
-            <h2 id="safety-heading" className="fitsho-display">{t("exerciseDetail.safetyTitle")}</h2>
+            <h2 id="safety-heading" className="fitician-display">{t("exerciseDetail.safetyTitle")}</h2>
           </summary>
           <ul>
             {safetyNotes.map((note) => (

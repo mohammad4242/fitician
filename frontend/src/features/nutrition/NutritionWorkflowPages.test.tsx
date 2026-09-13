@@ -298,7 +298,7 @@ it("uploads laboratory metadata and can delete an owned document", async () => {
   render(<MemoryRouter><NutritionLabsPage /></MemoryRouter>);
 
   expect(await screen.findByText("cbc.pdf")).toBeInTheDocument();
-  await user.type(screen.getByLabelText("Laboratory name"), "Fitsho Lab");
+  await user.type(screen.getByLabelText("Laboratory name"), "Fitician Lab");
   await user.type(screen.getByLabelText("Category"), "Blood panel");
   await user.type(screen.getByLabelText("Note"), "Annual panel");
   await user.upload(screen.getByLabelText("Choose lab file"), new File(["pdf"], "result.pdf", { type: "application/pdf" }));
@@ -310,7 +310,7 @@ it("uploads laboratory metadata and can delete an owned document", async () => {
     expect(within(labCard).getByText("Annual panel")).toBeInTheDocument();
     expect(within(labCard).getByText("Uploaded")).toBeInTheDocument();
   }
-  await waitFor(() => expect(api.uploadLabDocument).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ laboratoryName: "Fitsho Lab", category: "Blood panel" })));
+  await waitFor(() => expect(api.uploadLabDocument).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ laboratoryName: "Fitician Lab", category: "Blood panel" })));
   await user.click(screen.getByRole("button", { name: "Delete" }));
   await waitFor(() => expect(api.deleteLabDocument).toHaveBeenCalledWith("lab-1"));
 });

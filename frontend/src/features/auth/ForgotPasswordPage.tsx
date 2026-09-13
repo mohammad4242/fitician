@@ -28,7 +28,7 @@ export function ForgotPasswordPage() {
     <AuthShell>
       <div className="form-heading">
         <p className="eyebrow eyebrow--accent">{t("passwordRecovery.eyebrow")}</p>
-        <h2 className="fitsho-display">{t("passwordRecovery.forgotTitle")}</h2>
+        <h2 className="fitician-display">{t("passwordRecovery.forgotTitle")}</h2>
         <p>{t("passwordRecovery.forgotSubtitle")}</p>
       </div>
       {sent ? (

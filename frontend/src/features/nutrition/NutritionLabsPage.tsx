@@ -161,7 +161,7 @@ export function NutritionLabsPage() {
       <div className="nutrition-labs-hero__content">
         <div>
           <p className="nutrition-eyebrow"><LabIcon name="flask" size={15} />{l("پرونده سلامت", "Health record")}</p>
-          <h1 className="fitsho-display"><span className="nutrition-labs-title-icon"><LabIcon name="flask" size={28} /></span>{l("آزمایش‌های من", "My labs")}</h1>
+          <h1 className="fitician-display"><span className="nutrition-labs-title-icon"><LabIcon name="flask" size={28} /></span>{l("آزمایش‌های من", "My labs")}</h1>
           <p>{l("نتایج آزمایش‌هایت را یک‌جا نگه دار تا خودت و پزشک مسئول، تصویر کامل‌تری از سلامتت داشته باشید.", "Keep your lab results in one place so you and your assigned physician have a clearer view of your health.")}</p>
         </div>
         <div className="nutrition-labs-hero__count"><strong>{labs.length.toLocaleString(fa ? "fa-IR" : "en-US")}</strong><span>{l("فایل ثبت‌شده", "saved files")}</span></div>

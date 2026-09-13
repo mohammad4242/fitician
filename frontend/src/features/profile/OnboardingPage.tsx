@@ -151,7 +151,7 @@ export function OnboardingPage() {
       <OnboardingShell>
         <main className="onboarding-flow product-mode-flow">
           <p className="eyebrow eyebrow--accent">شروع با مربی فیتیشن</p>
-          <h2 className="fitsho-display">بیشتر در چه زمینه‌ای به کمک نیاز داری؟</h2>
+          <h2 className="fitician-display">بیشتر در چه زمینه‌ای به کمک نیاز داری؟</h2>
           <p>مسیرت را انتخاب کن؛ فقط همان سؤال‌هایی را می‌پرسیم که برای برنامه‌ات لازم است.</p>
           <div className="product-mode-cards" role="list">
             {([
@@ -200,7 +200,7 @@ export function OnboardingPage() {
       <div className="onboarding-flow">
         <div className="form-heading">
           <p className="eyebrow eyebrow--accent">{t("onboarding.eyebrow")}</p>
-          <h2 className="fitsho-display">{t("onboarding.title")}</h2>
+          <h2 className="fitician-display">{t("onboarding.title")}</h2>
           <p>{t("onboarding.intro")}</p>
         </div>
 

@@ -442,7 +442,7 @@ export function NutritionOnboardingFlow({
     return (
       <section className="nutrition-step safety-result-card" aria-live="polite">
         <p className="eyebrow eyebrow--accent">{language === "en" ? "Safety assessment result" : "نتیجه ارزیابی ایمنی"}</p>
-        <h2 className="fitsho-display">{language === "en" ? "Continue with a Fitician physician" : "ادامه مسیر با پزشک فیتیشن"}</h2>
+        <h2 className="fitician-display">{language === "en" ? "Continue with a Fitician physician" : "ادامه مسیر با پزشک فیتیشن"}</h2>
         <p>{language === "en" ? "For your safety, this path needs review by a Fitician physician." : decision?.message}</p>
         <p>{language === "en" ? "Allowed information is saved and no automatic plan will be created." : "اطلاعات مجاز ذخیره شد و هیچ برنامه خودکاری ساخته نمی‌شود."}</p>
         {draftMode && <button className="primary-button" type="button" onClick={() => onDraftComplete?.({ safety: safetyInput() })}>{language === "en" ? "Continue to account setup" : "ادامه و ساخت حساب"}</button>}
@@ -454,9 +454,9 @@ export function NutritionOnboardingFlow({
     return (
       <section className="nutrition-step safety-result-card" aria-live="polite">
         <p className="eyebrow eyebrow--accent">{language === "en" ? "Nutrition profile" : "پروفایل تغذیه"}</p>
-        <h2 className="fitsho-display">{language === "en" ? "Your nutrition profile is saved" : "پروفایل تغذیه‌ات ثبت شد"}</h2>
+        <h2 className="fitician-display">{language === "en" ? "Your nutrition profile is saved" : "پروفایل تغذیه‌ات ثبت شد"}</h2>
         <p>{language === "en" ? "Your safety, budget, and preference information is saved." : "اطلاعات ایمنی، بودجه و ترجیحاتت ذخیره شد."}</p>
-        {decision?.requires_physician_review && <p>{language === "en" ? "A Fitsho physician will review your nutrition path." : decision.message}</p>}
+        {decision?.requires_physician_review && <p>{language === "en" ? "A Fitician physician will review your nutrition path." : decision.message}</p>}
         <p>{language === "en" ? "No meal plan has been generated yet." : "هنوز هیچ برنامه غذایی تولید نشده است."}</p>
       </section>
     );
@@ -516,10 +516,10 @@ export function NutritionOnboardingFlow({
         <span>{language === "en" ? `Step ${progressIndex} of ${flowOrder.length}` : `مرحله ${progressIndex} از ${flowOrder.length}`}</span>
         <progress value={progressIndex} max={flowOrder.length} />
       </div>
-      <h2 className="fitsho-display">{stepTitle(step, language)}</h2>
+      <h2 className="fitician-display">{stepTitle(step, language)}</h2>
       <p>{stepIntro(step, language)}</p></>}
       {decision?.requires_physician_review && step !== "safety" && (
-        <p className="nutrition-feedback" role="status">{language === "en" ? "A Fitsho physician review is required for your nutrition path." : decision.message}</p>
+        <p className="nutrition-feedback" role="status">{language === "en" ? "A Fitician physician review is required for your nutrition path." : decision.message}</p>
       )}
       {step === "personal" && (
         <GuidedSharedProfileQuestions values={values} onChange={(field, value) => updateProfileValue(field, value)} onBack={onExit ?? (() => undefined)} onComplete={saveShared} />
@@ -743,7 +743,7 @@ function PostAccountNutritionDetails(props: {
   return (
     <section className="nutrition-step profile-details-page" dir={props.language === "fa" ? "rtl" : "ltr"}>
       <p className="eyebrow eyebrow--accent">{l("پروفایل", "Profile")}</p>
-      <h2 className="fitsho-display">{l("اطلاعات تغذیه‌ای", "Nutrition information")}</h2>
+      <h2 className="fitician-display">{l("اطلاعات تغذیه‌ای", "Nutrition information")}</h2>
       <form className="profile-form nutrition-details-form" onSubmit={(event) => { event.preventDefault(); props.onSave(); }}>
         <fieldset className="profile-fieldset" disabled={props.busy}>
           <legend>
@@ -881,7 +881,7 @@ function NutritionQuestionFrame(props: {
         <span>{l(`سؤال ${props.current + 1} از ${props.total}`, `Question ${props.current + 1} of ${props.total}`)}</span>
         <progress value={props.current + 1} max={props.total} />
       </div>
-      <h1 className="fitsho-display" id="nutrition-question-title">{props.title}</h1>
+      <h1 className="fitician-display" id="nutrition-question-title">{props.title}</h1>
       <form className="guided-question__form" onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
         <fieldset className="nutrition-question__control" disabled={props.busy}>{props.children}</fieldset>
         {props.optional && <button className="text-button" type="submit">{l("رد کردن این سؤال", "Skip this question")}</button>}

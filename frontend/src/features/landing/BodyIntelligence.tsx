@@ -24,7 +24,7 @@ export function BodyIntelligence({ reducedMotion }: { reducedMotion: boolean }) 
       <div className="body-intelligence__stage">
         <header className="body-intelligence__heading">
           <p className="landing-kicker">{t("landing.intelligence.eyebrow")}</p>
-          <h2 id="landing-intelligence-title" className="fitsho-display">{t("landing.intelligence.title")}</h2>
+          <h2 id="landing-intelligence-title" className="fitician-display">{t("landing.intelligence.title")}</h2>
           <p>{t("landing.intelligence.body")}</p>
         </header>
 
@@ -58,7 +58,7 @@ export function BodyIntelligence({ reducedMotion }: { reducedMotion: boolean }) 
         <picture className="body-interface__image">
           <source srcSet={bodyImage} type="image/webp" />
           <img
-            data-testid="fitsho-body-intelligence"
+            data-testid="fitician-body-intelligence"
             src={bodyFallback}
             alt={t("landing.intelligence.imageAlt")}
             width="1024"

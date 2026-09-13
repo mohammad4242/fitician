@@ -145,7 +145,7 @@ export function AdminTrainingProgramStructureEditorPage() {
         <header className="admin-form-header">
           <div>
             <p className="eyebrow eyebrow--accent">{t("admin.structureEditor.eyebrow")}</p>
-            <h1 className="fitsho-display">{title}</h1>
+            <h1 className="fitician-display">{title}</h1>
             <p>{t("admin.structureEditor.intro")}</p>
           </div>
           <Link to="/admin/training-program-structures">{t("admin.structureEditor.back")}</Link>

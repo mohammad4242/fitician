@@ -740,7 +740,10 @@
 }
 
 /* Compact progress and visual-first analysis */
-.body-progress-page.fitsho-page, .body-analysis-page.fitsho-page { padding-top: .8rem; }
+.body-progress-page.fitician-page,
+.body-progress-page.fitsho-page,
+.body-analysis-page.fitician-page,
+.body-analysis-page.fitsho-page { padding-top: .8rem; }
 .body-progress-page > header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .5rem 1rem; padding-block: .5rem .8rem; }
 .body-progress-page > header h1, .body-analysis-page__header h1 { font-size: clamp(1.45rem, 4vw, 2.2rem); letter-spacing: 0; }
 .body-progress-page > header > p { grid-column: 1 / -1; color: var(--fitician-muted); font-size: .75rem; }
@@ -776,7 +779,9 @@
 }
 
 /* Body intelligence visual layer */
+.body-progress-page.fitician-page,
 .body-progress-page.fitsho-page,
+.body-analysis-page.fitician-page,
 .body-analysis-page.fitsho-page {
   width: min(calc(100% - 2rem), 72rem);
   max-width: 100%;
@@ -878,12 +883,15 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 .body-photo-modal { color: var(--fitician-ink); background: var(--fitician-surface); }
 .body-photo-link-button, .body-photo-skip, .body-progress-list a { color: var(--fitician-aqua); }
 
+.body-progress-page.fitician-page,
 .body-progress-page.fitsho-page,
+.body-analysis-page.fitician-page,
 .body-analysis-page.fitsho-page {
   margin-block-start: 0;
   padding-block-start: clamp(1.25rem, 3vw, 2rem);
 }
 
+.body-progress-page.fitician-page,
 .body-progress-page.fitsho-page {
   min-height: auto;
   align-content: start;
@@ -912,7 +920,9 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 
 @media (max-width: 640px) {
   .body-photo-wizard,
+  .body-progress-page.fitician-page,
   .body-progress-page.fitsho-page,
+  .body-analysis-page.fitician-page,
   .body-analysis-page.fitsho-page { width: min(calc(100% - 1.5rem), 72rem); padding: 1rem; }
   .body-progress-page > header, .body-analysis-page__header { padding-block-start: .5rem; }
   .body-progress-list > li { grid-template-columns: 1fr auto; gap: .65rem; }
@@ -923,6 +933,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* Body Analysis home */
+.body-analysis-home.fitician-page,
 .body-analysis-home.fitsho-page {
   width: min(calc(100% - 2rem), 64rem);
   min-height: calc(100svh - 4.75rem);
@@ -1662,6 +1673,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 @media (max-width: 640px) {
+  .body-analysis-home.fitician-page,
   .body-analysis-home.fitsho-page { width: 100%; padding: 1.25rem .9rem 2rem; }
   .body-analysis-home__header { padding-inline: .35rem; }
   .body-analysis-home__features { grid-template-columns: 1fr; }
@@ -2231,7 +2243,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* 1. TOP SCAN OVERVIEW */
-.fitsho-scan-overview {
+.fitician-scan-overview {
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -2246,7 +2258,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   padding: clamp(0.85rem, 2vw, 1.5rem);
 }
 
-.fitsho-scan-overview__stage {
+.fitician-scan-overview__stage {
   display: grid;
   grid-template-columns: minmax(auto, 5rem) minmax(0, 1fr) minmax(14rem, 19rem);
   gap: clamp(0.75rem, 1.5vw, 1.5rem);
@@ -2256,14 +2268,14 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* Left: View selector nav */
-.fitsho-scan-overview__views {
+.fitician-scan-overview__views {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   z-index: 2;
 }
 
-.fitsho-scan-overview__view-btn {
+.fitician-scan-overview__view-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2283,13 +2295,13 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   backdrop-filter: blur(8px);
 }
 
-.fitsho-scan-overview__view-btn:hover {
+.fitician-scan-overview__view-btn:hover {
   border-color: rgb(80 223 206 / 40%);
   color: var(--fitician-text);
   background: rgb(20 45 52 / 80%);
 }
 
-.fitsho-scan-overview__view-btn--active {
+.fitician-scan-overview__view-btn--active {
   border-color: var(--fitician-aqua);
   background: linear-gradient(135deg, rgb(80 223 206 / 25%), rgb(80 223 206 / 10%));
   color: #ffffff;
@@ -2297,7 +2309,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* Center: Hero scan figure */
-.fitsho-scan-overview__hero {
+.fitician-scan-overview__hero {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2309,7 +2321,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   max-width: 100%;
 }
 
-.fitsho-scan-overview__hero-glow {
+.fitician-scan-overview__hero-glow {
   position: absolute;
   inset: 15% 10% 10% 10%;
   border-radius: 50%;
@@ -2318,7 +2330,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   pointer-events: none;
 }
 
-.fitsho-scan-overview__hero-img {
+.fitician-scan-overview__hero-img {
   display: block;
   max-height: clamp(16rem, 36vw, 30rem);
   width: auto;
@@ -2328,7 +2340,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   z-index: 1;
 }
 
-.fitsho-scan-overview__view-tag {
+.fitician-scan-overview__view-tag {
   position: absolute;
   bottom: 0.5rem;
   z-index: 2;
@@ -2344,7 +2356,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* Right: Sidebar with cards */
-.fitsho-scan-overview__sidebar {
+.fitician-scan-overview__sidebar {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -2353,7 +2365,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   max-width: 100%;
 }
 
-.fitsho-scan-card {
+.fitician-scan-card {
   padding: 0.85rem 1rem;
   border: 1px solid rgb(80 223 206 / 18%);
   border-radius: 1.15rem;
@@ -2364,26 +2376,26 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   box-sizing: border-box;
 }
 
-.fitsho-scan-card__header {
+.fitician-scan-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
 }
 
-.fitsho-scan-card__title-row {
+.fitician-scan-card__title-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.fitsho-scan-card__eyebrow {
+.fitician-scan-card__eyebrow {
   color: var(--fitician-muted);
   font-size: 0.82rem;
   font-weight: 800;
 }
 
-.fitsho-scan-card__info-trigger {
+.fitician-scan-card__info-trigger {
   display: grid;
   place-items: center;
   padding: 0;
@@ -2397,11 +2409,11 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   transition: color 150ms ease;
 }
 
-.fitsho-scan-card__info-trigger:hover {
+.fitician-scan-card__info-trigger:hover {
   color: var(--fitician-aqua);
 }
 
-.fitsho-scan-card__badge {
+.fitician-scan-card__badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   border: 1px solid rgb(80 223 206 / 30%);
@@ -2412,20 +2424,20 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   font-weight: 850;
 }
 
-.fitsho-scan-card__badge--neutral {
+.fitician-scan-card__badge--neutral {
   border-color: rgb(255 255 255 / 15%);
   background: rgb(255 255 255 / 6%);
   color: var(--fitician-text);
 }
 
-.fitsho-scan-card__value-row {
+.fitician-scan-card__value-row {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
   margin-block: 0.35rem 0.2rem;
 }
 
-.fitsho-scan-card__value {
+.fitician-scan-card__value {
   font-size: clamp(2rem, 3.5vw, 2.45rem);
   font-weight: 900;
   line-height: 1;
@@ -2433,7 +2445,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   letter-spacing: -0.02em;
 }
 
-.fitsho-scan-card__info-text {
+.fitician-scan-card__info-text {
   margin: 0.35rem 0 0;
   padding: 0.5rem;
   border-radius: 0.5rem;
@@ -2443,13 +2455,13 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   line-height: 1.5;
 }
 
-.fitsho-scan-card__track-container {
+.fitician-scan-card__track-container {
   display: grid;
   gap: 0.25rem;
   margin-block-start: 0.4rem;
 }
 
-.fitsho-scan-card__track {
+.fitician-scan-card__track {
   display: block;
   height: 0.35rem;
   overflow: hidden;
@@ -2458,7 +2470,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   direction: ltr;
 }
 
-.fitsho-scan-card__bar {
+.fitician-scan-card__bar {
   display: block;
   height: 100%;
   border-radius: inherit;
@@ -2467,43 +2479,43 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   transition: width 350ms ease-out;
 }
 
-.fitsho-scan-card__bar--bmi {
+.fitician-scan-card__bar--bmi {
   background: linear-gradient(90deg, #44b7d1, #62e5d6);
 }
 
-.fitsho-scan-card__track-hint {
+.fitician-scan-card__track-hint {
   color: var(--fitician-muted);
   font-size: 0.7rem;
   line-height: 1.4;
 }
 
 /* Summary Card */
-.fitsho-scan-card--summary {
+.fitician-scan-card--summary {
   display: grid;
   gap: 0.45rem;
   border-color: rgb(80 223 206 / 24%);
   background: linear-gradient(145deg, rgb(80 223 206 / 10%), rgb(6 18 22 / 85%));
 }
 
-.fitsho-scan-card__summary-header {
+.fitician-scan-card__summary-header {
   display: flex;
   align-items: center;
   gap: 0.45rem;
 }
 
-.fitsho-scan-card__summary-icon {
+.fitician-scan-card__summary-icon {
   color: var(--fitician-aqua);
   font-size: 0.85rem;
 }
 
-.fitsho-scan-card__summary-title {
+.fitician-scan-card__summary-title {
   margin: 0;
   font-size: 0.88rem;
   font-weight: 850;
   color: var(--fitician-text);
 }
 
-.fitsho-scan-card__summary-text {
+.fitician-scan-card__summary-text {
   margin: 0;
   color: var(--fitician-text);
   font-size: 0.84rem;
@@ -2511,7 +2523,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   line-height: 1.6;
 }
 
-.fitsho-scan-card__summary-route {
+.fitician-scan-card__summary-route {
   margin: 0;
   color: var(--fitician-muted);
   font-size: 0.78rem;
@@ -2519,7 +2531,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* 2. THREE VISUAL SCORE INDICATORS */
-.fitsho-score-strip {
+.fitician-score-strip {
   border: 1px solid rgb(80 223 206 / 18%);
   border-radius: 1.35rem;
   background: linear-gradient(160deg, #081a1f 0%, #040d10 100%);
@@ -2527,24 +2539,24 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 35%);
 }
 
-.fitsho-score-strip__header {
+.fitician-score-strip__header {
   margin-bottom: 0.75rem;
 }
 
-.fitsho-score-strip__header h2 {
+.fitician-score-strip__header h2 {
   margin: 0;
   font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: 850;
   color: var(--fitician-text);
 }
 
-.fitsho-score-strip__grid {
+.fitician-score-strip__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(0.75rem, 1.8vw, 1.25rem);
 }
 
-.fitsho-score-ring-card {
+.fitician-score-ring-card {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -2558,26 +2570,26 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.fitsho-score-ring-card:hover {
+.fitician-score-ring-card:hover {
   border-color: rgb(80 223 206 / 35%);
 }
 @media (hover: hover) and (pointer: fine) {
-  .fitsho-score-ring-card:hover { transform: translateY(-2px); }
+  .fitician-score-ring-card:hover { transform: translateY(-2px); }
 }
 
-.fitsho-score-ring-card--balance {
+.fitician-score-ring-card--balance {
   border-color: rgb(80 223 206 / 20%);
 }
 
-.fitsho-score-ring-card--symmetry {
+.fitician-score-ring-card--symmetry {
   border-color: rgb(56 189 248 / 20%);
 }
 
-.fitsho-score-ring-card--upper_lower {
+.fitician-score-ring-card--upper_lower {
   border-color: rgb(251 191 36 / 20%);
 }
 
-.fitsho-score-ring-card__ring-wrap {
+.fitician-score-ring-card__ring-wrap {
   position: relative;
   display: grid;
   place-items: center;
@@ -2586,49 +2598,49 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   height: 76px;
 }
 
-.fitsho-score-ring-card__svg {
+.fitician-score-ring-card__svg {
   display: block;
 }
 
-.fitsho-score-ring-card__track {
+.fitician-score-ring-card__track {
   stroke: rgb(255 255 255 / 8%);
 }
 
-.fitsho-score-ring-card__fill {
+.fitician-score-ring-card__fill {
   stroke: var(--fitician-aqua);
   filter: drop-shadow(0 0 6px rgb(80 223 206 / 50%));
   transition: stroke-dashoffset 600ms ease-out;
 }
 
-.fitsho-score-ring-card__fill--balance {
+.fitician-score-ring-card__fill--balance {
   stroke: #50dfce;
   filter: drop-shadow(0 0 6px rgb(80 223 206 / 55%));
 }
 
-.fitsho-score-ring-card__fill--symmetry {
+.fitician-score-ring-card__fill--symmetry {
   stroke: #38bdf8;
   filter: drop-shadow(0 0 6px rgb(56 189 248 / 55%));
 }
 
-.fitsho-score-ring-card__fill--upper_lower {
+.fitician-score-ring-card__fill--upper_lower {
   stroke: #fbbf24;
   filter: drop-shadow(0 0 6px rgb(251 191 36 / 55%));
 }
 
-.fitsho-score-ring-card__center {
+.fitician-score-ring-card__center {
   position: absolute;
   display: grid;
   place-items: center;
 }
 
-.fitsho-score-ring-card__score {
+.fitician-score-ring-card__score {
   font-size: 1.15rem;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.02em;
 }
 
-.fitsho-score-ring-card__meta {
+.fitician-score-ring-card__meta {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2636,13 +2648,13 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   min-width: 0;
 }
 
-.fitsho-score-ring-card__title-row {
+.fitician-score-ring-card__title-row {
   display: flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-.fitsho-score-ring-card__title {
+.fitician-score-ring-card__title {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 850;
@@ -2650,7 +2662,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   white-space: nowrap;
 }
 
-.fitsho-score-ring-card__info-btn {
+.fitician-score-ring-card__info-btn {
   display: grid;
   place-items: center;
   padding: 0;
@@ -2661,11 +2673,11 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   transition: color 150ms ease;
 }
 
-.fitsho-score-ring-card__info-btn:hover {
+.fitician-score-ring-card__info-btn:hover {
   color: var(--fitician-aqua);
 }
 
-.fitsho-score-ring-card__status-badge {
+.fitician-score-ring-card__status-badge {
   display: inline-block;
   padding: 0.12rem 0.5rem;
   border-radius: 999px;
@@ -2673,32 +2685,32 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   font-weight: 850;
 }
 
-.fitsho-score-ring-card__status-badge--balance {
+.fitician-score-ring-card__status-badge--balance {
   background: rgb(80 223 206 / 12%);
   color: #50dfce;
   border: 1px solid rgb(80 223 206 / 25%);
 }
 
-.fitsho-score-ring-card__status-badge--symmetry {
+.fitician-score-ring-card__status-badge--symmetry {
   background: rgb(56 189 248 / 12%);
   color: #38bdf8;
   border: 1px solid rgb(56 189 248 / 25%);
 }
 
-.fitsho-score-ring-card__status-badge--upper_lower {
+.fitician-score-ring-card__status-badge--upper_lower {
   background: rgb(251 191 36 / 12%);
   color: #fbbf24;
   border: 1px solid rgb(251 191 36 / 25%);
 }
 
-.fitsho-score-ring-card__subtitle {
+.fitician-score-ring-card__subtitle {
   margin: 0;
   color: var(--fitician-muted);
   font-size: 0.73rem;
   line-height: 1.4;
 }
 
-.fitsho-score-ring-card__info-popover {
+.fitician-score-ring-card__info-popover {
   margin: 0.25rem 0 0;
   padding: 0.35rem 0.6rem;
   border-radius: 0.45rem;
@@ -2759,7 +2771,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 }
 
 /* 4. PROGRESS STRIP */
-.fitsho-progress-strip {
+.fitician-progress-strip {
   display: grid;
   gap: 1.15rem;
   padding: clamp(1rem, 2.5vw, 1.5rem);
@@ -2769,7 +2781,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 35%);
 }
 
-.fitsho-progress-strip__header {
+.fitician-progress-strip__header {
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -2777,23 +2789,23 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   flex-wrap: wrap;
 }
 
-.fitsho-progress-strip__header h2,
-.fitsho-progress-strip__header p {
+.fitician-progress-strip__header h2,
+.fitician-progress-strip__header p {
   margin: 0;
 }
 
-.fitsho-progress-strip__header h2 {
+.fitician-progress-strip__header h2 {
   font-size: clamp(1.15rem, 2.5vw, 1.45rem);
   color: var(--fitician-text);
 }
 
-.fitsho-progress-strip__summary {
+.fitician-progress-strip__summary {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-.fitsho-progress-strip__summary-item {
+.fitician-progress-strip__summary-item {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -2804,26 +2816,26 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   font-size: 0.78rem;
 }
 
-.fitsho-progress-strip__summary-label {
+.fitician-progress-strip__summary-label {
   color: var(--fitician-muted);
 }
 
-.fitsho-progress-strip__summary-val {
+.fitician-progress-strip__summary-val {
   color: var(--fitician-text);
   font-weight: 850;
 }
 
-.fitsho-progress-strip__summary-val--pos {
+.fitician-progress-strip__summary-val--pos {
   color: var(--fitician-aqua);
 }
 
-.fitsho-progress-strip__timeline {
+.fitician-progress-strip__timeline {
   position: relative;
   overflow-x: auto;
   padding-block: 0.75rem 0.5rem;
 }
 
-.fitsho-progress-strip__line {
+.fitician-progress-strip__line {
   position: absolute;
   top: 1.25rem;
   left: 2rem;
@@ -2832,7 +2844,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   background: linear-gradient(90deg, rgb(80 223 206 / 20%), rgb(80 223 206 / 50%), rgb(80 223 206 / 20%));
 }
 
-.fitsho-progress-strip__nodes {
+.fitician-progress-strip__nodes {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -2841,7 +2853,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   z-index: 1;
 }
 
-.fitsho-progress-strip__node {
+.fitician-progress-strip__node {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2850,7 +2862,7 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   flex: 1;
 }
 
-.fitsho-progress-strip__dot {
+.fitician-progress-strip__dot {
   position: relative;
   width: 0.9rem;
   height: 0.9rem;
@@ -2859,57 +2871,57 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   background: var(--fitician-muted);
 }
 
-.fitsho-progress-strip__node--current .fitsho-progress-strip__dot {
+.fitician-progress-strip__node--current .fitician-progress-strip__dot {
   background: var(--fitician-aqua);
   box-shadow: 0 0 0.6rem var(--fitician-aqua);
 }
 
-.fitsho-progress-strip__dot-pulse {
+.fitician-progress-strip__dot-pulse {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
   border: 1px solid var(--fitician-aqua);
-  animation: fitsho-dot-pulse 1.8s infinite;
+  animation: fitician-dot-pulse 1.8s infinite;
 }
 
-@keyframes fitsho-dot-pulse {
+@keyframes fitician-dot-pulse {
   0% { transform: scale(1); opacity: 0.8; }
   100% { transform: scale(1.8); opacity: 0; }
 }
 
-.fitsho-progress-strip__date {
+.fitician-progress-strip__date {
   color: var(--fitician-muted);
   font-size: 0.78rem;
   font-weight: 750;
 }
 
-.fitsho-progress-strip__metrics {
+.fitician-progress-strip__metrics {
   display: grid;
   gap: 0.15rem;
 }
 
-.fitsho-progress-strip__bf {
+.fitician-progress-strip__bf {
   font-size: 0.86rem;
   font-weight: 850;
   color: var(--fitician-text);
 }
 
-.fitsho-progress-strip__weight {
+.fitician-progress-strip__weight {
   font-size: 0.76rem;
   color: var(--fitician-muted);
 }
 
-.fitsho-progress-strip__single-state {
+.fitician-progress-strip__single-state {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  padding: 1rem 1.15rem;
-  border: 1px dashed rgb(80 223 206 / 30%);
+  padding: 1rem 1.25rem;
+  border: 1px dashed rgb(80 223 206 / 20%);
   border-radius: 1rem;
   background: rgb(80 223 206 / 5%);
 }
 
-.fitsho-progress-strip__single-icon {
+.fitician-progress-strip__single-icon {
   display: grid;
   place-items: center;
   width: 2.75rem;
@@ -2920,13 +2932,13 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
   flex-shrink: 0;
 }
 
-.fitsho-progress-strip__single-state h3 {
+.fitician-progress-strip__single-state h3 {
   margin: 0 0 0.2rem;
   font-size: 0.95rem;
   color: var(--fitician-text);
 }
 
-.fitsho-progress-strip__single-state p {
+.fitician-progress-strip__single-state p {
   margin: 0;
   font-size: 0.8rem;
   color: var(--fitician-muted);
@@ -2935,30 +2947,30 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
 
 /* RESPONSIVE BREAKPOINTS */
 @media (max-width: 1023px) {
-  .fitsho-scan-overview__stage {
+  .fitician-scan-overview__stage {
     grid-template-columns: 1fr;
     gap: 1.25rem;
     max-width: 100%;
   }
 
-  .fitsho-scan-overview__views {
+  .fitician-scan-overview__views {
     flex-direction: row;
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .fitsho-scan-overview__view-btn {
+  .fitician-scan-overview__view-btn {
     flex-direction: row;
     min-width: auto;
     padding: 0.5rem 1rem;
   }
 
-  .fitsho-score-strip__grid {
+  .fitician-score-strip__grid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   }
 
-  .fitsho-progress-strip__nodes {
+  .fitician-progress-strip__nodes {
     min-width: min(100%, 20rem);
   }
 }
@@ -2979,38 +2991,38 @@ html[dir="rtl"] :is(.body-photo-wizard h1, .body-photo-wizard h2, .body-progress
     gap: 0.35rem;
   }
 
-  .fitsho-score-strip__grid {
+  .fitician-score-strip__grid {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
 
-  .fitsho-score-ring-card {
+  .fitician-score-ring-card {
     flex-direction: row;
     text-align: start;
     padding: 0.75rem 1rem;
   }
 
-  .fitsho-score-ring-card__ring-wrap {
+  .fitician-score-ring-card__ring-wrap {
     width: 68px;
     height: 68px;
     flex-shrink: 0;
   }
 
-  .fitsho-score-ring-card__svg {
+  .fitician-score-ring-card__svg {
     width: 68px;
     height: 68px;
   }
 
-  .fitsho-score-ring-card__score {
+  .fitician-score-ring-card__score {
     font-size: 1.05rem;
   }
 
-  .fitsho-progress-strip__header {
+  .fitician-progress-strip__header {
     flex-direction: column;
     align-items: start;
   }
 
-  .fitsho-progress-strip__nodes {
+  .fitician-progress-strip__nodes {
     min-width: min(100%, 18rem);
   }
 }

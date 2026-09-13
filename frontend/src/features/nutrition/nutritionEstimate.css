@@ -574,6 +574,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-breakdown-dot--activity { background: var(--fitician-aqua); box-shadow: 0 0 .5rem rgb(80 223 206 / 45%); }
 .nutrition-today-panel .nutrition-calorie-card { min-height: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .nutrition-today-panel .nutrition-calorie-card strong { display: block; margin-block: .2rem; font: 850 clamp(1.8rem, 5vw, 2.75rem)/1 "Sora Variable", sans-serif; }
+.nutrition-today-panel .fitician-progress-ring,
 .nutrition-today-panel .fitsho-progress-ring { width: 4.75rem; }
 .nutrition-today-panel .nutrition-confidence-card { min-width: 8rem; align-self: stretch; display: grid; align-content: center; justify-items: start; padding: .75rem; border: 0; border-inline-start: 1px solid var(--fitician-line); border-radius: 0; background: transparent; box-shadow: none; }
 .nutrition-today-panel .nutrition-target-grid--primary { width: auto; margin: 0; border: 0; border-top: 1px solid var(--fitician-line); border-radius: 0; background: rgb(255 255 255 / 2%); box-shadow: none; }
@@ -591,10 +592,15 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-calorie-card strong { font-size: clamp(2rem, 6vw, 3.25rem); }
 .nutrition-confidence-card { min-height: 0; padding: 1rem; border-radius: var(--fitician-radius-lg); }
 .nutrition-confidence-card p { margin: .5rem 0 0; font-size: .72rem; line-height: 1.55; }
+.nutrition-target-grid--primary.fitician-metric-strip,
 .nutrition-target-grid--primary.fitsho-metric-strip { gap: 0; padding-block: .65rem; }
+.nutrition-target-grid--primary.fitician-metric-strip .nutrition-target-card,
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card { min-height: 0; padding: .75rem; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.nutrition-target-grid--primary.fitician-metric-strip .nutrition-target-card + .nutrition-target-card,
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card + .nutrition-target-card { border-inline-start: 1px solid var(--fitician-line); }
+.nutrition-target-grid--primary.fitician-metric-strip .nutrition-target-card strong,
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card strong { font-size: 1rem; }
+.nutrition-target-grid--primary.fitician-metric-strip .nutrition-target-card small,
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card small { display: none; }
 .nutrition-science-details { margin-top: .2rem; border-radius: var(--fitician-radius-md); }
 .nutrition-science-details > summary { min-height: 3rem; padding: .75rem 1rem; font-size: .78rem; }
@@ -1008,6 +1014,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   .nutrition-estimate-summary { grid-template-columns: 1fr; }
   .nutrition-confidence-card { display: flex; align-items: center; justify-content: space-between; }
   .nutrition-confidence-card p { display: none; }
+  .nutrition-target-grid--primary.fitician-metric-strip,
   .nutrition-target-grid--primary.fitsho-metric-strip { display: grid; grid-template-columns: repeat(3, 1fr); }
   .nutrition-calorie-card { min-height: 7.5rem; }
   .nutrition-today-panel, .nutrition-meal-summary { width: min(100% - 1.5rem, 72rem); }
@@ -1019,6 +1026,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   .nutrition-calorie-group { grid-template-columns: 1fr; gap: .85rem; }
   .nutrition-calorie-item + .nutrition-calorie-item { border-inline-start: 0; border-top: 1px solid var(--fitician-line); padding-inline-start: 0; padding-top: .85rem; }
   .nutrition-today-panel .nutrition-confidence-card { grid-column: 1 / -1; min-width: 0; min-height: 2rem; display: flex; align-items: center; justify-content: space-between; padding: .45rem 0 0; border: 0; border-top: 1px solid var(--fitician-line); }
+  .nutrition-today-panel .fitician-progress-ring,
   .nutrition-today-panel .fitsho-progress-ring { width: 4.4rem; }
   .nutrition-tracking-header { flex-direction: row; }
   .nutrition-tracking-page { --nutrition-content-width: min(100% - 1.5rem, 72rem); }

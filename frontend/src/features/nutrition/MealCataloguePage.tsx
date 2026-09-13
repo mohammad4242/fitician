@@ -104,10 +104,10 @@ export function MealCataloguePage() {
   return (
     <div className="meal-catalogue-shell" dir={english ? "ltr" : "rtl"}>
       <MemberHeaderMedia className="member-page-background" imageSrc={foodAccent} />
-      <main className="meal-catalogue-page fitsho-page">
+      <main className="meal-catalogue-page fitician-page">
         <header className="meal-catalogue-hero">
           <p className="eyebrow eyebrow--accent">{t("mealCatalogue.eyebrow")}</p>
-          <h1 className="fitsho-display">{t("mealCatalogue.title")}</h1>
+          <h1 className="fitician-display">{t("mealCatalogue.title")}</h1>
           <p className="meal-catalogue-description">{t("mealCatalogue.intro")}</p>
         </header>
 

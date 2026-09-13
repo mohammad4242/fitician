@@ -19,9 +19,13 @@
 
 .pwa-install-card__actions,
 .pwa-update-prompt__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pwa-install-card__actions .fitician-button,
 .pwa-install-card__actions .fitsho-button,
+.pwa-install-card__actions .fitician-button-secondary,
 .pwa-install-card__actions .fitsho-button-secondary,
+.pwa-update-prompt__actions .fitician-button,
 .pwa-update-prompt__actions .fitsho-button,
+.pwa-update-prompt__actions .fitician-button-secondary,
 .pwa-update-prompt__actions .fitsho-button-secondary { min-height: 2.75rem; padding-inline: 1rem; }
 .pwa-update-prompt__actions button:disabled { cursor: not-allowed; opacity: 0.55; }
 

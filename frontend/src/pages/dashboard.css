@@ -144,6 +144,7 @@ html[dir="rtl"] .command-card--primary::after {
   font-size: 1rem;
 }
 
+.command-card__head .fitician-status,
 .command-card__head .fitsho-status {
   width: fit-content;
   padding: .28rem .55rem;
@@ -270,6 +271,7 @@ html[dir="rtl"] .command-card--primary::after {
   initial-value: 0deg;
 }
 
+.command-card--nutrition .fitician-progress-ring,
 .command-card--nutrition .fitsho-progress-ring {
   width: 5.3rem;
   border: 1px solid rgb(80 223 206 / 12%);
@@ -279,6 +281,7 @@ html[dir="rtl"] .command-card--primary::after {
   box-shadow: 0 0 1.5rem rgb(80 223 206 / 10%);
 }
 
+.command-card--nutrition .fitician-progress-ring--mount-animated,
 .command-card--nutrition .fitsho-progress-ring--mount-animated {
   transition: --ring-progress 900ms var(--fitician-ease);
 }
@@ -290,10 +293,12 @@ html[dir="rtl"] .command-card--primary::after {
   font-weight: 750;
 }
 
+.command-card--nutrition .fitician-progress-ring strong,
 .command-card--nutrition .fitsho-progress-ring strong {
   font-size: .9rem;
 }
 
+.command-card--nutrition .fitician-metric-strip,
 .command-card--nutrition .fitsho-metric-strip {
   margin-block-start: auto;
 }
@@ -501,6 +506,7 @@ html[dir="rtl"] .command-card--primary::after {
     min-height: 2.5rem;
   }
 
+  .command-card--nutrition .fitician-progress-ring,
   .command-card--nutrition .fitsho-progress-ring {
     width: 4.75rem;
   }
@@ -535,6 +541,7 @@ html[dir="rtl"] .command-card--primary::after {
   .command-card,
   .command-quick-card,
   .command-quick-card img,
+  .command-card--nutrition .fitician-progress-ring--mount-animated,
   .command-card--nutrition .fitsho-progress-ring--mount-animated {
     transition: none;
   }

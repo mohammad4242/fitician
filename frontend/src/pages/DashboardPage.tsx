@@ -174,21 +174,21 @@ export function DashboardPage() {
   const avatarInitial = displayName.trim().charAt(0).toLocaleUpperCase(locale);
 
   return (
-    <main className="command-center fitsho-page">
+    <main className="command-center fitician-page">
       <div className="command-center__container">
         <header className="command-center__welcome">
           <Link className="command-center__avatar" to="/profile" aria-label={t("header.profile")}>
             {avatarInitial}
           </Link>
           <div>
-            <h1 className="fitsho-display">{t("dashboard.greeting", { name: displayName })}</h1>
+            <h1 className="fitician-display">{t("dashboard.greeting", { name: displayName })}</h1>
             <p>{english ? "Ready for today?" : "برای امروز آماده‌ای؟"}</p>
           </div>
           <span className="command-center__live" aria-hidden="true" />
         </header>
 
         {profile === null && (
-          <Link className="fitsho-button" to="/onboarding">{t("dashboard.completeProfile")}</Link>
+          <Link className="fitician-button" to="/onboarding">{t("dashboard.completeProfile")}</Link>
         )}
 
         <section className="command-center__grid" aria-label={t("dashboard.statusLabel")}>
@@ -209,7 +209,7 @@ export function DashboardPage() {
                     {workoutState === "no_plan" && t("dashboard.todayWorkout")}
                   </h2>
                 </div>
-                <span className={"fitsho-status fitsho-status--" + (workoutState === "workout_today" || workoutState === "completed_today" ? "success" : "neutral")}>
+                <span className={"fitician-status fitician-status--" + (workoutState === "workout_today" || workoutState === "completed_today" ? "success" : "neutral")}>
                   {workoutState === "no_plan" ? t(`dashboard.planState.${planState}`) : t(`dashboard.workoutState.${workoutState}`)}
                 </span>
               </div>
@@ -282,7 +282,7 @@ export function DashboardPage() {
                   />
                 </div>
                 {aboveExpenditureCalories > 0 && <p className="command-card__overage">{english ? `${format(aboveExpenditureCalories)} kcal above estimated daily expenditure` : `${format(aboveExpenditureCalories)} کیلوکالری بالاتر از مصرف تقریبی روزانه`}</p>}
-                <div className="fitsho-metric-strip">
+                <div className="fitician-metric-strip">
                   <span><strong>{formatMetric(actual?.protein_g ?? nutritionTarget.protein_g, format)}</strong><small>{english ? "Protein" : "پروتئین"}</small></span>
                   <span><strong>{formatMetric(actual?.carbohydrate_g ?? nutritionTarget.carbohydrate_g, format)}</strong><small>{english ? "Carbs" : "کربوهیدرات"}</small></span>
                   <span><strong>{formatMetric(actual?.total_fat_g ?? nutritionTarget.total_fat_g, format)}</strong><small>{english ? "Fat" : "چربی"}</small></span>
@@ -359,13 +359,13 @@ function PrimaryAction({
   const { t } = useTranslation();
   if (hasPlan) {
     return (
-      <Link className="fitsho-button command-card__action" to="/workout-plan">
+      <Link className="fitician-button command-card__action" to="/workout-plan">
         {t(timelineState === "ready_to_start" ? "dashboard.startProgram" : "dashboard.viewWorkout")}
       </Link>
     );
   }
   if (state === "ready") {
-    return <Link className="fitsho-button command-card__action" to="/workout-plan">{t("dashboard.start")}</Link>;
+    return <Link className="fitician-button command-card__action" to="/workout-plan">{t("dashboard.start")}</Link>;
   }
   if (!accessLoading && !canGenerate) {
     return (
@@ -376,7 +376,7 @@ function PrimaryAction({
     );
   }
   return (
-    <button className="fitsho-button command-card__action" type="button" onClick={onStart} disabled={state === "loading" || generating}>
+    <button className="fitician-button command-card__action" type="button" onClick={onStart} disabled={state === "loading" || generating}>
       {generating ? t("dashboard.generating") : t("dashboard.start")}
     </button>
   );

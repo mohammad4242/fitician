@@ -110,7 +110,7 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
         <span>{language === "en" ? `Step ${question + 1} of ${labels.length}` : `مرحله ${question + 1} از ${labels.length}`}</span>
         <progress value={question + 1} max={labels.length} />
       </div>
-      <h1 className="fitsho-display" id="guided-question-title">{labels[question]}</h1>
+      <h1 className="fitician-display" id="guided-question-title">{labels[question]}</h1>
       <form className="guided-question__form" onSubmit={submit}>
         {question === 0 && <label>{t("onboarding.fields.displayName")}<input name="display_name" autoFocus required minLength={2} maxLength={80} value={values.display_name} onChange={(event) => onChange("display_name", event.target.value)} /></label>}
         {question === 1 && <fieldset className="birth-date-picker"><legend>{t("onboarding.fields.birthDate")}</legend>

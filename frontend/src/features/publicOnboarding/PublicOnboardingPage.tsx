@@ -166,7 +166,7 @@ function ModeSelection({ language, onChoose }: { language: Language; onChoose: (
   return (
     <section className="public-mode-selection">
       <p className="eyebrow eyebrow--accent">{text.eyebrow}</p>
-      <h1 className="fitsho-display">{text.title}</h1>
+      <h1 className="fitician-display">{text.title}</h1>
       <div className="product-mode-cards">
         {modes.map(([mode, title, icon]) => (
           <button
@@ -327,7 +327,7 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
         <div className="public-account-step__header">
           <div>
             <p className="eyebrow eyebrow--accent">{text.eyebrow}</p>
-            <h1 className="fitsho-display">{text.title}</h1>
+            <h1 className="fitician-display">{text.title}</h1>
             <p>{text.intro}</p>
           </div>
           <button className="text-button" type="button" onClick={onEdit}>{text.edit}</button>

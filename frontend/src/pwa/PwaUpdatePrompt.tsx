@@ -45,7 +45,7 @@ export function PwaUpdatePrompt() {
       </div>
       <div className="pwa-update-prompt__actions">
         <button
-          className="fitsho-button"
+          className="fitician-button"
           type="button"
           disabled={isUpdating}
           onClick={() => void handleUpdate()}
@@ -53,7 +53,7 @@ export function PwaUpdatePrompt() {
           {isUpdating ? l("در حال به‌روزرسانی…", "Updating…") : l("به‌روزرسانی", "Update")}
         </button>
         <button
-          className="fitsho-button-secondary"
+          className="fitician-button-secondary"
           type="button"
           disabled={isUpdating}
           onClick={() => setDismissedForCurrentSession(true)}

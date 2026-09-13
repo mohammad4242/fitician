@@ -70,7 +70,7 @@ export function AdminAccessAuditPage() {
   }
 
   return (
-    <main className="access-admin-page fitsho-page">
+    <main className="access-admin-page fitician-page">
       <div className="access-admin-page__container">
         <header className="access-admin-page__header">
           <div><p className="eyebrow eyebrow--accent">{t("adminAccess.audit")}</p><h1>{t("adminAccess.changeHistory")}</h1><p>{t("adminAccess.auditDescription")}</p></div>

@@ -32,7 +32,7 @@ it("keeps the login form usable without promotional media", () => {
 
   expect(screen.queryByTestId("auth-training-accent")).not.toBeInTheDocument();
   expect(document.querySelector(".brand-panel")).not.toBeInTheDocument();
-  expect(document.querySelector(".auth-shell")).toHaveClass("fitsho-page");
+  expect(document.querySelector(".auth-shell")).toHaveClass("fitician-page");
   expect(screen.getByLabelText("ایمیل")).toBeVisible();
   expect(screen.getByRole("button", { name: "ورود به فیتیشن" })).toBeEnabled();
   expect(screen.getByRole("tab", { name: "ایمیل" })).toHaveAttribute("aria-selected", "true");

@@ -17,7 +17,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock("./api", () => api);
 vi.mock("../../shared/AuthenticatedHeader", () => ({
-  AuthenticatedHeader: () => <header>Fitsho</header>,
+  AuthenticatedHeader: () => <header>Fitician</header>,
 }));
 
 import { CoachWorkoutReviewPage } from "./CoachWorkoutReviewPage";

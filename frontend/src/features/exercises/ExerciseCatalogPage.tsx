@@ -291,7 +291,7 @@ export function ExerciseCatalogPage() {
         <header className="exercise-catalog-hero">
           <div>
             <p className="eyebrow eyebrow--accent">{t("catalog.eyebrow")}</p>
-            <h1 className="fitsho-display">{t("catalog.title")}</h1>
+            <h1 className="fitician-display">{t("catalog.title")}</h1>
           </div>
           <p>{t("catalog.intro")}</p>
         </header>
@@ -376,7 +376,7 @@ export function ExerciseCatalogPage() {
               <div className="catalog-stage__heading">
                 <span>01</span>
                 <div>
-                  <h2 id="region-heading" className="fitsho-display">{t("catalog.regionTitle")}</h2>
+                  <h2 id="region-heading" className="fitician-display">{t("catalog.regionTitle")}</h2>
                   <p>{t("catalog.regionIntro")}</p>
                 </div>
               </div>
@@ -399,7 +399,7 @@ export function ExerciseCatalogPage() {
                 <div className="catalog-stage__heading">
                   <span>02</span>
                   <div>
-                  <h2 id="muscle-heading" className="fitsho-display">{t("catalog.muscleTitle")}</h2>
+                  <h2 id="muscle-heading" className="fitician-display">{t("catalog.muscleTitle")}</h2>
                     <p>{t("catalog.muscleIntro", { region: activeName(regionCategory, isEnglish) })}</p>
                   </div>
                 </div>
@@ -424,7 +424,7 @@ export function ExerciseCatalogPage() {
                 <div className="catalog-stage__heading">
                   <span>03</span>
                   <div>
-                    <h2 id="focus-heading" className="fitsho-display">{t("catalog.focusTitle")}</h2>
+                    <h2 id="focus-heading" className="fitician-display">{t("catalog.focusTitle")}</h2>
                     <p>{t("catalog.focusIntro", { muscle: activeName(muscleCategory, isEnglish) })}</p>
                   </div>
                 </div>
@@ -464,7 +464,7 @@ export function ExerciseCatalogPage() {
             <div className="catalog-stage__heading catalog-stage__heading--results">
               <span>04</span>
               <div>
-                <h2 id="results-heading" className="fitsho-display">
+                <h2 id="results-heading" className="fitician-display">
                   {resultHeading(query, muscleCategory, focusCategory, isEnglish, t)}
                 </h2>
                 <p>{t("catalog.resultsIntro")}</p>

@@ -386,7 +386,7 @@ it("uses the blue tone at the exact 60 percent boundary and animates Home entry"
   render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
   const ring = await screen.findByRole("progressbar", { name: "پیشرفت کالری امروز" });
-  expect(ring).toHaveClass("fitsho-progress-ring--mount-animated");
+  expect(ring).toHaveClass("fitician-progress-ring--mount-animated");
   expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-blue)");
   expect(ring).toHaveAttribute("aria-valuenow", "1800");
   expect(ring).toHaveAttribute("aria-valuemax", "3000");

@@ -207,7 +207,7 @@ export function CoachWorkoutReviewPage() {
           </button>
           <div>
             <p>{l("میز کار مربی", "Coach desk")}</p>
-            <h1 className="fitsho-display">{l("بازبینی برنامه‌های تمرینی", "Workout plan reviews")}</h1>
+            <h1 className="fitician-display">{l("بازبینی برنامه‌های تمرینی", "Workout plan reviews")}</h1>
             <span>{l("نسخه اولیه فعال می‌ماند تا نسخه تو با اعتبارسنجی کامل تأیید شود.", "The initial plan stays active until your validated version is approved.")}</span>
           </div>
           <aside className="coach-review-lease" aria-label={l("زمان قفل بازبینی", "Review lease time")}>

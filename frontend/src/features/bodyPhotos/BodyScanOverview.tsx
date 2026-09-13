@@ -58,15 +58,15 @@ export function BodyScanOverview({
   const bmiBarPercent = bmi != null ? Math.min(100, Math.max(0, ((bmi - 15) / 20) * 100)) : 0;
 
   return (
-    <section className="fitsho-scan-overview" aria-label={t("bodyAnalysis.topOverview.title")}>
-      <div className="fitsho-scan-overview__stage">
+    <section className="fitician-scan-overview" aria-label={t("bodyAnalysis.topOverview.title")}>
+      <div className="fitician-scan-overview__stage">
         {/* LEFT: View Selector */}
-        <nav className="fitsho-scan-overview__views" aria-label={t("bodyAnalysis.topOverview.title")}>
+        <nav className="fitician-scan-overview__views" aria-label={t("bodyAnalysis.topOverview.title")}>
           {views.map((item) => (
             <button
               key={item.id}
               type="button"
-              className={`fitsho-scan-overview__view-btn ${activeView === item.id ? "fitsho-scan-overview__view-btn--active" : ""}`}
+              className={`fitician-scan-overview__view-btn ${activeView === item.id ? "fitician-scan-overview__view-btn--active" : ""}`}
               onClick={() => setActiveView(item.id)}
               aria-pressed={activeView === item.id}
             >
@@ -79,28 +79,28 @@ export function BodyScanOverview({
         </nav>
 
         {/* CENTER: Hero Body Asset */}
-        <div className="fitsho-scan-overview__hero" data-view={activeView}>
-          <div className="fitsho-scan-overview__hero-glow" aria-hidden="true" />
+        <div className="fitician-scan-overview__hero" data-view={activeView}>
+          <div className="fitician-scan-overview__hero-glow" aria-hidden="true" />
           <img
             src={heroImage}
             alt={t("bodyAnalysis.topOverview.heroAlt")}
-            className="fitsho-scan-overview__hero-img"
+            className="fitician-scan-overview__hero-img"
           />
-          <div className="fitsho-scan-overview__view-tag">
+          <div className="fitician-scan-overview__view-tag">
             <span>{t(`bodyAnalysis.topOverview.${activeView}`)}</span>
           </div>
         </div>
 
         {/* RIGHT: Metric Cards & Summary */}
-        <div className="fitsho-scan-overview__sidebar">
+        <div className="fitician-scan-overview__sidebar">
           {/* Card 1: Estimated Body Fat % */}
-          <div className="fitsho-scan-card fitsho-scan-card--metric" data-testid="body-fat-card">
-            <header className="fitsho-scan-card__header">
-              <div className="fitsho-scan-card__title-row">
-                <span className="fitsho-scan-card__eyebrow">{t("bodyAnalysis.topOverview.bodyFatTitle")}</span>
+          <div className="fitician-scan-card fitician-scan-card--metric" data-testid="body-fat-card">
+            <header className="fitician-scan-card__header">
+              <div className="fitician-scan-card__title-row">
+                <span className="fitician-scan-card__eyebrow">{t("bodyAnalysis.topOverview.bodyFatTitle")}</span>
                 <button
                   type="button"
-                  className="fitsho-scan-card__info-trigger"
+                  className="fitician-scan-card__info-trigger"
                   onClick={() => setShowBfInfo(!showBfInfo)}
                   aria-label="اطلاعات درصد چربی"
                 >
@@ -110,24 +110,24 @@ export function BodyScanOverview({
                   </svg>
                 </button>
               </div>
-              <span className="fitsho-scan-card__badge">{t("bodyAnalysis.topOverview.bodyFatMethod")}</span>
+              <span className="fitician-scan-card__badge">{t("bodyAnalysis.topOverview.bodyFatMethod")}</span>
             </header>
 
-            <div className="fitsho-scan-card__value-row">
-              <span className="fitsho-scan-card__value">
+            <div className="fitician-scan-card__value-row">
+              <span className="fitician-scan-card__value">
                 {bodyFat != null ? `${bodyFat}%` : "—"}
               </span>
             </div>
 
             {showBfInfo && (
-              <p className="fitsho-scan-card__info-text" role="note">
+              <p className="fitician-scan-card__info-text" role="note">
                 {t("bodyAnalysis.topOverview.infoTooltipBodyFat")}
               </p>
             )}
 
-            <div className="fitsho-scan-card__track-container">
+            <div className="fitician-scan-card__track-container">
               <div
-                className="fitsho-scan-card__track"
+                className="fitician-scan-card__track"
                 role="progressbar"
                 aria-valuenow={bodyFat ?? undefined}
                 aria-valuemin={5}
@@ -135,24 +135,24 @@ export function BodyScanOverview({
                 aria-label={t("bodyAnalysis.topOverview.bodyFatTitle")}
               >
                 <div
-                  className="fitsho-scan-card__bar"
+                  className="fitician-scan-card__bar"
                   style={{ width: `${bfBarPercent}%` }}
                 />
               </div>
-              <span className="fitsho-scan-card__track-hint">
+              <span className="fitician-scan-card__track-hint">
                 {t("bodyAnalysis.topOverview.estimateNotice")}
               </span>
             </div>
           </div>
 
           {/* Card 2: BMI */}
-          <div className="fitsho-scan-card fitsho-scan-card--metric" data-testid="bmi-card">
-            <header className="fitsho-scan-card__header">
-              <div className="fitsho-scan-card__title-row">
-                <span className="fitsho-scan-card__eyebrow">{t("bodyAnalysis.topOverview.bmiTitle")}</span>
+          <div className="fitician-scan-card fitician-scan-card--metric" data-testid="bmi-card">
+            <header className="fitician-scan-card__header">
+              <div className="fitician-scan-card__title-row">
+                <span className="fitician-scan-card__eyebrow">{t("bodyAnalysis.topOverview.bmiTitle")}</span>
                 <button
                   type="button"
-                  className="fitsho-scan-card__info-trigger"
+                  className="fitician-scan-card__info-trigger"
                   onClick={() => setShowBmiInfo(!showBmiInfo)}
                   aria-label="اطلاعات BMI"
                 >
@@ -163,27 +163,27 @@ export function BodyScanOverview({
                 </button>
               </div>
               {bmi != null && (
-                <span className="fitsho-scan-card__badge fitsho-scan-card__badge--neutral">
+                <span className="fitician-scan-card__badge fitician-scan-card__badge--neutral">
                   {getBmiCategory(bmi)}
                 </span>
               )}
             </header>
 
-            <div className="fitsho-scan-card__value-row">
-              <span className="fitsho-scan-card__value">
+            <div className="fitician-scan-card__value-row">
+              <span className="fitician-scan-card__value">
                 {bmi != null ? bmi : "—"}
               </span>
             </div>
 
             {showBmiInfo && (
-              <p className="fitsho-scan-card__info-text" role="note">
+              <p className="fitician-scan-card__info-text" role="note">
                 {t("bodyAnalysis.topOverview.infoTooltipBmi")}
               </p>
             )}
 
-            <div className="fitsho-scan-card__track-container">
+            <div className="fitician-scan-card__track-container">
               <div
-                className="fitsho-scan-card__track"
+                className="fitician-scan-card__track"
                 role="progressbar"
                 aria-valuenow={bmi ?? undefined}
                 aria-valuemin={15}
@@ -191,27 +191,27 @@ export function BodyScanOverview({
                 aria-label={t("bodyAnalysis.topOverview.bmiTitle")}
               >
                 <div
-                  className="fitsho-scan-card__bar fitsho-scan-card__bar--bmi"
+                  className="fitician-scan-card__bar fitician-scan-card__bar--bmi"
                   style={{ width: `${bmiBarPercent}%` }}
                 />
               </div>
-              <span className="fitsho-scan-card__track-hint">
+              <span className="fitician-scan-card__track-hint">
                 {t("bodyAnalysis.topOverview.bmiCategory")}
               </span>
             </div>
           </div>
 
-          {/* Card 3: Fitsho Summary */}
-          <div className="fitsho-scan-card fitsho-scan-card--summary" data-testid="first-look-summary">
-            <header className="fitsho-scan-card__summary-header">
-              <span className="fitsho-scan-card__summary-icon" aria-hidden="true">✦</span>
-              <h2 className="fitsho-scan-card__summary-title">
+          {/* Card 3: Fitician Summary */}
+          <div className="fitician-scan-card fitician-scan-card--summary" data-testid="first-look-summary">
+            <header className="fitician-scan-card__summary-header">
+              <span className="fitician-scan-card__summary-icon" aria-hidden="true">✦</span>
+              <h2 className="fitician-scan-card__summary-title">
                 {t("bodyAnalysis.firstImpression.title")}
               </h2>
             </header>
-            <p className="fitsho-scan-card__summary-text">{summaryMessage}</p>
+            <p className="fitician-scan-card__summary-text">{summaryMessage}</p>
             {routeMessage && (
-              <p className="fitsho-scan-card__summary-route">{routeMessage}</p>
+              <p className="fitician-scan-card__summary-route">{routeMessage}</p>
             )}
           </div>
         </div>

@@ -240,7 +240,7 @@ it("replaces an existing exercise in a slot while preserving workout-specific pa
     intensity_methods: ["standard"],
     programming_rationale: [],
     source_name: "Admin",
-    source_url: "https://fitsho.local",
+    source_url: "https://fitician.local",
     days: [
       {
         id: "day-1",
@@ -341,7 +341,7 @@ it("resolves library exercise name in accordion header and allows custom overrid
     intensity_methods: ["standard"],
     programming_rationale: [],
     source_name: "Fitician admin library",
-    source_url: "https://fitsho.local/admin-library",
+    source_url: "https://fitician.local/admin-library",
     days: [
       {
         id: "day-1",
@@ -468,7 +468,7 @@ it("deletes an existing shared template after confirmation", async () => {
     intensity_methods: ["standard"],
     programming_rationale: [],
     source_name: "Fitician admin library",
-    source_url: "https://fitsho.local/admin-library",
+    source_url: "https://fitician.local/admin-library",
     days: [],
   });
   adminApi.deleteAdminTrainingProgramTemplate.mockResolvedValue(undefined);
@@ -509,7 +509,7 @@ it.each([320, 360, 390, 430])(
       intensity_methods: ["standard"],
       programming_rationale: [],
       source_name: "Fitician admin library",
-      source_url: "https://fitsho.local/admin-library",
+      source_url: "https://fitician.local/admin-library",
       days: [
         {
           title_en: "Day 1",

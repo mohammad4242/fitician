@@ -58,7 +58,7 @@ export function PlansPage() {
   }, [offers]);
 
   return (
-    <main className="billing-page fitsho-page">
+    <main className="billing-page fitician-page">
       <div className="billing-page__container">
         <header className="billing-hero">
           <p className="eyebrow eyebrow--accent">{t("billing.plans")}</p>

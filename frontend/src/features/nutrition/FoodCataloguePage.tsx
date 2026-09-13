@@ -115,10 +115,10 @@ export function FoodCataloguePage() {
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   return (
-    <main className="food-catalogue-page fitsho-page" dir={fa ? "rtl" : "ltr"}>
+    <main className="food-catalogue-page fitician-page" dir={fa ? "rtl" : "ltr"}>
       <section className="food-catalogue-hero">
         <div>
-          <h1 className="fitsho-display">{l("کاتالوگ مواد غذایی", "Food catalogue")}</h1>
+          <h1 className="fitician-display">{l("کاتالوگ مواد غذایی", "Food catalogue")}</h1>
         </div>
         <Link className="food-catalogue-back" to="/nutrition-estimate">{l("تغذیه", "Nutrition")}</Link>
       </section>

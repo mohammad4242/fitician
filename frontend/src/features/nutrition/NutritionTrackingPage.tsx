@@ -300,7 +300,7 @@ export function NutritionTrackingPage() {
 
   return <main className="nutrition-estimate-page nutrition-tracking-page" dir={fa ? "rtl" : "ltr"}>
     <section className="nutrition-estimate-hero nutrition-tracking-header">
-      <div><p className="nutrition-eyebrow">{l("امروز", "Today")}</p><h1 className="fitsho-display">{l("ثبت تغذیه", "Nutrition tracking")}</h1></div>
+      <div><p className="nutrition-eyebrow">{l("امروز", "Today")}</p><h1 className="fitician-display">{l("ثبت تغذیه", "Nutrition tracking")}</h1></div>
     </section>
 
     <section className="nutrition-entry-hub" aria-labelledby="nutrition-entry-hub-title">
@@ -595,7 +595,7 @@ export function NutritionTrackingPage() {
 
     <section className="nutrition-daily-panel" aria-label={l("برنامه در برابر مصرف واقعی", "Planned versus actual")}>
       <div className="nutrition-daily-panel__calories"><span>{l("کالری ثبت‌شده", "Logged calories")}</span><strong>{Math.round(summary?.actual_totals.energy_kcal ?? 0).toLocaleString(fa ? "fa-IR" : "en-US")}</strong><small><b>{l("کالری برنامه", "Planned calories")}</b> · {Math.round(todayAdherence?.planned.energy_kcal ?? 0).toLocaleString(fa ? "fa-IR" : "en-US")} kcal</small></div>
-      <div className="fitsho-metric-strip">
+      <div className="fitician-metric-strip">
         <span><strong>{Math.round(summary?.actual_totals.protein_g ?? 0)}g</strong><small>{l("پروتئین", "Protein")}</small></span>
         <span><strong>{summary?.entries.length ?? 0}</strong><small>{l("ثبت امروز", "Entries")}</small></span>
         <span><strong>{summary?.data_status === "sufficient" ? l("کافی", "Good") : "—"}</strong><small>{l("کیفیت داده", "Data")}</small></span>

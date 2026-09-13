@@ -44,7 +44,7 @@ export function RegisterPage() {
     <AuthShell>
       <div className="form-heading">
         <p className="eyebrow eyebrow--accent">{t("register.eyebrow")}</p>
-        <h2 className="fitsho-display">{t("register.title")}</h2>
+        <h2 className="fitician-display">{t("register.title")}</h2>
         <p>{t("register.subtitle")}</p>
       </div>
 

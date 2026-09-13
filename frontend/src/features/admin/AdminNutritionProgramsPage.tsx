@@ -70,7 +70,7 @@ export function AdminNutritionProgramsPage() {
         <header className="admin-hero">
           <div>
             <p className="eyebrow eyebrow--accent">{t("admin.nutritionPrograms.eyebrow")}</p>
-            <h1 className="fitsho-display">{t("admin.nutritionPrograms.title")}</h1>
+            <h1 className="fitician-display">{t("admin.nutritionPrograms.title")}</h1>
             <p>{t("admin.nutritionPrograms.intro")}</p>
           </div>
         </header>

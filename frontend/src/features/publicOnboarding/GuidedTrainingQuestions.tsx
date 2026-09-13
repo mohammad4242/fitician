@@ -110,7 +110,7 @@ export function GuidedTrainingQuestions({ values, onChange, onBack, onComplete, 
       </div>
       <ol className="guided-stage-track" aria-label={language === "en" ? "Training sections" : "بخش‌های تمرین"}>{stages.map((stage, stageIndex) => <li className={stageIndex < activeStage ? "is-complete" : stageIndex === activeStage ? "is-active" : ""} key={stage}><span aria-hidden="true">{stageIndex < activeStage ? "✓" : stageIndex + 1}</span>{stage}</li>)}</ol>
       <div className="public-onboarding-progress"><span>{language === "en" ? `Training ${index + 1} of ${questions.length}` : `تمرین ${index + 1} از ${questions.length}`}</span><progress value={index + 1} max={questions.length} /></div>
-      <h1 className="fitsho-display" id="guided-training-title">{title}</h1>
+      <h1 className="fitician-display" id="guided-training-title">{title}</h1>
       <form className="guided-question__form" onSubmit={submit}>
         {question === "experience" && (
           <div className="guided-choice-grid">

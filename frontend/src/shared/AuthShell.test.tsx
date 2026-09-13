@@ -10,7 +10,7 @@ it("shows only account navigation and form content", () => {
     </AuthShell>,
   );
 
-  expect(screen.getByRole("main")).toHaveClass("auth-shell", "fitsho-page");
+  expect(screen.getByRole("main")).toHaveClass("auth-shell", "fitician-page");
   expect(screen.getByRole("link", { name: "فیتیشن" })).toHaveAttribute("href", "/");
   expect(screen.getByRole("button", { name: "English" })).toBeVisible();
   expect(screen.getByText("account form")).toBeVisible();

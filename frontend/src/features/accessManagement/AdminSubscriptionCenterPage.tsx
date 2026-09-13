@@ -15,7 +15,7 @@ export function AdminSubscriptionCenterPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="admin-subscription-center fitsho-page">
+    <div className="admin-subscription-center fitician-page">
       <div className="admin-subscription-center__container">
         <header className="admin-subscription-center__hero">
           <div>

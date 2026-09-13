@@ -105,7 +105,7 @@ export function BodyProgressPage() {
   const isFa = !i18n.resolvedLanguage?.startsWith("en");
 
   return (
-    <main className="body-analysis-home fitsho-page">
+    <main className="body-analysis-home fitician-page">
       <header className="body-analysis-home__header">
         <div className="body-analysis-home__badge">
           <span className="body-analysis-home__badge-dot" aria-hidden="true" />

@@ -58,7 +58,7 @@ export function MorePage() {
   }
 
   return (
-    <main className="more-page fitsho-page">
+    <main className="more-page fitician-page">
       <div className="more-page__container">
         <header className="more-page__heading">
           <h1>{l("بیشتر", "More")}</h1>
@@ -127,7 +127,7 @@ export function MorePage() {
 
         <PwaInstallCard />
 
-        {error && <p className="fitsho-status fitsho-status--danger" role="alert">{l("خروج انجام نشد. دوباره تلاش کن.", "Could not sign out. Try again.")}</p>}
+        {error && <p className="fitician-status fitician-status--danger" role="alert">{l("خروج انجام نشد. دوباره تلاش کن.", "Could not sign out. Try again.")}</p>}
         <button className="more-page__logout" type="button" disabled={busy} onClick={handleLogout}>
           {busy ? l("در حال خروج…", "Signing out…") : l("خروج از حساب", "Sign out")}
         </button>

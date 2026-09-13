@@ -92,7 +92,7 @@ export function AccountDeletionPage() {
     <PublicPageFrame>
       <section className="public-account-card" aria-labelledby="account-deletion-title">
         <p className="public-account-card__eyebrow">حساب / Account</p>
-        <h1 id="account-deletion-title" className="fitsho-display">{l("حذف حساب فیتیشن", "Delete your Fitician account")}</h1>
+        <h1 id="account-deletion-title" className="fitician-display">{l("حذف حساب فیتیشن", "Delete your Fitician account")}</h1>
         <p className="public-account-card__lead">
           {l(
             "درخواست حذف حساب را از همین صفحه ثبت کن. این مسیر برای اعضای فیتیشن، خارج از اپلیکیشن هم در دسترس است.",

@@ -24,7 +24,7 @@ it("keeps the default ring static and aqua-compatible", () => {
   render(<ProgressRing value={1200} max={2400} />);
 
   const ring = screen.getByRole("progressbar");
-  expect(ring).not.toHaveClass("fitsho-progress-ring--mount-animated");
+  expect(ring).not.toHaveClass("fitician-progress-ring--mount-animated");
   expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-aqua)");
 });
 
@@ -47,7 +47,7 @@ it("starts an opted-in ring at zero before the first animation frame", () => {
     );
 
     const ring = screen.getByRole("progressbar");
-    expect(ring).toHaveClass("fitsho-progress-ring--mount-animated");
+    expect(ring).toHaveClass("fitician-progress-ring--mount-animated");
     expect(ring.style.getPropertyValue("--ring-progress")).toBe("0deg");
     expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-blue)");
 

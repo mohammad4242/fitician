@@ -10,7 +10,7 @@ export function PublicPageFrame({ children }: { children: ReactNode }) {
   const l = (fa: string, en: string) => english ? en : fa;
 
   return (
-    <main className="public-account-page fitsho-page" dir={english ? "ltr" : "rtl"}>
+    <main className="public-account-page fitician-page" dir={english ? "ltr" : "rtl"}>
       <div className="public-account-page__container">
         <header className="public-account-page__header">
           <Link className="brand-mark brand-mark--dark" to="/">
