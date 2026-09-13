@@ -19,7 +19,7 @@ export function AdminSubscriptionCenterPage() {
       <div className="admin-subscription-center__container">
         <header className="admin-subscription-center__hero">
           <div>
-            <p className="eyebrow eyebrow--accent">Fitition Control Plane</p>
+            <p className="eyebrow eyebrow--accent">{t("adminAccess.controlPlane")}</p>
             <h1>{t("adminAccess.title")}</h1>
             <p>{t("adminAccess.subtitle")}</p>
           </div>

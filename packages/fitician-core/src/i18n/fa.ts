@@ -76,6 +76,7 @@ const fa = {
     },
     adminAccess: {
       title: "اشتراک و دسترسی‌ها",
+      controlPlane: "مرکز کنترل فیتیشن",
       subtitle: "مدیریت متمرکز پلن‌ها، کمپین‌ها و دسترسی اعضا",
       plansPricing: "پلن‌ها و قیمت‌ها",
       campaignsTrials: "کمپین‌ها و Trialها",

@@ -18,6 +18,7 @@ it("renders the central workspace and keeps the five sections in URL tabs", () =
   );
 
   expect(screen.getByRole("heading", { name: "اشتراک و دسترسی‌ها" })).toBeInTheDocument();
+  expect(screen.getByText("مرکز کنترل فیتیشن")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "پلن‌ها و قیمت‌ها" })).toHaveAttribute(
     "href",
     "/admin/billing/offers",
