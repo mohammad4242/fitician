@@ -96,6 +96,117 @@
 
 .admin-subscription-center__content { min-width: 0; }
 
+.access-admin-page { min-width: 0; }
+
+.access-admin-page__container {
+  width: min(100% - 1.5rem, 74rem);
+  margin-inline: auto;
+  padding-block: 0 2rem;
+}
+
+.access-admin-page__header,
+.access-admin-form-card > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 1rem;
+}
+
+.access-admin-page__header h1,
+.access-admin-form-card h2 {
+  margin: .25rem 0 0;
+  color: var(--fitsho-ink);
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+}
+
+.access-admin-page__header p:last-child { margin: .4rem 0 0; color: var(--fitsho-muted); }
+
+.access-admin-button {
+  display: inline-flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  padding: .55rem .85rem;
+  border: 1px solid transparent;
+  border-radius: var(--fitsho-radius-md);
+  color: var(--fitsho-ink);
+  background: transparent;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.access-admin-button:disabled { cursor: wait; opacity: .55; }
+.access-admin-button--primary { color: var(--fitsho-canvas); background: var(--fitsho-petrol); }
+.access-admin-button--quiet { border-color: var(--fitsho-line-strong); background: var(--fitsho-surface); }
+.access-admin-button--quiet:hover, .access-admin-button--quiet:focus-visible { border-color: var(--fitsho-aqua); }
+
+.access-admin-status {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-md);
+  color: var(--fitsho-muted);
+  background: var(--fitsho-surface);
+}
+
+.access-admin-status--error { color: #a13f32; border-color: rgb(161 63 50 / 30%); }
+
+.access-campaign-list { display: grid; gap: .75rem; }
+
+.access-campaign-card,
+.access-admin-form-card {
+  display: grid;
+  gap: .85rem;
+  padding: clamp(1rem, 3vw, 1.35rem);
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-lg);
+  background: var(--fitsho-surface);
+  box-shadow: var(--fitsho-shadow-card);
+}
+
+.access-campaign-card > header,
+.access-campaign-card > footer { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.access-campaign-card h2 { margin: .25rem 0 0; font-size: 1.08rem; }
+.access-campaign-card header p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .78rem; }
+.access-admin-code { color: var(--fitsho-aqua); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .68rem; }
+.access-admin-state { padding: .3rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.access-admin-state.is-active { color: var(--fitsho-teal); background: rgb(80 223 206 / 14%); }
+.access-admin-state.is-inactive { color: #a13f32; background: rgb(161 63 50 / 10%); }
+.access-campaign-card__help { margin: 0; color: var(--fitsho-muted); font-size: .78rem; line-height: 1.6; }
+.access-campaign-card__warning { margin: 0; color: #936700; font-size: .75rem; font-weight: 750; }
+.access-campaign-card__facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.access-campaign-card__facts div { display: grid; gap: .18rem; min-width: 0; padding: .65rem; border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); }
+.access-campaign-card__facts dt { color: var(--fitsho-muted); font-size: .68rem; }
+.access-campaign-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .82rem; font-weight: 800; }
+.access-campaign-card footer { align-items: center; justify-content: start; }
+
+.access-admin-form-card { margin-block-start: 1.2rem; }
+.access-admin-form-card > header { align-items: start; margin: 0; }
+.access-admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.access-admin-form-grid label,
+.access-admin-form-card__description { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 750; }
+.access-admin-form-grid input,
+.access-admin-form-grid select,
+.access-admin-form-card textarea { width: 100%; min-height: 2.65rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
+.access-admin-form-card textarea { min-height: 5rem; resize: vertical; }
+.access-admin-form-grid input:focus, .access-admin-form-grid select:focus, .access-admin-form-card textarea:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-admin-checkbox { display: flex !important; align-items: center; gap: .45rem; align-self: end; min-height: 2.65rem; }
+.access-admin-checkbox input { width: auto; min-height: auto; }
+
+@media (max-width: 700px) {
+  .access-admin-page__header { align-items: stretch; flex-direction: column; }
+  .access-campaign-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 500px) {
+  .access-admin-form-grid { grid-template-columns: 1fr; }
+  .access-campaign-card > header { align-items: flex-start; flex-direction: column; }
+  .access-campaign-card > footer { flex-wrap: wrap; }
+}
+
 @media (max-width: 850px) {
   .admin-subscription-center__nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
