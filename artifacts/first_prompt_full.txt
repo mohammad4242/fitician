@@ -1,5 +1,5 @@
 <USER_REQUEST>
-You are working on the Fitsho repository:
+You are working on the Fitician repository:
 
 mohammad4242/fitsho
 

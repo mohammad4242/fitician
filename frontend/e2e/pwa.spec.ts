@@ -89,6 +89,7 @@ test("keeps initial service worker activation non-reloading", async ({ page }) =
 test("production shell does not precache private or large public data", async ({ request }) => {
   const serviceWorker = await (await request.get("/sw.js")).text();
   expect(serviceWorker).not.toContain("fitsho_1000_profiles_audit_report");
+  expect(serviceWorker).not.toContain("fitician_1000_profiles_audit_report");
   expect(serviceWorker).not.toContain("workout_engine_11_profiles");
   expect(serviceWorker).not.toContain("image&videos/");
   expect(serviceWorker).not.toContain("mediapipe/");

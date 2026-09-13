@@ -4067,7 +4067,7 @@
       ],
       "training_days_per_week": 5,
       "training_location": "gym",
-      "workout_generation_method": "fitsho_coach"
+      "workout_generation_method": "fitician_coach"
     },
     "profile_response": {
       "body": {
@@ -4102,7 +4102,7 @@
         "user_id": "22bec56d-b176-4ed3-83ec-5d9c40246d98",
         "waist_circumference_cm": null,
         "weight_measured_at": "2026-08-19T18:29:48.237400Z",
-        "workout_generation_method": "fitsho_coach"
+        "workout_generation_method": "fitician_coach"
       },
       "status_code": 201
     },
@@ -4228,11 +4228,11 @@
   "evaluation_metadata": {
     "ai_workout_generator_used": false,
     "catalog_count_seen_by_engine": 388,
-    "database_isolation": "dedicated clone fitsho_eval_9f495ae8_20260819_01",
+    "database_isolation": "dedicated clone fitician_eval_9f495ae8_20260819_01",
     "engine_invocation": "FastAPI register -> profile POST -> workout generate POST -> WorkoutGenerationService -> generate_program",
     "head_sha": "9f495ae813b45a5c6542cdf621fd9bbcc2a9438c",
     "reference_template_count_seen_by_engine": 35,
-    "workout_generation_method_required": "fitsho_coach"
+    "workout_generation_method_required": "fitician_coach"
   },
   "evaluation_status": {
     "failure_stage": null,
@@ -6665,7 +6665,7 @@
     "generation_signature": "57e584bf1767aecb039b3bfce65fd86f29a99baf076892fb152dd9042d3d2dcc",
     "id": "f6c7f98d-cad2-4237-a7da-039f4908836c",
     "model_id": "program_engine_v1",
-    "provider": "fitsho_domain",
+    "provider": "fitician_domain",
     "ruleset_version": "resistance_training_v2",
     "seed": 20260819,
     "status": "pending_review",
@@ -7112,7 +7112,7 @@
     ],
     "training_days_per_week": 5,
     "training_location": "gym",
-    "workout_generation_method": "fitsho_coach"
+    "workout_generation_method": "fitician_coach"
   },
   "user": {
     "name": "Neda",

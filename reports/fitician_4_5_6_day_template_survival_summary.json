@@ -30,7 +30,7 @@
       "backend/app/workouts/program_engine/validation.py": "592ce04a668ce19d536b222e00fdb563ee5ba94cdc56f48d3225e5f37ff3b0b2",
       "backend/app/workouts/program_engine/final_gate.py": "3dba8aa326b2cf124429c54fd54b14ae32bdbdb2937f8abdbd64c173904887d7"
     },
-    "database_url_redacted": "localhost:5432/fitsho",
+    "database_url_redacted": "localhost:5432/fitician",
     "template_reference_count_all_active": 53,
     "template_reference_count_audited": 36,
     "exercise_catalog_count": 385,

@@ -42,7 +42,7 @@
       ],
       "training_days_per_week": 5,
       "training_location": "gym",
-      "workout_generation_method": "fitsho_coach"
+      "workout_generation_method": "fitician_coach"
     },
     "profile_response": {
       "body": {
@@ -74,11 +74,11 @@
   "evaluation_metadata": {
     "ai_workout_generator_used": false,
     "catalog_count_seen_by_engine": null,
-    "database_isolation": "dedicated clone fitsho_eval_9f495ae8_20260819_01",
+    "database_isolation": "dedicated clone fitician_eval_9f495ae8_20260819_01",
     "engine_invocation": "FastAPI register -> profile POST -> workout generate POST -> WorkoutGenerationService -> generate_program",
     "head_sha": "9f495ae813b45a5c6542cdf621fd9bbcc2a9438c",
     "reference_template_count_seen_by_engine": null,
-    "workout_generation_method_required": "fitsho_coach"
+    "workout_generation_method_required": "fitician_coach"
   },
   "evaluation_status": {
     "failure_stage": "profile_api",
@@ -143,7 +143,7 @@
     ],
     "training_days_per_week": 5,
     "training_location": "gym",
-    "workout_generation_method": "fitsho_coach"
+    "workout_generation_method": "fitician_coach"
   },
   "user": {
     "name": "Farhad",
