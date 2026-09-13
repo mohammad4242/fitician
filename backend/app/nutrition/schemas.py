@@ -47,6 +47,7 @@ from app.nutrition.enums import (
     snack_effective_slots,
 )
 from app.profile.enums import FitnessGoal, TrainingIntensity
+from app.time_context import validate_timezone_name
 
 
 def normalize_optional_text(value: object) -> object:
@@ -1238,6 +1239,17 @@ class WeeklyPlanResponse(BaseModel):
     nutrients: dict[str, WeeklyPlanNutrientResponse]
     days: list[WeeklyPlanDayResponse]
     created_at: datetime
+    started_at: datetime | None = None
+
+
+class NutritionPlanStartRequest(BaseModel):
+    start_date: date
+    timezone: str
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        return validate_timezone_name(value)
 
 
 class PlanComparisonMetricResponse(BaseModel):

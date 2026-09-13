@@ -421,7 +421,7 @@ def test_approval_requires_claim_and_activates_exact_due_revision(
     )
 
     assert approved.status_code == 200, approved.text
-    assert approved.json()["lifecycle_status"] == "active"
+    assert approved.json()["lifecycle_status"] == "ready_to_start"
     assert approved.json()["physician_approved"] is True
     assert "internal_notes" not in approved.json()
     persisted = db.get(NutritionWeeklyPlan, plan["id"])

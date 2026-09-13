@@ -1371,12 +1371,7 @@ def active_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
         )
         .where(
             NutritionWeeklyPlan.user_id == user_id,
-            NutritionWeeklyPlan.lifecycle_status.in_(
-                {
-                    NutritionPlanLifecycleStatus.ACTIVE,
-                    NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
-                }
-            ),
+            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
             NutritionWeeklyPlan.start_date <= date.today(),
         )
     )
@@ -1390,49 +1385,19 @@ def active_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
             NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value
         )
 
-    due = db.scalar(
-        due_query.order_by(NutritionWeeklyPlan.revision.desc()).limit(1).with_for_update()
-    )
-    if due is not None and due.review and due.review.status == NutritionPlanReviewStatus.APPROVED:
-        for current in db.scalars(
-            select(NutritionWeeklyPlan)
-            .join(
-                NutritionPlanGeneration,
-                NutritionWeeklyPlan.generation_id == NutritionPlanGeneration.id,
-            )
-            .where(
-                NutritionWeeklyPlan.user_id == user_id,
-                NutritionWeeklyPlan.id != due.id,
-                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-            )
-        ):
-            current.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
-        due.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
-        db.commit()
-
     if selected_plan_id is not None:
         plan = db.scalar(
             _plan_query().where(
                 NutritionWeeklyPlan.id == selected_plan_id,
                 NutritionWeeklyPlan.user_id == user_id,
                 NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
+                NutritionWeeklyPlan.start_date <= date.today(),
             )
         )
         if plan is not None:
             return weekly_plan_response(plan)
 
-    plan = db.scalar(
-        _plan_query()
-        .join(
-            NutritionPlanGeneration, NutritionWeeklyPlan.generation_id == NutritionPlanGeneration.id
-        )
-        .where(
-            NutritionWeeklyPlan.user_id == user_id,
-            NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value,
-            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-        )
-        .order_by(NutritionWeeklyPlan.revision.desc())
-    )
+    plan = db.scalar(due_query.order_by(NutritionWeeklyPlan.revision.desc()).limit(1))
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError
     return weekly_plan_response(plan)
@@ -1544,20 +1509,18 @@ def _finalize_selected_plan(
     reference = now or datetime.now(UTC)
     target_plan.is_user_visible = True
 
-    if (
-        bundle.selected_plan_id == target_plan.id
-        and (
-            target_plan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE
-            or (
-                target_plan.review is not None
-                and target_plan.lifecycle_status
-                in {
-                    NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
-                    NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS,
-                    NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
-                }
-            )
+    if bundle.selected_plan_id == target_plan.id and (
+        target_plan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE
+        or (
+            target_plan.review is not None
+            and target_plan.lifecycle_status
+            in {
+                NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+                NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS,
+                NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+            }
         )
+        or target_plan.lifecycle_status == NutritionPlanLifecycleStatus.READY_TO_START
     ):
         return
 
@@ -1628,7 +1591,7 @@ def _finalize_selected_plan(
             .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
         )
         db.flush()
-        target_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+        target_plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
         target_plan.review = None
 
     for other_plan in bundle_plans:
@@ -2511,6 +2474,7 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
             plan.lifecycle_status
             in {
                 NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+                NutritionPlanLifecycleStatus.READY_TO_START,
                 NutritionPlanLifecycleStatus.ACTIVE,
             }
             and review_status == NutritionPlanReviewStatus.APPROVED.value
@@ -2604,6 +2568,7 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
             for day in plan.days
         ],
         created_at=plan.created_at,
+        started_at=plan.started_at,
     )
 
 

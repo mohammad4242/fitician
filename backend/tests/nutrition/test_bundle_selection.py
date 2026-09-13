@@ -320,7 +320,7 @@ def test_select_bundle_plan_archives_unselected_plan(client: TestClient, db: Ses
     db.refresh(budget_plan)
 
     assert ideal_plan.is_user_visible is True
-    assert ideal_plan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE
+    assert ideal_plan.lifecycle_status == NutritionPlanLifecycleStatus.READY_TO_START
 
     # Budget plan should be archived and hidden from user
     assert budget_plan.is_user_visible is False

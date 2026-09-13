@@ -84,6 +84,8 @@ from app.nutrition.exceptions import (
     NutritionEstimateBlockedError,
     NutritionEstimateNotFoundError,
     NutritionOnboardingBlockedError,
+    NutritionPlanStartConflictError,
+    NutritionPlanStartNotFoundError,
     NutritionProductModeError,
     NutritionProfileNotFoundError,
     NutritionTargetInfeasibleDomainError,
@@ -160,6 +162,7 @@ from app.nutrition.plan_editing import (
     set_meal_lock,
     shopping_list,
 )
+from app.nutrition.plan_lifecycle_service import start_nutrition_plan
 from app.nutrition.plan_service import (
     ActiveWeeklyPlanNotFoundError,
     WeeklyPlanNotFoundError,
@@ -229,6 +232,7 @@ from app.nutrition.schemas import (
     NutritionLabRequestMutationResponse,
     NutritionLabRequestResponse,
     NutritionLabUploadResponse,
+    NutritionPlanStartRequest,
     NutritionProfileInput,
     NutritionProfileResponse,
     NutritionProgramPageResponse,
@@ -1467,6 +1471,40 @@ def read_active_plan(db: DatabaseSession, user: CurrentUser) -> WeeklyPlanRespon
                 "code": "ACTIVE_NUTRITION_PLAN_NOT_FOUND",
                 "message": "هنوز برنامه تأییدشده و فعالی وجود ندارد.",
             },
+        ) from None
+
+
+@router.post(
+    "/plans/{plan_id}/start",
+    response_model=WeeklyPlanResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def start_plan(
+    plan_id: UUID,
+    payload: NutritionPlanStartRequest,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> WeeklyPlanResponse:
+    try:
+        return start_nutrition_plan(
+            db,
+            user_id=user.id,
+            plan_id=plan_id,
+            start_date=payload.start_date,
+            timezone_name=payload.timezone,
+        )
+    except NutritionPlanStartNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "NUTRITION_PLAN_NOT_FOUND",
+                "message": "نسخه برنامه غذایی پیدا نشد.",
+            },
+        ) from None
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
         ) from None
 
 

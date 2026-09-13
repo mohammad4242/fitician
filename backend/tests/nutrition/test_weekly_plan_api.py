@@ -393,9 +393,9 @@ def test_base_nutrition_activates_without_physician_review(
             json={"plan_id": body["budget_plan"]["id"]},
         )
         assert selection.status_code == 200, selection.text
-        assert selection.json()["plan"]["lifecycle_status"] == "active"
+        assert selection.json()["plan"]["lifecycle_status"] == "ready_to_start"
     else:
-        assert body["plan"]["lifecycle_status"] == "active"
+        assert body["plan"]["lifecycle_status"] == "ready_to_start"
     assert db.scalar(
         select(NutritionPlanPhysicianReview).where(
             NutritionPlanPhysicianReview.plan_id == body["plan"]["id"]

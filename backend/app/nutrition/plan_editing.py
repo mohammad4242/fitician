@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -415,7 +415,7 @@ def _create_revision(
         lifecycle_status=(
             NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
             if review_required
-            else NutritionPlanLifecycleStatus.ACTIVE
+            else NutritionPlanLifecycleStatus.READY_TO_START
         ),
         is_user_visible=True,
         start_date=plan.start_date,
@@ -1107,18 +1107,7 @@ def physician_action(
             raise PlanEditError("PLAN_HARD_INVARIANTS_FAILED")
         plan.review.status = NutritionPlanReviewStatus.APPROVED
         plan.review.reviewed_at = now
-        if plan.start_date <= date.today():
-            plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
-            for old in db.scalars(
-                select(NutritionWeeklyPlan).where(
-                    NutritionWeeklyPlan.user_id == plan.user_id,
-                    NutritionWeeklyPlan.id != plan.id,
-                    NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-                )
-            ):
-                old.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
-        else:
-            plan.lifecycle_status = NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED
+        plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
     elif action == "request_changes":
         if plan.review.status not in {
             NutritionPlanReviewStatus.IN_REVIEW,

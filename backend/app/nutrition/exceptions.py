@@ -66,3 +66,16 @@ class WeeklyPlanBundleNotFoundError(Exception):
 
 class PlanSelectionInvalidError(Exception):
     """Raised when selecting a plan in a bundle is invalid or infeasible."""
+
+
+class NutritionPlanStartNotFoundError(Exception):
+    """Raised when a member cannot access the requested nutrition plan."""
+
+
+class NutritionPlanStartConflictError(Exception):
+    """Raised when a nutrition plan cannot be started in its current state."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        self.message = message
+        super().__init__(message)
