@@ -62,7 +62,7 @@ export type StructuredExercise = {
   days_per_week: number | null;
   minutes_per_session: number | null;
   intensity: TrainingIntensity | null;
-  source: "user_reported" | "training_profile" | "active_fitsho_plan";
+  source: "user_reported" | "training_profile" | "active_fitician_plan";
 };
 
 export type EstimateConfidence = "high" | "medium" | "low";

@@ -115,7 +115,7 @@ export type UserSelectablePriorityMuscle = (typeof userSelectablePriorityMuscles
 
 export const planDurations = [4, 6, 8] as const;
 export type PlanDurationWeeks = (typeof planDurations)[number];
-export const workoutGenerationMethods = ["fitsho_coach", "ai"] as const;
+export const workoutGenerationMethods = ["fitician_coach", "ai"] as const;
 export type WorkoutGenerationMethod = (typeof workoutGenerationMethods)[number];
 
 export const productModes = ["training", "nutrition", "both"] as const;
