@@ -13,7 +13,13 @@ it("formats the member-local calendar date from local Date fields", () => {
   expect(localIsoDate(localBoundary)).toBe(expected);
 });
 
+it("formats an instant in the requested member timezone", () => {
+  const instant = new Date("2026-09-13T20:45:00.000Z");
+
+  expect(localIsoDate(instant, "Asia/Tehran")).toBe("2026-09-14");
+  expect(localIsoDate(instant, "America/Los_Angeles")).toBe("2026-09-13");
+});
+
 it("returns a usable IANA timezone with a safe fallback contract", () => {
   expect(resolvedIanaTimeZone()).toBeTruthy();
 });
-
