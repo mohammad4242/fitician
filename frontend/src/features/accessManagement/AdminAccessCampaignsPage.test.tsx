@@ -8,6 +8,7 @@ import "../../i18n";
 const accessApi = vi.hoisted(() => ({
   activateCampaign: vi.fn(),
   adminAccessPackageCodes: ["training", "training_coach", "complete", "complete_care"],
+  signupTrialPackageCodes: ["launch_trial"],
   createCampaign: vi.fn(),
   deactivateCampaign: vi.fn(),
   getCampaigns: vi.fn(),
@@ -101,4 +102,31 @@ it("creates a package campaign from the admin form", async () => {
     duration_days: 21,
     term_weeks: 4,
   }));
+});
+
+it("limits campaign packages by kind and keeps activation out of edit updates", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت کمپین" }));
+  const packageSelect = screen.getByLabelText("بسته");
+  expect(within(packageSelect).queryByRole("option", { name: "دوره آزمایشی شروع" })).not.toBeInTheDocument();
+
+  await user.selectOptions(screen.getByLabelText("نوع کمپین"), "signup_trial");
+  expect(packageSelect).toHaveValue("launch_trial");
+  expect(within(packageSelect).getAllByRole("option")).toHaveLength(1);
+  const termSelect = screen.getByLabelText("مدت تمرین");
+  expect(termSelect).toHaveValue("4");
+  expect(termSelect).toBeDisabled();
+
+  await user.click(screen.getByRole("button", { name: "انصراف" }));
+  const launchCard = screen.getByTestId("access-campaign-launch_trial_v1");
+  await user.click(within(launchCard).getByRole("button", { name: "ویرایش کمپین" }));
+  expect(screen.queryByRole("checkbox", { name: "فعال" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(accessApi.updateCampaign).toHaveBeenCalledWith(
+    "launch-1",
+    expect.not.objectContaining({ is_active: expect.anything() }),
+  );
 });

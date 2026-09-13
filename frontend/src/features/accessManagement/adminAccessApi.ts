@@ -14,9 +14,17 @@ export type AccessCampaignKind = "signup_trial" | "manual_promotion";
 export type AccessTermWeeks = 4 | 6 | 8;
 export type GrantStatus = "active" | "future" | "expired" | "revoked";
 
-export const adminAccessPackageCodes = accessPackageCodes.filter(
+const campaignPackageCodes = accessPackageCodes.filter(
   (code) => code !== "free",
 ) as AccessPackageCode[];
+
+export const adminAccessPackageCodes = campaignPackageCodes.filter(
+  (code) => code !== "launch_trial",
+);
+
+export const signupTrialPackageCodes = campaignPackageCodes.filter(
+  (code) => code === "launch_trial",
+);
 
 export type AdminAccessCampaign = {
   readonly id: string;
@@ -51,7 +59,9 @@ export type AdminAccessCampaignInput = {
   readonly max_total_redemptions?: number | null;
 };
 
-export type AdminAccessCampaignUpdate = Partial<Omit<AdminAccessCampaignInput, "code">>;
+export type AdminAccessCampaignUpdate = Partial<
+  Omit<AdminAccessCampaignInput, "code" | "is_active">
+>;
 
 export type AdminMemberSummary = {
   readonly user_id: string;

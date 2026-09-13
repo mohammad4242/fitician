@@ -147,7 +147,6 @@ const fa = {
       applyCampaign: "اعمال کمپین",
       revokeAccess: "قطع دسترسی",
       reason: "دلیل",
-      clientIdempotencyKey: "کلید درخواست",
       accessGranted: "دسترسی ایجاد شد.",
       accessRevoked: "دسترسی قطع شد.",
       paidRevokeWarning: "قطع دسترسی وضعیت مالی سفارش را Refund نمی‌کند.",

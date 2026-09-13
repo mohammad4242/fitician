@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import "../../i18n";
 
@@ -103,6 +103,10 @@ beforeEach(() => {
   accessApi.revokeUserAccess.mockResolvedValue({ ...access.grants[0], status: "revoked" });
 });
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 function renderDetail() {
   return render(
     <MemoryRouter initialEntries={["/admin/billing/users/member-1"]}>
@@ -129,11 +133,12 @@ it("grants a package and applies a manual campaign with a reason", async () => {
   renderDetail();
 
   await user.click(await screen.findByRole("button", { name: "اعطای دسترسی" }));
+  expect(screen.queryByRole("option", { name: "دوره آزمایشی شروع" })).not.toBeInTheDocument();
   await user.selectOptions(screen.getByLabelText("بسته"), "training_coach");
   await user.selectOptions(screen.getByLabelText("مدت تمرین"), "4");
   await user.type(screen.getByLabelText("پایان"), "2026-11-01T10:00");
   await user.type(screen.getByLabelText("دلیل"), "beta tester");
-  await user.type(screen.getByLabelText("کلید درخواست"), "grant-1");
+  expect(screen.queryByLabelText("کلید درخواست")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
 
   expect(accessApi.grantUserAccess).toHaveBeenCalledWith("member-1", expect.objectContaining({
@@ -141,7 +146,7 @@ it("grants a package and applies a manual campaign with a reason", async () => {
     term_weeks: 4,
     ends_at: expect.any(String),
     reason: "beta tester",
-    client_idempotency_key: "grant-1",
+    client_idempotency_key: expect.any(String),
   }));
 
   await user.click(screen.getByRole("button", { name: "اعمال کمپین" }));
@@ -154,6 +159,29 @@ it("grants a package and applies a manual campaign with a reason", async () => {
     "campaign-1",
     "manual beta access",
   );
+});
+
+it("generates one hidden grant idempotency key and reuses it for retries", async () => {
+  const user = userEvent.setup();
+  const randomUUID = vi.fn().mockReturnValue("generated-grant-key");
+  vi.stubGlobal("crypto", { randomUUID });
+  accessApi.grantUserAccess
+    .mockRejectedValueOnce(new Error("retry"))
+    .mockResolvedValueOnce(access.grants[0]);
+  renderDetail();
+
+  await user.click(await screen.findByRole("button", { name: "اعطای دسترسی" }));
+  await user.type(screen.getByLabelText("پایان"), "2026-11-01T10:00");
+  await user.type(screen.getByLabelText("دلیل"), "retryable support action");
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  const calls = accessApi.grantUserAccess.mock.calls;
+  expect(randomUUID).toHaveBeenCalledTimes(1);
+  expect(calls).toHaveLength(2);
+  expect(calls[0][1].client_idempotency_key).toBe("generated-grant-key");
+  expect(calls[1][1].client_idempotency_key).toBe("generated-grant-key");
+  expect(screen.queryByLabelText("کلید درخواست")).not.toBeInTheDocument();
 });
 
 it("warns before revoking paid access and sends a mandatory reason", async () => {

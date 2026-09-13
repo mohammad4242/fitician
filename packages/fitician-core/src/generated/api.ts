@@ -3618,8 +3618,6 @@ export type components = {
             description?: string | null;
             /** Duration Days */
             duration_days?: number | null;
-            /** Is Active */
-            is_active?: boolean | null;
             kind?: components["schemas"]["AccessCampaignKind"] | null;
             /** Max Total Redemptions */
             max_total_redemptions?: number | null;

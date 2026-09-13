@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   activateCampaign,
   adminAccessPackageCodes,
+  signupTrialPackageCodes,
   createCampaign,
   deactivateCampaign,
   getCampaigns,
@@ -68,7 +69,10 @@ export function AdminAccessCampaignsPage() {
   }, []);
 
   const editingSemanticsLocked = editing !== null && editing.redemption_count > 0;
-  const availablePackages = useMemo(() => adminAccessPackageCodes, []);
+  const availablePackages = useMemo(
+    () => form.kind === "signup_trial" ? signupTrialPackageCodes : adminAccessPackageCodes,
+    [form.kind],
+  );
   const english = i18n.resolvedLanguage === "en";
 
   function openCreate() {
@@ -211,7 +215,7 @@ export function AdminAccessCampaignsPage() {
               </label>
               <label>
                 {t("adminAccess.kind")}
-                <select disabled={editingSemanticsLocked} onChange={(event) => setField("kind", event.currentTarget.value as AccessCampaignKind)} value={form.kind}>
+                <select disabled={editingSemanticsLocked} onChange={(event) => setCampaignKind(event.currentTarget.value as AccessCampaignKind)} value={form.kind}>
                   <option value="signup_trial">{t("adminAccess.signupTrial")}</option>
                   <option value="manual_promotion">{t("adminAccess.manualPromotion")}</option>
                 </select>
@@ -228,11 +232,13 @@ export function AdminAccessCampaignsPage() {
               </label>
               <label>
                 {t("adminAccess.trainingTerm")}
-                <select disabled={editingSemanticsLocked} onChange={(event) => setField("term_weeks", event.currentTarget.value)} value={form.term_weeks}>
-                  <option value="">—</option>
+                <select disabled={editingSemanticsLocked || form.kind === "signup_trial"} onChange={(event) => setField("term_weeks", event.currentTarget.value)} value={form.term_weeks}>
+                  {form.kind !== "signup_trial" && <option value="">—</option>}
                   <option value="4">{t("billing.fourWeeks")}</option>
-                  <option value="6">{t("billing.sixWeeks")}</option>
-                  <option value="8">{t("billing.eightWeeks")}</option>
+                  {form.kind !== "signup_trial" && <>
+                    <option value="6">{t("billing.sixWeeks")}</option>
+                    <option value="8">{t("billing.eightWeeks")}</option>
+                  </>}
                 </select>
               </label>
               <label>
@@ -247,10 +253,12 @@ export function AdminAccessCampaignsPage() {
                 {t("adminAccess.maximumRedemptions")}
                 <input min="1" onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)} type="number" value={form.max_total_redemptions} />
               </label>
-              <label className="access-admin-checkbox">
-                <input checked={form.is_active} onChange={(event) => setField("is_active", event.currentTarget.checked)} type="checkbox" />
-                {t("adminAccess.active")}
-              </label>
+              {editing === null && (
+                <label className="access-admin-checkbox">
+                  <input checked={form.is_active} onChange={(event) => setField("is_active", event.currentTarget.checked)} type="checkbox" />
+                  {t("adminAccess.active")}
+                </label>
+              )}
             </div>
             <label className="access-admin-form-card__description">
               {t("adminAccess.description")}
@@ -270,6 +278,19 @@ export function AdminAccessCampaignsPage() {
 
     function setField<K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) {
       setForm((current) => ({ ...current, [key]: value }));
+    }
+
+    function setCampaignKind(kind: AccessCampaignKind) {
+      setForm((current) => ({
+        ...current,
+        kind,
+        package_code: kind === "signup_trial"
+          ? signupTrialPackageCodes[0] ?? "launch_trial"
+          : current.package_code === "launch_trial"
+            ? adminAccessPackageCodes[0] ?? "complete"
+            : current.package_code,
+        term_weeks: kind === "signup_trial" ? "4" : current.term_weeks,
+      }));
     }
   }
 
@@ -295,7 +316,6 @@ function toUpdateInput(form: CampaignFormState, previous: AdminAccessCampaign): 
     description: form.description.trim() === "" ? null : form.description.trim(),
     available_from: toIsoDateTime(form.available_from),
     available_until: toIsoDateTime(form.available_until),
-    is_active: form.is_active,
     max_total_redemptions: form.max_total_redemptions === "" ? null : Number(form.max_total_redemptions),
   };
   if (previous.redemption_count === 0) {

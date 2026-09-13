@@ -147,7 +147,6 @@ const en = {
       applyCampaign: "Apply campaign",
       revokeAccess: "Revoke access",
       reason: "Reason",
-      clientIdempotencyKey: "Request key",
       accessGranted: "Access was created.",
       accessRevoked: "Access was revoked.",
       paidRevokeWarning: "Revoking access does not refund the order financially.",

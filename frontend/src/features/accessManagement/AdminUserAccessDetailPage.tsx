@@ -73,7 +73,10 @@ export function AdminUserAccessDetailPage() {
 
   function openGrant() {
     setSelectedGrant(null);
-    setGrantForm(initialGrantForm);
+    setGrantForm({
+      ...initialGrantForm,
+      client_idempotency_key: makeClientIdempotencyKey(),
+    });
     setReason("");
     setFormError(false);
     setAction("grant");
@@ -236,7 +239,6 @@ export function AdminUserAccessDetailPage() {
                   <label>{t("adminAccess.start")}<input onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, starts_at: value })); }} type="datetime-local" value={grantForm.starts_at} /></label>
                   <label>{t("adminAccess.end")}<input required onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, ends_at: value })); }} type="datetime-local" value={grantForm.ends_at} /></label>
                   <label>{t("adminAccess.reason")}<textarea required onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, reason: value })); }} value={grantForm.reason} /></label>
-                  <label>{t("adminAccess.clientIdempotencyKey")}<input required onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, client_idempotency_key: value })); }} value={grantForm.client_idempotency_key} /></label>
                 </div>
               )}
               {action === "campaign" && (
@@ -273,6 +275,18 @@ function toIsoDateTime(value: string): string | null {
 function toTermWeeks(value: string): AccessTermWeeks | null {
   if (value === "4" || value === "6" || value === "8") return Number(value) as AccessTermWeeks;
   return null;
+}
+
+function makeClientIdempotencyKey(): string {
+  const browserCrypto = globalThis.crypto;
+  if (typeof browserCrypto?.randomUUID === "function") {
+    return browserCrypto.randomUUID();
+  }
+  if (typeof browserCrypto?.getRandomValues === "function") {
+    const values = browserCrypto.getRandomValues(new Uint32Array(4));
+    return `admin-grant-${Array.from(values, (value) => value.toString(16)).join("-")}`;
+  }
+  return `admin-grant-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function sourceLabel(source: AdminGrant["source"], t: TFunction): string {

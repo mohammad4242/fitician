@@ -685,17 +685,6 @@
             ],
             "title": "Duration Days"
           },
-          "is_active": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Is Active"
-          },
           "kind": {
             "anyOf": [
               {
