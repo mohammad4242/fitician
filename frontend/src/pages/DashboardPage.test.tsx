@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+
 const auth = vi.hoisted(() => ({
   user: {
     id: "1",
@@ -18,6 +20,7 @@ const profile = vi.hoisted(() => ({
 const workoutApi = vi.hoisted(() => ({
   getActiveWorkoutPlan: vi.fn(),
   generateWorkoutPlan: vi.fn(),
+  getProgramTimelineToday: vi.fn(),
 }));
 const nutritionApi = vi.hoisted(() => ({
   getLatestWeeklyNutritionPlan: vi.fn(),
@@ -38,6 +41,9 @@ const entitlements = vi.hoisted(() => ({
 vi.mock("../features/auth/AuthContext", () => ({ useAuth: () => auth }));
 vi.mock("../features/profile/ProfileContext", () => ({ useProfile: () => profile }));
 vi.mock("../features/workouts/api", () => workoutApi);
+vi.mock("../features/programTimeline/api", () => ({
+  getProgramTimelineToday: workoutApi.getProgramTimelineToday,
+}));
 vi.mock("../features/nutrition/api", () => nutritionApi);
 vi.mock("../features/entitlements/EntitlementContext", () => ({
   useEntitlements: () => entitlements.value,
@@ -50,6 +56,7 @@ import { DashboardPage } from "./DashboardPage";
 beforeEach(() => {
   workoutApi.getActiveWorkoutPlan.mockReset();
   workoutApi.generateWorkoutPlan.mockReset();
+  workoutApi.getProgramTimelineToday.mockReset();
   nutritionApi.getLatestWeeklyNutritionPlan.mockReset();
   nutritionApi.getDailyTracking.mockReset();
   nutritionApi.getCurrentNutritionEstimate.mockReset();
@@ -58,25 +65,81 @@ beforeEach(() => {
   nutritionApi.getLatestWeeklyNutritionPlan.mockResolvedValue(null);
   nutritionApi.getDailyTracking.mockRejectedValue(new Error("not tracked"));
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue(null);
+  workoutApi.getProgramTimelineToday.mockResolvedValue(undefined);
   profile.productMode = "training";
 });
+
+const timelineSession = (overrides: Record<string, unknown> = {}) => ({
+  id: "session-1",
+  workout_day_id: "day-1",
+  week_number: 1,
+  session_number: 1,
+  scheduled_date: localIsoDate(),
+  status: "scheduled",
+  day_number: 1,
+  title_fa: "روز اول",
+  title_en: "Day one",
+  estimated_duration_minutes: 52,
+  ...overrides,
+});
+
+function workoutTimeline(workout: Record<string, unknown>, nutrition: Record<string, unknown> = { state: "no_plan" }) {
+  return {
+    local_date: localIsoDate(),
+    timezone: resolvedIanaTimeZone(),
+    workout,
+    nutrition,
+  };
+}
 
 it("surfaces the real next session instead of generic workout copy", async () => {
   workoutApi.getActiveWorkoutPlan.mockResolvedValue({
     id: "plan-1",
-    days: [{ day_number: 1, title_fa: "فشار بالاتنه", title_en: "Upper push", estimated_duration_minutes: 52, exercises: [] }],
+    days: [{ id: "day-1", day_number: 1, title_fa: "فشار بالاتنه", title_en: "Upper push", estimated_duration_minutes: 52, exercises: [] }],
   });
+  workoutApi.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "workout_today",
+    workout_plan_id: "plan-1",
+    today_session: timelineSession(),
+  }));
 
   render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: "فشار بالاتنه" })).toBeInTheDocument();
-  expect(screen.getByText("۵۲ دقیقه")).toBeInTheDocument();
+  expect(screen.getByText(/۵۲ دقیقه/)).toBeInTheDocument();
+});
+
+it("shows a rest day and the next real session without using the first plan day", async () => {
+  workoutApi.getActiveWorkoutPlan.mockResolvedValue({
+    id: "plan-1",
+    days: [
+      { id: "day-1", day_number: 1, title_fa: "روز اول", title_en: "Day one", estimated_duration_minutes: 45, exercises: [] },
+      { id: "day-2", day_number: 2, title_fa: "روز دوم", title_en: "Day two", estimated_duration_minutes: 52, exercises: [] },
+    ],
+  });
+  workoutApi.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "rest_day",
+    workout_plan_id: "plan-1",
+    next_session: timelineSession({
+      id: "session-2",
+      workout_day_id: "day-2",
+      session_number: 2,
+      scheduled_date: "2026-09-15",
+    }),
+  }));
+
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+  const workout = await screen.findByRole("region", { name: "روز استراحت" });
+  expect(workout).toHaveTextContent("جلسه بعد");
+  expect(workout).not.toHaveTextContent("روز اول");
 });
 
 it("uses the next workout's first real exercise media in the hero", async () => {
   workoutApi.getActiveWorkoutPlan.mockResolvedValue({
     id: "plan-1",
     days: [{
+      id: "day-1",
       day_number: 1,
       title_fa: "فشار بالاتنه",
       title_en: "Upper push",
@@ -94,6 +157,11 @@ it("uses the next workout's first real exercise media in the hero", async () => 
       }],
     }],
   });
+  workoutApi.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "workout_today",
+    workout_plan_id: "plan-1",
+    today_session: timelineSession(),
+  }));
 
   render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
@@ -142,7 +210,7 @@ it("shows the target calories while retaining tracked macro totals", async () =>
   workoutApi.getActiveWorkoutPlan.mockResolvedValue(null);
   nutritionApi.getLatestWeeklyNutritionPlan.mockResolvedValue({
     physician_approved: true,
-    days: [{ plan_date: new Date().toISOString().slice(0, 10), nutrient_totals: { energy_kcal: 2400, protein_g: 160, carbohydrate_g: 250, total_fat_g: 70 }, meals: [] }],
+    days: [{ plan_date: localIsoDate(), nutrient_totals: { energy_kcal: 2400, protein_g: 160, carbohydrate_g: 250, total_fat_g: 70 }, meals: [] }],
   });
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue({
     confidence: "high",
@@ -205,7 +273,7 @@ it("links the primary CTA to the active workout plan", async () => {
     </MemoryRouter>,
   );
 
-  expect(await screen.findByRole("link", { name: "شروع کن" })).toHaveAttribute(
+  expect(await screen.findByRole("link", { name: "شروع برنامه" })).toHaveAttribute(
     "href",
     "/workout-plan",
   );
@@ -248,7 +316,7 @@ it("keeps workout, nutrition, and quick actions in the required priority", async
   profile.productMode = "both";
   workoutApi.getActiveWorkoutPlan.mockResolvedValue({
     id: "plan-1",
-    days: [{ day_number: 1, title_fa: "فشار بالاتنه", title_en: "Upper push", estimated_duration_minutes: 52, exercises: [] }],
+    days: [{ id: "day-1", day_number: 1, title_fa: "فشار بالاتنه", title_en: "Upper push", estimated_duration_minutes: 52, exercises: [] }],
   });
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue({
     confidence: "high",

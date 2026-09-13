@@ -3,6 +3,8 @@ import {
   nutritionTargetToExpenditureRatio,
   type NutritionProgressTone,
 } from "@fitician/core";
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+import type { ProgramTimelineToday, TimelineWorkoutSession, WorkoutTimelineState } from "@fitician/core/program-timeline";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,6 +16,7 @@ import { useEntitlements } from "../features/entitlements/EntitlementContext";
 import { ExerciseMedia } from "../features/exercises/ExerciseMedia";
 import { getCurrentNutritionEstimate, getDailyTracking, getLatestWeeklyNutritionPlan } from "../features/nutrition/api";
 import type { DailyTrackingSummary, NutritionEstimate, WeeklyPlan } from "../features/nutrition/types";
+import { getProgramTimelineToday } from "../features/programTimeline/api";
 import { useProfile } from "../features/profile/ProfileContext";
 import { generateWorkoutPlan, getActiveWorkoutPlan } from "../features/workouts/api";
 import type { WorkoutPlan } from "../features/workouts/types";
@@ -45,6 +48,8 @@ export function DashboardPage() {
   const [nutritionPlan, setNutritionPlan] = useState<WeeklyPlan | null>(null);
   const [nutritionEstimate, setNutritionEstimate] = useState<NutritionEstimate | null>(null);
   const [dailyTracking, setDailyTracking] = useState<DailyTrackingSummary | null>(null);
+  const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
+  const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
 
   useEffect(() => {
     if (!hasTraining) {
@@ -63,30 +68,49 @@ export function DashboardPage() {
   }, [hasTraining]);
 
   useEffect(() => {
+    let active = true;
+    void getProgramTimelineToday(deviceTimezone)
+      .then((loadedTimeline) => {
+        if (active && loadedTimeline !== undefined) setTimeline(loadedTimeline);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [deviceTimezone]);
+
+  useEffect(() => {
     if (!hasNutrition) {
       setNutritionState("empty");
       return;
     }
     let active = true;
-    const today = new Date().toISOString().slice(0, 10);
     void Promise.all([
       getLatestWeeklyNutritionPlan(),
       getCurrentNutritionEstimate(),
-      getDailyTracking(today).catch(() => null),
     ])
-      .then(([latestPlan, estimate, tracking]) => {
+      .then(([latestPlan, estimate]) => {
         if (active) {
           setNutritionPlan(latestPlan);
           setNutritionEstimate(estimate);
-          setDailyTracking(tracking);
           setNutritionState(latestPlan !== null
             ? latestPlan.physician_review_required === true && !latestPlan.physician_approved ? "pending" : "ready"
             : estimate !== null ? "ready" : "empty");
         }
-      })
+    })
       .catch(() => { if (active) setNutritionState("empty"); });
     return () => { active = false; };
   }, [hasNutrition]);
+
+  useEffect(() => {
+    if (!hasNutrition) return;
+    let active = true;
+    const date = timeline?.local_date ?? localIsoDate();
+    void getDailyTracking(date)
+      .catch(() => null)
+      .then((tracking) => {
+        if (active) setDailyTracking(tracking);
+      });
+    return () => { active = false; };
+  }, [hasNutrition, timeline?.local_date]);
 
   if (user === null) return null;
 
@@ -101,10 +125,29 @@ export function DashboardPage() {
   const english = i18n.resolvedLanguage === "en";
   const planDuration = profile?.plan_duration_weeks;
   const locale = english ? "en-US" : "fa-IR";
-  const nextDay = plan?.days?.[0];
-  const currentDate = new Date().toISOString().slice(0, 10);
-  const todayPlan = nutritionPlan?.days?.find((day) => day.plan_date === currentDate) ?? nutritionPlan?.days?.[0];
-  const planned = todayPlan?.nutrient_totals;
+  const currentDate = timeline?.local_date ?? localIsoDate();
+  const timelineWorkout = timeline !== null
+    && plan !== null
+    && timeline.workout.workout_plan_id === plan.id
+    ? timeline.workout
+    : null;
+  const workoutState: WorkoutTimelineState = plan === null
+    ? "no_plan"
+    : timelineWorkout?.state ?? "ready_to_start";
+  const workoutSession = workoutState === "overdue"
+    ? timelineWorkout?.overdue_session
+    : workoutState === "workout_today" || workoutState === "completed_today"
+      ? timelineWorkout?.today_session
+      : null;
+  const workoutDay = workoutSession === undefined || workoutSession === null
+    ? undefined
+    : plan?.days.find((day) => day.id === workoutSession.workout_day_id);
+  const planned = timeline !== null
+    && (timeline.nutrition.state === "active" || timeline.nutrition.state === "scheduled_start")
+    ? timeline.nutrition.nutrient_totals
+    : timeline === null
+      ? nutritionPlan?.days?.find((day) => day.plan_date === currentDate)?.nutrient_totals
+      : undefined;
   const estimated = nutritionEstimate?.targets;
   const tdeeTarget = estimated?.tdee?.preferred ?? estimated?.tdee?.minimum ?? null;
   const nutritionTarget = {
@@ -154,25 +197,63 @@ export function DashboardPage() {
               <div className="command-card__head">
                 <div>
                   <p>{t("dashboard.trainingEyebrow")}</p>
-                  <h2 id="dashboard-today-workout">{t("dashboard.todayWorkout")}</h2>
+                  <h2 id="dashboard-today-workout">
+                    {workoutState === "ready_to_start" && t("dashboard.programReady")}
+                    {workoutState === "scheduled_start" && t("dashboard.programScheduled")}
+                    {workoutState === "workout_today" && t("dashboard.todayWorkout")}
+                    {workoutState === "rest_day" && t("dashboard.restDay")}
+                    {workoutState === "overdue" && t("dashboard.overdue")}
+                    {workoutState === "completed_today" && t("dashboard.completedToday")}
+                    {workoutState === "legacy_cycle" && t("dashboard.legacyCycle")}
+                    {workoutState === "cycle_completed" && t("dashboard.cycleCompleted")}
+                    {workoutState === "no_plan" && t("dashboard.todayWorkout")}
+                  </h2>
                 </div>
-                <span className={`fitsho-status fitsho-status--${planState === "ready" ? "success" : "neutral"}`}>
-                  {t(`dashboard.planState.${planState}`)}
+                <span className={"fitsho-status fitsho-status--" + (workoutState === "workout_today" || workoutState === "completed_today" ? "success" : "neutral")}>
+                  {workoutState === "no_plan" ? t(`dashboard.planState.${planState}`) : t(`dashboard.workoutState.${workoutState}`)}
                 </span>
               </div>
-              {nextDay ? (
+              {workoutDay !== undefined && workoutSession !== null && workoutSession !== undefined ? (
                 <>
                   <div className="command-card__workout">
-                    <span>{String(nextDay.day_number).padStart(2, "0")}</span>
-                    <div><h3>{english ? nextDay.title_en : nextDay.title_fa}</h3><p>{format(nextDay.estimated_duration_minutes)} {english ? "min" : "دقیقه"}</p></div>
+                    <span>{String(workoutDay.day_number).padStart(2, "0")}</span>
+                    <div>
+                      <h3>{english ? workoutDay.title_en : workoutDay.title_fa}</h3>
+                      <p>{t("dashboard.sessionMinutes", { count: format(workoutDay.estimated_duration_minutes) })} · {t("dashboard.sessionNumber", { count: workoutSession.session_number })}</p>
+                    </div>
                   </div>
-                  {nextDay.exercises[0]?.exercise.media_path && <div className="command-card__media"><ExerciseMedia ambient path={nextDay.exercises[0].exercise.media_path} name={english ? nextDay.exercises[0].exercise.name_en : nextDay.exercises[0].exercise.name_fa} mediaType={nextDay.exercises[0].exercise.media_type} /></div>}
+                  {workoutDay.exercises[0]?.exercise.media_path && <div className="command-card__media"><ExerciseMedia ambient path={workoutDay.exercises[0].exercise.media_path} name={english ? workoutDay.exercises[0].exercise.name_en : workoutDay.exercises[0].exercise.name_fa} mediaType={workoutDay.exercises[0].exercise.media_type} /></div>}
                 </>
+              ) : workoutState === "rest_day" ? (
+                <>
+                  <p className="command-card__context">{t("dashboard.restDayBody")}</p>
+                  {timelineWorkout?.next_session && <p className="command-card__context">{nextSessionCopy(timelineWorkout.next_session, english)}</p>}
+                </>
+              ) : workoutState === "overdue" ? (
+                <>
+                  <p className="command-card__context">{t("dashboard.overdueBody")}</p>
+                  {timelineWorkout?.overdue_session && <p className="command-card__context">{t("dashboard.originallyScheduled", { date: formatTimelineDate(timelineWorkout.overdue_session.scheduled_date, english), session: timelineWorkout.overdue_session.session_number })}</p>}
+                </>
+              ) : workoutState === "completed_today" ? (
+                <>
+                  <p className="command-card__context">{t("dashboard.completedTodayBody")}</p>
+                  {timelineWorkout?.next_session && <p className="command-card__context">{nextSessionCopy(timelineWorkout.next_session, english)}</p>}
+                </>
+              ) : workoutState === "scheduled_start" && timelineWorkout?.start_date ? (
+                <p className="command-card__context">{t("dashboard.programStartsOn", { date: formatTimelineDate(timelineWorkout.start_date, english) })}</p>
+              ) : workoutState === "ready_to_start" ? (
+                <p className="command-card__context">{t("dashboard.programReadyBody")}</p>
+              ) : workoutState === "legacy_cycle" ? (
+                <p className="command-card__context">{t("dashboard.legacyCycleBody")}</p>
+              ) : workoutState === "cycle_completed" ? (
+                <p className="command-card__context">{t("dashboard.cycleCompletedBody")}</p>
               ) : planDuration !== undefined ? <p className="command-card__context">{t("dashboard.planDuration", { count: planDuration.toLocaleString(locale) })}</p> : null}
               <PrimaryAction
                 accessLoading={entitlementsLoading}
                 canGenerate={canGenerateWorkout}
                 state={planState}
+                hasPlan={plan !== null}
+                timelineState={workoutState}
                 generating={generating}
                 onStart={startWorkout}
               />
@@ -241,6 +322,19 @@ function DashboardQuickAction({ image, title, to }: { image: string; title: stri
   );
 }
 
+function formatTimelineDate(value: string, english: boolean): string {
+  return new Intl.DateTimeFormat(english ? "en-US" : "fa-IR", { dateStyle: "medium" }).format(
+    new Date(value + "T12:00:00"),
+  );
+}
+
+function nextSessionCopy(session: TimelineWorkoutSession, english: boolean): string {
+  const date = formatTimelineDate(session.scheduled_date, english);
+  return english
+    ? "Next: " + date + " · Session " + session.session_number
+    : "جلسه بعد: " + date + " · جلسه " + session.session_number;
+}
+
 function formatMetric(value: number | null | undefined, format: (value: number) => string) {
   return value === null || value === undefined ? "—" : `${format(value)}g`;
 }
@@ -249,16 +343,27 @@ function PrimaryAction({
   accessLoading,
   canGenerate,
   state,
+  hasPlan,
+  timelineState,
   generating,
   onStart,
 }: {
   accessLoading: boolean;
   canGenerate: boolean;
   state: PlanState;
+  hasPlan: boolean;
+  timelineState: WorkoutTimelineState;
   generating: boolean;
   onStart: () => void;
 }) {
   const { t } = useTranslation();
+  if (hasPlan) {
+    return (
+      <Link className="fitsho-button command-card__action" to="/workout-plan">
+        {t(timelineState === "ready_to_start" ? "dashboard.startProgram" : "dashboard.viewWorkout")}
+      </Link>
+    );
+  }
   if (state === "ready") {
     return <Link className="fitsho-button command-card__action" to="/workout-plan">{t("dashboard.start")}</Link>;
   }
