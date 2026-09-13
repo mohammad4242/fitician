@@ -221,6 +221,40 @@ def test_future_current_cycle_hides_historical_completion_feedback(db: Session) 
         get_current_completion_feedback_cycle(db, user_id=user.id)
 
 
+def test_active_plan_without_cycle_hides_historical_completion_feedback(db: Session) -> None:
+    user = make_user(db, "active-plan-without-cycle-feedback@example.com")
+    old_plan = make_plan(db, user.id)
+    old_cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=old_plan.id,
+        start_date=date(2026, 8, 1),
+        timezone_name="UTC",
+    )
+    complete_cycle(
+        db,
+        cycle_id=old_cycle.id,
+        user_id=user.id,
+        feedback=CompletionFeedbackInput(adherence_percent=80),
+    )
+    old_plan.status = WorkoutPlanStatus.SUPERSEDED
+    new_plan = make_plan(db, user.id)
+
+    with pytest.raises(WorkoutCycleCompletionFeedbackNotFoundError):
+        get_current_completion_feedback_cycle(db, user_id=user.id)
+
+    start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=new_plan.id,
+        start_date=date.today() + timedelta(days=5),
+        timezone_name="UTC",
+    )
+
+    with pytest.raises(WorkoutCycleCompletionFeedbackNotFoundError):
+        get_current_completion_feedback_cycle(db, user_id=user.id)
+
+
 def test_future_cycle_has_no_current_weekly_check_in(db: Session) -> None:
     user = make_user(db, "future-cycle-check-in@example.com")
     make_profile(db, user.id)

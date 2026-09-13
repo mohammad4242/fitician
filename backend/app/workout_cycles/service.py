@@ -1049,6 +1049,19 @@ def _current_plan_cycles(
     return list(db.scalars(query).all())
 
 
+def _current_active_workout_plan(db: Session, *, user_id: UUID) -> WorkoutPlan | None:
+    return db.scalar(
+        select(WorkoutPlan)
+        .where(
+            WorkoutPlan.user_id == user_id,
+            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
+            WorkoutPlan.deleted_at.is_(None),
+        )
+        .order_by(WorkoutPlan.created_at.desc(), WorkoutPlan.id.desc())
+        .limit(1)
+    )
+
+
 def _current_executable_cycle(
     db: Session,
     *,
@@ -1254,6 +1267,24 @@ def get_current_completion_feedback_cycle(
     *,
     user_id: UUID,
 ) -> WorkoutCycle:
+    active_plan = _current_active_workout_plan(db, user_id=user_id)
+    if active_plan is not None:
+        current = get_current_active_cycle_for_user(db, user_id=user_id)
+        if current is not None:
+            return current
+        current_plan_cycle = db.scalar(
+            select(WorkoutCycle)
+            .options(joinedload(WorkoutCycle.completion_feedback))
+            .where(WorkoutCycle.workout_plan_id == active_plan.id)
+        )
+        if (
+            current_plan_cycle is not None
+            and current_plan_cycle.status is WorkoutCycleStatus.COMPLETED
+            and current_plan_cycle.completion_feedback is not None
+        ):
+            return current_plan_cycle
+        raise WorkoutCycleCompletionFeedbackNotFoundError
+
     current = get_current_active_cycle_for_user(db, user_id=user_id)
     if current is not None:
         return current
