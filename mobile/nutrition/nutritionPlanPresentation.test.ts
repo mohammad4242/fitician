@@ -20,6 +20,9 @@ it("uses the web weekly nutrition plan hierarchy", async () => {
   expect(source).toContain("Object.values(currentPlan.nutrients)");
   expect(source).toContain("تاریخچه نسخه‌ها");
   expect(source).toContain("دانلود نسخه PDF برنامه غذایی");
+  expect(source).toContain("برنامه تغذیه آماده شروع است");
+  expect(source).toContain("nutritionTimelinePresentation");
+  expect(source).not.toContain("setSelectedDayIndex(0)");
   expect(source.indexOf("<BundleChoice")).toBeLessThan(source.indexOf("<NutritionPlanCard"));
   expect(source.indexOf("<NutritionPlanCard")).toBeLessThan(source.indexOf('label={generate.isPending ? "در حال ساخت برنامه"'));
   expect(source).not.toContain("<PlanStat");

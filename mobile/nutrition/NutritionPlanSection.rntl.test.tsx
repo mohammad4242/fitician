@@ -16,6 +16,7 @@ jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
 jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
+jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelineApi: jest.fn() }));
 
 let mockConnectivityStatus: "online" | "offline" = "online";
 jest.mock("../platform/connectivity", () => ({
@@ -31,6 +32,7 @@ jest.mock("./nutritionPlanPdfStore", () => ({ ExpoNutritionPlanPdfStore: jest.fn
 import { useQuery } from "@tanstack/react-query";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
+import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { fiticianTokens } from "../ui/tokens";
 import { createNutritionPlanActionsApi } from "./nutritionPlanActionsApi";
 import { NutritionPlanSection } from "./NutritionPlanSection";
@@ -42,6 +44,7 @@ const mockUseMobileAuth = jest.mocked(useMobileAuth);
 const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreatePlanApi = jest.mocked(createNutritionPlanApi);
 const mockCreateActionsApi = jest.mocked(createNutritionPlanActionsApi);
+const mockCreateProgramTimelineApi = jest.mocked(createProgramTimelineApi);
 const mockPdfStoreConstructor = jest.mocked(ExpoNutritionPlanPdfStore);
 
 const mockDownloadPdf = jest.fn<(planId: string) => Promise<unknown>>();
@@ -142,6 +145,12 @@ const pendingPlan = {
   review_status: "pending",
 };
 
+const readyPlan = {
+  ...activePlan,
+  id: "ready-plan",
+  lifecycle_status: "ready_to_start" as const,
+};
+
 const historicalPlan = {
   ...activePlan,
   id: "history-1",
@@ -191,6 +200,18 @@ let mockHistory: readonly typeof historyVersion[] = [historyVersion, activeHisto
 let mockBundle: unknown = null;
 let mockShoppingLoading = false;
 let mockShoppingError = false;
+let mockTimeline: {
+  readonly local_date: string;
+  readonly nutrition: {
+    readonly absolute_day_number?: number | null;
+    readonly day_id?: string | null;
+    readonly nutrient_totals?: Record<string, number>;
+    readonly pattern_day_index?: number | null;
+    readonly plan_id?: string | null;
+    readonly start_date?: string | null;
+    readonly state: "no_plan" | "pending_review" | "ready_to_start" | "scheduled_start" | "active";
+  };
+} | null = null;
 
 function findAncestorStyle(node: ReactTestInstance, key: string): Record<string, unknown> {
   let current = node.parent;
@@ -240,6 +261,7 @@ beforeEach(() => {
   mockBundle = null;
   mockShoppingLoading = false;
   mockShoppingError = false;
+  mockTimeline = null;
   mockUseMobileAuth.mockReturnValue({ download: jest.fn(), request: jest.fn() } as never);
   mockUseMobileEntitlements.mockReturnValue({
     error: null,
@@ -273,7 +295,9 @@ beforeEach(() => {
     getShoppingList: jest.fn(),
     partialRegenerate: mockPartialRegenerate,
     selectBundle: jest.fn(),
+    startPlan: jest.fn(),
   } as never);
+  mockCreateProgramTimelineApi.mockReturnValue({ getToday: jest.fn() } as never);
   mockCreateActionsApi.mockReturnValue({
     confirmRemoveMeal: jest.fn(),
     confirmReplaceFood: jest.fn(),
@@ -289,6 +313,7 @@ beforeEach(() => {
   } as never);
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
+    if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[1] === "plan" && key[2] === "active") return queryResult(mockDisplayedPlan);
     if (key[1] === "plan" && key[2] === "latest") return queryResult(mockLatestPlan);
     if (key[1] === "plan-bundle") return queryResult(mockBundle);
@@ -364,6 +389,45 @@ test("shows the pending physician card, notes, and change summary", async () => 
   expect(screen.getByText("کاهش هزینه هفتگی")).toBeTruthy();
   expect(findAncestorStyle(reviewText, "borderColor")).toMatchObject({ borderColor: fiticianTokens.colors.amber });
   expect(findAncestorStyle(reviewText, "backgroundColor")).toMatchObject({ backgroundColor: fiticianTokens.colors.warningSurface });
+});
+
+test("shows an explicit start control for a ready nutrition plan", async () => {
+  mockDisplayedPlan = readyPlan;
+  mockHistory = [];
+  mockTimeline = {
+    local_date: "2026-09-13",
+    nutrition: { plan_id: "ready-plan", state: "ready_to_start" },
+  };
+
+  renderPlan();
+  await settlePdf();
+
+  expect(screen.getByText("برنامه تغذیه آماده شروع است")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "شروع برنامه غذایی" })).toBeTruthy();
+  expect(screen.getByLabelText("تاریخ شروع برنامه غذایی")).toBeTruthy();
+});
+
+test("opens the recurring nutrition template on the timeline pattern day", async () => {
+  mockTimeline = {
+    local_date: "2026-09-13",
+    nutrition: {
+      absolute_day_number: 9,
+      day_id: "day-2",
+      nutrient_totals: { energy_kcal: 2_100 },
+      pattern_day_index: 1,
+      plan_id: "plan-1",
+      start_date: "2026-09-05",
+      state: "active",
+    },
+  };
+
+  renderPlan();
+  await settlePdf();
+  openNutritionPlan();
+
+  const tabs = screen.getAllByRole("tab");
+  expect(tabs[1]?.props.accessibilityState).toMatchObject({ selected: true });
+  expect(screen.getByText(/امروز · روز ۹ برنامه/u)).toBeTruthy();
 });
 
 test("does not present a standard nutrition plan as waiting for a physician", async () => {

@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
-import { nutritionKeys } from "../data/queryKeys";
+import { nutritionKeys, programTimelineKeys } from "../data/queryKeys";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
-import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, Sheet, Skeleton } from "../ui/components";
+import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, Sheet, Skeleton, TextField } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { RTL_ROW } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
+import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { canGenerateNutritionEstimate, formatNutritionNumber } from "./nutritionModel";
 import {
   type FoodReplacementOptions,
@@ -24,6 +27,7 @@ import {
 } from "./nutritionPlanActionsApi";
 import {
   createNutritionPlanApi,
+  type NutritionPlanStartInput,
   type NutritionPlanApi,
   type PlanBundleSelectResponse,
   type WeeklyPlan,
@@ -37,6 +41,7 @@ import {
   classifyNutritionGenerationOutcome,
   formatNutritionPlanMoney,
   isNutritionPlanExecutable,
+  nutritionTimelinePresentation,
   preparedRecipePresentation,
   selectNutritionPlan,
   type PreparedRecipePresentation,
@@ -95,10 +100,17 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
     () => createNutritionPlanActionsApi(auth.request),
     [auth.request],
   );
+  const timelineApi = useMemo(
+    () => createProgramTimelineApi(auth.request),
+    [auth.request],
+  );
   const pdfStore = useMemo(() => new ExpoNutritionPlanPdfStore(), []);
+  const deviceTimezone = useMemo(resolvedIanaTimeZone, []);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [generationResult, setGenerationResult] = useState<WeeklyPlanGeneration | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [nutritionStartDate, setNutritionStartDate] = useState(localIsoDate);
+  const [nutritionStartError, setNutritionStartError] = useState<string | null>(null);
 
   const activeQuery = useQuery({
     queryFn: api.getActive,
@@ -121,6 +133,10 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
     queryFn: () => api.get(selectedPlanId as string),
     queryKey: nutritionKeys.plan(selectedPlanId ?? "selected"),
   });
+  const timelineQuery = useQuery({
+    queryFn: () => timelineApi.getToday(deviceTimezone),
+    queryKey: programTimelineKeys.today(deviceTimezone),
+  });
 
   const activeState = getMobileViewState(activeQuery, { connectivityStatus });
   const latestState = getMobileViewState(latestQuery, { connectivityStatus });
@@ -135,6 +151,13 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
   const primarySelection = selectNutritionPlan(activePlan ?? null, latestPlan ?? null);
   const displayedPlan = selectedPlanId === null ? primarySelection.plan : selectedPlan;
   const historical = selectedPlanId !== null && selectedPlanId !== activePlan?.id;
+  const timeline = timelineQuery.data ?? null;
+  const timelineNutrition = !historical
+    && displayedPlan !== undefined
+    && displayedPlan !== null
+    && (timeline?.nutrition.plan_id === displayedPlan.id || timeline?.nutrition.plan_id === null || timeline?.nutrition.plan_id === undefined)
+    ? timeline?.nutrition ?? null
+    : null;
   const offline = connectivityStatus === "offline";
   const entitlementStateReady = entitlements.snapshot !== null && !entitlements.loading;
   const canGeneratePlan = entitlementStateReady && entitlements.hasEntitlement("nutrition.plan.generate");
@@ -167,6 +190,24 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
       await Promise.all([activeQuery.refetch(), latestQuery.refetch(), historyQuery.refetch()]);
     },
   });
+  const startNutrition = useMutation({
+    mutationFn: ({ planId, input }: { readonly planId: string; readonly input: NutritionPlanStartInput }) =>
+      api.startPlan(planId, input),
+    onError: (error: unknown) => setNutritionStartError(nutritionPlanErrorMessage(error)),
+    onSuccess: async (result) => {
+      setNutritionStartError(null);
+      queryClient.setQueryData(nutritionKeys.plan(result.id), result);
+      queryClient.setQueryData(nutritionKeys.plan("active"), result);
+      queryClient.setQueryData(nutritionKeys.plan("latest"), result);
+      await Promise.all([
+        activeQuery.refetch(),
+        latestQuery.refetch(),
+        historyQuery.refetch(),
+        timelineQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
+      ]);
+    },
+  });
 
   const loading = activePlan === undefined && latestPlan === undefined;
   const loadError = activeState.status === "error" && latestState.status === "error";
@@ -195,6 +236,20 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
     queryClient.setQueryData(nutritionKeys.plan(next.id), next);
     queryClient.setQueryData(nutritionKeys.plan("latest"), next);
     void Promise.all([activeQuery.refetch(), latestQuery.refetch(), historyQuery.refetch()]);
+  }
+
+  useEffect(() => {
+    if (!historical && timeline?.local_date) setNutritionStartDate(timeline.local_date);
+  }, [historical, timeline?.local_date]);
+
+  function startNutritionPlan() {
+    if (displayedPlan === undefined || displayedPlan === null || historical || offline || startNutrition.isPending) return;
+    if (displayedPlan.lifecycle_status !== "ready_to_start") return;
+    setNutritionStartError(null);
+    startNutrition.mutate({
+      input: { start_date: nutritionStartDate, timezone: deviceTimezone },
+      planId: displayedPlan.id,
+    });
   }
 
   return (
@@ -239,6 +294,12 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
           onHistoryRetry={() => void historyQuery.refetch()}
           onHistorySelect={selectHistoryVersion}
           selectedPlanId={selectedPlanId}
+          nutritionTimeline={timelineNutrition}
+          nutritionStartDate={nutritionStartDate}
+          nutritionStartError={nutritionStartError}
+          nutritionStartPending={startNutrition.isPending}
+          onChangeNutritionStartDate={setNutritionStartDate}
+          onStartNutrition={startNutritionPlan}
         />
       ) : null}
 
@@ -290,6 +351,12 @@ function NutritionPlanCard({
   onHistoryRetry,
   onHistorySelect,
   selectedPlanId,
+  nutritionTimeline,
+  nutritionStartDate,
+  nutritionStartError,
+  nutritionStartPending,
+  onChangeNutritionStartDate,
+  onStartNutrition,
 }: {
   readonly actionsApi: NutritionPlanActionsApi;
   readonly api: NutritionPlanApi;
@@ -306,6 +373,12 @@ function NutritionPlanCard({
   readonly onHistoryRetry: () => void;
   readonly onHistorySelect: (version: WeeklyPlanHistoryItem) => void;
   readonly selectedPlanId: string | null;
+  readonly nutritionTimeline: TimelineNutrition | null;
+  readonly nutritionStartDate: string;
+  readonly nutritionStartError: string | null;
+  readonly nutritionStartPending: boolean;
+  readonly onChangeNutritionStartDate: (value: string) => void;
+  readonly onStartNutrition: () => void;
 }) {
   const queryClient = useQueryClient();
   const [currentPlan, setCurrentPlan] = useState(plan);
@@ -318,13 +391,19 @@ function NutritionPlanCard({
   const editable = canManagePlan
     && canEditNutritionPlan(currentPlan, historical, connectivityStatus === "offline")
     && safety?.can_continue_onboarding === true;
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const timelinePresentation = nutritionTimelinePresentation(nutritionTimeline);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(
+    () => timelinePresentation.selectedDayIndex ?? 0,
+  );
   const selectedDay = currentPlan.days.find((day) => day.day_index === selectedDayIndex) ?? currentPlan.days[0] ?? null;
 
   useEffect(() => {
     setCurrentPlan(plan);
-    setSelectedDayIndex(0);
   }, [plan.id, plan.revision]);
+
+  useEffect(() => {
+    setSelectedDayIndex(timelinePresentation.selectedDayIndex ?? 0);
+  }, [plan.id, plan.start_date, nutritionTimeline?.plan_id, nutritionTimeline?.start_date]);
 
   if (!currentPlan.is_user_visible) {
     return <Notice message="این نسخه برای نمایش عضو آماده نیست." variant="info" />;
@@ -339,6 +418,16 @@ function NutritionPlanCard({
       {!historical && !canManagePlan ? (
         <Notice message="دسترسی مدیریت نسخه فعلی منقضی یا غیرفعال است؛ محتوای برنامه و تاریخچه همچنان قابل مشاهده‌اند." variant="warning" />
       ) : null}
+      <NutritionPlanExecutionCard
+        historical={historical}
+        nutritionStartDate={nutritionStartDate}
+        nutritionStartError={nutritionStartError}
+        nutritionStartPending={nutritionStartPending}
+        onChangeNutritionStartDate={onChangeNutritionStartDate}
+        onStartNutrition={onStartNutrition}
+        plan={currentPlan}
+        timeline={nutritionTimeline}
+      />
       {historical ? <ReferencePlanNotice /> : <PhysicianReviewCard plan={currentPlan} />}
       <PlanMetadata plan={currentPlan} />
       {currentPlan.physician_user_visible_notes ? (
@@ -354,6 +443,11 @@ function NutritionPlanCard({
         {selectedDay !== null ? (
           <View style={styles.daysSection}>
             <DaySelector days={currentPlan.days} selectedDayIndex={selectedDayIndex} onSelect={setSelectedDayIndex} />
+            {timelinePresentation.state === "active" && timelinePresentation.absoluteDayNumber !== null ? (
+              <Text style={styles.todayPlanLabel} testID="nutrition-timeline-today">
+                امروز · روز {formatNutritionNumber(timelinePresentation.absoluteDayNumber)} برنامه
+              </Text>
+            ) : null}
             <NutritionDayCard
               actionsApi={actionsApi}
               api={api}
@@ -402,6 +496,64 @@ function NutritionPlanCard({
       <NutritionPlanPdf api={api} connectivityStatus={connectivityStatus} pdfStore={pdfStore} planId={plan.id} />
     </View>
   );
+}
+
+function NutritionPlanExecutionCard({
+  historical,
+  nutritionStartDate,
+  nutritionStartError,
+  nutritionStartPending,
+  onChangeNutritionStartDate,
+  onStartNutrition,
+  plan,
+  timeline,
+}: {
+  readonly historical: boolean;
+  readonly nutritionStartDate: string;
+  readonly nutritionStartError: string | null;
+  readonly nutritionStartPending: boolean;
+  readonly onChangeNutritionStartDate: (value: string) => void;
+  readonly onStartNutrition: () => void;
+  readonly plan: WeeklyPlan;
+  readonly timeline: TimelineNutrition | null;
+}) {
+  if (historical) return null;
+
+  const state = timeline?.state ?? (plan.lifecycle_status === "ready_to_start" ? "ready_to_start" : null);
+  if (state === "ready_to_start") {
+    return (
+      <Card style={styles.executionCard} testID="nutrition-plan-start-card">
+        <Text style={styles.eyebrow}>برنامه تغذیه</Text>
+        <Text style={styles.executionTitle}>برنامه تغذیه آماده شروع است</Text>
+        <TextField
+          accessibilityLabel="تاریخ شروع برنامه غذایی"
+          label="تاریخ شروع"
+          onChangeText={onChangeNutritionStartDate}
+          textDirection="ltr"
+          value={nutritionStartDate}
+        />
+        {nutritionStartError !== null ? <Notice message={nutritionStartError} variant="danger" /> : null}
+        <Button
+          disabled={nutritionStartPending}
+          label="شروع برنامه غذایی"
+          loading={nutritionStartPending}
+          onPress={onStartNutrition}
+        />
+      </Card>
+    );
+  }
+
+  if (state === "scheduled_start") {
+    return (
+      <Card style={styles.executionCard} testID="nutrition-plan-scheduled-card">
+        <Text style={styles.eyebrow}>برنامه تغذیه</Text>
+        <Text style={styles.executionTitle}>شروع برنامه زمان‌بندی شده است</Text>
+        {plan.start_date ? <Text style={styles.executionBody}>تاریخ شروع: {formatPlanDate(plan.start_date)}</Text> : null}
+      </Card>
+    );
+  }
+
+  return null;
 }
 
 function PhysicianReviewCard({ plan }: { readonly plan: WeeklyPlan }) {
@@ -1348,6 +1500,7 @@ function lifecycleLabel(status: string): string {
     pending_physician_review: "در انتظار بررسی",
     physician_approved: "تأییدشده",
     physician_review_in_progress: "در حال بررسی پزشک",
+    ready_to_start: "آماده شروع",
     rejected: "ردشده",
   };
   return values[status] ?? status;
@@ -1593,8 +1746,41 @@ const styles = StyleSheet.create({
     backgroundColor: fiticianTokens.colors.aqua,
     borderColor: fiticianTokens.colors.aqua,
   },
+  executionBody: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.sm,
+    lineHeight: 23,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  executionCard: {
+    alignItems: "stretch",
+    backgroundColor: fiticianTokens.colors.surfaceInteractive,
+    borderColor: fiticianTokens.colors.aqua,
+    borderRadius: fiticianTokens.radii.large,
+    borderWidth: 1,
+    gap: fiticianTokens.spacing[2],
+    padding: fiticianTokens.spacing[3],
+  },
+  executionTitle: {
+    color: fiticianTokens.colors.ink,
+    fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
+    fontSize: fiticianTokens.typography.fontSize.h3,
+    lineHeight: 29,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
   daysSection: {
     gap: fiticianTokens.spacing[3],
+  },
+  todayPlanLabel: {
+    color: fiticianTokens.colors.aqua,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.sm,
+    fontWeight: fiticianTokens.typography.fontWeight.bold,
+    textAlign: "auto",
+    writingDirection: "rtl",
   },
   doctorAvatar: {
     alignItems: "center",
