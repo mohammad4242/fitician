@@ -7,10 +7,15 @@ import {
   type SharedProfileInput,
 } from "../profile/types";
 
-export const ONBOARDING_DRAFT_KEY = "fitsho:onboarding-draft:v1";
-export const PENDING_NUTRITION_BASICS_KEY = "fitsho:pending-nutrition-basics:v1";
-export const HYDRATED_ACCOUNT_KEY = "fitsho:onboarding-hydrated:v1";
-export const HYDRATED_ACCOUNT_EVENT = "fitsho:profile-hydrated";
+export const ONBOARDING_DRAFT_KEY = "fitician:onboarding-draft:v1";
+export const PENDING_NUTRITION_BASICS_KEY = "fitician:pending-nutrition-basics:v1";
+export const HYDRATED_ACCOUNT_KEY = "fitician:onboarding-hydrated:v1";
+export const HYDRATED_ACCOUNT_EVENT = "fitician:profile-hydrated";
+
+const LEGACY_ONBOARDING_DRAFT_KEY = "fitsho:onboarding-draft:v1";
+const LEGACY_PENDING_NUTRITION_BASICS_KEY = "fitsho:pending-nutrition-basics:v1";
+const LEGACY_HYDRATED_ACCOUNT_KEY = "fitsho:onboarding-hydrated:v1";
+const LEGACY_HYDRATED_ACCOUNT_EVENT = "fitsho:profile-hydrated";
 
 export type PreAccountNutritionBasics = Pick<
   NutritionProfileInput,
@@ -53,7 +58,7 @@ export function saveOnboardingDraft(draft: OnboardingDraft): void {
 }
 
 export function loadOnboardingDraft(): OnboardingDraft | null {
-  const stored = sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
+  const stored = sessionStorage.getItem(ONBOARDING_DRAFT_KEY) ?? sessionStorage.getItem(LEGACY_ONBOARDING_DRAFT_KEY);
   if (stored === null) return null;
   try {
     const draft = JSON.parse(stored) as Partial<OnboardingDraft>;
@@ -74,6 +79,7 @@ export function loadOnboardingDraft(): OnboardingDraft | null {
 
 export function clearOnboardingDraft(): void {
   sessionStorage.removeItem(ONBOARDING_DRAFT_KEY);
+  sessionStorage.removeItem(LEGACY_ONBOARDING_DRAFT_KEY);
 }
 
 export function loadPendingNutritionBasics(): PreAccountNutritionBasics | null {
@@ -81,13 +87,17 @@ export function loadPendingNutritionBasics(): PreAccountNutritionBasics | null {
 }
 
 export function loadPendingNutritionSetup(): PendingNutritionSetup | null {
-  const stored = sessionStorage.getItem(PENDING_NUTRITION_BASICS_KEY);
+  const stored = sessionStorage.getItem(PENDING_NUTRITION_BASICS_KEY) ?? sessionStorage.getItem(LEGACY_PENDING_NUTRITION_BASICS_KEY);
   if (stored === null) return null;
-  try { return JSON.parse(stored) as PendingNutritionSetup; } catch { sessionStorage.removeItem(PENDING_NUTRITION_BASICS_KEY); return null; }
+  try { return JSON.parse(stored) as PendingNutritionSetup; } catch {
+    clearPendingNutritionBasics();
+    return null;
+  }
 }
 
 export function clearPendingNutritionBasics(): void {
   sessionStorage.removeItem(PENDING_NUTRITION_BASICS_KEY);
+  sessionStorage.removeItem(LEGACY_PENDING_NUTRITION_BASICS_KEY);
 }
 
 function sharedFromTraining(training: ProfileInput): SharedProfileInput {
@@ -133,5 +143,7 @@ export async function hydrateOnboardingDraft(draft: OnboardingDraft): Promise<vo
 
 function markAccountHydrated(): void {
   sessionStorage.setItem(HYDRATED_ACCOUNT_KEY, "true");
+  sessionStorage.setItem(LEGACY_HYDRATED_ACCOUNT_KEY, "true");
   window.dispatchEvent(new Event(HYDRATED_ACCOUNT_EVENT));
+  window.dispatchEvent(new Event(LEGACY_HYDRATED_ACCOUNT_EVENT));
 }

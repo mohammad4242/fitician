@@ -8,7 +8,7 @@ mohammad4242/fitsho
 این تست باید مستقل از ۱۰ کاربر PDF قبلی باشد.
 
 ━━━━━━━━━━━━━━━━━━
-1. ابتدا نسخه فعلی Fitsho را بخوان
+1. ابتدا نسخه فعلی Fitician را بخوان
 ━━━━━━━━━━━━━━━━━━
 
 قبل از ساخت هیچ کاربری، source of truth را از کد فعلی repository استخراج کن.
@@ -30,14 +30,14 @@ mohammad4242/fitsho
 اگر schema یا enum نسبت به قبل تغییر کرده، فقط نسخه فعلی repository معتبر است.
 
 ━━━━━━━━━━━━━━━━━━
-2. فقط در چارچوب Profile واقعی Fitsho
+2. فقط در چارچوب Profile واقعی Fitician
 ━━━━━━━━━━━━━━━━━━
 
 ۱۰ Profile کاملاً معتبر بساز.
 
 هیچ فیلد، گزینه، آسیب، تجهیزات، هدف یا مقدار جدیدی اختراع نکن.
 
-فقط فیلدهایی را استفاده کن که Profile فعلی Fitsho واقعاً پشتیبانی می‌کند.
+فقط فیلدهایی را استفاده کن که Profile فعلی Fitician واقعاً پشتیبانی می‌کند.
 
 Profile هر کاربر باید validation واقعی backend را پاس کند.
 
@@ -67,7 +67,7 @@ Profile هر کاربر باید validation واقعی backend را پاس کن�
 
 برای ساخت برنامه حتماً:
 
-workout_generation_method = fitsho_coach
+workout_generation_method = fitician_coach
 
 باشد.
 
@@ -79,7 +79,7 @@ AI نباید خودش برنامه بدنسازی طراحی کند.
 
 ۱۰ کاربر جدید بساز که نسبت به یکدیگر اختلاف واقعی داشته باشند.
 
-Random بودن خوب است، ولی Random باید داخل validation و گزینه‌های واقعی Fitsho باشد.
+Random بودن خوب است، ولی Random باید داخل validation و گزینه‌های واقعی Fitician باشد.
 
 بین ۱۰ نفر تنوع جدی ایجاد کن در:
 
@@ -190,7 +190,7 @@ requested - 10 <= estimated_duration <= requested + 10
 7. Profileها را واقعاً validate کن
 ━━━━━━━━━━━━━━━━━━
 
-هر Profile را از validation واقعی Fitsho عبور بده.
+هر Profile را از validation واقعی Fitician عبور بده.
 
 اگر Profile invalid بود:
 مقدار unsupported اختراع نکن.
@@ -207,7 +207,7 @@ Profile را فقط با گزینه معتبر دیگری از schema اصلاح
 8. Program Engine واقعی را اجرا کن
 ━━━━━━━━━━━━━━━━━━
 
-برای هر ۱۰ کاربر خود Program Engine فعلی Fitsho را اجرا کن.
+برای هر ۱۰ کاربر خود Program Engine فعلی Fitician را اجرا کن.
 
 ممنوع:
 
@@ -221,7 +221,7 @@ Profile را فقط با گزینه معتبر دیگری از schema اصلاح
 - تغییر Split
 - جایگزینی حرکت با نظر خودت
 
-خروجی باید دقیقاً Raw Output نسخه فعلی Fitsho باشد.
+خروجی باید دقیقاً Raw Output نسخه فعلی Fitician باشد.
 
 اگر Engine fail کرد:
 همان failure را ثبت کن.
@@ -416,20 +416,20 @@ duration را به reps تبدیل نکن.
 
 نام فایل:
 
-fitsho_10_random_users_post_fixes_workout_plans.pdf
+fitician_10_random_users_post_fixes_workout_plans.pdf
 
 در صورت امکان Markdown سورس را هم نگه دار:
 
-fitsho_10_random_users_post_fixes_workout_plans.md
+fitician_10_random_users_post_fixes_workout_plans.md
 
 عنوان صفحه اول:
 
-گزارش آزمون سوم موتور برنامه تمرینی Fitsho
+گزارش آزمون سوم موتور برنامه تمرینی Fitician
 ۱۰ پروفایل تصادفی جدید پس از اصلاحات Program Engine
 
 زیرعنوان:
 
-هدف: بررسی کیفیت خروجی نسخه فعلی Fitsho و کشف regression یا مشکلات جدید پس از اصلاح ۱۰ مشکل قبلی.
+هدف: بررسی کیفیت خروجی نسخه فعلی Fitician و کشف regression یا مشکلات جدید پس از اصلاح ۱۰ مشکل قبلی.
 
 PDF باید خوانا باشد:
 - هر User بخش جدا داشته باشد.
@@ -442,7 +442,7 @@ PDF باید خوانا باشد:
 15. قوانین نهایی
 ━━━━━━━━━━━━━━━━━━
 
-- هیچ Profile خارج از schema واقعی Fitsho نساز.
+- هیچ Profile خارج از schema واقعی Fitician نساز.
 - هیچ enum ساختگی ایجاد نکن.
 - هیچ equipment ساختگی اضافه نکن.
 - هیچ injury جدید خارج از مدل Profile اختراع نکن.

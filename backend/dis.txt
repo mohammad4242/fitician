@@ -128,7 +128,7 @@
             582 POP_JUMP_IF_TRUE        97 (to 778)
 
 130         584 LOAD_GLOBAL             41 (NULL + any)
-            594 LOAD_CONST               6 (<code object <genexpr> at 0x72446e31a730, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 130>)
+            594 LOAD_CONST               6 (<code object <genexpr> at 0x72446e31a730, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 130>)
             596 MAKE_FUNCTION            0
 
 132         598 LOAD_FAST                7 (eligibility)
@@ -197,7 +197,7 @@
 148         934 LOAD_GLOBAL             57 (NULL + tuple)
             944 LOAD_CLOSURE            37 (rejected_by_id)
             946 BUILD_TUPLE              1
-            948 LOAD_CONST               9 (<code object <genexpr> at 0x72446e5605d0, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 148>)
+            948 LOAD_CONST               9 (<code object <genexpr> at 0x72446e5605d0, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 148>)
             950 MAKE_FUNCTION            8 (closure)
 
 150         952 LOAD_FAST                1 (exercise_catalog)
@@ -423,7 +423,7 @@
 257        1832 LOAD_GLOBAL             57 (NULL + tuple)
            1842 LOAD_CLOSURE            38 (requested_days)
            1844 BUILD_TUPLE              1
-           1846 LOAD_CONST              28 (<code object <genexpr> at 0x72446e3306f0, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 257>)
+           1846 LOAD_CONST              28 (<code object <genexpr> at 0x72446e3306f0, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 257>)
            1848 MAKE_FUNCTION            8 (closure)
 
 258        1850 LOAD_FAST               24 (ranked_splits)
@@ -602,7 +602,7 @@
 313        2542 LOAD_FAST               33 (weekdays_fallback)
 
 314        2544 LOAD_GLOBAL            115 (NULL + frozenset)
-           2554 LOAD_CONST              37 (<code object <genexpr> at 0x72446e31ac30, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 314>)
+           2554 LOAD_CONST              37 (<code object <genexpr> at 0x72446e31ac30, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 314>)
            2556 MAKE_FUNCTION            0
            2558 LOAD_FAST               25 (exact_day_splits)
            2560 GET_ITER
@@ -858,7 +858,7 @@ ExceptionTable:
   3238 to 3478 -> 3492 [2] lasti
   3492 to 3500 -> 3502 [2] lasti
 
-Disassembly of <code object <genexpr> at 0x72446e31a730, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 130>:
+Disassembly of <code object <genexpr> at 0x72446e31a730, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 130>:
 130           0 RETURN_GENERATOR
               2 POP_TOP
               4 RESUME                   0
@@ -883,7 +883,7 @@ Disassembly of <code object <genexpr> at 0x72446e31a730, file "/home/mohammad/pr
 ExceptionTable:
   4 to 50 -> 52 [0] lasti
 
-Disassembly of <code object <genexpr> at 0x72446e5605d0, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 148>:
+Disassembly of <code object <genexpr> at 0x72446e5605d0, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 148>:
               0 COPY_FREE_VARS           1
 
 148           2 RETURN_GENERATOR
@@ -918,7 +918,7 @@ Disassembly of <code object <genexpr> at 0x72446e5605d0, file "/home/mohammad/pr
 ExceptionTable:
   6 to 86 -> 88 [0] lasti
 
-Disassembly of <code object <genexpr> at 0x72446e3306f0, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 257>:
+Disassembly of <code object <genexpr> at 0x72446e3306f0, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 257>:
               0 COPY_FREE_VARS           1
 
 257           2 RETURN_GENERATOR
@@ -950,7 +950,7 @@ ExceptionTable:
   6 to 62 -> 80 [0] lasti
   66 to 78 -> 80 [0] lasti
 
-Disassembly of <code object <genexpr> at 0x72446e31ac30, file "/home/mohammad/project/fitsho/backend/app/workouts/program_engine/engine.py", line 314>:
+Disassembly of <code object <genexpr> at 0x72446e31ac30, file "/home/mohammad/project/fitician/backend/app/workouts/program_engine/engine.py", line 314>:
 314           0 RETURN_GENERATOR
               2 POP_TOP
               4 RESUME                   0

@@ -33,7 +33,7 @@ const plan: WorkoutPlan = {
 
 afterEach(() => vi.restoreAllMocks());
 
-it("reads the active plan through the Fitsho backend", async () => {
+it("reads the active plan through the Fitician backend", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(plan));
 
   await expect(getActiveWorkoutPlan()).resolves.toEqual(plan);
@@ -81,7 +81,7 @@ it("treats only an absent active plan as empty", async () => {
   await expect(getActiveWorkoutPlan()).resolves.toBeNull();
 });
 
-it("requests generation from Fitsho instead of an AI provider", async () => {
+it("requests generation from Fitician instead of an AI provider", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ plan, reused: false }));
 
   await expect(generateWorkoutPlan()).resolves.toEqual({ plan, reused: false });
@@ -120,7 +120,7 @@ it("reads member plan history and a selected immutable version", async () => {
   );
 });
 
-it("downloads a workout plan PDF through Fitsho", async () => {
+it("downloads a workout plan PDF through Fitician", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response("%PDF-test", { headers: { "Content-Type": "application/pdf" } }),
   );
