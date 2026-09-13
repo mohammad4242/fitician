@@ -11,6 +11,7 @@ import {
   deleteProfilePhoto,
   uploadProfilePhoto,
   updateProfile,
+  updateTimezone,
 } from "./api";
 import type { Profile, ProfileInput } from "./types";
 
@@ -46,6 +47,20 @@ const profile: Profile = {
 afterEach(() => vi.restoreAllMocks());
 
 describe("profile api", () => {
+  it("updates only the authenticated profile timezone", async () => {
+    const response = { timezone: "Asia/Tehran" };
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(response));
+
+    await expect(updateTimezone(response.timezone)).resolves.toEqual(response);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/v1/profile/timezone",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify(response),
+      }),
+    );
+  });
+
   it("reads profile status and explicitly selects product mode", async () => {
     const missing = {
       user_id: profile.user_id,

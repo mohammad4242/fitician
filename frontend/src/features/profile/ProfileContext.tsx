@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import { useAuth } from "../auth/AuthContext";
 import { HYDRATED_ACCOUNT_EVENT, HYDRATED_ACCOUNT_KEY } from "../publicOnboarding/onboardingDraft";
 import * as api from "./api";
@@ -42,6 +43,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [productMode, setProductMode] = useState<ProductMode | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const requestGeneration = useRef(0);
+  const timezoneSyncKey = useRef<string | null>(null);
+  const timezone = resolvedIanaTimeZone();
+
+  useEffect(() => {
+    if (userId === null) {
+      timezoneSyncKey.current = null;
+      return;
+    }
+    const syncKey = `${userId}:${timezone}`;
+    if (timezoneSyncKey.current === syncKey) {
+      return;
+    }
+    timezoneSyncKey.current = syncKey;
+    void Promise.resolve()
+      .then(() => api.updateTimezone(timezone))
+      .catch(() => undefined);
+  }, [timezone, userId]);
 
   useEffect(() => {
     const refreshAfterHydration = () => setRetryAttempt((attempt) => attempt + 1);

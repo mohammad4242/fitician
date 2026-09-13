@@ -13,6 +13,10 @@ import {
   recordExerciseReplacement,
   saveCurrentWeeklyCheckIn,
   saveCurrentCompletionFeedback,
+  startWorkoutCycle,
+  completeWorkoutSession,
+  skipWorkoutSession,
+  rescheduleWorkoutSession,
 } from "./api";
 import type { WorkoutPlan } from "./types";
 
@@ -38,6 +42,37 @@ it("reads the active plan through the Fitsho backend", async () => {
     "/api/v1/workout-plans/active",
     expect.objectContaining({ credentials: "include" }),
   );
+});
+
+it("starts a cycle and mutates exact sessions through current-cycle routes", async () => {
+  const cycle = { cycle_id: "cycle-1", workout_plan_id: plan.id };
+  const session = { id: "session-1", status: "scheduled" };
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(jsonResponse(cycle))
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse(session))
+    .mockResolvedValueOnce(jsonResponse(session));
+
+  await expect(startWorkoutCycle({
+    workout_plan_id: plan.id,
+    start_date: "2026-09-13",
+    timezone: "Asia/Tehran",
+  })).resolves.toEqual(cycle);
+  await expect(completeWorkoutSession("session-1")).resolves.toEqual(session);
+  await expect(skipWorkoutSession("session-1")).resolves.toEqual(session);
+  await expect(rescheduleWorkoutSession("session-1", "2026-09-14")).resolves.toEqual(session);
+
+  expect(fetch).toHaveBeenNthCalledWith(1, "/api/v1/workout-cycles/start", expect.objectContaining({
+    method: "POST",
+    body: JSON.stringify({
+      workout_plan_id: plan.id,
+      start_date: "2026-09-13",
+      timezone: "Asia/Tehran",
+    }),
+  }));
+  expect(fetch).toHaveBeenNthCalledWith(2, "/api/v1/workout-cycles/current/sessions/session-1/complete", expect.objectContaining({ method: "POST" }));
+  expect(fetch).toHaveBeenNthCalledWith(3, "/api/v1/workout-cycles/current/sessions/session-1/skip", expect.objectContaining({ method: "POST" }));
+  expect(fetch).toHaveBeenNthCalledWith(4, "/api/v1/workout-cycles/current/sessions/session-1/reschedule", expect.objectContaining({ method: "POST", body: JSON.stringify({ scheduled_date: "2026-09-14" }) }));
 });
 
 it("treats only an absent active plan as empty", async () => {

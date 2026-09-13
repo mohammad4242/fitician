@@ -16,6 +16,7 @@ vi.mock("./api", () => ({
   getProfile: vi.fn(),
   createProfile: vi.fn(),
   updateProfile: vi.fn(),
+  updateTimezone: vi.fn(),
 }));
 
 const user: User = {
@@ -65,6 +66,7 @@ beforeEach(() => {
     product_mode: "training",
     completion_state: "training_ready",
   });
+  vi.mocked(api.updateTimezone).mockResolvedValue({ timezone: "UTC" });
   vi.mocked(useAuth).mockImplementation(() => ({
     user: authUser,
     loading: false,
@@ -137,6 +139,19 @@ it("loads the authenticated user profile", async () => {
   expect(screen.getByText("status:loading")).toBeInTheDocument();
   expect(await screen.findByText("status:ready")).toBeInTheDocument();
   expect(screen.getByText("name:Mohammad")).toBeInTheDocument();
+});
+
+it("best-effort syncs the browser timezone once per authenticated user", async () => {
+  authUser = user;
+  vi.mocked(api.getProfile).mockResolvedValue(profile);
+  renderProfile();
+
+  await screen.findByText("status:ready");
+  await waitFor(() => expect(api.updateTimezone).toHaveBeenCalledTimes(1));
+  expect(api.updateTimezone).toHaveBeenCalledWith(expect.any(String));
+
+  await act(async () => undefined);
+  expect(api.updateTimezone).toHaveBeenCalledTimes(1);
 });
 
 it("marks an authenticated user without a profile as missing", async () => {

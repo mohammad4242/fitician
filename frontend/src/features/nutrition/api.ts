@@ -1,4 +1,5 @@
 import { ApiError, request, requestBlob } from "../../shared/apiClient";
+import type { NutritionPlanStartRequest } from "@fitician/core/program-timeline";
 import type {
   NutritionProfile,
   NutritionProfileInput,
@@ -324,6 +325,16 @@ export async function getLatestWeeklyNutritionPlan(): Promise<WeeklyPlan | null>
 
 export function getWeeklyNutritionPlan(planId: string): Promise<WeeklyPlan> {
   return request(`${nutritionPath}/plans/${planId}`);
+}
+
+export function startNutritionPlan(
+  planId: string,
+  input: NutritionPlanStartRequest,
+): Promise<WeeklyPlan> {
+  return request<WeeklyPlan>(`${nutritionPath}/plans/${encodeURIComponent(planId)}/start`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function downloadNutritionPlanPdf(planId: string): Promise<Blob> {

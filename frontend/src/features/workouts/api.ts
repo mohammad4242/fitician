@@ -7,6 +7,9 @@ import type {
   WorkoutCycleWeeklyCheckIn,
   WorkoutCycleWeeklyCheckInInput,
   WorkoutCycleCurrent,
+  WorkoutCycleSession,
+  WorkoutCycleSessionRescheduleRequest,
+  WorkoutCycleStartRequest,
   WorkoutCycleCompletionFeedbackContext,
   WorkoutCycleCompletionFeedbackInput,
   WorkoutPlan,
@@ -24,6 +27,40 @@ export async function getCurrentWorkoutCycle(): Promise<WorkoutCycleCurrent | nu
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+export function startWorkoutCycle(input: WorkoutCycleStartRequest): Promise<WorkoutCycleCurrent> {
+  return request<WorkoutCycleCurrent>(`${workoutCyclesPath}/start`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function completeWorkoutSession(sessionId: string): Promise<WorkoutCycleSession> {
+  return request<WorkoutCycleSession>(
+    `${workoutCyclesPath}/current/sessions/${encodeURIComponent(sessionId)}/complete`,
+    { method: "POST" },
+  );
+}
+
+export function skipWorkoutSession(sessionId: string): Promise<WorkoutCycleSession> {
+  return request<WorkoutCycleSession>(
+    `${workoutCyclesPath}/current/sessions/${encodeURIComponent(sessionId)}/skip`,
+    { method: "POST" },
+  );
+}
+
+export function rescheduleWorkoutSession(
+  sessionId: string,
+  scheduledDate: WorkoutCycleSessionRescheduleRequest["scheduled_date"],
+): Promise<WorkoutCycleSession> {
+  return request<WorkoutCycleSession>(
+    `${workoutCyclesPath}/current/sessions/${encodeURIComponent(sessionId)}/reschedule`,
+    {
+      method: "POST",
+      body: JSON.stringify({ scheduled_date: scheduledDate }),
+    },
+  );
 }
 
 export async function getActiveWorkoutPlan(): Promise<WorkoutPlan | null> {

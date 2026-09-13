@@ -1,4 +1,5 @@
 import { ApiError, request } from "../../shared/apiClient";
+import type { TimezoneResponse } from "@fitician/core/program-timeline";
 import type {
   ProductMode,
   Profile,
@@ -80,5 +81,12 @@ export function updateProfile(patch: ProfilePatch): Promise<Profile> {
   return request<Profile>(profilePath, {
     method: "PATCH",
     body: JSON.stringify(patch),
+  });
+}
+
+export function updateTimezone(timezone: string): Promise<TimezoneResponse> {
+  return request<TimezoneResponse>(`${profilePath}/timezone`, {
+    method: "PUT",
+    body: JSON.stringify({ timezone }),
   });
 }

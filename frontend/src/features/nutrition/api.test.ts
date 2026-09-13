@@ -7,6 +7,7 @@ import {
   downloadNutritionPlanPdf,
   getCurrentNutritionEstimate,
   getLatestWeeklyNutritionPlan,
+  startNutritionPlan,
   getMealFeedback,
   getMealReplacementOptions,
   getFoodReplacementOptions,
@@ -46,6 +47,23 @@ const nutritionInput = {
 } satisfies NutritionProfileInput;
 
 afterEach(() => vi.restoreAllMocks());
+
+it("starts a nutrition plan with an explicit local date and timezone", async () => {
+  const plan = { id: "plan-1", lifecycle_status: "active", start_date: "2026-09-14" };
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(plan));
+
+  await expect(startNutritionPlan(plan.id, {
+    start_date: plan.start_date,
+    timezone: "Asia/Tehran",
+  })).resolves.toEqual(plan);
+  expect(fetch).toHaveBeenCalledWith(
+    `/api/v1/nutrition/plans/${plan.id}/start`,
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ start_date: plan.start_date, timezone: "Asia/Tehran" }),
+    }),
+  );
+});
 
 it("uses the dedicated safety and nutrition endpoints", async () => {
   const decision = { id: "1", outcome: "standard_automatic" };
