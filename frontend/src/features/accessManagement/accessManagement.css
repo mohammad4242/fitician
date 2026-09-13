@@ -180,6 +180,43 @@
 .access-user-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 800; }
 .access-user-card > a { white-space: nowrap; }
 
+.access-admin-back-link { display: inline-flex; margin-block-end: .8rem; color: var(--fitsho-teal); font-size: .8rem; font-weight: 800; text-decoration: none; }
+.access-admin-back-link:hover { text-decoration: underline; }
+.access-user-detail__header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-block-end: 1rem; }
+.access-user-detail__header h1 { margin: .25rem 0 0; color: var(--fitsho-ink); font-size: clamp(1.4rem, 3vw, 2.2rem); }
+.access-user-detail__header p:last-child { margin: .3rem 0 0; color: var(--fitsho-muted); overflow-wrap: anywhere; }
+.access-user-detail__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .5rem; }
+
+.access-detail-summary { display: grid; gap: .8rem; margin-block-end: 1.2rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 9%), var(--fitsho-surface)); box-shadow: var(--fitsho-shadow-card); }
+.access-detail-summary h2 { margin: 0; color: var(--fitsho-ink); font-size: 1rem; }
+.access-detail-summary__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+.access-detail-summary__grid div { display: grid; gap: .2rem; min-width: 0; }
+.access-detail-summary__grid span { color: var(--fitsho-muted); font-size: .68rem; }
+.access-detail-summary__grid strong { overflow-wrap: anywhere; font-size: .82rem; }
+.access-detail-summary__entitlements { margin: 0; padding-block-start: .65rem; border-block-start: 1px solid var(--fitsho-line); color: var(--fitsho-muted); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .7rem; text-align: start; overflow-wrap: anywhere; }
+
+.access-grants-section { display: grid; gap: .8rem; }
+.access-detail-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.access-detail-section-heading h2 { margin: .2rem 0 0; color: var(--fitsho-ink); font-size: 1.15rem; }
+.access-detail-section-heading > span { color: var(--fitsho-muted); font-size: .78rem; }
+.access-grant-list { display: grid; gap: .7rem; }
+.access-grant-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-grant-card > header { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.access-grant-card h3 { margin: .2rem 0 0; font-size: 1rem; }
+.access-grant-card__status { color: var(--fitsho-teal); font-family: "Sora Variable", sans-serif; font-size: .68rem; font-weight: 850; letter-spacing: .06em; }
+.access-grant-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: 0; }
+.access-grant-card dl div { display: grid; gap: .18rem; min-width: 0; }
+.access-grant-card dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-grant-card dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
+.access-grant-card > button { justify-self: start; }
+.access-action-form { margin-block-start: 1.2rem; }
+.access-action-form > form { display: grid; gap: .9rem; }
+.access-action-form .access-admin-form-grid label:last-child { grid-column: 1 / -1; }
+.access-revoke-form { display: grid; gap: .8rem; }
+.access-revoke-form p { margin: 0; color: var(--fitsho-muted); font-size: .8rem; }
+.access-revoke-form label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 750; }
+.access-revoke-form textarea { min-height: 5rem; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); color: var(--fitsho-ink); font: inherit; resize: vertical; }
+
 .access-campaign-list { display: grid; gap: .75rem; }
 
 .access-campaign-card,
@@ -227,6 +264,10 @@
   .access-campaign-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-user-card { grid-template-columns: 1fr; align-items: start; }
   .access-user-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-user-detail__header { align-items: stretch; flex-direction: column; }
+  .access-user-detail__actions { justify-content: start; }
+  .access-detail-summary__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-grant-card dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 500px) {
