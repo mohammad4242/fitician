@@ -154,6 +154,32 @@
 
 .access-admin-status--error { color: #a13f32; border-color: rgb(161 63 50 / 30%); }
 
+.access-admin-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: .75rem;
+  margin-block-end: 1rem;
+  padding: .85rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-lg);
+  background: rgb(255 255 255 / 55%);
+}
+
+.access-admin-search label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 800; }
+.access-admin-search input { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; }
+.access-admin-search input:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+
+.access-user-list { display: grid; gap: .75rem; }
+.access-user-card { display: grid; grid-template-columns: minmax(12rem, 1.1fr) minmax(0, 2fr) auto; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-user-card h2 { margin: .25rem 0 0; font-size: 1rem; }
+.access-user-card p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .76rem; overflow-wrap: anywhere; }
+.access-user-card__facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin: 0; }
+.access-user-card__facts div { display: grid; gap: .18rem; min-width: 0; }
+.access-user-card__facts dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-user-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 800; }
+.access-user-card > a { white-space: nowrap; }
+
 .access-campaign-list { display: grid; gap: .75rem; }
 
 .access-campaign-card,
@@ -199,9 +225,12 @@
 @media (max-width: 700px) {
   .access-admin-page__header { align-items: stretch; flex-direction: column; }
   .access-campaign-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-user-card { grid-template-columns: 1fr; align-items: start; }
+  .access-user-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 500px) {
+  .access-admin-search { grid-template-columns: 1fr; }
   .access-admin-form-grid { grid-template-columns: 1fr; }
   .access-campaign-card > header { align-items: flex-start; flex-direction: column; }
   .access-campaign-card > footer { flex-wrap: wrap; }
