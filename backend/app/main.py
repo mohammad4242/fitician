@@ -23,6 +23,8 @@ from app.auth.providers import (
     build_sms_provider,
 )
 from app.auth.router import router as auth_router
+from app.billing.exceptions import BillingError
+from app.billing.router import router as billing_router
 from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.router import router as admin_ai_settings_router
 from app.body_analysis.admin_config.service import sync_agent_service_proxy
@@ -243,7 +245,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
         )
 
+    @app.exception_handler(BillingError)
+    async def billing_error_handler(
+        _request: Request,
+        error: BillingError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"detail": {"code": error.code, "message": error.message}},
+        )
+
     app.include_router(auth_router)
+    app.include_router(billing_router)
     app.include_router(entitlements_router)
     app.include_router(account_deletion_router)
     app.include_router(body_photo_router)
