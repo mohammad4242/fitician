@@ -1,6 +1,7 @@
 import { irrToRoundedToman } from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
+import { programTimelineNutritionPresentation } from "../programTimeline/programTimelineModel";
 import type { WeeklyPlan, WeeklyPlanFood } from "./nutritionPlanApi";
 
 export type NutritionPlanSelection = {
@@ -85,22 +86,11 @@ export function getNutritionPlanStatus(
 export function nutritionTimelinePresentation(
   timeline: TimelineNutrition | null | undefined,
 ): NutritionTimelinePresentation {
-  if (timeline === null || timeline === undefined || timeline.state === "no_plan") {
-    return { absoluteDayNumber: null, selectedDayIndex: null, state: "none" };
-  }
-
-  const state = timeline.state === "pending_review"
-    ? "pending_review"
-    : timeline.state === "ready_to_start"
-      ? "ready"
-      : timeline.state === "scheduled_start"
-        ? "scheduled"
-        : "active";
-
+  const presentation = programTimelineNutritionPresentation(timeline);
   return {
-    absoluteDayNumber: timeline.absolute_day_number ?? null,
-    selectedDayIndex: timeline.pattern_day_index ?? null,
-    state,
+    absoluteDayNumber: presentation.absoluteDayNumber,
+    selectedDayIndex: presentation.selectedDayIndex,
+    state: presentation.state,
   };
 }
 

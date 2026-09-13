@@ -5,6 +5,7 @@ import type {
   WorkoutCycleWeeklyCheckInInput,
 } from "./workoutCycleApi";
 import type { TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
+import { programTimelineWorkoutPresentation } from "../programTimeline/programTimelineModel";
 
 export type WorkoutTimelinePresentationState =
   | "completed"
@@ -25,31 +26,7 @@ export type WorkoutTimelinePresentation = {
 export function workoutTimelinePresentation(
   workout: TimelineWorkout,
 ): WorkoutTimelinePresentation {
-  const focusedSession = workout.state === "overdue"
-    ? workout.overdue_session ?? null
-    : workout.state === "completed_today" || workout.state === "workout_today"
-      ? workout.today_session ?? null
-      : null;
-  const state = workout.state === "no_plan"
-    ? "none"
-    : workout.state === "ready_to_start"
-      ? "ready"
-      : workout.state === "scheduled_start"
-        ? "scheduled"
-        : workout.state === "workout_today"
-          ? "today"
-          : workout.state === "overdue"
-            ? "overdue"
-            : workout.state === "rest_day"
-              ? "rest"
-              : workout.state === "legacy_cycle"
-                ? "legacy"
-                : "completed";
-  return {
-    focusedSession,
-    nextSession: workout.next_session ?? null,
-    state,
-  };
+  return programTimelineWorkoutPresentation(workout);
 }
 
 export type WeeklyCheckInForm = {
