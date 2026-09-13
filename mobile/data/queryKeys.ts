@@ -109,6 +109,11 @@ export const bodyAnalysisKeys = {
 export const coachKeys = createResourceQueryKeys("coach");
 export const physicianKeys = createResourceQueryKeys("physician");
 
+export const programTimelineKeys = {
+  all: ["program-timeline"] as const,
+  today: (timezone: string) => ["program-timeline", "today", timezone] as const,
+};
+
 export const featureQueryKeys = {
   auth: authKeys,
   profile: profileKeys,
@@ -118,4 +123,5 @@ export const featureQueryKeys = {
   bodyAnalysis: bodyAnalysisKeys,
   coach: coachKeys,
   physician: physicianKeys,
+  programTimeline: programTimelineKeys,
 } as const;

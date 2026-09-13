@@ -5,6 +5,7 @@ import {
   exerciseKeys,
   featureQueryKeys,
   nutritionKeys,
+  programTimelineKeys,
   profileKeys,
   workoutKeys,
 } from "./queryKeys";
@@ -52,6 +53,12 @@ it("creates hierarchical feature keys for list and detail invalidation", () => {
     "detail",
     "session-1",
   ]);
+  expect(programTimelineKeys.all).toEqual(["program-timeline"]);
+  expect(programTimelineKeys.today("Asia/Tehran")).toEqual([
+    "program-timeline",
+    "today",
+    "Asia/Tehran",
+  ]);
 });
 
 it("exposes the same factories through the feature registry", () => {
@@ -60,4 +67,5 @@ it("exposes the same factories through the feature registry", () => {
   expect(featureQueryKeys.workouts).toBe(workoutKeys);
   expect(featureQueryKeys.nutrition).toBe(nutritionKeys);
   expect(featureQueryKeys.bodyAnalysis).toBe(bodyAnalysisKeys);
+  expect(featureQueryKeys.programTimeline).toBe(programTimelineKeys);
 });
