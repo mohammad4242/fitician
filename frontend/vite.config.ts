@@ -36,6 +36,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,woff,woff2}"],
         globIgnores: [
+          "**/fitician_*_report*.html",
           "**/fitsho_*_report*.html",
           "**/workout_engine_*.html",
           "**/exercises/**",

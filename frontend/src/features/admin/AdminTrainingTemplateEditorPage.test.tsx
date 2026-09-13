@@ -340,7 +340,7 @@ it("resolves library exercise name in accordion header and allows custom overrid
     focus_tags: ["upper_lower"],
     intensity_methods: ["standard"],
     programming_rationale: [],
-    source_name: "Fitsho admin library",
+    source_name: "Fitician admin library",
     source_url: "https://fitsho.local/admin-library",
     days: [
       {
@@ -467,7 +467,7 @@ it("deletes an existing shared template after confirmation", async () => {
     focus_tags: ["full_body"],
     intensity_methods: ["standard"],
     programming_rationale: [],
-    source_name: "Fitsho admin library",
+    source_name: "Fitician admin library",
     source_url: "https://fitsho.local/admin-library",
     days: [],
   });
@@ -508,7 +508,7 @@ it.each([320, 360, 390, 430])(
       focus_tags: ["full_body"],
       intensity_methods: ["standard"],
       programming_rationale: [],
-      source_name: "Fitsho admin library",
+      source_name: "Fitician admin library",
       source_url: "https://fitsho.local/admin-library",
       days: [
         {

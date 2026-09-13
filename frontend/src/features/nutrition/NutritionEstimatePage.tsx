@@ -115,7 +115,7 @@ export function NutritionEstimatePage() {
     setCalculating(true);
     setState("loading");
     void nutritionApi.createNutritionEstimate()
-      .then((result) => {
+      .then(async (result) => {
         setEstimate(result);
         setState("ready");
       })
@@ -171,7 +171,7 @@ export function NutritionEstimatePage() {
     setPlanOutcome(null);
     setFeedbackMessage(null);
     void nutritionApi.createWeeklyNutritionPlan()
-      .then((result) => {
+      .then(async (result) => {
         setPlanOutcome(result);
         const resolvedPlan = result.budget_plan ?? result.plan ?? null;
         if (result.outcome === "success" && resolvedPlan !== null) {
@@ -191,6 +191,7 @@ export function NutritionEstimatePage() {
               }
             })
             .catch(() => {});
+          await refreshTimeline();
         }
       })
       .catch(() => {
@@ -244,6 +245,10 @@ export function NutritionEstimatePage() {
             canManagePlan={canManagePlan}
             entitlementsLoading={entitlementsLoading}
             selectedPlanRole={selectedPlanRole}
+            setBudgetPlan={setBudgetPlan}
+            setIdealPlan={setIdealPlan}
+            setPlan={setPlan}
+            refreshTimeline={refreshTimeline}
           />
         </>
       )}
@@ -273,6 +278,10 @@ function PlanArea({
   canManagePlan,
   entitlementsLoading,
   selectedPlanRole = null,
+  setBudgetPlan,
+  setIdealPlan,
+  setPlan,
+  refreshTimeline,
 }: {
   bundleId?: string | null;
   budgetPlan?: WeeklyPlan | null;
@@ -295,6 +304,10 @@ function PlanArea({
   canManagePlan: boolean;
   entitlementsLoading: boolean;
   selectedPlanRole?: "budget" | "ideal" | null;
+  setBudgetPlan?: (plan: WeeklyPlan | null) => void;
+  setIdealPlan?: (plan: WeeklyPlan | null) => void;
+  setPlan?: (plan: WeeklyPlan | null) => void;
+  refreshTimeline?: () => Promise<void>;
 }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
   const number = new Intl.NumberFormat(language === "en" ? "en-US" : "fa-IR", {
@@ -343,6 +356,11 @@ function PlanArea({
                 language={language}
                 plan={activeBudgetPlan}
                 timeline={timeline}
+                onPlanUpdated={(next) => {
+                  setBudgetPlan?.(next);
+                  setPlan?.(next);
+                  void refreshTimeline?.();
+                }}
                 title={l("برنامه پیشنهادی با بودجه شما", "Recommended Plan with Your Budget")}
               />
             </details>
@@ -359,6 +377,11 @@ function PlanArea({
                 language={language}
                 plan={idealPlan}
                 timeline={timeline}
+                onPlanUpdated={(next) => {
+                  setIdealPlan?.(next);
+                  setPlan?.(next);
+                  void refreshTimeline?.();
+                }}
                 title={l("برنامه ایده‌آل", "Ideal Plan")}
               />
             </details>
@@ -368,6 +391,10 @@ function PlanArea({
             language={language}
             plan={plan}
             timeline={timeline}
+            onPlanUpdated={(next) => {
+              setPlan?.(next);
+              void refreshTimeline?.();
+            }}
             title={plan.plan_role === "ideal" ? l("برنامه ایده‌آل", "Ideal Plan") : (comparison ? l("برنامه پیشنهادی با بودجه شما", "Recommended Plan with Your Budget") : undefined)}
           />
         )}

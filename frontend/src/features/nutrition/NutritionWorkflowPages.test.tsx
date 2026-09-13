@@ -23,8 +23,9 @@ vi.mock("../entitlements/EntitlementContext", () => ({
     quotaFor: () => null,
   }),
 }));
+import { localIsoDate } from "@fitician/core/local-date";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = localIsoDate();
 
 const summary: DailyTrackingSummary = {
   entry_date: today,

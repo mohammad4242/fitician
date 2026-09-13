@@ -143,7 +143,7 @@ const exerciseDetail: ExerciseDetail = {
   media_type: "gif",
   media_source_url: null,
   media_license: "Project owner supplied and authorized",
-  media_attribution: "Provided by Fitsho project owner",
+  media_attribution: "Provided by Fitician project owner",
 };
 
 beforeEach(() => {
