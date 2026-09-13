@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.access_management.service import provision_signup_campaigns
 from app.auth.exceptions import (
     AppleAccountConflictError,
     AuthRateLimitError,
@@ -51,7 +52,6 @@ from app.auth.security import (
     verify_password,
 )
 from app.config import Settings
-from app.entitlements.service import ensure_launch_trial_grant
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +229,7 @@ def register_user(
     db.add(user)
     try:
         db.flush()
-        ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+        provision_signup_campaigns(db, user.id, now=now)
         auth_session, raw_token = _new_session(user, ttl_seconds, now)
         db.add(auth_session)
         db.add(
@@ -303,14 +303,14 @@ def _authenticate_google_user(
                 )
                 db.add(user)
                 db.flush()
-                ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+                provision_signup_campaigns(db, user.id, now=now)
         else:
             if email_user is not None:
                 raise GoogleAccountConflictError
             user = User(google_sub=identity.sub)
             db.add(user)
             db.flush()
-            ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+            provision_signup_campaigns(db, user.id, now=now)
     elif identity.email_verified and normalized_google_email is not None:
         if user.email == normalized_google_email:
             user.email_verified_at = user.email_verified_at or now
@@ -419,14 +419,14 @@ def _authenticate_apple_user(
                 )
                 db.add(user)
                 db.flush()
-                ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+                provision_signup_campaigns(db, user.id, now=now)
         else:
             if email_user is not None:
                 raise AppleAccountConflictError
             user = User(apple_sub=identity.sub)
             db.add(user)
             db.flush()
-            ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+            provision_signup_campaigns(db, user.id, now=now)
     elif identity.email_verified and normalized_apple_email is not None:
         if user.email == normalized_apple_email:
             user.email_verified_at = user.email_verified_at or now
@@ -969,7 +969,7 @@ def _verify_phone_otp_user(
         user = User(phone_number=phone_number)
         db.add(user)
         db.flush()
-        ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
+        provision_signup_campaigns(db, user.id, now=now)
     return user
 
 

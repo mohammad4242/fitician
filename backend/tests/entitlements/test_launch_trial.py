@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.access_management.models import AccessCampaignRedemption
 from app.auth.models import PhoneOtpChallenge, User
-from app.entitlements.models import UserAccessGrant
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PASSWORD = "long password"
@@ -44,10 +44,9 @@ def grant_count(db: Session, user_id) -> int:
     return int(
         db.scalar(
             select(func.count())
-            .select_from(UserAccessGrant)
+            .select_from(AccessCampaignRedemption)
             .where(
-                UserAccessGrant.user_id == user_id,
-                UserAccessGrant.idempotency_key == "launch_trial:v1",
+                AccessCampaignRedemption.user_id == user_id,
             )
         )
         or 0
