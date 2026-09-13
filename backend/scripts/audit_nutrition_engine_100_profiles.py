@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: E501, E402
-"""100-profile randomized audit script against the real Fitsho Nutrition Engine.
+"""100-profile randomized audit script against the real Fitician Nutrition Engine.
 
 Generates deterministic randomized profiles, executes weekly plan generation against
 the real production engine, records structured JSON data, and compiles a comprehensive
@@ -81,7 +81,7 @@ from scripts.run_nutrition_100_profiles_audit import ProfileSpec, generate_100_p
 
 DEFAULT_DB_URL = os.environ.get(
     "NUTRITION_AUDIT_DATABASE_URL",
-    "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_nutrition_audit",
+    "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_nutrition_audit",
 )
 
 # Persian translations
@@ -379,7 +379,7 @@ def run_100_profiles_audit(
         db.execute(delete(NutritionWeeklyPlanNutrient))
         db.execute(delete(NutritionWeeklyPlan))
         db.execute(delete(NutritionPlanGeneration))
-        db.execute(delete(User).where(User.email.like("audit_user_%@fitsho.test")))
+        db.execute(delete(User).where(User.email.like("audit_user_%@fitician.test")))
         db.commit()
 
         foods_raw = db.scalars(select(NutritionCatalogueFood)).all()
@@ -399,11 +399,11 @@ def run_100_profiles_audit(
         ]
 
         for idx, spec in enumerate(profiles, start=1):
-            uid = uuid5(NAMESPACE_URL, f"fitsho-nutrition-audit:{seed}:{spec.index}")
+            uid = uuid5(NAMESPACE_URL, f"fitician-nutrition-audit:{seed}:{spec.index}")
 
             # 1. User
             user = User(
-                id=uid, email=f"audit_user_{spec.index}@fitsho.test", password_hash="audit_hash"
+                id=uid, email=f"audit_user_{spec.index}@fitician.test", password_hash="audit_hash"
             )
             db.add(user)
             db.flush()
@@ -1061,7 +1061,7 @@ def build_audit_summary(records: list[AuditRecordDetail], seed: int) -> dict[str
     sorted_stages = sorted(stage_counts.items(), key=lambda x: x[1], reverse=True)
 
     return {
-        "title": "گزارش ممیزی ۱۰۰ پروفایل موتور تغذیه فیتشو",
+        "title": "گزارش ممیزی ۱۰۰ پروفایل موتور تغذیه فیتیشن",
         "timestamp": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"),
         "git_commit": _get_git_commit(),
         "random_seed": seed,
@@ -1111,7 +1111,7 @@ def generate_persian_html(records: list[AuditRecordDetail], summary: dict[str, A
         size: A4;
         margin: 12mm 10mm 15mm 10mm;
         @bottom-left {
-            content: "ممیزی موتور تغذیه فیتشو | Fitsho Nutrition Engine Audit";
+            content: "ممیزی موتور تغذیه فیتیشن | Fitician Nutrition Engine Audit";
             font-family: 'Vazirmatn', sans-serif;
             font-size: 7.5pt;
             color: #64748b;
@@ -1358,7 +1358,7 @@ def generate_persian_html(records: list[AuditRecordDetail], summary: dict[str, A
         "<html lang='fa' dir='rtl'>",
         "<head>",
         "<meta charset='utf-8'>",
-        "<title>گزارش ممیزی ۱۰۰ پروفایل موتور تغذیه فیتشو</title>",
+        "<title>گزارش ممیزی ۱۰۰ پروفایل موتور تغذیه فیتیشن</title>",
         f"<style>{css}</style>",
         "</head>",
         "<body>",
@@ -1368,7 +1368,7 @@ def generate_persian_html(records: list[AuditRecordDetail], summary: dict[str, A
     html.append("<div class='cover-container'>")
     html.append(f"<div class='cover-title'>{summary['title']}</div>")
     html.append(
-        "<div class='cover-subtitle'>ارزیابی جامع و تصادفی‌سازی‌شده خروجی موتور برنامه‌ریزی تغذیه فیتشو</div>"
+        "<div class='cover-subtitle'>ارزیابی جامع و تصادفی‌سازی‌شده خروجی موتور برنامه‌ریزی تغذیه فیتیشن</div>"
     )
 
     html.append("<div class='meta-box'>")
@@ -1732,13 +1732,13 @@ def main() -> None:
     parser.add_argument(
         "--output-json",
         type=str,
-        default="/home/mohammad/project/fitsho/artifacts/nutrition_engine_100_profiles_audit.json",
+        default="/home/mohammad/project/fitician/artifacts/nutrition_engine_100_profiles_audit.json",
         help="Path for JSON output",
     )
     parser.add_argument(
         "--output-pdf",
         type=str,
-        default="/home/mohammad/project/fitsho/artifacts/nutrition_engine_100_profiles_audit.pdf",
+        default="/home/mohammad/project/fitician/artifacts/nutrition_engine_100_profiles_audit.pdf",
         help="Path for PDF output",
     )
     parser.add_argument(
@@ -1778,7 +1778,7 @@ def main() -> None:
 
     v1 = summary.get("v1_supported_cohort", {})
     print("\n" + "=" * 60)
-    print("FITSHO NUTRITION ENGINE AUDIT COMPLETE")
+    print("FITICIAN NUTRITION ENGINE AUDIT COMPLETE")
     print("=" * 60)
     print(f"Total Profiles Evaluated: {summary['total_profiles']}")
     print(f"Overall Cohort Success: {summary['success_count']} ({summary['success_rate']}%)")

@@ -154,7 +154,7 @@ class ProfileSpec:
 
 
 def generate_200_stratified_profiles(seed: int = 20260901) -> list[ProfileSpec]:
-    """Generates 200 diverse, stratified profiles covering all Fitsho profile options.
+    """Generates 200 diverse, stratified profiles covering all Fitician profile options.
     
     Stratification ensures:
     - Balanced gender distribution (Male, Female)
@@ -674,7 +674,7 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
         size: A4 portrait;
         margin: 10mm 10mm 12mm 10mm;
         @bottom-left {
-            content: "Fitsho Workout Engine - 200 Profile Evaluation Report";
+            content: "Fitician Workout Engine - 200 Profile Evaluation Report";
             font-family: 'Vazirmatn', 'Noto Sans Arabic', sans-serif;
             font-size: 7.5pt;
             color: #64748b;
@@ -902,13 +902,13 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش جامع ۲۰۰ پروفایل موتور برنامه تمرینی Fitsho</title>
+<title>گزارش جامع ۲۰۰ پروفایل موتور برنامه تمرینی Fitician</title>
 {css}
 </head>
 <body>
 
 <div class="header">
-    <h1>گزارش ارزیابی ۲۰۰ پروفایل در موتور تمرینی فیتشو (Fitsho Workout Engine)</h1>
+    <h1>گزارش ارزیابی ۲۰۰ پروفایل در موتور تمرینی فیتیشن (Fitician Workout Engine)</h1>
     <p>بررسی خروجی و علل دقیق عدم ساخت برنامه بر روی ۲۰۰ پروفایل متنوع طبقه‌بندی‌شده | تاریخ ارزیابی: ۲۰۲۶-۰۹-۰۱</p>
 </div>
 
@@ -1093,23 +1093,23 @@ def main() -> None:
         f"{summary['unsupported_negative_cohort']} unsupported excluded."
     )
 
-    os.makedirs("/home/mohammad/project/fitsho/var/reports", exist_ok=True)
-    os.makedirs("/home/mohammad/project/fitsho/reports", exist_ok=True)
+    os.makedirs("/home/mohammad/project/fitician/var/reports", exist_ok=True)
+    os.makedirs("/home/mohammad/project/fitician/reports", exist_ok=True)
 
-    json_path = "/home/mohammad/project/fitsho/var/reports/200_profiles_eval_data.json"
+    json_path = "/home/mohammad/project/fitician/var/reports/200_profiles_eval_data.json"
     write_audit_json(results, json_path)
     print(f"Saved raw evaluation data to {json_path}")
 
     # Build HTML
     print("Building Persian HTML for 200 profiles...")
     html_content = build_pdf_html(results)
-    html_path = "/home/mohammad/project/fitsho/reports/fitsho_200_profiles_eval_report.html"
+    html_path = "/home/mohammad/project/fitician/reports/fitician_200_profiles_eval_report.html"
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     print(f"HTML report saved to {html_path}")
 
     # Render PDF
-    pdf_path = "/home/mohammad/project/fitsho/reports/fitsho_200_profiles_eval_report.pdf"
+    pdf_path = "/home/mohammad/project/fitician/reports/fitician_200_profiles_eval_report.pdf"
     print(f"Rendering PDF with WeasyPrint to {pdf_path} (this will render all 200 profile cards)...")
     weasyprint.HTML(string=html_content).write_pdf(pdf_path)
     size_mb = os.path.getsize(pdf_path) / (1024 * 1024)

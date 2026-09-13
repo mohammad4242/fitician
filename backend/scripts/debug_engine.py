@@ -33,10 +33,10 @@ conn = engine_db.connect()
 db = Session(bind=conn)
 
 service = WorkoutGenerationService(db, settings=WorkoutGenerationSettings(
-    provider_name='fitsho_domain', model_id='program_engine_v1', prompt_version='none',
+    provider_name='fitician_domain', model_id='program_engine_v1', prompt_version='none',
     generation_policy_version='resistance_training_v1', catalog_programming_version='v1',
     max_repair_attempts=0, cooldown_seconds=0, max_candidates=80, max_request_bytes=262144,
-    warmup_minutes=5, deterministic_fallback_enabled=True, generation_method='fitsho_coach'
+    warmup_minutes=5, deterministic_fallback_enabled=True, generation_method='fitician_coach'
 ))
 
 db.begin_nested()

@@ -1297,7 +1297,7 @@ def update_database_from_manifest(
                     assets_updated += 1
                     if asset.source is None:
                         if (
-                            asset.media_attribution == "Provided by Fitsho project owner"
+                            asset.media_attribution in {"Provided by Fitician project owner", "Provided by Fitsho project owner"}
                             and not asset.media_source_url
                             and not old_path.startswith("/media/free-exercise-db/")
                             and not old_path.startswith("/media/owner-video/")
@@ -1461,7 +1461,7 @@ def audit_manifest(
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Safe Fitsho exercise media migration")
+    parser = argparse.ArgumentParser(description="Safe Fitician exercise media migration")
     parser.add_argument("command", choices=("inventory", "migrate", "audit", "rollback"))
     parser.add_argument("--manifest-dir", type=Path, default=Path("var/media-migration"))
     parser.add_argument("--source-root", action="append", type=Path, default=[])

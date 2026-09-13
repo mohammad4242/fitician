@@ -74,7 +74,7 @@ def run_audit(output_path: Path, *, limit: int | None = None) -> dict[str, Any]:
         service = WorkoutGenerationService(
             db,
             settings=WorkoutGenerationSettings(
-                provider_name="fitsho_domain",
+                provider_name="fitician_domain",
                 model_id="program_engine_v1",
                 prompt_version="audit",
                 generation_policy_version="resistance_training_v1",

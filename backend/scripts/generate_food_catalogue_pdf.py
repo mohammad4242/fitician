@@ -1,4 +1,4 @@
-"""Generate a clean, beautiful PDF report of Fitsho food catalogue."""
+"""Generate a clean, beautiful PDF report of Fitician food catalogue."""
 
 from datetime import datetime
 from decimal import Decimal
@@ -140,13 +140,13 @@ def build_html(categories_data: list[tuple[str, tuple[str, str], list]]) -> str:
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>کاتالوگ جامع مواد غذایی فیت‌شو</title>
+<title>کاتالوگ جامع مواد غذایی فیتیشن</title>
 <style>
 @page {{
     size: A4;
     margin: 15mm 13mm 15mm 13mm;
     @bottom-right {{
-        content: "فیت‌شو (Fitsho) — کاتالوگ جامع مواد غذایی";
+        content: "فیتیشن (Fitician) — کاتالوگ جامع مواد غذایی";
         font-family: "Vazirmatn", sans-serif;
         font-size: 8pt;
         color: #839791;
@@ -482,11 +482,11 @@ tr {{
 <div class="hero">
     <div class="hero-top">
         <div class="hero-brand">
-            <span class="brand-badge">فیت‌شو</span>
+            <span class="brand-badge">فیتیشن</span>
             <span class="brand-sub">همراه هوشمند تناسب اندام و تغذیه</span>
         </div>
         <div style="font-size: 8pt; color: #d1fae5; direction: ltr;">
-            Fitsho Nutrition Food Catalogue
+            Fitician Nutrition Food Catalogue
         </div>
     </div>
     <div class="hero-title">کاتالوگ جامع مواد غذایی و ارزش تغذیه‌ای</div>
@@ -515,7 +515,7 @@ tr {{
 </div>
 
 <div class="intro-box">
-    <strong>راهنما:</strong> تمام مقادیر ماکرونوترینت‌ها (کالری، پروتئین، کربوهیدرات، چربی و فیبر) بر حسب ۱۰۰ گرم بخش خوراکی محاسبه شده‌اند. مبنای سنجش («خام»، «خشک» یا «آماده مصرف») مشخص‌کننده شرایط توزین استاندارد ماده غذایی در برنامه‌های تغذیه فیت‌شو است.
+    <strong>راهنما:</strong> تمام مقادیر ماکرونوترینت‌ها (کالری، پروتئین، کربوهیدرات، چربی و فیبر) بر حسب ۱۰۰ گرم بخش خوراکی محاسبه شده‌اند. مبنای سنجش («خام»، «خشک» یا «آماده مصرف») مشخص‌کننده شرایط توزین استاندارد ماده غذایی در برنامه‌های تغذیه فیتیشن است.
 </div>
 
 {body_content}
@@ -547,19 +547,19 @@ def main():
 
     html_content = build_html(categories_data)
 
-    output_pdf_path = Path("/home/mohammad/project/fitsho/backend/var/media/fitsho_food_catalogue.pdf")
+    output_pdf_path = Path("/home/mohammad/project/fitician/backend/var/media/fitician_food_catalogue.pdf")
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating PDF for {len(items)} items across {len(categories_data)} categories...")
     HTML(string=html_content).write_pdf(str(output_pdf_path))
     print(f"Saved PDF to {output_pdf_path} ({output_pdf_path.stat().st_size} bytes)")
 
-    public_path = Path("/home/mohammad/project/fitsho/frontend/public/fitsho_food_catalogue.pdf")
+    public_path = Path("/home/mohammad/project/fitician/frontend/public/fitician_food_catalogue.pdf")
     public_path.parent.mkdir(parents=True, exist_ok=True)
     public_path.write_bytes(output_pdf_path.read_bytes())
     print(f"Copied to {public_path}")
 
-    reports_path = Path("/home/mohammad/project/fitsho/reports/fitsho_food_catalogue.pdf")
+    reports_path = Path("/home/mohammad/project/fitician/reports/fitician_food_catalogue.pdf")
     reports_path.parent.mkdir(parents=True, exist_ok=True)
     reports_path.write_bytes(output_pdf_path.read_bytes())
     print(f"Copied to {reports_path}")

@@ -299,7 +299,7 @@ def build_pdf_html(results_data):
         size: A4 portrait;
         margin: 10mm 12mm 12mm 12mm;
         @bottom-left {
-            content: "Fitsho Smart Workout Engine - 11 Profiles Full Validation Report (2 to 6 Days)";
+            content: "Fitician Smart Workout Engine - 11 Profiles Full Validation Report (2 to 6 Days)";
             font-family: "Vazirmatn", sans-serif;
             font-size: 7.5pt;
             color: #7b918d;
@@ -520,12 +520,12 @@ def build_pdf_html(results_data):
     <html lang="fa" dir="rtl">
     <head>
         <meta charset="UTF-8">
-        <title>گزارش تست جامع موتور برنامه تمرینی فیتشو - ۱۱ کاربر (۲ تا ۶ روزه)</title>
+        <title>گزارش تست جامع موتور برنامه تمرینی فیتیشن - ۱۱ کاربر (۲ تا ۶ روزه)</title>
         <style>{css}</style>
     </head>
     <body>
         <div class="header-box">
-            <div class="header-title">فیتشو — گزارش تست جامع موتور برنامه تمرینی (۱۱ پروفایل ۲ تا ۶ روزه)</div>
+            <div class="header-title">فیتیشن — گزارش تست جامع موتور برنامه تمرینی (۱۱ پروفایل ۲ تا ۶ روزه)</div>
             <div class="header-subtitle">ارزیابی کامل خروجی‌های واقعی موتور هوشمند بر اساس پارامترهای سن، جنسیت، سطح، روزها، هدف، آسیب‌ها و تجهیزات</div>
         </div>
 
@@ -540,7 +540,7 @@ def build_pdf_html(results_data):
             <div class="audit-box">
                 <strong>خلاصه ممیزی فنی سیستم:</strong><br>
                 ۱. <strong>تنوع کامل ساختاری:</strong> آزمون برنامه‌های ۲، ۳، ۴، ۵ و ۶ روزه شامل تقسیم‌های Full Body، Upper/Lower، اسپلیت‌های ۴ روزه عضله‌ای، اسپلیت‌های ۵ روزه و PPL شش‌روزه.<br>
-                ۲. <strong>پایش آسیب‌ها و محدودیت‌ها (Cautions):</strong> بررسی جایگزینی ایمن در آسیب‌های شانه، زانو، کمر، مچ دست و گردن مطابق استانداردهای ایمنی فیتشو.<br>
+                ۲. <strong>پایش آسیب‌ها و محدودیت‌ها (Cautions):</strong> بررسی جایگزینی ایمن در آسیب‌های شانه، زانو، کمر، مچ دست و گردن مطابق استانداردهای ایمنی فیتیشن.<br>
                 ۳. <strong>محیط‌های تمرینی (Location & Equipment):</strong> تست واقعی محیط‌های باشگاه، خانه با دمبل و خانه فقط با وزن بدن.<br>
                 ۴. <strong>تجربه و اهداف:</strong> پوشش کامل ماه اول (First Month)، مبتدی، متوسط و پیشرفته برای اهداف کاهش وزن، افزایش وزن، عضله‌سازی، قدرت و ریکامپوزیشن.
             </div>
@@ -700,7 +700,7 @@ async def main():
         db = Session(bind=conn)
         
         settings = WorkoutGenerationSettings(
-            provider_name='fitsho_domain',
+            provider_name='fitician_domain',
             model_id='program_engine_v1',
             prompt_version='none',
             generation_policy_version='resistance_training_v1',
@@ -711,7 +711,7 @@ async def main():
             max_request_bytes=262144,
             warmup_minutes=5,
             deterministic_fallback_enabled=True,
-            generation_method='fitsho_coach',
+            generation_method='fitician_coach',
         )
         service = WorkoutGenerationService(db, settings=settings)
         
@@ -810,14 +810,14 @@ async def main():
     print("Building Persian HTML document...")
     html_content = build_pdf_html(results)
     
-    os.makedirs("/home/mohammad/project/fitsho/reports", exist_ok=True)
-    html_path = "/home/mohammad/project/fitsho/reports/workout_engine_11_profiles.html"
+    os.makedirs("/home/mohammad/project/fitician/reports", exist_ok=True)
+    html_path = "/home/mohammad/project/fitician/reports/workout_engine_11_profiles.html"
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     print(f"HTML saved to {html_path}")
     
     pdf_paths = [
-        "/home/mohammad/project/fitsho/reports/workout_engine_11_profiles.pdf",
+        "/home/mohammad/project/fitician/reports/workout_engine_11_profiles.pdf",
     ]
     for pdf_path in pdf_paths:
         print(f"Rendering PDF to {pdf_path} using WeasyPrint...")

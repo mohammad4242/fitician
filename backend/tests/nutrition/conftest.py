@@ -16,7 +16,7 @@ from tests.database_lifecycle import (
     upgrade_database,
 )
 
-NUTRITION_AUDIT_DATABASE_NAME = "fitsho_nutrition_audit"
+NUTRITION_AUDIT_DATABASE_NAME = "fitician_nutrition_audit"
 
 
 @pytest.fixture(scope="session", autouse=True)

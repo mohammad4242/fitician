@@ -280,7 +280,7 @@ def build_pdf_html(results_data):
         size: A4 portrait;
         margin: 10mm 12mm 12mm 12mm;
         @bottom-left {
-            content: "Fitsho Smart Workout Engine - Full Validation Report";
+            content: "Fitician Smart Workout Engine - Full Validation Report";
             font-family: "Vazirmatn", sans-serif;
             font-size: 7.5pt;
             color: #7b918d;
@@ -497,14 +497,14 @@ def build_pdf_html(results_data):
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش آزمون موتور تمرینی فیت‌شو</title>
+<title>گزارش آزمون موتور تمرینی فیتیشن</title>
 <style>{css}</style>
 </head>
 <body>
 
 <div class="header-box">
-    <div class="header-title">گزارش آزمون سرتاسری (End-to-End) موتور برنامه‌ریزی تمرین Fitsho</div>
-    <div class="header-subtitle">ارزیابی ۱۰ پروفایل واقعی و متنوع با موتور اصلی، قوانین فیزیولوژیک و پایگاه‌داده حرکات فیت‌شو</div>
+    <div class="header-title">گزارش آزمون سرتاسری (End-to-End) موتور برنامه‌ریزی تمرین Fitician</div>
+    <div class="header-subtitle">ارزیابی ۱۰ پروفایل واقعی و متنوع با موتور اصلی، قوانین فیزیولوژیک و پایگاه‌داده حرکات فیتیشن</div>
 </div>
 
 <div class="summary-card">
@@ -589,7 +589,7 @@ def build_pdf_html(results_data):
                 <thead>
                     <tr>
                         <th class="ex-num">#</th>
-                        <th>نام حرکت (پایگاه داده Fitsho)</th>
+                        <th>نام حرکت (پایگاه داده Fitician)</th>
                         <th>ست × تکرار / زمان</th>
                         <th>استراحت</th>
                         <th>شدت / RIR</th>
@@ -656,14 +656,14 @@ def build_pdf_html(results_data):
     return html
 
 async def main():
-    print("Connecting to database and running real Fitsho workout generation service...")
+    print("Connecting to database and running real Fitician workout generation service...")
     engine = create_engine(get_settings().database_url)
     connection = engine.connect()
     transaction = connection.begin()
     db = Session(bind=connection, join_transaction_mode='create_savepoint')
     
     settings = WorkoutGenerationSettings(
-        provider_name='fitsho_domain',
+        provider_name='fitician_domain',
         model_id='program_engine_v1',
         prompt_version='none',
         generation_policy_version='resistance_training_v1',
@@ -674,7 +674,7 @@ async def main():
         max_request_bytes=262144,
         warmup_minutes=5,
         deterministic_fallback_enabled=True,
-        generation_method='fitsho_coach',
+        generation_method='fitician_coach',
     )
     service = WorkoutGenerationService(db, settings=settings)
     
@@ -780,13 +780,13 @@ async def main():
     print("Building Persian HTML document...")
     html_content = build_pdf_html(results)
     
-    os.makedirs("/home/mohammad/project/fitsho/reports", exist_ok=True)
-    html_path = "/home/mohammad/project/fitsho/reports/workout_engine_10_profiles.html"
+    os.makedirs("/home/mohammad/project/fitician/reports", exist_ok=True)
+    html_path = "/home/mohammad/project/fitician/reports/workout_engine_10_profiles.html"
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     print(f"HTML saved to {html_path}")
     
-    pdf_path = "/home/mohammad/project/fitsho/reports/workout_engine_10_profiles.pdf"
+    pdf_path = "/home/mohammad/project/fitician/reports/workout_engine_10_profiles.pdf"
     print(f"Rendering PDF to {pdf_path} using WeasyPrint...")
     HTML(string=html_content).write_pdf(pdf_path)
     print(f"PDF generated successfully at {pdf_path} (Size: {os.path.getsize(pdf_path)} bytes)")

@@ -1010,7 +1010,7 @@ def analyze_failure(result: Any, request: ProgramGenerationRequest) -> dict[str,
 
 
 def main() -> None:
-    print("Initializing Fitsho 20-Profile Test...")
+    print("Initializing Fitician 20-Profile Test...")
     settings = get_settings()
     engine = create_engine(settings.database_url)
 
@@ -1150,7 +1150,7 @@ def main() -> None:
                 serializable_results.append(r_copy)
             json.dump(serializable_results, f, ensure_ascii=False, indent=2)
 
-        generate_pdf_report(results, "fitsho_20_random_profiles_debug_report.pdf")
+        generate_pdf_report(results, "fitician_20_random_profiles_debug_report.pdf")
 
 
 def generate_pdf_report(results: list[dict[str, Any]], output_pdf_path: str) -> None:
@@ -1185,7 +1185,7 @@ def generate_pdf_report(results: list[dict[str, Any]], output_pdf_path: str) -> 
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش جامع تست و دیباگ موتور برنامه تمرینی Fitsho</title>
+<title>گزارش جامع تست و دیباگ موتور برنامه تمرینی Fitician</title>
 <style>
 @page {{
     size: A4 portrait;
@@ -1197,7 +1197,7 @@ def generate_pdf_report(results: list[dict[str, Any]], output_pdf_path: str) -> 
         color: #64748b;
     }}
     @bottom-left {{
-        content: "Fitsho Deterministic Workout Program Engine - 20 Profile Evaluation";
+        content: "Fitician Deterministic Workout Program Engine - 20 Profile Evaluation";
         font-family: sans-serif;
         font-size: 8pt;
         color: #94a3b8;
@@ -1383,7 +1383,7 @@ tr:nth-child(even) {{
 <body>
 
 <div class="header">
-    <h1>گزارش ارزیابی و دیباگ موتور برنامه تمرینی Fitsho</h1>
+    <h1>گزارش ارزیابی و دیباگ موتور برنامه تمرینی Fitician</h1>
     <p>بررسی عملکرد موتور قطعی (Deterministic Engine) روی {total} پروفایل متنوع و واقعی | تاریخ تست: ۱۴۰۵/۰۶/۰۸ (2026-08-30)</p>
 </div>
 

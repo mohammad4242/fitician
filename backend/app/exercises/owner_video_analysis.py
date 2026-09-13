@@ -250,13 +250,13 @@ def _prompt(
     return (
         "Analyze only the attached representative frames from one exercise video. "
         "Identify the exercise, transcribe visible exercise text, map metadata only to the "
-        "provided Fitsho taxonomy, and conservatively compare against the supplied catalogue. "
+        "provided Fitician taxonomy, and conservatively compare against the supplied catalogue. "
         "Never guess an existing match. Use needs_review when identification or matching is "
         "uncertain. Return only the JSON required by the output schema. Do not inspect or change "
         "files.\n"
         f"Source SHA-256: {prepared.source_id}\n"
         f"Allowed taxonomy: {json.dumps(taxonomy, separators=(',', ':'))}\n"
-        "Active Fitsho exercises: "
+        "Active Fitician exercises: "
         f"{json.dumps(catalogue_payload, ensure_ascii=False, separators=(',', ':'))}"
     )
 

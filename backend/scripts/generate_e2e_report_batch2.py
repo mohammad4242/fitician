@@ -43,7 +43,7 @@ from app.workouts.schemas import (
 from app.workouts.service import WorkoutGenerationService, WorkoutGenerationSettings
 
 _PERSIAN_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
-BATCH2_USER_NAMESPACE = uuid5(NAMESPACE_URL, "fitsho-e2e-workout-engine-batch2")
+BATCH2_USER_NAMESPACE = uuid5(NAMESPACE_URL, "fitician-e2e-workout-engine-batch2")
 
 
 def batch2_user_id(profile_number: int) -> UUID:
@@ -475,7 +475,7 @@ def run_batch2_profiles():
         svc = WorkoutGenerationService(
             session,
             settings=WorkoutGenerationSettings(
-                provider_name="fitsho_domain",
+                provider_name="fitician_domain",
                 model_id="program_engine_v1",
                 prompt_version="none",
                 generation_policy_version="resistance_training_v1",
@@ -486,7 +486,7 @@ def run_batch2_profiles():
                 max_request_bytes=200000,
                 warmup_minutes=5,
                 deterministic_fallback_enabled=True,
-                generation_method="fitsho_coach",
+                generation_method="fitician_coach",
             ),
         )
         refs = load_template_references(session)
@@ -604,7 +604,7 @@ CSS = """
   margin: 10mm 12mm 12mm 12mm;
   @bottom-center {
     content: "صفحه " counter(page) " از " counter(pages) " · گزارش تست سرتاسری موتور "
-             "تمرینی فیت‌شو (سری دوم)";
+             "تمرینی فیتیشن (سری دوم)";
     font-family: "Vazirmatn", "Noto Sans Arabic", "DejaVu Sans", sans-serif;
     font-size: 7.5pt;
     color: #718096;
@@ -1214,14 +1214,14 @@ def generate_html_report(results: list) -> str:
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>گزارش تست سرتاسری موتور تمرینی فیت‌شو - سری دوم</title>
+  <title>گزارش تست سرتاسری موتور تمرینی فیتیشن - سری دوم</title>
   <style>{CSS}</style>
 </head>
 <body>
   <header class="header">
     <div class="logo-title">
       <div>
-        <h1>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیت‌شو (سری دوم)</h1>
+        <h1>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیتیشن (سری دوم)</h1>
         <p class="subtitle">{report_subtitle}</p>
       </div>
     </div>
@@ -1266,11 +1266,11 @@ def generate_html_report(results: list) -> str:
 
 
 def main():
-    out_dir = Path("/home/mohammad/project/fitsho/reports")
+    out_dir = Path("/home/mohammad/project/fitician/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = out_dir / "workout_engine_10_profiles_batch2.pdf"
 
-    print("Running 10 NEW test profiles against the live Fitsho engine...")
+    print("Running 10 NEW test profiles against the live Fitician engine...")
     results = run_batch2_profiles()
 
     print("Building Persian HTML report for Batch 2...")

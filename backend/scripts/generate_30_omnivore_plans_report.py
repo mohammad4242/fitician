@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: E501, E402
-"""Evaluate 30 realistic omnivore profiles against the Fitsho nutrition engine and render a PDF report."""
+"""Evaluate 30 realistic omnivore profiles against the Fitician nutrition engine and render a PDF report."""
 
 from __future__ import annotations
 
@@ -1002,11 +1002,11 @@ def run_evaluation(profiles: list[ProfileDef]) -> list[ProfileEvalResult]:
     engine = create_engine(settings.database_url)
     results: list[ProfileEvalResult] = []
 
-    print(f"Executing Fitsho Nutrition Engine for {len(profiles)} Omnivore profiles...")
+    print(f"Executing Fitician Nutrition Engine for {len(profiles)} Omnivore profiles...")
 
     with Session(engine) as db:
         for spec in profiles:
-            uid = uuid5(NAMESPACE_URL, f"fitsho-omnivore-eval:20260905:{spec.index}")
+            uid = uuid5(NAMESPACE_URL, f"fitician-omnivore-eval:20260905:{spec.index}")
 
             # Clean previous run for this test user safely
             db.execute(delete(NutritionWeeklyPlan).where(NutritionWeeklyPlan.user_id == uid))
@@ -1015,7 +1015,7 @@ def run_evaluation(profiles: list[ProfileDef]) -> list[ProfileEvalResult]:
             db.commit()
 
             # 1. User & Profile
-            u = User(id=uid, email=f"omnivore_eval_{spec.index}@fitsho.test", password_hash="fake")
+            u = User(id=uid, email=f"omnivore_eval_{spec.index}@fitician.test", password_hash="fake")
             db.add(u)
             db.flush()
             grant_package(
@@ -1303,7 +1303,7 @@ def render_pdf_report(results: list[ProfileEvalResult], output_pdf_path: str) ->
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش ارزیابی ۳۰ پروفایل همه‌چیزخوار موتور تغذیه فیتشو</title>
+<title>گزارش ارزیابی ۳۰ پروفایل همه‌چیزخوار موتور تغذیه فیتیشن</title>
 <style>
 @page {
     size: A4 portrait;
@@ -1315,7 +1315,7 @@ def render_pdf_report(results: list[ProfileEvalResult], output_pdf_path: str) ->
         color: #64748b;
     }
     @top-right {
-        content: "Fitsho Nutrition Engine — 30 Omnivore Profiles Evaluation";
+        content: "Fitician Nutrition Engine — 30 Omnivore Profiles Evaluation";
         font-family: 'Vazirmatn', Tahoma, sans-serif;
         font-size: 7.5pt;
         color: #94a3b8;
@@ -1531,7 +1531,7 @@ body {
 <body>
 
 <div class="header-hero">
-    <h1 class="header-title">گزارش جامع ارزیابی ۳۰ پروفایل موتور تغذیه فیتشو (Omnivore)</h1>
+    <h1 class="header-title">گزارش جامع ارزیابی ۳۰ پروفایل موتور تغذیه فیتیشن (Omnivore)</h1>
     <p class="header-subtitle">
         ارزیابی ۱۰۰٪ واقعی و مستقیم موتور برنامه‌ریز تغذیه (بدون داده‌های ساختگی) برای ۳۰ ورزشکار و کاربر همه‌چیزخوار
     </p>
@@ -1609,7 +1609,7 @@ body {
 
 <div class="page-break"></div>
 <h2 style="font-size:14pt; font-weight:800; color:#0f172a; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
-    جزئیات پروفایل‌ها و رژیم غذایی تولید شده توسط موتور فیتشو
+    جزئیات پروفایل‌ها و رژیم غذایی تولید شده توسط موتور فیتیشن
 </h2>
 """
     )
@@ -1675,7 +1675,7 @@ body {
 
             plan_html = f"""
             <div class="plan-section">
-                <div class="plan-title">برنامه غذایی تأیید شده توسط موتور فیتشو (Weekly Meal Plan):</div>
+                <div class="plan-title">برنامه غذایی تأیید شده توسط موتور فیتیشن (Weekly Meal Plan):</div>
                 <div class="plan-metrics">
                     <div class="metric-box">
                         <span class="metric-box-title">انرژی روزانه</span>
@@ -1789,13 +1789,13 @@ body {
 
 def main() -> None:
     results = run_evaluation(PROFILES)
-    out_dir = Path("/home/mohammad/project/fitsho/var/reports")
+    out_dir = Path("/home/mohammad/project/fitician/var/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = str(out_dir / "fitsho_30_omnivore_nutrition_plans.pdf")
+    pdf_path = str(out_dir / "fitician_30_omnivore_nutrition_plans.pdf")
     render_pdf_report(results, pdf_path)
 
     # Also copy to root for easy web serving / access
-    root_pdf_path = "/home/mohammad/project/fitsho/fitsho_30_omnivore_nutrition_plans.pdf"
+    root_pdf_path = "/home/mohammad/project/fitician/fitician_30_omnivore_nutrition_plans.pdf"
     import shutil
 
     shutil.copyfile(pdf_path, root_pdf_path)

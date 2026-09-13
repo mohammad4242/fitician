@@ -155,7 +155,7 @@ class ProfileSpec:
 
 
 def generate_100_diverse_profiles(seed: int = 20260901) -> list[ProfileSpec]:
-    """Generates 100 diverse, realistic profiles covering all Fitsho profile options and constraints."""
+    """Generates 100 diverse, realistic profiles covering all Fitician profile options and constraints."""
     rng = random.Random(seed)
     today = date(2026, 9, 1)
 
@@ -692,7 +692,7 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
         size: A4 portrait;
         margin: 12mm 12mm 14mm 12mm;
         @bottom-left {
-            content: "گزارش آزمون و عیب‌یابی ۱۰۰ پروفایل موتور تمرینی Fitsho";
+            content: "گزارش آزمون و عیب‌یابی ۱۰۰ پروفایل موتور تمرینی Fitician";
             font-family: 'Vazirmatn', sans-serif;
             font-size: 7.5pt;
             color: #557069;
@@ -994,13 +994,13 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش جامع ارزیابی و عیب‌یابی ۱۰۰ پروفایل موتور تمرینی Fitsho</title>
+<title>گزارش جامع ارزیابی و عیب‌یابی ۱۰۰ پروفایل موتور تمرینی Fitician</title>
 <style>{css}</style>
 </head>
 <body>
 
 <div class="header-box">
-    <div class="header-title">گزارش آزمون و عیب‌یابی جامع موتور برنامه‌ریزی تمرین Fitsho</div>
+    <div class="header-title">گزارش آزمون و عیب‌یابی جامع موتور برنامه‌ریزی تمرین Fitician</div>
     <div class="header-subtitle">ارزیابی ۱۰۰ پروفایل متنوع و واقعی، بررسی تفکیک روز و عضلات برنامه‌ها و تحلیل علل دقیق عدم ساخت برنامه | تاریخ: ۱۴۰۵/۰۶/۱۰ (2026-09-01)</div>
 </div>
 
@@ -1010,7 +1010,7 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
         <span class="stat-badge success">برنامه‌های با موفقیت تولیدشده: <strong>{success_count} ({success_rate:.1f}٪)</strong></span>
         <span class="stat-badge error">برنامه‌های رد شده با خطا: <strong>{failure_count} ({(100 - success_rate):.1f}٪)</strong></span>
         <span class="stat-badge">پروفایل‌های خارج از دامنه پشتیبانی: <strong>{unsupported_count}</strong></span>
-        <span class="stat-badge">هدف ارزیابی: <strong>تحلیل عیب‌یابی و تعمیر قوانین موتور فیتشو</strong></span>
+        <span class="stat-badge">هدف ارزیابی: <strong>تحلیل عیب‌یابی و تعمیر قوانین موتور فیتیشن</strong></span>
     </div>
 
     <div class="audit-box">
@@ -1125,7 +1125,7 @@ def build_pdf_html(results: list[dict[str, Any]]) -> str:
                 <thead>
                     <tr>
                         <th class="ex-num">#</th>
-                        <th>نام تمرین (بانک اطلاعاتی فیتشو)</th>
+                        <th>نام تمرین (بانک اطلاعاتی فیتیشن)</th>
                         <th style="width: 80px;">عضله هدف</th>
                         <th style="width: 100px;">ست × تکرار / زمان</th>
                         <th style="width: 60px; text-align: center;">استراحت</th>
@@ -1200,30 +1200,30 @@ def main() -> None:
         f"{summary['unsupported_negative_cohort']} unsupported excluded."
     )
 
-    os.makedirs("/home/mohammad/project/fitsho/var/reports", exist_ok=True)
-    os.makedirs("/home/mohammad/project/fitsho/reports", exist_ok=True)
+    os.makedirs("/home/mohammad/project/fitician/var/reports", exist_ok=True)
+    os.makedirs("/home/mohammad/project/fitician/reports", exist_ok=True)
 
-    json_path = "/home/mohammad/project/fitsho/var/reports/100_profiles_audit_data.json"
+    json_path = "/home/mohammad/project/fitician/var/reports/100_profiles_audit_data.json"
     write_audit_json(results, json_path)
     print(f"Saved raw JSON audit data to {json_path}")
 
     # Build HTML
     print("Building high-fidelity Persian HTML report...")
     html_content = build_pdf_html(results)
-    html_path = "/home/mohammad/project/fitsho/reports/fitsho_100_profiles_audit_report.html"
+    html_path = "/home/mohammad/project/fitician/reports/fitician_100_profiles_audit_report.html"
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     print(f"HTML saved to {html_path}")
 
     # Render PDF
-    pdf_path = "/home/mohammad/project/fitsho/reports/fitsho_100_profiles_audit_report.pdf"
+    pdf_path = "/home/mohammad/project/fitician/reports/fitician_100_profiles_audit_report.pdf"
     print(f"Rendering PDF with WeasyPrint to {pdf_path}...")
     weasyprint.HTML(string=html_content).write_pdf(pdf_path)
     size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
     print(f"PDF generated successfully at {pdf_path} ({size_mb:.2f} MB)")
 
     # Copy to root and public for easy download
-    root_pdf = "/home/mohammad/project/fitsho/fitsho_100_profiles_audit_report.pdf"
+    root_pdf = "/home/mohammad/project/fitician/fitician_100_profiles_audit_report.pdf"
     weasyprint.HTML(string=html_content).write_pdf(root_pdf)
     print(f"PDF also saved to {root_pdf}")
 

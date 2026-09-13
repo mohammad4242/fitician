@@ -257,7 +257,7 @@ def generate_1000_profiles(seed: int = BENCHMARK_SEED) -> list[ProfileSpec]:
     # 1. 35 profiles: BODYWEIGHT_ONLY + INTERMEDIATE (20) / ADVANCED (15)
     # 2. 20 profiles: Unsupported days: FIRST_MONTH 5/6d (8), BEGINNER 5/6d (8), ADVANCED 2d (4)
     # 3. 15 profiles: Expected safety rejections: red flags/uncontrolled (8), pregnancy (7)
-    # The remaining 930 profiles are 100% supported by Fitsho product rules!
+    # The remaining 930 profiles are 100% supported by Fitician product rules!
 
     unsupported_indices = set(rng.sample(range(1, 1001), 70))
     unsupported_type_map: dict[int, str] = {}

@@ -474,7 +474,7 @@ class OpenCodeZenExerciseTranslator:
     def _response_format() -> dict[str, object]:
         return {
             "type": "json_schema",
-            "name": "fitsho_exercise_translations",
+            "name": "fitician_exercise_translations",
             "strict": True,
             "schema": {
                 "type": "object",
@@ -1020,7 +1020,7 @@ class FreeExerciseDbImporter:
         admin_assets = [asset for asset in exercise.media_assets if asset.source == "admin"]
         admin_paths = {asset.media_path for asset in admin_assets}
         admin_primary = exercise.media_path in admin_paths or (
-            exercise.media_attribution == "Provided by Fitsho project owner"
+            exercise.media_attribution in {"Provided by Fitician project owner", "Provided by Fitsho project owner"}
             and exercise.media_path.startswith("/media/exercises/")
         )
         if not admin_primary:

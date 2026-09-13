@@ -9,7 +9,7 @@ from typing import Final, Literal, cast
 PriceCanonicalUnit = Literal["TOMAN_PER_KG", "TOMAN_PER_LITER", "TOMAN_PER_UNIT"]
 
 PRICE_MASS_CONVERSION_VERSION: Final = "price-mass-equivalent-v1"
-PRICE_MASS_CONVERSION_SOURCE_NAME: Final = "Fitsho approved price-mass equivalent baseline"
+PRICE_MASS_CONVERSION_SOURCE_NAME: Final = "Fitician approved price-mass equivalent baseline"
 PRICE_MASS_CONVERSION_SOURCE_REFERENCE: Final = "approved-task-baseline:price-mass-equivalent-v1"
 KG_CONVERSION_METHOD: Final = "canonical_kg"
 NON_KG_CONVERSION_METHOD: Final = "approved_pricing_mass_equivalent"

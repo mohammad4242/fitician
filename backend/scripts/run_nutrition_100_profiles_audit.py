@@ -633,7 +633,7 @@ def run_audit(profiles: list[ProfileSpec], profile_seed: int = 20260903) -> list
     print(f"Starting audit of {len(profiles)} profiles against {DB_URL}...")
 
     with Session(engine) as db:
-        db.execute(delete(User).where(User.email.like("audit_user_%@fitsho.test")))
+        db.execute(delete(User).where(User.email.like("audit_user_%@fitician.test")))
         db.commit()
         foods_raw = db.scalars(select(NutritionCatalogueFood)).all()
         foods_by_id = {str(food.id): food for food in foods_raw}
@@ -647,8 +647,8 @@ def run_audit(profiles: list[ProfileSpec], profile_seed: int = 20260903) -> list
             food_by_slug_or_name[f.name_fa] = f.id
 
         for idx, spec in enumerate(profiles, start=1):
-            uid = uuid5(NAMESPACE_URL, f"fitsho-nutrition-audit:{profile_seed}:{spec.index}")
-            u = User(id=uid, email=f"audit_user_{spec.index}@fitsho.test", password_hash="hash")
+            uid = uuid5(NAMESPACE_URL, f"fitician-nutrition-audit:{profile_seed}:{spec.index}")
+            u = User(id=uid, email=f"audit_user_{spec.index}@fitician.test", password_hash="hash")
             db.add(u)
             db.flush()
             grant_package(
@@ -1196,7 +1196,7 @@ def generate_html(
         size: A4;
         margin: 14mm 12mm 16mm 12mm;
         @bottom-left {
-            content: "Fitsho Nutrition Engine - 100 Profiles Audit Report";
+            content: "Fitician Nutrition Engine - 100 Profiles Audit Report";
             font-family: 'Noto Sans Arabic', 'DejaVu Sans', sans-serif;
             font-size: 7pt;
             color: #64748b;
@@ -1434,7 +1434,7 @@ def generate_html(
         "<html lang='fa' dir='rtl'>",
         "<head>",
         "<meta charset='utf-8'>",
-        "<title>گزارش ممیزی موتور برنامه‌ریزی تغذیه Fitsho</title>",
+        "<title>گزارش ممیزی موتور برنامه‌ریزی تغذیه Fitician</title>",
         f"<style>{css}</style>",
         "</head>",
         "<body>",
@@ -1442,7 +1442,7 @@ def generate_html(
 
     # Cover / Header Banner
     html.append("<div class='header-banner'>")
-    html.append("<h1>گزارش ارزیابی جامع موتور تغذیه Fitsho (Audit ۱۰۰ کاربر)</h1>")
+    html.append("<h1>گزارش ارزیابی جامع موتور تغذیه Fitician (Audit ۱۰۰ کاربر)</h1>")
     html.append("<p>بررسی عملکرد، پایداری، پوشش کاتالوگ، و امکان‌پذیری تولید رژیم غذایی روی ۱۰۰ پروفایل تصادفی ولی واقعی</p>")
     html.append(
         f"<p style='font-size: 8pt; opacity: 0.8; margin-top: 4px;'>"
@@ -1498,7 +1498,7 @@ def generate_html(
     html.append("</tbody></table>")
 
     # Top 5 Architectural Issues
-    html.append("<h2 class='section-title'>۲. مهم‌ترین آسیب‌پذیری‌ها و نقاط ضعف شناسایی‌شده در موتور Fitsho</h2>")
+    html.append("<h2 class='section-title'>۲. مهم‌ترین آسیب‌پذیری‌ها و نقاط ضعف شناسایی‌شده در موتور Fitician</h2>")
     html.append("<ol class='recs-list'>")
     html.append("<li><strong>نبود انعطاف در کاتالوگ برای رژیم‌های غیر گوشتی (گیاه‌خواری و وگان):</strong> تمام ۲۵ برنامه کاتالوگ (ECO, IRN, GYM, FAST, PREM) بر مبنای غذاهای گوشتی و مرغ تدوین شده‌اند. هنگامی که کاربر گیاه‌خوار یا وگان است، این غذاها حذف شده و سیستم به جای انتخاب تمپلیت جایگزین، با خطای کرش کنترل‌نشده <code>Scheduled Meal Catalogue template is unavailable</code> متوقف می‌شود.</li>")
     html.append("<li><strong>عدم تطابق کف هزینه تمپلیت‌ها با بودجه‌های اقتصادی (Budget Infeasibility):</strong> حداقل هزینه هفتگی یک سبد غذایی تولیدشده توسط موتور حدود ۳ تا ۳.۵ میلیون تومان است (معادل ۱۲ تا ۱۵ میلیون تومان در ماه). برای کاربرانی که بودجه ماهانه کمتر از این رقم دارند، موتور قبل از تلاش برای جایگزینی پروتئین‌های ارزان‌تر مستقیماً خطای <code>STRICT_BUDGET_EXCEEDED</code> یا <code>FLEXIBLE_BUDGET_CAP_EXCEEDED</code> می‌دهد.</li>")
@@ -1630,7 +1630,7 @@ def export_json(
     )
     data = {
         "metadata": {
-            "title": "Fitsho Nutrition Generation Audit",
+            "title": "Fitician Nutrition Generation Audit",
             "cohort": summary.get("cohort", "development"),
             "profile_count": len(records),
             "audit_schema_version": AUDIT_SCHEMA_VERSION,
@@ -1699,16 +1699,16 @@ def main() -> None:
     summary["cohort"] = args.cohort
 
     # Output paths
-    reports_dir = Path("/home/mohammad/project/fitsho/reports")
+    reports_dir = Path("/home/mohammad/project/fitician/reports")
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    stem = f"fitsho_nutrition_{args.cohort}_audit"
+    stem = f"fitician_nutrition_{args.cohort}_audit"
     json_path = reports_dir / f"{stem}.json"
     pdf_path = reports_dir / f"{stem}.pdf"
     html_path = reports_dir / f"{stem}.html"
 
     # Also copy to frontend/public for easy access
-    frontend_public = Path("/home/mohammad/project/fitsho/frontend/public")
+    frontend_public = Path("/home/mohammad/project/fitician/frontend/public")
 
     export_json(records, summary, str(json_path), profile_seed=seed)
 
@@ -1721,10 +1721,10 @@ def main() -> None:
     # Copy to frontend/public
     if frontend_public.exists():
         import shutil
-        shutil.copy(pdf_path, frontend_public / "fitsho_nutrition_engine_100_profiles_audit.pdf")
+        shutil.copy(pdf_path, frontend_public / "fitician_nutrition_engine_100_profiles_audit.pdf")
 
     print("\n" + "=" * 60)
-    print(f"FITSHO NUTRITION {args.cohort.upper()} AUDIT SUMMARY")
+    print(f"FITICIAN NUTRITION {args.cohort.upper()} AUDIT SUMMARY")
     print("=" * 60)
     print(f"Total Profiles: {summary['total']}")
     print(f"Success Count: {summary['success_count']}")

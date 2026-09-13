@@ -148,18 +148,18 @@ def main() -> None:
     print(f"\nResult: {successes}/10 succeeded!")
 
     html_content = build_pdf_html(results)
-    pdf_path = "/home/mohammad/project/fitsho/fitsho_10_bodyweight_clean_report.pdf"
+    pdf_path = "/home/mohammad/project/fitician/fitician_10_bodyweight_clean_report.pdf"
     print(f"Rendering PDF to {pdf_path}...")
     weasyprint.HTML(string=html_content).write_pdf(pdf_path)
 
-    shutil.copy2(pdf_path, "/home/mohammad/project/fitsho/frontend/public/fitsho_10_bodyweight_clean_report.pdf")
-    html_path = "/home/mohammad/project/fitsho/frontend/public/fitsho_10_bodyweight_clean_report.html"
+    shutil.copy2(pdf_path, "/home/mohammad/project/fitician/frontend/public/fitician_10_bodyweight_clean_report.pdf")
+    html_path = "/home/mohammad/project/fitician/frontend/public/fitician_10_bodyweight_clean_report.html"
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"Saved PDF to {pdf_path}")
-    print("Available at: http://localhost:8080/fitsho_10_bodyweight_clean_report.pdf")
-    print("Available at: http://localhost:8000/fitsho_10_bodyweight_clean_report.pdf")
+    print("Available at: http://localhost:8080/fitician_10_bodyweight_clean_report.pdf")
+    print("Available at: http://localhost:8000/fitician_10_bodyweight_clean_report.pdf")
 
 
 if __name__ == "__main__":

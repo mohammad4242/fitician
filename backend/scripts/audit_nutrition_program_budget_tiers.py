@@ -20,7 +20,7 @@ from app.nutrition.seed_program_catalogue import seed_program_catalogue
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+    "postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
 )
 
 

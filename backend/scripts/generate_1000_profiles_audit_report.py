@@ -92,8 +92,8 @@ def run_benchmark(max_workers: int = 16) -> tuple[list[ProfileSpec], list[dict[s
     )
 
     # Save inputs before evaluation
-    os.makedirs("/home/mohammad/project/fitsho/artifacts", exist_ok=True)
-    inputs_path = f"/home/mohammad/project/fitsho/artifacts/fitsho_1000_profiles_seed_{BENCHMARK_SEED}.json"
+    os.makedirs("/home/mohammad/project/fitician/artifacts", exist_ok=True)
+    inputs_path = f"/home/mohammad/project/fitician/artifacts/fitician_1000_profiles_seed_{BENCHMARK_SEED}.json"
     with open(inputs_path, "w", encoding="utf-8") as f:
         json.dump([p.to_dict() for p in profiles], f, ensure_ascii=False, indent=2)
     print(f"3. Saved 1000 input profiles BEFORE evaluation to {inputs_path}")
@@ -129,7 +129,7 @@ def run_benchmark(max_workers: int = 16) -> tuple[list[ProfileSpec], list[dict[s
     print(f"   Evaluation complete in {total_time:.1f} seconds.")
 
     # Save results
-    results_path = f"/home/mohammad/project/fitsho/artifacts/fitsho_1000_profiles_results_seed_{BENCHMARK_SEED}.json"
+    results_path = f"/home/mohammad/project/fitician/artifacts/fitician_1000_profiles_results_seed_{BENCHMARK_SEED}.json"
     with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"6. Saved 1000 evaluation results to {results_path}")
@@ -260,7 +260,7 @@ def build_persian_pdf_html(
         size: A4 portrait;
         margin: 10mm 10mm 12mm 10mm;
         @bottom-left {
-            content: "بنچ‌مارک ۱۰۰۰ پروفایل سیستم تمرینی Fitsho (Seed: 20260902)";
+            content: "بنچ‌مارک ۱۰۰۰ پروفایل سیستم تمرینی Fitician (Seed: 20260902)";
             font-family: 'Vazirmatn', sans-serif;
             font-size: 7pt;
             color: #557069;
@@ -600,13 +600,13 @@ def build_persian_pdf_html(
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>گزارش علمی و عینی ارزیابی ۱۰۰۰ پروفایل سیستم تمرینی Fitsho</title>
+<title>گزارش علمی و عینی ارزیابی ۱۰۰۰ پروفایل سیستم تمرینی Fitician</title>
 <style>{css}</style>
 </head>
 <body>
 
 <div class="header-box">
-    <div class="header-title">گزارش علمی و تجدیدپذیر بنچ‌مارک ۱۰۰۰ پروفایل سیستم تمرین Fitsho</div>
+    <div class="header-title">گزارش علمی و تجدیدپذیر بنچ‌مارک ۱۰۰۰ پروفایل سیستم تمرین Fitician</div>
     <div class="header-subtitle">ارزیابی عینی و بدون اریب موتور تمرین با تفکیک مسیرها و جداسازی کوهورت پشتیبانی‌نشده | Seed: {BENCHMARK_SEED} | تاریخ: ۱۴۰۵/۰۶/۱۲</div>
 </div>
 
@@ -640,7 +640,7 @@ def build_persian_pdf_html(
     <div class="audit-box">
         <strong>قواعد تفکیک ریاضی ارزیابی (Ground-Truth Contract):</strong><br>
         • <strong>کاربران پشتیبانی‌شده ({supported_profiles} نفر):</strong> مجموعاً {success_count} نفر با موفقیت برنامه دریافت کردند ({success_rate_supported:.2f}٪) و {failed_count} نفر با خطای واقعی موتور مواجه شدند.<br>
-        • <strong>جداسازی کوهورت پشتیبانی‌نشده ({unsupported_count} نفر):</strong> این {unsupported_count} پروفایل (شامل کاربران سطح متوسط/پیشرفته فقط وزن بدن، روزهای ناسازگار فیزیولوژیک و ارجاع‌های غربالگری ایمنی) طبق قرارداد مصوب فیتشو عمداً خارج از مخرج محاسبه موفقیت قرار گرفته‌اند تا نرخ موفقیت واقعی بدون اریب محاسبه شود.
+        • <strong>جداسازی کوهورت پشتیبانی‌نشده ({unsupported_count} نفر):</strong> این {unsupported_count} پروفایل (شامل کاربران سطح متوسط/پیشرفته فقط وزن بدن، روزهای ناسازگار فیزیولوژیک و ارجاع‌های غربالگری ایمنی) طبق قرارداد مصوب فیتیشن عمداً خارج از مخرج محاسبه موفقیت قرار گرفته‌اند تا نرخ موفقیت واقعی بدون اریب محاسبه شود.
     </div>
 
     <h3 style="font-size: 8.5pt; color: #074e43; margin: 8px 0 4px 0;">۱. تفکیک نتایج بر اساس مسیر تولید برنامه (Generation Route)</h3>
@@ -894,7 +894,7 @@ def build_persian_pdf_html(
                 <thead>
                     <tr>
                         <th class="ex-num">#</th>
-                        <th>نام تمرین (بانک حرکات فیتشو)</th>
+                        <th>نام تمرین (بانک حرکات فیتیشن)</th>
                         <th style="width: 80px;">عضله هدف</th>
                         <th style="width: 100px;">ست × تکرار / زمان</th>
                         <th style="width: 60px; text-align: center;">استراحت</th>
@@ -936,9 +936,9 @@ def build_persian_pdf_html(
             html += f"""
     <div class="unsupported-box">
         <div class="unsupported-desc">
-            <strong>علت عدم پشتیبانی و رد عمدی طبق قرارداد فیتشو:</strong><br>
+            <strong>علت عدم پشتیبانی و رد عمدی طبق قرارداد فیتیشن:</strong><br>
             دسته: <code>{subtype}</code> — {finfo.get('exact_description_fa')}<br>
-            <span style="font-size: 6.8pt; color: #78350f;">(این پروفایل طبق ضوابط محصول فیتشو خارج از محدوده تحت پوشش است و در مخرج نرخ موفقیت لحاظ نمی‌شود)</span>
+            <span style="font-size: 6.8pt; color: #78350f;">(این پروفایل طبق ضوابط محصول فیتیشن خارج از محدوده تحت پوشش است و در مخرج نرخ موفقیت لحاظ نمی‌شود)</span>
         </div>
     </div>
 """
@@ -982,23 +982,23 @@ def main() -> None:
     # Build Persian HTML report
     print("7. Building Persian HTML report with summary and per-profile workout plans...")
     html_content = build_persian_pdf_html(profiles, results, sanity_report)
-    html_path = "/home/mohammad/project/fitsho/reports/fitsho_1000_profiles_audit_report.html"
-    os.makedirs("/home/mohammad/project/fitsho/reports", exist_ok=True)
+    html_path = "/home/mohammad/project/fitician/reports/fitician_1000_profiles_audit_report.html"
+    os.makedirs("/home/mohammad/project/fitician/reports", exist_ok=True)
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     print(f"   HTML saved to {html_path}")
 
     # Render PDF with WeasyPrint
-    pdf_path = "/home/mohammad/project/fitsho/reports/fitsho_1000_profiles_audit_report.pdf"
+    pdf_path = "/home/mohammad/project/fitician/reports/fitician_1000_profiles_audit_report.pdf"
     print(f"8. Rendering Persian PDF with WeasyPrint to {pdf_path} (takes ~1-2 minutes)...")
     weasyprint.HTML(string=html_content).write_pdf(pdf_path)
     size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
     print(f"   PDF generated successfully: {pdf_path} ({size_mb:.2f} MB)")
 
     # Copy to root and public for download
-    root_pdf = "/home/mohammad/project/fitsho/fitsho_1000_profiles_audit_report.pdf"
-    pub_pdf = "/home/mohammad/project/fitsho/frontend/public/fitsho_1000_profiles_audit_report.pdf"
-    pub_html = "/home/mohammad/project/fitsho/frontend/public/fitsho_1000_profiles_audit_report.html"
+    root_pdf = "/home/mohammad/project/fitician/fitician_1000_profiles_audit_report.pdf"
+    pub_pdf = "/home/mohammad/project/fitician/frontend/public/fitician_1000_profiles_audit_report.pdf"
+    pub_html = "/home/mohammad/project/fitician/frontend/public/fitician_1000_profiles_audit_report.html"
 
     shutil.copy2(pdf_path, root_pdf)
     shutil.copy2(pdf_path, pub_pdf)

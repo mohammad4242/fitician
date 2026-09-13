@@ -22,7 +22,7 @@ from app.nutrition.approved_price_snapshot import (
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Validate or apply Fitsho's approved food price snapshot."
+        description="Validate or apply Fitician's approved food price snapshot."
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(

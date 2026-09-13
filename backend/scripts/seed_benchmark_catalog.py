@@ -1,6 +1,6 @@
 """Seed the minimum exercise catalog required by CI benchmark scripts.
 
-The production exercise seed intentionally contains only Fitsho-curated rows.  The
+The production exercise seed intentionally contains only Fitician-curated rows.  The
 canonical training-template catalog references the imported exercise library, so a
 fresh CI database needs deterministic stand-ins for those referenced movements.
 """

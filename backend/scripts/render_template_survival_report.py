@@ -270,7 +270,7 @@ def _duration_operation_aggregate(
 
 def _css() -> str:
     return """
-@page { size: A4 landscape; margin: 12mm 10mm 13mm; @bottom-left { content: "Fitsho Template Survival Audit"; font-size: 7pt; color: #64748b; } @bottom-right { content: "صفحه " counter(page) " از " counter(pages); font-size: 7pt; color: #64748b; } }
+@page { size: A4 landscape; margin: 12mm 10mm 13mm; @bottom-left { content: "Fitician Template Survival Audit"; font-size: 7pt; color: #64748b; } @bottom-right { content: "صفحه " counter(page) " از " counter(pages); font-size: 7pt; color: #64748b; } }
 @font-face { font-family: Noto; src: url(file:///usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf); }
 @font-face { font-family: Noto; src: url(file:///usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf); font-weight: 700; }
 * { box-sizing: border-box; }
@@ -340,7 +340,7 @@ def _render(payload: Mapping[str, object], raw_path: Path) -> str:
         f"<style>{_css()}</style></head><body>",
         "<section class='cover'>",
         "<div class='kicker'>AUDIT DIAGNOSTIC — CURRENT ENGINE</div>",
-        "<h1>گزارش عیب‌یابی بقای Templateهای تمرینی ۴، ۵ و ۶ روزه Fitsho</h1>",
+        "<h1>گزارش عیب‌یابی بقای Templateهای تمرینی ۴، ۵ و ۶ روزه Fitician</h1>",
         "<p>Forced Template Survival + Production Competition Trace</p>",
         "<div class='cards'>",
         f"<div class='card'><div class='metric'>{len(inventory)}</div><div>Template فعال واقعی</div></div>",
@@ -795,22 +795,22 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--raw",
         type=Path,
-        default=Path("../reports/fitsho_4_5_6_day_template_survival_raw.json"),
+        default=Path("../reports/fitician_4_5_6_day_template_survival_raw.json"),
     )
     parser.add_argument(
         "--html",
         type=Path,
-        default=Path("../reports/fitsho_4_5_6_day_template_survival_debug_report.html"),
+        default=Path("../reports/fitician_4_5_6_day_template_survival_debug_report.html"),
     )
     parser.add_argument(
         "--pdf",
         type=Path,
-        default=Path("../reports/fitsho_4_5_6_day_template_survival_debug_report.pdf"),
+        default=Path("../reports/fitician_4_5_6_day_template_survival_debug_report.pdf"),
     )
     parser.add_argument(
         "--summary",
         type=Path,
-        default=Path("../reports/fitsho_4_5_6_day_template_survival_summary.json"),
+        default=Path("../reports/fitician_4_5_6_day_template_survival_summary.json"),
     )
     return parser.parse_args()
 

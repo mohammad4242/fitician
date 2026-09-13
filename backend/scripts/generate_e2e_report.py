@@ -370,7 +370,7 @@ def run_all_profiles():
         svc = WorkoutGenerationService(
             session,
             settings=WorkoutGenerationSettings(
-                provider_name="fitsho_domain",
+                provider_name="fitician_domain",
                 model_id="program_engine_v1",
                 prompt_version="none",
                 generation_policy_version="resistance_training_v1",
@@ -381,7 +381,7 @@ def run_all_profiles():
                 max_request_bytes=200000,
                 warmup_minutes=5,
                 deterministic_fallback_enabled=True,
-                generation_method="fitsho_coach",
+                generation_method="fitician_coach",
             ),
         )
         refs = load_template_references(session)
@@ -497,7 +497,7 @@ CSS = """
   size: A4;
   margin: 10mm 12mm 12mm 12mm;
   @bottom-center {
-    content: "صفحه " counter(page) " از " counter(pages) " · گزارش تست سرتاسری موتور تمرینی فیت‌شو";
+    content: "صفحه " counter(page) " از " counter(pages) " · گزارش تست سرتاسری موتور تمرینی فیتیشن";
     font-family: "Vazirmatn", "Noto Sans Arabic", "DejaVu Sans", sans-serif;
     font-size: 7.5pt;
     color: #718096;
@@ -901,14 +901,14 @@ def render_user_profile_card(p: dict, res: dict, index: int) -> str:
 
         if err_code == "PROGRAM_REJECTED_SAFETY_STATUS":
             err_desc = (
-                "موتور فیت‌شو به دلیل وجود آسیب‌دیدگی متنی ثبت‌نشده (Unstructured Physical Limitations)، "
+                "موتور فیتیشن به دلیل وجود آسیب‌دیدگی متنی ثبت‌نشده (Unstructured Physical Limitations)، "
                 "جهت جلوگیری از آسیب احتمالی، تولید خودکار را مسدود کرده و کاربر را ملزم به بررسی و تایید مربی/پزشک متخصص نموده است."
             )
         elif err_code == "UNSATISFIED_CONSTRAINT":
             if p["num"] == 5:
                 err_desc = (
                     "تضاد قیدهای تجهیزات و ایمنی: کاربر تمرین در خانه بدون وسیله (Bodyweight Only) با آسیب مچ دست دارد. "
-                    "موتور فیت‌شو به دلیل عدم وجود حرکات کافی بدون وزن روی مچ در محیط خانه برای ۳ روز تمرینی، از صدور برنامه ناقص خودداری کرده است."
+                    "موتور فیتیشن به دلیل عدم وجود حرکات کافی بدون وزن روی مچ در محیط خانه برای ۳ روز تمرینی، از صدور برنامه ناقص خودداری کرده است."
                 )
             elif p["num"] == 7:
                 err_desc = (
@@ -1006,14 +1006,14 @@ def generate_html_report(results: list) -> str:
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیت‌شو</title>
+  <title>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیتیشن</title>
   <style>{CSS}</style>
 </head>
 <body>
   <header class="header">
     <div class="logo-title">
       <div>
-        <h1>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیت‌شو (Fitsho)</h1>
+        <h1>گزارش تست سرتاسری موتور تولید برنامه تمرینی فیتیشن (Fitician)</h1>
         <p class="subtitle">آزمون عملکرد، تطبیق قیدها، ایمنی و تخصیص حجم روی ۱۰ پروفایل واقعی و متنوع</p>
       </div>
     </div>
@@ -1052,11 +1052,11 @@ def generate_html_report(results: list) -> str:
 
 
 def main():
-    out_dir = Path("/home/mohammad/project/fitsho/reports")
+    out_dir = Path("/home/mohammad/project/fitician/reports")
     out_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = out_dir / "workout_engine_10_profiles.pdf"
 
-    print("Running 10 test profiles against the live Fitsho engine...")
+    print("Running 10 test profiles against the live Fitician engine...")
     results = run_all_profiles()
 
     print("Building Persian HTML report...")

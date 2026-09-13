@@ -1271,7 +1271,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("../reports/fitsho_4_5_6_day_template_survival_raw.json"),
+        default=Path("../reports/fitician_4_5_6_day_template_survival_raw.json"),
     )
     parser.add_argument("--forced-limit", type=int, default=None)
     return parser.parse_args()

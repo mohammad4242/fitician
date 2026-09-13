@@ -11,7 +11,7 @@ class NoCacheHTTPRequestHandler(SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    root_dir = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '/home/mohammad/project/fitsho'
+    root_dir = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '/home/mohammad/project/fitician'
     os.chdir(root_dir)
     server_address = ('0.0.0.0', port)
     httpd = ThreadingHTTPServer(server_address, NoCacheHTTPRequestHandler)

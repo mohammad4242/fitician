@@ -406,7 +406,7 @@ def seed_base_iranian_food_catalogue(
         food.canonical_unit = "g"
         food.edible_portion = Decimal("1")
         food.source_name = (
-            compositions[0].source_name if compositions else "Fitsho approved vocabulary"
+            compositions[0].source_name if compositions else "Fitician approved vocabulary"
         )
         food.source_reference = (
             compositions[0].source_reference if compositions else USDA_SOURCE_REFERENCE

@@ -202,10 +202,18 @@ def test_all_results_satisfy_sum_1000():
     results_path = (
         Path(__file__).resolve().parents[2]
         / "artifacts"
-        / "fitsho_1000_profiles_results_seed_20260902.json"
+        / "fitician_1000_profiles_results_seed_20260902.json"
     )
     if not results_path.exists():
-        pytest.skip("generated 1000-profile artifact is not part of the default test checkout")
+        legacy_path = (
+            Path(__file__).resolve().parents[2]
+            / "artifacts"
+            / "fitsho_1000_profiles_results_seed_20260902.json"
+        )
+        if legacy_path.exists():
+            results_path = legacy_path
+        else:
+            pytest.skip("generated 1000-profile artifact is not part of the default test checkout")
 
     results = json.loads(results_path.read_text(encoding="utf-8"))
 
