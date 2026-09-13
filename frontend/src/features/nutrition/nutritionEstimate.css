@@ -281,6 +281,13 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan-empty p { max-width: 46rem; color: rgb(234 244 241 / 72%); line-height: 1.85; }
 .weekly-plan-empty small { display: block; margin-block: .75rem 1.2rem; color: #ffd798; }
 .weekly-plan-empty .primary-button { margin-top: 1rem; }
+.nutrition-plan-start-card { width: min(100% - 2rem, 76rem); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; align-items: end; margin: 1rem auto; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid rgb(128 255 232 / 30%); border-radius: var(--fitsho-radius-card); background: linear-gradient(135deg, rgb(80 223 206 / 13%), rgb(3 28 27 / 88%)); box-shadow: var(--fitsho-shadow-focus); }
+.nutrition-plan-start-card__eyebrow { margin: 0 0 .35rem; color: var(--fitsho-aqua); font-size: .78rem; font-weight: 850; }
+.nutrition-plan-start-card h2 { margin: 0 0 .4rem; font-size: clamp(1.35rem, 3vw, 2.25rem); }
+.nutrition-plan-start-card p { max-width: 48rem; margin: 0; color: rgb(234 244 241 / 72%); line-height: 1.7; }
+.nutrition-plan-start-card label { display: grid; gap: .35rem; min-width: 10rem; color: rgb(234 244 241 / 72%); font-size: .82rem; font-weight: 750; }
+.nutrition-plan-start-card input { min-height: 2.8rem; padding: .55rem .7rem; color: var(--fitsho-ink); border: 1px solid rgb(234 244 241 / 22%); border-radius: .75rem; background: var(--fitsho-mist); font: inherit; }
+.nutrition-plan-start-card__error { grid-column: 1 / -1; color: #ffb9ad !important; }
 .weekly-plan { margin-block: 1rem 6rem; }
 .weekly-plan__heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, .65fr); gap: 1rem; align-items: end; }
 .weekly-plan__heading h2 { margin: .35rem 0 0; font-size: clamp(2.2rem, 5vw, 4.8rem); }
@@ -2867,4 +2874,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   font-size: .8rem;
   color: var(--fitsho-muted);
   max-width: 40ch;
+}
+
+@media (max-width: 700px) {
+  .nutrition-plan-start-card { grid-template-columns: 1fr; align-items: stretch; }
+  .nutrition-plan-start-card label, .nutrition-plan-start-card button { width: 100%; }
 }

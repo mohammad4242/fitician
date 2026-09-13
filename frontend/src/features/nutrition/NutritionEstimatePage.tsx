@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+import type { ProgramTimelineToday, TimelineNutrition } from "@fitician/core/program-timeline";
+
 import { AppIcon } from "../../shared/AppIcon";
 import { DualProgressRing } from "../../shared/DualProgressRing";
 import { ProgressRing } from "../../shared/ProgressRing";
@@ -18,6 +21,7 @@ import type {
 import { useSynchronizedProgress } from "./useSynchronizedProgress";
 import { irrToRoundedToman } from "./money";
 import { WeeklyNutritionPlan } from "./WeeklyNutritionPlan";
+import { getProgramTimelineToday } from "../programTimeline/api";
 import "./nutritionEstimate.css";
 
 type ViewState = "loading" | "ready" | "empty" | "error";
@@ -41,6 +45,10 @@ export function NutritionEstimatePage() {
   const [planOutcome, setPlanOutcome] = useState<WeeklyPlanGeneration | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [startingPlan, setStartingPlan] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
+  const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const l = (fa: string, en: string) => language === "en" ? en : fa;
 
@@ -49,13 +57,15 @@ export function NutritionEstimatePage() {
     void Promise.all([
       nutritionApi.getCurrentNutritionEstimate(),
       nutritionApi.getLatestWeeklyNutritionPlan(),
-      nutritionApi.getDailyTracking(new Date().toISOString().slice(0, 10)).catch(() => null),
+      nutritionApi.getDailyTracking(localIsoDate()).catch(() => null),
       nutritionApi.getLatestPlanBundle().catch(() => null),
+      getProgramTimelineToday(deviceTimezone).catch(() => null),
     ])
-      .then(([result, latestPlan, dailyTracking, latestBundle]) => {
+      .then(([result, latestPlan, dailyTracking, latestBundle, currentTimeline]) => {
         if (!active) return;
         setEstimate(result);
         setTracking(dailyTracking);
+        setTimeline(currentTimeline ?? null);
 
         if (
           latestBundle &&
@@ -91,7 +101,15 @@ export function NutritionEstimatePage() {
         if (active) setState("error");
       });
     return () => { active = false; };
-  }, []);
+  }, [deviceTimezone]);
+
+  async function refreshTimeline() {
+    try {
+      setTimeline(await getProgramTimelineToday(deviceTimezone));
+    } catch {
+      // Timeline is a read-model enhancement; existing nutrition content remains usable.
+    }
+  }
 
   function calculate() {
     setCalculating(true);
@@ -116,14 +134,35 @@ export function NutritionEstimatePage() {
         setPlan(resp.plan);
         setFeedbackMessage(
           role === "ideal"
-            ? l("برنامه ایده‌آل برای شما فعال و اجرا شد.", "Ideal plan activated and set as your active plan.")
-            : l("برنامه با بودجه شما فعال و اجرا شد.", "Budget plan activated and set as your active plan.")
+            ? l("برنامه ایده‌آل برای شما انتخاب شد.", "Ideal plan selected.")
+            : l("برنامه با بودجه شما انتخاب شد.", "Budget plan selected.")
         );
+        void refreshTimeline();
       })
       .catch((err) => {
         console.error("Failed to select plan:", err);
       })
       .finally(() => setIsSelectingPlan(false));
+  }
+
+  async function startNutritionPlan(startDate: string) {
+    if (startingPlan || plan === null) return;
+    setStartingPlan(true);
+    setStartError(null);
+    try {
+      const started = await nutritionApi.startNutritionPlan(plan.id, {
+        start_date: startDate,
+        timezone: deviceTimezone,
+      });
+      setPlan(started);
+      if (budgetPlan?.id === started.id) setBudgetPlan(started);
+      if (idealPlan?.id === started.id) setIdealPlan(started);
+      await refreshTimeline();
+    } catch {
+      setStartError(l("شروع برنامه انجام نشد؛ دوباره تلاش کن.", "The nutrition plan could not be started. Try again."));
+    } finally {
+      setStartingPlan(false);
+    }
   }
 
   function generatePlan() {
@@ -181,7 +220,7 @@ export function NutritionEstimatePage() {
       {state === "error" && <section className="nutrition-estimate-state" role="alert"><h2>{l("محاسبه انجام نشد", "Estimate unavailable")}</h2><p>{l("اطلاعات ضروری یا وضعیت ایمنی را در پروفایل بررسی کن.", "Review required profile details and your safety status.")}</p><Link className="secondary-button" to="/profile">{l("رفتن به پروفایل", "Open profile")}</Link></section>}
       {state === "ready" && estimate !== null && (
         <>
-          <EstimateContent estimate={estimate} language={language} onRefresh={calculate} plan={plan} tracking={tracking} />
+          <EstimateContent estimate={estimate} language={language} onRefresh={calculate} plan={plan} timeline={timeline} tracking={tracking} />
           <DoctorSupervision language={language} plan={plan} />
           <PlanArea
             bundleId={bundleId}
@@ -196,6 +235,11 @@ export function NutritionEstimatePage() {
             onSelectPlan={handleSelectPlan}
             outcome={planOutcome}
             plan={plan}
+            timeline={timeline?.nutrition ?? null}
+            localDate={timeline?.local_date ?? localIsoDate()}
+            onStart={startNutritionPlan}
+            startError={startError}
+            starting={startingPlan}
             canGeneratePlan={canGeneratePlan}
             canManagePlan={canManagePlan}
             entitlementsLoading={entitlementsLoading}
@@ -220,6 +264,11 @@ function PlanArea({
   onSelectPlan,
   outcome,
   plan,
+  timeline,
+  localDate,
+  onStart,
+  startError,
+  starting,
   canGeneratePlan,
   canManagePlan,
   entitlementsLoading,
@@ -237,6 +286,11 @@ function PlanArea({
   onSelectPlan?: (role: "budget" | "ideal") => void;
   outcome: WeeklyPlanGeneration | null;
   plan: WeeklyPlan | null;
+  timeline: TimelineNutrition | null;
+  localDate: string;
+  onStart: (startDate: string) => void;
+  startError: string | null;
+  starting: boolean;
   canGeneratePlan: boolean;
   canManagePlan: boolean;
   entitlementsLoading: boolean;
@@ -252,6 +306,15 @@ function PlanArea({
     const activeBudgetPlan = budgetPlan ?? plan;
     return (
       <div className="weekly-plan-area-container">
+        {isNutritionPlanStartable(plan, timeline) && (
+          <NutritionPlanStartCard
+            language={language}
+            localDate={localDate}
+            onStart={onStart}
+            startError={startError}
+            starting={starting}
+          />
+        )}
         {comparison && (
           <PlanComparisonSection
             budgetPlan={activeBudgetPlan}
@@ -279,6 +342,7 @@ function PlanArea({
                 isReferencePlan={selectedPlanRole === "ideal"}
                 language={language}
                 plan={activeBudgetPlan}
+                timeline={timeline}
                 title={l("برنامه پیشنهادی با بودجه شما", "Recommended Plan with Your Budget")}
               />
             </details>
@@ -294,6 +358,7 @@ function PlanArea({
                 isReferencePlan={selectedPlanRole !== "ideal"}
                 language={language}
                 plan={idealPlan}
+                timeline={timeline}
                 title={l("برنامه ایده‌آل", "Ideal Plan")}
               />
             </details>
@@ -302,6 +367,7 @@ function PlanArea({
           <WeeklyNutritionPlan
             language={language}
             plan={plan}
+            timeline={timeline}
             title={plan.plan_role === "ideal" ? l("برنامه ایده‌آل", "Ideal Plan") : (comparison ? l("برنامه پیشنهادی با بودجه شما", "Recommended Plan with Your Budget") : undefined)}
           />
         )}
@@ -346,6 +412,51 @@ function PlanArea({
       <button className="primary-button" disabled={generating || entitlementsLoading || !canGeneratePlan} onClick={onGenerate} type="button">
         {generating ? l("در حال ساخت برنامه…", "Building plan…") : l("ساخت برنامه تغذیه هفتگی", "Build weekly nutrition plan")}
       </button>
+    </section>
+  );
+}
+
+function isNutritionPlanStartable(plan: WeeklyPlan, timeline: TimelineNutrition | null): boolean {
+  if (timeline?.plan_id === plan.id) return timeline.state === "ready_to_start";
+  if (timeline !== null && timeline.plan_id !== null && timeline.plan_id !== undefined) return false;
+  return plan.lifecycle_status === "ready_to_start" || plan.lifecycle_status === "physician_approved";
+}
+
+function NutritionPlanStartCard({
+  language,
+  localDate,
+  onStart,
+  startError,
+  starting,
+}: {
+  language: "fa" | "en";
+  localDate: string;
+  onStart: (startDate: string) => void;
+  startError: string | null;
+  starting: boolean;
+}) {
+  const l = (fa: string, en: string) => language === "en" ? en : fa;
+  const [startDate, setStartDate] = useState(localDate);
+
+  useEffect(() => {
+    setStartDate(localDate);
+  }, [localDate]);
+
+  return (
+    <section className="nutrition-plan-start-card" aria-label={l("شروع برنامه تغذیه", "Start nutrition plan")}>
+      <div>
+        <p className="nutrition-plan-start-card__eyebrow">{l("آماده اجرا", "Ready to follow")}</p>
+        <h2>{l("برنامه تغذیه‌ات آماده شروع است", "Your nutrition plan is ready")}</h2>
+        <p>{l("تاریخ شروع را انتخاب کن تا برنامه هفتگی‌ات از همان روز دنبال شود.", "Choose a start date and your weekly plan will begin from that day.")}</p>
+      </div>
+      <label>
+        <span>{l("تاریخ شروع", "Start date")}</span>
+        <input aria-label={l("تاریخ شروع برنامه تغذیه", "Nutrition plan start date")} type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+      </label>
+      <button className="primary-button" disabled={starting || startDate === ""} onClick={() => onStart(startDate)} type="button" aria-busy={starting}>
+        {starting ? l("در حال شروع…", "Starting…") : l("شروع برنامه تغذیه", "Start nutrition plan")}
+      </button>
+      {startError && <p className="nutrition-plan-start-card__error" role="alert">{startError}</p>}
     </section>
   );
 }
@@ -1315,7 +1426,7 @@ function generationOutcomeMessage(outcome: WeeklyPlanGeneration["outcome"], lang
   return values[outcome][language === "en" ? 1 : 0];
 }
 
-function EstimateContent({ estimate, language, onRefresh, plan, tracking }: { estimate: NutritionEstimate; language: "fa" | "en"; onRefresh: () => void; plan: WeeklyPlan | null; tracking: DailyTrackingSummary | null }) {
+function EstimateContent({ estimate, language, onRefresh, plan, timeline, tracking }: { estimate: NutritionEstimate; language: "fa" | "en"; onRefresh: () => void; plan: WeeklyPlan | null; timeline: ProgramTimelineToday | null; tracking: DailyTrackingSummary | null }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
   const number = new Intl.NumberFormat(language === "en" ? "en-US" : "fa-IR", { maximumFractionDigits: 1 });
   const target = (metric: string) => estimate.targets[metric];
@@ -1323,9 +1434,19 @@ function EstimateContent({ estimate, language, onRefresh, plan, tracking }: { es
   const range = (metric: string) => formatRange(target(metric), number, language);
   const maximum = (metric: string) => formatValue(target(metric)?.maximum, target(metric)?.unit, number, language);
   const confidence = { high: l("اطمینان بالا", "High confidence"), medium: l("اطمینان متوسط", "Medium confidence"), low: l("اطمینان پایین", "Low confidence") }[estimate.confidence];
-  const currentDate = new Date().toISOString().slice(0, 10);
-  const todayPlan = plan?.days.find((day) => day.plan_date === currentDate) ?? plan?.days[0];
-  const energyTarget = todayPlan?.nutrient_totals.energy_kcal ?? target("goal_calories")?.preferred ?? null;
+  const currentDate = timeline?.local_date ?? localIsoDate();
+  const nutritionTimeline = timeline !== null
+    && plan !== null
+    && timeline.nutrition.plan_id === plan.id
+    ? timeline.nutrition
+    : null;
+  const todayPlan = nutritionTimeline?.pattern_day_index !== null && nutritionTimeline?.pattern_day_index !== undefined
+    ? plan?.days.find((day) => day.day_index === nutritionTimeline.pattern_day_index)
+    : plan?.days.find((day) => day.plan_date === currentDate);
+  const energyTarget = nutritionTimeline?.nutrient_totals?.energy_kcal
+    ?? todayPlan?.nutrient_totals.energy_kcal
+    ?? target("goal_calories")?.preferred
+    ?? null;
   const tdeeTarget = target("tdee")?.preferred ?? target("tdee")?.minimum ?? null;
   const bmrTarget = target("bmr")?.preferred ?? target("bmr")?.minimum ?? null;
   const activityTarget = tdeeTarget !== null && bmrTarget !== null ? Math.max(0, tdeeTarget - bmrTarget) : null;

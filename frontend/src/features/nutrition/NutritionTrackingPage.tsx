@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { localIsoDate } from "@fitician/core/local-date";
+
 import { AppIcon } from "../../shared/AppIcon";
 import {
   normalizeImageForUpload,
@@ -16,9 +18,16 @@ import "./nutritionEstimate.css";
 
 type EntryMode = "manual" | "photo" | null;
 
-const today = new Date().toISOString().slice(0, 10);
-const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+const today = localIsoDate();
+const weekAgo = shiftLocalDate(today, -6);
 const foodPhotoPollIntervalMs = 2_500;
+
+function shiftLocalDate(value: string, days: number): string {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return localIsoDate(date);
+}
 
 function isFoodPhotoProcessing(estimate: FoodPhotoEstimate): boolean {
   return estimate.status === "queued" || estimate.status === "analyzing";

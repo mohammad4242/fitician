@@ -1,3 +1,5 @@
+import type { NutritionPlanLifecycleStatus } from "@fitician/core/nutrition";
+
 export type MedicalConditionCode =
   | "controlled_hypertension"
   | "lipid_disorder"
@@ -149,7 +151,7 @@ export type MealFeedbackType =
 export type WeeklyPlan = {
   id: string;
   revision: number;
-  lifecycle_status: string;
+  lifecycle_status: NutritionPlanLifecycleStatus;
   is_user_visible: boolean;
   plan_role?: "budget" | "ideal" | string | null;
   physician_approved: boolean;
@@ -162,6 +164,7 @@ export type WeeklyPlan = {
   physician_change_summary: Array<Record<string, unknown>>;
   supersedes_plan_id: string | null;
   start_date: string;
+  started_at?: string | null;
   planner_policy_version: string;
   planner_version: string;
   scientific_policy_version: string;

@@ -7,6 +7,7 @@ import { ApiError } from "../../shared/apiClient";
 import * as nutritionApi from "./api";
 import { WeeklyNutritionPlan } from "./WeeklyNutritionPlan";
 import type { WeeklyPlan } from "./types";
+import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
 vi.mock("./api");
 const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
@@ -159,6 +160,25 @@ it("keeps an existing plan readable while locking plan mutations without access"
   await openMeal(user);
   expect(screen.getByRole("button", { name: "Liked" })).toBeDisabled();
   expect(nutritionApi.saveMealFeedback).not.toHaveBeenCalled();
+});
+
+it("opens the recurring template day supplied by the nutrition timeline", async () => {
+  const timeline: TimelineNutrition = {
+    state: "active",
+    plan_id: "plan-1",
+    start_date: "2026-09-05",
+    absolute_day_number: 9,
+    pattern_day_index: 1,
+    day_id: null,
+    nutrient_totals: { energy_kcal: 700 },
+  };
+
+  render(<MemoryRouter><WeeklyNutritionPlan language="fa" plan={plan()} timeline={timeline} /></MemoryRouter>);
+
+  const tabs = await screen.findAllByRole("tab");
+  expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+  expect(tabs[0]).toHaveAttribute("aria-selected", "false");
+  expect(screen.getByText("امروز · روز ۹")).toBeInTheDocument();
 });
 
 it("awaits feedback, marks the persisted choice, and switches feedback values", async () => {

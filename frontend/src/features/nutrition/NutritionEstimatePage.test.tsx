@@ -3,13 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+
 import i18n from "../../i18n";
 import * as nutritionApi from "./api";
 import { NutritionEstimatePage } from "./NutritionEstimatePage";
 import { WeeklyNutritionPlan } from "./WeeklyNutritionPlan";
 import type { NutritionEstimate, WeeklyPlan, WeeklyPlanGeneration } from "./types";
+import * as programTimelineApi from "../programTimeline/api";
+import type { ProgramTimelineToday } from "@fitician/core/program-timeline";
 
 vi.mock("./api");
+vi.mock("../programTimeline/api");
 const entitlementAccess = vi.hoisted(() => ({ allowed: true }));
 vi.mock("../entitlements/EntitlementContext", () => ({
   useEntitlements: () => ({
@@ -133,6 +138,7 @@ beforeEach(() => {
   vi.mocked(nutritionApi.getCurrentNutritionEstimate).mockResolvedValue(estimate);
   vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue(null);
   vi.mocked(nutritionApi.getLatestPlanBundle).mockResolvedValue(null);
+  vi.mocked(programTimelineApi.getProgramTimelineToday).mockRejectedValue(new Error("timeline not configured"));
   vi.mocked(nutritionApi.getDailyTracking).mockResolvedValue({
     entry_date: "2026-08-11",
     check_in_status: "not_recorded",
@@ -148,6 +154,24 @@ beforeEach(() => {
     data_status: "sufficient", actual_totals: { energy_kcal: 700 }, entries: [],
   });
 });
+
+const readyNutritionPlan: WeeklyPlan = {
+  ...weeklyPlan,
+  lifecycle_status: "ready_to_start",
+  physician_approved: false,
+  physician_review_required: false,
+  physician_review_status: null,
+  review_status: "not_required",
+};
+
+function nutritionReadyTimeline(): ProgramTimelineToday {
+  return {
+    local_date: localIsoDate(),
+    timezone: resolvedIanaTimeZone(),
+    workout: { state: "no_plan", completed_sessions: 0, total_sessions: 0 },
+    nutrition: { state: "ready_to_start", plan_id: "plan-1", start_date: localIsoDate() },
+  };
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -342,6 +366,28 @@ it("renders doctor supervision as collapsible accordion and reveals its cards wh
   await user.click(screen.getByText("تحت نظر پزشک"));
   expect(accordion).toHaveAttribute("open");
   expect(within(supervision!).getByRole("link", { name: /مکمل‌های من/ })).toBeInTheDocument();
+});
+
+it("shows an explicit nutrition start action and sends the local date and timezone", async () => {
+  await i18n.changeLanguage("fa");
+  vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue(readyNutritionPlan);
+  vi.mocked(programTimelineApi.getProgramTimelineToday).mockResolvedValue(nutritionReadyTimeline());
+  vi.mocked(nutritionApi.startNutritionPlan).mockResolvedValue({
+    ...readyNutritionPlan,
+    lifecycle_status: "active",
+    start_date: localIsoDate(),
+    started_at: "2026-09-13T12:00:00Z",
+  });
+
+  render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
+  const user = userEvent.setup();
+
+  await user.click(await screen.findByRole("button", { name: "شروع برنامه تغذیه" }));
+
+  await waitFor(() => expect(nutritionApi.startNutritionPlan).toHaveBeenCalledWith("plan-1", {
+    start_date: localIsoDate(),
+    timezone: resolvedIanaTimeZone(),
+  }));
 });
 
 it("keeps the red pending status for a plan awaiting physician approval", async () => {
@@ -636,7 +682,7 @@ it("shows four Free Meal macro inputs and adds the saved intake to the actual da
 
   await screen.findByRole("heading", { name: "برنامه غذایی تو" });
   await openWeeklyPlan(user);
-  expect(await screen.findAllByText("وعده آزاد")).toHaveLength(2);
+  expect(await screen.findAllByText("وعده آزاد")).toHaveLength(1);
   await user.click(screen.getAllByText("وعده آزاد")[0]!.closest("summary")!);
   expect(screen.getByText(/لطفاً جهت محاسبه کالری روزانه/)).toBeInTheDocument();
   await user.type(screen.getByRole("spinbutton", { name: "کالری" }), "700");
@@ -1108,7 +1154,7 @@ it("allows selecting between budget and ideal plan in bundle and persists choice
   expect(nutritionApi.selectBundlePlan).toHaveBeenCalledWith("bundle-uuid-1", {
     selected_plan_role: "ideal",
   });
-  expect(await screen.findByText("برنامه ایده‌آل برای شما فعال و اجرا شد.")).toBeInTheDocument();
+  expect(await screen.findByText("برنامه ایده‌آل برای شما انتخاب شد.")).toBeInTheDocument();
   expect(screen.queryByText(/دو نسخه برنامه برای شما آماده شده است/)).not.toBeInTheDocument();
 });
 
@@ -1167,7 +1213,7 @@ it("restores unselected bundle on mount and allows selecting ideal plan", async 
   expect(nutritionApi.selectBundlePlan).toHaveBeenCalledWith("bundle-restore-id", {
     selected_plan_role: "ideal",
   });
-  expect(await screen.findByText("برنامه ایده‌آل برای شما فعال و اجرا شد.")).toBeInTheDocument();
+  expect(await screen.findByText("برنامه ایده‌آل برای شما انتخاب شد.")).toBeInTheDocument();
   expect(screen.queryByText(/دو نسخه برنامه برای شما آماده شده است/)).not.toBeInTheDocument();
 });
 

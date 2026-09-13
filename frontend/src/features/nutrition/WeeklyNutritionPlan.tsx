@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import type { TimelineNutrition } from "@fitician/core/program-timeline";
+
 import { ApiError } from "../../shared/apiClient";
 import { AppIcon } from "../../shared/AppIcon";
 import { MealThumbnail } from "../../shared/MealThumbnail";
@@ -13,6 +15,7 @@ type Props = {
   plan: WeeklyPlan;
   language: "fa" | "en";
   isReferencePlan?: boolean;
+  timeline?: TimelineNutrition | null;
   title?: string;
 };
 
@@ -29,11 +32,18 @@ type ReplacementSelector =
   | { kind: "meal"; mealId: string; options: api.MealReplacementOption[] | null; selectedId: string | null }
   | { kind: "food"; mealId: string; targetFoodId: string | null; options: api.FoodReplacementOption[] | null; selectedId: string | null };
 
-export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, title }: Props) {
+function initialDayIndex(plan: WeeklyPlan, timeline: TimelineNutrition | null): number {
+  const patternDay = timeline?.plan_id === plan.id ? timeline.pattern_day_index : null;
+  if (patternDay === null || patternDay === undefined) return 0;
+  const matchingIndex = plan.days.findIndex((day) => day.day_index === patternDay);
+  return matchingIndex >= 0 ? matchingIndex : 0;
+}
+
+export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, timeline = null, title }: Props) {
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const canManagePlan = hasEntitlement("nutrition.plan.manage");
   const planActionsReady = !entitlementsLoading && canManagePlan;
-  const [selectedDay, setSelectedDay] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(() => initialDayIndex(plan, timeline));
   const [currentPlan, setCurrentPlan] = useState(plan);
   const [shopping, setShopping] = useState<ShoppingList | null>(null);
   const [history, setHistory] = useState<WeeklyPlanHistoryItem[]>([]);
@@ -45,6 +55,9 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   useEffect(() => { setCurrentPlan(plan); }, [plan]);
+  useEffect(() => {
+    setSelectedDay(initialDayIndex(plan, timeline));
+  }, [plan.id, plan.start_date, timeline?.plan_id, timeline?.start_date]); // eslint-disable-line react-hooks/exhaustive-deps -- preserve manual day browsing
   useEffect(() => {
     if (isReferencePlan) return;
     void Promise.all([
@@ -79,7 +92,8 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
   const number = new Intl.NumberFormat(language === "en" ? "en-US" : "fa-IR", {
     maximumFractionDigits: 1,
   });
-  const day = currentPlan.days[selectedDay] ?? currentPlan.days[0];
+  const timelineForPlan = timeline?.plan_id === currentPlan.id ? timeline : null;
+  const day = currentPlan.days[selectedDay];
   const reviewRequired = currentPlan.physician_review_required === true;
   const reviewApproved = reviewRequired && currentPlan.physician_approved;
   const statusClass = !reviewRequired ? "is-not-required" : reviewApproved ? "is-approved" : "is-pending";
@@ -189,7 +203,11 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
   async function regenerateDay() {
     if (!planActionsReady) return;
     setBusyAction({ mealId: "regenerate", action: "regenerate" }); setActionError(null);
-    try { setCurrentPlan(await api.partialRegeneratePlan(currentPlan.id, [selectedDay])); setSelectedDay(0); }
+    try {
+      const updatedPlan = await api.partialRegeneratePlan(currentPlan.id, [selectedDay]);
+      setCurrentPlan(updatedPlan);
+      setSelectedDay((current) => Math.min(current, Math.max(updatedPlan.days.length - 1, 0)));
+    }
     catch (error: unknown) { runError(error); } finally { setBusyAction(null); }
   }
 
@@ -322,14 +340,14 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
             role="tab"
             type="button"
           >
-            <span>{language === "en" ? weekdayEn[index] : weekdayFa[index]}</span>
+            <span>{language === "en" ? weekdayEn[item.day_index] : weekdayFa[item.day_index]}</span>
             <small>{new Intl.DateTimeFormat(language === "en" ? "en-US" : "fa-IR", { day: "numeric", month: "short" }).format(new Date(`${item.plan_date}T12:00:00`))}</small>
           </button>
         ))}
       </div>
 
       {day && (
-        <><div className="weekly-plan__daily-summary"><strong>{l("جمع روز", "Daily total")}: {number.format(day.nutrient_totals.energy_kcal ?? 0)} {l("کیلوکالری", "kcal")}</strong><span>{number.format(irrToRoundedToman(day.cost_irr))} {l("تومان", "Toman")}</span><span>{l("پروتئین", "Protein")}: {number.format(day.nutrient_totals.protein_g ?? 0)} g</span><span>{l("کربوهیدرات", "Carbohydrate")}: {number.format(day.nutrient_totals.carbohydrate_g ?? 0)} g</span></div>{!isReferencePlan && <div className="weekly-plan__day-actions"><button disabled={!planActionsReady || isBusy("regenerate", "regenerate") || day.meals.every((meal) => meal.is_locked)} type="button" onClick={() => void regenerateDay()}>{l("بازسازی وعده‌های باز این روز", "Regenerate unlocked meals for this day")}</button></div>}<div className="weekly-plan__meals" role="tabpanel">
+        <><div className="weekly-plan__daily-summary">{timelineForPlan?.pattern_day_index === day.day_index && timelineForPlan.absolute_day_number != null && <strong>{l(`امروز · روز ${new Intl.NumberFormat("fa-IR").format(timelineForPlan.absolute_day_number)}`, `Today · Day ${timelineForPlan.absolute_day_number}`)}</strong>}<strong>{l("جمع روز", "Daily total")}: {number.format(day.nutrient_totals.energy_kcal ?? 0)} {l("کیلوکالری", "kcal")}</strong><span>{number.format(irrToRoundedToman(day.cost_irr))} {l("تومان", "Toman")}</span><span>{l("پروتئین", "Protein")}: {number.format(day.nutrient_totals.protein_g ?? 0)} g</span><span>{l("کربوهیدرات", "Carbohydrate")}: {number.format(day.nutrient_totals.carbohydrate_g ?? 0)} g</span></div>{!isReferencePlan && <div className="weekly-plan__day-actions"><button disabled={!planActionsReady || isBusy("regenerate", "regenerate") || day.meals.every((meal) => meal.is_locked)} type="button" onClick={() => void regenerateDay()}>{l("بازسازی وعده‌های باز این روز", "Regenerate unlocked meals for this day")}</button></div>}<div className="weekly-plan__meals" role="tabpanel">
           {day.meals.map((meal) => (
             meal.slot_role === "free_meal" ? <FreeMealCard key={meal.id} meal={meal} entryDate={day.plan_date} language={language} /> : <details className="weekly-plan__meal" key={meal.id}>
               <summary className="weekly-plan__meal-summary">
