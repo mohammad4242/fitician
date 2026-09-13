@@ -1,10 +1,19 @@
+from datetime import date
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from fastapi.testclient import TestClient
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.nutrition.enums import NutritionPlanLifecycleStatus
 from app.workout_cycles.models import WorkoutCycle
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutPlan
+from tests.nutrition.test_bundle_selection import _seed_test_bundle
 
 
 def test_program_timeline_schema_has_required_columns_and_constraints(db: Session) -> None:
@@ -89,3 +98,43 @@ def test_migration_does_not_fabricate_sessions_for_legacy_cycles(db: Session) ->
     )
 
     assert session_count == 0
+
+
+def test_previous_nutrition_handoff_downgrade_preserves_effective_plan(
+    client: TestClient, db: Session
+) -> None:
+    _, bundle, current_plan, future_plan = _seed_test_bundle(client, db)
+    current_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    current_plan.start_date = date(2026, 9, 1)
+    future_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    future_plan.start_date = date(2026, 9, 20)
+    bundle.selected_plan_id = future_plan.id
+    db.flush()
+
+    path = (
+        Path(__file__).parents[2]
+        / "alembic/versions/20260914_152_allow_scheduled_nutrition_handoffs.py"
+    )
+    spec = spec_from_file_location("nutrition_handoff_migration", path)
+    assert spec is not None and spec.loader is not None
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    migration.op = Operations(MigrationContext.configure(db.connection()))
+
+    migration.downgrade()
+
+    active_plans = db.scalars(
+        text(
+            "SELECT id FROM nutrition_weekly_plans "
+            "WHERE user_id = :user_id AND lifecycle_status = 'active'"
+        ),
+        {"user_id": current_plan.user_id},
+    ).all()
+    assert active_plans == [current_plan.id]
+    assert db.scalar(
+        text("SELECT lifecycle_status FROM nutrition_weekly_plans WHERE id = :id"),
+        {"id": future_plan.id},
+    ) == "archived"
+
+    migration.op = Operations(MigrationContext.configure(db.connection()))
+    migration.upgrade()
