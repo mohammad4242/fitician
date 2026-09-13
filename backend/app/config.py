@@ -59,11 +59,11 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     password_reset_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     email_verification_ttl_seconds: int = Field(default=86400, ge=300, le=604800)
-    sms_provider: Literal["fake", "ippanel"] = "fake"
-    ippanel_api_key: SecretStr | None = Field(default=None, repr=False)
-    ippanel_base_url: str = "https://edge.ippanel.com/v1/api"
-    ippanel_from_number: str | None = None
-    ippanel_pattern_code: str | None = None
+    sms_provider: Literal["fake", "farazsms"] = "fake"
+    farazsms_api_key: SecretStr | None = Field(default=None, repr=False)
+    farazsms_base_url: str = "https://api.iranpayamak.com/ws/v1"
+    farazsms_from_number: str | None = None
+    farazsms_pattern_code: str | None = None
     sms_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
     phone_otp_hmac_secret: SecretStr = Field(
         default=SecretStr("fitsho-local-phone-otp-secret-change-me"), repr=False
@@ -271,15 +271,15 @@ class Settings(BaseSettings):
         if self.email_provider != "smtp" or not self.smtp_host or not self.smtp_from_address:
             raise ValueError("Production requires a configured SMTP email provider")
         if (
-            self.sms_provider != "ippanel"
-            or self.ippanel_api_key is None
-            or not self.ippanel_api_key.get_secret_value().strip()
+            self.sms_provider != "farazsms"
+            or self.farazsms_api_key is None
+            or not self.farazsms_api_key.get_secret_value().strip()
         ):
-            raise ValueError("Production requires a configured IPPanel SMS provider")
-        if not self.ippanel_from_number or not self.ippanel_from_number.strip():
-            raise ValueError("Production requires an IPPanel sender number")
-        if not self.ippanel_pattern_code or not self.ippanel_pattern_code.strip():
-            raise ValueError("Production requires an IPPanel pattern code")
+            raise ValueError("Production requires a configured Faraz SMS provider")
+        if not self.farazsms_from_number or not self.farazsms_from_number.strip():
+            raise ValueError("Production requires a Faraz SMS sender number")
+        if not self.farazsms_pattern_code or not self.farazsms_pattern_code.strip():
+            raise ValueError("Production requires a Faraz SMS pattern code")
         if not self.google_client_id:
             raise ValueError("Production requires a Google client ID")
         if not self.apple_client_id:

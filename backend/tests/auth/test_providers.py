@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from app.auth import providers
-from app.auth.providers import IPPanelSmsProvider, SmtpEmailProvider
+from app.auth.providers import FarazSmsProvider, SmtpEmailProvider
 from app.config import Settings
 
 
@@ -39,8 +39,12 @@ class FakeHttpClient:
         type(self).request_headers = headers
         type(self).request_json = json
         return httpx.Response(
-            204,
-            content=b"",
+            201,
+            json={
+                "status": "success",
+                "data": 0,
+                "messages": "sent",
+            },
             request=httpx.Request("POST", url),
         )
 
@@ -57,8 +61,12 @@ class ApplicationFailureHttpClient(FakeHttpClient):
         type(self).request_headers = headers
         type(self).request_json = json
         return httpx.Response(
-            200,
-            json={"meta": {"status": False}},
+            201,
+            json={
+                "status": "failed",
+                "data": 1,
+                "messages": "failed test-api-key 123456",
+            },
             request=httpx.Request("POST", url),
         )
 
@@ -95,87 +103,91 @@ class NetworkFailureHttpClient(FakeHttpClient):
         )
 
 
-def test_ippanel_provider_uses_pattern_contract_with_empty_success_body(
+def test_faraz_sms_provider_sends_pattern_request_and_converts_e164_recipient(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(httpx, "Client", FakeHttpClient)
-    provider = IPPanelSmsProvider(
+    provider = FarazSmsProvider(
         Settings(
-            sms_provider="ippanel",
-            ippanel_api_key="test-api-key",
-            ippanel_base_url="https://edge.ippanel.com/v1/api",
-            ippanel_from_number="+983000505",
-            ippanel_pattern_code="test-pattern-code",
+            sms_provider="farazsms",
+            farazsms_api_key="test-api-key",
+            farazsms_base_url="https://api.iranpayamak.com/ws/v1",
+            farazsms_from_number="50002178584000",
+            farazsms_pattern_code="SJ3FgPrE0C",
         )
     )
 
     provider.send_login_otp("+989123456789", "123456")
 
-    assert FakeHttpClient.request_url == "https://edge.ippanel.com/v1/api/send"
+    assert FakeHttpClient.request_url == "https://api.iranpayamak.com/ws/v1/sms/pattern"
     assert FakeHttpClient.request_headers == {
-        "Authorization": "test-api-key",
+        "Accept": "application/json",
         "Content-Type": "application/json",
+        "Api-Key": "test-api-key",
     }
     assert FakeHttpClient.request_json == {
-        "sending_type": "pattern",
-        "from_number": "+983000505",
-        "code": "test-pattern-code",
-        "recipients": ["+989123456789"],
-        "params": {"code": "123456"},
+        "code": "SJ3FgPrE0C",
+        "attributes": {"code": "123456"},
+        "recipient": "09123456789",
+        "line_number": "50002178584000",
+        "number_format": "english",
     }
 
 
-def test_ippanel_provider_rejects_application_level_delivery_failure(
+def test_faraz_sms_provider_rejects_application_level_delivery_failure_without_secrets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(httpx, "Client", ApplicationFailureHttpClient)
-    provider = IPPanelSmsProvider(
+    provider = FarazSmsProvider(
         Settings(
-            sms_provider="ippanel",
-            ippanel_api_key="test-api-key",
-            ippanel_from_number="+983000505",
-            ippanel_pattern_code="test-pattern-code",
+            sms_provider="farazsms",
+            farazsms_api_key="test-api-key",
+            farazsms_from_number="50002178584000",
+            farazsms_pattern_code="SJ3FgPrE0C",
         )
     )
 
-    with pytest.raises(RuntimeError, match=r"\AIPPanel delivery failed\Z"):
+    with pytest.raises(RuntimeError) as exc_info:
         provider.send_login_otp("+989123456789", "123456")
+    assert str(exc_info.value) == "Faraz SMS delivery failed"
+    assert "test-api-key" not in str(exc_info.value)
+    assert "123456" not in str(exc_info.value)
 
 
 @pytest.mark.parametrize("client_class", [HttpFailureHttpClient, NetworkFailureHttpClient])
-def test_ippanel_provider_maps_http_and_network_failures(
+def test_faraz_sms_provider_maps_http_and_network_failures(
     monkeypatch: pytest.MonkeyPatch,
     client_class: type[FakeHttpClient],
 ) -> None:
     monkeypatch.setattr(httpx, "Client", client_class)
-    provider = IPPanelSmsProvider(
+    provider = FarazSmsProvider(
         Settings(
-            sms_provider="ippanel",
-            ippanel_api_key="test-api-key",
-            ippanel_from_number="+983000505",
-            ippanel_pattern_code="test-pattern-code",
+            sms_provider="farazsms",
+            farazsms_api_key="test-api-key",
+            farazsms_from_number="50002178584000",
+            farazsms_pattern_code="SJ3FgPrE0C",
         )
     )
 
-    with pytest.raises(RuntimeError, match=r"\AIPPanel delivery failed\Z"):
+    with pytest.raises(RuntimeError, match=r"\AFaraz SMS delivery failed\Z"):
         provider.send_login_otp("+989123456789", "123456")
 
 
 @pytest.mark.parametrize(
     "missing_field",
-    ["ippanel_api_key", "ippanel_from_number", "ippanel_pattern_code"],
+    ["farazsms_api_key", "farazsms_from_number", "farazsms_pattern_code"],
 )
-def test_ippanel_provider_requires_complete_configuration(missing_field: str) -> None:
+def test_faraz_sms_provider_requires_complete_configuration(missing_field: str) -> None:
     values: dict[str, object] = {
-        "sms_provider": "ippanel",
-        "ippanel_api_key": "test-api-key",
-        "ippanel_from_number": "+983000505",
-        "ippanel_pattern_code": "test-pattern-code",
+        "sms_provider": "farazsms",
+        "farazsms_api_key": "test-api-key",
+        "farazsms_from_number": "50002178584000",
+        "farazsms_pattern_code": "SJ3FgPrE0C",
     }
     values[missing_field] = " "
 
-    with pytest.raises(ValueError, match=r"\AIPPanel provider is not configured\Z"):
-        IPPanelSmsProvider(Settings(**values))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match=r"\AFaraz SMS provider is not configured\Z"):
+        FarazSmsProvider(Settings(**values))  # type: ignore[arg-type]
 
 
 class FakeSmtp:

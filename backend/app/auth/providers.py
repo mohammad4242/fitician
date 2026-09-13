@@ -163,54 +163,59 @@ class SmtpEmailProvider:
         )
 
 
-class IPPanelSmsProvider:
+def _faraz_recipient(phone_number: str) -> str:
+    if len(phone_number) == 13 and phone_number.startswith("+989") and phone_number[1:].isdigit():
+        return f"0{phone_number[3:]}"
+    return phone_number
+
+
+class FarazSmsProvider:
     def __init__(self, settings: Settings) -> None:
         api_key = (
-            settings.ippanel_api_key.get_secret_value().strip()
-            if settings.ippanel_api_key is not None
+            settings.farazsms_api_key.get_secret_value().strip()
+            if settings.farazsms_api_key is not None
             else ""
         )
-        from_number = (settings.ippanel_from_number or "").strip()
-        pattern_code = (settings.ippanel_pattern_code or "").strip()
+        from_number = (settings.farazsms_from_number or "").strip()
+        pattern_code = (settings.farazsms_pattern_code or "").strip()
         if not api_key or not from_number or not pattern_code:
-            raise ValueError("IPPanel provider is not configured")
+            raise ValueError("Faraz SMS provider is not configured")
         self._api_key = api_key
-        self._url = f"{settings.ippanel_base_url.rstrip('/')}/send"
+        self._url = f"{settings.farazsms_base_url.rstrip('/')}/sms/pattern"
         self._from_number = from_number
         self._pattern_code = pattern_code
         self._timeout = settings.sms_timeout_seconds
 
     def send_login_otp(self, phone_number: str, code: str) -> None:
         payload = {
-            "sending_type": "pattern",
-            "from_number": self._from_number,
             "code": self._pattern_code,
-            "recipients": [phone_number],
-            "params": {
+            "attributes": {
                 "code": code,
             },
+            "recipient": _faraz_recipient(phone_number),
+            "line_number": self._from_number,
+            "number_format": "english",
         }
         headers = {
-            "Authorization": self._api_key,
+            "Accept": "application/json",
             "Content-Type": "application/json",
+            "Api-Key": self._api_key,
         }
         try:
             with httpx.Client(timeout=self._timeout, trust_env=False) as client:
                 response = client.post(self._url, headers=headers, json=payload)
                 response.raise_for_status()
         except httpx.HTTPError:
-            raise RuntimeError("IPPanel delivery failed") from None
+            raise RuntimeError("Faraz SMS delivery failed") from None
 
         try:
             body = response.json()
         except ValueError:
             return
         if isinstance(body, dict):
-            meta = body.get("meta")
-            if isinstance(meta, dict) and meta.get("status") is False:
-                raise RuntimeError("IPPanel delivery failed")
-            if body.get("status") is False:
-                raise RuntimeError("IPPanel delivery failed")
+            status = body.get("status")
+            if "status" in body and (not isinstance(status, str) or status.casefold() != "success"):
+                raise RuntimeError("Faraz SMS delivery failed")
 
 
 class GoogleIdTokenProvider:
@@ -432,8 +437,8 @@ def build_email_provider(settings: Settings) -> EmailProvider:
 
 
 def build_sms_provider(settings: Settings) -> SmsProvider:
-    if settings.sms_provider == "ippanel":
-        return IPPanelSmsProvider(settings)
+    if settings.sms_provider == "farazsms":
+        return FarazSmsProvider(settings)
     return FakeSmsProvider()
 
 

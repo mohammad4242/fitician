@@ -11,10 +11,10 @@ PRODUCTION_AUTH_DELIVERY = {
     "email_provider": "smtp",
     "smtp_host": "smtp.example.com",
     "smtp_from_address": "no-reply@fitsho.example",
-    "sms_provider": "ippanel",
-    "ippanel_api_key": "test-ippanel-api-key",
-    "ippanel_from_number": "+983000505",
-    "ippanel_pattern_code": "test-pattern-code",
+    "sms_provider": "farazsms",
+    "farazsms_api_key": "test-faraz-api-key",
+    "farazsms_from_number": "50002178584000",
+    "farazsms_pattern_code": "SJ3FgPrE0C",
     "phone_otp_hmac_secret": "production-phone-otp-hmac-secret-for-tests",
     "google_client_id": "fitsho-client-id.apps.googleusercontent.com",
     "apple_client_id": "com.fitician.app",
@@ -39,13 +39,13 @@ def test_settings_accept_explicit_environment_values() -> None:
     assert settings.phone_otp_resend_cooldown_seconds == 60
     assert settings.phone_otp_max_attempts == 5
     assert settings.email_verification_ttl_seconds == 86400
-    assert settings.ippanel_base_url == "https://edge.ippanel.com/v1/api"
+    assert settings.farazsms_base_url == "https://api.iranpayamak.com/ws/v1"
 
 
 def test_delivery_credentials_are_redacted() -> None:
     settings = Settings(
         smtp_password="smtp-secret",
-        ippanel_api_key="sms-secret",
+        farazsms_api_key="sms-secret",
         phone_otp_hmac_secret="otp-secret-with-at-least-thirty-two-characters",
     )
 
@@ -66,10 +66,10 @@ def test_production_requires_google_identity_configuration() -> None:
             email_provider="smtp",
             smtp_host="smtp.example.com",
             smtp_from_address="no-reply@fitsho.example",
-            sms_provider="ippanel",
-            ippanel_api_key="test-ippanel-api-key",
-            ippanel_from_number="+983000505",
-            ippanel_pattern_code="test-pattern-code",
+            sms_provider="farazsms",
+            farazsms_api_key="test-faraz-api-key",
+            farazsms_from_number="50002178584000",
+            farazsms_pattern_code="SJ3FgPrE0C",
             phone_otp_hmac_secret="production-phone-otp-hmac-secret-for-tests",
         )
 
@@ -88,16 +88,16 @@ def test_production_rejects_fake_auth_delivery_providers() -> None:
 @pytest.mark.parametrize(
     ("override", "expected_message"),
     [
-        ({"sms_provider": "fake"}, "configured IPPanel SMS provider"),
-        ({"ippanel_api_key": None}, "configured IPPanel SMS provider"),
-        ({"ippanel_api_key": " "}, "configured IPPanel SMS provider"),
-        ({"ippanel_from_number": None}, "IPPanel sender number"),
-        ({"ippanel_from_number": " "}, "IPPanel sender number"),
-        ({"ippanel_pattern_code": None}, "IPPanel pattern code"),
-        ({"ippanel_pattern_code": " "}, "IPPanel pattern code"),
+        ({"sms_provider": "fake"}, "configured Faraz SMS provider"),
+        ({"farazsms_api_key": None}, "configured Faraz SMS provider"),
+        ({"farazsms_api_key": " "}, "configured Faraz SMS provider"),
+        ({"farazsms_from_number": None}, "Faraz SMS sender number"),
+        ({"farazsms_from_number": " "}, "Faraz SMS sender number"),
+        ({"farazsms_pattern_code": None}, "Faraz SMS pattern code"),
+        ({"farazsms_pattern_code": " "}, "Faraz SMS pattern code"),
     ],
 )
-def test_production_requires_complete_ippanel_sms_configuration(
+def test_production_requires_complete_faraz_sms_configuration(
     override: dict[str, object],
     expected_message: str,
 ) -> None:
