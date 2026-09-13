@@ -19,7 +19,7 @@ exercise-import/raw/
 /var/
 /image_videos/
 /artifacts/benchmark/
-/reports/*.log
+*.log
 backend/uv.lock
 backend/var/*
 !backend/var/benchmarks/
