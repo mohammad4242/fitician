@@ -516,6 +516,19 @@ it("opens the authenticated More hub", async () => {
   expect(screen.getByRole("link", { name: "پروفایل" })).toHaveAttribute("href", "/profile");
 });
 
+it("lets a signed-in member open plans before profile completion", async () => {
+  auth.value.user = member;
+  profile.value.status = "missing";
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } }),
+  );
+
+  renderRoute("/plans");
+
+  expect(await screen.findByRole("heading", { name: "پلن خودت را انتخاب کن" })).toBeInTheDocument();
+  fetchMock.mockRestore();
+});
+
 it("redirects the obsolete admin exercise browser to the shared library", async () => {
   auth.value.user = { ...member, is_admin: true };
   profile.value.status = "missing";
