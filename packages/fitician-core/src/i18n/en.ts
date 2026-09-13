@@ -64,6 +64,13 @@ const en = {
       loadError: "Plans could not be loaded.",
       orderError: "The order could not be created.",
       historyError: "Purchase history could not be loaded.",
+      adminOffers: "Billing offers",
+      adminLoadError: "Billing offers could not be loaded.",
+      adminUpdateError: "This offer could not be updated.",
+      save: "Save",
+      saving: "Saving…",
+      updateSuccess: "Price updated",
+      active: "Active",
     },
     landing: {
       cta: "Build my plan",

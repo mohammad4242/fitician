@@ -20,6 +20,7 @@ import { AppShell } from "./shared/AppShell";
 import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const AdminAiSettingsPage = lazy(() => import("./features/admin/AdminAiSettingsPage").then(({ AdminAiSettingsPage }) => ({ default: AdminAiSettingsPage })));
+const AdminBillingOffersPage = lazy(() => import("./features/billing/AdminBillingOffersPage").then(({ AdminBillingOffersPage }) => ({ default: AdminBillingOffersPage })));
 const AdminExerciseEditPage = lazy(() => import("./features/admin/AdminExerciseEditPage").then(({ AdminExerciseEditPage }) => ({ default: AdminExerciseEditPage })));
 const AdminExerciseNewPage = lazy(() => import("./features/admin/AdminExerciseNewPage").then(({ AdminExerciseNewPage }) => ({ default: AdminExerciseNewPage })));
 const AdminNutritionMonitoringPage = lazy(() => import("./features/admin/AdminNutritionMonitoringPage").then(({ AdminNutritionMonitoringPage }) => ({ default: AdminNutritionMonitoringPage })));
@@ -91,6 +92,7 @@ export function AppRoutes() {
         </Route>
         <Route element={<AdminRoute />}>
           <Route path="/admin/ai-settings" element={deferred(<AdminAiSettingsPage />)} />
+          <Route path="/admin/billing" element={deferred(<AdminBillingOffersPage />)} />
           <Route path="/admin/training-program-templates" element={deferred(<AdminTrainingTemplatesPage />)} />
           <Route path="/admin/training-program-templates/new" element={deferred(<AdminTrainingTemplateEditorPage />)} />
           <Route path="/admin/training-program-templates/:templateId/edit" element={deferred(<AdminTrainingTemplateEditorPage />)} />

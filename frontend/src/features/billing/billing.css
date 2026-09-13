@@ -106,8 +106,22 @@
 .billing-history-card > div:last-child { align-items: end; text-align: end; }
 .billing-history-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
 
+.billing-admin-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.billing-admin-card { display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); }
+.billing-admin-card > header, .billing-admin-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.billing-admin-card h2 { margin: 0.2rem 0 0; font-size: 1rem; }
+.billing-admin-card p { margin: 0.2rem 0 0; color: var(--fitsho-muted); font-size: 0.75rem; }
+.billing-admin-card__code { color: var(--fitsho-aqua); font-family: "Sora Variable", sans-serif; font-size: 0.7rem; }
+.billing-admin-card__availability { color: var(--fitsho-muted); font-size: 0.72rem; }
+.billing-admin-card__fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.75rem; }
+.billing-admin-card__fields label { display: grid; gap: 0.3rem; color: var(--fitsho-muted); font-size: 0.72rem; }
+.billing-admin-card__fields input[type="number"] { width: 100%; min-height: 2.45rem; padding: 0.4rem 0.55rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
+.billing-admin-card__check { display: flex !important; min-height: 2.45rem; grid-template-columns: auto auto; align-items: center; white-space: nowrap; }
+.billing-admin-card__success { color: var(--fitsho-aqua); font-size: 0.72rem; }
+
 @media (max-width: 680px) {
   .billing-offer-grid { grid-template-columns: 1fr; }
   .billing-access-summary, .billing-history-card { align-items: start; flex-direction: column; grid-template-columns: 1fr; }
   .billing-access-summary > span, .billing-history-card > div:last-child { align-items: start; text-align: start; }
+  .billing-admin-list { grid-template-columns: 1fr; }
 }

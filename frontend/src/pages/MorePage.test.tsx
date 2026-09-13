@@ -124,6 +124,14 @@ it("shows AI settings in the mobile admin workspace", () => {
   );
 });
 
+it("shows billing offer management in the admin workspace", () => {
+  auth.isAdmin = true;
+
+  render(<MemoryRouter><MorePage /></MemoryRouter>);
+
+  expect(screen.getByRole("link", { name: /پیشنهادهای پرداخت/ })).toHaveAttribute("href", "/admin/billing");
+});
+
 it("hides AI settings from non-admin members", () => {
   auth.isAdmin = false;
 

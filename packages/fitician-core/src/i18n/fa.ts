@@ -64,6 +64,13 @@ const fa = {
       loadError: "دریافت پلن‌ها انجام نشد.",
       orderError: "ساخت سفارش انجام نشد.",
       historyError: "دریافت تاریخچه خرید انجام نشد.",
+      adminOffers: "پیشنهادهای پرداخت",
+      adminLoadError: "دریافت پیشنهادهای پرداخت انجام نشد.",
+      adminUpdateError: "تغییر این پیشنهاد ذخیره نشد.",
+      save: "ذخیره",
+      saving: "در حال ذخیره…",
+      updateSuccess: "قیمت به‌روز شد",
+      active: "فعال",
     },
     landing: {
       cta: "برنامه من را بساز",
