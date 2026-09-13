@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from numbers import Real
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.nutrition.calendar import (
@@ -229,7 +229,7 @@ def _latest_nutrition_plan(db: Session, *, user_id: UUID) -> NutritionWeeklyPlan
     )
 
 
-def _nutrition_plan_query():
+def _nutrition_plan_query() -> Select[tuple[NutritionWeeklyPlan]]:
     return (
         select(NutritionWeeklyPlan)
         .join(
