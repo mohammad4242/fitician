@@ -16439,6 +16439,17 @@
         "title": "NutritionTargetUpdateResponse",
         "type": "object"
       },
+      "NutritionTimelineState": {
+        "enum": [
+          "no_plan",
+          "pending_review",
+          "ready_to_start",
+          "scheduled_start",
+          "active"
+        ],
+        "title": "NutritionTimelineState",
+        "type": "string"
+      },
       "NutritionTrackingEntryResponse": {
         "properties": {
           "confidence": {
@@ -19557,6 +19568,34 @@
         "title": "ProgramGenerationOverrides",
         "type": "object"
       },
+      "ProgramTimelineTodayResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "local_date": {
+            "format": "date",
+            "title": "Local Date",
+            "type": "string"
+          },
+          "nutrition": {
+            "$ref": "#/components/schemas/TimelineNutritionResponse"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "workout": {
+            "$ref": "#/components/schemas/TimelineWorkoutResponse"
+          }
+        },
+        "required": [
+          "local_date",
+          "timezone",
+          "workout",
+          "nutrition"
+        ],
+        "title": "ProgramTimelineTodayResponse",
+        "type": "object"
+      },
       "ProviderDetail": {
         "properties": {
           "credential": {
@@ -21176,6 +21215,256 @@
         ],
         "title": "TemplateFocusTag",
         "type": "string"
+      },
+      "TimelineNutritionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "absolute_day_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absolute Day Number"
+          },
+          "day_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Id"
+          },
+          "nutrient_totals": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Nutrient Totals",
+            "type": "object"
+          },
+          "pattern_day_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern Day Index"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "state": {
+            "$ref": "#/components/schemas/NutritionTimelineState"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "TimelineNutritionResponse",
+        "type": "object"
+      },
+      "TimelineWorkoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_sessions": {
+            "default": 0,
+            "title": "Completed Sessions",
+            "type": "integer"
+          },
+          "current_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Week"
+          },
+          "cycle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cycle Id"
+          },
+          "duration_weeks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Weeks"
+          },
+          "next_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimelineWorkoutSessionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overdue_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimelineWorkoutSessionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          },
+          "state": {
+            "$ref": "#/components/schemas/WorkoutTimelineState"
+          },
+          "today_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimelineWorkoutSessionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total_sessions": {
+            "default": 0,
+            "title": "Total Sessions",
+            "type": "integer"
+          },
+          "workout_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workout Plan Id"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "TimelineWorkoutResponse",
+        "type": "object"
+      },
+      "TimelineWorkoutSessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "day_number": {
+            "title": "Day Number",
+            "type": "integer"
+          },
+          "estimated_duration_minutes": {
+            "title": "Estimated Duration Minutes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "scheduled_date": {
+            "format": "date",
+            "title": "Scheduled Date",
+            "type": "string"
+          },
+          "session_number": {
+            "title": "Session Number",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkoutCycleSessionStatus"
+          },
+          "title_en": {
+            "title": "Title En",
+            "type": "string"
+          },
+          "title_fa": {
+            "title": "Title Fa",
+            "type": "string"
+          },
+          "week_number": {
+            "title": "Week Number",
+            "type": "integer"
+          },
+          "workout_day_id": {
+            "format": "uuid",
+            "title": "Workout Day Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workout_day_id",
+          "week_number",
+          "session_number",
+          "scheduled_date",
+          "status",
+          "day_number",
+          "title_fa",
+          "title_en",
+          "estimated_duration_minutes"
+        ],
+        "title": "TimelineWorkoutSessionResponse",
+        "type": "object"
       },
       "TimezoneResponse": {
         "properties": {
@@ -24988,6 +25277,21 @@
           "superseded"
         ],
         "title": "WorkoutReviewStatus",
+        "type": "string"
+      },
+      "WorkoutTimelineState": {
+        "enum": [
+          "no_plan",
+          "ready_to_start",
+          "scheduled_start",
+          "workout_today",
+          "rest_day",
+          "overdue",
+          "completed_today",
+          "legacy_cycle",
+          "cycle_completed"
+        ],
+        "title": "WorkoutTimelineState",
         "type": "string"
       }
     },
@@ -36598,6 +36902,60 @@
         "summary": "Update Timezone",
         "tags": [
           "profile"
+        ]
+      }
+    },
+    "/api/v1/program-timeline/today": {
+      "get": {
+        "operationId": "read_program_timeline_today_api_v1_program_timeline_today_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "timezone",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timezone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramTimelineTodayResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Program Timeline Today",
+        "tags": [
+          "program-timeline"
         ]
       }
     },

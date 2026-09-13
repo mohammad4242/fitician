@@ -3324,6 +3324,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/program-timeline/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Program Timeline Today */
+        get: operations["read_program_timeline_today_api_v1_program_timeline_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews/body-analyses/{analysis_id}": {
         parameters: {
             query?: never;
@@ -9192,6 +9209,11 @@ export type components = {
             /** User Confirmed */
             user_confirmed: boolean;
         };
+        /**
+         * NutritionTimelineState
+         * @enum {string}
+         */
+        NutritionTimelineState: "no_plan" | "pending_review" | "ready_to_start" | "scheduled_start" | "active";
         /** NutritionTrackingEntryResponse */
         NutritionTrackingEntryResponse: {
             confidence: components["schemas"]["EstimateConfidence"];
@@ -10129,6 +10151,18 @@ export type components = {
             /** Training Age Months */
             training_age_months?: number | null;
         };
+        /** ProgramTimelineTodayResponse */
+        ProgramTimelineTodayResponse: {
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            nutrition: components["schemas"]["TimelineNutritionResponse"];
+            /** Timezone */
+            timezone: string;
+            workout: components["schemas"]["TimelineWorkoutResponse"];
+        };
         /** ProviderDetail */
         ProviderDetail: {
             credential: components["schemas"]["CredentialStatus"];
@@ -10726,6 +10760,82 @@ export type components = {
          * @enum {string}
          */
         TemplateFocusTag: "full_body" | "upper_lower" | "push_pull_legs" | "body_part_rotation" | "balanced" | "lower_priority" | "chest_priority" | "back_priority" | "shoulders_priority" | "arms_priority" | "glute_priority" | "quad_priority" | "hamstrings_priority" | "strength_bias" | "compound_focus" | "specialization";
+        /** TimelineNutritionResponse */
+        TimelineNutritionResponse: {
+            /** Absolute Day Number */
+            absolute_day_number?: number | null;
+            /** Day Id */
+            day_id?: string | null;
+            /** Nutrient Totals */
+            nutrient_totals?: {
+                [key: string]: number;
+            };
+            /** Pattern Day Index */
+            pattern_day_index?: number | null;
+            /** Plan Id */
+            plan_id?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            state: components["schemas"]["NutritionTimelineState"];
+        };
+        /** TimelineWorkoutResponse */
+        TimelineWorkoutResponse: {
+            /**
+             * Completed Sessions
+             * @default 0
+             */
+            completed_sessions: number;
+            /** Current Week */
+            current_week?: number | null;
+            /** Cycle Id */
+            cycle_id?: string | null;
+            /** Duration Weeks */
+            duration_weeks?: number | null;
+            next_session?: components["schemas"]["TimelineWorkoutSessionResponse"] | null;
+            overdue_session?: components["schemas"]["TimelineWorkoutSessionResponse"] | null;
+            /** Start Date */
+            start_date?: string | null;
+            state: components["schemas"]["WorkoutTimelineState"];
+            today_session?: components["schemas"]["TimelineWorkoutSessionResponse"] | null;
+            /**
+             * Total Sessions
+             * @default 0
+             */
+            total_sessions: number;
+            /** Workout Plan Id */
+            workout_plan_id?: string | null;
+        };
+        /** TimelineWorkoutSessionResponse */
+        TimelineWorkoutSessionResponse: {
+            /** Day Number */
+            day_number: number;
+            /** Estimated Duration Minutes */
+            estimated_duration_minutes: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Scheduled Date
+             * Format: date
+             */
+            scheduled_date: string;
+            /** Session Number */
+            session_number: number;
+            status: components["schemas"]["WorkoutCycleSessionStatus"];
+            /** Title En */
+            title_en: string;
+            /** Title Fa */
+            title_fa: string;
+            /** Week Number */
+            week_number: number;
+            /**
+             * Workout Day Id
+             * Format: uuid
+             */
+            workout_day_id: string;
+        };
         /** TimezoneResponse */
         TimezoneResponse: {
             /** Timezone */
@@ -12168,6 +12278,11 @@ export type components = {
          * @enum {string}
          */
         WorkoutReviewStatus: "pending" | "claimed" | "approved" | "rejected" | "superseded";
+        /**
+         * WorkoutTimelineState
+         * @enum {string}
+         */
+        WorkoutTimelineState: "no_plan" | "ready_to_start" | "scheduled_start" | "workout_today" | "rest_day" | "overdue" | "completed_today" | "legacy_cycle" | "cycle_completed";
     };
     responses: never;
     parameters: never;
@@ -19232,6 +19347,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimezoneResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_program_timeline_today_api_v1_program_timeline_today_get: {
+        parameters: {
+            query?: {
+                timezone?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgramTimelineTodayResponse"];
                 };
             };
             /** @description Validation Error */
