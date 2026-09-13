@@ -326,7 +326,6 @@ def get_user_orders(db: Session, user_id: UUID) -> list[BillingOrderResponse]:
 _FINAL_ORDER_STATUSES = frozenset(
     {
         BillingOrderStatus.PAID,
-        BillingOrderStatus.FAILED,
         BillingOrderStatus.CANCELLED,
         BillingOrderStatus.EXPIRED,
         BillingOrderStatus.REFUNDED,

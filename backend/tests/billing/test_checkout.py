@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.billing.enums import BillingOfferCode, BillingOrderStatus, BillingTransactionStatus
@@ -94,6 +95,48 @@ def test_checkout_provider_must_match_order(client, db: Session) -> None:
 
     assert response.status_code == 200
     assert response.json()["provider"] == "fake"
+
+
+def test_failed_transaction_can_be_retried_on_same_order(client, db: Session) -> None:
+    order_body = create_order(client, db, "checkout-retry@example.com")
+    first_checkout = client.post(
+        f"/api/v1/billing/orders/{order_body['id']}/checkout",
+        headers=ORIGIN,
+        json={"provider": "fake"},
+    ).json()
+    provider = client.app.state.billing_providers["fake"]
+    provider.set_outcome(first_checkout["transaction_id"], "failed")
+
+    failed = client.post(
+        "/api/v1/billing/providers/fake/verify",
+        headers=ORIGIN,
+        json={
+            "transaction_id": first_checkout["transaction_id"],
+            "provider_reference": first_checkout["provider_reference"],
+        },
+    )
+    assert failed.status_code == 200
+    assert failed.json()["transaction_status"] == "failed"
+    assert failed.json()["order_status"] == "failed"
+
+    retry = client.post(
+        f"/api/v1/billing/orders/{order_body['id']}/checkout",
+        headers=ORIGIN,
+        json={"provider": "fake"},
+    )
+
+    assert retry.status_code == 200
+    assert retry.json()["transaction_id"] != first_checkout["transaction_id"]
+    assert retry.json()["provider_reference"] != first_checkout["provider_reference"]
+    assert db.get(BillingOrder, order_body["id"]).status is BillingOrderStatus.PENDING
+    transactions = db.scalars(
+        select(BillingTransaction).where(BillingTransaction.order_id == order_body["id"])
+    ).all()
+    assert len(transactions) == 2
+    assert {transaction.status for transaction in transactions} == {
+        BillingTransactionStatus.FAILED,
+        BillingTransactionStatus.PENDING,
+    }
 
 
 def test_billing_order_history_is_owner_scoped(client, db: Session) -> None:

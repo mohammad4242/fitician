@@ -2,7 +2,6 @@ from app.billing.catalog import PAID_OFFER_CATALOG, offer_definition
 from app.billing.enums import BillingOfferCode
 from app.entitlements.enums import AccessPackageCode
 
-
 EXPECTED_CODES = {
     "training_4w",
     "training_6w",
