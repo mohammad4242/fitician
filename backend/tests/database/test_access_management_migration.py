@@ -38,6 +38,14 @@ def test_access_management_migration_has_expected_revision_and_tables(db: Sessio
     assert campaign.duration_days == 30
     assert campaign.term_weeks == 4
     assert campaign.is_active is True
+    check_names = {
+        check["name"]
+        for check in inspect(db.get_bind()).get_check_constraints("access_campaigns")
+    }
+    assert {
+        "ck_access_campaigns_kind_values",
+        "ck_access_campaigns_training_term",
+    } <= check_names
 
 
 def test_access_management_migration_downgrades_and_upgrades_cleanly(db: Session) -> None:

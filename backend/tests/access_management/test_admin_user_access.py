@@ -1,7 +1,11 @@
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.profile.models import UserProfile
 
 ORIGIN = {"Origin": "http://localhost:5173"}
@@ -70,3 +74,29 @@ def test_user_access_detail_is_safe_and_includes_snapshot_and_all_grants(
     assert "entitlement_snapshot" in body
     assert body["grants"]
 
+
+def test_member_summary_only_reports_current_paid_access_end(
+    client: TestClient,
+    db: Session,
+) -> None:
+    member = register(client, "paid-access-summary@example.com")
+    member_id = member["id"]
+    now = datetime.now(UTC)
+    grant_package(
+        db,
+        member_id,
+        AccessPackageCode.TRAINING,
+        source=GrantSource.SUBSCRIPTION,
+        starts_at=now - timedelta(days=10),
+        ends_at=now - timedelta(days=1),
+        term_weeks=4,
+        idempotency_key="expired-paid-summary",
+    )
+    db.commit()
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    make_admin(client, db)
+
+    response = client.get(f"/api/v1/admin/access/users/{member_id}")
+
+    assert response.status_code == 200
+    assert response.json()["member"]["paid_access_end"] is None

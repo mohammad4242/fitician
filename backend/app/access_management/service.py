@@ -515,12 +515,15 @@ def member_summary(
 ) -> AdminMemberSummaryResponse:
     snapshot = resolve_access_snapshot(db, user.id, now=now)
     grants = list_all_grants(db, user.id)
+    reference = utc_now(now)
     paid_access_end = max(
         (
             grant.ends_at
             for grant in grants
             if grant.source is GrantSource.SUBSCRIPTION
             and grant.revoked_at is None
+            and grant.starts_at <= reference
+            and (grant.ends_at is None or grant.ends_at > reference)
             and grant.ends_at is not None
         ),
         default=None,

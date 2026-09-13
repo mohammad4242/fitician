@@ -106,3 +106,12 @@ def test_campaign_redemption_has_database_uniqueness_per_campaign_user(db: Sessi
     )
     with pytest.raises(IntegrityError):
         db.flush()
+
+
+def test_campaign_table_declares_stable_kind_and_training_term_constraints() -> None:
+    constraint_names = {
+        constraint.name for constraint in AccessCampaign.__table__.constraints
+    }
+
+    assert "ck_access_campaigns_kind_values" in constraint_names
+    assert "ck_access_campaigns_training_term" in constraint_names
