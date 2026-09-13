@@ -27,4 +27,8 @@ it("places quick actions directly after nutrition without extra section headings
   expect(source).not.toContain('eyebrow="ادامه مسیر"');
   expect(source).not.toContain('title="دسترسی سریع"');
   expect(source).not.toContain("<SectionHeader");
+  expect(source).toContain("createProgramTimelineApi");
+  expect(source).toContain("homeWorkoutSummary");
+  expect(source).not.toContain("currentWorkoutDay");
+  expect(source).not.toContain("toISOString().slice(0, 10)");
 });

@@ -1,8 +1,8 @@
 import { nutritionTargetToExpenditureRatio } from "@fitician/core";
+import type { TimelineNutrition, TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
 import type { NutritionDailyTracking } from "../nutrition/nutritionTrackingApi";
 import type { NutritionEstimate } from "../nutrition/nutritionApi";
 import type { WeeklyPlan } from "../nutrition/nutritionPlanApi";
-import type { WorkoutDay, WorkoutPlan } from "../workouts/workoutApi";
 
 export type HomeNutritionStatus = "empty" | "pending" | "ready" | "on_plan" | "off_plan";
 
@@ -17,8 +17,50 @@ export type HomeNutritionSummary = {
   readonly estimatedDailyExpenditureCalories: number | null;
 };
 
-export function currentWorkoutDay(plan: Pick<WorkoutPlan, "days"> | null | undefined): WorkoutDay | null {
-  return plan?.days[0] ?? null;
+export type HomeWorkoutTimelineState =
+  | "completed"
+  | "legacy"
+  | "none"
+  | "overdue"
+  | "ready"
+  | "rest"
+  | "scheduled"
+  | "today";
+
+export type HomeWorkoutSummary = {
+  readonly focusedSession: TimelineWorkoutSession | null;
+  readonly nextSession: TimelineWorkoutSession | null;
+  readonly state: HomeWorkoutTimelineState;
+};
+
+export function homeWorkoutSummary(
+  timeline: TimelineWorkout | null | undefined,
+): HomeWorkoutSummary {
+  if (timeline === null || timeline === undefined || timeline.state === "no_plan") {
+    return { focusedSession: null, nextSession: null, state: "none" };
+  }
+  if (timeline.state === "ready_to_start") {
+    return { focusedSession: null, nextSession: timeline.next_session ?? null, state: "ready" };
+  }
+  if (timeline.state === "scheduled_start") {
+    return { focusedSession: null, nextSession: timeline.next_session ?? null, state: "scheduled" };
+  }
+  if (timeline.state === "workout_today") {
+    return { focusedSession: timeline.today_session ?? null, nextSession: timeline.next_session ?? null, state: "today" };
+  }
+  if (timeline.state === "overdue") {
+    return { focusedSession: timeline.overdue_session ?? null, nextSession: timeline.next_session ?? null, state: "overdue" };
+  }
+  if (timeline.state === "completed_today") {
+    return { focusedSession: timeline.today_session ?? null, nextSession: timeline.next_session ?? null, state: "completed" };
+  }
+  if (timeline.state === "legacy_cycle") {
+    return { focusedSession: null, nextSession: null, state: "legacy" };
+  }
+  if (timeline.state === "rest_day") {
+    return { focusedSession: null, nextSession: timeline.next_session ?? null, state: "rest" };
+  }
+  return { focusedSession: null, nextSession: timeline.next_session ?? null, state: "completed" };
 }
 
 export function nutritionSummary(
@@ -26,9 +68,10 @@ export function nutritionSummary(
   estimate: Pick<NutritionEstimate, "targets"> | null | undefined,
   tracking: Pick<NutritionDailyTracking, "actual_totals" | "check_in_status" | "data_status" | "entries"> | null | undefined,
   date: string,
+  timeline?: TimelineNutrition | null,
 ): HomeNutritionSummary {
-  const day = plan?.days.find((item) => item.plan_date === date) ?? plan?.days[0];
-  const planned = day?.nutrient_totals ?? {};
+  const day = plan?.days.find((item) => item.plan_date === date);
+  const planned = timeline?.nutrient_totals ?? day?.nutrient_totals ?? {};
   const targets = estimate?.targets ?? {};
   const targetCalories = numberValue(planned.energy_kcal) ?? firstTarget(targets.goal_calories);
   const targetProtein = numberValue(planned.protein_g) ?? firstTarget(targets.protein);

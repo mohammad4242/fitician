@@ -1,63 +1,34 @@
 import { expect, it } from "vitest";
 
-import { currentWorkoutDay, nutritionSummary } from "./homeModel";
+import type { TimelineNutrition, TimelineWorkout } from "@fitician/core/program-timeline";
 
-const exercise = {
-  body_region: "upper_body",
-  content_type: "exercise",
-  difficulty: "beginner",
-  equipment: ["bodyweight"],
-  id: "exercise-1",
-  media_path: "/media/push-up.gif",
-  media_type: "gif",
-  muscle_focus: null,
-  name_en: "Push-up",
-  name_fa: "شنا",
-  primary_muscle: "chest",
-  secondary_muscles: [],
-  slug: "push-up",
-} as const;
+import { homeWorkoutSummary, nutritionSummary } from "./homeModel";
 
-it("selects the first real workout day without changing plan data", () => {
-  const day = currentWorkoutDay({
-    days: [{
-      ai_coach_explanation_fa: null,
-      day_number: 2,
+it("uses the exact timeline session instead of the first workout day", () => {
+  const summary = homeWorkoutSummary({
+    completed_sessions: 1,
+    current_week: 1,
+    cycle_id: "cycle-1",
+    duration_weeks: 8,
+    next_session: {
+      day_number: 3,
       estimated_duration_minutes: 45,
-      exercises: [{
-        alternatives: [],
-        duration_max_seconds: null,
-        duration_min_seconds: null,
-        estimated_minutes: 8,
-        exercise,
-        id: "plan-exercise-1",
-        load_guidance: "وزن بدن",
-        notes_en: null,
-        notes_fa: null,
-        order_index: 1,
-        prescription_mode: "reps",
-        progression_rule: "legacy",
-        reps_max: 12,
-        reps_min: 8,
-        rest_seconds: 60,
-        rir: 2,
-        section: "main",
-        sets: 3,
-        superset_group: null,
-        warmup_sets: 0,
-      }],
-      focus: "upper_body",
-      main_exercise_count: 1,
-      supplemental_exercise_count: 0,
-      title_en: "Upper body",
-      title_fa: "بالاتنه",
-      total_exercise_count: 1,
-      weekday: null,
-    }],
-  } as never);
+      id: "session-2",
+      scheduled_date: "2026-09-14",
+      session_number: 2,
+      status: "scheduled",
+      title_en: "Lower body",
+      title_fa: "پایین‌تنه",
+      week_number: 1,
+      workout_day_id: "day-2",
+    },
+    state: "rest_day",
+    total_sessions: 16,
+  } satisfies TimelineWorkout);
 
-  expect(day?.day_number).toBe(2);
-  expect(day?.exercises[0]?.exercise.media_path).toBe("/media/push-up.gif");
+  expect(summary.state).toBe("rest");
+  expect(summary.focusedSession).toBeNull();
+  expect(summary.nextSession?.workout_day_id).toBe("day-2");
 });
 
 it("prefers daily plan totals and calculates progress from target versus TDEE", () => {
@@ -125,6 +96,37 @@ it("uses estimate metric names when the daily plan has no nutrient totals", () =
   expect(summary.protein).toBe(145);
   expect(summary.carbohydrate).toBe(240);
   expect(summary.fat).toBe(70);
+});
+
+it("uses the recurring timeline target on nutrition day eight", () => {
+  const summary = nutritionSummary(
+    {
+      days: [{ nutrient_totals: { energy_kcal: 999 }, plan_date: "2026-01-01" }],
+      physician_approved: true,
+    } as never,
+    {
+      targets: {
+        goal_calories: { preferred: 2778, minimum: 2500 },
+        tdee: { preferred: 2557, minimum: 2400 },
+        protein: { preferred: 145, minimum: 120 },
+        carbohydrate: { preferred: 240, minimum: 200 },
+        total_fat: { preferred: 70, minimum: 50 },
+      },
+    } as never,
+    null,
+    "2026-09-13",
+    {
+      absolute_day_number: 8,
+      nutrient_totals: { energy_kcal: 2_100, protein_g: 140 },
+      pattern_day_index: 0,
+      plan_id: "plan-1",
+      start_date: "2026-09-06",
+      state: "active",
+    } satisfies TimelineNutrition,
+  );
+
+  expect(summary.targetCalories).toBe(2_100);
+  expect(summary.protein).toBe(140);
 });
 
 it("returns an empty nutrition state when neither plan nor estimate exists", () => {
