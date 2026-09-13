@@ -1,1 +1,1 @@
-CREATE DATABASE fitsho_test;
+CREATE DATABASE fitician_test;

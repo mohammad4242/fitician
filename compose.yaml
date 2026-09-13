@@ -2,16 +2,16 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: fitsho
-      POSTGRES_PASSWORD: fitsho
-      POSTGRES_DB: fitsho
+      POSTGRES_USER: fitician
+      POSTGRES_PASSWORD: fitician
+      POSTGRES_DB: fitician
     ports:
       - "5432:5432"
     volumes:
-      - fitsho_postgres_data:/var/lib/postgresql
+      - fitician_postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fitsho -d fitsho"]
+      test: ["CMD-SHELL", "pg_isready -U fitician -d fitician"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -26,7 +26,7 @@ services:
       HOME: /home/agent
       AGENT_SHARED_PRIVATE_MEDIA_ROOT: /shared-private-media
       NO_PROXY: ${AGENT_NO_PROXY:-agent-service,db,localhost,127.0.0.1}
-      AGENT_WORKSPACE_ROOT: /tmp/fitsho-agent
+      AGENT_WORKSPACE_ROOT: /tmp/fitician-agent
       AGENT_AUTH_SESSION_TTL_SECONDS: ${AGENT_AUTH_SESSION_TTL_SECONDS:-600}
       AGENT_AUTH_MAX_OUTPUT_BYTES: ${AGENT_AUTH_MAX_OUTPUT_BYTES:-65536}
       AGENT_ANTIGRAVITY_MODELS: ${AGENT_ANTIGRAVITY_MODELS:-[]}
@@ -38,7 +38,7 @@ services:
     expose:
       - "9001"
     volumes:
-      - fitsho_agent_home:/home/agent
+      - fitician_agent_home:/home/agent
       - ./backend/var/private/body-photos:/shared-private-media/body:ro
       - ./backend/var/private/food-photos:/shared-private-media/food:ro
     cap_drop:
@@ -62,21 +62,21 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       FRONTEND_ORIGIN: http://localhost:5173
       FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://10.120.36.22:5173,http://100.97.78.5:5173}
       APP_ENV: local
       COOKIE_SECURE: "false"
-      SESSION_COOKIE_NAME: fitsho_session
-      MEDIA_ROOT: /var/lib/fitsho/media
+      SESSION_COOKIE_NAME: fitician_session
+      MEDIA_ROOT: /var/lib/fitician/media
       MEDIA_PUBLIC_PATH: /media
       MEDIA_MAX_BYTES: "20971520"
       MEDIA_MAX_VIDEO_BYTES: "67108864"
       MEDIA_MAX_VIDEO_DURATION_SECONDS: "20"
-      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitsho/private/body-photos
-      PROFILE_PHOTO_STORAGE_ROOT: /var/lib/fitsho/private/profile-photos
-      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitsho/private/food-photos
-      NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitsho/private/nutrition-labs
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      PROFILE_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/profile-photos
+      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
+      NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
       AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-}
       NO_PROXY: agent-service,db,localhost,127.0.0.1
@@ -85,14 +85,14 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
-      - ./backend/var/media:/var/lib/fitsho/media
-      - ./backend/var/private/body-photos:/var/lib/fitsho/private/body-photos
-      - ./backend/var/private/profile-photos:/var/lib/fitsho/private/profile-photos
-      - ./backend/var/private/food-photos:/var/lib/fitsho/private/food-photos
-      - ./backend/var/private/nutrition-labs:/var/lib/fitsho/private/nutrition-labs
-      - fitsho_exercise_media:/var/lib/fitsho/media-legacy:ro
+      - ./backend/var/media:/var/lib/fitician/media
+      - ./backend/var/private/body-photos:/var/lib/fitician/private/body-photos
+      - ./backend/var/private/profile-photos:/var/lib/fitician/private/profile-photos
+      - ./backend/var/private/food-photos:/var/lib/fitician/private/food-photos
+      - ./backend/var/private/nutrition-labs:/var/lib/fitician/private/nutrition-labs
+      - fitician_exercise_media:/var/lib/fitician/media-legacy:ro
       - ./backend/var/media-migration:/app/var/media-migration
-      - ./backend/var/media-migration-source:/var/lib/fitsho/media-migration-source:ro
+      - ./backend/var/media-migration-source:/var/lib/fitician/media-migration-source:ro
     depends_on:
       db:
         condition: service_healthy
@@ -109,9 +109,9 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
-      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitsho/private/food-photos
+      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
       FOOD_PHOTO_WORKER_BATCH_SIZE: ${FOOD_PHOTO_WORKER_BATCH_SIZE:-5}
       FOOD_PHOTO_WORKER_POLL_SECONDS: ${FOOD_PHOTO_WORKER_POLL_SECONDS:-3}
       FOOD_PHOTO_WORKER_LEASE_SECONDS: ${FOOD_PHOTO_WORKER_LEASE_SECONDS:-600}
@@ -124,7 +124,7 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
-      - ./backend/var/private/food-photos:/var/lib/fitsho/private/food-photos
+      - ./backend/var/private/food-photos:/var/lib/fitician/private/food-photos
     depends_on:
       db:
         condition: service_healthy
@@ -142,7 +142,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
       NOTIFICATION_WORKER_BATCH_SIZE: ${NOTIFICATION_WORKER_BATCH_SIZE:-100}
       NOTIFICATION_WORKER_POLL_SECONDS: ${NOTIFICATION_WORKER_POLL_SECONDS:-5}
@@ -157,6 +157,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  fitsho_postgres_data:
-  fitsho_exercise_media:
-  fitsho_agent_home:
+  fitician_postgres_data:
+  fitician_exercise_media:
+  fitician_agent_home:

@@ -18,7 +18,7 @@ class WorkspaceLimits:
 class RequestWorkspace:
     def __init__(self, request_id: str | None = None, root: Path | None = None) -> None:
         self.request_id = request_id
-        self.root = root or Path("/tmp/fitsho-agent")
+        self.root = root or Path("/tmp/fitician-agent")
         self.path: Path | None = None
         self._saved_indices: set[int] = set()
         self._total_bytes = 0

@@ -87,7 +87,7 @@ def create_app(
         finally:
             await effective_auth_manager.shutdown()
 
-    app = FastAPI(title="Fitsho Agent Service", lifespan=lifespan)
+    app = FastAPI(title="Fitician Agent Service", lifespan=lifespan)
     if settings is not None:
         app.dependency_overrides[get_settings] = lambda: settings
     controller = concurrency or ConcurrencyController(

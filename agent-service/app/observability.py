@@ -5,7 +5,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-_LOGGER = logging.getLogger("fitsho.agent_service")
+_LOGGER = logging.getLogger("fitician.agent_service")
 _LOGGER.setLevel(logging.INFO)
 if not _LOGGER.handlers:
     _stream_handler = logging.StreamHandler()

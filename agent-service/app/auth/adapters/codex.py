@@ -13,7 +13,7 @@ class CodexAuthAdapter:
     agent = AgentName.CODEX
     manual_auth_only = False
     _AUTH_RELATIVE_PATH = Path(".codex") / "auth.json"
-    _BACKUP_NAME = ".auth.json.fitsho-backup"
+    _BACKUP_NAME = ".auth.json.fitician-backup"
 
     def __init__(self, executable: str = "codex", *, workspace: Path | None = None) -> None:
         self.executable = executable

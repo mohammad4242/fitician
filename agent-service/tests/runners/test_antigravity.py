@@ -293,7 +293,7 @@ def test_live_web_preserves_antigravity_browser_environment_and_prompt(
 
     assert result.payload == {"answer": "ok"}
     assert captured["env"]["PLAYWRIGHT_BROWSERS_PATH"] == (
-        "/home/agent/.gemini/antigravity-cli/fitsho-cache/playwright"
+        "/home/agent/.gemini/antigravity-cli/fitician-cache/playwright"
     )
     prompt = json.loads(captured["input_text"])["message"]["content"]
     assert "live web research" in prompt
@@ -443,14 +443,14 @@ def test_runner_uses_writable_cache_for_headless_cli(
     monkeypatch.setattr(antigravity, "run_process", fake_run_process)
     run(AntigravityRunner(workspace=tmp_path).run(make_request()))
 
-    assert captured["env"]["XDG_CACHE_HOME"] == "/home/agent/.gemini/antigravity-cli/fitsho-cache"
+    assert captured["env"]["XDG_CACHE_HOME"] == "/home/agent/.gemini/antigravity-cli/fitician-cache"
     assert (
         captured["env"]["PLAYWRIGHT_BROWSERS_PATH"]
-        == "/home/agent/.gemini/antigravity-cli/fitsho-cache/playwright"
+        == "/home/agent/.gemini/antigravity-cli/fitician-cache/playwright"
     )
     assert (
         captured["env"]["PLAYWRIGHT_DRIVER_PATH"]
-        == "/home/agent/.gemini/antigravity-cli/fitsho-cache/playwright-driver"
+        == "/home/agent/.gemini/antigravity-cli/fitician-cache/playwright-driver"
     )
 
 
@@ -627,7 +627,7 @@ def test_schema_write_failure_cleans_up_partial_schema_file(
         run(AntigravityRunner(workspace=tmp_path).run(make_request()))
 
     assert error.value.code == "invalid_request"
-    assert list(tmp_path.glob(".fitsho-schema-*.json")) == []
+    assert list(tmp_path.glob(".fitician-schema-*.json")) == []
 
 
 @pytest.mark.parametrize(

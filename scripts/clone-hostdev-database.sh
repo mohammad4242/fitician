@@ -3,13 +3,13 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 compose_file="$project_root/compose.host-backend.yaml"
-destination_project="fitsho-hostdev"
+destination_project="fitician-hostdev"
 destination_service="hostdev-db"
 
 cd "$project_root"
 
 if ! docker compose ps --status running --services | grep -Fxq "db"; then
-  echo "The current Fitsho database service is not running." >&2
+  echo "The current Fitician database service is not running." >&2
   exit 1
 fi
 
@@ -41,12 +41,12 @@ if [[ "${health:-}" != "healthy" ]]; then
 fi
 
 docker compose -p "$destination_project" -f "$compose_file" exec -T "$destination_service" \
-  psql -v ON_ERROR_STOP=1 -U fitsho -d postgres \
-  -c 'DROP DATABASE IF EXISTS fitsho WITH (FORCE)' \
-  -c 'CREATE DATABASE fitsho OWNER fitsho'
+  psql -v ON_ERROR_STOP=1 -U fitician -d postgres \
+  -c 'DROP DATABASE IF EXISTS fitician WITH (FORCE)' \
+  -c 'CREATE DATABASE fitician OWNER fitician'
 
-docker compose exec -T db pg_dump -U fitsho -d fitsho --no-owner --no-privileges \
+docker compose exec -T db pg_dump -U fitician -d fitician --no-owner --no-privileges \
   | docker compose -p "$destination_project" -f "$compose_file" exec -T \
-    "$destination_service" psql -v ON_ERROR_STOP=1 -U fitsho -d fitsho
+    "$destination_service" psql -v ON_ERROR_STOP=1 -U fitician -d fitician
 
 echo "Hostdev database clone completed on port 5433."

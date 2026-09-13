@@ -20,4 +20,4 @@ $keyring_env
 EOF
   fi
   exec "$@"
-' fitsho-agent-session "$@"
+' fitician-agent-session "$@"

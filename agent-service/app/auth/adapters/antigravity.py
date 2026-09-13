@@ -21,7 +21,7 @@ class AntigravityAuthAdapter:
     _AUTH_RELATIVE_PATH = (
         Path(".gemini") / "antigravity-cli" / "antigravity-oauth-token"
     )
-    _BACKUP_NAME = ".antigravity-oauth-token.fitsho-backup"
+    _BACKUP_NAME = ".antigravity-oauth-token.fitician-backup"
 
     def __init__(self, executable: str = "agy") -> None:
         self.executable = executable

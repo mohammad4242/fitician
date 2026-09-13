@@ -3,7 +3,7 @@ from pathlib import Path
 APP_ROOT = Path(__file__).parents[1] / "app"
 
 
-def test_agent_service_contains_no_fitsho_production_task_prompts() -> None:
+def test_agent_service_contains_no_production_task_prompts() -> None:
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in sorted(APP_ROOT.rglob("*.py"))
@@ -18,8 +18,13 @@ def test_agent_service_contains_no_fitsho_production_task_prompts() -> None:
         "fitsho_food_photo_estimate_v1",
         "fitsho_physique_assessment_v3",
         "fitsho_body_analysis_v4_evidence",
+        "fitician_ai_coach_recommendation",
+        "fitician_food_photo_estimate_v1",
+        "fitician_physique_assessment_v3",
+        "fitician_body_analysis_v4_evidence",
         "Identify only visible foods and estimate portions.",
         "You are Fitsho AI Coach.",
+        "You are Fitician AI Coach.",
     )
 
     assert not [marker for marker in forbidden_markers if marker in source]

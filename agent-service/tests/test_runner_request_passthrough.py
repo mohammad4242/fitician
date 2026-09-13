@@ -15,7 +15,7 @@ def test_all_cli_runners_receive_backend_prompt_and_payload_without_task_mutatio
 ) -> None:
     request = RunnerRequest(
         model_id="model",
-        system_prompt="Fitsho canonical task marker: do not rewrite this sentence.",
+        system_prompt="Fitician canonical task marker: do not rewrite this sentence.",
         input_payload={"semantic_marker": "preserve exact value", "nested": {"number": 7}},
         response_schema={
             "type": "object",

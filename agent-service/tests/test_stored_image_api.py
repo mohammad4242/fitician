@@ -339,7 +339,7 @@ def test_stored_image_route_sets_task_kind_and_image_count_telemetry(
     runner = StoredImageRunner()
     client, shared_root, _ = _stored_client(tmp_path, runner)
     _write(shared_root, "body", BODY_KEY, _jpeg_bytes())
-    with caplog.at_level("INFO", logger="fitsho.agent_service"):
+    with caplog.at_level("INFO", logger="fitician.agent_service"):
         response = _post_stored(client, _stored_request(_stored_reference()))
 
     assert response.status_code == 200

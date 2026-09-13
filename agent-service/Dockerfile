@@ -10,7 +10,7 @@ ARG CLAUDE_VERSION=2.1.220
 ARG TARGETARCH
 
 ENV HOME=/home/agent \
-    PATH=/opt/fitsho-agent/bin:/home/agent/.local/bin:/app/.venv/bin:/opt/venv/bin:$PATH \
+    PATH=/opt/fitician-agent/bin:/home/agent/.local/bin:/app/.venv/bin:/opt/venv/bin:$PATH \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     CLAUDE_CODE_DISABLE_AUTOUPDATE=1
@@ -26,8 +26,8 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 COPY --from=ghcr.io/astral-sh/uv:0.8.14 /uv /uvx /usr/local/bin/
 
-RUN mkdir -p /opt/fitsho-agent/bin \
-    && chown -R agent:agent /opt/fitsho-agent
+RUN mkdir -p /opt/fitician-agent/bin \
+    && chown -R agent:agent /opt/fitician-agent
 
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
@@ -50,17 +50,17 @@ RUN set -eux; \
     tar --extract --gzip --file "${agy_archive}" --directory /home/agent/agy-extract; \
     agy_binary="$(find /home/agent/agy-extract -type f \( -name agy -o -name antigravity \) -print -quit)"; \
     test -n "${agy_binary}"; \
-    install -m 0755 "${agy_binary}" /opt/fitsho-agent/bin/agy; \
+    install -m 0755 "${agy_binary}" /opt/fitician-agent/bin/agy; \
     rm -rf /home/agent/agy-extract "${agy_archive}"; \
     test "$(agy --version | head -n 1)" = "${AGY_VERSION}" \
-    && npm install --global --prefix /opt/fitsho-agent @openai/codex@${CODEX_VERSION} \
+    && npm install --global --prefix /opt/fitician-agent @openai/codex@${CODEX_VERSION} \
     && test "$(codex --version | head -n 1)" = "codex-cli ${CODEX_VERSION}" \
-    && npm install --global --prefix /opt/fitsho-agent @anthropic-ai/claude-code@${CLAUDE_VERSION} \
+    && npm install --global --prefix /opt/fitician-agent @anthropic-ai/claude-code@${CLAUDE_VERSION} \
     && test "$(claude --version | head -n 1)" = "${CLAUDE_VERSION} (Claude Code)"
 
-COPY --chown=agent:agent docker/entrypoint.sh /usr/local/bin/fitsho-agent-entrypoint
-RUN chmod 0755 /usr/local/bin/fitsho-agent-entrypoint
+COPY --chown=agent:agent docker/entrypoint.sh /usr/local/bin/fitician-agent-entrypoint
+RUN chmod 0755 /usr/local/bin/fitician-agent-entrypoint
 
 EXPOSE 9001
-ENTRYPOINT ["/usr/local/bin/fitsho-agent-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/fitician-agent-entrypoint"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001"]

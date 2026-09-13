@@ -2,13 +2,13 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-hostdev_lan_ips="${FITSHO_HOSTDEV_LAN_IPS:-${FITSHO_HOSTDEV_LAN_IP:-}}"
+hostdev_lan_ips="${FITICIAN_HOSTDEV_LAN_IPS:-${FITICIAN_HOSTDEV_LAN_IP:-${FITSHO_HOSTDEV_LAN_IPS:-${FITSHO_HOSTDEV_LAN_IP:-}}}}"
 
 if [[ -z "$hostdev_lan_ips" ]]; then
   hostdev_lan_ips="$(hostname -I)"
 fi
 if [[ -z "$hostdev_lan_ips" ]]; then
-  echo "Set FITSHO_HOSTDEV_LAN_IPS to the phone-accessible host addresses." >&2
+  echo "Set FITICIAN_HOSTDEV_LAN_IPS to the phone-accessible host addresses." >&2
   exit 1
 fi
 
@@ -19,11 +19,11 @@ for hostdev_lan_ip in $hostdev_lan_ips; do
   fi
 done
 
-export DATABASE_URL="postgresql+psycopg://fitsho:fitsho@127.0.0.1:5433/fitsho"
+export DATABASE_URL="postgresql+psycopg://fitician:fitician@127.0.0.1:5433/fitician"
 export FRONTEND_ORIGIN="http://localhost:5174"
 export FRONTEND_ORIGINS="$frontend_origins"
 export COOKIE_SECURE="false"
-export SESSION_COOKIE_NAME="fitsho_session"
+export SESSION_COOKIE_NAME="fitician_session"
 
 cd "$project_root/backend"
 exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8002

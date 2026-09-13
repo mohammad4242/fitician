@@ -1,4 +1,4 @@
-# Fitsho Agent Service
+# Fitician Agent Service
 
 The Agent Service is a private, internal-only HTTP service on port `9001`.
 It contains the pinned Antigravity, Codex, and Claude CLIs in one image. The
@@ -31,7 +31,7 @@ uploads in separate persistent bind mounts under `backend/var/private/`.
 ## Preferred admin login
 
 Use **Admin → AI Settings → Agent Service → Agent → Authenticate**. The browser
-calls the Fitsho Backend, and only the Backend calls this internal service. The
+calls the Fitician Backend, and only the Backend calls this internal service. The
 Agent Service starts the pinned CLI and returns only a validated HTTPS login
 URL, a bounded user code, a fixed input label, and a safe status. It never
 returns a credential, token, raw CLI output, or raw CLI error.
@@ -44,7 +44,7 @@ independent from model selection.
 The authentication session is in memory and temporary. Its default TTL is 600
 seconds and its output is bounded. Restarting the service cancels active auth
 sessions and kills/reaps their processes. A completed provider credential
-remains only in the persistent `fitsho_agent_home` HOME volume. It is not stored
+remains only in the persistent `fitician_agent_home` HOME volume. It is not stored
 in PostgreSQL, the Backend response, Frontend storage, logs, or the image.
 
 After restart, a provider with no reliable non-quota status probe may show
@@ -64,7 +64,7 @@ docker compose exec agent-service claude auth login
 
 Antigravity has no verified `login` subcommand in the pinned image and remains
 manual-only. Do not put subscription credentials or API keys in `compose.yaml`,
-the image, or PostgreSQL. Removing `fitsho_agent_home` intentionally removes
+the image, or PostgreSQL. Removing `fitician_agent_home` intentionally removes
 the saved provider sessions.
 
 ## Contract smoke check
@@ -106,7 +106,7 @@ docker compose exec agent-service curl -fsS \
 ```
 
 The provider login state must remain available because it is stored in the
-named `fitsho_agent_home` volume. If authentication disappears, stop and
+named `fitician_agent_home` volume. If authentication disappears, stop and
 investigate the volume mount; do not log in with credentials embedded in
 compose files or shell history.
 
@@ -129,16 +129,16 @@ in this README or in `compose.yaml`.
 
 ### Back up the authentication volume
 
-Back up `fitsho_agent_home` before changing images, hosts, or volume mounts.
+Back up `fitician_agent_home` before changing images, hosts, or volume mounts.
 The archive contains sensitive provider sessions; protect it like a secret and
 never commit it:
 
 ```bash
 mkdir -p backups
 docker run --rm \
-  -v fitsho_agent_home:/source:ro \
+  -v fitician_agent_home:/source:ro \
   -v "$PWD/backups:/backup" \
-  alpine tar czf /backup/fitsho_agent_home.tgz -C /source .
+  alpine tar czf /backup/fitician_agent_home.tgz -C /source .
 ```
 
 ### Disable or revert safely

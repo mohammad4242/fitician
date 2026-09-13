@@ -40,7 +40,7 @@ def test_agent_service_logger_emits_info_in_runtime() -> None:
 
 def test_http_logging_is_json_and_contains_only_request_metrics(caplog: LogCaptureFixture) -> None:
     app = create_app(Settings(agent_service_token=SecretStr("a" * 32)))
-    with caplog.at_level("INFO", logger="fitsho.agent_service"):
+    with caplog.at_level("INFO", logger="fitician.agent_service"):
         response = TestClient(app).get("/healthz")
 
     assert response.status_code == 200
@@ -98,7 +98,7 @@ def test_generation_logging_includes_safe_agent_model_and_usage(
         Settings(agent_service_token=SecretStr("a" * 32), agent_workspace_root=tmp_path),
         registry=RunnerRegistry([FakeRunner()]),
     )
-    with caplog.at_level("INFO", logger="fitsho.agent_service"):
+    with caplog.at_level("INFO", logger="fitician.agent_service"):
         response = TestClient(app).post(
             "/v1/generate", json=request, headers={"Authorization": "Bearer " + "a" * 32}
         )

@@ -1,1 +1,1 @@
-"""Fitsho internal agent service."""
+"""Fitician internal agent service."""

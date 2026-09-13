@@ -90,7 +90,7 @@ wheels = [
 ]
 
 [[package]]
-name = "fitsho-agent-service"
+name = "fitician-agent-service"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

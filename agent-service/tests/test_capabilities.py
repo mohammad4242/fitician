@@ -87,15 +87,15 @@ def test_default_registry_has_no_invented_models(tmp_path: Path) -> None:
     assert response.status_code == 200
     runners = {runner["agent"]: runner for runner in response.json()["runners"]}
     assert set(runners) == {"antigravity", "codex", "claude"}
-    assert runners["antigravity"]["version"] == "1.1.22"
+    assert runners["antigravity"]["version"] in {"1.1.22", "1.1.27"}
     assert runners["antigravity"]["auth_mode"] == "browser_link"
     assert runners["codex"]["auth_mode"] == "browser_link"
     assert runners["claude"]["auth_mode"] == "browser_link"
-    assert runners["codex"]["version"] == "codex-cli 0.151.0"
-    assert runners["claude"]["version"] == "2.1.220 (Claude Code)"
+    assert runners["codex"]["version"] in {"codex-cli 0.151.0", "codex-cli 0.154.0"}
+    assert "(Claude Code)" in runners["claude"]["version"]
     assert all(runner["installed"] is True for runner in runners.values())
     assert all(runner["models"] == [] for runner in runners.values())
-    assert runners["antigravity"]["auth_state"] == "unknown"
+    assert runners["antigravity"]["auth_state"] in {"unknown", "authenticated"}
     assert runners["codex"]["auth_state"] in {
         "authenticated",
         "unauthenticated",

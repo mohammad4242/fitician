@@ -36,7 +36,7 @@ from .probes import CliMetadataProbe
 
 _PYDANTIC_DECIMAL_PATTERN = r"^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$"
 _RE2_DECIMAL_PATTERN = r"^[+-]?(0*[0-9]+(\.[0-9]*)?|\.[0-9]+)$"
-_AGY_CACHE_HOME = "/home/agent/.gemini/antigravity-cli/fitsho-cache"
+_AGY_CACHE_HOME = "/home/agent/.gemini/antigravity-cli/fitician-cache"
 _AGY_PLAYWRIGHT_BROWSERS_PATH = f"{_AGY_CACHE_HOME}/playwright"
 _AGY_PLAYWRIGHT_DRIVER_PATH = f"{_AGY_CACHE_HOME}/playwright-driver"
 _AGY_LOG_ROOT = Path("/home/agent/.gemini/antigravity-cli/log")
@@ -190,7 +190,7 @@ class AntigravityRunner(AgentRunner):
                 mode="w",
                 encoding="utf-8",
                 dir=workspace,
-                prefix=".fitsho-schema-",
+                prefix=".fitician-schema-",
                 suffix=".json",
                 delete=False,
             ) as schema_file:
