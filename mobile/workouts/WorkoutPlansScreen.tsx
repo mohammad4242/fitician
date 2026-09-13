@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import type { WorkoutGenerationMethod } from "@fitician/core/profile";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,8 +8,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
-import { profileKeys, workoutKeys } from "../data/queryKeys";
+import { profileKeys, programTimelineKeys, workoutKeys } from "../data/queryKeys";
 import { createProfileApi } from "../profile/profileApi";
+import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import {
   AppIcon,
@@ -30,7 +33,7 @@ import {
   type WorkoutPlanExercise,
   type WorkoutPlanVersionSummary,
 } from "./workoutApi";
-import { createWorkoutCycleApi } from "./workoutCycleApi";
+import { createWorkoutCycleApi, type WorkoutCycleStartInput } from "./workoutCycleApi";
 import {
   classifyWorkoutGenerationError,
   findPendingWorkoutPlanId,
@@ -39,6 +42,8 @@ import {
   isWorkoutPlanExecutable,
   workoutPlanAverageDuration,
 } from "./workoutModel";
+import { workoutTimelinePresentation } from "./workoutCycleModel";
+import { WorkoutTimelineCard } from "./WorkoutTimelineCard";
 import {
   ExpoWorkoutPlanPdfStore,
   type StoredWorkoutPlanPdf,
@@ -54,6 +59,11 @@ import type { WorkoutGenerationErrorKind } from "./workoutModel";
 import { ExerciseMedia } from "../exercises/ExerciseMedia";
 
 type PdfStatus = "downloading" | "error" | "idle" | "ready";
+
+type WorkoutSessionAction =
+  | { readonly action: "complete"; readonly sessionId: string }
+  | { readonly action: "reschedule"; readonly scheduledDate: string; readonly sessionId: string }
+  | { readonly action: "skip"; readonly sessionId: string };
 
 const generationErrorMessages: Record<WorkoutGenerationErrorKind, string> = {
   cooldown: "ساخت برنامه به‌تازگی انجام شده است؛ کمی بعد دوباره تلاش کن.",
@@ -75,18 +85,27 @@ export function WorkoutPlansScreen() {
   );
   const cycleApi = useMemo(() => createWorkoutCycleApi(auth.request), [auth.request]);
   const profileApi = useMemo(() => createProfileApi(auth.request), [auth.request]);
+  const timelineApi = useMemo(
+    () => createProgramTimelineApi(auth.request),
+    [auth.request],
+  );
   const pdfStore = useMemo(() => new ExpoWorkoutPlanPdfStore(), []);
   const planTargetId = firstParam(params.planId);
   const cycleTargetId = firstParam(params.cycleId);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planTargetId ?? null);
   const [generationError, setGenerationError] = useState<WorkoutGenerationErrorKind | null>(null);
   const [replacementRequest, setReplacementRequest] = useState<WorkoutReplacementRequest | null>(null);
-  const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitsho_coach");
+  const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [generationMethodError, setGenerationMethodError] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [deletionError, setDeletionError] = useState<string | null>(null);
   const [hiddenDeletedPlanIds, setHiddenDeletedPlanIds] = useState<ReadonlySet<string>>(() => new Set());
   const [generatedForegroundPlan, setGeneratedForegroundPlan] = useState<WorkoutPlan | null>(null);
+  const [cycleStartDate, setCycleStartDate] = useState(localIsoDate);
+  const [rescheduleDate, setRescheduleDate] = useState(localIsoDate);
+  const [cycleStartError, setCycleStartError] = useState<string | null>(null);
+  const [sessionActionError, setSessionActionError] = useState<string | null>(null);
+  const deviceTimezone = resolvedIanaTimeZone();
   const canGenerateEntitled = entitlements.hasEntitlement("training.plan.generate");
   const coachReviewQuota = entitlements.quotaFor("training.coach_review");
   const coachQuotaExhausted = entitlements.hasEntitlement("training.coach_review")
@@ -123,6 +142,10 @@ export function WorkoutPlansScreen() {
     queryFn: () => api.get(selectedPlanId as string),
     queryKey: workoutKeys.plan(selectedPlanId ?? "selected"),
   });
+  const timelineQuery = useQuery({
+    queryFn: () => timelineApi.getToday(deviceTimezone),
+    queryKey: programTimelineKeys.today(deviceTimezone),
+  });
   const activeState = getMobileViewState(activeQuery, {
     connectivityStatus,
     isEmpty: (data) => data === null,
@@ -142,6 +165,13 @@ export function WorkoutPlansScreen() {
   const currentPlanId = currentPlan?.id ?? pendingPlanId;
   const displayedPlan = selectedPlanId === null ? currentPlan : selectedPlan;
   const isViewingHistorical = selectedPlanId !== null && selectedPlanId !== currentPlanId;
+  const timeline = timelineQuery.data ?? null;
+  const timelineWorkout = !isViewingHistorical
+    && displayedPlan !== undefined
+    && displayedPlan !== null
+    && timeline?.workout.workout_plan_id === displayedPlan.id
+    ? timeline.workout
+    : null;
   const profileGenerationMethod = profileQuery.data?.workout_generation_method;
   const generationMethodMutation = useMutation({
     mutationFn: (method: WorkoutGenerationMethod) => profileApi.updateProfile({ workout_generation_method: method }),
@@ -170,6 +200,29 @@ export function WorkoutPlansScreen() {
       ]);
     },
   });
+  const startCycle = useMutation({
+    mutationFn: (input: WorkoutCycleStartInput) => cycleApi.start(input),
+    onError: () => setCycleStartError("شروع برنامه انجام نشد؛ دوباره تلاش کن."),
+    onSuccess: async (cycle) => {
+      setCycleStartError(null);
+      queryClient.setQueryData(workoutKeys.currentCycle(), cycle);
+      await timelineQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: workoutKeys.currentCycle() });
+    },
+  });
+  const sessionAction = useMutation({
+    mutationFn: (input: WorkoutSessionAction) => {
+      if (input.action === "complete") return cycleApi.completeSession(input.sessionId);
+      if (input.action === "skip") return cycleApi.skipSession(input.sessionId);
+      return cycleApi.rescheduleSession(input.sessionId, { scheduled_date: input.scheduledDate });
+    },
+    onError: () => setSessionActionError("تغییر وضعیت جلسه انجام نشد؛ دوباره تلاش کن."),
+    onSuccess: async () => {
+      setSessionActionError(null);
+      await timelineQuery.refetch();
+      await queryClient.invalidateQueries({ queryKey: workoutKeys.currentCycle() });
+    },
+  });
   const deletion = useMutation({
     mutationFn: (planId: string) => api.deletePlan(planId),
     mutationKey: ["workout-plan-deletion"],
@@ -195,7 +248,7 @@ export function WorkoutPlansScreen() {
 
   useEffect(() => {
     if (!generationMethodMutation.isPending) {
-      setGenerationMethod(profileGenerationMethod ?? "fitsho_coach");
+      setGenerationMethod(profileGenerationMethod ?? "fitician_coach");
     }
   }, [generationMethodMutation.isPending, profileGenerationMethod]);
 
@@ -204,6 +257,13 @@ export function WorkoutPlansScreen() {
       setGeneratedForegroundPlan(null);
     }
   }, [generatedForegroundPlan, loadedCurrentPlan?.id]);
+
+  useEffect(() => {
+    if (displayedPlan !== undefined && displayedPlan !== null && !isViewingHistorical && timeline?.local_date) {
+      setCycleStartDate(timeline.local_date);
+      setRescheduleDate(timeline.local_date);
+    }
+  }, [displayedPlan?.id, isViewingHistorical, timeline?.local_date]);
 
   const pendingLoading = pendingPlanId !== null && pendingState.status === "loading";
   const loading = activeState.status === "loading"
@@ -232,6 +292,35 @@ export function WorkoutPlansScreen() {
     if (generation.isPending || !canGenerate) return;
     setGenerationError(null);
     generation.mutate();
+  }
+
+  function startProgram() {
+    if (displayedPlan === undefined || displayedPlan === null || timelineWorkout === null
+      || timelineWorkout.state !== "ready_to_start" || startCycle.isPending) return;
+    setCycleStartError(null);
+    startCycle.mutate({
+      start_date: cycleStartDate,
+      timezone: deviceTimezone,
+      workout_plan_id: displayedPlan.id,
+    });
+  }
+
+  function completeTimelineSession(sessionId: string) {
+    if (sessionAction.isPending) return;
+    setSessionActionError(null);
+    sessionAction.mutate({ action: "complete", sessionId });
+  }
+
+  function skipTimelineSession(sessionId: string) {
+    if (sessionAction.isPending) return;
+    setSessionActionError(null);
+    sessionAction.mutate({ action: "skip", sessionId });
+  }
+
+  function rescheduleTimelineSession(sessionId: string, scheduledDate: string) {
+    if (sessionAction.isPending) return;
+    setSessionActionError(null);
+    sessionAction.mutate({ action: "reschedule", scheduledDate, sessionId });
   }
 
   function selectHistoryVersion(version: WorkoutPlanVersionSummary) {
@@ -353,16 +442,39 @@ export function WorkoutPlansScreen() {
       ) : null}
 
       {!loading && !activeLoadError && !activeOffline && displayedPlan !== undefined && displayedPlan !== null ? (
+        timelineWorkout !== null && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical) ? (
+          <WorkoutTimelineCard
+            actionError={sessionActionError}
+            actionPending={sessionAction.isPending}
+            cycleStartError={cycleStartError}
+            cycleStartPending={startCycle.isPending}
+            durationWeeks={displayedPlan.plan_duration_weeks}
+            rescheduleDate={rescheduleDate}
+            startDate={cycleStartDate}
+            timeline={timelineWorkout}
+            onChangeRescheduleDate={setRescheduleDate}
+            onChangeStartDate={setCycleStartDate}
+            onCompleteSession={completeTimelineSession}
+            onRescheduleSession={rescheduleTimelineSession}
+            onSkipSession={skipTimelineSession}
+            onStart={startProgram}
+          />
+        ) : null
+      ) : null}
+
+      {!loading && !activeLoadError && !activeOffline && displayedPlan !== undefined && displayedPlan !== null ? (
         <PlanView
           historical={isViewingHistorical}
           onStartReplacement={startReplacement}
           plan={displayedPlan}
           pending={displayedPlan.status === "pending_review"}
+          timelineWorkout={timelineWorkout}
         />
       ) : null}
 
       {!loading && !activeLoadError && !activeOffline && displayedPlan !== null && displayedPlan !== undefined
-        && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical) ? (
+        && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical)
+        && timelineWorkout?.state !== "ready_to_start" ? (
         <WorkoutCyclePanel
           expectedCycleId={cycleTargetId}
           plan={displayedPlan}
@@ -610,7 +722,7 @@ function GenerationMethodSelector({
         disabled={saving}
         onChange={(value) => onSelect(value as WorkoutGenerationMethod)}
         options={[
-          { label: "موتور داخلی", value: "fitsho_coach" },
+          { label: "موتور داخلی", value: "fitician_coach" },
           { label: "هوش مصنوعی", value: "ai" },
         ]}
         selectedValue={selected}
@@ -626,21 +738,35 @@ function PlanView({
   onStartReplacement,
   plan,
   pending,
+  timelineWorkout,
 }: {
   readonly historical: boolean;
   readonly onStartReplacement?: (exerciseId: string) => void;
   readonly plan: WorkoutPlan;
   readonly pending: boolean;
+  readonly timelineWorkout: TimelineWorkout | null;
 }) {
   const router = useRouter();
-  const [expandedDay, setExpandedDay] = useState<number | null>(plan.days[0]?.day_number ?? null);
+  const presentation = timelineWorkout === null ? null : workoutTimelinePresentation(timelineWorkout);
+  const focusedDayId = presentation?.focusedSession?.workout_day_id ?? null;
+  const nextDayId = presentation?.nextSession?.workout_day_id ?? null;
+  const [expandedDay, setExpandedDay] = useState<number | null>(() => (
+    plan.days.find((day) => day.id === focusedDayId)?.day_number
+      ?? plan.days[0]?.day_number
+      ?? null
+  ));
   const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
   const executable = isWorkoutPlanExecutable(plan, historical);
   const visibleWarnings = getUserVisibleWorkoutWarnings(plan.warnings);
 
   useEffect(() => {
     setActivePreviewId(null);
-  }, [plan.id]);
+    setExpandedDay(
+      plan.days.find((day) => day.id === focusedDayId)?.day_number
+        ?? plan.days[0]?.day_number
+        ?? null,
+    );
+  }, [focusedDayId, plan]);
 
   function togglePreview(previewId: string): void {
     setActivePreviewId((current) => current === previewId ? null : previewId);
@@ -662,18 +788,20 @@ function PlanView({
             </View>
           </View>
           <View style={styles.daysSection}>
-            {plan.days.map((day, dayIndex) => (
+            {plan.days.map((day) => (
               <WorkoutDayCard
                 day={day}
-                dayIndex={dayIndex}
                 activePreviewId={activePreviewId}
                 expanded={expandedDay === day.day_number}
-                focus={dayIndex === 0}
+                focus={day.id === focusedDayId}
                 key={day.day_number}
                 onOpenExercise={(slug) => router.push({ pathname: "/member/exercises/[slug]", params: { slug } })}
                 onStartReplacement={executable && !pending ? onStartReplacement : undefined}
                 onTogglePreview={togglePreview}
-                showNext={dayIndex === 0 && executable && !historical}
+                showNext={day.id === nextDayId
+                  && executable
+                  && !historical
+                  && (presentation?.state === "rest" || presentation?.state === "completed")}
                 onToggle={() => {
                   setActivePreviewId(null);
                   setExpandedDay((current) => current === day.day_number ? null : day.day_number);
@@ -857,7 +985,6 @@ export function getWorkoutDayDisplayTitle(day: WorkoutDay): string {
 function WorkoutDayCard({
   activePreviewId,
   day,
-  dayIndex,
   expanded,
   focus,
   onOpenExercise,
@@ -868,7 +995,6 @@ function WorkoutDayCard({
 }: {
   readonly activePreviewId: string | null;
   readonly day: WorkoutDay;
-  readonly dayIndex: number;
   readonly expanded: boolean;
   readonly focus: boolean;
   readonly onOpenExercise: (slug: string) => void;
@@ -887,7 +1013,7 @@ function WorkoutDayCard({
     <Pressable
       accessibilityLabel={`روز ${formatPersianNumber(day.day_number, { maximumFractionDigits: 0 })}: ${displayTitle}`}
       accessibilityRole="button"
-      accessibilityState={{ expanded }}
+      accessibilityState={{ expanded, selected: focus }}
       onPress={onToggle}
       style={({ pressed }) => [
         styles.dayCard,
@@ -895,9 +1021,10 @@ function WorkoutDayCard({
         expanded && styles.dayCardExpanded,
         pressed && styles.dayCardPressed,
       ]}
+      testID={`workout-day-${day.id}`}
     >
       <View style={[styles.daySummary, focus ? styles.focusDaySummary : styles.secondaryDaySummary]}>
-        {focus && dayIndex === 0 && leadExercise ? (
+        {focus && leadExercise ? (
           <Pressable
             accessibilityLabel={leadExercise.exercise.media_type === "video"
               ? `${activePreviewId === leadPreviewId ? "توقف" : "پخش"} پیش‌نمایش جلسه ${leadName}`

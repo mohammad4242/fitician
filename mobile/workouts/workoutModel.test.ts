@@ -67,11 +67,14 @@ it("keeps generation failure states explicit", () => {
 
 it("displays the backend's bounded cycle week without recalculating it", () => {
   expect(workoutCycleWeekDisplay({
+    completed_sessions: 0,
     current_week: 4,
     cycle_id: "cycle-1",
     duration_weeks: 4,
+    has_exact_session_tracking: false,
     started_at: "2026-01-01T00:00:00Z",
     status: "active",
+    total_sessions: 0,
     workout_plan_id: "plan-1",
   })).toEqual({ currentWeek: 4, durationWeeks: 4, isAtEnd: true });
 });
@@ -94,8 +97,8 @@ it("selects only the pending-review version for the pending plan slot", () => {
 it("calculates average session duration and safe PDF filenames", () => {
   expect(workoutPlanAverageDuration(plan({
     days: [
-      { day_number: 1, estimated_duration_minutes: 41, exercises: [], focus: "push", title_en: "Push", title_fa: "پوش", total_exercise_count: 0, main_exercise_count: 0, supplemental_exercise_count: 0 },
-      { day_number: 2, estimated_duration_minutes: 50, exercises: [], focus: "pull", title_en: "Pull", title_fa: "پول", total_exercise_count: 0, main_exercise_count: 0, supplemental_exercise_count: 0 },
+      { day_number: 1, estimated_duration_minutes: 41, exercises: [], focus: "push", id: "day-1", title_en: "Push", title_fa: "پوش", total_exercise_count: 0, main_exercise_count: 0, supplemental_exercise_count: 0 },
+      { day_number: 2, estimated_duration_minutes: 50, exercises: [], focus: "pull", id: "day-2", title_en: "Pull", title_fa: "پول", total_exercise_count: 0, main_exercise_count: 0, supplemental_exercise_count: 0 },
     ],
   }))).toBe(46);
   expect(workoutPlanAverageDuration(plan())).toBeNull();

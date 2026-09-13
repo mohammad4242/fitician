@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import type { BinaryDownload } from "@fitician/core";
 import { Alert, Linking } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import type { TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
 
 const mockPdfGet = jest.fn<() => Promise<StoredWorkoutPlanPdf | null>>();
 const mockPdfSave = jest.fn<() => Promise<StoredWorkoutPlanPdf>>();
@@ -45,6 +46,7 @@ jest.mock("../platform/connectivity", () => ({
   },
 }));
 jest.mock("../profile/profileApi", () => ({ createProfileApi: jest.fn() }));
+jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelineApi: jest.fn() }));
 jest.mock("./workoutApi", () => ({ createWorkoutPlanApi: jest.fn() }));
 jest.mock("./workoutPdfStore", () => ({
   ExpoWorkoutPlanPdfStore: jest.fn().mockImplementation(() => ({
@@ -60,6 +62,7 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { languageForDirection } from "../ui/rtl";
 import { createProfileApi } from "../profile/profileApi";
+import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import type { WorkoutPlan, WorkoutPlanExercise, WorkoutPlanVersionSummary } from "./workoutApi";
 import { createWorkoutPlanApi } from "./workoutApi";
 import type { StoredWorkoutPlanPdf } from "./workoutPdfStore";
@@ -77,6 +80,7 @@ const mockUseMobileAuth = jest.mocked(useMobileAuth);
 const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockLanguageForDirection = jest.mocked(languageForDirection);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
+const mockCreateProgramTimelineApi = jest.mocked(createProgramTimelineApi);
 const mockCreateWorkoutPlanApi = jest.mocked(createWorkoutPlanApi);
 const mockMutate = jest.fn();
 const mockInvalidateQueries = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
@@ -89,7 +93,8 @@ let mockPlansById: Record<string, WorkoutPlan> = {};
 let mockHistory: WorkoutPlanVersionSummary[] = [];
 let mockCycle: unknown = null;
 let mockCompletionFeedback: unknown = null;
-let mockProfileGenerationMethod: "fitsho_coach" | "ai" = "fitsho_coach";
+let mockTimeline: { local_date: string; timezone: string; workout: TimelineWorkout } | null = null;
+let mockProfileGenerationMethod: "fitician_coach" | "ai" = "fitician_coach";
 let executeMutation = false;
 
 type TestMutationOptions = {
@@ -116,6 +121,40 @@ function resolved<T>(value: T) {
   return jest.fn<() => Promise<T>>().mockResolvedValue(value);
 }
 
+function makeSession(overrides: Partial<TimelineWorkoutSession> = {}): TimelineWorkoutSession {
+  return {
+    day_number: 1,
+    estimated_duration_minutes: 45,
+    id: "session-1",
+    scheduled_date: "2026-09-14",
+    session_number: 1,
+    status: "scheduled",
+    title_en: "Upper body",
+    title_fa: "بالاتنه",
+    week_number: 1,
+    workout_day_id: "active-plan-day-1",
+    ...overrides,
+  };
+}
+
+function makeTimelineWorkout(overrides: Partial<TimelineWorkout> = {}): TimelineWorkout {
+  return {
+    completed_sessions: 0,
+    state: "rest_day",
+    total_sessions: 4,
+    workout_plan_id: "active-plan",
+    ...overrides,
+  };
+}
+
+function makeTimeline(overrides: Partial<TimelineWorkout> = {}) {
+  return {
+    local_date: "2026-09-13",
+    timezone: "Asia/Tehran",
+    workout: makeTimelineWorkout(overrides),
+  };
+}
+
 function renderWorkoutPlans() {
   return render(
     <SafeAreaProvider initialMetrics={{
@@ -140,7 +179,8 @@ beforeEach(() => {
   mockHistory = [];
   mockCycle = null;
   mockCompletionFeedback = null;
-  mockProfileGenerationMethod = "fitsho_coach";
+  mockTimeline = null;
+  mockProfileGenerationMethod = "fitician_coach";
   executeMutation = false;
   mockPdfGet.mockReset();
   mockPdfGet.mockResolvedValue(null);
@@ -176,6 +216,9 @@ beforeEach(() => {
     getProfile: resolved({ workout_generation_method: mockProfileGenerationMethod }),
     updateProfile: jest.fn(),
   } as never);
+  mockCreateProgramTimelineApi.mockReturnValue({
+    getToday: resolved(null),
+  } as never);
   mockCreateWorkoutPlanApi.mockReturnValue({
     deletePlan: mockDeletePlan,
     downloadPdf: mockDownloadPdf,
@@ -191,6 +234,7 @@ beforeEach(() => {
     if (key[1] === "current-cycle") return queryResult(mockCycle);
     if (key[1] === "weekly-check-in") return queryResult(null);
     if (key[1] === "completion-feedback") return queryResult(mockCompletionFeedback);
+    if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[1] === "plan" && key[2] === "active") return queryResult(mockActivePlan);
     if (key[1] === "plan") return queryResult(mockPlansById[String(key[2])] ?? mockPlanById);
     return queryResult(null);
@@ -235,6 +279,134 @@ test("renders the web-parity workout hierarchy and shared generation control", (
   expect(screen.getByRole("radio", { name: "موتور داخلی" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "هوش مصنوعی" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "ساخت برنامه تمرینی" })).toBeTruthy();
+});
+
+test("does not label the first plan day as the next session without timeline data", () => {
+  mockActivePlan = makePlan("active", []);
+
+  renderWorkoutPlans();
+
+  expect(screen.queryByText("جلسه بعد")).toBeNull();
+});
+
+test("shows an explicit start control for an active plan without a cycle", () => {
+  mockActivePlan = makePlan("active", []);
+  mockTimeline = makeTimeline({ state: "ready_to_start" });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText("برنامه آماده شروع است")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeTruthy();
+});
+
+test("shows the actual next session on a rest day", () => {
+  mockActivePlan = makePlan("active", []);
+  mockTimeline = makeTimeline({
+    next_session: makeSession({
+      day_number: 2,
+      id: "session-2",
+      session_number: 2,
+      title_en: "Lower body",
+      title_fa: "پایین‌تنه",
+      workout_day_id: "active-plan-day-1",
+    }),
+    state: "rest_day",
+  });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText("روز استراحت")).toBeTruthy();
+  expect(screen.getByText(/جلسه ۲/u)).toBeTruthy();
+});
+
+test("focuses the workout day referenced by today's timeline session", () => {
+  mockActivePlan = makePlan("active", [], "active-plan", 2);
+  mockTimeline = makeTimeline({
+    state: "workout_today",
+    today_session: makeSession({
+      day_number: 2,
+      session_number: 2,
+      title_en: "Lower body",
+      title_fa: "پایین‌تنه",
+      workout_day_id: "active-plan-day-2",
+    }),
+  });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByTestId("workout-day-active-plan-day-2").props.accessibilityState).toMatchObject({
+    selected: true,
+  });
+  expect(screen.getByTestId("workout-day-active-plan-day-1").props.accessibilityState).toMatchObject({
+    selected: false,
+  });
+});
+
+test("focuses the overdue timeline session instead of a later plan day", () => {
+  mockActivePlan = makePlan("active", [], "active-plan", 2);
+  mockTimeline = makeTimeline({
+    next_session: makeSession({
+      day_number: 2,
+      session_number: 2,
+      title_en: "Lower body",
+      title_fa: "پایین‌تنه",
+      workout_day_id: "active-plan-day-2",
+    }),
+    overdue_session: makeSession({
+      day_number: 1,
+      id: "session-1",
+      session_number: 1,
+      workout_day_id: "active-plan-day-1",
+    }),
+    state: "overdue",
+  });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText("این جلسه عقب افتاده است")).toBeTruthy();
+  expect(screen.getByTestId("workout-day-active-plan-day-1").props.accessibilityState).toMatchObject({
+    selected: true,
+  });
+  expect(screen.getByTestId("workout-day-active-plan-day-2").props.accessibilityState).toMatchObject({
+    selected: false,
+  });
+});
+
+test("starts the active workout plan with the selected local date and timezone", async () => {
+  mockActivePlan = makePlan("active", []);
+  mockTimeline = makeTimeline({ state: "ready_to_start" });
+  executeMutation = true;
+
+  renderWorkoutPlans();
+  fireEvent.changeText(screen.getByLabelText("تاریخ شروع برنامه"), "2026-09-15");
+  fireEvent.press(screen.getByRole("button", { name: "شروع برنامه" }));
+
+  await waitFor(() => expect(mockRequest).toHaveBeenCalledWith({
+    body: {
+      start_date: "2026-09-15",
+      timezone: expect.any(String),
+      workout_plan_id: "active-plan",
+    },
+    method: "POST",
+    path: "/api/v1/workout-cycles/start",
+  }));
+});
+
+test("completes today's exact session through the cycle API", async () => {
+  mockActivePlan = makePlan("active", []);
+  mockTimeline = makeTimeline({
+    state: "workout_today",
+    today_session: makeSession(),
+  });
+  executeMutation = true;
+
+  renderWorkoutPlans();
+  fireEvent.press(screen.getByRole("button", { name: "تکمیل جلسه" }));
+
+  await waitFor(() => expect(mockRequest).toHaveBeenCalledWith({
+    method: "POST",
+    path: "/api/v1/workout-cycles/current/sessions/session-1/complete",
+  }));
 });
 
 test("keeps workout history readable but locks new generation without access", () => {
@@ -299,7 +471,7 @@ test("keeps exactly one inline workout video player active", () => {
   renderWorkoutPlans();
 
   expect(screen.queryByTestId("native-video")).toBeNull();
-  expect(screen.getAllByLabelText(/پوستر حرکت/)).toHaveLength(3);
+  expect(screen.getAllByLabelText(/پوستر حرکت/)).toHaveLength(2);
 
   fireEvent.press(screen.getByTestId("workout-exercise-preview-row-1"), { stopPropagation: jest.fn() });
   expect(screen.getAllByTestId("native-video")).toHaveLength(1);
@@ -907,6 +1079,7 @@ function makePlan(
   status: "active" | "pending_review" | "superseded" | "failed",
   exercises: WorkoutPlanExercise[],
   id = status === "active" ? "active-plan" : status === "pending_review" ? "pending-plan" : `${status}-plan`,
+  dayCount = 1,
 ): WorkoutPlan {
   const active = status === "active";
   const pending = status === "pending_review";
@@ -919,18 +1092,19 @@ function makePlan(
       state: active ? "coach_approved" : pending ? "pending_coach_review" : "initial_generated",
     },
     created_at: "2026-09-01T00:00:00Z",
-    days: [{
+    days: Array.from({ length: dayCount }, (_, dayIndex) => ({
       ai_coach_explanation_fa: null,
-      day_number: 1,
+      day_number: dayIndex + 1,
       estimated_duration_minutes: 45,
       exercises,
       focus: "upper_body",
+      id: `${id}-day-${dayIndex + 1}`,
       main_exercise_count: exercises.length,
       supplemental_exercise_count: 0,
-      title_en: "Upper body",
-      title_fa: "بالاتنه",
+      title_en: dayIndex === 0 ? "Upper body" : `Workout day ${dayIndex + 1}`,
+      title_fa: dayIndex === 0 ? "بالاتنه" : `روز تمرین ${dayIndex + 1}`,
       total_exercise_count: exercises.length,
-    }],
+    })),
     engine_version: "test",
     generation_source: "internal_engine",
     id,
