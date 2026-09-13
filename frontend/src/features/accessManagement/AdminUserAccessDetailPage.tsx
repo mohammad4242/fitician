@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
@@ -274,7 +275,7 @@ function toTermWeeks(value: string): AccessTermWeeks | null {
   return null;
 }
 
-function sourceLabel(source: AdminGrant["source"], t: (key: string, options?: unknown) => string): string {
+function sourceLabel(source: AdminGrant["source"], t: TFunction): string {
   const labels: Record<AdminGrant["source"], string> = {
     subscription: t("adminAccess.sourceSubscription", "اشتراک"),
     admin: t("adminAccess.sourceAdmin", "ادمین"),

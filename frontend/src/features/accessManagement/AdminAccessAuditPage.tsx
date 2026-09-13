@@ -106,7 +106,7 @@ function AuditRow({ event, english, t }: { event: AdminAuditEvent; english: bool
       </header>
       <p><strong>{actor}</strong> · {actionLabel(event.action, t)} · <strong>{target}</strong></p>
       <dl><div><dt>{t("adminAccess.resource")}</dt><dd>{event.resource_type} / {event.resource_key}</dd></div><div><dt>{t("adminAccess.reason")}</dt><dd>{event.reason ?? "—"}</dd></div></dl>
-      <details><summary>{t("adminAccess.details", "جزئیات")}</summary><div className="access-audit-card__state"><div><h3>{t("adminAccess.before")}</h3><pre>{formatState(event.before_state)}</pre></div><div><h3>{t("adminAccess.after")}</h3><pre>{formatState(event.after_state)}</pre></div></div></details>
+      <details><summary>{t("adminAccess.details")}</summary><div className="access-audit-card__state"><div><h3>{t("adminAccess.before")}</h3><pre>{formatState(event.before_state)}</pre></div><div><h3>{t("adminAccess.after")}</h3><pre>{formatState(event.after_state)}</pre></div></div></details>
     </article>
   );
 }
