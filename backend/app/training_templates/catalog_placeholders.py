@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.exercises.curated_safety_notes import get_curated_safety_notes
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
@@ -126,6 +127,7 @@ def _placeholder_exercise(slot: TemplateSlotSeed) -> Exercise:
         slot.movement_pattern,
         exercise_type,
     )
+    curated_safety_notes = get_curated_safety_notes(slot.exercise_slug_hint)
     return Exercise(
         slug=slot.exercise_slug_hint,
         name_en=name_en,
@@ -146,18 +148,26 @@ def _placeholder_exercise(slot: TemplateSlotSeed) -> Exercise:
             "در دامنهٔ تعیین‌شده با کنترل عضلهٔ هدف حرکت کن.",
             "اگر فرم به‌هم خورد یا درد ایجاد شد، ست را متوقف کن.",
         ],
-        safety_notes_en=[
-            (
-                "This catalog draft needs a coach review and approved media "
-                "before it can be programmed."
-            ),
-        ],
-        safety_notes_fa=[
-            (
-                "این پیش‌نویس کتابخانه پیش از استفاده در برنامه به بازبینی مربی و "
-                "رسانهٔ تأییدشده نیاز دارد."
-            ),
-        ],
+        safety_notes_en=(
+            list(curated_safety_notes.en)
+            if curated_safety_notes
+            else [
+                (
+                    "This catalog draft needs a coach review and approved media "
+                    "before it can be programmed."
+                ),
+            ]
+        ),
+        safety_notes_fa=(
+            list(curated_safety_notes.fa)
+            if curated_safety_notes
+            else [
+                (
+                    "این پیش‌نویس کتابخانه پیش از استفاده در برنامه به بازبینی مربی و "
+                    "رسانهٔ تأییدشده نیاز دارد."
+                ),
+            ]
+        ),
         media_path=PLACEHOLDER_MEDIA_PATH,
         media_type=MediaType.PLACEHOLDER,
         source=TEMPLATE_PLACEHOLDER_SOURCE,

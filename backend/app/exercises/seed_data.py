@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.exercises.curated_safety_notes import get_curated_safety_notes
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
@@ -144,6 +145,7 @@ def _exercise(
     media_attribution: str | None = None,
 ) -> ExerciseSeed:
     movement_pattern, exercise_type, caution_tags = PROGRAMMING_METADATA[slug]
+    curated_safety_notes = get_curated_safety_notes(slug)
     owner_media = _OWNER_MEDIA.get(slug)
     if media_path is None:
         resolved_media_path = (
@@ -180,8 +182,8 @@ def _exercise(
         difficulty=difficulty,
         instructions_en=instructions_en,
         instructions_fa=instructions_fa,
-        safety_notes_en=(safety_en,),
-        safety_notes_fa=(safety_fa,),
+        safety_notes_en=curated_safety_notes.en if curated_safety_notes else (safety_en,),
+        safety_notes_fa=curated_safety_notes.fa if curated_safety_notes else (safety_fa,),
         media_path=resolved_media_path,
         media_type=resolved_media_type,
         media_source_url=None,

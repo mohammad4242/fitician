@@ -433,6 +433,47 @@ def test_importer_prevents_duplicates_on_a_second_run(
     assert translator.calls == [["0001"]]
 
 
+def test_importer_applies_and_repairs_curated_safety_notes(
+    db: Session,
+    test_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    from app.exercises.curated_safety_notes import get_curated_safety_notes
+    from app.exercises.free_exercise_db_import import FreeExerciseDbImporter
+
+    source_root = tmp_path / "source"
+    record = source_record()
+    record.update({"id": "0025", "name": "Barbell Bench Press"})
+    write_source(source_root, record)
+    translator = FakeTranslator()
+    importer = FreeExerciseDbImporter(
+        db,
+        settings=test_settings,
+        source_root=source_root,
+        translator=translator,
+    )
+
+    first = importer.run()
+    exercise = db.scalar(select(Exercise).where(Exercise.slug == "fedb-0025-barbell-bench-press"))
+    curated = get_curated_safety_notes("fedb-0025-barbell-bench-press")
+    assert curated is not None
+    assert first.imported_records == ["0025"]
+    assert exercise is not None
+    assert exercise.safety_notes_fa == list(curated.fa)
+    assert exercise.safety_notes_en == list(curated.en)
+
+    exercise.safety_notes_fa = ["یادداشت قدیمی"]
+    exercise.safety_notes_en = ["Old note"]
+    db.commit()
+
+    second = importer.run()
+    db.refresh(exercise)
+
+    assert second.updated_records == ["0025"]
+    assert exercise.safety_notes_fa == list(curated.fa)
+    assert exercise.safety_notes_en == list(curated.en)
+
+
 def test_importer_stores_media_at_verified_content_addressed_exercise_paths(
     db: Session,
     test_settings: Settings,

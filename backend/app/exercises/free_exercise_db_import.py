@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.admin.media import MediaValidationError, _signature_extension
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.exercises.curated_safety_notes import get_curated_safety_notes
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
@@ -852,6 +853,7 @@ class FreeExerciseDbImporter:
 
     def _is_current(self, exercise: Exercise, candidate: ImportCandidate) -> bool:
         managed_assets = [asset for asset in exercise.media_assets if asset.source == SOURCE_NAME]
+        curated_safety_notes = get_curated_safety_notes(candidate.slug)
         prescription = prescription_metadata_for_identifier(SOURCE_NAME, candidate.source_id)
         canonical_stability_demand = canonical_stability_demand_for_identifier(
             SOURCE_NAME, candidate.source_id
@@ -892,6 +894,13 @@ class FreeExerciseDbImporter:
             and {item.label for item in exercise.labels} == set(candidate.labels)
             and {item.caution_tag for item in exercise.caution_tag_items}
             == set(candidate.programming_metadata.caution_tags)
+            and (
+                curated_safety_notes is None
+                or (
+                    exercise.safety_notes_fa == list(curated_safety_notes.fa)
+                    and exercise.safety_notes_en == list(curated_safety_notes.en)
+                )
+            )
         )
 
     def _stored_media_matches(self, public_path: str, source_path: Path) -> bool:
@@ -1005,8 +1014,9 @@ class FreeExerciseDbImporter:
             exercise.stability_demand = canonical_stability_demand
         exercise.instructions_en = candidate.instructions_en
         exercise.instructions_fa = [item.strip() for item in translation.instructions_fa]
-        exercise.safety_notes_en = []
-        exercise.safety_notes_fa = []
+        curated_safety_notes = get_curated_safety_notes(candidate.slug)
+        exercise.safety_notes_en = list(curated_safety_notes.en) if curated_safety_notes else []
+        exercise.safety_notes_fa = list(curated_safety_notes.fa) if curated_safety_notes else []
         admin_assets = [asset for asset in exercise.media_assets if asset.source == "admin"]
         admin_paths = {asset.media_path for asset in admin_assets}
         admin_primary = exercise.media_path in admin_paths or (

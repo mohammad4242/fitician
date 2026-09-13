@@ -364,8 +364,12 @@ def test_detail_returns_complete_bilingual_exercise(
     assert payload["equipment"] == ["bench", "dumbbell"]
     assert len(payload["instructions_en"]) == 3
     assert len(payload["instructions_fa"]) == 3
-    assert payload["safety_notes_en"]
-    assert payload["safety_notes_fa"]
+    from app.exercises.curated_safety_notes import get_curated_safety_notes
+
+    curated = get_curated_safety_notes("dumbbell-bench-press")
+    assert curated is not None
+    assert payload["safety_notes_en"] == list(curated.en)
+    assert payload["safety_notes_fa"] == list(curated.fa)
     assert payload["media_type"] == "gif"
     assert payload["media_path"].endswith("/dumbbell-bench-press.gif")
     assert payload["media_source_url"] is None

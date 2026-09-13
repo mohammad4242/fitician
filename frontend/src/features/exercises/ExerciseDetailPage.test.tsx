@@ -39,12 +39,16 @@ const detail: ExerciseDetail = {
     "دمبل‌ها را بالا ببر، بدون اینکه آرنج‌ها را با فشار قفل کنی.",
   ],
   safety_notes_en: [
-    "Keep the shoulders supported by the bench.",
-    "Use a load you can control through the full range.",
+    "Keep your shoulder blades back and down; do not let the shoulders roll forward and take tension away from the chest.",
+    "Lower the dumbbells far enough to get a good chest stretch without forcing the front of the shoulder into an uncomfortable position.",
+    "Keep the wrists roughly stacked over the elbows instead of letting the dumbbells drift too far in or out.",
+    "As you press, think about bringing the upper arms toward each other rather than only pushing the dumbbells upward.",
   ],
   safety_notes_fa: [
-    "شانه‌ها را روی نیمکت ثابت نگه دار.",
-    "وزنه‌ای انتخاب کن که در تمام دامنه کنترلش کنی.",
+    "کتف‌هاتو عقب و پایین نگه دار؛ نذار موقع پرس شونه‌ها بیان جلو و فشار سینه رو بدزدن.",
+    "دمبل‌ها رو تا جایی پایین بیار که سینه خوب کش بیاد، ولی جلوی شونه تحت فشار بد قرار نگیره.",
+    "مچ رو تقریباً روی آرنج نگه دار؛ نذار دمبل‌ها بیش‌ازحد داخل یا بیرون فرار کنن.",
+    "بالا که میای فقط دمبل رو هل نده؛ فکر کن دو بازوت رو داری به سمت هم جمع می‌کنی.",
   ],
   media_path: "/exercises/upper-body/chest/dumbbell-bench-press.gif",
   media_type: "gif",
@@ -163,8 +167,9 @@ describe("exercise detail content", () => {
 
     const safety = screen.getByText("نکات فرم و ایمنی", { exact: true }).closest("details");
     expect(safety).not.toBeNull();
-    expect(within(safety!).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(safety!).getByText(detail.safety_notes_fa[1])).toBeVisible();
+    expect(
+      within(safety!).getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(detail.safety_notes_fa);
 
     const breadcrumb = screen.getByRole("navigation", { name: "مسیر جزئیات حرکت" });
     expect(within(breadcrumb).getByRole("link", { name: "کتابخانه حرکات" })).toHaveAttribute(
@@ -191,6 +196,14 @@ describe("exercise detail content", () => {
     expect(screen.getByText("پرس سینه دمبل")).toHaveAttribute("dir", "rtl");
     expect(screen.getByText(detail.instructions_en[0])).toBeVisible();
     expect(screen.queryByText(detail.instructions_fa[0])).not.toBeInTheDocument();
+    await user.click(screen.getByText("Form and safety notes", { exact: true }));
+    const safety = screen
+      .getByText("Form and safety notes", { exact: true })
+      .closest("details");
+    expect(safety).not.toBeNull();
+    expect(
+      within(safety!).getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(detail.safety_notes_en);
     expect(document.documentElement).toHaveAttribute("dir", "ltr");
   });
 

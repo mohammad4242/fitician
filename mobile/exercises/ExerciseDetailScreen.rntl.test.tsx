@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
+import { Text } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const mockVideoPlayer = {
@@ -58,6 +59,13 @@ import { ExerciseDetailScreen } from "./ExerciseDetailScreen";
 const mockUseQuery = jest.mocked(useQuery);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
 const mockLanguageForDirection = jest.mocked(languageForDirection);
+
+const detailSafetyNotesFa = [
+  "کتف‌هاتو عقب و پایین نگه دار.",
+  "دمبل‌ها رو تا کشش کنترل‌شده سینه پایین بیار.",
+  "مچ رو روی آرنج نگه دار.",
+  "موقع پرس بازوها رو به سمت هم جمع کن.",
+];
 
 const maleDetail = createDetail([
   asset("male", "/media/male-1.mp4", 0),
@@ -129,6 +137,21 @@ test("renders the compact media card without manual offline controls", () => {
   expect(screen.queryByText("ویدیوی مرد 1")).toBeNull();
 });
 
+test("renders all Persian safety notes in source order", () => {
+  renderDetail();
+
+  fireEvent.press(screen.getByRole("button", { name: "نکات ایمنی" }));
+
+  const renderedNotes = screen
+    .UNSAFE_getAllByType(Text)
+    .map((node) => node.props.children)
+    .filter(
+      (content): content is string =>
+        typeof content === "string" && detailSafetyNotesFa.includes(content),
+    );
+  expect(renderedNotes).toEqual(detailSafetyNotesFa);
+});
+
 test("resets the carousel to the first female video after switching gender", () => {
   renderDetail();
 
@@ -161,6 +184,27 @@ test("uses only the English card title and labels when the native direction is L
   expect(screen.queryByRole("button", { name: "مشخصات حرکت" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Save for offline use" })).toBeNull();
   expect(screen.queryByText("The video is stored on this device only when you choose to download it.")).toBeNull();
+});
+
+test("falls back to Persian safety notes when English notes are unavailable", () => {
+  mockLanguageForDirection.mockReturnValue("en");
+  const fallbackDetail = { ...maleDetail, safety_notes_en: [] };
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const lastKey = queryKey[queryKey.length - 1];
+    return {
+      data: lastKey === "media-inventory" ? inventoryDetail : fallbackDetail,
+      error: null,
+      isError: false,
+      isFetching: false,
+      isPending: false,
+      isStale: false,
+    } as never;
+  });
+  renderDetail();
+
+  fireEvent.press(screen.getByRole("button", { name: "Safety" }));
+
+  expect(screen.getByText(detailSafetyNotesFa[0])).toBeTruthy();
 });
 
 test("does not switch media from a normal player-control tap", () => {
@@ -207,8 +251,13 @@ function createDetail(mediaAssets: ReturnType<typeof asset>[]): ExerciseDetail {
     name_en: "Dumbbell Incline Bench Press",
     name_fa: "پرس بالا سینه دمبل",
     primary_muscle: "chest",
-    safety_notes_en: ["Use a controlled range."],
-    safety_notes_fa: ["حرکت را کنترل‌شده انجام بده."],
+    safety_notes_en: [
+      "Keep your shoulder blades back and down.",
+      "Lower into a controlled chest stretch.",
+      "Keep the wrists stacked over the elbows.",
+      "Bring the upper arms toward each other as you press.",
+    ],
+    safety_notes_fa: detailSafetyNotesFa,
     secondary_muscles: [],
     slug: "incline-press",
   } as unknown as ExerciseDetail;

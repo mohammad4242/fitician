@@ -91,6 +91,15 @@ def test_seed_manifest_has_complete_bilingual_safe_content() -> None:
     assert all(item.reason_en.strip() and item.reason_fa.strip() for item in ALTERNATIVE_SEEDS)
 
 
+def test_seed_manifest_uses_four_curated_dumbbell_bench_safety_notes() -> None:
+    from app.exercises.seed_data import EXERCISE_SEEDS
+
+    bench_press = next(seed for seed in EXERCISE_SEEDS if seed.slug == "dumbbell-bench-press")
+
+    assert len(bench_press.safety_notes_fa) == 4
+    assert len(bench_press.safety_notes_en) == 4
+
+
 def test_seed_manifest_uses_only_approved_media() -> None:
     from app.exercises.enums import MediaType
     from app.exercises.seed_data import EXERCISE_SEEDS
