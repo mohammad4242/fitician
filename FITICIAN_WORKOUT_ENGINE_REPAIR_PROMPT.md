@@ -1,6 +1,6 @@
-# Fitsho Workout Engine — Quality & Safety Repair Task
+# Fitician Workout Engine — Quality & Safety Repair Task
 
-You are working in the **Fitsho** repository (`mohammad4242/fitsho`). Treat this as an end-to-end engineering task, not a code-suggestion task.
+You are working in the **Fitician** repository (`mohammad4242/fitsho`). Treat this as an end-to-end engineering task, not a code-suggestion task.
 
 ## Operating mode
 

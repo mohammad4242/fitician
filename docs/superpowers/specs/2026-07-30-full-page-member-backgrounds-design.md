@@ -2,7 +2,7 @@
 
 ## Goal
 
-Show the supplied Fitsho media as the full viewport background on every post-registration route. Do not confine the media to a hero card.
+Show the supplied Fitician media as the full viewport background on every post-registration route. Do not confine the media to a hero card.
 
 ## Scope
 

@@ -1,11 +1,11 @@
-# Fitsho Public Food Price Engine Design
+# Fitician Public Food Price Engine Design
 
 ## Scope
 
 This step repairs the food-price capability only. It does not change nutrition composition,
 scientific targets, plan generation, physician review, or later audit gaps.
 
-Fitsho will collect public market observations for canonical catalogue foods, normalize package
+Fitician will collect public market observations for canonical catalogue foods, normalize package
 prices, reject unsafe observations and statistical outliers, calculate an arithmetic mean from the
 remaining observations, and persist both the current accepted reference and immutable history.
 
@@ -54,7 +54,7 @@ Each public provider defines:
 
 ## Catalogue matching
 
-The job searches only active verified Fitsho foods and their approved aliases. It never crawls a
+The job searches only active verified Fitician foods and their approved aliases. It never crawls a
 complete marketplace catalogue.
 
 Discovery produces candidate mappings. A mapping becomes active only when deterministic normalized
@@ -125,7 +125,7 @@ Review codes include:
 - `UNREALISTIC_VALUE`
 - `PROVIDER_FAILURE`
 
-Planner requests continue to read only Fitsho's accepted reference table. They never perform public
+Planner requests continue to read only Fitician's accepted reference table. They never perform public
 network requests.
 
 ## Admin and observability

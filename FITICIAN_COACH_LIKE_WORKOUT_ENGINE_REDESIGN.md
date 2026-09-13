@@ -1,4 +1,4 @@
-# FITSHO_COACH_LIKE_WORKOUT_ENGINE_REDESIGN
+# FITICIAN_COACH_LIKE_WORKOUT_ENGINE_REDESIGN
 
 **نوع سند:** ممیزی معماری، تحلیل شکست و طراحی مجدد — بدون پیاده‌سازی  
 **مخاطب:** تیم Backend، معمار سیستم، طراح Program Engine و Reviewer تمرین مقاومتی  

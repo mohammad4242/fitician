@@ -2,7 +2,7 @@
 
 ## Goal
 
-Fitsho will generate one personalized weekly resistance-training schedule for an
+Fitician will generate one personalized weekly resistance-training schedule for an
 authenticated user and repeat it for the user's selected four-, six-, or eight-week
 plan duration. The backend, not the model, owns eligibility, reuse, validation,
 persistence, concurrency, and failure recovery.

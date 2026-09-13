@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the admin model test distinguish a model that is merely reachable from a model that can accept and return the structured JSON contract Fitsho relies on for workout generation.
+Make the admin model test distinguish a model that is merely reachable from a model that can accept and return the structured JSON contract Fitician relies on for workout generation.
 
 ## Scope
 

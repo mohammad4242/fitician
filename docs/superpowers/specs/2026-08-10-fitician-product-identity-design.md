@@ -1,8 +1,8 @@
-# Fitsho Product Identity Redesign
+# Fitician Product Identity Redesign
 
 ## Scope
 
-Redesign the public landing experience and harmonize the member-facing application around one dark, restrained Fitsho identity. Preserve all routes, API contracts, permissions, validation, onboarding drafts, workout generation, nutrition science, body-analysis safety language, and existing product behavior.
+Redesign the public landing experience and harmonize the member-facing application around one dark, restrained Fitician identity. Preserve all routes, API contracts, permissions, validation, onboarding drafts, workout generation, nutrition science, body-analysis safety language, and existing product behavior.
 
 Backend behavior and database schemas are out of scope. Admin and specialist workspaces keep their current task-focused layouts, while inheriting shared tokens where safe.
 
@@ -11,16 +11,16 @@ Backend behavior and database schemas are out of scope. Admin and specialist wor
 The landing hierarchy is deliberately weighted rather than mixing three ideas equally:
 
 1. The real input-to-plan product story is the landing backbone.
-2. A premium 3D human body is the recognizable Fitsho identity.
+2. A premium 3D human body is the recognizable Fitician identity.
 3. The body becomes an interface only in one or two signature moments.
 
-The signature asset is a Fitsho-exclusive stylized-realism 3D athletic body render, not stock photography and not a medical scanner. It uses realistic proportions, controlled Aqua rim light, neutral dark training clothing, and no visible face emphasis. The composition leaves usable negative space for Persian RTL and English LTR layouts.
+The signature asset is a Fitician-exclusive stylized-realism 3D athletic body render, not stock photography and not a medical scanner. It uses realistic proportions, controlled Aqua rim light, neutral dark training clothing, and no visible face emphasis. The composition leaves usable negative space for Persian RTL and English LTR layouts.
 
-The body visualizes how Fitsho understands the user; it is not itself the product. The decision engine remains the product story. At most three restrained callouts appear near the body, while a separate plan-building panel makes the transformation into training and nutrition explicit. Landing examples are clearly separate from authenticated user results.
+The body visualizes how Fitician understands the user; it is not itself the product. The decision engine remains the product story. At most three restrained callouts appear near the body, while a separate plan-building panel makes the transformation into training and nutrition explicit. Landing examples are clearly separate from authenticated user results.
 
 ### Design signature
 
-The memorable interaction is a localized Aqua body-area highlight connected to a real Fitsho priority and a visible plan adjustment. It appears in the hero and Body Intelligence section only. It must never imply medical diagnosis, future-physique prediction, or continuous body scanning.
+The memorable interaction is a localized Aqua body-area highlight connected to a real Fitician priority and a visible plan adjustment. It appears in the hero and Body Intelligence section only. It must never imply medical diagnosis, future-physique prediction, or continuous body scanning.
 
 ### Layout thesis
 
@@ -30,7 +30,7 @@ The visual sequence is:
 
 `User context -> Understand -> Plan -> Train -> Adapt`
 
-The interface transformation below the hero uses only real Fitsho concepts: goal, experience, available days, session duration, considerations, training structure, exercise selection, nutrition targets, and revision.
+The interface transformation below the hero uses only real Fitician concepts: goal, experience, available days, session duration, considerations, training structure, exercise selection, nutrition targets, and revision.
 
 ## Shared visual system
 
@@ -53,10 +53,10 @@ Use large negative space, opaque or lightly translucent surfaces, low-contrast b
 
 ## Landing information architecture
 
-1. Header with Fitsho mark, language control, sign-in, and a compact mobile menu.
+1. Header with Fitician mark, language control, sign-in, and a compact mobile menu.
 2. Full-height three-zone hero with the approved bilingual headline, concise product explanation, CTA to `/get-started`, central 3D body, two or three restrained callouts, and a plan-building panel.
 3. Ordered product progression: Understand, Plan, Train, Adapt.
-4. A visible transformation from real Fitsho inputs into training structure, exercise selection, nutrition targets, and revision without claiming live AI work.
+4. A visible transformation from real Fitician inputs into training structure, exercise selection, nutrition targets, and revision without claiming live AI work.
 5. Body-intelligence section using the same 3D identity with one localized body-area highlight and honest priority, uncertainty, and confidence language.
 6. Responsive real-product previews based on Dashboard, Workout Plan, Nutrition, Body Analysis/Progress, and Food Catalogue.
 7. Final adaptive-plan statement and repeated CTA.

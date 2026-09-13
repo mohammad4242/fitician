@@ -1,4 +1,4 @@
-# Fitsho Landing Premium Storytelling Design
+# Fitician Landing Premium Storytelling Design
 
 ## Scope
 
@@ -15,7 +15,7 @@ The final order is cinematic hero, supervised training, supervised nutrition, me
 - Smoked glass: `rgb(8 28 27 / 82%)`
 - Mist: `#e8f4f1`
 - Aqua: `#50dfce`
-- Verification green: existing Fitsho success token
+- Verification green: existing Fitician success token
 
 Keep Vazirmatn/Lalezar for Persian and Sora for English/utility text. Reduce oversized headlines after the hero. Use scanning as the signature motion; all other movement remains restrained.
 

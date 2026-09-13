@@ -1,4 +1,4 @@
-# Fitsho Nutrition Engine — 90%+ Generation Success Roadmap
+# Fitician Nutrition Engine — 90%+ Generation Success Roadmap
 
 **Target implementer:** Luna Max  
 **Repository:** `mohammad4242/fitsho`  
@@ -1970,7 +1970,7 @@ Do not introduce floating nondeterminism without stable tolerances and determini
 
 Food-based diet planning is a classic constrained optimization problem. Linear-programming approaches such as the WHO/LSHTM Optifood framework demonstrate the usefulness of formal feasibility searches for finding food combinations under nutrient and food-pattern constraints.
 
-Fitsho does not need to copy Optifood's product semantics. The relevant lesson is:
+Fitician does not need to copy Optifood's product semantics. The relevant lesson is:
 
 ```text
 prove/search feasibility under explicit constraints
@@ -2102,7 +2102,7 @@ nutrition: optimize candidate budgets deterministically
 Decouple two different questions:
 
 ```text
-Can Fitsho safely calculate a nutrition plan for this user?
+Can Fitician safely calculate a nutrition plan for this user?
 ```
 
 and:
@@ -3628,7 +3628,7 @@ Continue until the acceptance gate is met or a genuine product/safety decision r
 
 # Appendix J — One-sentence architectural target
 
-After this roadmap, Fitsho's Nutrition Engine should no longer ask:
+After this roadmap, Fitician's Nutrition Engine should no longer ask:
 
 > "Can this one preselected weekly program work?"
 

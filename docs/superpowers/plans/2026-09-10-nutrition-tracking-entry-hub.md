@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the existing page and workflows in `NutritionTrackingPage.tsx`. Replace the photo boolean and native manual `<details>` with one `EntryMode` state, render one selected panel inline, and use page-scoped CSS for the branch hub and responsive layout.
 
-**Tech Stack:** React 19, TypeScript, React Testing Library, Vitest, existing Fitsho CSS tokens and `AppIcon`.
+**Tech Stack:** React 19, TypeScript, React Testing Library, Vitest, existing Fitician CSS tokens and `AppIcon`.
 
 **Spec:** `docs/superpowers/specs/2026-09-10-nutrition-tracking-entry-hub-design.md`
 
@@ -17,7 +17,7 @@
 - Normal visits start with `entryMode === null`; `freeMealId` starts with `entryMode === "photo"`.
 - Only one entry panel can be rendered at a time, and the selected method uses a semantic button with `type="button"`, `aria-expanded`, and `aria-controls`.
 - The check-in section is the final content section; no error or status content is rendered after it.
-- Use existing Fitsho tokens and icons; add no dependency and no global CSS side effects.
+- Use existing Fitician tokens and icons; add no dependency and no global CSS side effects.
 - Preserve RTL/LTR, focus visibility, minimum useful target sizing, no horizontal overflow, and reduced-motion behavior.
 
 ---
@@ -105,7 +105,7 @@ Expected: all focused nutrition workflow tests pass, including unchanged exact c
 
 **Interfaces:**
 - Consumes: New hub, choice, panel, feedback, and existing tracking class names.
-- Produces: Dark Fitsho hub styling, subtle branch connectors, selected/focus states, full-width panels, and narrow-width layout.
+- Produces: Dark Fitician hub styling, subtle branch connectors, selected/focus states, full-width panels, and narrow-width layout.
 
 - [ ] **Step 1: Replace obsolete tracking trigger styles**
 
@@ -113,7 +113,7 @@ Remove the old `.nutrition-photo-entry` and manual-summary styling from the trac
 
 - [ ] **Step 2: Style the hub and connectors**
 
-Use `.nutrition-entry-hub`, `.nutrition-entry-root`, `.nutrition-entry-branches`, `.nutrition-entry-choice`, `.nutrition-entry-choice.is-active`, `.nutrition-entry-choice__icon`, `.nutrition-entry-choice__copy`, and `.nutrition-entry-panel`. Use pseudo-elements for the root stem, horizontal branch, and two branch stems with `var(--fitsho-line)`/`var(--fitsho-line-strong)`.
+Use `.nutrition-entry-hub`, `.nutrition-entry-root`, `.nutrition-entry-branches`, `.nutrition-entry-choice`, `.nutrition-entry-choice.is-active`, `.nutrition-entry-choice__icon`, `.nutrition-entry-choice__copy`, and `.nutrition-entry-panel`. Use pseudo-elements for the root stem, horizontal branch, and two branch stems with `var(--fitician-line)`/`var(--fitician-line-strong)`.
 
 - [ ] **Step 3: Style manual, photo, summary, entries, adherence, and final check-in in hierarchy**
 

@@ -280,7 +280,7 @@ Load all three queues, maintain `activeView`, and select a case by review row. C
 rows; open claimed/approved rows directly. Determine read-only state from `status === "approved"`.
 Preserve the current clinical handlers and reload queues after every lifecycle action.
 
-Use a restrained clinical-console visual direction based on existing Fitsho tokens: dark petrol
+Use a restrained clinical-console visual direction based on existing Fitician tokens: dark petrol
 queue rail, paper case surface, turquoise active status, saffron waiting status, and coral overdue
 status. Keep data-dense controls grouped into plan, labs, supplements, and decision sections. Add
 visible keyboard focus and a single-column mobile layout.

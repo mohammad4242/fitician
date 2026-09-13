@@ -47,7 +47,7 @@ Routes follow Training Program Templates conventions:
 
 The catalogue page filters by the five diet styles and lifecycle. The editor provides bilingual identity fields, a global post-workout control, seven day sections, fixed meal slots, and per-day post-workout controls. Meal pickers show only verified meals from the matching Meal Catalogue category. Archive and restore actions are explicit.
 
-The UI reuses Fitsho admin tokens and components. Its signature structure is a seven-column weekly rail on wide screens that becomes seven stacked day cards on mobile, keeping RTL and LTR layouts usable.
+The UI reuses Fitician admin tokens and components. Its signature structure is a seven-column weekly rail on wide screens that becomes seven stacked day cards on mobile, keeping RTL and LTR layouts usable.
 
 ## Testing
 

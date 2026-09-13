@@ -29,11 +29,11 @@ Only the admin endpoint returns `price`. The member endpoint must omit `price` e
 
 ## Interface Design
 
-The page remains dark and Fitsho-branded, using the reference's compact mobile composition rather than copying its application chrome.
+The page remains dark and Fitician-branded, using the reference's compact mobile composition rather than copying its application chrome.
 
 - A concise page title and back action sit above the catalogue.
 - Search remains bilingual and alias-aware through the unchanged backend query.
-- Categories become horizontally scrollable chips. The active chip uses Fitsho turquoise, with `All` first.
+- Categories become horizontally scrollable chips. The active chip uses Fitician turquoise, with `All` first.
 - Cards use a single-column list on mobile and a restrained multi-column layout only when space permits.
 - Each card shows a circular food image, Persian and English names, a turquoise calorie value aligned to the inline end, the current serving basis, and only Protein, Carbs, and Fat.
 - Cards without an image show a polished neutral food fallback that does not make an extra network request.

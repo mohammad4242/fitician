@@ -1,8 +1,8 @@
-# Fitsho Training Catalog / Program Engine Upgrade — Sol Lead Prompt
+# Fitician Training Catalog / Program Engine Upgrade — Sol Lead Prompt
 
 You are the **lead engineer (Sol)** for this task.
 
-Your goal is to upgrade the existing Fitsho **17-template training catalog and Program Engine** without replacing the current architecture.
+Your goal is to upgrade the existing Fitician **17-template training catalog and Program Engine** without replacing the current architecture.
 
 Use **Luna subagents aggressively for low-risk, repetitive, audit, lookup, and test work** so that Sol spends tokens only on architecture, risky logic, integration, and final review.
 

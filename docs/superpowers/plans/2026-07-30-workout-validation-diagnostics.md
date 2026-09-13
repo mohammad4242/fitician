@@ -76,7 +76,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/workouts/test_service.py::test_invalid_initial_and_repair_responses_log_exact_problems -q
 ```
 
@@ -135,11 +135,11 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/workouts/test_service.py -q
 .venv/bin/ruff check app/workouts/service.py tests/workouts/test_service.py
 .venv/bin/mypy app
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest -q
 ```
 

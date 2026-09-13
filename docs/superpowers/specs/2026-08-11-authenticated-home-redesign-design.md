@@ -10,10 +10,10 @@ The page uses a compact single-column mobile composition: profile greeting, toda
 
 ## Visual system
 
-- Canvas: existing near-black Fitsho canvas.
+- Canvas: existing near-black Fitician canvas.
 - Surfaces: existing dark petrol tokens with low-contrast borders.
 - Accent: existing Aqua token for progress, active states, and scan details.
-- Typography: existing Fitsho/Sora type system; data remains visually distinct with tabular numerals.
+- Typography: existing Fitician/Sora type system; data remains visually distinct with tabular numerals.
 - Signature: subtle scan brackets and a single scan line on the body and food shortcuts.
 
 ## Functional boundaries

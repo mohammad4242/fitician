@@ -2,7 +2,7 @@
 
 ## Goal
 
-Keep Fitsho task semantics in Backend `StructuredGenerationRequest` builders while
+Keep Fitician task semantics in Backend `StructuredGenerationRequest` builders while
 allowing API/OpenRouter and Agent Service to execute the same request.
 
 ## Scope

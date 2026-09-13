@@ -2,7 +2,7 @@
 
 ## Goal
 
-Replace the guest entry experience with a full-screen, three-scene Fitsho landing page. It must feel premium and energetic before sign-in while keeping the existing backend, database, authentication, and protected-app contracts unchanged.
+Replace the guest entry experience with a full-screen, three-scene Fitician landing page. It must feel premium and energetic before sign-in while keeping the existing backend, database, authentication, and protected-app contracts unchanged.
 
 ## Routing
 

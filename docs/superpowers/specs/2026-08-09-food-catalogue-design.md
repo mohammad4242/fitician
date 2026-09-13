@@ -1,4 +1,4 @@
-# Fitsho Food Catalogue Design
+# Fitician Food Catalogue Design
 
 ## Scope
 

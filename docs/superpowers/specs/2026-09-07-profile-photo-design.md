@@ -2,7 +2,7 @@
 
 ## Goal
 
-Allow each Fitsho user to upload, replace, and delete one square-cropped profile photo. The photo is private, visible to the owner and to specialists who are already related to that user's active review or care record.
+Allow each Fitician user to upload, replace, and delete one square-cropped profile photo. The photo is private, visible to the owner and to specialists who are already related to that user's active review or care record.
 
 ## Decisions
 

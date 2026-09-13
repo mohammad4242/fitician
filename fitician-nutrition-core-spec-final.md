@@ -1,4 +1,4 @@
-# Fitsho Scientific, Budget-Aware, Micronutrient-Aware, Physician-Reviewed Nutrition Core Specification
+# Fitician Scientific, Budget-Aware, Micronutrient-Aware, Physician-Reviewed Nutrition Core Specification
 
 > **Final implementation-ready revision:** this version incorporates the approved lifecycle, concurrency, target-feasibility, price-coverage, onboarding-safety, physician-review, and micronutrient rules. Codex must implement the staged tasks in Section 48 in order and must not invent alternate behavior where this specification is explicit.
 
@@ -10,7 +10,7 @@ You are working directly in the GitHub repository:
 
 `mohammad4242/fitsho`
 
-Extend Fitsho into one unified personal coaching application supporting:
+Extend Fitician into one unified personal coaching application supporting:
 
 - Personalized training
 - Scientific personalized nutrition
@@ -23,9 +23,9 @@ Extend Fitsho into one unified personal coaching application supporting:
 - Secure laboratory-record review and physician-managed supplement ordering
 - Live, traceable food-price data
 
-Do not rename Fitsho.
+Do not rename Fitician.
 
-Fitsho Nutrition is a scientific nutrition-planning system. Its primary responsibility is to determine what the user's body requires, compare that requirement with what is realistically achievable, and produce exact food quantities that satisfy the user's safety constraints, preferences, and budget as closely as possible.
+Fitician Nutrition is a scientific nutrition-planning system. Its primary responsibility is to determine what the user's body requires, compare that requirement with what is realistically achievable, and produce exact food quantities that satisfy the user's safety constraints, preferences, and budget as closely as possible.
 
 The system must answer questions such as:
 
@@ -79,7 +79,7 @@ The exact values must always come from verified food-composition data and approv
 
 Micronutrient reference targets must come from versioned authoritative dietary-reference policies, not from an LLM, not from arbitrary percentages, and not from unexplained hardcoded constants scattered through planner code. Most micronutrient reference values are selected primarily by age, sex, and supported life-stage or dietary modifiers rather than body weight.
 
-A low planned dietary intake is not a diagnosis of a biological deficiency. Fitsho may report that a plan is below a dietary reference target; it must not claim that the user is clinically deficient without appropriate professional assessment and, where relevant, laboratory evidence.
+A low planned dietary intake is not a diagnosis of a biological deficiency. Fitician may report that a plan is below a dietary reference target; it must not claim that the user is clinically deficient without appropriate professional assessment and, where relevant, laboratory evidence.
 
 Cooking is explicitly outside this Nutrition Core specification. Nutrition decides what foods and exact quantities belong in the plan; a separate future Cooking specification may decide how those foods are prepared.
 
@@ -232,7 +232,7 @@ Schema changes affecting existing users must use backward-compatible migrations.
 
 ## 5. Product vision
 
-Fitsho must feel like one coach that understands training, nutrition, progress, medical constraints, food preferences, and budget.
+Fitician must feel like one coach that understands training, nutrition, progress, medical constraints, food preferences, and budget.
 
 Nutrition plans must be based on:
 
@@ -392,7 +392,7 @@ Show three selectable cards:
 **تمرین و تغذیه**  
 یک برنامه هماهنگ برای نتیجه بهتر
 
-Mark the third option as Fitsho's recommendation, but do not preselect or force it.
+Mark the third option as Fitician's recommendation, but do not preselect or force it.
 
 ### Changing mode
 
@@ -406,7 +406,7 @@ Disabling a capability must not delete historical plans, logs, reviews, photos, 
 
 ## 9. One unified profile
 
-Fitsho must present one unified profile and one coordinated onboarding flow.
+Fitician must present one unified profile and one coordinated onboarding flow.
 
 Do not create disconnected training and nutrition profiles containing duplicate body information.
 
@@ -455,7 +455,7 @@ Use capability-specific route guards and derive readiness from authoritative pla
 
 ## 10. Conditional guided onboarding
 
-The onboarding must behave like a guided conversation with a Fitsho coach.
+The onboarding must behave like a guided conversation with a Fitician coach.
 
 Do not show one long form.
 
@@ -584,7 +584,7 @@ Do not require training-only fields.
 
 ## 11. Age eligibility
 
-Fitsho does not support users under 18 in this MVP.
+Fitician does not support users under 18 in this MVP.
 
 A birth date representing an age under 18 must be rejected.
 
@@ -653,7 +653,7 @@ The deterministic engine may generate a draft, but:
 - The plan cannot be presented as physician-approved before a real physician action.
 - The exact plan revision must be submitted to the physician queue.
 - The physician may approve, reject, request changes, request laboratory information, or edit the structured plan.
-- If the physician edits foods, quantities, targets, or restrictions, Fitsho must create a new immutable revision and rerun deterministic validation.
+- If the physician edits foods, quantities, targets, or restrictions, Fitician must create a new immutable revision and rerun deterministic validation.
 - After physician approval, the user must see the approved revision, green physician-approval badge/checkmark, approval metadata, user-visible physician notes, physician-added supplement orders, and a clear summary of changes from the originally generated revision when changes exist.
 
 ### Physician manual plan required
@@ -677,7 +677,7 @@ An excluded ingredient must never appear in:
 - Planner-generated quick-add suggestions
 - Supplement products containing the allergen
 
-Actual-consumption logging is different from planning. If the user reports or confirms that they actually consumed an excluded/allergenic food, Fitsho may record that reality in calorie history with a prominent safety warning and without treating the food as planner-eligible. Photo logging may therefore map and record a user-confirmed allergenic food as actual intake; it must not silently recommend, normalize, or insert that food into the plan.
+Actual-consumption logging is different from planning. If the user reports or confirms that they actually consumed an excluded/allergenic food, Fitician may record that reality in calorie history with a prominent safety warning and without treating the food as planner-eligible. Photo logging may therefore map and record a user-confirmed allergenic food as actual intake; it must not silently recommend, normalize, or insert that food into the plan.
 
 Mandatory physician review is an activation gate for every Nutrition plan, but it does not weaken deterministic safety rules. A physician edit must never bypass allergy, ownership, database-integrity, or configured hard-safety validation.
 
@@ -750,7 +750,7 @@ Do not store the entire profile in one unvalidated JSON field.
 
 ## 14. Main meals, snacks, and nutrient distribution
 
-Fitsho Nutrition must distinguish two nutrition slot roles:
+Fitician Nutrition must distinguish two nutrition slot roles:
 
 ```text
 MAIN_MEAL
@@ -884,13 +884,13 @@ Do not let a preferred protein, micronutrient, variety, or convenience target ov
 
 ### Cost semantics
 
-Fitsho must calculate the cost of the exact amount required by the plan.
+Fitician must calculate the cost of the exact amount required by the plan.
 
 Example:
 
 - The plan requires `2.3 kg` of chicken breast across the week.
 - The selected normalized price is `X IRR per gram`.
-- Fitsho displays the nutritional contribution of that amount and its estimated cost.
+- Fitician displays the nutritional contribution of that amount and its estimated cost.
 
 Keep two cost concepts separate:
 
@@ -934,12 +934,12 @@ Sources may include:
 
 - User-provided data
 - Training profile
-- Active Fitsho workout plan
+- Active Fitician workout plan
 - Versioned internal estimate
 
 For `BOTH`, use the best available structured-exercise source in this precedence order:
 
-1. Active Fitsho workout plan when current and applicable
+1. Active Fitician workout plan when current and applicable
 2. Completed training profile with sufficient frequency/duration/intensity information
 3. Minimum structured-exercise inputs collected for Nutrition
 4. A versioned conservative internal estimate only when policy permits, clearly marked lower confidence
@@ -1046,7 +1046,7 @@ Primary references:
 
 Store source URL or source identifier, source publication/update date when available, access date, policy version, and the exact unit semantics with every imported or seeded reference row.
 
-### DRI semantics Fitsho must preserve
+### DRI semantics Fitician must preserve
 
 Do not collapse all reference values into a generic `minimum` or `maximum`. Support at least:
 
@@ -1154,7 +1154,7 @@ These sanity-check values are not a substitute for importing and versioning the 
 
 The policy layer must support nutrient-specific semantics rather than assuming every nutrient behaves the same way. Examples:
 
-- **Vitamin D:** dietary intake below RDA does not establish vitamin D deficiency because vitamin D status also depends on endogenous synthesis and is clinically assessed primarily with serum 25(OH)D. Fitsho may report dietary intake below the reference target but must not diagnose deficiency.
+- **Vitamin D:** dietary intake below RDA does not establish vitamin D deficiency because vitamin D status also depends on endogenous synthesis and is clinically assessed primarily with serum 25(OH)D. Fitician may report dietary intake below the reference target but must not diagnose deficiency.
 - **Potassium:** use AI for healthy-population adequacy. Do not invent a healthy-population UL. Kidney disease and relevant medications can require medical-policy overrides and review.
 - **Sodium:** distinguish AI from CDRR. Do not label 2,300 mg/day as a toxicity UL.
 - **Iron:** if an explicitly supported vegetarian dietary pattern is known, apply only an approved evidence-based bioavailability modifier. NIH ODS notes a 1.8-times iron requirement for vegetarian diets under the cited DRI interpretation. Do not infer vegetarian status from food likes/dislikes alone.
@@ -1225,7 +1225,7 @@ The engine must explicitly distinguish:
 2. `preferred_target`
 3. `planned_amount_under_current_constraints`
 
-This distinction is central to Fitsho.
+This distinction is central to Fitician.
 
 For example, if the preferred protein target is higher than what can be safely and realistically purchased under the budget, the system must not hide the gap. It must return the planned amount, difference from preferred, limiting constraints, and budget trade-off explanation.
 
@@ -2518,7 +2518,7 @@ Store the reason for every adaptive change.
 
 ## 39. Laboratory records and mandatory physician review workflow
 
-Every generated Nutrition plan for every supported user must be reviewed by an authorized Fitsho physician before activation.
+Every generated Nutrition plan for every supported user must be reviewed by an authorized Fitician physician before activation.
 
 This requirement applies to users with and without known medical conditions. Medical-condition policy still determines whether an automatic draft is allowed, whether manual physician planning is required, or whether the case is unsupported.
 
@@ -2784,7 +2784,7 @@ This scope includes supported vitamins, minerals, nutritional supplements, prote
 
 ### 41.1 Core principle
 
-Fitsho's deterministic Nutrition planner must remain food-first.
+Fitician's deterministic Nutrition planner must remain food-first.
 
 The planner must:
 
@@ -2849,7 +2849,7 @@ Before an order is activated:
 
 If safe supplement use requires a plan-defining food change, create a new plan revision and run the normal validation/review workflow rather than silently reducing food quality.
 
-Fitsho must not automatically modify prescription medications.
+Fitician must not automatically modify prescription medications.
 
 ### 41.4 Food versus supplement contribution
 
@@ -2871,7 +2871,7 @@ Supplement contribution may be included in a combined exposure/safety view after
 
 ### 41.5 Relationship to weight-loss and other goal plans
 
-For a calorie-deficit plan, Fitsho must not destroy the intended calorie deficit or macronutrient structure merely to force every micronutrient to an exact food-only target.
+For a calorie-deficit plan, Fitician must not destroy the intended calorie deficit or macronutrient structure merely to force every micronutrient to an exact food-only target.
 
 The planner should first make reasonable food-based improvements inside configured tolerances. If an important dietary gap remains, the gap is shown to the physician along with laboratory context when available. The physician decides whether no action, dietary modification, additional testing, follow-up, or a supplement order is appropriate.
 
@@ -2918,7 +2918,7 @@ Before physician approval, show:
 - A prominent status such as `در انتظار بررسی پزشک`.
 - No green physician-approved badge/checkmark.
 - The current review state and any laboratory request.
-- A short explanation that the displayed version was generated by Fitsho and has not yet been physician-approved.
+- A short explanation that the displayed version was generated by Fitician and has not yet been physician-approved.
 
 After physician approval, show:
 
@@ -2968,7 +2968,7 @@ For every meal or snack show:
 
 The user must be able to understand:
 
-- What Fitsho considers the preferred target
+- What Fitician considers the preferred target
 - What the minimum acceptable value is
 - What the current plan actually provides
 - How far the current plan is from preferred
@@ -4090,7 +4090,7 @@ Commit, push, report, and stop.
 - User sees exact required quantities such as `2.3 kg` of chicken.
 - User sees nutritional contribution and exact-quantity cost.
 - A pending-review draft shopping list is visible but clearly warns that the plan may change and final purchasing should follow physician approval.
-- Fitsho does not recommend a number of commercial packages.
+- Fitician does not recommend a number of commercial packages.
 
 ### One-tap on-plan check-in
 

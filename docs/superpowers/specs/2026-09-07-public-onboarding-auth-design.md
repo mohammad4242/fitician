@@ -3,7 +3,7 @@
 ## Scope
 
 The final account step of the public onboarding flow will become the account handoff point for
-Fitsho. A visitor can keep the onboarding draft in the current tab, choose email/password, phone
+Fitician. A visitor can keep the onboarding draft in the current tab, choose email/password, phone
 OTP, or Google, and then continue into the same existing profile hydration flow. Apple remains
 visible as a disabled future option.
 
@@ -18,7 +18,7 @@ The page is a Persian-first "coach checkpoint": the user has just answered perso
 the account card should feel like a calm handoff rather than a generic sign-in screen.
 
 - Palette: canvas black `#020607`, petrol `#091817`, raised surface `#101e1c`, aqua `#50dfce`,
-  mist `#e8f4f1`, and coral `#f67859`, using the existing Fitsho tokens.
+  mist `#e8f4f1`, and coral `#f67859`, using the existing Fitician tokens.
 - Type: existing `Lalezar` display face for Persian headings, `Sora` for English headings, and
   `Vazirmatn` for Persian controls and supporting copy.
 - Layout: a centered, responsive account card with a compact brand header, a short progress/status
@@ -35,7 +35,7 @@ Conceptual layout:
 brand                                      privacy cue
 
         [ final checkpoint ]
-        Your Fitsho path is ready
+        Your Fitician path is ready
         short handoff explanation
 
         [ Email ] [ Phone ]

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Replace automatic head cropping with an on-device, privacy-first pipeline that accepts a user-cropped headless photo, validates real body landmarks, normalizes its background, and sends only the standardized derivative to Fitsho and the AI provider.
+Replace automatic head cropping with an on-device, privacy-first pipeline that accepts a user-cropped headless photo, validates real body landmarks, normalizes its background, and sends only the standardized derivative to Fitician and the AI provider.
 
 ## Architecture
 

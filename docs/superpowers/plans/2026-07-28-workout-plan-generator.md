@@ -7,7 +7,7 @@ eight-week user-selected durations.
 
 **Architecture:** `app.workouts` owns deterministic selection, signatures, policy,
 validation, persistence, and APIs. `app.ai` owns a provider protocol, Zen Responses HTTP
-adapter, and fake provider. The React application talks only to Fitsho APIs.
+adapter, and fake provider. The React application talks only to Fitician APIs.
 
 **Tech Stack:** Python 3.12, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL 18, Pydantic 2,
 httpx, pytest, React 19, TypeScript 6, React Router 7, i18next, Vitest, Testing Library.

@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-`Panel.png` is the primary visual reference for density, proportions, hierarchy, and navigation. It is never rendered or bundled by the application. Existing Fitsho routes, APIs, product modes, permissions, deterministic engines, privacy controls, and localized data remain the behavioral source of truth.
+`Panel.png` is the primary visual reference for density, proportions, hierarchy, and navigation. It is never rendered or bundled by the application. Existing Fitician routes, APIs, product modes, permissions, deterministic engines, privacy controls, and localized data remain the behavioral source of truth.
 
 ## Visual foundation
 

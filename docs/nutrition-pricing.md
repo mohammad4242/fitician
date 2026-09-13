@@ -11,7 +11,7 @@ session, CAPTCHA bypass, or whole-market crawl is used.
 Future providers can implement the same adapter and use the disabled backend-only PersianAPI,
 Basalam API, or generic provider credential slots. Empty keys are supported and never appear in the
 monitoring API. Canonical-food aliases discover at most bounded candidates; accepted mappings store
-the exact public product ID and URL so later refreshes request only Fitsho-relevant products.
+the exact public product ID and URL so later refreshes request only Fitician-relevant products.
 
 ## Normalization and reference prices
 

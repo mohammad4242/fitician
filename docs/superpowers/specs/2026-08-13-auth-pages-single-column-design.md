@@ -7,7 +7,7 @@ Remove the decorative promotional panel from every public account page so deskto
 ## Scope
 
 - Apply the single-column shell to login, registration, password recovery, password reset, and onboarding pages that use `AuthShell`.
-- Keep the Fitsho brand link and language switcher visible at every viewport width.
+- Keep the Fitician brand link and language switcher visible at every viewport width.
 - Keep each form centered with its existing bounded width.
 - Preserve routes, authentication behavior, validation, translations, and API calls.
 - Remove the unused promotional image import and markup from `AuthShell`.

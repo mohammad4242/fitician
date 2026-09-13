@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the deterministic Fitsho coach select and repair individualized resistance-training splits and volume without rejecting valid four-, six-, or seven-available-day profiles.
+**Goal:** Make the deterministic Fitician coach select and repair individualized resistance-training splits and volume without rejecting valid four-, six-, or seven-available-day profiles.
 
 **Architecture:** Keep the existing program engine pipeline. Extend its ruleset and typed domain models with soft/hard volume boundaries, evaluate split templates across all feasible session counts, and allocate integer set budgets before final validation. Templates are candidates rather than universal prescriptions; selection remains deterministic and explains its reasons.
 
@@ -53,7 +53,7 @@ def test_volume_target_exposes_soft_and_hard_boundaries() -> None:
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
 
 Expected: failure because unknown history is currently treated as zero and the new range fields do not exist.
 
@@ -80,7 +80,7 @@ Make `consistent_weeks: int | None = None` and only apply the recent-consistency
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
 
 Expected: PASS.
 
@@ -143,7 +143,7 @@ def test_advanced_hypertrophy_user_can_select_body_part_rotation() -> None:
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
 
 Expected: the body-part enum/template is missing and selection only evaluates the maximum day count.
 
@@ -166,7 +166,7 @@ Give body-part rotation a score bonus only for advanced hypertrophy users with a
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_split_volume.py -q`
 
 Expected: PASS with deterministic selected templates and safe session counts.
 
@@ -231,7 +231,7 @@ def test_priority_muscle_is_first_when_its_focus_is_programmed() -> None:
 
 - [ ] **Step 2: Run focused test and verify RED**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_selection_sessions.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_selection_sessions.py -q`
 
 Expected: failure because the body-part focus and typed slot do not exist.
 
@@ -243,7 +243,7 @@ Treat `upper_strength` and `upper_hypertrophy` as upper focuses and the lower va
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_selection_sessions.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_selection_sessions.py -q`
 
 Expected: PASS; all substitutions remain eligible.
 
@@ -291,7 +291,7 @@ def test_soft_volume_deviation_is_a_warning_not_a_failure() -> None:
 
 - [ ] **Step 2: Run focused tests and verify RED**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_volume_repair.py tests/workouts/program_engine/test_golden_scenarios.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_volume_repair.py tests/workouts/program_engine/test_golden_scenarios.py -q`
 
 Expected: missing allocation/repair interfaces and current `WEEKLY_MUSCLE_VOLUME_EXCEEDED` failure.
 
@@ -309,7 +309,7 @@ Update validation to:
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_volume_repair.py tests/workouts/program_engine/test_golden_scenarios.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_volume_repair.py tests/workouts/program_engine/test_golden_scenarios.py -q`
 
 Expected: PASS, including four- and six-day regression cases.
 
@@ -343,7 +343,7 @@ def test_program_trace_explains_priority_volume_and_repair() -> None:
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
-Run: `TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest tests/workouts/program_engine/test_golden_scenarios.py -q`
+Run: `TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest tests/workouts/program_engine/test_golden_scenarios.py -q`
 
 Expected: missing `repair` trace stage.
 
@@ -356,7 +356,7 @@ Append the coach-template selection policy and future approved-physique-assessme
 Run:
 
 ```bash
-cd backend && TEST_DATABASE_URL='postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test' uv run pytest -q && uv run ruff check . && uv run mypy app
+cd backend && TEST_DATABASE_URL='postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test' uv run pytest -q && uv run ruff check . && uv run mypy app
 cd frontend && npm run test -- --run && npm run lint && npm run build
 ```
 

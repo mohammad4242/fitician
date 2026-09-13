@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the admin model test verify simple reachability and compact structured JSON support without sending real Fitsho generation data.
+**Goal:** Make the admin model test verify simple reachability and compact structured JSON support without sending real Fitician generation data.
 
 **Architecture:** `OpenCodeZenWorkoutPlanProvider` retains the availability check, then sends a fixed structured request using the output mechanism matching the model API kind. The response is validated as `{"status":"ok"}`. Existing admin persistence records one combined success or safe failure.
 
@@ -134,12 +134,12 @@ Run: `git add backend/app/admin/ai_models.py backend/tests/admin/test_ai_model_a
 
 - [ ] **Step 1: Run full verification**
 
-Run: `TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest -q`, `uv run ruff check`, `npm run test -- --run`, `npm run lint`, and `npm run build`.
+Run: `TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest -q`, `uv run ruff check`, `npm run test -- --run`, `npm run lint`, and `npm run build`.
 
 Expected: all checks pass.
 
 - [ ] **Step 2: Restart and inspect preview**
 
-Run: `docker restart fitsho-ai-model-admin-preview`, `docker exec fitsho-ai-model-admin-preview alembic current`, and `curl --fail http://localhost:8000/openapi.json`.
+Run: `docker restart fitician-ai-model-admin-preview`, `docker exec fitician-ai-model-admin-preview alembic current`, and `curl --fail http://localhost:8000/openapi.json`.
 
 Expected: backend starts and Alembic remains `20260731_11 (head)`.

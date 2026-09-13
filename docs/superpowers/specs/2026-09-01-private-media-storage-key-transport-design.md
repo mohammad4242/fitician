@@ -66,7 +66,7 @@ The new JSON body is composed as:
     "system_prompt": "Backend-owned prompt",
     "input_payload": {},
     "response_schema": {},
-    "schema_name": "fitsho_task",
+    "schema_name": "fitician_task",
     "temperature": 0,
     "max_output_tokens": 512,
     "timeout_seconds": 45
@@ -91,7 +91,7 @@ prompts, payloads, or image bytes.
 
 ## Prompt ownership
 
-No Fitsho production prompt is added to Agent Service. Runner transport framing
+No Fitician production prompt is added to Agent Service. Runner transport framing
 may identify explicitly allowed image paths and permit reading those listed
 files, while prohibiting unrelated filesystem inspection or modification.
 

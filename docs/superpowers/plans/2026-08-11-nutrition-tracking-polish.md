@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the adherence trend compact by default and turn off-plan meal logging into a polished, mobile-first Fitsho form without changing its data behavior.
+**Goal:** Make the adherence trend compact by default and turn off-plan meal logging into a polished, mobile-first Fitician form without changing its data behavior.
 
 **Architecture:** `NutritionTrackingPage` keeps ownership of all existing state and API functions, adding only local accordion state and semantic layout wrappers. Existing native controls remain the interaction boundary while page-scoped CSS supplies the dark/teal visual treatment and mobile behavior.
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Preserve nutrition calculations, API payloads, validation guards, date filtering, RTL/LTR behavior, and unrelated tracking sections.
-- Keep real semantic select, input, and button elements; visually replace browser-default surfaces with Fitsho tokens.
+- Keep real semantic select, input, and button elements; visually replace browser-default surfaces with Fitician tokens.
 - Keep the adherence heading and date selector visible while daily rows are collapsed by default.
 - Add no dependency and no backend change.
 - Respect reduced-motion preferences.
@@ -55,7 +55,7 @@ the chart, weight note, and entry-history disclosure in a body whose open class,
 
 - [ ] **Step 4: Add accordion styles**
 
-Use a Fitsho surface card, a compact header grid, logical spacing, a CSS chevron, and a
+Use a Fitician surface card, a compact header grid, logical spacing, a CSS chevron, and a
 `grid-template-rows` plus opacity transition. Add focus-visible treatment and a reduced-motion
 override. Stack the date row beneath the button at narrow widths.
 
@@ -97,7 +97,7 @@ functions unchanged.
 - [ ] **Step 4: Add form styles**
 
 Style the disclosure, group surfaces, labels, select, number inputs, suffixes, catalogue action, and
-primary estimate action using existing Fitsho tokens. Remove native select appearance visually,
+primary estimate action using existing Fitician tokens. Remove native select appearance visually,
 retain keyboard focus visibility, and add one-column mobile layout with touch targets of at least
 2.75rem.
 

@@ -41,7 +41,7 @@ the outgoing request body and assert its JSON schema equals
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest \
   tests/ai/test_opencode_zen.py::test_zen_provider_rejects_http_200_error_envelope \
   tests/admin/test_ai_model_api.py::test_admin_can_run_a_model_health_check -q
@@ -69,7 +69,7 @@ request = WorkoutGenerationModelRequest(
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/ai/test_opencode_zen.py tests/admin/test_ai_model_api.py -q
 .venv/bin/ruff check app/ai/opencode_zen.py app/admin/ai_models.py \
   tests/ai/test_opencode_zen.py tests/admin/test_ai_model_api.py
@@ -109,7 +109,7 @@ Add tests asserting:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/workouts/test_validator.py tests/workouts/test_service.py \
   tests/workouts/test_repository.py -q
 ```
@@ -140,7 +140,7 @@ committed.
 cd backend
 .venv/bin/alembic upgrade head
 .venv/bin/alembic current
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/workouts -q
 .venv/bin/ruff check app/workouts tests/workouts \
   alembic/versions/20260730_10_add_generation_diagnostics.py
@@ -185,7 +185,7 @@ Frontend tests must assert:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest tests/admin/test_ai_model_api.py -q
 cd ../frontend
 npm run test -- src/features/admin/AdminAiModelsPage.test.tsx
@@ -215,7 +215,7 @@ success text `با موفقیت متصل شد`.
 cd backend
 .venv/bin/ruff check
 .venv/bin/mypy app/workouts app/admin app/ai
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test \
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test \
   .venv/bin/pytest -q
 cd ../frontend
 npm run lint
@@ -226,7 +226,7 @@ npm run build
 - [ ] **Step 5: Restart live preview and verify routes**
 
 ```bash
-docker restart fitsho-ai-model-admin-preview
+docker restart fitician-ai-model-admin-preview
 curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8000/api/v1/auth/me
 curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:5173/admin/ai-models
 ```

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Render the supplied Fitsho media behind the whole authenticated viewport instead of inside header cards.
+**Goal:** Render the supplied Fitician media behind the whole authenticated viewport instead of inside header cards.
 
 **Architecture:** `MemberHeaderMedia` stays the single decorative media component. Each route shell renders it first with `member-page-background`; CSS makes that layer fixed and raises navigation and content above it. Today and workout plan supply video plus a still fallback; the other member routes supply only a still.
 

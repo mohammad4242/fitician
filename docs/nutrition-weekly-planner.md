@@ -1,6 +1,6 @@
 # Nutrition Task 6: Weekly Planner
 
-The weekly planner is deterministic and reads only Fitsho's verified food catalogue and accepted,
+The weekly planner is deterministic and reads only Fitician's verified food catalogue and accepted,
 fresh price references. It never calls a marketplace during a user request.
 
 ## Flow

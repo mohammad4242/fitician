@@ -2,7 +2,7 @@
 
 ## Scope
 
-Redesign the authenticated Fitsho frontend on the existing `nutrition` branch. Preserve all
+Redesign the authenticated Fitician frontend on the existing `nutrition` branch. Preserve all
 routes, API contracts, authentication, product modes, role checks, data semantics, and existing
 flows. No backend, database, or product-logic changes are included.
 

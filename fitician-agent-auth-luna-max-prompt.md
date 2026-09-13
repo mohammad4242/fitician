@@ -1,6 +1,6 @@
-# Luna Max Prompt — Fitsho Admin-Driven Agent Authentication + Agent Service UI Cleanup
+# Luna Max Prompt — Fitician Admin-Driven Agent Authentication + Agent Service UI Cleanup
 
-از ریشه پروژه Fitsho و روی feature/worktree فعلی Agent Service کار کن.
+از ریشه پروژه Fitician و روی feature/worktree فعلی Agent Service کار کن.
 
 ## نقش و هدف
 

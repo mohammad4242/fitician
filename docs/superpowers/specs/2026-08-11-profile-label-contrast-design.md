@@ -2,13 +2,13 @@
 
 ## Scope
 
-Improve text contrast inside the existing Profile form without changing layout, spacing, typography, form behavior, or the dark Fitsho theme.
+Improve text contrast inside the existing Profile form without changing layout, spacing, typography, form behavior, or the dark Fitician theme.
 
 ## Visual hierarchy
 
-- Question and field labels use `--fitsho-ink` (`#e8f4f1`).
-- Helper text uses `--fitsho-muted` (`#8ca39e`).
-- Fieldset legends and section highlights remain `--fitsho-aqua` (`#50dfce`).
+- Question and field labels use `--fitician-ink` (`#e8f4f1`).
+- Helper text uses `--fitician-muted` (`#8ca39e`).
+- Fieldset legends and section highlights remain `--fitician-aqua` (`#50dfce`).
 - The selectors stay scoped to `.profile-form` so other screens and shared navigation are unchanged.
 
 ## Verification

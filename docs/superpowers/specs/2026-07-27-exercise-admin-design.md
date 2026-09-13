@@ -108,7 +108,7 @@ provided. When a file is supplied without metadata, the existing project-owner
 defaults are used:
 
 - `Project owner supplied and authorized`
-- `Provided by Fitsho project owner`
+- `Provided by Fitician project owner`
 
 The media root, maximum bytes, maximum video duration, `ffprobe` path, and probe
 timeout are configured in backend settings. FastAPI serves approved files from

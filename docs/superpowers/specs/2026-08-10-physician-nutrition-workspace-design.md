@@ -41,7 +41,7 @@ existing clinical tools:
 - approve, request changes, or reject the exact revision.
 
 Approved cases remain visible but all mutating controls are disabled or omitted. The interface is
-bilingual, RTL/LTR aware, keyboard accessible, responsive, and uses Fitsho's existing visual tokens.
+bilingual, RTL/LTR aware, keyboard accessible, responsive, and uses Fitician's existing visual tokens.
 
 ## Data and safety
 

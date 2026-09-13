@@ -222,7 +222,7 @@ Split the calorie from the three-item macro definition, move fibre out of the ca
 
 - [ ] **Step 4: Implement the visual system**
 
-Use the existing Fitsho tokens with dark translucent cards, circular 88–112px image wells, turquoise calories, quiet dividers, compact admin actions, single-column mobile cards, optional two-column wide layout, `overflow-x: auto` chips, RTL-safe logical properties, focus-visible rings, and reduced-motion support.
+Use the existing Fitician tokens with dark translucent cards, circular 88–112px image wells, turquoise calories, quiet dividers, compact admin actions, single-column mobile cards, optional two-column wide layout, `overflow-x: auto` chips, RTL-safe logical properties, focus-visible rings, and reduced-motion support.
 
 - [ ] **Step 5: Run focused frontend tests**
 

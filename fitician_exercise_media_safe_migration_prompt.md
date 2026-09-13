@@ -1,8 +1,8 @@
-# Fitsho Exercise Media Consolidation & Safe Migration
+# Fitician Exercise Media Consolidation & Safe Migration
 
 ## ماموریت
 
-ریپوی **Fitsho** و محیط لوکال فعلی آن را بررسی کن و سیستم ویدیوهای حرکات را به یک ساختار **واحد، مرتب، قابل‌انتقال به سرور و بدون از دست رفتن حتی یک فایل** منتقل کن.
+ریپوی **Fitician** و محیط لوکال فعلی آن را بررسی کن و سیستم ویدیوهای حرکات را به یک ساختار **واحد، مرتب، قابل‌انتقال به سرور و بدون از دست رفتن حتی یک فایل** منتقل کن.
 
 این یک کار حساس روی فایل‌ها و دیتابیس است.  
 **هیچ ویدیویی، فایل مدیا، رکورد مدیا یا Volume قدیمی نباید حذف شود.**
@@ -153,7 +153,7 @@ ExerciseMediaAsset.sort_order
 ```text
 MEDIA_ROOT
 Docker named volumes
-fitsho_exercise_media
+fitician_exercise_media
 owner-video
 free-exercise-db
 meal-catalogue
@@ -338,13 +338,13 @@ male-video-01-a3f912cd.mp4
 در صورت سازگاری با معماری پروژه، Compose را به یک Mount اصلی تبدیل کن، مثلاً:
 
 ```yaml
-- ./backend/var/media:/var/lib/fitsho/media
+- ./backend/var/media:/var/lib/fitician/media
 ```
 
 و:
 
 ```text
-MEDIA_ROOT=/var/lib/fitsho/media
+MEDIA_ROOT=/var/lib/fitician/media
 ```
 
 را حفظ یا استاندارد کن.

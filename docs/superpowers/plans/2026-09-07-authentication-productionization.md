@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Finish the existing Fitsho authentication flows for production use while preserving the opaque `AuthSession` architecture and existing auth UI.
+**Goal:** Finish the existing Fitician authentication flows for production use while preserving the opaque `AuthSession` architecture and existing auth UI.
 
 **Architecture:** Keep `User`, `AuthSession`, secure cookies, and `app.auth.service` as the single authentication path. Harden the existing provider adapters, add the missing email-verification frontend handoff, and document environment configuration without changing unrelated features.
 

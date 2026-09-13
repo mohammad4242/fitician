@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
-**Goal:** Implement the first persisted Product, Entitlement, and Quota layer across Fitsho backend, database, shared contracts, Web, and shared React Native screens.
+**Goal:** Implement the first persisted Product, Entitlement, and Quota layer across Fitician backend, database, shared contracts, Web, and shared React Native screens.
 
 **Architecture:** Add an independent app/entitlements domain with an immutable code catalog, implicit Free fallback, unioned active grants, and transactional idempotent quota events. Feature domains receive explicit capability/lifecycle decisions and retain ProductMode onboarding and specialist-role authorization. Web and Mobile consume one authenticated shared snapshot through providers.
 

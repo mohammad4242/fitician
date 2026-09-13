@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align the existing Fitsho nutrition page with the calorie, doctor-supervision, and weekly-plan CTA elements in `taghziye.jpg` without changing nutrition APIs or calculations.
+**Goal:** Align the existing Fitician nutrition page with the calorie, doctor-supervision, and weekly-plan CTA elements in `taghziye.jpg` without changing nutrition APIs or calculations.
 
 **Architecture:** A focused animation hook owns one normalized request-animation-frame timeline. `NutritionEstimatePage` consumes that value for both the calorie number and existing `ProgressRing`, then renders a data-backed doctor section and compact CTA with page-scoped styles.
 
@@ -13,7 +13,7 @@
 - Preserve existing nutrition logic, API behavior, RTL/LTR support, responsive behavior, and unrelated page areas.
 - Use the existing `energyTarget` derivation; never hardcode nutrition values.
 - The number and ring must share one timeline and finish at the exact target and 100%.
-- Use existing Fitsho tokens and routes; add no dependency and no backend request.
+- Use existing Fitician tokens and routes; add no dependency and no backend request.
 - Respect reduced-motion preferences by rendering the final state immediately.
 
 ---
@@ -106,7 +106,7 @@ Simplify the empty `PlanArea` default state to one button. Keep the existing bus
 
 - [ ] **Step 4: Add scoped responsive styling**
 
-Compact the calorie panel and ring without changing shared `ProgressRing` defaults. Style the supervision section as a Fitsho surface with a doctor header, two-column item grid, clear red status dot, keyboard-visible link states, and one-column mobile fallback. Style the empty-plan section as a single compact full-width CTA inspired by the reference.
+Compact the calorie panel and ring without changing shared `ProgressRing` defaults. Style the supervision section as a Fitician surface with a doctor header, two-column item grid, clear red status dot, keyboard-visible link states, and one-column mobile fallback. Style the empty-plan section as a single compact full-width CTA inspired by the reference.
 
 - [ ] **Step 5: Run focused page tests to verify GREEN**
 

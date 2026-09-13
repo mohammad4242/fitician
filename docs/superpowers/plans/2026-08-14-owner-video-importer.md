@@ -4,7 +4,7 @@
 
 **Goal:** Build a safe, resumable CLI that mutes and analyzes owner MP4 exercise videos, then attaches them to confirmed catalogue exercises or creates validated new/review exercises.
 
-**Architecture:** Extend `ExerciseMediaAsset` with stable owner provenance and keep accepted files in Fitsho's existing public media tree. Split media processing, Codex structured analysis, and database orchestration into focused modules; inject command runners and analyzers for deterministic tests. Process one digest-keyed video transaction at a time so reruns and interruptions are safe.
+**Architecture:** Extend `ExerciseMediaAsset` with stable owner provenance and keep accepted files in Fitician's existing public media tree. Split media processing, Codex structured analysis, and database orchestration into focused modules; inject command runners and analyzers for deterministic tests. Process one digest-keyed video transaction at a time so reruns and interruptions are safe.
 
 **Tech Stack:** Python 3.12, Pydantic 2, SQLAlchemy 2, PostgreSQL, Alembic, ffmpeg/ffprobe, Codex CLI, pytest.
 

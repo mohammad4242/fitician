@@ -4,7 +4,7 @@
 
 **Goal:** Harden the completed Nutrition system and deliver reproducible repository-level validation and operating documentation.
 
-**Architecture:** Reuse Fitsho's authenticated FastAPI routes, encrypted AI credential store, PostgreSQL advisory locking, immutable Nutrition records, and private filesystem roots. Add narrowly scoped security services and persisted operational events instead of a new queue or cache service.
+**Architecture:** Reuse Fitician's authenticated FastAPI routes, encrypted AI credential store, PostgreSQL advisory locking, immutable Nutrition records, and private filesystem roots. Add narrowly scoped security services and persisted operational events instead of a new queue or cache service.
 
 **Tech Stack:** FastAPI, SQLAlchemy, PostgreSQL, Alembic, cryptography/HMAC, pytest, React, TypeScript, Vitest.
 

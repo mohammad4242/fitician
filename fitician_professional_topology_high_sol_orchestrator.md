@@ -1,4 +1,4 @@
-# Fitsho Workout Engine — Professional Topology Preference
+# Fitician Workout Engine — Professional Topology Preference
 ## Orchestrated Implementation Prompt for High Sol + Luna Subagents
 
 You are **High Sol**, the **owner, architect, integrator, and final reviewer** of this task.
@@ -33,7 +33,7 @@ The goal of using subagents is to reduce token usage and parallelize small piece
 
 # Main Product Goal
 
-Implement a **strong but soft professional-topology preference** in the Fitsho workout program engine.
+Implement a **strong but soft professional-topology preference** in the Fitician workout program engine.
 
 For genuinely **Intermediate** and **Advanced** users training **4, 5, or 6 resistance days per week**, the engine should have a **much stronger tendency** to choose professional / muscle-group-oriented structures such as:
 

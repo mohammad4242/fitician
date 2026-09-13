@@ -205,7 +205,7 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "fitsho-backend"
+name = "fitician-backend"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -273,11 +273,11 @@ from app.config import Settings
 
 def test_settings_accept_explicit_environment_values() -> None:
     settings = Settings(
-        database_url="postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+        database_url="postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         frontend_origin="http://localhost:5173",
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
     )
 
     assert settings.session_ttl_seconds == 604800
@@ -313,11 +313,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho"
+    database_url: str = "postgresql+psycopg://fitician:fitician@localhost:5432/fitician"
     frontend_origin: str = "http://localhost:5173"
     app_env: Literal["local", "test", "production"] = "local"
     cookie_secure: bool = True
-    session_cookie_name: str = "__Host-fitsho_session"
+    session_cookie_name: str = "__Host-fitician_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 7
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -393,22 +393,22 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: fitsho
-      POSTGRES_PASSWORD: fitsho
-      POSTGRES_DB: fitsho
+      POSTGRES_USER: fitician
+      POSTGRES_PASSWORD: fitician
+      POSTGRES_DB: fitician
     ports:
       - "5432:5432"
     volumes:
-      - fitsho_postgres_data:/var/lib/postgresql
+      - fitician_postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fitsho -d fitsho"]
+      test: ["CMD-SHELL", "pg_isready -U fitician -d fitician"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  fitsho_postgres_data:
+  fitician_postgres_data:
 ```
 
 فایل:
@@ -420,7 +420,7 @@ compose.yaml
 پایگاه داده آزمایش:
 
 ```sql
-CREATE DATABASE fitsho_test;
+CREATE DATABASE fitician_test;
 ```
 
 فایل:
@@ -432,11 +432,11 @@ docker/postgres/init/01-create-test-db.sql
 محیط نمونه:
 
 ```dotenv
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician
 FRONTEND_ORIGIN=http://localhost:5173
 APP_ENV=local
 COOKIE_SECURE=false
-SESSION_COOKIE_NAME=fitsho_session
+SESSION_COOKIE_NAME=fitician_session
 SESSION_TTL_SECONDS=604800
 ```
 
@@ -792,7 +792,7 @@ from sqlalchemy.orm import Session
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test",
+    "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test",
 )
 
 
@@ -832,8 +832,8 @@ backend/tests/conftest.py
 
 ```bash
 cd backend
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic downgrade base
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic upgrade head
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic downgrade base
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic upgrade head
 .venv/bin/pytest tests/database/test_auth_models.py -v
 ```
 
@@ -925,7 +925,7 @@ import secrets
 from pwdlib import PasswordHash
 
 _password_hash = PasswordHash.recommended()
-DUMMY_PASSWORD_HASH = _password_hash.hash("fitsho-dummy-password-value")
+DUMMY_PASSWORD_HASH = _password_hash.hash("fitician-dummy-password-value")
 
 
 def hash_password(password: str) -> str:
@@ -1027,7 +1027,7 @@ def test_register_creates_user_session_and_cookie(client: TestClient, db: Sessio
     assert response.status_code == 201
     assert response.json()["email"] == "new@example.com"
     assert "password_hash" not in response.json()
-    assert "fitsho_session" in response.cookies
+    assert "fitician_session" in response.cookies
     user = db.scalar(select(User).where(User.email == "new@example.com"))
     assert user is not None
     assert user.password_hash != "long password"
@@ -1085,7 +1085,7 @@ def test_settings() -> Settings:
         frontend_origin="http://localhost:5173",
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         session_ttl_seconds=604800,
     )
 
@@ -1330,7 +1330,7 @@ from app.config import Settings, get_settings
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     active_settings = settings or get_settings()
-    app = FastAPI(title="Fitsho API")
+    app = FastAPI(title="Fitician API")
     app.dependency_overrides[get_settings] = lambda: active_settings
     app.add_middleware(
         CORSMiddleware,
@@ -1470,13 +1470,13 @@ def test_login_uses_generic_error_for_unknown_email_and_wrong_password(
 
 def test_me_rejects_missing_and_forged_sessions(client: TestClient) -> None:
     assert client.get("/api/v1/auth/me").status_code == 401
-    client.cookies.set("fitsho_session", "forged")
+    client.cookies.set("fitician_session", "forged")
     assert client.get("/api/v1/auth/me").status_code == 401
 
 
 def test_expired_session_is_deleted(client: TestClient, db: Session) -> None:
     register(client)
-    raw_token = client.cookies["fitsho_session"]
+    raw_token = client.cookies["fitician_session"]
     stored = db.scalar(
         select(AuthSession).where(
             AuthSession.token_hash == hash_session_token(raw_token)
@@ -2892,9 +2892,9 @@ def test_production_cookie_uses_host_security_prefix(
     production_settings = test_settings.model_copy(
         update={
             "app_env": "production",
-            "frontend_origin": "https://fitsho.example",
+            "frontend_origin": "https://fitician.example",
             "cookie_secure": True,
-            "session_cookie_name": "__Host-fitsho_session",
+            "session_cookie_name": "__Host-fitician_session",
         }
     )
     app = create_app(production_settings)
@@ -2906,13 +2906,13 @@ def test_production_cookie_uses_host_security_prefix(
     with TestClient(app, base_url="https://testserver") as secure_client:
         response = secure_client.post(
             "/api/v1/auth/register",
-            headers={"Origin": "https://fitsho.example"},
+            headers={"Origin": "https://fitician.example"},
             json={"email": "secure@example.com", "password": "long password"},
         )
 
     cookie = response.headers["set-cookie"]
     assert response.status_code == 201
-    assert cookie.startswith("__Host-fitsho_session=")
+    assert cookie.startswith("__Host-fitician_session=")
     assert "HttpOnly" in cookie
     assert "Secure" in cookie
     assert "SameSite=lax" in cookie
@@ -3098,8 +3098,8 @@ npm run build
 
 ```bash
 cd backend
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic downgrade base
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic upgrade head
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic downgrade base
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic upgrade head
 ```
 
 خروجی مورد انتظار: رفت و برگشت مهاجرت بدون خطا.

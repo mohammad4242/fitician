@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
-**Goal:** Build a premium three-scene video entry page for guests while preserving Fitsho authentication, backend, database, APIs, and every protected route.
+**Goal:** Build a premium three-scene video entry page for guests while preserving Fitician authentication, backend, database, APIs, and every protected route.
 
 **Architecture:** PublicLandingRoute reads the existing auth context: guests receive PublicLandingPage; members are redirected to /dashboard. PublicLandingPage observes three sections and marks one active. LandingVideo receives that state and is the only component allowed to play or pause a video, including a mapped image fallback.
 

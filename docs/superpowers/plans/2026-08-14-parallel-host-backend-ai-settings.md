@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Run an isolated local Fitsho frontend/database pair with a host-native backend that can reach OpenRouter, while restoring clear masked-key and mobile AI-settings behavior.
+**Goal:** Run an isolated local Fitician frontend/database pair with a host-native backend that can reach OpenRouter, while restoring clear masked-key and mobile AI-settings behavior.
 
 **Architecture:** A dedicated Compose project owns a PostgreSQL clone on `5433` and Vite on `5174`; Vite proxies to the host backend on `8002` through `host.docker.internal`. A checked-in launcher gives the host backend non-secret runtime overrides while `backend/.env` remains the source of local secrets and proxy configuration.
 
@@ -50,7 +50,7 @@ Export the pure resolver from `vite.config.ts` and use it for both `/api` and `/
 
 Run: `npm run test -- --run src/test/viteProxyConfig.test.ts`
 
-Run: `docker compose -p fitsho-hostdev -f compose.host-backend.yaml config`
+Run: `docker compose -p fitician-hostdev -f compose.host-backend.yaml config`
 
 Expected: PASS; the rendered configuration contains no backend service and no host ports from the current stack.
 
@@ -66,7 +66,7 @@ Commit message: `feat(dev): add parallel host-backend stack`
 - Create: `scripts/test_hostdev_scripts.sh`
 
 **Interfaces:**
-- Consumes: existing `backend/.env`, source Compose service `db`, destination project `fitsho-hostdev`, and optional `FITSHO_HOSTDEV_LAN_IP`.
+- Consumes: existing `backend/.env`, source Compose service `db`, destination project `fitician-hostdev`, and optional `FITICIAN_HOSTDEV_LAN_IP`.
 - Produces: host backend URL `http://0.0.0.0:8002` and an independently cloned database at `localhost:5433`.
 
 - [ ] **Step 1: Write failing shell contract checks**
@@ -81,7 +81,7 @@ Expected: FAIL because the launch and clone scripts do not exist.
 
 - [ ] **Step 3: Implement both scripts**
 
-The launcher changes into `backend/`, derives a LAN IPv4 unless overridden, exports only non-secret hostdev settings, and executes `uv run uvicorn app.main:app --host 0.0.0.0 --port 8002`. The clone script starts the dedicated database, waits for health, performs a read-only `pg_dump` from the current `db` service, and restores through stdin to the dedicated `fitsho` database without persisting dump contents.
+The launcher changes into `backend/`, derives a LAN IPv4 unless overridden, exports only non-secret hostdev settings, and executes `uv run uvicorn app.main:app --host 0.0.0.0 --port 8002`. The clone script starts the dedicated database, waits for health, performs a read-only `pg_dump` from the current `db` service, and restores through stdin to the dedicated `fitician` database without persisting dump contents.
 
 - [ ] **Step 4: Verify scripts without mutating either database**
 
@@ -182,7 +182,7 @@ Commit message: `fix(ai-settings): contain mobile settings layout`
 
 - [ ] **Step 1: Start and clone the isolated database**
 
-Run: `docker compose -p fitsho-hostdev -f compose.host-backend.yaml up -d hostdev-db`
+Run: `docker compose -p fitician-hostdev -f compose.host-backend.yaml up -d hostdev-db`
 
 Run: `scripts/clone-hostdev-database.sh`
 

@@ -1,4 +1,4 @@
-# Fitsho Program Engine V1 Architecture
+# Fitician Program Engine V1 Architecture
 
 ## Scope
 

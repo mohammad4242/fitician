@@ -5,21 +5,21 @@
 Replace the legacy Zen model-routing panel and AI workout-generation path with
 the OpenRouter task configuration for `workout_plan_generation`.
 
-Fitsho keeps ownership of exercise safety and program construction. The AI
-coach only selects and explains one safe Fitsho candidate program.
+Fitician keeps ownership of exercise safety and program construction. The AI
+coach only selects and explains one safe Fitician candidate program.
 
 ## User-facing behavior
 
 The saved `workout_generation_method` remains the user's explicit choice.
 
-- **Fitsho Coach** uses the current deterministic program engine and returns a
+- **Fitician Coach** uses the current deterministic program engine and returns a
   single personalized plan. It never includes AI-coach explanations.
 - **AI Coach** first produces two or three eligible candidate programs from
   the active training-template library. OpenRouter receives the user context
   and those candidates, chooses exactly one candidate, and returns a Persian
   program-level explanation plus optional Persian notes for individual days.
 
-Exercises remain Fitsho catalog exercises in both paths. AI Coach does not
+Exercises remain Fitician catalog exercises in both paths. AI Coach does not
 edit exercises, prescriptions, order, or safety rules.
 
 ## Candidate selection and materialization
@@ -34,7 +34,7 @@ links/substitutions and is validated before it can be sent to the model. If
 fewer than two candidates are eligible, AI Coach is unavailable rather than
 silently using an unsafe or irrelevant program.
 
-The current deterministic Fitsho Coach program engine is unchanged.
+The current deterministic Fitician Coach program engine is unchanged.
 
 ## OpenRouter contract
 
@@ -89,7 +89,7 @@ The page has no link to a legacy models screen.
 ## Workout-plan UI
 
 AI Coach plans render an `AI Coach` program card before the schedule and an
-optional `AI Coach` note within each applicable day. Fitsho Coach plans omit
+optional `AI Coach` note within each applicable day. Fitician Coach plans omit
 both cards entirely. Existing exercise cards, media, alternatives, and detail
 links are preserved.
 
@@ -98,7 +98,7 @@ links are preserved.
 Tests will cover:
 
 - deterministic candidate eligibility, ordering, and distinctness;
-- Fitsho Coach retaining its direct deterministic plan path;
+- Fitician Coach retaining its direct deterministic plan path;
 - AI Coach accepting only a supplied candidate and preserving its exercises;
 - profile/body-analysis context without raw photos;
 - invalid provider selection/output and unavailable task configuration;

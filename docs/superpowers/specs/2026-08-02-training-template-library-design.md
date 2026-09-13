@@ -2,7 +2,7 @@
 
 ## Goal
 
-Create an admin-only, database-backed library of evidence-informed hypertrophy training templates for two through six weekly training days. The library is a curated reference and does not yet change the deterministic Fitsho program engine's selection behavior.
+Create an admin-only, database-backed library of evidence-informed hypertrophy training templates for two through six weekly training days. The library is a curated reference and does not yet change the deterministic Fitician program engine's selection behavior.
 
 ## Scope
 
@@ -24,7 +24,7 @@ The idempotent seed resolves catalog slugs during execution, writes templates an
 
 ## Template policy
 
-The 25 templates are original Fitsho structures, informed by resistance-training evidence and conventional coach programming patterns; they are not copied programs. They cover full-body, upper/lower, push-pull-legs, body-part rotation, priority blocks, and time-efficient superset or drop-set variants. Weekly frequency is a scheduling choice; volume, progression, safety, and final exercise eligibility continue to belong to the deterministic engine.
+The 25 templates are original Fitician structures, informed by resistance-training evidence and conventional coach programming patterns; they are not copied programs. They cover full-body, upper/lower, push-pull-legs, body-part rotation, priority blocks, and time-efficient superset or drop-set variants. Weekly frequency is a scheduling choice; volume, progression, safety, and final exercise eligibility continue to belong to the deterministic engine.
 
 ## Validation and safety
 

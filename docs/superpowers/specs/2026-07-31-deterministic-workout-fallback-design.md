@@ -8,7 +8,7 @@ Return a valid workout plan when all configured AI models fail, while preserving
 
 `DeterministicWorkoutPlanGenerator` consumes the already-filtered `CandidateSet`, the user generation profile, and `WorkoutGenerationPolicy`. It selects balanced exercises deterministically, assigns prescriptions from the user's fitness goal and experience, stays inside session-duration limits, and returns the existing `WorkoutPlanModelOutput` contract.
 
-`WorkoutGenerationService` continues trying configured AI providers first. After all provider, output, repair, or semantic-validation failures, it invokes the deterministic generator when `workout_deterministic_fallback_enabled` is true. The existing validator validates the fallback before persistence. Successful fallback plans use model ID `fitsho-deterministic-v1`.
+`WorkoutGenerationService` continues trying configured AI providers first. After all provider, output, repair, or semantic-validation failures, it invokes the deterministic generator when `workout_deterministic_fallback_enabled` is true. The existing validator validates the fallback before persistence. Successful fallback plans use model ID `fitician-deterministic-v1`.
 
 ## Rules
 

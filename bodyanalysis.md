@@ -1,4 +1,4 @@
-# Fitsho Body Analysis v4 — Architecture Decision and Implementation Roadmap
+# Fitician Body Analysis v4 — Architecture Decision and Implementation Roadmap
 
 > Delivery note: This document is ready to be saved as `bodyanalysis.md`. The current session is in Plan Mode, so no repository file was created or modified.
 
@@ -13,7 +13,7 @@ The recommended design is:
 - Remove the 13 areas × 3 views user-facing checklist.
 - Keep the existing normalized 13-area contract exclusively as a compatibility adapter for workout generation.
 - Make the vision LLM responsible only for structured visual observations.
-- Generate all first impressions, indicator labels, goal direction, disclaimers, and Persian UI copy through deterministic Fitsho code.
+- Generate all first impressions, indicator labels, goal direction, disclaimers, and Persian UI copy through deterministic Fitician code.
 - Store an immutable measurement/profile snapshot without creating new database tables.
 - Reuse the existing review, comparison, photo storage, and workout-engine boundaries.
 - Add the Ghost Camera as a new input method while preserving the existing upload processing pipeline.
@@ -93,12 +93,12 @@ The recommended architecture has four separate contracts:
    - Never rendered directly.
 
 2. **Normalized compatibility contract**
-   - Fitsho-owned.
+   - Fitician-owned.
    - Persisted and versioned.
    - Remains compatible with the workout engine and specialist corrections.
 
 3. **Experience read model**
-   - Fitsho-owned and generated deterministically.
+   - Fitician-owned and generated deterministically.
    - Returned through the API for v4.
    - Contains presentation keys, parameters, indicators, map regions, review state, and snapshot provenance.
    - Not persisted as a second source of truth.
@@ -120,7 +120,7 @@ The recommended architecture has four separate contracts:
 | Photo files and consent | Existing `body_photos` module |
 | Browser framing and pose guidance | MediaPipe plus deterministic frontend logic |
 | Visual evidence | Vision LLM v4 provider payload |
-| Product classifications and Persian wording | Fitsho backend/frontend |
+| Product classifications and Persian wording | Fitician backend/frontend |
 | Specialist corrections | Existing `BodyAnalysisResultVersion` |
 | Coach and physician approval | Existing `BodyAnalysisReview` |
 | Workout influence | Existing normalized contract and resolver |
@@ -171,7 +171,7 @@ Do not duplicate profile or measurement values in a new table.
 14. Analysis starts only when all three browser-approved standardized photos exist: front, side, and back.
 15. The vision model receives all three accepted images and view labels in one v4 evidence-only request. It does not receive sex, goal, BMI, or measurements.
 16. The provider returns structured v4 visual evidence with no final message or goal recommendation.
-17. Fitsho validates the evidence and projects it into the existing normalized 13-area contract.
+17. Fitician validates the evidence and projects it into the existing normalized 13-area contract.
 18. The normalized result is persisted as result version 1.
 19. The deterministic comparison service creates or updates the stored comparison. Comparison failure remains non-blocking.
 20. The API assembles a v4 experience read model from:
@@ -186,9 +186,9 @@ Photo acceptance belongs to the local/browser processing flow. The vision model 
 
 ## 6. Exact Responsibility Boundaries
 
-### A. Deterministic Fitsho code
+### A. Deterministic Fitician code
 
-Fitsho owns:
+Fitician owns:
 
 - Required-field validation.
 - Snapshot creation.
@@ -207,7 +207,7 @@ Fitsho owns:
 - Disclaimer text.
 - Backward-compatible response assembly.
 
-Fitsho must never claim that a compatibility score is a probability of correctness.
+Fitician must never claim that a compatibility score is a probability of correctness.
 
 ### B. MediaPipe
 
@@ -694,7 +694,7 @@ GET /api/v1/body-photo-sessions/{session_id}/comparison
 | `backend/app/body_analysis/comparison_models.py` | Existing JSON columns support comparison v2. | Historical comparison corruption. |
 | `backend/app/body_analysis/enums.py` | Existing 13 areas and training emphases are the engine compatibility contract. V4 provider literals belong in `schemas.py`. | Engine and stored-result breakage. |
 | `backend/app/body_analysis/providers/openrouter.py` | Already provides generic strict structured image transport. | Provider-wide regression. |
-| `backend/app/body_analysis/providers/agent_service.py` | Already transports Fitsho-owned prompt/schema to Agent Service. | Agent routing regression. |
+| `backend/app/body_analysis/providers/agent_service.py` | Already transports Fitician-owned prompt/schema to Agent Service. | Agent routing regression. |
 | `backend/app/body_analysis/admin_config/*` | Provider/model/task configuration remains generic. | Admin and other AI tasks. |
 | `backend/app/body_photos/models.py` | Session, photo, consent, and private storage structures are sufficient. | Privacy and migration risk. |
 | `backend/app/body_photos/schemas.py` | Camera capture produces the same uploaded file contract. | Duplicate camera-specific backend contract. |
@@ -868,7 +868,7 @@ Frontend:
   - Add v4 strict-schema fixture without changing generic transport behavior.
 
 - `agent-service/tests/test_task_prompt_ownership.py`
-  - Add the v4 prompt marker to the assertion that Fitsho owns task prompts.
+  - Add the v4 prompt marker to the assertion that Fitician owns task prompts.
   - Do not add v4 logic to Agent Service.
 
 - `frontend/src/features/bodyPhotos/BodyPhotoWizard.test.tsx`
@@ -1316,7 +1316,7 @@ Do not approve the proposed document as an implementation specification in its c
 Approve the product direction with the following replacement architecture:
 
 - Evidence-only provider v4.
-- Deterministic Fitsho presentation.
+- Deterministic Fitician presentation.
 - Existing normalized 13-area workout adapter.
 - Immutable analysis-time input snapshot in existing JSON.
 - Advisory Ghost Camera with one shared post-capture pipeline.
@@ -1329,4 +1329,4 @@ Approve the product direction with the following replacement architecture:
 - No user-facing confidence percentages.
 - No extra historical AI call.
 
-This is the recommended long-term architecture for Fitsho Body Analysis.
+This is the recommended long-term architecture for Fitician Body Analysis.

@@ -1,10 +1,10 @@
-# Fitsho Agent Service — Architecture & Implementation Plan
+# Fitician Agent Service — Architecture & Implementation Plan
 
 > **For Sol (supervisor/orchestrator):** این سند باید task-by-task اجرا شود. Sol مالک معماری، قراردادها، امنیت، migrationها، تصمیم‌های بین‌ماژولی و بازبینی نهایی است. برای کارهای محدود و مستقل، Sol باید subagentهای Luna Low / Medium / High را اجرا کند، خروجی هر Luna را خودش review کند، تست‌های مرتبط را اجرا کند و اگر implementation با قرارداد این سند ناسازگار بود خودش اصلاح کند.
 >
-> **قانون اصلی اجرا:** هیچ Luna اجازه ندارد معماری، schema عمومی، migration strategy، قرارداد HTTP، security boundary یا semantics موجود Fitsho را خودسرانه تغییر دهد. Luna فقط در محدوده فایل‌ها و interfaceهایی که Sol برای همان task مشخص می‌کند کار می‌کند.
+> **قانون اصلی اجرا:** هیچ Luna اجازه ندارد معماری، schema عمومی، migration strategy، قرارداد HTTP، security boundary یا semantics موجود Fitician را خودسرانه تغییر دهد. Luna فقط در محدوده فایل‌ها و interfaceهایی که Sol برای همان task مشخص می‌کند کار می‌کند.
 
-**Goal:** اضافه‌کردن یک مسیر اجرای دوم برای AIهای Fitsho به نام `agent_service` در کنار مسیر فعلی API/OpenRouter، به‌طوری‌که ادمین برای هر AI task بتواند انتخاب کند درخواست از API اجرا شود یا از Agent Service، و در Agent Service یکی از Antigravity، Codex یا Claude و مدل موردنظر را انتخاب کند.
+**Goal:** اضافه‌کردن یک مسیر اجرای دوم برای AIهای Fitician به نام `agent_service` در کنار مسیر فعلی API/OpenRouter، به‌طوری‌که ادمین برای هر AI task بتواند انتخاب کند درخواست از API اجرا شود یا از Agent Service، و در Agent Service یکی از Antigravity، Codex یا Claude و مدل موردنظر را انتخاب کند.
 
 **Architecture:** Backend فقط دو execution backend می‌شناسد: `api` و `agent_service`. در حالت API رفتار فعلی OpenRouter بدون تغییر باقی می‌ماند. در حالت Agent Service، Backend فقط با یک سرویس داخلی HTTP روی `agent-service:9001` حرف می‌زند؛ جزئیات `agy`, `codex`, `claude` کاملاً داخل Agent Service پنهان می‌ماند. Agent Service یک container دارد و هر سه CLI داخل همان image نصب می‌شوند، ولی هیچ‌کدام port جدا ندارند؛ فقط FastAPI Agent Service روی پورت 9001 گوش می‌دهد و runner مناسب را به صورت subprocess اجرا می‌کند.
 
@@ -83,7 +83,7 @@ Sol قبل از هر edit باید این فایل‌ها را دوباره رو
   - OpenRouter construction، provider name و logging در چند نقطه hard-coded است.
   - عکس را normalize می‌کند، private ذخیره می‌کند، سپس base64 برای provider می‌سازد.
 
-### Existing CLI precedent inside Fitsho
+### Existing CLI precedent inside Fitician
 - `backend/app/exercises/owner_video_analysis.py`
   - همین حالا `CodexCliExerciseAnalyzer` دارد.
   - با argument list (نه shell string) Codex را اجرا می‌کند.
@@ -138,7 +138,7 @@ Sol قبل از هر edit باید این فایل‌ها را دوباره رو
                       execution_backend = api
                                     │
 ┌───────────────────────────────────┴────────────────────────────────┐
-│                         FITSHO BACKEND                             │
+│                         FITICIAN BACKEND                             │
 │                                                                   │
 │  Task config → Provider Factory → AIProvider                      │
 │                              │                                    │
@@ -177,7 +177,7 @@ Sol قبل از هر edit باید این فایل‌ها را دوباره رو
    - سوییچ Agent → API نباید API key/model قبلی را پاک کند.
    - سوییچ API → Agent نباید agent/model قبلی را پاک کند.
 
-4. **Agent Service credentialها در DB Fitsho ذخیره نمی‌شوند.**
+4. **Agent Service credentialها در DB Fitician ذخیره نمی‌شوند.**
    - یک persistent Docker volume برای HOME کانتینر.
    - Login هر CLI یک‌بار از داخل container.
    - container restart/rebuild نباید login را پاک کند.
@@ -574,7 +574,7 @@ On timeout:
 ## Workspace
 Each request:
 ```text
-/tmp/fitsho-agent/<request-id>/
+/tmp/fitician-agent/<request-id>/
 ```
 
 Use secure temporary directory creation, not user-controlled directory names.
@@ -913,7 +913,7 @@ HOME=/home/agent
 
 Persistent named volume:
 ```text
-fitsho_agent_home:/home/agent
+fitician_agent_home:/home/agent
 ```
 
 This single HOME volume may contain each CLI's own auth/config directories.
@@ -1408,7 +1408,7 @@ agent-service:
     AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN}
     HOME: /home/agent
   volumes:
-    - fitsho_agent_home:/home/agent
+    - fitician_agent_home:/home/agent
   healthcheck:
     test: ["CMD", "curl", "-fsS", "http://localhost:9001/healthz"]
   restart: unless-stopped
@@ -1441,7 +1441,7 @@ Where compatible with CLI auth:
 - no DB socket/credential mount.
 - no body-photo archive mount.
 
-## Private Fitsho storage
+## Private Fitician storage
 Sol must audit current deployment semantics before changing paths.
 
 Goal:
@@ -1449,9 +1449,9 @@ Body/food/nutrition private data must survive backend container rebuild.
 
 Use explicit persistent volumes/binds and explicit absolute paths, for example:
 ```text
-/var/lib/fitsho/private/body-photos
-/var/lib/fitsho/private/food-photos
-/var/lib/fitsho/private/nutrition-labs
+/var/lib/fitician/private/body-photos
+/var/lib/fitician/private/food-photos
+/var/lib/fitician/private/nutrition-labs
 ```
 
 Do migration/copy carefully; do not orphan existing local data.
@@ -1799,7 +1799,7 @@ Run the targeted test and report the exact output.
 
 ### Example delegation — bad
 ```text
-"Build the Agent Service and integrate it into Fitsho."
+"Build the Agent Service and integrate it into Fitician."
 ```
 
 That scope is too large for Luna and makes architectural drift likely.
@@ -1808,11 +1808,11 @@ That scope is too large for Luna and makes architectural drift likely.
 
 # 27. Non-negotiable invariants
 
-1. **Fitsho Backend must not know CLI syntax.**
+1. **Fitician Backend must not know CLI syntax.**
 2. **Agent Service must not know workout/nutrition business rules.**
 3. **AIProvider stays the Backend boundary.**
 4. **Existing API path stays default and backwards-compatible.**
-5. **Agent auth never enters Fitsho DB.**
+5. **Agent auth never enters Fitician DB.**
 6. **User image archive is not broadly mounted to Agent Service.**
 7. **Each runner gets only request-scoped temp files.**
 8. **Structured outputs are validated before business code receives them.**

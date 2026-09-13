@@ -1,14 +1,14 @@
 # Task 3 scientific energy and nutrient-target engine design
 
 Status: approved interactively on 2026-08-05. This document authorizes only
-Task 3 of `fitsho-nutrition-implementation-spec.md`. It does not authorize food
+Task 3 of `fitician-nutrition-implementation-spec.md`. It does not authorize food
 catalogue, meal planning, shopping lists, prices, tracking, photo estimation,
 supplements, or later-task work.
 
 ## Goals and boundaries
 
 Build a deterministic, versioned engine that estimates adult energy needs and
-nutrition targets from the single Fitsho profile. AI does not choose formulas,
+nutrition targets from the single Fitician profile. AI does not choose formulas,
 limits, confidence, or targets. The engine reports estimates and uncertainty;
 it does not describe predicted values as measurements and does not generate a
 meal plan.
@@ -75,15 +75,15 @@ If yes, exercise type, days per week, minutes per session, and usual intensity
 are required. Exercise types are resistance, endurance, mixed, and other;
 intensities are light, moderate, and vigorous.
 
-For `BOTH`, the resolver uses the active Fitsho workout plan when it contains
+For `BOTH`, the resolver uses the active Fitician workout plan when it contains
 complete reliable duration and effort data. Otherwise it reuses training days,
 session duration, and the newly stored required usual intensity from the
-training profile. Fitsho training is classified as resistance unless the active
+training profile. Fitician training is classified as resistance unless the active
 plan explicitly records a mixed prescription. Missing required information
 blocks the estimate; the resolver never invents exercise or intensity.
 
 The structured source is one of `user_reported`, `training_profile`, or
-`active_fitsho_plan`. Nutrition-only exercise answers are stored independently
+`active_fitician_plan`. Nutrition-only exercise answers are stored independently
 from daily activity. Combined-mode training data remains canonical in the
 training profile or workout plan and is copied only into an immutable estimate
 snapshot, avoiding a second mutable source of truth.

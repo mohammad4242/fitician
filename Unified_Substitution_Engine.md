@@ -7,7 +7,7 @@ Expected starting main:
 
 ## Mission
 
-Build ONE authoritative, deterministic, explainable exercise substitution system for Fitsho.
+Build ONE authoritative, deterministic, explainable exercise substitution system for Fitician.
 
 It must unify the current fragmented replacement logic and handle:
 

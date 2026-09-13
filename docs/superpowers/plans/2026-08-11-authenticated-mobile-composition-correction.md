@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Recompose Fitsho's authenticated frontend around the real-data density and hierarchy of `Panel.png` without changing backend behavior.
+**Goal:** Recompose Fitician's authenticated frontend around the real-data density and hierarchy of `Panel.png` without changing backend behavior.
 
 **Architecture:** Existing routes and page modules remain. Shared visual primitives are extended, while each page composes existing API responses into a panel-mapped hierarchy. Product-mode and role gates continue to live in the current shell/context code.
 

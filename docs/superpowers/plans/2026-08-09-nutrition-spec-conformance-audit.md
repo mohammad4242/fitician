@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Close confirmed gaps between `fitsho-nutrition-core-spec-final.md` and the current Nutrition implementation without rerunning Tasks 0–2 or breaking existing data.
+**Goal:** Close confirmed gaps between `fitician-nutrition-core-spec-final.md` and the current Nutrition implementation without rerunning Tasks 0–2 or breaking existing data.
 
 **Architecture:** Preserve legacy database columns and API input compatibility while removing obsolete Cooking behavior from current clients and planner inputs. Add missing lifecycle, tracking, photo-correction, access-control, and presentation behavior through existing Nutrition services and routes, using immutable revisions and current ownership patterns.
 

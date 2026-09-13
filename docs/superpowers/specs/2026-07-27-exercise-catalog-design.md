@@ -1,4 +1,4 @@
-# طراحی کاتالوگ حرکات ورزشی فیتشو
+# طراحی کاتالوگ حرکات ورزشی فیتیشن
 
 تاریخ: ۱۴۰۵/۰۵/۰۵
 
@@ -246,12 +246,12 @@ goblet squat.gif -> lower-body/quadriceps/goblet-squat.gif
 
 این ۱۷ رکورد `media_type` برابر `gif`، `media_license` برابر
 `Project owner supplied and authorized` و `media_attribution` برابر
-`Provided by Fitsho project owner` دارند. چون دارایی محلی مالک پروژه هستند،
+`Provided by Fitician project owner` دارند. چون دارایی محلی مالک پروژه هستند،
 `media_source_url` آن‌ها `NULL` است. نام فایل اصلی archive در سند attribution ثبت
 می‌شود.
 
 هیچ رکورد placeholder در seed ساخته نمی‌شود. مدل، API و frontend همچنان placeholder
-اصلی فیتشو با مسیر زیر را برای رکوردهای آینده بدون رسانه پشتیبانی می‌کنند:
+اصلی فیتیشن با مسیر زیر را برای رکوردهای آینده بدون رسانه پشتیبانی می‌کنند:
 
 ```text
 /exercises/exercise-placeholder.svg

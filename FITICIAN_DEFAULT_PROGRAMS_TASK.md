@@ -1,10 +1,10 @@
-# Fitsho Default Program Library Implementation Task
+# Fitician Default Program Library Implementation Task
 
-Work on the **Fitsho** project.
+Work on the **Fitician** project.
 
 ## Goal
 
-Complete the Fitsho **Default Program Library** with the approved **25 workout programs**, and link every exercise in every program to the real corresponding exercise in the existing Fitsho **Exercise Library**.
+Complete the Fitician **Default Program Library** with the approved **25 workout programs**, and link every exercise in every program to the real corresponding exercise in the existing Fitician **Exercise Library**.
 
 This task is **not about changing the Program Engine**.
 
@@ -39,7 +39,7 @@ The primary scope of this task is:
    - use the replacement only when necessary,
    - clearly report the replacement in the final report.
 
-7. Every program must exactly comply with Fitsho's existing Training Template structures.
+7. Every program must exactly comply with Fitician's existing Training Template structures.
 
 8. Do not violate the current `supported_levels` configuration of any template.
 
@@ -54,7 +54,7 @@ The primary scope of this task is:
 
 11. Before editing code, inspect the current schema, models, services, seed logic, and Training Template implementation.
 
-12. Follow the existing Fitsho architecture.
+12. Follow the existing Fitician architecture.
     Do not introduce a parallel architecture for default programs.
 
 13. Prevent duplicate programs.
@@ -423,7 +423,7 @@ Reps: 10-15
 Target RIR: approximately 3
 ```
 
-If the existing Fitsho prescription system intentionally uses `8-12` for some Beginner isolation exercises for consistency, preserve the existing architecture/convention and report the difference.
+If the existing Fitician prescription system intentionally uses `8-12` for some Beginner isolation exercises for consistency, preserve the existing architecture/convention and report the difference.
 
 ---
 
@@ -481,7 +481,7 @@ Reps: 10-15
 Target RIR: approximately 2
 ```
 
-If Fitsho stores repetition ranges as separate fields such as:
+If Fitician stores repetition ranges as separate fields such as:
 
 ```text
 min_reps
@@ -490,13 +490,13 @@ max_reps
 
 map these values correctly.
 
-If Fitsho uses another field name for RIR, use the existing model instead of creating a new field.
+If Fitician uses another field name for RIR, use the existing model instead of creating a new field.
 
 ---
 
 # Step 5 — Approved Exercise Slug Map
 
-Use the following real Fitsho Exercise Library exercises whenever possible.
+Use the following real Fitician Exercise Library exercises whenever possible.
 
 | Exercise | Slug |
 |---|---|
@@ -1256,7 +1256,7 @@ Upper / Lower / Full — Intermediate
 ULUL — Advanced
 ```
 
-However, follow Fitsho's existing naming conventions if they already exist.
+However, follow Fitician's existing naming conventions if they already exist.
 
 If the project has separate:
 
@@ -1289,7 +1289,7 @@ Program
           -> Exercise Library Exercise
 ```
 
-Use the existing Fitsho relationship implementation.
+Use the existing Fitician relationship implementation.
 
 If `ProgramExercise` already has an `exercise_id` or equivalent FK/reference, populate it.
 

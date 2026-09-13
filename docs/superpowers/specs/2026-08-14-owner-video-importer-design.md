@@ -3,7 +3,7 @@
 ## Goal
 
 Import owner-provided MP4 exercise demonstrations from `exercise-import/raw/` without
-changing the originals. Identify each movement with Codex image analysis, reuse Fitsho's
+changing the originals. Identify each movement with Codex image analysis, reuse Fitician's
 exercise catalogue and media architecture, and make dry-run and apply executions safe,
 idempotent, resumable, and reviewable.
 
@@ -45,7 +45,7 @@ ordering. Each file is processed independently:
    video encoding with no audio stream.
 5. Validate the muted output with `ffprobe` and require zero audio streams.
 6. Extract five JPEG frames near 10%, 30%, 50%, 70%, and 90% of the duration.
-7. Run Codex analysis using those frames, the allowed Fitsho taxonomy values, and a compact
+7. Run Codex analysis using those frames, the allowed Fitician taxonomy values, and a compact
    snapshot of active exercises and their aliases, equipment, targeting, and programming data.
 8. Parse and validate the structured result before opening any database write transaction.
 9. In `--apply` mode, publish the accepted muted file under
@@ -82,7 +82,7 @@ The strict JSON result contains:
 - visible exercise text and aliases
 - identification confidence and review reasons
 - `male`, `female`, or `unspecified` presentation with confidence
-- every required Fitsho taxonomy field
+- every required Fitician taxonomy field
 - English and Persian instructions and safety notes within current model constraints
 - secondary muscles, equipment, cautions, descriptions, cues, mistakes, and breathing data
 - match decision, match confidence, and an optional existing exercise UUID

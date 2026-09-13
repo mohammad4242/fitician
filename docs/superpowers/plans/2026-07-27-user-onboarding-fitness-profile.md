@@ -221,7 +221,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/database/test_profile_models.py -v
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/database/test_profile_models.py -v
 ```
 
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.profile'`.
@@ -301,8 +301,8 @@ Run:
 
 ```bash
 cd backend
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic upgrade head
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/database/test_profile_models.py -v
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic upgrade head
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/database/test_profile_models.py -v
 .venv/bin/ruff check app/profile tests/database/test_profile_models.py alembic/versions/20260727_02_create_fitness_profiles.py
 .venv/bin/mypy app/profile
 ```
@@ -551,7 +551,7 @@ Also add:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/profile/test_profile_api.py -v
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/profile/test_profile_api.py -v
 ```
 
 Expected: FAIL with `404` for the unregistered profile routes.
@@ -618,7 +618,7 @@ Map `ProfileInvariantError` to the same safe `503` detail used by the global dat
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/profile/test_profile_api.py tests/auth tests/database -v
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/profile/test_profile_api.py tests/auth tests/database -v
 .venv/bin/ruff check app tests
 .venv/bin/mypy app
 ```
@@ -726,7 +726,7 @@ allow_methods=["GET", "POST", "PATCH"]
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest -v
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest -v
 .venv/bin/ruff check app tests
 .venv/bin/mypy app
 ```
@@ -1120,7 +1120,7 @@ git push
 
 - [ ] **Step 1: Invoke visual implementation guidance**
 
-Before editing UI files, invoke the `frontend-design` skill. Preserve Fitsho's existing petrol, turquoise, persimmon and saffron palette, Vazirmatn/Manrope typography and asymmetric card language. Do not add generated raster assets because the onboarding is form-led and does not need new imagery.
+Before editing UI files, invoke the `frontend-design` skill. Preserve Fitician's existing petrol, turquoise, persimmon and saffron palette, Vazirmatn/Manrope typography and asymmetric card language. Do not add generated raster assets because the onboarding is form-led and does not need new imagery.
 
 - [ ] **Step 2: Write failing onboarding interaction tests**
 
@@ -1286,10 +1286,10 @@ Do not claim completion until every command below has fresh successful output.
 
 ```bash
 cd backend
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic upgrade head
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic downgrade 20260724_01
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic upgrade head
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/alembic check
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic upgrade head
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic downgrade 20260724_01
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic upgrade head
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/alembic check
 ```
 
 Expected: all commands exit `0`; `alembic check` reports no new upgrade operations.
@@ -1298,7 +1298,7 @@ Expected: all commands exit `0`; `alembic check` reports no new upgrade operatio
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest -v
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest -v
 .venv/bin/ruff check .
 .venv/bin/ruff format --check .
 .venv/bin/mypy app

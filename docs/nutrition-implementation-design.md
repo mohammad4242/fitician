@@ -1,4 +1,4 @@
-# Fitsho Nutrition implementation design
+# Fitician Nutrition implementation design
 
 Status: Task 0 design with Task 1 and Task 2 implementation records. The Task 3
 scientific policy was explicitly approved on 2026-08-05. Later-task tolerance,
@@ -158,7 +158,7 @@ review or report insufficient data rather than infer a missing clinical rule.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | BMR | Mifflin--St Jeor using age, height, weight, and an optional metabolic equation basis | 18--100, non-pregnant adults without manual-only status | Mifflin 1990, PubMed PMID 2305711 | none | report estimate, not measurement | n/a | return the female/male coefficient range when basis is skipped; lower confidence outside ages 19--78 | equation error and body-composition variation |
 | TDEE | BMR x approved non-exercise multiplier (1.20/1.30/1.40/1.50) + weekly net structured-exercise kcal / 7 | same | NASEM 2023 energy context; 2024 Adult and Older Adult Compendia | never full activity factor plus exercise | report estimate and uncertainty | daily target +/-10% | explicit no-exercise is zero; missing required exercise input blocks an estimate | self-reported movement and intensity |
-| Goal energy change | loss/fat loss preferred -15% (allowed -10% to -20%); gain without exercise +5%; gain with exercise preferred +10% (allowed +5% to +15%); muscle gain +5% to +10%; recomp 0% to -5%; maintenance 0% | automatic adults with compatible goal/exercise state | approved Fitsho policy; individualized monitoring | automatic calorie target not below estimated BMR | conservative end of each range | see tolerance table | low confidence narrows change; incompatible no-training muscle goals require reselection | estimate requires outcome monitoring |
+| Goal energy change | loss/fat loss preferred -15% (allowed -10% to -20%); gain without exercise +5%; gain with exercise preferred +10% (allowed +5% to +15%); muscle gain +5% to +10%; recomp 0% to -5%; maintenance 0% | automatic adults with compatible goal/exercise state | approved Fitician policy; individualized monitoring | automatic calorie target not below estimated BMR | conservative end of each range | see tolerance table | low confidence narrows change; incompatible no-training muscle goals require reselection | estimate requires outcome monitoring |
 | Protein | 0.8 g/kg calculation-weight minimum; preferred 1.0 no-training, 1.2 deficit/no-training, 1.4 endurance, 1.6 resistance/mixed, and 1.8 resistance/deficit; automatic ceiling 2.2 | adults without renal/manual policy | National Academies DRI; Morton 2018; Tagawa 2020; ESPEN adjusted-weight method | 0.8 g/kg; <=2.2 g/kg | goal- and training-specific value | min 0%; preferred -10% | BMI >25 uses reference weight at BMI 25 + 0.33 of excess; kidney/manual states block ordinary policy | predictive target, not measured need |
 | Fat | 15% energy minimum and 30% maximum | automatic adults | WHO Healthy diet, 2026 | >=15%; <=30% | 20--30% | min 0%; preferred +/-10% | missing fatty-acid data prevents a compliant food-plan claim | not a treatment diet |
 | Carbohydrate | 45--75% energy with 130 g/day floor | automatic adults | WHO Healthy diet, 2026; National Academies DRI | >=130 g/day and normally >=45% energy | individualized within range after protein and fat | +/-10% target only within hard limits | conflicting macro constraints return a structured conflict | clinical low-carb diets excluded |
@@ -447,7 +447,7 @@ The deterministic estimate engine now resolves the selected adult
 micronutrient RDA/AI rows from `micronutrient-dri-v1` by age, sex, and explicit
 dietary pattern, then persists the selected reference, unit/form, aggregation
 window, UL/CDRR metadata, source, policy version, and non-diagnostic
-explanation with the estimate. `BOTH` mode uses an active Fitsho training plan
+explanation with the estimate. `BOTH` mode uses an active Fitician training plan
 first and the training profile as an explicit fallback; nutrition-only mode
 requires an explicit structured-exercise answer and supports no-training.
 

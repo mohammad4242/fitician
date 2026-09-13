@@ -1,4 +1,4 @@
-# FITSHO — Single Muscle Focus + Experienced 4/5/6-Day Focused Split Repair
+# FITICIAN — Single Muscle Focus + Experienced 4/5/6-Day Focused Split Repair
 
 ## Sol Architect / Supervisor Execution Plan
 
@@ -15,7 +15,7 @@
 
 You are **Sol acting as the architect and technical supervisor**, not the primary bulk implementer.
 
-Your objective is to change Fitsho so that:
+Your objective is to change Fitician so that:
 
 1. A user may select **zero or exactly one user-facing muscle group as their training focus/priority**.
 2. The UI must not allow a user to choose multiple priority muscles.
@@ -1667,4 +1667,4 @@ Safety / recovery / duration / equipment can override
 Decision trace explains the result
 ```
 
-The implementation is correct when Fitsho behaves like a competent coach choosing an appropriate weekly structure first, instead of maximizing the number of broad “muscle covered” ticks inside generic Upper sessions.
+The implementation is correct when Fitician behaves like a competent coach choosing an appropriate weekly structure first, instead of maximizing the number of broad “muscle covered” ticks inside generic Upper sessions.

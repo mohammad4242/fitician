@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver a cohesive premium dark-mode member experience without changing Fitsho backend contracts or product behavior.
+**Goal:** Deliver a cohesive premium dark-mode member experience without changing Fitician backend contracts or product behavior.
 
 **Architecture:** Keep feature data and actions inside their existing pages. Make `AppShell` the single member-level header and capability-aware navigation owner, add a focused More destination, and extend the current CSS token/primitives system for consistent responsive presentation.
 
@@ -92,8 +92,8 @@ git push origin nutrition
 - [ ] **Step 1: Add failing token and dashboard hierarchy tests**
 
 ```ts
-expect(tokens).toContain("--fitsho-surface-interactive");
-expect(tokens).toContain("--fitsho-shadow-focus");
+expect(tokens).toContain("--fitician-surface-interactive");
+expect(tokens).toContain("--fitician-shadow-focus");
 ```
 
 ```tsx

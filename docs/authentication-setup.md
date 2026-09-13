@@ -1,6 +1,6 @@
-# Fitsho authentication setup
+# Fitician authentication setup
 
-Fitsho keeps users and sessions in its backend. Email/password, phone OTP, and Google
+Fitician keeps users and sessions in its backend. Email/password, phone OTP, and Google
 authentication all create the same `User` and `AuthSession`, then use the existing session cookie.
 
 ## Configuration boundary
@@ -27,7 +27,7 @@ Use these local origins unless the ports are changed:
 FRONTEND_ORIGIN=http://localhost:5173
 APP_ENV=local
 COOKIE_SECURE=false
-SESSION_COOKIE_NAME=fitsho_session
+SESSION_COOKIE_NAME=fitician_session
 
 # frontend/.env
 VITE_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
@@ -96,11 +96,11 @@ In Google Cloud:
 
 1. Create an OAuth 2.0 **Web application** client ID.
 2. Add `http://localhost:5173` to its authorized JavaScript origins for local development.
-3. Add the final HTTPS Fitsho origin, for example `https://fitsho.ir`, to the authorized JavaScript
+3. Add the final HTTPS Fitician origin, for example `https://fitician.ir`, to the authorized JavaScript
    origins for production.
 4. Set the same client ID in backend `GOOGLE_CLIENT_ID` and frontend `VITE_GOOGLE_CLIENT_ID`.
 
-Fitsho uses Google Identity Services to receive an ID token and verifies that token on the backend.
+Fitician uses Google Identity Services to receive an ID token and verifies that token on the backend.
 It requests identity only; it does not request Gmail mailbox access or require a Google client
 secret. Keep the Google client ID consistent across each allowed frontend origin. See Google's
 [ID-token verification guidance](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token).
@@ -111,9 +111,9 @@ Use a real HTTPS origin and the production cookie contract:
 
 ```env
 APP_ENV=production
-FRONTEND_ORIGIN=https://fitsho.ir
+FRONTEND_ORIGIN=https://fitician.ir
 COOKIE_SECURE=true
-SESSION_COOKIE_NAME=__Host-fitsho_session
+SESSION_COOKIE_NAME=__Host-fitician_session
 EMAIL_PROVIDER=smtp
 SMS_PROVIDER=farazsms
 GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com

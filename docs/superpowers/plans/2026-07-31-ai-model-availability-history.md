@@ -44,7 +44,7 @@ def test_zen_provider_availability_check_uses_minimal_request(api_kind: ZenApiKi
     provider = _provider_for(api_kind, "test-model", httpx.MockTransport(handler))
     _run(provider.check_availability())
 
-    assert "fitsho_workout_plan" not in json.dumps(seen["body"])
+    assert "fitician_workout_plan" not in json.dumps(seen["body"])
     assert "Reply only: OK" in json.dumps(seen["body"])
 ```
 
@@ -374,7 +374,7 @@ git commit -m "feat(admin): show model test availability history"
 Run:
 
 ```bash
-cd backend && uv run ruff check && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest -q
+cd backend && uv run ruff check && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest -q
 cd frontend && npm run lint && npm run test -- --run && npm run build
 ```
 
@@ -386,8 +386,8 @@ Expected: all checks PASS; the explicit live Zen test remains skipped unless
 Run:
 
 ```bash
-docker restart fitsho-ai-model-admin-preview
-docker exec fitsho-ai-model-admin-preview alembic current
+docker restart fitician-ai-model-admin-preview
+docker exec fitician-ai-model-admin-preview alembic current
 curl -sS -o /dev/null -w "backend=%{http_code}\n" http://localhost:8000/openapi.json
 curl -sS -o /dev/null -w "frontend=%{http_code}\n" http://localhost:5173
 ```

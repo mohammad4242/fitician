@@ -1,4 +1,4 @@
-# Fitsho Nutrition Engine — Phase 0 → Phase 5 Implementation Roadmap
+# Fitician Nutrition Engine — Phase 0 → Phase 5 Implementation Roadmap
 
 > **For Gemini 3.8 Flash / agentic implementation:** execute this roadmap sequentially from Phase 0 through Phase 5. Do not skip phases, do not mix future-phase work into the current phase, and do not perform unrelated refactors.
 >
@@ -10,7 +10,7 @@
 >
 > At the end of **every phase**, run its gate. Do not start the next phase until the current gate is green. Continue through Phase 5. Ask the user only if a genuine ambiguity cannot be resolved from the repository or this document.
 
-**Goal:** Rebuild Fitsho's nutrition-plan pipeline so it behaves like the workout program engine: normalize the request, apply hard eligibility, rank a small set of realistic programs, optimize according to the user's nutrition goal, safely substitute incompatible meals, generate a budget-constrained plan plus an ideal reference plan, then explain the trade-off.
+**Goal:** Rebuild Fitician's nutrition-plan pipeline so it behaves like the workout program engine: normalize the request, apply hard eligibility, rank a small set of realistic programs, optimize according to the user's nutrition goal, safely substitute incompatible meals, generate a budget-constrained plan plus an ideal reference plan, then explain the trade-off.
 
 **Architecture:** Preserve useful current components instead of rewriting the engine. Program selection happens before expensive weekly construction. Goal science becomes versioned strategies. Hard safety constraints are separated from preferred targets. Budget and ideal plans share the same scientific target.
 
@@ -1162,7 +1162,7 @@ Automatic rate cap:
 <=1.0% body weight/week
 ```
 
-Automatic energy-deficit cap for ordinary Fitsho planning:
+Automatic energy-deficit cap for ordinary Fitician planning:
 
 ```python
 max_deficit_kcal = min(
@@ -1183,7 +1183,7 @@ If reliable FFM exists and user is resistance-trained, support an expert branch 
 ~2.3–3.1 g/kg FFM/day
 ```
 
-For ordinary product behavior based on Fitsho's adjusted calculation weight:
+For ordinary product behavior based on Fitician's adjusted calculation weight:
 
 ```text
 minimum:   ~1.8 g/kg calculation weight
@@ -1354,7 +1354,7 @@ Support resistance-training hypertrophy while minimizing unnecessary fat gain.
 
 Resistance/mixed training strongly preferred.
 
-If absent, preserve the existing Fitsho coaching-warning behavior:
+If absent, preserve the existing Fitician coaching-warning behavior:
 
 ```text
 TRAINING_STIMULUS_MISMATCH
@@ -2719,7 +2719,7 @@ Turn the two-plan engine into a useful user explanation.
 The user should understand:
 
 ```text
-What can Fitsho do with my budget?
+What can Fitician do with my budget?
 What would my nutrition-first reference plan cost?
 What exactly improves if I spend more?
 Is the difference meaningful enough to show me a second plan?

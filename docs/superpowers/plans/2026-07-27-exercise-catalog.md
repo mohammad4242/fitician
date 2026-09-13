@@ -107,8 +107,8 @@ def make_exercise(slug: str = "push-up") -> Exercise:
         safety_notes_fa=["گردن را در وضعیت خنثی نگه دار."],
         media_path="/exercises/exercise-placeholder.svg",
         media_type=MediaType.PLACEHOLDER,
-        media_license="Fitsho original",
-        media_attribution="Fitsho",
+        media_license="Fitician original",
+        media_attribution="Fitician",
     )
 ```
 
@@ -271,7 +271,7 @@ organization sources. Do not copy long passages or medical claims. Retain the re
 English and Persian summaries only for these records. Every record uses its exact organized
 GIF path from the design spec, `media_type=MediaType.GIF`, `media_source_url=None`, license
 `Project owner supplied and authorized`, and attribution
-`Provided by Fitsho project owner`.
+`Provided by Fitician project owner`.
 
 - [x] **Step 4: Keep one explicit directed alternative row**
 
@@ -510,7 +510,7 @@ Expected: tests fail because the exercise modules do not exist.
 
 Mirror backend enum literals exactly. Define `ExerciseSummary`, `ExerciseDetail`,
 `ExerciseCategory`, `PaginatedExercises`, and `ExerciseFilters`. Use the shared
-`request<T>()` only. Create an original, non-photographic Fitsho SVG using existing petrol,
+`request<T>()` only. Create an original, non-photographic Fitician SVG using existing petrol,
 turquoise, persimmon, and saffron colors; include no third-party marks or embedded data.
 Copy only the 17 approved GIF files, rename them to their target slugs, preserve their
 bytes, and place them under the approved region/muscle directories. Do not commit the ZIP,
@@ -591,7 +591,7 @@ name first and the other-language name beneath it with explicit `dir`.
 
 - [x] **Step 6: Add responsive styles and bilingual copy**
 
-Use existing CSS variables, 82rem content width, asymmetrical Fitsho radii, visible focus,
+Use existing CSS variables, 82rem content width, asymmetrical Fitician radii, visible focus,
 responsive auto-fit cards, logical properties, RTL/LTR-safe alignment, and reduced-motion
 support. Add exact English/Persian labels for every region, muscle, equipment, difficulty,
 state, action, and breadcrumb.
@@ -728,11 +728,11 @@ license, attribution, and ShareAlike compliance. Forbid scraping and hotlinking.
 
 - [x] **Step 3: Add the attribution registry**
 
-Register `exercise-placeholder.svg` as original Fitsho project artwork with source `local`,
-creator `Fitsho`, license `project-owned`, and attribution `not required`. Register all 17
+Register `exercise-placeholder.svg` as original Fitician project artwork with source `local`,
+creator `Fitician`, license `project-owned`, and attribution `not required`. Register all 17
 owner-authorized assets with final path, original archive filename, provider
-`Fitsho project owner`, license `Project owner supplied and authorized`, and attribution
-`Provided by Fitsho project owner`.
+`Fitician project owner`, license `Project owner supplied and authorized`, and attribution
+`Provided by Fitician project owner`.
 
 - [x] **Step 4: Update local-running commands**
 
@@ -780,7 +780,7 @@ docker compose up -d db
 docker compose ps
 ```
 
-Expected: `fitsho-db-1` is `healthy`.
+Expected: `fitician-db-1` is `healthy`.
 
 - [x] **Step 2: Verify migrations from the current database**
 

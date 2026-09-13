@@ -1,4 +1,4 @@
-# Fitsho Navigation Spacing Fix
+# Fitician Navigation Spacing Fix
 
 ## Goal
 

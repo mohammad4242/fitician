@@ -34,7 +34,7 @@ guide only and is never written into the image pixels.
 
 1. The member selects a JPEG, PNG, or WebP in the current front, side, or back
    upload step.
-2. Fitsho opens a fixed portrait editor with the selected image below the
+2. Fitician opens a fixed portrait editor with the selected image below the
    matching Ghost guide.
 3. The member drags the image, changes zoom, rotates it, or resets the edit.
    The guide remains fixed while the image moves beneath it.

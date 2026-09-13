@@ -5,7 +5,7 @@
 ## Goal
 
 Add production Food Price Search through the existing Agent Service generic
-`POST /v1/generate` contract while keeping Fitsho Backend deterministic and
+`POST /v1/generate` contract while keeping Fitician Backend deterministic and
 authoritative for validation, normalization, confidence, reference pricing,
 review decisions, and persistence.
 
@@ -28,7 +28,7 @@ direct providers during a failed run.
 The Backend module `backend/app/nutrition/ai_price_research.py` contains the
 only production prompt and request builder. It emits a normal
 `StructuredGenerationRequest` with schema name
-`fitsho_food_price_research_v1` and a bounded response model:
+`fitician_food_price_research_v1` and a bounded response model:
 
 - `FoodPriceResearchQuote` has source identity, inspected HTTPS URL, exact
   product title, positive normal/promotional prices, explicit `TOMAN`/`IRR`
@@ -43,7 +43,7 @@ only production prompt and request builder. It emits a normal
 The prompt requires live web inspection, public HTTPS evidence, exact food
 matching, one quote per domain, explicit normal versus promotional pricing,
 and no invented or averaged values. Agent Service remains generic and gains no
-food-price endpoint or Fitsho-specific semantics.
+food-price endpoint or Fitician-specific semantics.
 
 ## Bounded two-pass research
 

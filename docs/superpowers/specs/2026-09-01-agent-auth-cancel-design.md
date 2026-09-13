@@ -29,7 +29,7 @@ Admin dialog
     │ POST /api/v1/admin/ai/agent-service/auth/cancel-active
     │     { agent }
     ▼
-Fitsho backend (admin + trusted-origin protected)
+Fitician backend (admin + trusted-origin protected)
     │ internal bearer-authenticated proxy
     ▼
 Agent Service

@@ -16,7 +16,7 @@
 - Do not modify database tables, records, prompts, response schemas, model selection, reasoning effort, auth, pricing, or frontend behavior.
 - Agent Service must keep `read_only: true`, `/home/agent` persistent, `/tmp` temporary, and shared media read-only.
 - Reject absolute paths, traversal, symlink escapes, unsupported files, and mixed inline/stored batches.
-- Never copy production images into `/tmp/fitsho-agent` or another temporary path.
+- Never copy production images into `/tmp/fitician-agent` or another temporary path.
 - Keep existing inline multipart compatibility.
 
 ---

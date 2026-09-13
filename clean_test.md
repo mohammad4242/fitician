@@ -2,7 +2,7 @@
 
 ## Mission
 
-Audit and clean the workout-template system, then run a large blind benchmark to determine whether the Fitsho program engine is genuinely stable and high-quality across diverse supported users.
+Audit and clean the workout-template system, then run a large blind benchmark to determine whether the Fitician program engine is genuinely stable and high-quality across diverse supported users.
 
 Do not optimize the engine to “pass the benchmark”.
 Find real problems, fix only justified defects, and report failures honestly.

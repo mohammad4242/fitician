@@ -4,7 +4,7 @@
 
 **Goal:** Build a no-key ten-source weekly food-price collector that accepts a reference only from at least three reliable sources after outlier removal, persists immutable history, and runs immediately once and every Saturday at 12:00 Tehran.
 
-**Architecture:** Public source adapters discover and fetch only Fitsho canonical-food candidates and return immutable observations. A domain aggregation layer validates mappings and packages, removes outliers, computes a Decimal arithmetic mean, and writes snapshots/reference/history through the existing service. A restart-safe scheduler uses a PostgreSQL advisory lock and persisted weekly slots; the nutrition planner reads only accepted Fitsho references.
+**Architecture:** Public source adapters discover and fetch only Fitician canonical-food candidates and return immutable observations. A domain aggregation layer validates mappings and packages, removes outliers, computes a Decimal arithmetic mean, and writes snapshots/reference/history through the existing service. A restart-safe scheduler uses a PostgreSQL advisory lock and persisted weekly slots; the nutrition planner reads only accepted Fitician references.
 
 **Tech Stack:** Python 3.12, FastAPI, HTTPX, SQLAlchemy 2, PostgreSQL, Alembic, pytest, React 19, TypeScript, Vitest.
 
@@ -12,7 +12,7 @@
 
 - Do not use undocumented/private marketplace endpoints or authenticated customer sessions.
 - Do not bypass CAPTCHA, robots restrictions, access controls, or provider rate limits.
-- Query only active verified Fitsho foods and approved aliases; never crawl whole catalogues.
+- Query only active verified Fitician foods and approved aliases; never crawl whole catalogues.
 - Keep nutrition composition completely separate from price observations.
 - Keep credential providers disabled by default; empty API keys must not fail startup.
 - Require at least three distinct reliable sources for an accepted reference.

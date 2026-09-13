@@ -21,7 +21,7 @@
 
 - Modify `backend/app/ai/opencode_zen.py`: select API style, build both request envelopes, and parse both response envelopes.
 - Modify `backend/tests/ai/test_opencode_zen.py`: cover Chat Completions without changing the existing Responses API assertions.
-- Modify `docs/workout-plan-generator.md`: document which OpenCode API styles Fitsho supports.
+- Modify `docs/workout-plan-generator.md`: document which OpenCode API styles Fitician supports.
 
 ### Task 1: Add Chat Completions provider support
 
@@ -77,7 +77,7 @@ def _chat_completions_request_body(self, request: WorkoutGenerationModelRequest)
         ],
         "response_format": {
             "type": "json_schema",
-            "json_schema": {"name": "fitsho_workout_plan", "strict": True, "schema": request.response_schema},
+            "json_schema": {"name": "fitician_workout_plan", "strict": True, "schema": request.response_schema},
         },
     }
 ```
@@ -142,11 +142,11 @@ git commit -m "docs(ai): describe OpenCode endpoint selection"
 
 Run: `docker compose up -d --no-deps --build --force-recreate backend`
 
-Expected: `fitsho-backend-1` starts successfully.
+Expected: `fitician-backend-1` starts successfully.
 
 - [ ] **Step 2: Verify configuration without printing the secret**
 
-Run: `docker exec fitsho-backend-1 python -c 'from app.config import get_settings; s = get_settings(); print(s.opencode_zen_model); print(s.opencode_zen_timeout_seconds); print("set" if s.opencode_zen_api_key else "missing")'`
+Run: `docker exec fitician-backend-1 python -c 'from app.config import get_settings; s = get_settings(); print(s.opencode_zen_model); print(s.opencode_zen_timeout_seconds); print("set" if s.opencode_zen_api_key else "missing")'`
 
 Expected: `nemotron-3-ultra-free`, `300.0`, and `set`.
 

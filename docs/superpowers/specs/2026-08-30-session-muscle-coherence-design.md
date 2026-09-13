@@ -2,7 +2,7 @@
 
 ## Goal
 
-Fitsho must concentrate direct muscle work inside sessions that explicitly intend to train
+Fitician must concentrate direct muscle work inside sessions that explicitly intend to train
 that muscle. Weekly volume and user priority may deepen or reorder an intended exposure, but
 must never authorize a new direct muscle group outside the session scope.
 

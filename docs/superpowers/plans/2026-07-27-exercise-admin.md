@@ -115,7 +115,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/auth/test_register.py tests/auth/test_sessions.py tests/database/test_auth_models.py tests/admin/test_grant_admin.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/auth/test_register.py tests/auth/test_sessions.py tests/database/test_auth_models.py tests/admin/test_grant_admin.py -q
 ```
 
 Expected: failures for the missing column, response field, admin package, and
@@ -178,7 +178,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/auth/test_register.py tests/auth/test_sessions.py tests/database/test_auth_models.py tests/admin/test_grant_admin.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/auth/test_register.py tests/auth/test_sessions.py tests/database/test_auth_models.py tests/admin/test_grant_admin.py -q
 .venv/bin/ruff check app/admin app/auth tests/admin tests/auth/test_register.py tests/auth/test_sessions.py tests/database/test_auth_models.py
 .venv/bin/mypy app/admin app/auth
 ```
@@ -267,7 +267,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/admin/test_admin_exercise_api.py tests/exercises/test_exercise_api.py tests/exercises/test_seed.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/admin/test_admin_exercise_api.py tests/exercises/test_exercise_api.py tests/exercises/test_seed.py -q
 ```
 
 Expected: route/module-not-found failures.
@@ -372,7 +372,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/admin/test_admin_exercise_api.py tests/exercises/test_exercise_api.py tests/exercises/test_seed.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/admin/test_admin_exercise_api.py tests/exercises/test_exercise_api.py tests/exercises/test_seed.py -q
 .venv/bin/ruff check app/admin app/exercises app/main.py tests/admin tests/exercises
 .venv/bin/mypy app/admin app/exercises app/main.py
 ```
@@ -446,7 +446,7 @@ When all optional metadata is blank, assert:
 
 ```python
 assert body["media_license"] == "Project owner supplied and authorized"
-assert body["media_attribution"] == "Provided by Fitsho project owner"
+assert body["media_attribution"] == "Provided by Fitician project owner"
 assert body["media_source_url"] is None
 ```
 
@@ -462,7 +462,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/admin/test_admin_media.py tests/admin/test_admin_exercise_api.py tests/test_config.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/admin/test_admin_media.py tests/admin/test_admin_exercise_api.py tests/test_config.py -q
 ```
 
 Expected: missing settings and media-module failures.
@@ -532,7 +532,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest tests/admin/test_admin_media.py tests/admin/test_admin_exercise_api.py tests/test_config.py -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest tests/admin/test_admin_media.py tests/admin/test_admin_exercise_api.py tests/test_config.py -q
 .venv/bin/ruff check app/admin app/config.py app/main.py app/exercises/media_metadata.py app/exercises/seed_data.py tests/admin tests/test_config.py
 .venv/bin/mypy app/admin app/config.py app/main.py app/exercises/media_metadata.py
 ```
@@ -561,7 +561,7 @@ Run `git diff -- backend/app/admin/media.py backend/app/admin/router.py backend/
 **Interfaces:**
 - Consumes: `MEDIA_ROOT`, `MEDIA_UPLOAD_MAX_BYTES`, `MEDIA_MAX_VIDEO_DURATION_SECONDS`, `MEDIA_FFPROBE_PATH`, and `MEDIA_PROBE_TIMEOUT_SECONDS`.
 - Produces: Compose service `backend`.
-- Produces: named volume `fitsho_exercise_media`.
+- Produces: named volume `fitician_exercise_media`.
 - Produces: Vite `/media` development proxy.
 
 - [ ] **Step 1: Write the expected Compose configuration**
@@ -590,12 +590,12 @@ backend:
   build:
     context: ./backend
   environment:
-    DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+    DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
     FRONTEND_ORIGIN: http://localhost:5173
     APP_ENV: local
     COOKIE_SECURE: "false"
-    SESSION_COOKIE_NAME: fitsho_session
-    MEDIA_ROOT: /var/lib/fitsho/media
+    SESSION_COOKIE_NAME: fitician_session
+    MEDIA_ROOT: /var/lib/fitician/media
     MEDIA_UPLOAD_MAX_BYTES: "20971520"
     MEDIA_MAX_VIDEO_DURATION_SECONDS: "20"
     MEDIA_FFPROBE_PATH: /usr/bin/ffprobe
@@ -603,13 +603,13 @@ backend:
   ports:
     - "8000:8000"
   volumes:
-    - fitsho_exercise_media:/var/lib/fitsho/media
+    - fitician_exercise_media:/var/lib/fitician/media
   depends_on:
     db:
       condition: service_healthy
 ```
 
-Declare `fitsho_exercise_media` under top-level volumes.
+Declare `fitician_exercise_media` under top-level volumes.
 
 - [ ] **Step 2: Add local configuration and proxy**
 
@@ -643,8 +643,8 @@ Run:
 
 ```bash
 docker compose config
-docker build -t fitsho-backend-admin ./backend
-docker run --rm fitsho-backend-admin ffprobe -version
+docker build -t fitician-backend-admin ./backend
+docker run --rm fitician-backend-admin ffprobe -version
 cd frontend
 npm test -- src/shared/apiClient.test.ts
 npm run build
@@ -1049,7 +1049,7 @@ Run:
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest
 .venv/bin/ruff check app tests
 .venv/bin/ruff format --check app tests
 .venv/bin/mypy app tests
@@ -1076,7 +1076,7 @@ Run:
 
 ```bash
 docker compose config
-docker run --rm fitsho-backend-admin ffprobe -version
+docker run --rm fitician-backend-admin ffprobe -version
 git diff --check
 git status --short
 ```

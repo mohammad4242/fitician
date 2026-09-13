@@ -79,7 +79,7 @@ infeasibility, and `live_price_unavailable` remain generation outcomes, not plan
 `INSUFFICIENT_PRICE_COVERAGE` means no plan was created. Private file endpoints require an access
 grant token bound to the current actor and resource. Rate-limited uploads return 429 with
 `Retry-After`. Food-photo creation supports `Idempotency-Key` and explicit
-`X-Fitsho-Food-Photo-Consent`.
+`X-Fitician-Food-Photo-Consent`.
 
 FastAPI's runtime OpenAPI document is available at `/openapi.json` and interactive documentation at
 `/docs` in environments where API documentation is exposed.

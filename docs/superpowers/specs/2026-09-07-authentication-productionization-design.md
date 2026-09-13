@@ -2,7 +2,7 @@
 
 ## Scope
 
-Finish the existing Fitsho authentication implementation without replacing its server-side
+Finish the existing Fitician authentication implementation without replacing its server-side
 opaque-session architecture or changing unrelated product areas. The current tree already
 contains email/password authentication, password recovery, phone OTP, provider adapters, Google
 ID-token authentication, email verification storage, and migration `20260907_125`.

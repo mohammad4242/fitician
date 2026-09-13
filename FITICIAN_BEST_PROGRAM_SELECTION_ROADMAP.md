@@ -1,4 +1,4 @@
-# Fitsho — Best Program Selection Roadmap
+# Fitician — Best Program Selection Roadmap
 
 ## Purpose
 

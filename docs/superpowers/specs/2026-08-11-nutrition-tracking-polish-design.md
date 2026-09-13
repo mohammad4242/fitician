@@ -31,7 +31,7 @@ language direction, and unrelated page sections.
   - Exact catalogue entry: food selection, quantity in grams, and `ثبت از کاتالوگ`.
   - Quick estimate: approximate calories and `ثبت تقریبی`.
 - Retain native semantic `select`, `input`, and `button` elements for accessibility and current
-  behavior, while fully styling their visible surface with Fitsho tokens so browser-default chrome
+  behavior, while fully styling their visible surface with Fitician tokens so browser-default chrome
   is not exposed.
 - Give every field a visible label, dark inset surface, teal focus state, and sufficient touch
   target. Add a custom visual chevron to the food selection and a fixed unit suffix to numeric

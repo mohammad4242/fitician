@@ -45,7 +45,7 @@ state, generated-plan rendering, and outcome-specific error or safety feedback a
 
 ## Styling and Accessibility
 
-- Follow existing Fitsho surface, border, aqua, coral, typography, and radius tokens.
+- Follow existing Fitician surface, border, aqua, coral, typography, and radius tokens.
 - Use a two-column supervision grid where space allows and a single-column layout on narrow
   screens.
 - Preserve page direction from the active language and provide complete English copy.

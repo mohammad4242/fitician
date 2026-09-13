@@ -77,7 +77,7 @@ def test_unknown_zen_id_is_disabled_until_admin_classifies_it(db: Session) -> No
 
 - [ ] **Step 2: Run the new tests to verify RED**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/ai/test_model_catalog.py tests/database/test_ai_models.py -q`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/ai/test_model_catalog.py tests/database/test_ai_models.py -q`
 
 Expected: FAIL because the model classes and catalogue functions do not exist.
 
@@ -106,7 +106,7 @@ Create `ai_models` with a unique `model_id`, non-negative `priority`, enum check
 
 - [ ] **Step 4: Run migration and tests to verify GREEN**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/ai/test_model_catalog.py tests/database/test_ai_models.py -q`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/ai/test_model_catalog.py tests/database/test_ai_models.py -q`
 
 Expected: PASS; a fresh test database contains the documented rows and one valid routing row.
 
@@ -176,7 +176,7 @@ def _request_body(self, request: WorkoutGenerationModelRequest) -> dict[str, obj
     }[self._api_kind](request)
 ```
 
-Keep `responses` behavior byte-for-byte equivalent to the current payload. Use OpenAI-compatible `messages` and `response_format` for Chat Completions. Use Anthropic Messages tool choice named `fitsho_workout_plan` with the existing response schema as `input_schema`, then parse the returned `tool_use.input` object. Use Gemini `systemInstruction`, one user JSON part, `responseMimeType: application/json`, and `responseJsonSchema`; parse `candidates[0].content.parts[*].text`. Put exact required API headers, endpoint suffixes, usage-field mapping, and refusal detection in one API-kind dispatch table. No adapter may drop fields from `request.input_payload`.
+Keep `responses` behavior byte-for-byte equivalent to the current payload. Use OpenAI-compatible `messages` and `response_format` for Chat Completions. Use Anthropic Messages tool choice named `fitician_workout_plan` with the existing response schema as `input_schema`, then parse the returned `tool_use.input` object. Use Gemini `systemInstruction`, one user JSON part, `responseMimeType: application/json`, and `responseJsonSchema`; parse `candidates[0].content.parts[*].text`. Put exact required API headers, endpoint suffixes, usage-field mapping, and refusal detection in one API-kind dispatch table. No adapter may drop fields from `request.input_payload`.
 
 `routing.py` maps one database row to one typed provider candidate; it never selects paid or disabled rows in automatic mode.
 
@@ -246,7 +246,7 @@ Also cover: manual mode exposes only its selected model; repairs remain on the s
 
 - [ ] **Step 2: Run targeted service tests to verify RED**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/workouts/test_service.py tests/workouts/test_workout_plan_api.py -q`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/workouts/test_service.py tests/workouts/test_workout_plan_api.py -q`
 
 Expected: FAIL because the service accepts exactly one provider and records the configured environment model.
 
@@ -268,7 +268,7 @@ Snapshot candidates before `create_generation`; start the record with the first 
 
 - [ ] **Step 4: Run service checks to verify GREEN**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/workouts/test_service.py tests/workouts/test_workout_plan_api.py -q && uv run ruff check app/workouts tests/workouts && uv run mypy app/workouts`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/workouts/test_service.py tests/workouts/test_workout_plan_api.py -q && uv run ruff check app/workouts tests/workouts && uv run mypy app/workouts`
 
 Expected: PASS.
 
@@ -321,7 +321,7 @@ Use a mocked `httpx.AsyncClient` for sync and health probes. Assert unknown IDs 
 
 - [ ] **Step 2: Run admin API tests to verify RED**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/admin/test_ai_model_api.py -q`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/admin/test_ai_model_api.py -q`
 
 Expected: FAIL because no AI model administrator routes exist.
 
@@ -338,7 +338,7 @@ Validate model IDs as stripped 1–160-character strings; validate custom name a
 
 - [ ] **Step 4: Run API and type checks to verify GREEN**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/admin/test_ai_model_api.py -q && uv run ruff check app/admin app/ai tests/admin && uv run mypy app/admin app/ai`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/admin/test_ai_model_api.py -q && uv run ruff check app/admin app/ai tests/admin && uv run mypy app/admin app/ai`
 
 Expected: PASS.
 
@@ -447,7 +447,7 @@ def test_admin_change_applies_to_the_next_generation_without_restart(
 
 - [ ] **Step 2: Run it to verify the complete path**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest tests/ai tests/admin/test_ai_model_api.py tests/workouts/test_service.py -q`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest tests/ai tests/admin/test_ai_model_api.py tests/workouts/test_service.py -q`
 
 Expected: PASS.
 
@@ -457,7 +457,7 @@ Add a short README section stating that keys remain in `backend/.env`, administr
 
 - [ ] **Step 4: Run full verification**
 
-Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test uv run pytest -q && uv run ruff check && uv run mypy`
+Run: `cd backend && TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test uv run pytest -q && uv run ruff check && uv run mypy`
 
 Run: `cd frontend && npm run test && npm run lint && npm run build`
 

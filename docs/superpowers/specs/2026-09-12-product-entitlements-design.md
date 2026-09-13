@@ -1,4 +1,4 @@
-# Fitsho Product Entitlements and Quotas Design
+# Fitician Product Entitlements and Quotas Design
 
 **Date:** 2026-09-12
 **Status:** Approved for implementation

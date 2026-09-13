@@ -1,4 +1,4 @@
-# Fitsho public landing and auth-last onboarding
+# Fitician public landing and auth-last onboarding
 
 ## Approved experience
 

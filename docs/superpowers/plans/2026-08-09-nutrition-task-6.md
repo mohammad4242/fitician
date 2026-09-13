@@ -13,7 +13,7 @@
 - Only `SUCCESS` creates a plan revision and physician-review request.
 - Generated plans are visible but never active before real physician approval.
 - Planner inputs, prices, policies, foods, quantities, totals, warnings, and explanations are immutable snapshots.
-- Use accepted current Fitsho database prices only; never fetch providers during generation.
+- Use accepted current Fitician database prices only; never fetch providers during generation.
 - `STRICT` budget is a hard ceiling; `FLEXIBLE` uses a versioned overage cap.
 - Missing required price coverage returns `LIVE_PRICE_UNAVAILABLE/INSUFFICIENT_PRICE_COVERAGE`.
 - Allergy, medical, slot-role, upper-limit, and price requirements are hard filters.

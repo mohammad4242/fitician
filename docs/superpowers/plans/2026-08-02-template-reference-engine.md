@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Use the curated Fitsho template library as the deterministic reference for safe, adaptable four- and five-day hypertrophy programs.
+**Goal:** Use the curated Fitician template library as the deterministic reference for safe, adaptable four- and five-day hypertrophy programs.
 
 **Architecture:** The SQL-backed template module exposes immutable engine-reference DTOs. The pure program engine scores those references after catalog eligibility, builds sessions from the winning safe template, and falls back to its existing planner only when no reference is viable. Template slots declare their adaptation priority so time fitting is deterministic and explainable.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Keep template data original Fitsho programming; do not copy named coaches' programs.
+- Keep template data original Fitician programming; do not copy named coaches' programs.
 - Preserve hard safety filtering and the existing free-form planner fallback.
 - Do not add profile fields or third-party libraries.
 - Seed exactly ten active templates for each of four and five weekly training days.
@@ -66,19 +66,19 @@
 - [ ] Keep no-template and no-viable-template requests on the existing path.
 - [ ] Run focused program-engine tests and commit `feat(workouts): generate from safe template references`.
 
-### Task 4: Route Fitsho coach generation through references
+### Task 4: Route Fitician coach generation through references
 
 **Files:**
 - Modify: `backend/app/workouts/service.py`
 - Modify: `backend/tests/workouts/test_service.py`
 
 **Interfaces:**
-- Deterministic Fitsho-coach calls pass active references to `generate_program`.
+- Deterministic Fitician-coach calls pass active references to `generate_program`.
 - The generation signature includes a stable active-template revision hash.
 
 - [ ] Write a failing service test that asserts reference templates are passed to deterministic generation.
 - [ ] Load references in the service, hash their normalized contents, and pass them to the engine.
-- [ ] Run service tests and commit `feat(workouts): use template library for fitsho coach`.
+- [ ] Run service tests and commit `feat(workouts): use template library for fitician coach`.
 
 ### Task 5: Verify, publish, and activate the library
 

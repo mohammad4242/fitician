@@ -1,4 +1,4 @@
-# Fitsho Training Template Catalog Replacement
+# Fitician Training Template Catalog Replacement
 
 ## Scope
 
@@ -24,9 +24,9 @@ Do NOT modify:
 
 The goal is only:
 
-1. Remove the existing 49 legacy Fitsho training-template records.
+1. Remove the existing 49 legacy Fitician training-template records.
 2. Replace them with exactly 17 new canonical training templates defined below.
-3. Link every exercise inside those 17 templates to a real existing exercise in Fitsho's Exercise Library.
+3. Link every exercise inside those 17 templates to a real existing exercise in Fitician's Exercise Library.
 4. Store complete program guidance/rationale for each template.
 5. Make only the minimum backend/database/frontend changes required for the Training Template Catalog itself to work correctly.
 
@@ -34,7 +34,7 @@ The goal is only:
 
 # 1. Critical deletion rule
 
-The existing **49 Fitsho Training Template records must be physically removed from the database**.
+The existing **49 Fitician Training Template records must be physically removed from the database**.
 
 Do not merely set:
 
@@ -51,15 +51,15 @@ IMPORTANT:
 - These 49 records are **training templates**, not Exercise Library movements.
 - Do NOT delete real rows from the `exercises` table just because an old template used them.
 - Do NOT delete user workout history.
-- Do NOT delete unrelated manually-created/admin-created templates unless they are part of the current Fitsho 49-template seeded catalog.
+- Do NOT delete unrelated manually-created/admin-created templates unless they are part of the current Fitician 49-template seeded catalog.
 - Determine the exact legacy 49 template rows from the current repository/database before deleting them.
-- Use the current Fitsho seed source metadata and/or exact legacy seed slugs as the ownership boundary.
+- Use the current Fitician seed source metadata and/or exact legacy seed slugs as the ownership boundary.
 
 Final acceptance:
 
 ```text
-legacy_fitsho_template_count = 0
-new_fitsho_template_count = 17
+legacy_fitician_template_count = 0
+new_fitician_template_count = 17
 ```
 
 There must NOT be:
@@ -68,7 +68,7 @@ There must NOT be:
 17 active + 49 inactive
 ```
 
-There must be exactly 17 canonical Fitsho catalog templates after replacement.
+There must be exactly 17 canonical Fitician catalog templates after replacement.
 
 ---
 
@@ -101,7 +101,7 @@ All 17 templates must follow these rules.
 
 ## 3.1 Real Exercise Library linkage
 
-Every exercise inside every template must link to a real exercise already present in Fitsho's Exercise Library.
+Every exercise inside every template must link to a real exercise already present in Fitician's Exercise Library.
 
 Required:
 
@@ -135,7 +135,7 @@ If an exact slug in this document cannot be found in the current Exercise Librar
 
 User-facing movement names should come from the linked Exercise Library row.
 
-The template should use the real Fitsho exercise:
+The template should use the real Fitician exercise:
 
 ```text
 exercise_id
@@ -345,7 +345,7 @@ Advanced does NOT mean mandatory failure or intensity methods.
 
 # 5. Canonical real Exercise Library mappings
 
-Before editing the templates, verify these slugs against the current Fitsho Exercise Library.
+Before editing the templates, verify these slugs against the current Fitician Exercise Library.
 
 Use the exact real library row whenever available.
 
@@ -1732,7 +1732,7 @@ T17  6D Balanced Specialization
 
 Do not add an 18th canonical structure.
 
-Do not keep any of the 49 legacy Fitsho catalog templates.
+Do not keep any of the 49 legacy Fitician catalog templates.
 
 ---
 
@@ -1793,7 +1793,7 @@ Required catalog behavior:
 1. Replace old seed definitions with the new approved template catalog.
 2. Resolve every template movement to a real Exercise Library row.
 3. Do not create template-only placeholders for the new catalog.
-4. Physically remove the 49 legacy Fitsho template rows.
+4. Physically remove the 49 legacy Fitician template rows.
 5. Seed the new catalog idempotently.
 6. Preserve unrelated user/admin templates.
 7. Preserve user workout history.
@@ -1830,11 +1830,11 @@ Required tests:
 
 1. New catalog seeds successfully.
 2. Seeding is idempotent.
-3. All 49 legacy Fitsho template records are physically gone.
+3. All 49 legacy Fitician template records are physically gone.
 4. New canonical catalog contains the approved 17 structures.
 5. Every new template slot links to a real exercise.
 6. Every linked exercise is active and programmable.
-7. No new template slot uses a `fitsho_training_template` placeholder.
+7. No new template slot uses a `fitician_training_template` placeholder.
 8. Every template day has a reasonable number of movements.
 9. Program descriptions/guidance are populated.
 10. Exercise order follows the rules in this document.
@@ -1851,8 +1851,8 @@ Do not change engine behavior just to satisfy catalog tests.
 After migration/seed, print:
 
 ```text
-legacy_fitsho_template_count
-new_fitsho_template_count
+legacy_fitician_template_count
+new_fitician_template_count
 new_template_day_count
 new_template_slot_count
 unlinked_new_template_slots
@@ -1863,8 +1863,8 @@ inactive_or_nonprogrammable_linked_exercises
 Required:
 
 ```text
-legacy_fitsho_template_count = 0
-new_fitsho_template_count = 17 canonical catalog structures
+legacy_fitician_template_count = 0
+new_fitician_template_count = 17 canonical catalog structures
 unlinked_new_template_slots = 0
 new_template_placeholder_slots = 0
 inactive_or_nonprogrammable_linked_exercises = 0
@@ -1897,7 +1897,7 @@ At the end report:
 ## Legacy removal
 
 ```text
-number of old Fitsho template rows found
+number of old Fitician template rows found
 number physically deleted
 number remaining
 ```

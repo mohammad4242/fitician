@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement optional private three-view body-photo analysis, review, progress comparison and deterministic plan influence without blocking normal Fitsho programs.
+**Goal:** Implement optional private three-view body-photo analysis, review, progress comparison and deterministic plan influence without blocking normal Fitician programs.
 
 **Architecture:** New `body_photos`, `body_analysis`, and `workout_cycles` modules own their data and APIs. The existing workout engine receives only a versioned influence object after its safety filter. UI work stays inside a new `features/bodyPhotos` feature plus small entry-point changes.
 

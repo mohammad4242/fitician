@@ -132,8 +132,8 @@ it("keeps the default ring static and aqua-compatible", () => {
   render(<ProgressRing value={1200} max={2400} />);
 
   const ring = screen.getByRole("progressbar");
-  expect(ring).not.toHaveClass("fitsho-progress-ring--mount-animated");
-  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitsho-aqua)");
+  expect(ring).not.toHaveClass("fitician-progress-ring--mount-animated");
+  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-aqua)");
 });
 
 it("starts an opted-in ring at zero before the first animation frame", () => {
@@ -147,16 +147,16 @@ it("starts an opted-in ring at zero before the first animation frame", () => {
   render(
     <ProgressRing
       animateOnMount
-      color="var(--fitsho-blue)"
+      color="var(--fitician-blue)"
       value={1200}
       max={2400}
     />,
   );
 
   const ring = screen.getByRole("progressbar");
-  expect(ring).toHaveClass("fitsho-progress-ring--mount-animated");
+  expect(ring).toHaveClass("fitician-progress-ring--mount-animated");
   expect(ring.style.getPropertyValue("--ring-progress")).toBe("0deg");
-  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitsho-blue)");
+  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-blue)");
 
   frame?.(0);
   expect(ring.style.getPropertyValue("--ring-progress")).toBe("180deg");
@@ -177,7 +177,7 @@ Expected: FAIL because the props, class, custom color, and mount animation are n
 
 Add the optional props, keep aria-valuenow, aria-valuemax, and the final text based on the real input, and use a mount-only state/effect to change --ring-progress from 0deg to the clamped final angle. Add --ring-color with the aqua fallback. Do not change callers that omit the new props.
 
-In dashboard.css, register the angle custom property, add a 900 ms transition for .fitsho-progress-ring--mount-animated, use var(--ring-color, var(--fitsho-aqua)) in the nutrition card conic gradient, and disable that transition under prefers-reduced-motion: reduce.
+In dashboard.css, register the angle custom property, add a 900 ms transition for .fitician-progress-ring--mount-animated, use var(--ring-color, var(--fitician-aqua)) in the nutrition card conic gradient, and disable that transition under prefers-reduced-motion: reduce.
 
 - [ ] **Step 4: Run the focused web component tests**
 
@@ -204,7 +204,7 @@ git push origin main
 
 **Interfaces:**
 - Consumes nutritionTargetToExpenditureRatio and nutritionProgressTone from @fitician/core.
-- Maps green to var(--fitsho-success), blue to var(--fitsho-blue), and red to var(--fitsho-danger).
+- Maps green to var(--fitician-success), blue to var(--fitician-blue), and red to var(--fitician-danger).
 - Shows the target and TDEE metrics and adds an above-expenditure paragraph only when the target exceeds TDEE.
 
 - [ ] **Step 1: Write failing Dashboard tests**

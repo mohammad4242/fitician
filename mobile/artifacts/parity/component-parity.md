@@ -12,20 +12,20 @@ current web token/primitives CSS and the current `mobile/ui` components.
 | `tokens.css` spacing 1–8 | `tokens.ts` `spacing` 1–8 | Same 4/8/12/16/24/32/48/72 rhythm | Keep a single scale |
 | `tokens.css` radii and shadows | `tokens.ts` `radii`/`shadows` | Values are adapted for native elevation; some native cards use stronger cinematic treatment | Quiet dark surfaces by default; keep hero treatment source-led |
 | `index.css` body Persian typography | `tokens.ts` `bodyPersian: Vazirmatn` | Present | Preserve RTL text alignment and font scaling |
-| `index.css` `.fitsho-display` | `tokens.ts` `displayPersian: Lalezar`, English `Sora` | Present | Lalezar only for short display headings |
+| `index.css` `.fitician-display` | `tokens.ts` `displayPersian: Lalezar`, English `Sora` | Present | Lalezar only for short display headings |
 | `index.css` numeric/English utility type | `tokens.ts` `bodyEnglish/displayEnglish: Sora` | Present | Keep numbers and mixed-script labels direction-safe |
-| `.fitsho-page` / `.app-shell` | `Screen`, `SafeAreaView`, `KeyboardAvoidingView` | Native owns safe area and keyboard | Do not replace with a WebView |
-| `.fitsho-card` / `.fitsho-data-panel` | `Card` default/raised | Surface, border, radius, elevation are available | Do not globally turn cards into hero/glass |
-| `.fitsho-card--interactive` | `Card onPress`, `Pressable` | Press feedback and 48 dp minimum exist | Keep full-region press targets and accessibility |
-| `.fitsho-button` / `.fitsho-button-secondary` | `Button` primary/secondary/ghost/danger | Semantics and loading/disabled state exist; radius is native medium, not web pill | Match relative hierarchy; do not alter handlers |
-| `.fitsho-section-heading` | `SectionHeader` | Eyebrow/title/action exists | Use for sections; add `PageHeading` only when current primitives cannot express web heading |
+| `.fitician-page` / `.app-shell` | `Screen`, `SafeAreaView`, `KeyboardAvoidingView` | Native owns safe area and keyboard | Do not replace with a WebView |
+| `.fitician-card` / `.fitician-data-panel` | `Card` default/raised | Surface, border, radius, elevation are available | Do not globally turn cards into hero/glass |
+| `.fitician-card--interactive` | `Card onPress`, `Pressable` | Press feedback and 48 dp minimum exist | Keep full-region press targets and accessibility |
+| `.fitician-button` / `.fitician-button-secondary` | `Button` primary/secondary/ghost/danger | Semantics and loading/disabled state exist; radius is native medium, not web pill | Match relative hierarchy; do not alter handlers |
+| `.fitician-section-heading` | `SectionHeader` | Eyebrow/title/action exists | Use for sections; add `PageHeading` only when current primitives cannot express web heading |
 | Web compact heading without brand row | No direct equivalent; `ScreenHeader` always has FITICIAN row | Gap: current native can introduce a brand row where web starts compact | Phase 1 `PageHeading` candidate |
-| `.fitsho-metric-strip` | `MetricStrip` | Three-cell strip exists; web context may need four cells | Reuse/extend only if repeated, with logical dividers and wrapping |
-| `.fitsho-progress-ring` | `MetricRing` using `react-native-svg` | Value-driven accessible ring exists | Never render a fake partial value |
-| `.fitsho-status` | `Notice` | Info/success/warning/danger/offline variants exist | Keep state concise and user-facing |
-| `.fitsho-input` / auth input rules | `FormField` / `TextField` | Labels, errors, direction, font scaling, keyboard props exist | Keep keyboard-safe native forms |
+| `.fitician-metric-strip` | `MetricStrip` | Three-cell strip exists; web context may need four cells | Reuse/extend only if repeated, with logical dividers and wrapping |
+| `.fitician-progress-ring` | `MetricRing` using `react-native-svg` | Value-driven accessible ring exists | Never render a fake partial value |
+| `.fitician-status` | `Notice` | Info/success/warning/danger/offline variants exist | Keep state concise and user-facing |
+| `.fitician-input` / auth input rules | `FormField` / `TextField` | Labels, errors, direction, font scaling, keyboard props exist | Keep keyboard-safe native forms |
 | HTML `details/summary` | `DisclosureCard` | Pressable expansion with accessibility state exists | Match collapsed/expanded hierarchy, not HTML mechanics |
-| `.fitsho-grouped-list` | `GroupedList` | Full-width RTL pressable rows, grouped headers, subtitles, trailing actions, 48 dp targets | Reuse for More and future grouped settings surfaces |
+| `.fitician-grouped-list` | `GroupedList` | Full-width RTL pressable rows, grouped headers, subtitles, trailing actions, 48 dp targets | Reuse for More and future grouped settings surfaces |
 | Web modal/dialog | `Sheet` / `Dialog` in `Overlay.tsx` | Native modal boundary, safe bottom edge, Android close callback | Preserve native sheet/dialog behavior |
 | Web image/video components | `Media`, `ExerciseMedia`, carousel/video cache | Native lifecycle/cache/fallback exists | Stable aspect ratios; pause on navigation/background |
 | Web SVG `AppIcon` | Native `AppIcon` | Shared icon system exists | Use icons instead of text glyphs/emoji for directional controls |

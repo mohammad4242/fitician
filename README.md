@@ -1,8 +1,8 @@
-# Fitsho
+# Fitician
 
-Fitsho is a FastAPI/PostgreSQL backend with a React/Vite frontend for deterministic training and
+Fitician is a FastAPI/PostgreSQL backend with a React/Vite frontend for deterministic training and
 nutrition planning. Nutrition calculations, safety decisions, food quantities, prices, and
-physician-review state are owned by Fitsho; external AI is optional and limited to explicitly
+physician-review state are owned by Fitician; external AI is optional and limited to explicitly
 consented food-photo estimation.
 
 ## Local development
@@ -46,7 +46,7 @@ Authentication provider setup:
 Automatic food-price refresh checks ten isolated public sources every Saturday at 12:00
 `Asia/Tehran`, with restart catch-up and a PostgreSQL advisory lock. It requires three distinct
 sources, removes outliers, and stores the mean plus immutable history. No API key is enabled or
-required by default. The planner always reads accepted prices from Fitsho's database and never
+required by default. The planner always reads accepted prices from Fitician's database and never
 contacts a marketplace during a user request. Private-file retention cleanup runs daily.
 
 Nutrition documentation:

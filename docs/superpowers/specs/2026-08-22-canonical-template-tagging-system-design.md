@@ -25,7 +25,7 @@ The pre-Phase-5 seed library contained these tag values:
 
 Tag producers and persistence boundaries:
 
-- `training_templates/seed_data.py`: Fitsho-managed template metadata.
+- `training_templates/seed_data.py`: Fitician-managed template metadata.
 - `admin/schemas.py` and `training_templates/admin_service.py`: admin writes.
 - `training_templates/models.py`: JSON string persistence.
 - `training_templates/service.py`: managed reseeding.
@@ -113,7 +113,7 @@ upper/lower hybrids may have two; unrelated structural combinations are invalid.
 
 Each claim requires at least one dedicated direct-target day or repeated direct
 weekly exposure supported by multiple direct slots. The exact evidence threshold
-is deterministic and tested against every active Fitsho-managed template.
+is deterministic and tested against every active Fitician-managed template.
 
 The explicit priority mapping is:
 

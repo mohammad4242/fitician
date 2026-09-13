@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make every Fitsho reference template evidence-informed in ordering and explain its programming logic in the admin library.
+**Goal:** Make every Fitician reference template evidence-informed in ordering and explain its programming logic in the admin library.
 
 **Architecture:** A new JSON column holds five small bilingual rationale records per template. Seed normalization gives all session slots one deterministic order after current count and specialist-floor normalization. The admin API and card expose the persisted records.
 

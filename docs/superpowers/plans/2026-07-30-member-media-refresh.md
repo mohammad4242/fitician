@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace low-quality authenticated-page backgrounds with the supplied Fitsho media without changing user flows or APIs.
+**Goal:** Replace low-quality authenticated-page backgrounds with the supplied Fitician media without changing user flows or APIs.
 
 **Architecture:** A small reusable media-header component owns video visibility, reduced-motion fallback, and decorative image semantics. Each member page imports a designated asset and renders the shared component only in its header layer; page content stays above the overlay.
 

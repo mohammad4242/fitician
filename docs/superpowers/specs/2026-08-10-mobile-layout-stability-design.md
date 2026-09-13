@@ -2,7 +2,7 @@
 
 ## Goal
 
-Fix the structural mobile layout failures shown on authenticated Fitsho pages without redesigning the visual system or changing backend/API behavior.
+Fix the structural mobile layout failures shown on authenticated Fitician pages without redesigning the visual system or changing backend/API behavior.
 
 ## Scope
 

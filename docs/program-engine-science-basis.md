@@ -1,6 +1,6 @@
 # Program Engine V1 Science Basis
 
-This document maps evidence to configurable engineering heuristics. Fitsho does not present the
+This document maps evidence to configurable engineering heuristics. Fitician does not present the
 ruleset as diagnosis, treatment, or an absolute prescription for every adult.
 
 ## Resistance training structure and volume
@@ -18,7 +18,7 @@ prefers roughly two exposures, and keeps status/recovery ceilings conservative.
 The V1 ranges (novice 4–8 through advanced 10–16) are intentionally bounded product heuristics. They
 are not direct claims that every person has the same minimum effective or maximum recoverable volume.
 The 1.0 primary and 0.5 secondary credits are explicit accounting heuristics; the newer meta-regression
-also distinguishes direct and fractional indirect sets, but Fitsho's exact coefficients remain
+also distinguishes direct and fractional indirect sets, but Fitician's exact coefficients remain
 configurable rather than physiological facts.
 
 ## Split and frequency
@@ -72,7 +72,7 @@ and fatigue-management heuristic.
 ## Safety screening
 
 The official PAR-Q+/ePARmed-X+ system informs the principle that concerning symptoms and unclear
-limitations require escalation rather than speculative exercise selection. Fitsho does not reproduce
+limitations require escalation rather than speculative exercise selection. Fitician does not reproduce
 or diagnose from PAR-Q+; it implements a narrow red-flag gate and requires explicit computable
 constraints for stable limitations.
 

@@ -2,9 +2,9 @@
 
 ## Scope
 
-Rewrite the persisted Fitsho training-template library using public, general
+Rewrite the persisted Fitician training-template library using public, general
 hypertrophy-programming principles inspired by Stronger By Science, Jeff
-Nippard, and RP Strength. This is a Fitsho synthesis, not a copy of any paid
+Nippard, and RP Strength. This is a Fitician synthesis, not a copy of any paid
 program or an endorsement by those publishers.
 
 ## Decisions

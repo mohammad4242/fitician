@@ -1,4 +1,4 @@
-# FITSHO Workout Engine Repair — Sol Architect/Supervisor Workflow
+# FITICIAN Workout Engine Repair — Sol Architect/Supervisor Workflow
 
 ## Mission
 
@@ -67,7 +67,7 @@ Do not give one Luna agent the entire engine repair as one giant task.
 
 # Core Product Goal
 
-The Fitsho engine must produce a program that is not merely schema-valid or safety-valid.
+The Fitician engine must produce a program that is not merely schema-valid or safety-valid.
 
 It must also look like a **coherent program written by a competent trainer**.
 

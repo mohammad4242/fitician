@@ -371,7 +371,7 @@ Expected: all frontend tests and the production build pass.
 
 - [ ] **Step 3: Verify final source and storage**
 
-Run a dry run against `../free-exercise-db-with-videos`, confirm 317 source records and zero pending inserts/updates, inspect the report, and confirm every stored media path exists beneath the active media root. In Docker Compose, run the importer with `MEDIA_ROOT=/var/lib/fitsho/media` or copy media into the named `fitsho_exercise_media` volume.
+Run a dry run against `../free-exercise-db-with-videos`, confirm 317 source records and zero pending inserts/updates, inspect the report, and confirm every stored media path exists beneath the active media root. In Docker Compose, run the importer with `MEDIA_ROOT=/var/lib/fitician/media` or copy media into the named `fitician_exercise_media` volume.
 
 - [ ] **Step 4: Push `feature/exercise-taxonomy`**
 

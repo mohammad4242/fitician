@@ -2,7 +2,7 @@
 
 ## Goal
 
-Keep the current Fitsho stack running unchanged while adding a parallel local testing stack
+Keep the current Fitician stack running unchanged while adding a parallel local testing stack
 that lets the backend use the host Xray proxy for OpenRouter.
 
 ## Runtime layout

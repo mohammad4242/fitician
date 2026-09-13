@@ -2,7 +2,7 @@
 
 ## Scope
 
-Fitsho will seed exactly 25 active weekly Nutrition Program templates: five each for
+Fitician will seed exactly 25 active weekly Nutrition Program templates: five each for
 Economy, Balanced Iranian, High-Protein Gym, Quick & Easy, and Premium / Varied.
 Programs select existing verified Meal Catalogue records by their canonical UUIDs and never
 copy meals, ingredient quantities, or nutrition values.

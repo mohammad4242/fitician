@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the curated Fitsho training-template library the deterministic starting
+Make the curated Fitician training-template library the deterministic starting
 point for hypertrophy programs. The engine selects one compatible reference
 template, applies the existing safety filter, and adapts only low-priority
 slots when the user's available time, equipment, or limitations require it.
@@ -10,19 +10,19 @@ slots when the user's available time, equipment, or limitations require it.
 ## Scope
 
 - Grow the four-day and five-day library buckets from five to ten original
-  Fitsho templates each.
+  Fitician templates each.
 - Cover beginner, intermediate, and advanced templates, with classic,
   chest, back, shoulder, quad, hamstring/glute, and arm-priority variants.
 - Encode a template slot's adaptation priority and optional superset pairing.
-- Route deterministic Fitsho-coach generation through the selected template.
+- Route deterministic Fitician-coach generation through the selected template.
 - Preserve the current free-form deterministic planner as a safe fallback
   when no template can satisfy the profile or the eligible catalog.
 
 ## Reference policy
 
-Templates are original Fitsho structures informed by published volume and
+Templates are original Fitician structures informed by published volume and
 frequency evidence. They are not copied from a named coach or commercial
-program. `source_name` remains Fitsho attribution and links to the evidence
+program. `source_name` remains Fitician attribution and links to the evidence
 summary used for the library.
 
 Per-session slot bands apply to direct target work before time adaptation:

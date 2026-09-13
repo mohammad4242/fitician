@@ -2,7 +2,7 @@
 
 ## Goal
 
-Allow an administrator to create and edit the Fitsho training-program reference library without changing the deterministic engine or the global exercise catalog accidentally.
+Allow an administrator to create and edit the Fitician training-program reference library without changing the deterministic engine or the global exercise catalog accidentally.
 
 ## User flow
 

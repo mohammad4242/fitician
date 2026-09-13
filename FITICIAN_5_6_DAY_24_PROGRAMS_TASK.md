@@ -1,8 +1,8 @@
-# Fitsho — Add 24 Approved 5-Day and 6-Day Default Programs
+# Fitician — Add 24 Approved 5-Day and 6-Day Default Programs
 
 ## Mission
 
-Work on the **Fitsho** project and extend the existing **Default Program Library** by adding exactly:
+Work on the **Fitician** project and extend the existing **Default Program Library** by adding exactly:
 
 - **12 approved 5-day programs**
 - **12 approved 6-day programs**
@@ -193,7 +193,7 @@ Add a test that asserts exactly 24 approved additions from this specification ex
 
 This revision intentionally standardizes the approved **5-day and 6-day Default Programs** around a descending-repetition pyramid.
 
-This is a **Fitsho catalog programming rule**, not a claim that `12/10/8/6` is the only scientifically valid hypertrophy method.
+This is a **Fitician catalog programming rule**, not a claim that `12/10/8/6` is the only scientifically valid hypertrophy method.
 
 The research basis supports:
 - multi-set resistance training,
@@ -506,7 +506,7 @@ PubMed — weekly volume and hypertrophy systematic review:
 https://pubmed.ncbi.nlm.nih.gov/35291645/
 ```
 
-Interpretation for Fitsho:
+Interpretation for Fitician:
 
 - `12/10/8/6` is a valid pyramid organization, not a unique physiological law.
 - Multiple set structures can build muscle.
@@ -560,7 +560,7 @@ For this task, treat FST-7 only as a high-density isolation prescription:
 
 Do not encode unsupported marketing claims.
 
-If Fitsho has no explicit `FST7` intensity enum:
+If Fitician has no explicit `FST7` intensity enum:
 - do not change schema merely for the label,
 - encode the approved 7-set prescription with the supported representation,
 - retain a programming note only if architecture supports it,
@@ -570,11 +570,11 @@ If Fitsho has no explicit `FST7` intensity enum:
 
 # 6. Exercise Library Requirement
 
-Every exercise must link to a real current Fitsho Exercise Library record.
+Every exercise must link to a real current Fitician Exercise Library record.
 
 Preferred identities to validate:
 
-| Persian Display Name | Preferred Fitsho Identity |
+| Persian Display Name | Preferred Fitician Identity |
 |---|---|
 | پرس سینه هالتر | `fedb-0025-barbell-bench-press` |
 | پرس سینه دمبل | `dumbbell-bench-press` |
@@ -619,7 +619,7 @@ Important:
 - `romanian-deadlift`, `dumbbell-bench-press`, and `dumbbell-lateral-raise` may be owner/seed identities rather than `fedb-*`.
 - Resolve their actual current stable records before linking.
 - Never create duplicate exercises merely because another slug style exists.
-- If a preferred identity does not exist, use the real equivalent already in Fitsho and report it.
+- If a preferred identity does not exist, use the real equivalent already in Fitician and report it.
 
 ---
 
@@ -2170,7 +2170,7 @@ Report whether all requested exercise references resolved.
 
 If any requested identity changed:
 
-| Requested Exercise | Requested Identity | Actual Fitsho Identity | Reason |
+| Requested Exercise | Requested Identity | Actual Fitician Identity | Reason |
 |---|---|---|---|
 
 ## Techniques
@@ -2223,7 +2223,7 @@ Do not declare completion until all applicable items are true:
 [ ] 12 are 6-day
 [ ] all 12 base structures have Intermediate + Advanced variants
 [ ] all approved programs have exact day order
-[ ] every exercise resolves to a real Fitsho Exercise Library record
+[ ] every exercise resolves to a real Fitician Exercise Library record
 [ ] prescriptions match this specification
 [ ] no normal working-set target is below 6 reps
 [ ] first two eligible large-muscle compounds use 4×12/10/8/6 unless supersetted

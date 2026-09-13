@@ -11,14 +11,14 @@ language as part of this work.
 
 Use a focused "Measurement Studio" treatment: a calm, precise measurement surface that feels
 like a body-progress calibration step rather than a generic form. The page remains Persian-first,
-mobile-first, and uses existing Fitsho fonts and tokens.
+mobile-first, and uses existing Fitician fonts and tokens.
 
-- Canvas: authenticated Fitsho canvas `#020607`.
-- Ink: Fitsho mist `#e8f4f1`.
-- Primary accent: Fitsho aqua `#50dfce` for active/focus states.
-- Secondary accent: Fitsho coral `#f67859` for the measurement marker and required attention.
+- Canvas: authenticated Fitician canvas `#020607`.
+- Ink: Fitician mist `#e8f4f1`.
+- Primary accent: Fitician aqua `#50dfce` for active/focus states.
+- Secondary accent: Fitician coral `#f67859` for the measurement marker and required attention.
 - Utility accent: existing amber `#f2b85b` for the confirmation checkpoint.
-- Surface/line: deep surfaces `#081211` / `#101e1c` with the existing translucent Fitsho lines.
+- Surface/line: deep surfaces `#081211` / `#101e1c` with the existing translucent Fitician lines.
 
 Typography stays on the existing `Vazirmatn Variable` body face and `Lalezar` display face in
 Persian, with no new font or dependency.

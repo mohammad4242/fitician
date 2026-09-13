@@ -596,7 +596,7 @@ corresponding day/exercise and handle stale revision by reloading instead of ove
 - [ ] **Step 6: Add coach navigation discovery and bilingual styling**
 
 Probe coach access once for the authenticated header and show the coach link only when authorized.
-Style the queue/editor with the existing dark Fitsho surface tokens, clear focus states, responsive
+Style the queue/editor with the existing dark Fitician surface tokens, clear focus states, responsive
 cards, and correct RTL/LTR input alignment. Add complete Persian and English translation keys.
 
 - [ ] **Step 7: Run coach workspace tests and frontend static checks**

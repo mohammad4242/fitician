@@ -13,7 +13,7 @@ The library will use independent dimensions instead of one overloaded category.
 - **Exercise type:** keep the existing `compound`, `isolation`, `core`, `mobility`, and `other` values. Stretching stays `mobility`; do not add a second stretch type.
 - **Labels:** add a many-to-many exercise-label relation with the fixed values `full_body` and `cardio`. Labels are not muscles and are independently filterable.
 
-`primary_muscle` and `body_region` become nullable. An empty value means the source does not support a reliable Fitsho enum mapping; it is never a guessed classification.
+`primary_muscle` and `body_region` become nullable. An empty value means the source does not support a reliable Fitician enum mapping; it is never a guessed classification.
 
 ## Import policy
 

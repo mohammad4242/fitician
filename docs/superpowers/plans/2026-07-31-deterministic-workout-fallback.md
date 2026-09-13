@@ -13,7 +13,7 @@
 - AI remains the primary path.
 - Use only eligible candidates and policy-approved prescriptions.
 - The existing semantic validator is mandatory.
-- Mark local plans with `fitsho-deterministic-v1`.
+- Mark local plans with `fitician-deterministic-v1`.
 
 ---
 
@@ -42,7 +42,7 @@
 
 **Interfaces:**
 - Consumes: `DeterministicWorkoutPlanGenerator.generate(...)`
-- Produces: AI-first generation with local fallback model ID `fitsho-deterministic-v1`.
+- Produces: AI-first generation with local fallback model ID `fitician-deterministic-v1`.
 
 - [ ] Write a service test where all providers fail and a valid active local plan is persisted.
 - [ ] Run the test and confirm existing behavior raises `WorkoutGenerationFailedError`.

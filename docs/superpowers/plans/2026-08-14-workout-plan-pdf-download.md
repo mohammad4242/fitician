@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Download the workout plan currently displayed in Fitsho as a Persian RTL PDF from the existing workout-plan action.
+**Goal:** Download the workout plan currently displayed in Fitician as a Persian RTL PDF from the existing workout-plan action.
 
 **Architecture:** The existing authenticated workout router resolves a plan through the ownership-scoped repository and passes its existing response schema to a focused WeasyPrint renderer. The existing frontend API client gains Blob response support, and the current PDF button downloads that Blob without adding another UI action.
 
@@ -162,7 +162,7 @@ def download_plan_pdf(plan_id: UUID, db: DatabaseSession, user: CurrentUser) -> 
     return Response(
         content=content,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="fitsho-workout-plan-{plan.id}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="fitician-workout-plan-{plan.id}.pdf"'},
     )
 ```
 
@@ -203,7 +203,7 @@ it("downloads binary responses with the authenticated API client", async () => {
 });
 
 
-it("downloads a workout plan PDF through Fitsho", async () => {
+it("downloads a workout plan PDF through Fitician", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new Blob(["pdf"])));
   await downloadWorkoutPlanPdf(plan.id);
   expect(fetch).toHaveBeenCalledWith(
@@ -309,7 +309,7 @@ function downloadPdf() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `fitsho-workout-plan-${plan.id}.pdf`;
+      anchor.download = `fitician-workout-plan-${plan.id}.pdf`;
       anchor.click();
       URL.revokeObjectURL(url);
     })

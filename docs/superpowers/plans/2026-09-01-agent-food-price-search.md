@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Route production food-price updates through live Agent Service research when the verified `FOOD_PRICE_SEARCH` task is enabled, while preserving the deterministic Fitsho price engine and direct-provider fallback mode.
+**Goal:** Route production food-price updates through live Agent Service research when the verified `FOOD_PRICE_SEARCH` task is enabled, while preserving the deterministic Fitician price engine and direct-provider fallback mode.
 
 **Architecture:** Add one Backend research module that builds the canonical structured request, validates bounded evidence, performs the deterministic two-pass/domain/median policy, and returns evidence without persistence. Add one execution selector used by scheduler, manual refresh, and CLI; extend the existing price update orchestration to persist evidence and pass only trusted normalized observations to `decide_reference_price(...)`. Agent Service remains the generic `/v1/generate` transport.
 
@@ -120,7 +120,7 @@
       assert request.input_payload["requested_source_count"] == 3
       assert request.input_payload["excluded_domains"] == []
       assert "Use live web search/browser tools" in request.system_prompt
-      assert "Do not calculate the Fitsho reference price" in request.system_prompt
+      assert "Do not calculate the Fitician reference price" in request.system_prompt
       assert "final average" not in request.system_prompt.lower()
 
   async def test_coherent_first_pass_does_not_expand():
@@ -653,7 +653,7 @@
   each review render food slug, reason codes, candidate price, the Persian and
   English confidence warning, and each bounded source’s name/domain/title,
   normal/promo price, package, and URL. Use only the existing manual override
-  mechanism elsewhere in Fitsho. Add safe external-link attributes.
+  mechanism elsewhere in Fitician. Add safe external-link attributes.
 
 - [ ] **Step 5: Run green checks, build, and commit**
 
@@ -708,7 +708,7 @@
 - [ ] **Step 4: Perform the required source audit**
 
   ```bash
-  rg -n "Use live web search|research_current_iran_food_retail_prices|fitsho_food_price_research_v1|FOOD_PRICE_SEARCH|food_price_search" backend agent-service frontend
+  rg -n "Use live web search|research_current_iran_food_retail_prices|fitician_food_price_research_v1|FOOD_PRICE_SEARCH|food_price_search" backend agent-service frontend
   rg -n "run_price_update_async|scheduler_loop|trigger_scheduled_update|configured_providers" backend/app
   ```
 

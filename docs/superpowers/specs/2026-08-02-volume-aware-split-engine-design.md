@@ -2,7 +2,7 @@
 
 ## Scope
 
-Refine the deterministic Fitsho coach for hypertrophy-focused beginner, intermediate, and appropriately recovered advanced users. The engine must treat the profile's available training days as a maximum, choose an appropriate split and actual number of resistance sessions, and repair volume allocation before final validation.
+Refine the deterministic Fitician coach for hypertrophy-focused beginner, intermediate, and appropriately recovered advanced users. The engine must treat the profile's available training days as a maximum, choose an appropriate split and actual number of resistance sessions, and repair volume allocation before final validation.
 
 ## Decisions
 

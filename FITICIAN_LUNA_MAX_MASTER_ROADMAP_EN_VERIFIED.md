@@ -1,9 +1,9 @@
-# Fitsho Luna Max Master Roadmap
+# Fitician Luna Max Master Roadmap
 ## Best-Program Selection + Supported-Profile Success-Rate Improvement
 
 This document is the execution roadmap for Luna Max in:
 
-`/home/mohammad/project/fitsho`
+`/home/mohammad/project/fitician`
 
 The roadmap is intentionally organized as **one master task with two hard-separated phases**:
 
@@ -758,7 +758,7 @@ Only make a small direct change if a concrete test proves it is required.
 
 Phase A has one job:
 
-> Make Fitsho construct and compare multiple valid primary candidates and select the best fully constructed program using reliable post-construction quality evidence.
+> Make Fitician construct and compare multiple valid primary candidates and select the best fully constructed program using reliable post-construction quality evidence.
 
 Do not repair semantic opener, count policy, or greedy required-slot search during Phase A.
 

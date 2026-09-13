@@ -6,7 +6,7 @@
 
 **Architecture:** Extend only `FinalAccountStep` in the existing public onboarding page. Reuse the current auth context, phone API, Google Identity button, onboarding draft hydration, and destination routing; a shared completion helper keeps all successful methods on one draft-preserving path.
 
-**Tech Stack:** React 19, TypeScript, React Router, Vitest, React Testing Library, existing Fitsho CSS tokens, and Google Identity Services through the existing `GoogleSignInButton`.
+**Tech Stack:** React 19, TypeScript, React Router, Vitest, React Testing Library, existing Fitician CSS tokens, and Google Identity Services through the existing `GoogleSignInButton`.
 
 **Spec:** `docs/superpowers/specs/2026-09-07-public-onboarding-auth-design.md`
 
@@ -300,7 +300,7 @@ git push
 - Modify: `frontend/src/features/publicOnboarding/PublicOnboardingPage.test.tsx`
 
 **Interfaces:**
-- Consumes: the behavior from Task 2 and existing Fitsho design tokens, typography, and focus rules.
+- Consumes: the behavior from Task 2 and existing Fitician design tokens, typography, and focus rules.
 - Produces: responsive Persian-first account card styling with active method state, security cue,
   accessible provider labels, and Apple future-state styling.
 
@@ -336,22 +336,22 @@ touch-sized controls. The account-step rules must include:
   place-items: center;
   overflow: hidden;
   padding: clamp(1rem, 4vw, 3rem);
-  background: radial-gradient(circle at 12% 18%, rgb(80 223 206 / 10%), transparent 32rem), var(--fitsho-canvas);
+  background: radial-gradient(circle at 12% 18%, rgb(80 223 206 / 10%), transparent 32rem), var(--fitician-canvas);
 }
 
 .public-account-step__card {
   width: min(100%, 52rem);
   padding: clamp(1.25rem, 4vw, 3rem);
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-xl);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-xl);
   background: linear-gradient(145deg, rgb(16 30 28 / 96%), rgb(5 11 12 / 98%));
-  box-shadow: var(--fitsho-shadow);
+  box-shadow: var(--fitician-shadow);
 }
 
 .account-methods [aria-selected="true"] {
   color: #071313;
-  background: var(--fitsho-aqua);
-  box-shadow: var(--fitsho-shadow-glow);
+  background: var(--fitician-aqua);
+  box-shadow: var(--fitician-shadow-glow);
 }
 
 .account-provider--future {

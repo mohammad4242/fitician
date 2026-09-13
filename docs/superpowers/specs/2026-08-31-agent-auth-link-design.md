@@ -29,7 +29,7 @@ routing, credentials in PostgreSQL, and public service exposure are unchanged.
 Admin browser
     │ POST /api/v1/admin/ai/agent-service/auth/start
     ▼
-Fitsho Backend
+Fitician Backend
     │ internal bearer-authenticated request
     ▼
 Agent Service

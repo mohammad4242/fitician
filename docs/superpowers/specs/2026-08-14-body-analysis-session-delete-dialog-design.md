@@ -29,7 +29,7 @@ The backdrop dims and blurs the scanner page. Desktop uses a centered panel. At 
 same component becomes a bottom sheet with safe-area spacing. Motion is limited to one short
 entrance transition and is disabled by `prefers-reduced-motion`.
 
-The dialog uses the existing Fitsho surface, line, aqua, muted, and danger tokens. It does not add
+The dialog uses the existing Fitician surface, line, aqua, muted, and danger tokens. It does not add
 new fonts or a separate visual system.
 
 ## Interaction and Accessibility

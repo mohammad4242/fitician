@@ -16,7 +16,7 @@ The catalogue seed will detect an existing retired row before rebuilding relatio
 
 `FoodCataloguePage` will pass `onDelete` only for `AdminFoodCatalogueItem` cards. The action opens a `DeleteFoodDialog` built on `DialogFrame`; it displays the food name, explains active-catalogue/new-plan removal and historical preservation, and requires an explicit submit. Submit calls the shared `deleteCatalogueFood` API function, disables the submit button while pending, keeps the dialog open on failure, and reloads the current catalogue on success. If the deleted item was the only item on a page after page 1, the page moves back one page before reloading.
 
-The delete action and dialog submit use explicit destructive selectors with the existing Fitsho dark/aqua visual language plus a restrained red border/text treatment. Existing price-button styling will no longer depend on `:last-child`.
+The delete action and dialog submit use explicit destructive selectors with the existing Fitician dark/aqua visual language plus a restrained red border/text treatment. Existing price-button styling will no longer depend on `:last-child`.
 
 ## Verification
 

@@ -144,7 +144,7 @@ Replace the current direct-child calorie selectors with selectors for `.command-
 }
 
 .command-card__calorie-values > div + div {
-  border-inline-start: 1px solid var(--fitsho-line);
+  border-inline-start: 1px solid var(--fitician-line);
   padding-inline-start: 1rem;
 }
 ```

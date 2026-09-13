@@ -2,7 +2,7 @@
 
 ## Goal
 
-Use Toman consistently in Fitsho's member-facing nutrition budget and price interfaces while
+Use Toman consistently in Fitician's member-facing nutrition budget and price interfaces while
 preserving the existing IRR persistence and API contracts. Run one additional real price-refresh
 cycle using the established provider workflow.
 
