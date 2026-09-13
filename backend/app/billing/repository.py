@@ -3,7 +3,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.billing.enums import BillingOfferCode
+from app.billing.enums import (
+    BillingOfferCode,
+    BillingOrderStatus,
+    PaymentProviderCode,
+)
 from app.billing.models import BillingOfferConfig, BillingOrder, BillingTransaction
 
 
@@ -51,10 +55,27 @@ def list_orders_for_user(db: Session, user_id: UUID) -> list[BillingOrder]:
     return list(db.scalars(statement).all())
 
 
-def list_all_orders(db: Session) -> list[BillingOrder]:
-    statement = select(BillingOrder).order_by(
-        BillingOrder.created_at.desc(), BillingOrder.id.desc()
+def list_all_orders(
+    db: Session,
+    *,
+    status: BillingOrderStatus | None = None,
+    provider: PaymentProviderCode | None = None,
+    user_id: UUID | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[BillingOrder]:
+    statement = (
+        select(BillingOrder)
+        .order_by(BillingOrder.created_at.desc(), BillingOrder.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
+    if status is not None:
+        statement = statement.where(BillingOrder.status == status)
+    if provider is not None:
+        statement = statement.where(BillingOrder.provider == provider)
+    if user_id is not None:
+        statement = statement.where(BillingOrder.user_id == user_id)
     return list(db.scalars(statement).all())
 
 

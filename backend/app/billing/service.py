@@ -252,6 +252,7 @@ def to_admin_order_response(order: BillingOrder) -> AdminBillingOrderResponse:
     return AdminBillingOrderResponse(
         **base.model_dump(),
         user_id=order.user_id,
+        access_grant_id=order.access_grant_id,
         transactions=[
             BillingTransactionResponse(
                 id=transaction.id,
@@ -271,8 +272,26 @@ def to_admin_order_response(order: BillingOrder) -> AdminBillingOrderResponse:
     )
 
 
-def get_admin_orders(db: Session) -> list[AdminBillingOrderResponse]:
-    return [to_admin_order_response(order) for order in list_all_orders(db)]
+def get_admin_orders(
+    db: Session,
+    *,
+    status: BillingOrderStatus | None = None,
+    provider: PaymentProviderCode | None = None,
+    user_id: UUID | None = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[AdminBillingOrderResponse]:
+    return [
+        to_admin_order_response(order)
+        for order in list_all_orders(
+            db,
+            status=status,
+            provider=provider,
+            user_id=user_id,
+            limit=limit,
+            offset=offset,
+        )
+    ]
 
 
 def get_admin_order(db: Session, order_id: UUID) -> AdminBillingOrderResponse:

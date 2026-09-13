@@ -120,6 +120,7 @@ class BillingTransactionResponse(BaseModel):
 
 class AdminBillingOrderResponse(BillingOrderResponse):
     user_id: UUID | None
+    access_grant_id: UUID | None
     transactions: list[BillingTransactionResponse]
 
 

@@ -1,12 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.admin.dependencies import AdminUser, require_admin
 from app.auth.cookies import require_trusted_origin
-from app.billing.enums import BillingOfferCode
+from app.billing.enums import BillingOfferCode, BillingOrderStatus, PaymentProviderCode
 from app.billing.schemas import (
     AdminBillingOfferResponse,
     AdminBillingOrderResponse,
@@ -55,8 +55,22 @@ def update_admin_billing_offer(
 
 
 @router.get("/orders", response_model=list[AdminBillingOrderResponse])
-def admin_billing_orders(db: DatabaseSession) -> list[AdminBillingOrderResponse]:
-    return get_admin_orders(db)
+def admin_billing_orders(
+    db: DatabaseSession,
+    status: Annotated[BillingOrderStatus | None, Query()] = None,
+    provider: Annotated[PaymentProviderCode | None, Query()] = None,
+    user_id: Annotated[UUID | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[AdminBillingOrderResponse]:
+    return get_admin_orders(
+        db,
+        status=status,
+        provider=provider,
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/orders/{order_id}", response_model=AdminBillingOrderResponse)
