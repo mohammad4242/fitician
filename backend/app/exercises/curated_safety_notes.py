@@ -1509,5 +1509,1476 @@ CURATED_BACK_SAFETY_NOTES: dict[str, CuratedSafetyNotes] = {
 CURATED_SAFETY_NOTES.update(CURATED_BACK_SAFETY_NOTES)
 
 
+_SHOULDER_DUMBBELL_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'آرنج رو حرکت بده، نه دمبل رو؛ دست فقط وزنه رو نگه می‌داره و آرنج باید '
+            'مسیر حرکت رو هدایت کنه.'
+        ),
+        (
+            'بازو رو یه ذره جلوتر از خط کاملاً کنار بدن بالا ببر؛ این مسیر برای '
+            'خیلی‌ها طبیعی‌تره و شونه راحت‌تر حرکت می‌کنه.'
+        ),
+        (
+            'شست رو زورکی سمت زمین نچرخون؛ کف دست تقریباً خنثی بمونه و نذار حرکت '
+            'تبدیل به «خالی کردن پارچ آب» بشه.'
+        ),
+        (
+            'اگه برای بالا بردن دمبل شونه‌هاتو تا گوش بالا می‌کشی یا تنه رو تاب میدی، '
+            'وزنه زیادی سنگینه.'
+        ),
+        (
+            'بالا رفتن مهمه، ولی پایین اومدن رو مفت از دست نده؛ دمبل رو کنترل‌شده '
+            'برگردون.'
+        ),
+    ),
+    en=(
+        (
+            'Lead the movement with the elbows rather than thinking about lifting the '
+            'dumbbells with the hands.'
+        ),
+        (
+            'Raise the arms slightly forward of a perfectly lateral line if that '
+            'matches a comfortable natural shoulder path.'
+        ),
+        (
+            'Do not aggressively turn the thumbs downward; keep a mostly neutral hand '
+            'position rather than using an exaggerated pouring position.'
+        ),
+        (
+            'If the shoulders shrug toward the ears or the torso has to swing, the '
+            'load is too heavy for a clean lateral raise.'
+        ),
+        'Control the eccentric instead of simply dropping the dumbbells.',
+    ),
+)
+
+_SHOULDER_ONE_ARM_DUMBBELL_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'با دست آزاد یه جای ثابت رو بگیر؛ ثبات بیشتر یعنی لازم نیست با کل بدن '
+            'دمبل رو پرت کنی بالا.'
+        ),
+        'آرنج رو بیرون و یه ذره جلو هدایت کن؛ دست و مچ دنبال آرنج بیان.',
+        (
+            'لگن رو هر تکرار به یه سمت پرت نکن؛ اگه lean می‌دی، زاویه‌اش رو ثابت نگه '
+            'دار.'
+        ),
+        (
+            'پایین حرکت عجله نکن؛ برگشت کنترل‌شده همون جاییه که خیلیا کل فشار حرکت رو '
+            'دور می‌ریزن.'
+        ),
+    ),
+    en=(
+        (
+            'Hold a stable support with the free hand; extra stability means you do '
+            'not need to throw the dumbbell up with your whole body.'
+        ),
+        (
+            'Guide the elbow out and slightly forward, with the hand and wrist '
+            'following the elbow.'
+        ),
+        (
+            'Do not toss the hip to one side on every rep; if you use a lean, keep '
+            'its angle consistent.'
+        ),
+        (
+            'Do not rush the bottom; the controlled return is where many people give '
+            'away the tension.'
+        ),
+    ),
+)
+
+_SHOULDER_SEATED_DUMBBELL_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'نشسته بودن یعنی تقلب با پا و لگن کمتر؛ پس اگه هنوز داری دمبل رو پرت '
+            'می‌کنی، وزنه رو کم کن.'
+        ),
+        'آرنج‌ها رو هدایت کن و دست‌ها رو یه ذره جلوتر از خط بدن بالا بیار.',
+        (
+            'شونه رو تا گوش بالا نکش؛ بازو باید بالا بره، نه اینکه کل کمربند شانه‌ای '
+            'فقط شراگ کنه.'
+        ),
+        'دمبل رو پایین ننداز؛ قسمت منفی رو کنترل کن تا هر تکرار واقعاً حساب بشه.',
+    ),
+    en=(
+        (
+            'Sitting reduces leg and hip cheating, so lower the load if you are still '
+            'throwing the dumbbells up.'
+        ),
+        (
+            'Lead with the elbows and raise the hands slightly forward of the body '
+            'line.'
+        ),
+        (
+            'Do not hike the shoulders toward the ears; the arms should rise instead '
+            'of turning the rep into a shrug.'
+        ),
+        'Do not drop the dumbbells; control the eccentric so every rep counts.',
+    ),
+)
+
+_SHOULDER_CABLE_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'اون‌قدر از دستگاه فاصله بگیر که پایین حرکت هم کابل هنوز کشش داشته باشه؛ '
+            'شروع کاملاً شل یعنی بخشی از حرکت رو مفت از دست دادی.'
+        ),
+        (
+            'به‌جای فکر کردن به بالا بردن دسته، فکر کن دستت رو داری از بدنت دور '
+            'می‌کنی.'
+        ),
+        (
+            'آرنج مسیر حرکت رو هدایت کنه و مچ فقط دنبالش بیاد؛ دسته رو با دست بالا '
+            'نکش.'
+        ),
+        'تنه رو ثابت نگه دار و اجازه نده هر تکرار تبدیل به یه تاب کامل بدن بشه.',
+        (
+            'برگشت رو آروم انجام بده و بذار سرشانه کناری تا پایین حرکت زیر فشار '
+            'بمونه.'
+        ),
+    ),
+    en=(
+        (
+            'Stand far enough from the machine to keep the cable loaded at the '
+            'bottom; a completely slack start gives away part of the movement.'
+        ),
+        (
+            'Instead of thinking about lifting the handle, think about moving your '
+            'hand away from your body.'
+        ),
+        (
+            'Let the elbow lead and the wrist follow; do not lift the handle by '
+            'pulling with the hand.'
+        ),
+        'Keep the torso steady and do not let every rep become a full-body swing.',
+        (
+            'Take the return slowly so the lateral delt stays loaded down to the '
+            'bottom.'
+        ),
+    ),
+)
+
+_SHOULDER_ONE_ARM_CABLE_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'پولی پایین باشه و از دستگاه اون‌قدر فاصله بگیر که از همون شروع حرکت کابل '
+            'کشش داشته باشه.'
+        ),
+        (
+            'دست می‌تونه پایین حرکت کمی جلوی بدن یا به سمت طرف مقابل بره تا دامنه '
+            'کشیده‌تری بگیری، ولی فقط تا جایی که شونه راحت باشه.'
+        ),
+        'آرنج رو بیرون ببر؛ دسته نباید رهبر حرکت باشه.',
+        (
+            'بدنت رو برای هر تکرار به طرف مخالف پرت نکن؛ مقاومت رو جوری انتخاب کن که '
+            'تنه تقریباً ثابت بمونه.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the pulley low and stand far enough away that the cable has tension '
+            'from the start.'
+        ),
+        (
+            'At the bottom, the hand can sit slightly in front of the body or toward '
+            'the opposite side for a longer stretch, but only while the shoulder '
+            'stays comfortable.'
+        ),
+        'Move the elbow outward; the handle should not lead the raise.',
+        (
+            'Do not throw the body toward the opposite side on each rep; choose '
+            'resistance that lets the torso stay almost still.'
+        ),
+    ),
+)
+
+_SHOULDER_LEVER_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'صندلی رو جوری تنظیم کن که محور دستگاه تقریباً با مفصل شونه‌ت هم‌راستا '
+            'باشه؛ تنظیم بد دستگاه می‌تونه کل مسیر حرکت رو خراب کنه.'
+        ),
+        'فشار رو با آرنج‌ها به پد بده؛ به دست‌ها و گرفتن دسته‌ها وابسته نشو.',
+        'شونه‌هات رو سمت گوش بالا نبر؛ آرنج‌ها باید از پهلو بالا برن.',
+        (
+            'پایین حرکت وزنه‌ها رو به هم نکوب؛ قبل از اینکه استک کامل آزاد بشه تکرار '
+            'بعدی رو شروع کن تا فشار قطع نشه.'
+        ),
+    ),
+    en=(
+        (
+            'Set the seat so the machine axis is roughly aligned with your shoulder '
+            'joint; a poor setup can distort the whole path.'
+        ),
+        (
+            'Drive the pads with the elbows rather than relying on the hands and '
+            'handles.'
+        ),
+        (
+            'Do not hike the shoulders toward the ears; let the elbows rise from the '
+            'sides.'
+        ),
+        (
+            'Do not let the stack slam at the bottom; start the next rep before the '
+            'stack fully unloads so tension stays on.'
+        ),
+    ),
+)
+
+_SHOULDER_IRON_CROSS = CuratedSafetyNotes(
+    fa=(
+        (
+            'دمبل سبک بردار؛ بازوی بلند تو این حرکت حتی وزنه کم رو هم خیلی سنگین '
+            'می‌کنه.'
+        ),
+        (
+            'اول با پاها و باز شدن لگن از اسکوات بلند شو؛ دمبل رو با تاب کمر و شونه '
+            'بالا نبر.'
+        ),
+        (
+            'وقتی به حالت ایستاده رسیدی، آرنج‌ها رو نرم نگه دار و بازوها رو به طرفین '
+            'باز کن؛ مچ فقط دنبال آرنج بیاد.'
+        ),
+        (
+            'شونه‌ها رو سمت گوش جمع نکن و هر تکرار رو با کنترل به اسکوات برگردون؛ این '
+            'حرکت جای پرت کردن دمبل با مومنتوم نیست.'
+        ),
+    ),
+    en=(
+        (
+            'Use light dumbbells; the long lever makes even a small load demanding in '
+            'this movement.'
+        ),
+        (
+            'Rise from the squat with the legs and hips first; do not lift the '
+            'dumbbells by swinging the back and shoulders.'
+        ),
+        (
+            'Once you are standing, keep the elbows soft and open the arms to the '
+            'sides, with the wrists following the elbows.'
+        ),
+        (
+            'Do not bunch the shoulders toward the ears, and return to the squat '
+            'under control; this is not a movement for throwing the dumbbells with '
+            'momentum.'
+        ),
+    ),
+)
+
+_SHOULDER_BARBELL_WIDE_GRIP_UPRIGHT_ROW = CuratedSafetyNotes(
+    fa=(
+        (
+            'گریپ رو نسبتاً باز نگه دار؛ این حرکت با دست خیلی جمع معمولاً بیشتر جلو '
+            'بازو و موقعیت بدتری برای شونه می‌سازه.'
+        ),
+        'آرنج‌ها رو بالا و بیرون هدایت کن و میله رو نزدیک بدن نگه دار.',
+        (
+            'لازم نیست میله رو تا زیر چونه بکشی؛ حوالی پایین سینه تا ارتفاعی که شونه '
+            'راحت و آرنج‌ها نزدیک خط شونه‌ان کافیه.'
+        ),
+        (
+            'اگه بالای حرکت جلوی شونه نیشگون یا درد می‌گیره، دامنه رو کوتاه کن؛ برای '
+            'چند سانت بیشتر زور نزن.'
+        ),
+    ),
+    en=(
+        (
+            'Use a relatively wide grip; taking the hands very close often shifts '
+            'more work to the biceps and creates a less comfortable shoulder '
+            'position.'
+        ),
+        'Guide the elbows up and out while keeping the bar close to the body.',
+        (
+            'You do not need to pull the bar under the chin; stop around the lower '
+            'chest or wherever the shoulders stay comfortable and the elbows approach '
+            'shoulder height.'
+        ),
+        (
+            'If the front of the shoulder pinches or hurts at the top, shorten the '
+            'range instead of forcing a few extra centimeters.'
+        ),
+    ),
+)
+
+_SHOULDER_DUMBBELL_UPRIGHT_ROW = CuratedSafetyNotes(
+    fa=(
+        (
+            'دمبل‌ها رو مجبور نکن مثل هالتر تو یه خط ثابت حرکت کنن؛ بذار هر دست مسیر '
+            'طبیعی خودش رو داشته باشه.'
+        ),
+        'آرنج‌ها رو بالا و بیرون ببر، ولی لازم نیست خیلی بالاتر از شونه برن.',
+        'دمبل رو نزدیک بدن نگه دار و با مچ نکش بالا.',
+        (
+            'اگه برای رسیدن به بالا شونه درد می‌گیره یا باید مچ رو بد بچرخونی، دامنه '
+            'رو همون‌جا تموم کن.'
+        ),
+    ),
+    en=(
+        (
+            'Do not force the dumbbells to travel like a barbell on one fixed line; '
+            'let each hand find its natural path.'
+        ),
+        (
+            'Lift the elbows up and out, but they do not need to rise far above the '
+            'shoulders.'
+        ),
+        (
+            'Keep the dumbbells close to the body and do not pull them up with the '
+            'wrists.'
+        ),
+        (
+            'If the shoulder hurts near the top or the wrists need an awkward turn, '
+            'end the range there.'
+        ),
+    ),
+)
+
+_SHOULDER_DUMBBELL_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'دمبل رو با تاب لگن شروع نکن؛ شکم رو سفت کن و بذار سرشانه جلویی خودش وزنه '
+            'رو بلند کنه.'
+        ),
+        (
+            'آرنج یه خم نرم داشته باشه و دمبل رو تقریباً تا ارتفاع شونه بالا بیار؛ '
+            'لازم نیست هر تکرار بالای سرت بره.'
+        ),
+        (
+            'گریپ خنثی یا شست کمی رو به بالا برای خیلی‌ها حس بهتری روی شونه می‌ده؛ مچ '
+            'رو زورکی نچرخون.'
+        ),
+        'پایین آوردن رو کنترل کن؛ نذار دمبل آزاد روی ران سقوط کنه.',
+    ),
+    en=(
+        (
+            'Do not start the raise with a hip swing; brace the torso and let the '
+            'front delt lift the weight.'
+        ),
+        (
+            'Keep a soft elbow bend and raise the dumbbells roughly to shoulder '
+            'height; they do not need to go overhead on every rep.'
+        ),
+        (
+            'A neutral grip or slightly raised thumb position feels better for many '
+            'shoulders; do not force the wrists to rotate.'
+        ),
+        (
+            'Control the descent instead of letting the dumbbells fall onto the '
+            'thighs.'
+        ),
+    ),
+)
+
+_SHOULDER_SEATED_DUMBBELL_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'پشتت رو ثابت نگه دار؛ مزیت نشسته بودن اینه که نتونی با لگن دمبل رو پرت '
+            'کنی.'
+        ),
+        'بازو رو تا حدود ارتفاع شونه بالا بیار و گردنت رو جلو نده.',
+        'مچ و آرنج رو تو یه مسیر راحت نگه دار؛ حرکت نباید تبدیل به پرس بشه.',
+        'اگه آخر ست فقط با عقب دادن تنه دمبل بالا میره، ست تموم شده.',
+    ),
+    en=(
+        (
+            'Keep your back steady; the point of sitting is to stop the hips from '
+            'throwing the dumbbell up.'
+        ),
+        'Raise the arm to about shoulder height and do not push the neck forward.',
+        (
+            'Keep the wrist and elbow on a comfortable path; the raise should not '
+            'turn into a press.'
+        ),
+        (
+            'If the dumbbell only rises when you lean back at the end of the set, the '
+            'set is over.'
+        ),
+    ),
+)
+
+_SHOULDER_BARBELL_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        'قبل از شروع باسن و شکم رو سفت کن؛ هالتر نباید با تاب لگن از ران جدا بشه.',
+        'میله رو با آرنج کمی نرم تا حدود ارتفاع شونه بالا بیار.',
+        (
+            'شونه رو سمت گوش بالا ننداز؛ اگه کول داره میله رو بلند می‌کنه وزنه رو کم '
+            'کن.'
+        ),
+        'هالتر رو کنترل‌شده برگردون؛ قسمت پایین حرکت رو با سقوط وزنه خراب نکن.',
+    ),
+    en=(
+        (
+            'Brace the glutes and abs before starting; the bar should not leave the '
+            'thighs through a hip swing.'
+        ),
+        'Raise the bar to about shoulder height with the elbows slightly soft.',
+        (
+            'Do not shrug toward the ears; lower the load if the traps are doing the '
+            'lifting.'
+        ),
+        (
+            'Return the bar under control instead of ruining the bottom with a free '
+            'fall.'
+        ),
+    ),
+)
+
+_SHOULDER_CABLE_ONE_ARM_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'جوری بایست که پایین حرکت هم کابل کشش داشته باشه؛ کابل نباید اول تکرار شل '
+            'باشه.'
+        ),
+        (
+            'بازو رو جلو و کمی داخل مسیر طبیعی شونه بالا ببر؛ لازم نیست دقیقاً مثل '
+            'خط‌کش مستقیم جلوی صورت حرکت کنه.'
+        ),
+        'تنه رو عقب نده که دسته بالا بره؛ اگه مجبور شدی لم بدی وزنه زیادیه.',
+        'برگشت رو آروم کن و اجازه بده سرشانه جلویی تا پایین حرکت زیر فشار بمونه.',
+    ),
+    en=(
+        (
+            'Stand so the cable stays loaded at the bottom; it should not be slack at '
+            'the start of the rep.'
+        ),
+        (
+            'Raise the arm forward and slightly inward along a natural shoulder path; '
+            'it does not need to travel like a ruler directly in front of the face.'
+        ),
+        (
+            'Do not lean back to make the handle rise; if you need to recline, the '
+            'load is too heavy.'
+        ),
+        'Slow the return so the front delt stays loaded down to the bottom.',
+    ),
+)
+
+_SHOULDER_BAND_ONE_ARM_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'کش رو جوری زیر پا یا نقطه اتصال تنظیم کن که از شروع حرکت یه مقدار تنش '
+            'داشته باشه.'
+        ),
+        'بدنت رو عقب نده و با لگن حرکت رو شروع نکن.',
+        'دست رو تا ارتفاعی بالا ببر که هنوز شونه راحت و تنه ثابت باشه.',
+        'برگشت رو کنترل کن؛ نذار کش دستت رو با ضربه پایین بکشه.',
+    ),
+    en=(
+        (
+            'Set the band under the foot or anchor so there is some tension from the '
+            'start of the movement.'
+        ),
+        'Do not lean the body back or start the movement with the hips.',
+        (
+            'Raise the hand only as high as the shoulder stays comfortable and the '
+            'torso stays still.'
+        ),
+        'Control the return instead of letting the band snap the hand down.',
+    ),
+)
+
+_SHOULDER_SEATED_DUMBBELL_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'آرنج‌ها رو دقیقاً صاف به بغل باز نکن؛ یه ذره جلوی بدن نگهشون دار تا تو '
+            'مسیر طبیعی‌تر شونه پرس کنی.'
+        ),
+        (
+            'پایین حرکت ساعدها تا جای ممکن زیر دمبل بمونن؛ اگه مچ خیلی داخل یا بیرون '
+            'افتاده مسیرت رو اصلاح کن.'
+        ),
+        (
+            'شکم رو سفت و دنده‌ها رو پایین نگه دار؛ پرس سرشانه رو با گود کردن کمر '
+            'تبدیل به پرس بالاسینه نکن.'
+        ),
+        (
+            'دمبل‌ها رو بالا به هم نکوب؛ تا جایی پرس کن که بازوها بالای سرت پایدار شن '
+            'و فشار حفظ بشه.'
+        ),
+        (
+            'عمق رو تا جایی بگیر که شونه راحت باشه؛ پایین‌تر رفتن به هر قیمتی امتیاز '
+            'اضافه نداره.'
+        ),
+    ),
+    en=(
+        (
+            'Do not flare the elbows straight out to the sides; keep them slightly in '
+            'front so the press follows a more natural shoulder path.'
+        ),
+        (
+            'Keep the forearms as close as possible to being under the dumbbells at '
+            'the bottom; adjust if the wrists fall too far in or out.'
+        ),
+        (
+            'Brace the abs and keep the ribs down; do not turn the shoulder press '
+            'into an incline press by overextending the back.'
+        ),
+        (
+            'Do not bang the dumbbells together overhead; press only as far as the '
+            'arms stay stable above you and tension remains.'
+        ),
+        (
+            'Use a depth your shoulders can control; going lower at any cost is not '
+            'extra credit.'
+        ),
+    ),
+)
+
+_SHOULDER_ALTERNATING_DUMBBELL_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'وقتی یه دست پرس می‌کنه، سمت دیگه بدنت رو نچرخون؛ شکم و لگن باید ثابت '
+            'بمونن.'
+        ),
+        'آرنج رو کمی جلوی بدن نگه دار و دمبل رو بالا توی خط شونه stack کن.',
+        'دست پایین رو بی‌کنترل روی شونه رها نکن؛ اون سمت هم باید پایدار بمونه.',
+        (
+            'اگه بدن با هر تکرار چپ و راست میشه، وزنه برای پرس تک‌دست تمیز زیادی '
+            'سنگینه.'
+        ),
+    ),
+    en=(
+        (
+            'Do not rotate the opposite side of the body while one arm presses; keep '
+            'the abs and hips still.'
+        ),
+        (
+            'Keep the elbow slightly in front of the body and stack the dumbbell over '
+            'the shoulder at the top.'
+        ),
+        (
+            'Do not let the lowered hand collapse onto the shoulder; that side must '
+            'stay stable too.'
+        ),
+        (
+            'If the body shifts side to side on every rep, the load is too heavy for '
+            'a clean alternating press.'
+        ),
+    ),
+)
+
+_SHOULDER_SMITH_SEATED_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'نیمکت رو جوری زیر مسیر اسمیت بذار که میله بدون جنگیدن با مسیر دستگاه '
+            'جلوی صورت رد بشه و بالای شونه stack بشه.'
+        ),
+        (
+            'آرنج‌ها رو کمی جلوتر از خط شونه نگه دار؛ مجبورشون نکن دقیقاً صاف به '
+            'طرفین باز بشن.'
+        ),
+        (
+            'شکم رو سفت کن و باسن رو روی نیمکت نگه دار؛ برای بالا بردن میله کمرت رو '
+            'بیش‌ازحد گود نکن.'
+        ),
+        (
+            'پایین حرکت رو تا دامنه‌ای ببر که ساعد و شونه هنوز کنترل خوبی دارن؛ مسیر '
+            'ثابت اسمیت رو با زور روی مفصل تحمیل نکن.'
+        ),
+    ),
+    en=(
+        (
+            'Place the bench under the Smith path so the bar can pass the face '
+            'cleanly and stack over the shoulders at the top.'
+        ),
+        (
+            'Keep the elbows slightly in front of the shoulder line instead of '
+            'forcing them straight out to the sides.'
+        ),
+        (
+            'Brace the abs and keep the hips on the bench; do not overarch the back '
+            'to move the bar.'
+        ),
+        (
+            'Lower only through a range where the forearms and shoulders stay '
+            'controlled; do not force the machine’s fixed path onto the joint.'
+        ),
+    ),
+)
+
+_SHOULDER_MILITARY_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'باسن و شکم رو قبل از هر تکرار سفت کن؛ بدن باید ستون حرکت باشه، نه فنر '
+            'برای پرت کردن هالتر.'
+        ),
+        (
+            'میله رو نزدیک صورت بالا ببر؛ اول سر یه ذره راه بده، بعد وقتی میله رد شد '
+            'سرت رو دوباره زیر میله بیار.'
+        ),
+        (
+            'بالای حرکت میله باید تقریباً روی شونه و وسط پا stack بشه، نه اینکه جلوی '
+            'بدنت معلق بمونه.'
+        ),
+        (
+            'اگه برای بالا بردن هالتر باید شدید عقب خم بشی، وزنه زیادیه و حرکت داره '
+            'تبدیل به standing incline press میشه.'
+        ),
+    ),
+    en=(
+        (
+            'Brace the glutes and abs before every rep; the body should be the base, '
+            'not a spring for throwing the bar up.'
+        ),
+        (
+            'Keep the bar close to the face; move the head slightly back, then bring '
+            'it back under the bar once it clears.'
+        ),
+        (
+            'At the top, the bar should stack roughly over the shoulders and mid-foot '
+            'rather than hanging in front of the body.'
+        ),
+        (
+            'If you have to lean far back to raise the bar, the load is too heavy and '
+            'the press is becoming a standing incline press.'
+        ),
+    ),
+)
+
+_SHOULDER_ARNOLD_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'چرخش دست رو نرم و همزمان با بالا رفتن انجام بده؛ دمبل رو تو پایین حرکت '
+            'با زور نپیچون.'
+        ),
+        (
+            'آرنج‌ها لازم نیست پایین حرکت کامل به هم بچسبن؛ تا جایی جمع کن که شونه '
+            'راحت و تحت کنترل بمونه.'
+        ),
+        (
+            'وقتی پرس می‌کنی، دمبل‌ها رو بالا و روی خط شونه ببر؛ کمرت رو برای کامل '
+            'کردن تکرار گود نکن.'
+        ),
+        (
+            'آرنولدی با وزنه کمتر ولی مسیر تمیز خیلی بهتر از دمبل سنگینیه که نصف '
+            'چرخشش با تقلب انجام میشه.'
+        ),
+    ),
+    en=(
+        (
+            'Rotate the hands smoothly as the dumbbells rise; do not force the turn '
+            'at the bottom.'
+        ),
+        (
+            'The elbows do not need to meet completely at the bottom; bring them in '
+            'only as far as the shoulders stay comfortable and controlled.'
+        ),
+        (
+            'As you press, take the dumbbells up over the shoulder line; do not arch '
+            'the back to complete the rep.'
+        ),
+        (
+            'A lighter Arnold press with a clean path is better than heavy dumbbells '
+            'whose rotation is half completed with cheating.'
+        ),
+    ),
+)
+
+_SHOULDER_CLEAN_AND_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'تو بخش کلین میله رو نزدیک بدن نگه دار؛ از خودت دورش نکن که مجبور شی با '
+            'دست جمعش کنی.'
+        ),
+        (
+            'میله رو روی جلوی شونه‌ها catch کن و اول تعادلت رو کامل بگیر، بعد پرس رو '
+            'شروع کن.'
+        ),
+        (
+            'کلین رو تبدیل به جلو بازوی هالتر نکن؛ نیرو باید از پا و لگن بیاد و بعد '
+            'زیر میله بری.'
+        ),
+        (
+            'تو پرس دنده‌ها رو پایین و شکم رو سفت نگه دار؛ برای رد کردن میله کمرت رو '
+            'عقب نشکن.'
+        ),
+        (
+            'اگه catch به‌هم‌ریخته‌ست، همون‌جا تکرار رو reset کن؛ از وضعیت خراب '
+            'مستقیم پرس نزن.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the bar close during the clean; do not let it drift away and then '
+            'collect it with the arms.'
+        ),
+        (
+            'Catch the bar on the fronts of the shoulders and regain balance before '
+            'starting the press.'
+        ),
+        (
+            'Do not turn the clean into a barbell curl; drive it from the legs and '
+            'hips, then get under the bar.'
+        ),
+        (
+            'During the press, keep the ribs down and abs braced; do not break '
+            'backward at the waist to clear the bar.'
+        ),
+        (
+            'If the catch is messy, reset the rep there; do not press directly from a '
+            'compromised position.'
+        ),
+    ),
+)
+
+_SHOULDER_EZ_BAR_ANTI_GRAVITY_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'سینه و لگنت رو روی نیمکت ثابت نگه دار؛ این نسخه با ثبات تنه معنی داره، '
+            'نه با تاب دادن کل بدن.'
+        ),
+        (
+            'میله رو در مسیر کنترل‌شده بین نقطه شروع و سینه یا جلوی شونه حرکت بده؛ '
+            'برای چند سانت بیشتر مسیر رو عوض نکن.'
+        ),
+        (
+            'مچ‌ها رو تا جای ممکن خنثی و روی ساعد نگه دار؛ میله رو با خم کردن مچ به '
+            'سمت خودت نکش.'
+        ),
+        (
+            'اگه برای جدا کردن یا برگردوندن میله لگن و کمرت حرکت می‌کنن، وزنه زیادیه؛ '
+            'تنه باید تکیه‌گاه بمونه.'
+        ),
+        (
+            'پایین آوردن رو آهسته انجام بده و میله رو روی نقطه شروع کنترل کن؛ رها '
+            'کردن منفی فشار حرکت رو می‌پرونه.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the chest and hips supported on the bench; this variation depends '
+            'on a stable torso, not a full-body swing.'
+        ),
+        (
+            'Move the bar through a controlled path between the start and the chest '
+            'or front-shoulder position; do not change the path for a few extra '
+            'centimeters.'
+        ),
+        (
+            'Keep the wrists as neutral as possible and stacked over the forearms; do '
+            'not pull the bar toward you by folding the wrists.'
+        ),
+        (
+            'If the hips or lower back move to start or return the bar, the load is '
+            'too heavy; the torso should remain the support.'
+        ),
+        (
+            'Lower slowly and control the bar back to its start point; dropping the '
+            'eccentric removes useful tension.'
+        ),
+    ),
+)
+
+_SHOULDER_REAR_DELT_FLY = CuratedSafetyNotes(
+    fa=(
+        (
+            'فکر کن بازوهات رو داری به طرفین باز می‌کنی؛ فقط کتف‌ها رو با زور به هم '
+            'نچسبون که پشت میانی کل حرکت رو بدزده.'
+        ),
+        (
+            'آرنج یه خم نرم داشته باشه و همون زاویه تقریباً ثابت بمونه؛ حرکت رو تبدیل '
+            'به Row نکن.'
+        ),
+        (
+            'بازوها رو بیشتر به طرفین ببر، نه سمت لگن؛ مسیر سمت لگن لت رو بیشتر وارد '
+            'بازی می‌کنه.'
+        ),
+        (
+            'وقتی بازو تقریباً هم‌خط تنه شد کافیه؛ برای چند سانت بیشتر شونه رو عقب '
+            'نپیچون.'
+        ),
+    ),
+    en=(
+        (
+            'Think about opening the arms to the sides; do not crush the shoulder '
+            'blades together and let the mid-back steal the movement.'
+        ),
+        (
+            'Keep a soft, nearly fixed bend in the elbows so the fly does not become '
+            'a row.'
+        ),
+        (
+            'Take the arms more to the sides than toward the hips; the hip path '
+            'brings the lats into play more.'
+        ),
+        (
+            'Stop when the arms are roughly in line with the torso; do not twist the '
+            'shoulder farther back for a few extra centimeters.'
+        ),
+    ),
+)
+
+_SHOULDER_INCLINE_REAR_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'سینه رو به نیمکت بچسبون؛ اگه برای بالا آوردن دمبل از پد جدا میشی داری '
+            'ثبات حرکت رو دور می‌ریزی.'
+        ),
+        'دمبل‌ها رو به طرفین باز کن، نه عقب سمت لگن.',
+        (
+            'کتف‌ها می‌تونن حرکت طبیعی داشته باشن، ولی آخر تکرار اونا رو با زور به هم '
+            'له نکن.'
+        ),
+        (
+            'وزنه سبک‌تر و بازوی تمیز بهتر از دمبل سنگینیه که حرکت رو تبدیل به Row '
+            'می‌کنه.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the chest against the bench; lifting off the pad to raise the '
+            'dumbbells gives away the stability of the setup.'
+        ),
+        'Open the dumbbells to the sides rather than back toward the hips.',
+        (
+            'The shoulder blades can move naturally, but do not forcefully crush them '
+            'together at the end of the rep.'
+        ),
+        (
+            'A lighter load and clean arm path beat heavy dumbbells that turn the '
+            'movement into a row.'
+        ),
+    ),
+)
+
+_SHOULDER_CABLE_CROSSOVER_REVERSE_FLY = CuratedSafetyNotes(
+    fa=(
+        (
+            'دست‌ها رو جلوی بدن کراس کن تا شروع حرکت rear delt کشیده‌تر باشه، ولی '
+            'شونه رو بی‌کنترل جلو رها نکن.'
+        ),
+        'بازوها رو به طرفین باز کن؛ دستگیره‌ها رو سمت لگن نکش.',
+        'آرنج‌ها نرم و تقریباً ثابت بمونن تا حرکت تبدیل به Row نشه.',
+        (
+            'آخر حرکت فقط تا جایی باز کن که rear delt هنوز کار می‌کنه؛ برای دامنه '
+            'اضافه کتف‌ها رو با زور به هم نکوب.'
+        ),
+    ),
+    en=(
+        (
+            'Cross the hands in front of the body for a longer rear-delt start, but '
+            'do not let the shoulders collapse forward without control.'
+        ),
+        (
+            'Open the arms to the sides instead of pulling the handles toward the '
+            'hips.'
+        ),
+        (
+            'Keep the elbows soft and nearly fixed so the movement does not become a '
+            'row.'
+        ),
+        (
+            'Open only as far as the rear delts are still working; do not force the '
+            'shoulder blades together for extra range.'
+        ),
+    ),
+)
+
+_SHOULDER_LEVER_SEATED_REVERSE_FLY = CuratedSafetyNotes(
+    fa=(
+        'ارتفاع صندلی رو جوری تنظیم کن که دستگیره‌ها تقریباً هم‌سطح شونه باشن.',
+        (
+            'سینه رو روی پد ثابت نگه دار و با بازوها حرکت رو باز کن؛ تنه نباید عقب '
+            'بپره.'
+        ),
+        (
+            'به‌جای اینکه فقط کتف‌ها رو به هم فشار بدی، فکر کن آرنج‌ها رو داری از هم '
+            'دور و عقب می‌بری.'
+        ),
+        (
+            'برگشت رو کنترل کن و بذار rear delt دوباره کش بیاد؛ استک وزنه رو بین '
+            'تکرارها نکوب.'
+        ),
+    ),
+    en=(
+        'Set the seat so the handles are roughly level with the shoulders.',
+        (
+            'Keep the chest on the pad and open the movement with the arms; the torso '
+            'should not jump backward.'
+        ),
+        (
+            'Instead of only squeezing the shoulder blades together, think about '
+            'moving the elbows apart and back.'
+        ),
+        (
+            'Control the return and let the rear delts lengthen again; do not slam '
+            'the stack between reps.'
+        ),
+    ),
+)
+
+_SHOULDER_BARBELL_REAR_DELT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'از لگن خم شو و زاویه تنه رو ثابت نگه دار؛ بالا و پایین شدن تنه نباید '
+            'وزنه رو جابه‌جا کنه.'
+        ),
+        (
+            'آرنج‌ها رو به طرفین و عقب هدایت کن، نه اینکه میله رو با جلو بازو جمع '
+            'کنی.'
+        ),
+        'تمرکز روی باز شدن بازوهاست؛ کتف‌ها رو با زور به هم قفل نکن.',
+        'وزنه سبک نگه دار؛ rear delt raise با هالتر جای ego lifting نیست.',
+    ),
+    en=(
+        (
+            'Hinge from the hips and keep the torso angle steady; the torso should '
+            'not move the weight up and down.'
+        ),
+        (
+            'Guide the elbows out and back instead of gathering the bar with the '
+            'biceps.'
+        ),
+        (
+            'Focus on opening the arms; do not force the shoulder blades into a hard '
+            'squeeze.'
+        ),
+        (
+            'Keep the load light; a barbell rear-delt raise is not a place for ego '
+            'lifting.'
+        ),
+    ),
+)
+
+_SHOULDER_DUMBBELL_REAR_DELT_ROW = CuratedSafetyNotes(
+    fa=(
+        (
+            'آرنج‌ها رو باز نگه دار و به طرف بالا و بیرون بکش؛ اگه آرنج بچسبه به بدن '
+            'حرکت بیشتر لت میشه.'
+        ),
+        'دمبل‌ها رو سمت بالای دنده‌ها بکش، نه سمت لگن.',
+        (
+            'گردنت رو خنثی و تنه رو ثابت نگه دار؛ برای بالا آوردن دمبل‌ها خودتو تکون '
+            'نده.'
+        ),
+        'بالا rear delt رو جمع کن ولی شونه‌هاتو سمت گوش بالا نکش.',
+    ),
+    en=(
+        (
+            'Keep the elbows wide and pull them up and out; if they stay close to the '
+            'body, the movement becomes more lat-dominant.'
+        ),
+        'Pull the dumbbells toward the upper ribs rather than toward the hips.',
+        (
+            'Keep the neck neutral and torso steady; do not move yourself to lift the '
+            'dumbbells.'
+        ),
+        (
+            'Contract the rear delts at the top without hiking the shoulders toward '
+            'the ears.'
+        ),
+    ),
+)
+
+_SHOULDER_CABLE_REAR_DELT_ROW_WITH_ROPE = CuratedSafetyNotes(
+    fa=(
+        (
+            'طناب رو سمت بالای سینه و صورت بکش، نه پایین شکم؛ مسیر پایین حرکت رو '
+            'تبدیل به Row لت می‌کنه.'
+        ),
+        'آرنج‌ها رو باز و دور از بدن نگه دار تا پشت شونه واقعاً وارد کار بشه.',
+        (
+            'آخر حرکت طناب رو باز کن، ولی کمر رو عقب نده که چند سانت دامنه تقلبی '
+            'بسازی.'
+        ),
+        'شونه‌ها رو بالا نکش؛ آرنج باید حرکت رو هدایت کنه.',
+    ),
+    en=(
+        (
+            'Pull the rope toward the upper chest and face, not the lower abdomen; a '
+            'low path turns the movement into more of a lat row.'
+        ),
+        (
+            'Keep the elbows wide and away from the body so the rear shoulder can do '
+            'its share.'
+        ),
+        (
+            'Separate the rope ends at the finish, but do not lean the back away to '
+            'create fake range.'
+        ),
+        'Do not shrug; let the elbows lead the movement.',
+    ),
+)
+
+_SHOULDER_BAND_STANDING_REAR_DELT_ROW = CuratedSafetyNotes(
+    fa=(
+        (
+            'از شروع حرکت روی کش تنش داشته باش؛ کش شل یعنی اول تکرار تقریباً کاری '
+            'انجام نمیدی.'
+        ),
+        'آرنج‌ها رو باز نگه دار و کش رو سمت بالای سینه بکش.',
+        (
+            'تنه رو عقب پرت نکن؛ اگه برای کشیدن باند باید کل بدن حرکت کنه مقاومت '
+            'زیادیه.'
+        ),
+        'برگشت رو کنترل کن و نذار کش دست‌هاتو با ضربه جلو بکشه.',
+    ),
+    en=(
+        (
+            'Keep tension on the band from the start; a slack band means the first '
+            'part of the rep does almost nothing.'
+        ),
+        'Keep the elbows wide and pull the band toward the upper chest.',
+        (
+            'Do not throw the torso backward; if the whole body has to move to pull '
+            'the band, the resistance is too high.'
+        ),
+        'Control the return instead of letting the band snap the hands forward.',
+    ),
+)
+
+_SHOULDER_BAND_BENT_OVER_REAR_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        'از لگن خم شو و کمر رو ثابت نگه دار؛ زاویه تنه نباید هر تکرار عوض بشه.',
+        'بازوها رو به طرفین باز کن و آرنج‌ها رو نرم نگه دار.',
+        'کش رو جوری تنظیم کن که حتی پایین حرکت هم کمی تنش داشته باشه.',
+        'بالا شونه‌هات رو سمت گوش جمع نکن؛ فشار باید پشت شونه بمونه.',
+    ),
+    en=(
+        (
+            'Hinge from the hips and keep the back steady; the torso angle should not '
+            'change on every rep.'
+        ),
+        'Open the arms to the sides and keep the elbows soft.',
+        (
+            'Set the band so there is still some tension at the bottom of the '
+            'movement.'
+        ),
+        (
+            'Do not gather the shoulders toward the ears at the top; keep the effort '
+            'in the rear delts.'
+        ),
+    ),
+)
+
+_SHOULDER_FACE_PULL = CuratedSafetyNotes(
+    fa=(
+        (
+            'طناب رو سمت ابروها و بالای صورت بکش؛ اگه داری سمت شکم می‌کشی دیگه Face '
+            'Pull نیست.'
+        ),
+        'آرنج‌ها رو باز نگه دار و آخر حرکت دو سر طناب رو دو طرف صورت جدا کن.',
+        (
+            'فقط Row نزن؛ آخر حرکت یه چرخش بیرونی نرم بده تا دست‌ها عقب‌تر از آرنج‌ها '
+            'نریزن.'
+        ),
+        (
+            'وزنه سبک‌تر بردار و حرکت رو تمیز نگه دار؛ Face Pull سنگین خیلی زود تبدیل '
+            'به کشیدن طناب با کل بدن میشه.'
+        ),
+    ),
+    en=(
+        (
+            'Pull the rope toward the eyebrows and upper face; if it travels toward '
+            'the abdomen, it is no longer a face pull.'
+        ),
+        (
+            'Keep the elbows wide and separate the rope ends to either side of the '
+            'face at the finish.'
+        ),
+        (
+            'Do not only row; add a smooth external rotation at the end so the hands '
+            'do not collapse behind the elbows.'
+        ),
+        (
+            'Use a lighter load and keep the movement clean; a heavy face pull '
+            'quickly becomes a full-body rope pull.'
+        ),
+    ),
+)
+
+_SHOULDER_BATTLING_ROPES = CuratedSafetyNotes(
+    fa=(
+        (
+            'زانوها نرم، شکم سفت و تنه ثابت؛ موج طناب نباید با بالا و پایین پریدن کل '
+            'بدن ساخته بشه.'
+        ),
+        (
+            'طناب رو مرگ‌وار فشار نده؛ گریپ زیادی سفت ساعد رو زودتر از سرشونه خسته '
+            'می‌کنه.'
+        ),
+        'شونه‌ها رو تا گوش بالا نگه ندار؛ موج رو با ریتم دست و بازو بساز.',
+        (
+            'وقتی موج‌ها نصفه و نامنظم شدن ست رو تموم کن؛ کیفیت موج از ادامه دادن با '
+            'فرم خراب مهم‌تره.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the knees soft, abs braced, and torso steady; the waves should not '
+            'come from bouncing the whole body.'
+        ),
+        (
+            'Do not crush the ropes with an excessively hard grip; your forearms '
+            'should not fail before your shoulders can work.'
+        ),
+        (
+            'Do not hold the shoulders up by the ears; create the waves with the '
+            'rhythm of the hands and arms.'
+        ),
+        (
+            'End the set when the waves become short and uneven; wave quality matters '
+            'more than continuing with broken form.'
+        ),
+    ),
+)
+
+_SHOULDER_BEHIND_NECK_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'این حرکت فقط وقتی معنی داره که بدون زور بتونی شونه‌ت رو توی این موقعیت '
+            'باز و چرخیده نگه داری؛ کمبود موبیلیتی رو با وزنه جبران نکن.'
+        ),
+        (
+            'میله رو فقط تا دامنه‌ای پایین بیار که شونه کاملاً راحت باشه؛ لازم نیست '
+            'برای لمس پشت گردن یا کول زور بزنی.'
+        ),
+        (
+            'گریپ خیلی جمع نکن و مچ‌ها رو زیر میله نگه دار؛ دست جمع نیاز شونه به چرخش '
+            'بیرونی رو بیشتر می‌کنه.'
+        ),
+        (
+            'شکم رو سفت و دنده‌ها رو پایین نگه دار؛ برای رد کردن میله گردنت رو جلو '
+            'نده و کمرت رو بیش‌ازحد گود نکن.'
+        ),
+        (
+            'اگه جلوی شونه نیشگون می‌گیره یا برای رسیدن به دامنه باید بدن رو زور بدی، '
+            'پرس از جلو انتخاب منطقی‌تریه.'
+        ),
+    ),
+    en=(
+        (
+            'This variation makes sense only if you can hold the shoulder open and '
+            'rotated in this position without forcing it; do not use weight to '
+            'compensate for limited mobility.'
+        ),
+        (
+            'Lower the bar only through a range where the shoulder stays completely '
+            'comfortable; do not force it to touch the back of the neck or traps.'
+        ),
+        (
+            'Do not use an overly close grip, and keep the wrists under the bar; a '
+            'close grip demands more external rotation from the shoulders.'
+        ),
+        (
+            'Brace the abs and keep the ribs down; do not reach the neck forward or '
+            'overarch the back to clear the bar.'
+        ),
+        (
+            'If the front of the shoulder pinches or you have to force the position, '
+            'a front-of-neck press is the more sensible choice.'
+        ),
+    ),
+)
+
+_SHOULDER_SEATED_CABLE_ROPE_LAT_PULLDOWN = CuratedSafetyNotes(
+    fa=(
+        (
+            'ران‌هات رو زیر پد فیکس کن و کابل رو از همون اول تحت کشش نگه دار؛ وقتی '
+            'صندلی ثابت باشه شونه کمتر مجبور میشه حرکت رو جبران کنه.'
+        ),
+        (
+            'طناب رو به بالای سینه بکش و آرنج‌ها رو پایین و عقب هدایت کن؛ دسته رو با '
+            'مچ نکش.'
+        ),
+        (
+            'بالا رفتن طناب رو کامل و کنترل‌شده انجام بده تا سرشانه و لت در شروع '
+            'تکرار زیر کشش باشن، ولی شونه رو بی‌اختیار بالا ننداز.'
+        ),
+        (
+            'تنه رو تقریباً ثابت نگه دار و طناب رو پشت گردن نبر؛ اگه برای کشیدن بدن '
+            'عقب می‌ره، وزنه سنگینه.'
+        ),
+    ),
+    en=(
+        (
+            'Secure the thighs under the pad and keep the cable loaded from the '
+            'start; a stable seat keeps the shoulders from compensating for the pull.'
+        ),
+        (
+            'Pull the rope toward the upper chest and guide the elbows down and back; '
+            'do not pull the handle with the wrists.'
+        ),
+        (
+            'Allow a full, controlled return so the shoulders and lats are loaded at '
+            'the start of the next rep, without shrugging uncontrollably.'
+        ),
+        (
+            'Keep the torso almost still and do not pull the rope behind the neck; if '
+            'you lean back to move it, the load is too heavy.'
+        ),
+    ),
+)
+
+_SHOULDER_SEATED_BARBELL_OVERHEAD_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'قبل از ست قلاب‌ها و پایه‌های رک رو چک کن؛ توی پرس نشسته مسیر میله باید '
+            'از جلوی صورت رد بشه، نه اینکه به سر و گردن نزدیک بشه.'
+        ),
+        'آرنج‌ها رو کمی جلوتر از خط شونه نگه دار و مچ‌ها رو روی ساعد stack کن.',
+        (
+            'دنده‌ها پایین و شکم سفت؛ برای رد کردن میله کمرت رو از پشتی نیمکت جدا نکن '
+            'و بیش‌ازحد گود نکن.'
+        ),
+        (
+            'میله رو تا دامنه‌ای پایین بیار که شونه راحت و کنترل‌شده بمونه، بعد برگشت '
+            'رو آهسته انجام بده.'
+        ),
+        (
+            'بعد از آخرین تکرار اول میله رو کامل روی قلاب‌ها بنشون، بعد از رک خارج '
+            'شو.'
+        ),
+    ),
+    en=(
+        (
+            'Check the rack hooks and supports before the set; in a seated press the '
+            'bar should pass in front of the face, not close to the head and neck.'
+        ),
+        (
+            'Keep the elbows slightly in front of the shoulder line and stack the '
+            'wrists over the forearms.'
+        ),
+        (
+            'Keep the ribs down and abs braced; do not lift away from the bench or '
+            'overarch the back to clear the bar.'
+        ),
+        (
+            'Lower the bar only through a range where the shoulder stays comfortable '
+            'and controlled, then return slowly.'
+        ),
+        (
+            'After the last rep, seat the bar fully on the hooks before moving out of '
+            'the rack.'
+        ),
+    ),
+)
+
+_SHOULDER_WORKOUT_COMPILATION = CuratedSafetyNotes(
+    fa=(
+        (
+            'این ویدیو چند حرکت جدا داره؛ قبل از هر ست مشخص کن نشر، پرس یا نسخه‌ای که '
+            'می‌خوای اجرا کنی کدومه.'
+        ),
+        (
+            'فرم یک حرکت رو به حرکت بعدی تعمیم نده؛ مسیر آرنج، گریپ و دامنه هر بخش '
+            'فرق می‌کنه.'
+        ),
+        (
+            'اگه نیمکت، زاویه بدن یا وضعیت دمبل عوض شد، وزنه و setup رو دوباره تنظیم '
+            'کن؛ با تنظیم قبلی کورکورانه ادامه نده.'
+        ),
+        (
+            'فریم هایلایت‌شده فقط عضله هدف رو نشان می‌ده و جای ویدیوی کامل رو '
+            'نمی‌گیره؛ بخش مبهم رو تقلید نکن.'
+        ),
+    ),
+    en=(
+        (
+            'This video contains several separate movements; identify whether you are '
+            'doing a raise, press, or another variation before each set.'
+        ),
+        (
+            "Do not carry one movement's form into the next; the elbow path, grip, "
+            'and range differ between sections.'
+        ),
+        (
+            'If the bench, body angle, or dumbbell position changes, reset the load '
+            'and setup instead of continuing blindly.'
+        ),
+        (
+            'The highlighted frame shows the target muscle but does not replace the '
+            'full video; do not imitate an unclear section.'
+        ),
+    ),
+)
+
+_SHOULDER_STANDING_DUMBBELL_PRESS = CuratedSafetyNotes(
+    fa=(
+        (
+            'پاها رو محکم و لگن رو خنثی نگه دار؛ پرس ایستاده نباید با عقب دادن لگن و '
+            'گود کردن کمر جبران بشه.'
+        ),
+        (
+            'آرنج‌ها رو کمی جلوی بدن نگه دار و دمبل‌ها رو در مسیر طبیعی شونه بالا '
+            'ببر.'
+        ),
+        (
+            'مچ‌ها رو روی ساعد stack کن و دمبل‌ها رو بالای شونه پایدار کن، نه جلوتر '
+            'از بدنت.'
+        ),
+        (
+            'اگه برای تمام کردن تکرار زانوها خم می‌شن یا بدن می‌پیچه، وزنه برای پرس '
+            'تمیز سنگینه.'
+        ),
+        (
+            'پایین آوردن رو کنترل کن و قبل از شروع تکرار بعدی اجازه بده هر دو شونه '
+            'دوباره پایدار بشن.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the feet firm and pelvis neutral; do not compensate for the '
+            'standing press by pushing the hips forward or arching the back.'
+        ),
+        (
+            'Keep the elbows slightly in front of the body and raise the dumbbells '
+            'along a natural shoulder path.'
+        ),
+        (
+            'Stack the wrists over the forearms and stabilize the dumbbells over the '
+            'shoulders rather than in front of the body.'
+        ),
+        (
+            'If the knees dip or the body twists to finish a rep, the load is too '
+            'heavy for a clean press.'
+        ),
+        (
+            'Control the descent and let both shoulders become stable again before '
+            'starting the next rep.'
+        ),
+    ),
+)
+
+_SHOULDER_BENCH_SUPPORTED_DUMBBELL_LATERAL_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'سینه و شکمت رو به نیمکت تکیه بده تا لگن و کمر نتونن دمبل رو پرت کنن؛ اگه '
+            'از پد جدا میشی وزنه زیاده.'
+        ),
+        (
+            'آرنج‌ها رو کمی جلو و بیرون هدایت کن و دست‌ها رو با مسیر طبیعی شونه بالا '
+            'بیار.'
+        ),
+        (
+            'شونه‌ها رو سمت گوش نکش؛ کمی حرکت طبیعی کتف اشکال نداره، ولی شراگ نباید '
+            'رهبر حرکت بشه.'
+        ),
+        (
+            'در پایین حرکت عجله نکن و دمبل‌ها رو آزاد رها نکن؛ برگشت آهسته فشار '
+            'سرشانه کناری رو نگه می‌داره.'
+        ),
+    ),
+    en=(
+        (
+            'Keep the chest and abdomen supported on the bench so the hips and back '
+            'cannot throw the dumbbells; if you lift off the pad, the load is too '
+            'heavy.'
+        ),
+        (
+            'Guide the elbows slightly forward and out, bringing the hands up along a '
+            'natural shoulder path.'
+        ),
+        (
+            'Do not pull the shoulders toward the ears; a little natural scapular '
+            'movement is fine, but the shrug should not lead.'
+        ),
+        (
+            'Do not rush the bottom or release the dumbbells; a slow return keeps the '
+            'lateral delt loaded.'
+        ),
+    ),
+)
+
+_SHOULDER_COMPILATION_BENT_OVER_FRONT_RAISE = CuratedSafetyNotes(
+    fa=(
+        (
+            'این ویدیو فریم‌های متفاوت از حرکت‌های سرشانه نشون می‌ده؛ قبل از ست مشخص '
+            'کن واقعاً کدوم نسخه رو اجرا می‌کنی.'
+        ),
+        (
+            'در فریم خم، زاویه تنه رو ثابت نگه دار و دمبل رو با تاب کمر بالا نبر؛ '
+            'حرکت باید از شونه بیاد.'
+        ),
+        (
+            'آرنج‌ها رو نرم نگه دار و بازوها رو در مسیر همون نسخه هدایت کن؛ مچ نباید '
+            'حرکت رو بکشه.'
+        ),
+        (
+            'اگه برای رسیدن به دامنه باید تنه رو بالا بیاری یا چند حرکت مختلف رو قاطی '
+            'کنی، وزنه و دامنه مناسب نیست.'
+        ),
+    ),
+    en=(
+        (
+            'This video shows different shoulder-movement frames; identify which '
+            'variation you are actually doing before the set.'
+        ),
+        (
+            'In the bent-over frame, hold the torso angle steady and do not swing the '
+            'dumbbells with the back; the movement should come from the shoulder.'
+        ),
+        (
+            'Keep the elbows soft and guide the arms along the path of that '
+            'variation; the wrists should not pull the movement.'
+        ),
+        (
+            'If you have to raise the torso to reach the range or mix several '
+            'movements together, the load and range are not appropriate.'
+        ),
+    ),
+)
+
+CURATED_SHOULDER_SAFETY_NOTES: dict[str, CuratedSafetyNotes] = {
+    'dumbbell-lateral-raise': _SHOULDER_DUMBBELL_LATERAL_RAISE,
+    'fedb-0028-barbell-clean-and-press': _SHOULDER_CLEAN_AND_PRESS,
+    'fedb-0041-barbell-front-raise': _SHOULDER_BARBELL_FRONT_RAISE,
+    'fedb-0075-barbell-rear-delt-raise': _SHOULDER_BARBELL_REAR_DELT_RAISE,
+    'fedb-0123-barbell-wide-grip-upright-row': _SHOULDER_BARBELL_WIDE_GRIP_UPRIGHT_ROW,
+    'fedb-0128-battling-ropes': _SHOULDER_BATTLING_ROPES,
+    'fedb-0154-cable-crossover-reverse-fly': _SHOULDER_CABLE_CROSSOVER_REVERSE_FLY,
+    'fedb-0162-cable-one-arm-front-raise': _SHOULDER_CABLE_ONE_ARM_FRONT_RAISE,
+    'fedb-0178-cable-lateral-raise': _SHOULDER_CABLE_LATERAL_RAISE,
+    'fedb-0192-cable-one-arm-lateral-raise': _SHOULDER_ONE_ARM_CABLE_LATERAL_RAISE,
+    'fedb-0203-cable-rear-delt-row-with-rope': _SHOULDER_CABLE_REAR_DELT_ROW_WITH_ROPE,
+    'fedb-0289-seated-dumbbell-shoulder-press': _SHOULDER_SEATED_DUMBBELL_PRESS,
+    'fedb-0310-dumbbell-front-raise': _SHOULDER_DUMBBELL_FRONT_RAISE,
+    'fedb-0326-dumbbell-incline-rear-lateral-raise': _SHOULDER_INCLINE_REAR_LATERAL_RAISE,
+    'fedb-0332-dumbbell-iron-cross': _SHOULDER_IRON_CROSS,
+    'fedb-0334-dumbbell-lateral-raise': _SHOULDER_DUMBBELL_LATERAL_RAISE,
+    'fedb-0355-dumbbell-one-arm-lateral-raise': _SHOULDER_ONE_ARM_DUMBBELL_LATERAL_RAISE,
+    'fedb-0361-dumbbell-alternating-shoulder-press': _SHOULDER_ALTERNATING_DUMBBELL_PRESS,
+    'fedb-0377-dumbbell-rear-delt-row': _SHOULDER_DUMBBELL_REAR_DELT_ROW,
+    'fedb-0392-dumbbell-seated-front-raise': _SHOULDER_SEATED_DUMBBELL_FRONT_RAISE,
+    'fedb-0396-dumbbell-seated-lateral-raise': _SHOULDER_SEATED_DUMBBELL_LATERAL_RAISE,
+    'fedb-0437-dumbbell-upright-row': _SHOULDER_DUMBBELL_UPRIGHT_ROW,
+    'fedb-0445-ez-barbell-anti-gravity-press': _SHOULDER_EZ_BAR_ANTI_GRAVITY_PRESS,
+    'fedb-0553-military-press': _SHOULDER_MILITARY_PRESS,
+    'fedb-0584-lever-lateral-raise': _SHOULDER_LEVER_LATERAL_RAISE,
+    'fedb-0602-lever-seated-reverse-fly': _SHOULDER_LEVER_SEATED_REVERSE_FLY,
+    'fedb-0765-smith-seated-shoulder-press': _SHOULDER_SMITH_SEATED_PRESS,
+    'fedb-1017-band-one-arm-front-raise': _SHOULDER_BAND_ONE_ARM_FRONT_RAISE,
+    'fedb-1022-band-standing-rear-delt-row': _SHOULDER_BAND_STANDING_REAR_DELT_ROW,
+    'fedb-2137-dumbbell-arnold-press': _SHOULDER_ARNOLD_PRESS,
+    (
+        'fedb-drv-band-bent-over-rear-lateral-raise-band-bent-over-rear-lateral-raise'
+    ): _SHOULDER_BAND_BENT_OVER_REAR_LATERAL_RAISE,
+    (
+        'fedb-drv-barbell-seated-behind-head-military-press-barbell-seated-behind-the-neck-press'
+    ): _SHOULDER_BEHIND_NECK_PRESS,
+    'face-pull': _SHOULDER_FACE_PULL,
+    'owner-2f6026f53abb-seated-cable-rope-lat-pulldown': _SHOULDER_SEATED_CABLE_ROPE_LAT_PULLDOWN,
+    'owner-3a30c79d77aa-kneeling-face-pull': _SHOULDER_FACE_PULL,
+    'owner-43ec8f18aa72-seated-barbell-overhead-press': _SHOULDER_SEATED_BARBELL_OVERHEAD_PRESS,
+    'owner-6ade15ad4ded-shoulder-workout-compilation': _SHOULDER_WORKOUT_COMPILATION,
+    'owner-6b7757e85637-seated-cable-rope-face-pull': _SHOULDER_FACE_PULL,
+    'owner-7918dc7f8d77-standing-dumbbell-shoulder-press': _SHOULDER_STANDING_DUMBBELL_PRESS,
+    'owner-bf2134aafcda-neutral-grip-dumbbell-front-raise': _SHOULDER_DUMBBELL_FRONT_RAISE,
+    'owner-dc4ac8c89e95-dumbbell-bent-over-rear-delt-fly': _SHOULDER_REAR_DELT_FLY,
+    (
+        'owner-e40dc9bd636b-dumbbell-incline-rear-lateral-raise'
+    ): _SHOULDER_COMPILATION_BENT_OVER_FRONT_RAISE,
+    (
+        'owner-f9d1558c4263-bench-supported-dumbbell-lateral-raise'
+    ): _SHOULDER_BENCH_SUPPORTED_DUMBBELL_LATERAL_RAISE,
+    'rear-delt-fly': _SHOULDER_REAR_DELT_FLY,
+    'smith-machine-shoulder-press': _SHOULDER_SMITH_SEATED_PRESS,
+}
+
+CURATED_SAFETY_NOTES.update(CURATED_SHOULDER_SAFETY_NOTES)
+
+
 def get_curated_safety_notes(slug: str) -> CuratedSafetyNotes | None:
     return CURATED_SAFETY_NOTES.get(slug)

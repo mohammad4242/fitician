@@ -65,6 +65,7 @@ const detailSafetyNotesFa = [
   "دمبل‌ها رو تا کشش کنترل‌شده سینه پایین بیار.",
   "مچ رو روی آرنج نگه دار.",
   "موقع پرس بازوها رو به سمت هم جمع کن.",
+  "برگشت رو کنترل کن تا فشار روی سینه بمونه.",
 ];
 
 const maleDetail = createDetail([
@@ -256,6 +257,7 @@ function createDetail(mediaAssets: ReturnType<typeof asset>[]): ExerciseDetail {
       "Lower into a controlled chest stretch.",
       "Keep the wrists stacked over the elbows.",
       "Bring the upper arms toward each other as you press.",
+      "Control the return so the chest stays loaded.",
     ],
     safety_notes_fa: detailSafetyNotesFa,
     secondary_muscles: [],
