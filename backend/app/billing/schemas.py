@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.billing.enums import (
     BillingOfferCode,
@@ -32,6 +32,12 @@ class BillingOfferResponse(BaseModel):
     is_available: bool
     entitlements: list[EntitlementCode]
     quota_policies: list[BillingQuotaPolicyResponse]
+
+
+class AdminBillingOfferResponse(BillingOfferResponse):
+    is_active: bool
+    available_from: datetime | None
+    available_until: datetime | None
 
 
 class CreateOrderRequest(BaseModel):
@@ -110,3 +116,28 @@ class BillingTransactionResponse(BaseModel):
     verified_at: datetime | None
     failed_at: datetime | None
     refunded_at: datetime | None
+
+
+class AdminBillingOrderResponse(BillingOrderResponse):
+    user_id: UUID | None
+    transactions: list[BillingTransactionResponse]
+
+
+class UpdateBillingOfferConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    price_irr: int | None = Field(default=None, ge=0)
+    currency: str | None = Field(default=None, min_length=3, max_length=8)
+    is_active: bool | None = None
+    available_from: datetime | None = None
+    available_until: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_availability(self) -> "UpdateBillingOfferConfigRequest":
+        if (
+            self.available_from is not None
+            and self.available_until is not None
+            and self.available_until < self.available_from
+        ):
+            raise ValueError("available_until must be after available_from")
+        return self

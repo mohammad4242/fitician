@@ -51,6 +51,13 @@ def list_orders_for_user(db: Session, user_id: UUID) -> list[BillingOrder]:
     return list(db.scalars(statement).all())
 
 
+def list_all_orders(db: Session) -> list[BillingOrder]:
+    statement = select(BillingOrder).order_by(
+        BillingOrder.created_at.desc(), BillingOrder.id.desc()
+    )
+    return list(db.scalars(statement).all())
+
+
 def find_order_by_idempotency(
     db: Session,
     user_id: UUID,

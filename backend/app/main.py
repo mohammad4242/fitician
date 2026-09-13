@@ -23,6 +23,7 @@ from app.auth.providers import (
     build_sms_provider,
 )
 from app.auth.router import router as auth_router
+from app.billing.admin_router import router as billing_admin_router
 from app.billing.exceptions import BillingError
 from app.billing.providers import build_payment_providers
 from app.billing.router import router as billing_router
@@ -259,6 +260,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(billing_router)
+    app.include_router(billing_admin_router)
     app.include_router(entitlements_router)
     app.include_router(account_deletion_router)
     app.include_router(body_photo_router)

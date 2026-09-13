@@ -16,6 +16,8 @@ from app.billing.enums import (
 )
 from app.billing.exceptions import (
     BillingIdempotencyConflictError,
+    BillingOfferConfigInvalidError,
+    BillingOfferPriceRequiredError,
     BillingOfferUnavailableError,
     BillingOrderInvalidStateError,
     BillingOrderNotFoundError,
@@ -38,19 +40,25 @@ from app.billing.providers.base import (
 from app.billing.repository import (
     find_order_by_idempotency,
     get_offer_config,
+    get_order,
     get_order_for_user,
     get_transaction_for_user,
+    list_all_orders,
     list_offer_configs,
     list_orders_for_user,
 )
 from app.billing.schemas import (
+    AdminBillingOfferResponse,
+    AdminBillingOrderResponse,
     BillingCheckoutResponse,
     BillingOfferResponse,
     BillingOrderResponse,
     BillingPaymentResultResponse,
     BillingQuotaPolicyResponse,
+    BillingTransactionResponse,
     CreateCheckoutRequest,
     CreateOrderRequest,
+    UpdateBillingOfferConfigRequest,
     VerifyPaymentRequest,
 )
 from app.config import Settings
@@ -131,6 +139,118 @@ def list_offer_responses(
         _offer_response(code, configs.get(code), now=reference)
         for code in PAID_OFFER_CATALOG
     ]
+
+
+def _admin_offer_response(
+    code: BillingOfferCode,
+    config: BillingOfferConfig | None,
+    *,
+    now: datetime,
+) -> AdminBillingOfferResponse:
+    offer = _offer_response(code, config, now=now)
+    return AdminBillingOfferResponse(
+        **offer.model_dump(),
+        is_active=config.is_active if config is not None else False,
+        available_from=config.available_from if config is not None else None,
+        available_until=config.available_until if config is not None else None,
+    )
+
+
+def list_admin_offer_responses(
+    db: Session,
+    *,
+    now: datetime | None = None,
+) -> list[AdminBillingOfferResponse]:
+    reference = utc_now(now)
+    configs = {config.offer_code: config for config in list_offer_configs(db)}
+    return [
+        _admin_offer_response(code, configs.get(code), now=reference)
+        for code in PAID_OFFER_CATALOG
+    ]
+
+
+def update_offer_config(
+    db: Session,
+    offer_code: BillingOfferCode,
+    payload: UpdateBillingOfferConfigRequest,
+    *,
+    now: datetime | None = None,
+) -> AdminBillingOfferResponse:
+    reference = utc_now(now)
+    offer_definition(offer_code)
+    config = get_offer_config(db, offer_code)
+    if config is None:
+        if payload.price_irr is None:
+            raise BillingOfferPriceRequiredError(offer_code.value)
+        config = BillingOfferConfig(
+            offer_code=offer_code,
+            price_irr=payload.price_irr,
+            currency=payload.currency or "IRR",
+            is_active=payload.is_active if payload.is_active is not None else True,
+            available_from=payload.available_from,
+            available_until=payload.available_until,
+        )
+        db.add(config)
+    else:
+        if payload.price_irr is not None:
+            config.price_irr = payload.price_irr
+        if payload.currency is not None:
+            config.currency = payload.currency
+        if payload.is_active is not None:
+            config.is_active = payload.is_active
+        if "available_from" in payload.model_fields_set:
+            config.available_from = payload.available_from
+        if "available_until" in payload.model_fields_set:
+            config.available_until = payload.available_until
+    if (
+        config.available_from is not None
+        and config.available_until is not None
+        and utc_now(config.available_until) < utc_now(config.available_from)
+    ):
+        raise BillingOfferConfigInvalidError("available_until must be after available_from")
+    if not config.currency.strip():
+        raise BillingOfferConfigInvalidError("currency must not be empty")
+    if config.price_irr < 0:
+        raise BillingOfferConfigInvalidError("price_irr must not be negative")
+    db.flush()
+    db.commit()
+    db.refresh(config)
+    return _admin_offer_response(offer_code, config, now=reference)
+
+
+def to_admin_order_response(order: BillingOrder) -> AdminBillingOrderResponse:
+    base = to_order_response(order)
+    return AdminBillingOrderResponse(
+        **base.model_dump(),
+        user_id=order.user_id,
+        transactions=[
+            BillingTransactionResponse(
+                id=transaction.id,
+                order_id=transaction.order_id,
+                provider=transaction.provider,
+                provider_reference=transaction.provider_reference,
+                amount_irr=transaction.amount_irr,
+                currency=transaction.currency,
+                status=transaction.status,
+                created_at=transaction.created_at,
+                verified_at=transaction.verified_at,
+                failed_at=transaction.failed_at,
+                refunded_at=transaction.refunded_at,
+            )
+            for transaction in order.transactions
+        ],
+    )
+
+
+def get_admin_orders(db: Session) -> list[AdminBillingOrderResponse]:
+    return [to_admin_order_response(order) for order in list_all_orders(db)]
+
+
+def get_admin_order(db: Session, order_id: UUID) -> AdminBillingOrderResponse:
+    order = get_order(db, order_id)
+    if order is None:
+        raise BillingOrderNotFoundError
+    return to_admin_order_response(order)
 
 
 def to_order_response(order: BillingOrder) -> BillingOrderResponse:
