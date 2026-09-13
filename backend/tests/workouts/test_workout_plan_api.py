@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
 
@@ -61,14 +61,23 @@ PROFILE = {
 }
 
 
-def _register_and_complete_profile(client: TestClient, email: str) -> UUID:
+def _register_and_complete_profile(
+    client: TestClient,
+    email: str,
+    *,
+    plan_duration_weeks: int = 4,
+) -> UUID:
     registration = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": email, "password": "long password"},
     )
     assert registration.status_code == 201
-    response = client.post("/api/v1/profile", headers=ORIGIN, json=PROFILE)
+    response = client.post(
+        "/api/v1/profile",
+        headers=ORIGIN,
+        json={**PROFILE, "plan_duration_weeks": plan_duration_weeks},
+    )
     assert response.status_code == 201
     return UUID(registration.json()["id"])
 
@@ -195,6 +204,29 @@ def _store_program_engine_catalog(db: Session) -> None:
     db.commit()
 
 
+def _override_fake_generation_service(
+    client: TestClient,
+    db: Session,
+    user_id: UUID,
+) -> None:
+    plan = _plan(db, user_id)
+
+    class FakeService:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
+            assert current_user_id == user_id
+            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    app = cast(FastAPI, client.app)
+    app.dependency_overrides[get_workout_generation_service] = lambda: FakeService()
+
+
 def test_workout_plan_routes_require_authentication(client: TestClient) -> None:
     assert client.get("/api/v1/workout-plans/active").status_code == 401
     assert client.post("/api/v1/workout-plans/generate", headers=ORIGIN).status_code == 401
@@ -255,6 +287,124 @@ def test_training_generation_route_uses_direct_lifecycle(
 
     assert response.status_code == 200
     assert lifecycle == [False]
+
+
+@pytest.mark.parametrize(
+    ("access_weeks", "requested_weeks", "expected_status"),
+    [
+        (4, 4, 200),
+        (4, 6, 403),
+        (4, 8, 403),
+        (6, 4, 200),
+        (6, 6, 200),
+        (6, 8, 403),
+        (8, 4, 200),
+        (8, 6, 200),
+        (8, 8, 200),
+    ],
+)
+def test_training_generation_cannot_exceed_active_access_term(
+    client: TestClient,
+    db: Session,
+    access_weeks: int,
+    requested_weeks: int,
+    expected_status: int,
+) -> None:
+    user_id = _register_and_complete_profile(
+        client,
+        f"term-api-{access_weeks}-{requested_weeks}-{uuid4()}@example.com",
+        plan_duration_weeks=requested_weeks,
+    )
+    _revoke_launch_trial(db, user_id)
+    now = datetime.now(UTC)
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.TRAINING,
+        source=GrantSource.SUBSCRIPTION,
+        starts_at=now - timedelta(seconds=1),
+        ends_at=now + timedelta(weeks=access_weeks),
+        term_weeks=access_weeks,
+    )
+    _override_fake_generation_service(client, db, user_id)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    try:
+        response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    finally:
+        cast(FastAPI, client.app).dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == expected_status
+    if expected_status == 403:
+        assert response.json()["detail"] == {
+            "code": "ACCESS_TERM_TOO_SHORT",
+            "requested_weeks": requested_weeks,
+            "maximum_weeks": access_weeks,
+        }
+
+
+@pytest.mark.parametrize(
+    ("requested_weeks", "expected_status"),
+    [(4, 200), (6, 403), (8, 403)],
+)
+def test_launch_trial_limits_new_generation_to_four_weeks(
+    client: TestClient,
+    db: Session,
+    requested_weeks: int,
+    expected_status: int,
+) -> None:
+    user_id = _register_and_complete_profile(
+        client,
+        f"trial-term-api-{requested_weeks}-{uuid4()}@example.com",
+        plan_duration_weeks=requested_weeks,
+    )
+    _override_fake_generation_service(client, db, user_id)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    try:
+        response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    finally:
+        cast(FastAPI, client.app).dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == expected_status
+    if expected_status == 403:
+        assert response.json()["detail"] == {
+            "code": "ACCESS_TERM_TOO_SHORT",
+            "requested_weeks": requested_weeks,
+            "maximum_weeks": 4,
+        }
+
+
+def test_expired_training_grant_cannot_generate_new_plan(client: TestClient, db: Session) -> None:
+    user_id = _register_and_complete_profile(
+        client,
+        f"expired-term-api-{uuid4()}@example.com",
+        plan_duration_weeks=4,
+    )
+    _revoke_launch_trial(db, user_id)
+    now = datetime.now(UTC)
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.TRAINING,
+        source=GrantSource.SUBSCRIPTION,
+        starts_at=now - timedelta(weeks=4),
+        ends_at=now - timedelta(seconds=1),
+        term_weeks=4,
+    )
+    _override_fake_generation_service(client, db, user_id)
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    try:
+        response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    finally:
+        cast(FastAPI, client.app).dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "ENTITLEMENT_REQUIRED"
 
 
 def test_training_coach_generation_route_uses_review_lifecycle(
