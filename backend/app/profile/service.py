@@ -32,6 +32,7 @@ from app.profile.models import (
 )
 from app.profile.schemas import ProfileCreate, ProfileUpdate, SharedProfileUpsert, calculate_age
 from app.profile.training_compatibility import require_supported_resistance_training_days
+from app.time_context import validate_timezone_name
 from app.workout_cycles.models import WorkoutCycle
 from app.workouts.program_engine.equipment import (
     derive_home_training_setup,
@@ -237,6 +238,23 @@ def get_profile(db: Session, user_id: UUID) -> ProfileSnapshot:
     if measurement is None:
         raise ProfileInvariantError
     return ProfileSnapshot(profile=profile, measurement=measurement)
+
+
+def update_user_timezone(db: Session, user_id: UUID, timezone_name: str) -> UserProfile:
+    normalized_timezone = validate_timezone_name(timezone_name)
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id).with_for_update())
+    if profile is None:
+        raise ProfileNotFoundError
+
+    profile.timezone = normalized_timezone
+    try:
+        db.flush()
+        db.commit()
+        db.refresh(profile)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    return profile
 
 
 def update_profile(

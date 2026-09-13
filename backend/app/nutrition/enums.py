@@ -204,6 +204,7 @@ class NutritionPlanLifecycleStatus(StrEnum):
     AWAITING_LAB_INFORMATION = "awaiting_lab_information"
     CHANGES_REQUESTED = "changes_requested"
     PHYSICIAN_APPROVED = "physician_approved"
+    READY_TO_START = "ready_to_start"
     ACTIVE = "active"
     ARCHIVED = "archived"
     REJECTED = "rejected"
@@ -331,7 +332,7 @@ class StructuredExerciseType(StrEnum):
 class StructuredExerciseSource(StrEnum):
     USER_REPORTED = "user_reported"
     TRAINING_PROFILE = "training_profile"
-    ACTIVE_FITSHO_PLAN = "active_fitsho_plan"
+    ACTIVE_FITICIAN_PLAN = "active_fitician_plan"
 
 
 class EstimateConfidence(StrEnum):

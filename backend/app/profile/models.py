@@ -90,6 +90,9 @@ class UserProfile(Base):
         default=ProductMode.TRAINING,
         nullable=False,
     )
+    timezone: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="UTC", server_default="UTC"
+    )
     display_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     sex: Mapped[Sex | None] = mapped_column(

@@ -43,6 +43,8 @@ from app.profile.schemas import (
     ProfileUpdate,
     SharedProfileResponse,
     SharedProfileUpsert,
+    TimezoneResponse,
+    TimezoneUpdateRequest,
 )
 from app.profile.service import (
     ProfileSnapshot,
@@ -52,6 +54,7 @@ from app.profile.service import (
     profile_completion_state,
     select_product_mode,
     update_profile,
+    update_user_timezone,
     upsert_shared_profile,
 )
 from app.profile.training_compatibility import (
@@ -76,7 +79,7 @@ def raise_age_error(error: Exception) -> NoReturn:
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "AGE_NOT_SUPPORTED",
-                "message": "فیتشو در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
+                "message": "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
             },
         ) from None
     raise HTTPException(
@@ -125,6 +128,26 @@ def read_status(db: DatabaseSession, user: CurrentUser) -> ProfileStatusResponse
         product_mode=profile.product_mode if profile is not None else None,
         completion_state=completion_state(db, profile),
     )
+
+
+@router.put(
+    "/timezone",
+    response_model=TimezoneResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def update_timezone(
+    payload: TimezoneUpdateRequest,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> TimezoneResponse:
+    try:
+        profile = update_user_timezone(db, user.id, payload.timezone)
+    except ProfileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fitness profile not found",
+        ) from None
+    return TimezoneResponse(timezone=profile.timezone)
 
 
 def to_response(
@@ -375,7 +398,7 @@ def save_shared_profile(
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "PRODUCT_MODE_REQUIRED", "message": "ابتدا مسیر فیتشو را انتخاب کنید."},
+            detail={"code": "PRODUCT_MODE_REQUIRED", "message": "ابتدا مسیر فیتیشن را انتخاب کنید."},
         ) from None
 
 

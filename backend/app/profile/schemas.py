@@ -25,6 +25,7 @@ from app.profile.training_compatibility import (
     require_supported_resistance_training_days,
 )
 from app.profile.training_focus import validate_user_priority_muscles
+from app.time_context import validate_timezone_name
 from app.workouts.program_engine.equipment import (
     derive_home_training_setup,
     equipment_for_home_training_setup,
@@ -34,6 +35,19 @@ from app.workouts.program_engine.equipment import (
 SessionDurationMinutes = Literal[30, 45, 60, 75, 90, 120]
 PlanDurationWeeks = Literal[4, 6, 8]
 CircumferenceCm = Decimal
+
+
+class TimezoneUpdateRequest(BaseModel):
+    timezone: str
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        return validate_timezone_name(value)
+
+
+class TimezoneResponse(BaseModel):
+    timezone: str
 
 
 def calculate_age(birth_date: date, today: date) -> int:
@@ -87,7 +101,7 @@ class ProfileCreate(BaseModel):
     available_equipment: tuple[Equipment, ...] | None = None
     training_cautions: list[TrainingCaution] = Field(default_factory=list)
     plan_duration_weeks: PlanDurationWeeks = 4
-    workout_generation_method: WorkoutGenerationMethod = WorkoutGenerationMethod.FITSHO_COACH
+    workout_generation_method: WorkoutGenerationMethod = WorkoutGenerationMethod.FITICIAN_COACH
     session_duration_minutes: SessionDurationMinutes
     training_intensity: TrainingIntensity | None = None
 

@@ -1481,6 +1481,7 @@ class NutritionWeeklyPlan(Base):
     )
     is_user_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     start_date: Mapped[date] = mapped_column(nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     planner_policy_version: Mapped[str] = mapped_column(
         ForeignKey("nutrition_planner_policy_versions.version", ondelete="RESTRICT"),
         nullable=False,
