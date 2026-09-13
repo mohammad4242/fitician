@@ -5,13 +5,14 @@ import httpx
 import pytest
 
 from app.auth import providers
-from app.auth.providers import KavenegarSmsProvider, SmtpEmailProvider
+from app.auth.providers import IPPanelSmsProvider, SmtpEmailProvider
 from app.config import Settings
 
 
 class FakeHttpClient:
     request_url: str | None = None
-    request_data: dict[str, str] | None = None
+    request_headers: dict[str, str] | None = None
+    request_json: dict[str, object] | None = None
 
     def __init__(self, **_kwargs: object) -> None:
         pass
@@ -27,64 +28,154 @@ class FakeHttpClient:
     ) -> None:
         pass
 
-    def post(self, url: str, *, data: dict[str, str]) -> httpx.Response:
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, object],
+    ) -> httpx.Response:
         type(self).request_url = url
-        type(self).request_data = data
+        type(self).request_headers = headers
+        type(self).request_json = json
         return httpx.Response(
-            200,
-            json={"return": {"status": 200}},
+            204,
+            content=b"",
             request=httpx.Request("POST", url),
         )
 
 
 class ApplicationFailureHttpClient(FakeHttpClient):
-    def post(self, url: str, *, data: dict[str, str]) -> httpx.Response:
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, object],
+    ) -> httpx.Response:
         type(self).request_url = url
-        type(self).request_data = data
+        type(self).request_headers = headers
+        type(self).request_json = json
         return httpx.Response(
             200,
-            json={"return": {"status": 424}},
+            json={"meta": {"status": False}},
             request=httpx.Request("POST", url),
         )
 
 
-def test_kavenegar_provider_uses_verification_template_contract(
+class HttpFailureHttpClient(FakeHttpClient):
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, object],
+    ) -> httpx.Response:
+        type(self).request_url = url
+        type(self).request_headers = headers
+        type(self).request_json = json
+        return httpx.Response(
+            503,
+            content=b"upstream failure",
+            request=httpx.Request("POST", url),
+        )
+
+
+class NetworkFailureHttpClient(FakeHttpClient):
+    def post(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        json: dict[str, object],
+    ) -> httpx.Response:
+        raise httpx.ConnectError(
+            "connection failed",
+            request=httpx.Request("POST", url),
+        )
+
+
+def test_ippanel_provider_uses_pattern_contract_with_empty_success_body(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(httpx, "Client", FakeHttpClient)
-    provider = KavenegarSmsProvider(
+    provider = IPPanelSmsProvider(
         Settings(
-            sms_provider="kavenegar",
-            kavenegar_api_key="api-key",
-            kavenegar_sender="10004346",
-            kavenegar_verify_template="fitsho-login",
+            sms_provider="ippanel",
+            ippanel_api_key="test-api-key",
+            ippanel_base_url="https://edge.ippanel.com/v1/api",
+            ippanel_from_number="+983000505",
+            ippanel_pattern_code="test-pattern-code",
         )
     )
 
     provider.send_login_otp("+989123456789", "123456")
 
-    assert FakeHttpClient.request_url == "https://api.kavenegar.com/v1/api-key/verify/lookup.json"
-    assert FakeHttpClient.request_data == {
-        "receptor": "+989123456789",
-        "token": "123456",
-        "template": "fitsho-login",
+    assert FakeHttpClient.request_url == "https://edge.ippanel.com/v1/api/send"
+    assert FakeHttpClient.request_headers == {
+        "Authorization": "test-api-key",
+        "Content-Type": "application/json",
+    }
+    assert FakeHttpClient.request_json == {
+        "sending_type": "pattern",
+        "from_number": "+983000505",
+        "code": "test-pattern-code",
+        "recipients": ["+989123456789"],
+        "params": {"code": "123456"},
     }
 
 
-def test_kavenegar_provider_rejects_application_level_delivery_failure(
+def test_ippanel_provider_rejects_application_level_delivery_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(httpx, "Client", ApplicationFailureHttpClient)
-    provider = KavenegarSmsProvider(
+    provider = IPPanelSmsProvider(
         Settings(
-            sms_provider="kavenegar",
-            kavenegar_api_key="api-key",
-            kavenegar_verify_template="fitsho-login",
+            sms_provider="ippanel",
+            ippanel_api_key="test-api-key",
+            ippanel_from_number="+983000505",
+            ippanel_pattern_code="test-pattern-code",
         )
     )
 
-    with pytest.raises(RuntimeError, match="Kavenegar delivery failed"):
+    with pytest.raises(RuntimeError, match=r"\AIPPanel delivery failed\Z"):
         provider.send_login_otp("+989123456789", "123456")
+
+
+@pytest.mark.parametrize("client_class", [HttpFailureHttpClient, NetworkFailureHttpClient])
+def test_ippanel_provider_maps_http_and_network_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    client_class: type[FakeHttpClient],
+) -> None:
+    monkeypatch.setattr(httpx, "Client", client_class)
+    provider = IPPanelSmsProvider(
+        Settings(
+            sms_provider="ippanel",
+            ippanel_api_key="test-api-key",
+            ippanel_from_number="+983000505",
+            ippanel_pattern_code="test-pattern-code",
+        )
+    )
+
+    with pytest.raises(RuntimeError, match=r"\AIPPanel delivery failed\Z"):
+        provider.send_login_otp("+989123456789", "123456")
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    ["ippanel_api_key", "ippanel_from_number", "ippanel_pattern_code"],
+)
+def test_ippanel_provider_requires_complete_configuration(missing_field: str) -> None:
+    values: dict[str, object] = {
+        "sms_provider": "ippanel",
+        "ippanel_api_key": "test-api-key",
+        "ippanel_from_number": "+983000505",
+        "ippanel_pattern_code": "test-pattern-code",
+    }
+    values[missing_field] = " "
+
+    with pytest.raises(ValueError, match=r"\AIPPanel provider is not configured\Z"):
+        IPPanelSmsProvider(Settings(**values))  # type: ignore[arg-type]
 
 
 class FakeSmtp:

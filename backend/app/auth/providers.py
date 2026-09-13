@@ -163,32 +163,54 @@ class SmtpEmailProvider:
         )
 
 
-class KavenegarSmsProvider:
+class IPPanelSmsProvider:
     def __init__(self, settings: Settings) -> None:
-        if settings.kavenegar_api_key is None:
-            raise ValueError("Kavenegar provider is not configured")
-        api_key = settings.kavenegar_api_key.get_secret_value()
-        base_url = settings.kavenegar_base_url.rstrip("/")
-        self._url = f"{base_url}/{api_key}/verify/lookup.json"
-        self._template = settings.kavenegar_verify_template
+        api_key = (
+            settings.ippanel_api_key.get_secret_value().strip()
+            if settings.ippanel_api_key is not None
+            else ""
+        )
+        from_number = (settings.ippanel_from_number or "").strip()
+        pattern_code = (settings.ippanel_pattern_code or "").strip()
+        if not api_key or not from_number or not pattern_code:
+            raise ValueError("IPPanel provider is not configured")
+        self._api_key = api_key
+        self._url = f"{settings.ippanel_base_url.rstrip('/')}/send"
+        self._from_number = from_number
+        self._pattern_code = pattern_code
         self._timeout = settings.sms_timeout_seconds
 
     def send_login_otp(self, phone_number: str, code: str) -> None:
         payload = {
-            "receptor": phone_number,
-            "token": code,
-            "template": self._template,
+            "sending_type": "pattern",
+            "from_number": self._from_number,
+            "code": self._pattern_code,
+            "recipients": [phone_number],
+            "params": {
+                "code": code,
+            },
         }
-        with httpx.Client(timeout=self._timeout, trust_env=False) as client:
-            response = client.post(self._url, data=payload)
-            response.raise_for_status()
-            try:
-                body = response.json()
-            except ValueError:
-                raise RuntimeError("Kavenegar delivery failed") from None
-            result = body.get("return") if isinstance(body, dict) else None
-            if not isinstance(result, dict) or result.get("status") != 200:
-                raise RuntimeError("Kavenegar delivery failed")
+        headers = {
+            "Authorization": self._api_key,
+            "Content-Type": "application/json",
+        }
+        try:
+            with httpx.Client(timeout=self._timeout, trust_env=False) as client:
+                response = client.post(self._url, headers=headers, json=payload)
+                response.raise_for_status()
+        except httpx.HTTPError:
+            raise RuntimeError("IPPanel delivery failed") from None
+
+        try:
+            body = response.json()
+        except ValueError:
+            return
+        if isinstance(body, dict):
+            meta = body.get("meta")
+            if isinstance(meta, dict) and meta.get("status") is False:
+                raise RuntimeError("IPPanel delivery failed")
+            if body.get("status") is False:
+                raise RuntimeError("IPPanel delivery failed")
 
 
 class GoogleIdTokenProvider:
@@ -410,8 +432,8 @@ def build_email_provider(settings: Settings) -> EmailProvider:
 
 
 def build_sms_provider(settings: Settings) -> SmsProvider:
-    if settings.sms_provider == "kavenegar":
-        return KavenegarSmsProvider(settings)
+    if settings.sms_provider == "ippanel":
+        return IPPanelSmsProvider(settings)
     return FakeSmsProvider()
 
 
