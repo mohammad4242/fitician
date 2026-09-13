@@ -296,6 +296,74 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/billing/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Billing Offers */
+        get: operations["admin_billing_offers_api_v1_admin_billing_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/offers/{offer_code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Admin Billing Offer */
+        patch: operations["update_admin_billing_offer_api_v1_admin_billing_offers__offer_code__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/billing/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Billing Orders */
+        get: operations["admin_billing_orders_api_v1_admin_billing_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/billing/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Billing Order */
+        get: operations["admin_billing_order_api_v1_admin_billing_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/body-analyses/{analysis_id}/retry": {
         parameters: {
             query?: never;
@@ -810,6 +878,109 @@ export type paths = {
         put?: never;
         /** Reset Password Endpoint */
         post: operations["reset_password_endpoint_api_v1_auth_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offers */
+        get: operations["offers_api_v1_billing_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing Orders */
+        get: operations["billing_orders_api_v1_billing_orders_get"];
+        put?: never;
+        /** Create Billing Order */
+        post: operations["create_billing_order_api_v1_billing_orders_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Billing Order */
+        get: operations["billing_order_api_v1_billing_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/orders/{order_id}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Billing Checkout */
+        post: operations["billing_checkout_api_v1_billing_orders__order_id__checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/providers/{provider}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refund Billing Payment */
+        post: operations["refund_billing_payment_api_v1_billing_providers__provider__refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/providers/{provider}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Billing Payment */
+        post: operations["verify_billing_payment_api_v1_billing_providers__provider__verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3193,6 +3364,8 @@ export type components = {
              * Format: date-time
              */
             starts_at: string;
+            /** Term Weeks */
+            term_weeks: number | null;
         };
         /**
          * AccessPackageCode
@@ -3247,6 +3420,73 @@ export type components = {
          * @enum {string}
          */
         ActivityLevel: "low" | "moderate" | "high";
+        /** AdminBillingOfferResponse */
+        AdminBillingOfferResponse: {
+            /** Available From */
+            available_from: string | null;
+            /** Available Until */
+            available_until: string | null;
+            /** Currency */
+            currency: string | null;
+            /**
+             * Duration Weeks
+             * @enum {integer}
+             */
+            duration_weeks: 4 | 6 | 8;
+            /** Entitlements */
+            entitlements: components["schemas"]["EntitlementCode"][];
+            /** Is Active */
+            is_active: boolean;
+            /** Is Available */
+            is_available: boolean;
+            offer_code: components["schemas"]["BillingOfferCode"];
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Price Irr */
+            price_irr: number | null;
+            /** Quota Policies */
+            quota_policies: components["schemas"]["BillingQuotaPolicyResponse"][];
+        };
+        /** AdminBillingOrderResponse */
+        AdminBillingOrderResponse: {
+            /** Amount Irr Snapshot */
+            amount_irr_snapshot: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency Snapshot */
+            currency_snapshot: string;
+            /**
+             * Duration Weeks Snapshot
+             * @enum {integer}
+             */
+            duration_weeks_snapshot: 4 | 6 | 8;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            offer_code: components["schemas"]["BillingOfferCode"];
+            package_code_snapshot: components["schemas"]["AccessPackageCode"];
+            /** Paid At */
+            paid_at: string | null;
+            provider: components["schemas"]["PaymentProviderCode"];
+            /** Refunded At */
+            refunded_at: string | null;
+            status: components["schemas"]["BillingOrderStatus"];
+            /** Transactions */
+            transactions: components["schemas"]["BillingTransactionResponse"][];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** User Id */
+            user_id: string | null;
+        };
         /** AdminExerciseDetail */
         AdminExerciseDetail: {
             /** Aliases En */
@@ -4451,6 +4691,162 @@ export type components = {
          * @enum {string}
          */
         BalanceAbility: "limited" | "normal" | "high";
+        /** BillingCheckoutResponse */
+        BillingCheckoutResponse: {
+            /**
+             * Checkout Kind
+             * @enum {string}
+             */
+            checkout_kind: "redirect" | "native";
+            /** Checkout Url */
+            checkout_url: string | null;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            provider: components["schemas"]["PaymentProviderCode"];
+            /** Provider Product Id */
+            provider_product_id: string | null;
+            /** Provider Reference */
+            provider_reference: string | null;
+            /**
+             * Transaction Id
+             * Format: uuid
+             */
+            transaction_id: string;
+        };
+        /**
+         * BillingOfferCode
+         * @enum {string}
+         */
+        BillingOfferCode: "training_4w" | "training_6w" | "training_8w" | "training_coach_4w" | "training_coach_6w" | "training_coach_8w" | "nutrition_4w" | "nutrition_6w" | "nutrition_8w" | "nutrition_physician_4w" | "nutrition_physician_6w" | "nutrition_physician_8w" | "complete_4w" | "complete_6w" | "complete_8w" | "complete_care_4w" | "complete_care_6w" | "complete_care_8w";
+        /** BillingOfferResponse */
+        BillingOfferResponse: {
+            /** Currency */
+            currency: string | null;
+            /**
+             * Duration Weeks
+             * @enum {integer}
+             */
+            duration_weeks: 4 | 6 | 8;
+            /** Entitlements */
+            entitlements: components["schemas"]["EntitlementCode"][];
+            /** Is Available */
+            is_available: boolean;
+            offer_code: components["schemas"]["BillingOfferCode"];
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Price Irr */
+            price_irr: number | null;
+            /** Quota Policies */
+            quota_policies: components["schemas"]["BillingQuotaPolicyResponse"][];
+        };
+        /** BillingOrderResponse */
+        BillingOrderResponse: {
+            /** Amount Irr Snapshot */
+            amount_irr_snapshot: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency Snapshot */
+            currency_snapshot: string;
+            /**
+             * Duration Weeks Snapshot
+             * @enum {integer}
+             */
+            duration_weeks_snapshot: 4 | 6 | 8;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            offer_code: components["schemas"]["BillingOfferCode"];
+            package_code_snapshot: components["schemas"]["AccessPackageCode"];
+            /** Paid At */
+            paid_at: string | null;
+            provider: components["schemas"]["PaymentProviderCode"];
+            /** Refunded At */
+            refunded_at: string | null;
+            status: components["schemas"]["BillingOrderStatus"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * BillingOrderStatus
+         * @enum {string}
+         */
+        BillingOrderStatus: "created" | "pending" | "paid" | "failed" | "cancelled" | "expired" | "refunded";
+        /** BillingPaymentResultResponse */
+        BillingPaymentResultResponse: {
+            /** Access Grant Id */
+            access_grant_id: string | null;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            order_status: components["schemas"]["BillingOrderStatus"];
+            /**
+             * Transaction Id
+             * Format: uuid
+             */
+            transaction_id: string;
+            transaction_status: components["schemas"]["BillingTransactionStatus"];
+            /** Verified */
+            verified: boolean;
+        };
+        /** BillingQuotaPolicyResponse */
+        BillingQuotaPolicyResponse: {
+            entitlement: components["schemas"]["EntitlementCode"];
+            /** Limit */
+            limit: number;
+            /** Window Days */
+            window_days: number;
+        };
+        /** BillingTransactionResponse */
+        BillingTransactionResponse: {
+            /** Amount Irr */
+            amount_irr: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /** Failed At */
+            failed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            provider: components["schemas"]["PaymentProviderCode"];
+            /** Provider Reference */
+            provider_reference: string | null;
+            /** Refunded At */
+            refunded_at: string | null;
+            status: components["schemas"]["BillingTransactionStatus"];
+            /** Verified At */
+            verified_at: string | null;
+        };
+        /**
+         * BillingTransactionStatus
+         * @enum {string}
+         */
+        BillingTransactionStatus: "created" | "pending" | "verified" | "failed" | "cancelled" | "refunded";
         /** Body_create_exercise_api_v1_admin_exercises_post */
         Body_create_exercise_api_v1_admin_exercises_post: {
             /** Media */
@@ -5747,6 +6143,17 @@ export type components = {
          * @enum {string}
          */
         CookingSkill: "none" | "basic" | "confident";
+        /** CreateCheckoutRequest */
+        CreateCheckoutRequest: {
+            provider: components["schemas"]["PaymentProviderCode"];
+        };
+        /** CreateOrderRequest */
+        CreateOrderRequest: {
+            /** Client Idempotency Key */
+            client_idempotency_key: string;
+            offer_code: components["schemas"]["BillingOfferCode"];
+            provider: components["schemas"]["PaymentProviderCode"];
+        };
         /** CredentialStatus */
         CredentialStatus: {
             /** Configured */
@@ -8309,6 +8716,11 @@ export type components = {
              */
             expected_plan_revision_id: string;
         };
+        /**
+         * PaymentProviderCode
+         * @enum {string}
+         */
+        PaymentProviderCode: "fake";
         /** PhoneOtpSentResponse */
         PhoneOtpSentResponse: {
             /** Message */
@@ -9789,6 +10201,19 @@ export type components = {
             /** Ends At */
             ends_at: string | null;
         };
+        /** UpdateBillingOfferConfigRequest */
+        UpdateBillingOfferConfigRequest: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Price Irr */
+            price_irr?: number | null;
+        };
         /** UserReportedMeasurementChange */
         UserReportedMeasurementChange: {
             /** Current */
@@ -9837,6 +10262,16 @@ export type components = {
          * @enum {string}
          */
         ValidationStatus: "VALID" | "VALID_WITH_CONSTRAINTS" | "INVALID";
+        /** VerifyPaymentRequest */
+        VerifyPaymentRequest: {
+            /** Provider Reference */
+            provider_reference?: string | null;
+            /**
+             * Transaction Id
+             * Format: uuid
+             */
+            transaction_id: string;
+        };
         /** VisualChecklistFinding */
         VisualChecklistFinding: {
             area: components["schemas"]["BodyArea"];
@@ -11688,6 +12123,112 @@ export interface operations {
             };
         };
     };
+    admin_billing_offers_api_v1_admin_billing_offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBillingOfferResponse"][];
+                };
+            };
+        };
+    };
+    update_admin_billing_offer_api_v1_admin_billing_offers__offer_code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offer_code: components["schemas"]["BillingOfferCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBillingOfferConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBillingOfferResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_billing_orders_api_v1_admin_billing_orders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBillingOrderResponse"][];
+                };
+            };
+        };
+    };
+    admin_billing_order_api_v1_admin_billing_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBillingOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     retry_analysis_as_admin_api_v1_admin_body_analyses__analysis_id__retry_post: {
         parameters: {
             query?: never;
@@ -12919,6 +13460,215 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    offers_api_v1_billing_offers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOfferResponse"][];
+                };
+            };
+        };
+    };
+    billing_orders_api_v1_billing_orders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOrderResponse"][];
+                };
+            };
+        };
+    };
+    create_billing_order_api_v1_billing_orders_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    billing_order_api_v1_billing_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOrderResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    billing_checkout_api_v1_billing_orders__order_id__checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingCheckoutResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    refund_billing_payment_api_v1_billing_providers__provider__refund_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["PaymentProviderCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPaymentResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_billing_payment_api_v1_billing_providers__provider__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["PaymentProviderCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPaymentResultResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

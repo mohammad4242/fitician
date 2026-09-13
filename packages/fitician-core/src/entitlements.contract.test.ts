@@ -36,7 +36,17 @@ it("keeps the entitlement contract stable for Web and Mobile", () => {
     active_packages: ["free"],
     trial: { active: false, ends_at: null },
     entitlements: { granted: [], quotas: [] },
-    grants: [],
+    grants: [
+      {
+        id: "grant-1",
+        package_code: "training",
+        source: "subscription",
+        term_weeks: 6,
+        starts_at: "2026-09-13T00:00:00Z",
+        ends_at: "2026-10-25T00:00:00Z",
+        revoked_at: null,
+      },
+    ],
   } satisfies EntitlementSnapshot;
 
   expect(catalogItem.entitlements).toContain("training.plan.generate");

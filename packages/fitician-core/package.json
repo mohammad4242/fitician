@@ -42,6 +42,10 @@
       "types": "./dist/entitlements.d.ts",
       "import": "./dist/entitlements.js"
     },
+    "./billing": {
+      "types": "./dist/billing.d.ts",
+      "import": "./dist/billing.js"
+    },
     "./formatters": {
       "types": "./dist/formatters.d.ts",
       "import": "./dist/formatters.js"

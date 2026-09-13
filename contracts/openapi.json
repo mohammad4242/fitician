@@ -419,12 +419,24 @@
             "format": "date-time",
             "title": "Starts At",
             "type": "string"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
           }
         },
         "required": [
           "id",
           "package_code",
           "source",
+          "term_weeks",
           "starts_at",
           "ends_at",
           "revoked_at"
@@ -603,6 +615,232 @@
         ],
         "title": "ActivityLevel",
         "type": "string"
+      },
+      "AdminBillingOfferResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "duration_weeks": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "title": "Duration Weeks",
+            "type": "integer"
+          },
+          "entitlements": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementCode"
+            },
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "offer_code": {
+            "$ref": "#/components/schemas/BillingOfferCode"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "price_irr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Irr"
+          },
+          "quota_policies": {
+            "items": {
+              "$ref": "#/components/schemas/BillingQuotaPolicyResponse"
+            },
+            "title": "Quota Policies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "offer_code",
+          "package_code",
+          "duration_weeks",
+          "price_irr",
+          "currency",
+          "is_available",
+          "entitlements",
+          "quota_policies",
+          "is_active",
+          "available_from",
+          "available_until"
+        ],
+        "title": "AdminBillingOfferResponse",
+        "type": "object"
+      },
+      "AdminBillingOrderResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_irr_snapshot": {
+            "title": "Amount Irr Snapshot",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency_snapshot": {
+            "title": "Currency Snapshot",
+            "type": "string"
+          },
+          "duration_weeks_snapshot": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "title": "Duration Weeks Snapshot",
+            "type": "integer"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "offer_code": {
+            "$ref": "#/components/schemas/BillingOfferCode"
+          },
+          "package_code_snapshot": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          },
+          "refunded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refunded At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BillingOrderStatus"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/BillingTransactionResponse"
+            },
+            "title": "Transactions",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "id",
+          "offer_code",
+          "package_code_snapshot",
+          "duration_weeks_snapshot",
+          "amount_irr_snapshot",
+          "currency_snapshot",
+          "provider",
+          "status",
+          "created_at",
+          "updated_at",
+          "expires_at",
+          "paid_at",
+          "refunded_at",
+          "user_id",
+          "transactions"
+        ],
+        "title": "AdminBillingOrderResponse",
+        "type": "object"
       },
       "AdminExerciseDetail": {
         "properties": {
@@ -3992,6 +4230,465 @@
           "high"
         ],
         "title": "BalanceAbility",
+        "type": "string"
+      },
+      "BillingCheckoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checkout_kind": {
+            "enum": [
+              "redirect",
+              "native"
+            ],
+            "title": "Checkout Kind",
+            "type": "string"
+          },
+          "checkout_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkout Url"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          },
+          "provider_product_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Product Id"
+          },
+          "provider_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Reference"
+          },
+          "transaction_id": {
+            "format": "uuid",
+            "title": "Transaction Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "transaction_id",
+          "provider",
+          "checkout_kind",
+          "checkout_url",
+          "provider_product_id",
+          "provider_reference"
+        ],
+        "title": "BillingCheckoutResponse",
+        "type": "object"
+      },
+      "BillingOfferCode": {
+        "enum": [
+          "training_4w",
+          "training_6w",
+          "training_8w",
+          "training_coach_4w",
+          "training_coach_6w",
+          "training_coach_8w",
+          "nutrition_4w",
+          "nutrition_6w",
+          "nutrition_8w",
+          "nutrition_physician_4w",
+          "nutrition_physician_6w",
+          "nutrition_physician_8w",
+          "complete_4w",
+          "complete_6w",
+          "complete_8w",
+          "complete_care_4w",
+          "complete_care_6w",
+          "complete_care_8w"
+        ],
+        "title": "BillingOfferCode",
+        "type": "string"
+      },
+      "BillingOfferResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "duration_weeks": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "title": "Duration Weeks",
+            "type": "integer"
+          },
+          "entitlements": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementCode"
+            },
+            "title": "Entitlements",
+            "type": "array"
+          },
+          "is_available": {
+            "title": "Is Available",
+            "type": "boolean"
+          },
+          "offer_code": {
+            "$ref": "#/components/schemas/BillingOfferCode"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "price_irr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Irr"
+          },
+          "quota_policies": {
+            "items": {
+              "$ref": "#/components/schemas/BillingQuotaPolicyResponse"
+            },
+            "title": "Quota Policies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "offer_code",
+          "package_code",
+          "duration_weeks",
+          "price_irr",
+          "currency",
+          "is_available",
+          "entitlements",
+          "quota_policies"
+        ],
+        "title": "BillingOfferResponse",
+        "type": "object"
+      },
+      "BillingOrderResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_irr_snapshot": {
+            "title": "Amount Irr Snapshot",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency_snapshot": {
+            "title": "Currency Snapshot",
+            "type": "string"
+          },
+          "duration_weeks_snapshot": {
+            "enum": [
+              4,
+              6,
+              8
+            ],
+            "title": "Duration Weeks Snapshot",
+            "type": "integer"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "offer_code": {
+            "$ref": "#/components/schemas/BillingOfferCode"
+          },
+          "package_code_snapshot": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          },
+          "refunded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refunded At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BillingOrderStatus"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "offer_code",
+          "package_code_snapshot",
+          "duration_weeks_snapshot",
+          "amount_irr_snapshot",
+          "currency_snapshot",
+          "provider",
+          "status",
+          "created_at",
+          "updated_at",
+          "expires_at",
+          "paid_at",
+          "refunded_at"
+        ],
+        "title": "BillingOrderResponse",
+        "type": "object"
+      },
+      "BillingOrderStatus": {
+        "enum": [
+          "created",
+          "pending",
+          "paid",
+          "failed",
+          "cancelled",
+          "expired",
+          "refunded"
+        ],
+        "title": "BillingOrderStatus",
+        "type": "string"
+      },
+      "BillingPaymentResultResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_grant_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Grant Id"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "order_status": {
+            "$ref": "#/components/schemas/BillingOrderStatus"
+          },
+          "transaction_id": {
+            "format": "uuid",
+            "title": "Transaction Id",
+            "type": "string"
+          },
+          "transaction_status": {
+            "$ref": "#/components/schemas/BillingTransactionStatus"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "order_id",
+          "transaction_id",
+          "transaction_status",
+          "order_status",
+          "verified",
+          "access_grant_id"
+        ],
+        "title": "BillingPaymentResultResponse",
+        "type": "object"
+      },
+      "BillingQuotaPolicyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/EntitlementCode"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "window_days": {
+            "title": "Window Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entitlement",
+          "limit",
+          "window_days"
+        ],
+        "title": "BillingQuotaPolicyResponse",
+        "type": "object"
+      },
+      "BillingTransactionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_irr": {
+            "title": "Amount Irr",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "failed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "title": "Order Id",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          },
+          "provider_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Reference"
+          },
+          "refunded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refunded At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BillingTransactionStatus"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          }
+        },
+        "required": [
+          "id",
+          "order_id",
+          "provider",
+          "provider_reference",
+          "amount_irr",
+          "currency",
+          "status",
+          "created_at",
+          "verified_at",
+          "failed_at",
+          "refunded_at"
+        ],
+        "title": "BillingTransactionResponse",
+        "type": "object"
+      },
+      "BillingTransactionStatus": {
+        "enum": [
+          "created",
+          "pending",
+          "verified",
+          "failed",
+          "cancelled",
+          "refunded"
+        ],
+        "title": "BillingTransactionStatus",
         "type": "string"
       },
       "BodyAnalysisClassification": {
@@ -7831,6 +8528,43 @@
         ],
         "title": "CookingSkill",
         "type": "string"
+      },
+      "CreateCheckoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "title": "CreateCheckoutRequest",
+        "type": "object"
+      },
+      "CreateOrderRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Client Idempotency Key",
+            "type": "string"
+          },
+          "offer_code": {
+            "$ref": "#/components/schemas/BillingOfferCode"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentProviderCode"
+          }
+        },
+        "required": [
+          "offer_code",
+          "provider",
+          "client_idempotency_key"
+        ],
+        "title": "CreateOrderRequest",
+        "type": "object"
       },
       "CredentialStatus": {
         "properties": {
@@ -14974,6 +15708,13 @@
         "title": "PartialRegenerationInput",
         "type": "object"
       },
+      "PaymentProviderCode": {
+        "enum": [
+          "fake"
+        ],
+        "title": "PaymentProviderCode",
+        "type": "string"
+      },
       "PhoneOtpSentResponse": {
         "properties": {
           "message": {
@@ -19551,6 +20292,73 @@
         "title": "TrialStateResponse",
         "type": "object"
       },
+      "UpdateBillingOfferConfigRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "price_irr": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Irr"
+          }
+        },
+        "title": "UpdateBillingOfferConfigRequest",
+        "type": "object"
+      },
       "UserReportedMeasurementChange": {
         "additionalProperties": false,
         "properties": {
@@ -19684,6 +20492,33 @@
         ],
         "title": "ValidationStatus",
         "type": "string"
+      },
+      "VerifyPaymentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "provider_reference": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Reference"
+          },
+          "transaction_id": {
+            "format": "uuid",
+            "title": "Transaction Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transaction_id"
+        ],
+        "title": "VerifyPaymentRequest",
+        "type": "object"
       },
       "VisualChecklistFinding": {
         "additionalProperties": false,
@@ -23886,6 +24721,170 @@
         ]
       }
     },
+    "/api/v1/admin/billing/offers": {
+      "get": {
+        "operationId": "admin_billing_offers_api_v1_admin_billing_offers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminBillingOfferResponse"
+                  },
+                  "title": "Response Admin Billing Offers Api V1 Admin Billing Offers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Billing Offers",
+        "tags": [
+          "admin-billing"
+        ]
+      }
+    },
+    "/api/v1/admin/billing/offers/{offer_code}": {
+      "patch": {
+        "operationId": "update_admin_billing_offer_api_v1_admin_billing_offers__offer_code__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "offer_code",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BillingOfferCode"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBillingOfferConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBillingOfferResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Admin Billing Offer",
+        "tags": [
+          "admin-billing"
+        ]
+      }
+    },
+    "/api/v1/admin/billing/orders": {
+      "get": {
+        "operationId": "admin_billing_orders_api_v1_admin_billing_orders_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminBillingOrderResponse"
+                  },
+                  "title": "Response Admin Billing Orders Api V1 Admin Billing Orders Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Billing Orders",
+        "tags": [
+          "admin-billing"
+        ]
+      }
+    },
+    "/api/v1/admin/billing/orders/{order_id}": {
+      "get": {
+        "operationId": "admin_billing_order_api_v1_admin_billing_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBillingOrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Admin Billing Order",
+        "tags": [
+          "admin-billing"
+        ]
+      }
+    },
     "/api/v1/admin/body-analyses/{analysis_id}/retry": {
       "post": {
         "operationId": "retry_analysis_as_admin_api_v1_admin_body_analyses__analysis_id__retry_post",
@@ -25882,6 +26881,323 @@
         "summary": "Reset Password Endpoint",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/billing/offers": {
+      "get": {
+        "operationId": "offers_api_v1_billing_offers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingOfferResponse"
+                  },
+                  "title": "Response Offers Api V1 Billing Offers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Offers",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/orders": {
+      "get": {
+        "operationId": "billing_orders_api_v1_billing_orders_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingOrderResponse"
+                  },
+                  "title": "Response Billing Orders Api V1 Billing Orders Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Billing Orders",
+        "tags": [
+          "billing"
+        ]
+      },
+      "post": {
+        "operationId": "create_billing_order_api_v1_billing_orders_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Billing Order",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/orders/{order_id}": {
+      "get": {
+        "operationId": "billing_order_api_v1_billing_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOrderResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Billing Order",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/orders/{order_id}/checkout": {
+      "post": {
+        "operationId": "billing_checkout_api_v1_billing_orders__order_id__checkout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCheckoutResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Billing Checkout",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/providers/{provider}/refund": {
+      "post": {
+        "operationId": "refund_billing_payment_api_v1_billing_providers__provider__refund_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentProviderCode"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPaymentResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refund Billing Payment",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/providers/{provider}/verify": {
+      "post": {
+        "operationId": "verify_billing_payment_api_v1_billing_providers__provider__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PaymentProviderCode"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPaymentResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify Billing Payment",
+        "tags": [
+          "billing"
         ]
       }
     },
