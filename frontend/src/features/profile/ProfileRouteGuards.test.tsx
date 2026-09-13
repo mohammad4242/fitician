@@ -184,7 +184,7 @@ describe("profile route matrix", () => {
     expect(
       await screen.findByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("پیشنهاد فیتشو")).toBeInTheDocument();
+    expect(screen.getByText("پیشنهاد فیتیشن")).toBeInTheDocument();
   });
 
   it.each(["/onboarding", "/login"])(
@@ -206,7 +206,7 @@ describe("profile route matrix", () => {
     contexts.profile.status = "loading";
     renderRoute("/dashboard");
 
-    expect(screen.getByText("در حال آماده‌سازی فیتشو…")).toBeInTheDocument();
+    expect(screen.getByText("در حال آماده‌سازی فیتیشن…")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "حسابت آماده است" }),
     ).not.toBeInTheDocument();

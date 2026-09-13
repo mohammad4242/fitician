@@ -1,61 +1,120 @@
 :root {
-  --fitsho-canvas: #020607;
-  --fitsho-petrol: #091817;
-  --fitsho-teal: #0e201e;
-  --fitsho-surface: #081211;
-  --fitsho-surface-subtle: #050b0c;
-  --fitsho-surface-raised: #101e1c;
-  --fitsho-surface-interactive: rgb(80 223 206 / 7%);
-  --fitsho-aqua: #50dfce;
-  --fitsho-blue: #3b82f6;
-  --fitsho-coral: #f67859;
-  --fitsho-amber: #f2b85b;
-  --fitsho-success: #66c89f;
-  --fitsho-danger: #f67859;
-  --fitsho-mist: #e8f4f1;
-  --fitsho-ink: #e8f4f1;
-  --fitsho-muted: #94aba5;
-  --fitsho-line: rgb(232 244 241 / 12%);
-  --fitsho-line-strong: rgb(80 223 206 / 28%);
-  --fitsho-space-1: 0.25rem;
-  --fitsho-space-2: 0.5rem;
-  --fitsho-space-3: 0.75rem;
-  --fitsho-space-4: 1rem;
-  --fitsho-space-5: 1.5rem;
-  --fitsho-space-6: 2rem;
-  --fitsho-space-7: 3rem;
-  --fitsho-space-8: 4.5rem;
-  --fitsho-radius-sm: 0.625rem;
-  --fitsho-radius-md: 0.875rem;
-  --fitsho-radius-lg: 1.125rem;
-  --fitsho-radius-xl: 1.5rem;
-  --fitsho-radius-card: 1.125rem;
-  --fitsho-radius-pill: 999px;
-  --fitsho-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 32%);
-  --fitsho-shadow-soft: 0 0.5rem 2rem rgb(0 0 0 / 22%);
-  --fitsho-shadow-card: 0 4px 20px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 18%);
-  --fitsho-shadow-focus: 0 1.25rem 3.75rem rgb(0 0 0 / 24%), 0 0 0 1px rgb(80 223 206 / 12%);
-  --fitsho-shadow-glow: 0 4px 18px rgb(80 223 206 / 24%);
-  --fitsho-duration-fast: 160ms;
-  --fitsho-duration-medium: 260ms;
-  --fitsho-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --fitsho-content: 82rem;
-  --fitsho-content-max: 82rem;
-  --fitsho-reading: 68rem;
-  --fitsho-page-gutter: 0.75rem;
-  --fitsho-header-height: 4.75rem;
-  --fitsho-bottom-nav-space: calc(5.4rem + env(safe-area-inset-bottom));
+  --fitician-canvas: #020607;
+  --fitician-petrol: #091817;
+  --fitician-teal: #0e201e;
+  --fitician-surface: #081211;
+  --fitician-surface-subtle: #050b0c;
+  --fitician-surface-raised: #101e1c;
+  --fitician-surface-interactive: rgb(80 223 206 / 7%);
+  --fitician-aqua: #50dfce;
+  --fitician-blue: #3b82f6;
+  --fitician-coral: #f67859;
+  --fitician-amber: #f2b85b;
+  --fitician-success: #66c89f;
+  --fitician-danger: #f67859;
+  --fitician-mist: #e8f4f1;
+  --fitician-ink: #e8f4f1;
+  --fitician-muted: #94aba5;
+  --fitician-line: rgb(232 244 241 / 12%);
+  --fitician-line-strong: rgb(80 223 206 / 28%);
+  --fitician-space-1: 0.25rem;
+  --fitician-space-2: 0.5rem;
+  --fitician-space-3: 0.75rem;
+  --fitician-space-4: 1rem;
+  --fitician-space-5: 1.5rem;
+  --fitician-space-6: 2rem;
+  --fitician-space-7: 3rem;
+  --fitician-space-8: 4.5rem;
+  --fitician-radius-sm: 0.625rem;
+  --fitician-radius-md: 0.875rem;
+  --fitician-radius-lg: 1.125rem;
+  --fitician-radius-xl: 1.5rem;
+  --fitician-radius-card: 1.125rem;
+  --fitician-radius-pill: 999px;
+  --fitician-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 32%);
+  --fitician-shadow-soft: 0 0.5rem 2rem rgb(0 0 0 / 22%);
+  --fitician-shadow-card: 0 4px 20px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 18%);
+  --fitician-shadow-focus: 0 1.25rem 3.75rem rgb(0 0 0 / 24%), 0 0 0 1px rgb(80 223 206 / 12%);
+  --fitician-shadow-glow: 0 4px 18px rgb(80 223 206 / 24%);
+  --fitician-duration-fast: 160ms;
+  --fitician-duration-medium: 260ms;
+  --fitician-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fitician-content: 82rem;
+  --fitician-content-max: 82rem;
+  --fitician-reading: 68rem;
+  --fitician-page-gutter: 0.75rem;
+  --fitician-header-height: 4.75rem;
+  --fitician-bottom-nav-space: calc(5.4rem + env(safe-area-inset-bottom));
+
+  /* Legacy aliases for fitsho tokens */
+  --fitsho-canvas: var(--fitician-canvas);
+  --fitsho-petrol: var(--fitician-petrol);
+  --fitsho-teal: var(--fitician-teal);
+  --fitsho-surface: var(--fitician-surface);
+  --fitsho-surface-subtle: var(--fitician-surface-subtle);
+  --fitsho-surface-raised: var(--fitician-surface-raised);
+  --fitsho-surface-interactive: var(--fitician-surface-interactive);
+  --fitsho-aqua: var(--fitician-aqua);
+  --fitsho-blue: var(--fitician-blue);
+  --fitsho-coral: var(--fitician-coral);
+  --fitsho-amber: var(--fitician-amber);
+  --fitsho-success: var(--fitician-success);
+  --fitsho-danger: var(--fitician-danger);
+  --fitsho-mist: var(--fitician-mist);
+  --fitsho-ink: var(--fitician-ink);
+  --fitsho-muted: var(--fitician-muted);
+  --fitsho-line: var(--fitician-line);
+  --fitsho-line-strong: var(--fitician-line-strong);
+  --fitsho-space-1: var(--fitician-space-1);
+  --fitsho-space-2: var(--fitician-space-2);
+  --fitsho-space-3: var(--fitician-space-3);
+  --fitsho-space-4: var(--fitician-space-4);
+  --fitsho-space-5: var(--fitician-space-5);
+  --fitsho-space-6: var(--fitician-space-6);
+  --fitsho-space-7: var(--fitician-space-7);
+  --fitsho-space-8: var(--fitician-space-8);
+  --fitsho-radius-sm: var(--fitician-radius-sm);
+  --fitsho-radius-md: var(--fitician-radius-md);
+  --fitsho-radius-lg: var(--fitician-radius-lg);
+  --fitsho-radius-xl: var(--fitician-radius-xl);
+  --fitsho-radius-card: var(--fitician-radius-card);
+  --fitsho-radius-pill: var(--fitician-radius-pill);
+  --fitsho-shadow: var(--fitician-shadow);
+  --fitsho-shadow-soft: var(--fitician-shadow-soft);
+  --fitsho-shadow-card: var(--fitician-shadow-card);
+  --fitsho-shadow-focus: var(--fitician-shadow-focus);
+  --fitsho-shadow-glow: var(--fitician-shadow-glow);
+  --fitsho-duration-fast: var(--fitician-duration-fast);
+  --fitsho-duration-medium: var(--fitician-duration-medium);
+  --fitsho-ease: var(--fitician-ease);
+  --fitsho-content: var(--fitician-content);
+  --fitsho-content-max: var(--fitician-content-max);
+  --fitsho-reading: var(--fitician-reading);
+  --fitsho-page-gutter: var(--fitician-page-gutter);
+  --fitsho-header-height: var(--fitician-header-height);
+  --fitsho-bottom-nav-space: var(--fitician-bottom-nav-space);
 }
 
 @media (min-width: 768px) {
-  :root { --fitsho-page-gutter: 1.5rem; }
+  :root {
+    --fitician-page-gutter: 1.5rem;
+    --fitsho-page-gutter: 1.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
-  :root { --fitsho-page-gutter: 2rem; }
+  :root {
+    --fitician-page-gutter: 2rem;
+    --fitsho-page-gutter: 2rem;
+  }
 }
 
+.fitician-app,
 .fitsho-app {
+  --fitician-radius-md: 0.75rem;
+  --fitician-radius-lg: 0.9rem;
+  --fitician-radius-xl: 1.1rem;
+  --fitician-radius-card: 0.9rem;
   --fitsho-radius-md: 0.75rem;
   --fitsho-radius-lg: 0.9rem;
   --fitsho-radius-xl: 1.1rem;

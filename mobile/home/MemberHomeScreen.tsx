@@ -1,12 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
-import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
-import { nutritionKeys, profileKeys, programTimelineKeys, workoutKeys } from "../data/queryKeys";
+import { profileKeys, workoutKeys, nutritionKeys } from "../data/queryKeys";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { BodyAnalysisAccessNotice } from "../bodyAnalysis/BodyAnalysisAccessNotice";
 import { resolveBodyAnalysisAccessState } from "../bodyAnalysis/bodyAnalysisAccess";
@@ -15,7 +13,6 @@ import { createProfileApi } from "../profile/profileApi";
 import { createNutritionApi } from "../nutrition/nutritionApi";
 import { createNutritionPlanApi } from "../nutrition/nutritionPlanApi";
 import { createNutritionTrackingApi } from "../nutrition/nutritionTrackingApi";
-import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { createWorkoutPlanApi } from "../workouts/workoutApi";
 import { findPendingWorkoutPlanId } from "../workouts/workoutModel";
 import { getMobileViewState, type MobileViewState } from "../ui/requestState";
@@ -25,7 +22,7 @@ import { fiticianTokens } from "../ui/tokens";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { NutritionSummaryCard } from "./NutritionSummaryCard";
 import { QuickActionCard } from "./QuickActionCard";
-import { homeWorkoutSummary, nutritionSummary } from "./homeModel";
+import { currentWorkoutDay, nutritionSummary } from "./homeModel";
 import { getQuickActionColumns } from "./homePresentation";
 import { WorkoutTodayCard, type WorkoutHomeState } from "./WorkoutTodayCard";
 
@@ -53,8 +50,6 @@ export function MemberHomeScreen() {
     () => createNutritionTrackingApi(auth.request, auth.download),
     [auth.download, auth.request],
   );
-  const timelineApi = useMemo(() => createProgramTimelineApi(auth.request), [auth.request]);
-  const deviceTimezone = useMemo(resolvedIanaTimeZone, []);
   const productMode = snapshot.profile.productMode;
   const hasTraining = productMode === null || productMode === "training" || productMode === "both";
   const hasNutrition = productMode === "nutrition" || productMode === "both";
@@ -65,6 +60,8 @@ export function MemberHomeScreen() {
     entitlementStateReady && entitlements.hasEntitlement("body_analysis.run"),
     entitlements.quotaFor("body_analysis.run"),
   );
+  const today = new Date().toISOString().slice(0, 10);
+
   const sharedProfileQuery = useQuery({
     enabled: auth.status === "signed_in",
     queryFn: profileApi.getSharedProfile,
@@ -98,12 +95,6 @@ export function MemberHomeScreen() {
     queryFn: nutritionApi.getCurrentEstimate,
     queryKey: nutritionKeys.estimate(),
   });
-  const timelineQuery = useQuery({
-    enabled: hasTraining || hasNutrition,
-    queryFn: () => timelineApi.getToday(deviceTimezone),
-    queryKey: programTimelineKeys.today(deviceTimezone),
-  });
-  const today = timelineQuery.data?.local_date ?? localIsoDate();
   const trackingQuery = useQuery({
     enabled: hasNutrition,
     queryFn: () => nutritionTrackingApi.getDailyTracking(today),
@@ -132,17 +123,6 @@ export function MemberHomeScreen() {
   const nutritionPlan = viewData(nutritionPlanState);
   const nutritionEstimate = viewData(nutritionEstimateState);
   const tracking = viewData(trackingState);
-  const timeline = timelineQuery.data ?? null;
-  const timelineWorkout: TimelineWorkout | null = timeline?.workout ?? null;
-  const liveWorkoutSummary = timelineWorkout?.state === "no_plan"
-    ? null
-    : timelineWorkout === null
-      ? null
-      : homeWorkoutSummary(timelineWorkout);
-  const focusedWorkoutDay = liveWorkoutSummary?.focusedSession !== null
-    && liveWorkoutSummary?.focusedSession !== undefined
-    ? workoutPlan?.days.find((day) => day.id === liveWorkoutSummary.focusedSession?.workout_day_id) ?? null
-    : pendingWorkoutPlan?.days.at(0) ?? null;
   const nutritionDataLoading = hasNutrition && (
     nutritionPlanState.status === "loading"
     || nutritionEstimateState.status === "loading"
@@ -150,7 +130,7 @@ export function MemberHomeScreen() {
   );
   const nutritionHasError = [nutritionPlanState, nutritionEstimateState, trackingState]
     .some((state) => state.status === "error");
-  const summary = nutritionSummary(nutritionPlan, nutritionEstimate, tracking, today, timeline?.nutrition);
+  const summary = nutritionSummary(nutritionPlan, nutritionEstimate, tracking, today);
   const waitingForPendingWorkout = activeWorkoutState.status === "empty" && (
     workoutHistoryQuery.isPending
     || (pendingWorkoutPlanId !== null && pendingWorkoutQuery.isPending)
@@ -199,7 +179,7 @@ export function MemberHomeScreen() {
 
       {hasTraining ? (
         <View style={styles.section}>
-          <WorkoutTodayCard day={focusedWorkoutDay} state={workoutState} summary={liveWorkoutSummary} />
+          <WorkoutTodayCard day={currentWorkoutDay(workoutPlan)} state={workoutState} />
         </View>
       ) : null}
 
@@ -209,7 +189,6 @@ export function MemberHomeScreen() {
             error={nutritionHasError}
             loading={nutritionDataLoading}
             summary={summary}
-            timeline={timeline?.nutrition}
           />
         </View>
       ) : null}

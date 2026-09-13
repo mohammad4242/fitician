@@ -34,7 +34,7 @@ it("keeps the login form usable without promotional media", () => {
   expect(document.querySelector(".brand-panel")).not.toBeInTheDocument();
   expect(document.querySelector(".auth-shell")).toHaveClass("fitsho-page");
   expect(screen.getByLabelText("ایمیل")).toBeVisible();
-  expect(screen.getByRole("button", { name: "ورود به فیتشو" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "ورود به فیتیشن" })).toBeEnabled();
   expect(screen.getByRole("tab", { name: "ایمیل" })).toHaveAttribute("aria-selected", "true");
   expect(screen.getByRole("tab", { name: "شماره موبایل" })).toBeVisible();
   expect(screen.getByRole("link", { name: "فراموشی رمز عبور؟" })).toHaveAttribute(
@@ -44,6 +44,7 @@ it("keeps the login form usable without promotional media", () => {
 });
 
 it("keeps Google clickable while its client ID is not configured", async () => {
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
   vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(null, { status: 401 }));
   const user = userEvent.setup();
 
@@ -58,7 +59,7 @@ it("keeps Google clickable while its client ID is not configured", async () => {
 });
 
 it("uses the Google Identity credential and reaches the authenticated flow", async () => {
-  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitsho-client-id.apps.googleusercontent.com");
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitician-client-id.apps.googleusercontent.com");
   let googleCallback: ((response: { credential: string }) => void) | undefined;
   const initialize = vi.fn(
     (options: { callback: (response: { credential: string }) => void }) => {
@@ -118,7 +119,7 @@ it("shows a clear message for invalid credentials", async () => {
 
   await user.type(screen.getByLabelText("ایمیل"), "user@example.com");
   await user.type(screen.getByLabelText("رمز عبور"), "wrong password");
-  await user.click(screen.getByRole("button", { name: "ورود به فیتشو" }));
+  await user.click(screen.getByRole("button", { name: "ورود به فیتیشن" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "ایمیل یا رمز عبور درست نیست",
@@ -254,7 +255,7 @@ it("returns to the external deletion page after a requested login", async () => 
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
   await user.type(screen.getByLabelText("ایمیل"), "member@example.com");
   await user.type(screen.getByLabelText("رمز عبور"), "long password");
-  await user.click(screen.getByRole("button", { name: "ورود به فیتشو" }));
+  await user.click(screen.getByRole("button", { name: "ورود به فیتیشن" }));
 
   expect(await screen.findByText("deletion page reached")).toBeInTheDocument();
 });

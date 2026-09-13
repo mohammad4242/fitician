@@ -15,7 +15,7 @@ const event = {
   action: "access.grant.created",
   actor: {
     user_id: "admin-1",
-    display_name: "مدیر فیتشو",
+    display_name: "مدیر فیتیشن",
     email: "admin@example.com",
     phone_number: null,
   },
@@ -43,7 +43,7 @@ it("shows concise audit entries and expandable business state", async () => {
 
   expect(await screen.findByRole("heading", { name: "تاریخچه تغییرات" })).toBeInTheDocument();
   const row = screen.getByTestId("admin-audit-event-event-1");
-  expect(within(row).getByText("مدیر فیتشو")).toBeInTheDocument();
+  expect(within(row).getByText("مدیر فیتیشن")).toBeInTheDocument();
   expect(within(row).getByText("دسترسی ایجاد کرد")).toBeInTheDocument();
   expect(within(row).getByText("علی رضایی")).toBeInTheDocument();
   expect(within(row).getByText("customer support compensation")).toBeInTheDocument();

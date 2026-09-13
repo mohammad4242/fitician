@@ -150,7 +150,7 @@ export function OnboardingPage() {
     return (
       <OnboardingShell>
         <main className="onboarding-flow product-mode-flow">
-          <p className="eyebrow eyebrow--accent">شروع با مربی فیتشو</p>
+          <p className="eyebrow eyebrow--accent">شروع با مربی فیتیشن</p>
           <h2 className="fitsho-display">بیشتر در چه زمینه‌ای به کمک نیاز داری؟</h2>
           <p>مسیرت را انتخاب کن؛ فقط همان سؤال‌هایی را می‌پرسیم که برای برنامه‌ات لازم است.</p>
           <div className="product-mode-cards" role="list">
@@ -161,7 +161,7 @@ export function OnboardingPage() {
             ] as const).map(([mode, title, description]) => (
               <button key={mode} className={`product-mode-card ${mode === "both" ? "is-recommended" : ""}`}
                 type="button" disabled={busy} onClick={() => chooseMode(mode)} role="listitem">
-                {mode === "both" && <span>پیشنهاد فیتشو</span>}
+                {mode === "both" && <span>پیشنهاد فیتیشن</span>}
                 <strong>{title}</strong><small>{description}</small>
               </button>
             ))}

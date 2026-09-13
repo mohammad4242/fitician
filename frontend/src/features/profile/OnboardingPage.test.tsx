@@ -206,7 +206,7 @@ it("shows unselected product modes first and saves the chosen mode", async () =>
   renderOnboarding();
 
   expect(screen.getByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" })).toBeInTheDocument();
-  expect(screen.getByText("پیشنهاد فیتشو")).toBeInTheDocument();
+  expect(screen.getByText("پیشنهاد فیتیشن")).toBeInTheDocument();
   await user.click(screen.getByText("تمرین و تغذیه").closest("button")!);
 
   expect(profileContext.selectProductMode).toHaveBeenCalledWith("both");

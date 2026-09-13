@@ -225,7 +225,7 @@ it("keeps password recovery routes in the guest auth shell", async () => {
 it("shows an accessible loading state while a route chunk loads", async () => {
   renderRoute("/");
 
-  expect(screen.getByRole("status")).toHaveTextContent("در حال آماده‌سازی فیتشو…");
+  expect(screen.getByRole("status")).toHaveTextContent("در حال آماده‌سازی فیتیشن…");
   expect(await screen.findByRole("heading", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeInTheDocument();
 });
 
@@ -601,7 +601,7 @@ function renderRoute(path: string) {
 it("keeps the account deletion page public for signed-out visitors", async () => {
   renderRoute("/delete-account");
 
-  expect(await screen.findByRole("heading", { name: "حذف حساب فیتشو" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "حذف حساب فیتیشن" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "ورود برای ادامه" })).toHaveAttribute(
     "href",
     "/login?returnTo=%2Fdelete-account",

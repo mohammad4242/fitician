@@ -73,6 +73,20 @@ describe("auth api", () => {
     );
   });
 
+  it("submits an email verification token", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(authApi.verifyEmail("verification-token")).resolves.toBeUndefined();
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/v1/auth/email/verify",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ token: "verification-token" }),
+      }),
+    );
+  });
+
   it("calls password recovery and phone OTP endpoints", async () => {
     vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(

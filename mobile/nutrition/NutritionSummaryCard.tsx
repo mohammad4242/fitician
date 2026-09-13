@@ -1,5 +1,4 @@
 import { localIsoDate } from "@fitician/core/local-date";
-import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -23,7 +22,6 @@ type NutritionSummaryCardProps =
     readonly connectivityStatus: ConnectivityStatus;
     readonly estimate: NutritionEstimate | null | undefined;
     readonly onRefresh?: () => void;
-    readonly timeline?: TimelineNutrition | null;
   }
   | {
     readonly error: boolean;
@@ -51,12 +49,10 @@ function NutritionEstimateSummaryCard({
   connectivityStatus,
   estimate,
   onRefresh,
-  timeline,
 }: {
   readonly connectivityStatus: ConnectivityStatus;
   readonly estimate: NutritionEstimate | null | undefined;
   readonly onRefresh?: () => void;
-  readonly timeline?: TimelineNutrition | null;
 }) {
   const auth = useMobileAuth();
   const entryDate = useMemo(localIsoDate, []);
@@ -99,15 +95,6 @@ function NutritionEstimateSummaryCard({
           <View style={summaryStyles.energyItem}>
             <View style={summaryStyles.targetCopy}>
               <Text style={summaryStyles.targetLabel}>کالری هدف</Text>
-              {timeline?.absolute_day_number !== null && timeline?.absolute_day_number !== undefined ? (
-                <Text style={summaryStyles.timelineDay}>امروز · روز {formatWebNumber(timeline.absolute_day_number)} برنامه</Text>
-              ) : null}
-              {timeline?.state === "ready_to_start" ? (
-                <Text style={summaryStyles.timelineStatus}>برنامه تغذیه آماده شروع است</Text>
-              ) : null}
-              {timeline?.state === "scheduled_start" ? (
-                <Text style={summaryStyles.timelineStatus}>شروع برنامه تغذیه زمان‌بندی شده است</Text>
-              ) : null}
               {goalCalories === null ? (
                 <Text style={summaryStyles.calorieValueUnavailable}>تعیین نشده</Text>
               ) : (
@@ -415,20 +402,6 @@ const summaryStyles = StyleSheet.create({
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
-  timelineDay: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.xs,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
-  timelineStatus: {
-    color: fiticianTokens.colors.amber,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
     writingDirection: "rtl",
   },

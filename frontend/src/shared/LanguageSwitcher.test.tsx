@@ -18,6 +18,6 @@ it("changes the document language, direction, and stored preference", async () =
 
   expect(document.documentElement).toHaveAttribute("lang", "en");
   expect(document.documentElement).toHaveAttribute("dir", "ltr");
-  expect(localStorage.getItem("fitsho-language")).toBe("en");
+  expect(localStorage.getItem("fitician-language")).toBe("en");
   expect(screen.getByRole("button", { name: "فارسی" })).toBeInTheDocument();
 });

@@ -206,7 +206,7 @@ export function NutritionTrackingPage() {
     try {
       if (freeMealId) {
         const macros = await api.confirmFreeMealPhotoPreview(photoEstimate.id);
-        sessionStorage.setItem(`fitsho-free-meal:${freeMealId}`, JSON.stringify(macros));
+        sessionStorage.setItem(`fitician-free-meal:${freeMealId}`, JSON.stringify(macros));
         navigate(`${returnPath}?freeMealId=${freeMealId}`);
       } else {
         await api.confirmFoodPhoto(photoEstimate.id, entryDate);
@@ -466,7 +466,7 @@ export function NutritionTrackingPage() {
                       </p>
                     )}
                     <label className="nutrition-photo-item__review-label">
-                      {l("غذای فیتشو", "Fitsho food")}
+                      {l("غذای فیتیشن", "Fitician food")}
                       <span className="nutrition-off-plan-control nutrition-off-plan-control--select">
                         <select
                           aria-label={l(`انتخاب غذا برای ${item.name_guess}`, `Choose food for ${item.name_guess}`)}

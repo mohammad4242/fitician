@@ -63,8 +63,8 @@ export function NutritionSupplementsPage() {
             </h1>
             <p>
               {l(
-                "فقط دستورهای ثبت‌شده توسط پزشک فیتشو اینجا نمایش داده می‌شوند.",
-                "Only physician-managed Fitsho orders appear here.",
+                "فقط دستورهای ثبت‌شده توسط پزشک فیتیشن اینجا نمایش داده می‌شوند.",
+                "Only physician-managed Fitician orders appear here.",
               )}
             </p>
           </div>

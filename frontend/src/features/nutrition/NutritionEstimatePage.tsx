@@ -1330,7 +1330,7 @@ const generationReasonMessages: Record<string, LocalizedGenerationMessage> = {
     "Even the flexible budget limit is not enough for the current plan. Increase your food budget.",
   ],
   NUTRIENT_UPPER_LIMIT_EXCEEDED: [
-    "برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتشو آن را قبول نکرد.",
+    "برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتیشن آن را قبول نکرد.",
     "The generated plan exceeds the safe upper limit for at least one micronutrient, so it was rejected.",
   ],
   INSUFFICIENT_PRICE_COVERAGE: [

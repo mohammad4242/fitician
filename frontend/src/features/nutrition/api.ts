@@ -555,7 +555,7 @@ export function estimateFoodPhoto(file: File, language: string = "fa"): Promise<
   return request<FoodPhotoEstimate>(`${nutritionPath}/tracking/photo-estimates?language=${normalizedLang}`, {
     method: "POST",
     headers: {
-      "X-Fitsho-Food-Photo-Consent": "true",
+      "X-Fitician-Food-Photo-Consent": "true",
       "Accept-Language": normalizedLang,
     },
     body,

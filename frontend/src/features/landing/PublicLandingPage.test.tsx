@@ -85,7 +85,7 @@ it("continues nutrition into an estimated meal-photo analysis", () => {
 it("reveals the four-stage process in its required order without percentages", () => {
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
-  const process = screen.getByRole("region", { name: "فیتشو چگونه برنامه تو را می‌سازد" });
+  const process = screen.getByRole("region", { name: "فیتیشن چگونه برنامه تو را می‌سازد" });
   expect(within(process).getAllByRole("listitem").map((item) => item.dataset.stage)).toEqual([
     "understand", "plan", "train", "adapt",
   ]);

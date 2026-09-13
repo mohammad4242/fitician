@@ -32,12 +32,12 @@ type PhoneStep = "request" | "verify";
 
 const publicCopy = {
   fa: {
-    brand: "فیتشو", header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
-    mode: { eyebrow: "شروع با مربی فیتشو", title: "تو چه زمینه‌ای به کمک نیاز داری؟", training: "برنامه تمرینی", nutrition: "برنامه تغذیه", both: "تمرین و تغذیه", recommended: "پیشنهاد فیتشو" },
+    brand: "فیتیشن", header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
+    mode: { eyebrow: "شروع با مربی فیتیشن", title: "تو چه زمینه‌ای به کمک نیاز داری؟", training: "برنامه تمرینی", nutrition: "برنامه تغذیه", both: "تمرین و تغذیه", recommended: "پیشنهاد فیتیشن" },
     account: {
       eyebrow: "آخرین قدم",
       title: "حالا حسابت را بساز",
-      intro: "پاسخ‌ها بعد از ورود امن به حساب فیتشو منتقل می‌شوند.",
+      intro: "پاسخ‌ها بعد از ورود امن به حساب فیتیشن منتقل می‌شوند.",
       edit: "بازگشت و ویرایش پاسخ‌ها",
       providers: "روش‌های ورود",
       securityTitle: "مسیر امن انتقال اطلاعات",
@@ -71,12 +71,12 @@ const publicCopy = {
     },
   },
   en: {
-    brand: "Fitsho", header: "Your answers stay in this tab until you create an account.",
-    mode: { eyebrow: "Start with your Fitsho coach", title: "What would you like help with?", training: "Training plan", nutrition: "Nutrition plan", both: "Training and nutrition", recommended: "Fitsho recommended" },
+    brand: "Fitician", header: "Your answers stay in this tab until you create an account.",
+    mode: { eyebrow: "Start with your Fitician coach", title: "What would you like help with?", training: "Training plan", nutrition: "Nutrition plan", both: "Training and nutrition", recommended: "Fitician recommended" },
     account: {
       eyebrow: "Final step",
       title: "Create your account",
-      intro: "Your answers will move securely into your Fitsho account after you sign in.",
+      intro: "Your answers will move securely into your Fitician account after you sign in.",
       edit: "Back to edit answers",
       providers: "Sign-in methods",
       securityTitle: "Secure answer handoff",

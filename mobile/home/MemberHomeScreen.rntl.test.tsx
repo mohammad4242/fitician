@@ -27,7 +27,6 @@ jest.mock("../workouts/workoutApi", () => ({ createWorkoutPlanApi: jest.fn() }))
 jest.mock("../nutrition/nutritionApi", () => ({ createNutritionApi: jest.fn() }));
 jest.mock("../nutrition/nutritionPlanApi", () => ({ createNutritionPlanApi: jest.fn() }));
 jest.mock("../nutrition/nutritionTrackingApi", () => ({ createNutritionTrackingApi: jest.fn() }));
-jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelineApi: jest.fn() }));
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -38,7 +37,6 @@ import { createNutritionApi } from "../nutrition/nutritionApi";
 import { createNutritionPlanApi } from "../nutrition/nutritionPlanApi";
 import { createNutritionTrackingApi } from "../nutrition/nutritionTrackingApi";
 import { createProfileApi } from "../profile/profileApi";
-import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { createWorkoutPlanApi } from "../workouts/workoutApi";
 import { MemberHomeScreen } from "./MemberHomeScreen";
@@ -54,7 +52,6 @@ const mockCreateWorkoutApi = jest.mocked(createWorkoutPlanApi);
 const mockCreateNutritionApi = jest.mocked(createNutritionApi);
 const mockCreateNutritionPlanApi = jest.mocked(createNutritionPlanApi);
 const mockCreateNutritionTrackingApi = jest.mocked(createNutritionTrackingApi);
-const mockCreateProgramTimelineApi = jest.mocked(createProgramTimelineApi);
 
 let productMode: "both" | "training" = "both";
 let workoutEntitled = true;
@@ -87,46 +84,6 @@ const nutritionPlan = {
   physician_approved: true,
 };
 
-const activeWorkoutPlan = {
-  days: [{
-    day_number: 1,
-    estimated_duration_minutes: 45,
-    exercises: [],
-    id: "workout-day-1",
-    title_en: "First plan day",
-    title_fa: "روز اول برنامه",
-  }],
-  id: "workout-plan-1",
-  plan_duration_weeks: 4,
-  status: "active",
-};
-
-const timelineSession = {
-  day_number: 1,
-  estimated_duration_minutes: 45,
-  id: "session-1",
-  scheduled_date: "2026-09-13",
-  session_number: 1,
-  status: "scheduled",
-  title_en: "First plan day",
-  title_fa: "روز اول برنامه",
-  week_number: 1,
-  workout_day_id: "workout-day-1",
-};
-
-let mockTimeline: {
-  readonly local_date: string;
-  readonly nutrition: {
-    readonly absolute_day_number?: number | null;
-    readonly nutrient_totals?: Record<string, number>;
-    readonly pattern_day_index?: number | null;
-    readonly plan_id?: string | null;
-    readonly start_date?: string | null;
-    readonly state: "no_plan" | "pending_review" | "ready_to_start" | "scheduled_start" | "active";
-  };
-  readonly workout: Record<string, unknown>;
-} | null = null;
-
 function queryResult<T>(data: T) {
   return {
     data,
@@ -157,7 +114,6 @@ beforeEach(() => {
   productMode = "both";
   workoutEntitled = true;
   bodyAnalysisEntitled = true;
-  mockTimeline = null;
   mockPush.mockClear();
   mockUseMobileAuth.mockReturnValue({
     download: jest.fn(),
@@ -189,11 +145,9 @@ beforeEach(() => {
   mockCreateNutritionApi.mockReturnValue({ getCurrentEstimate: resolved(null) } as never);
   mockCreateNutritionPlanApi.mockReturnValue({ getLatest: resolved(nutritionPlan) } as never);
   mockCreateNutritionTrackingApi.mockReturnValue({ getDailyTracking: resolved(dailyTracking) } as never);
-  mockCreateProgramTimelineApi.mockReturnValue({ getToday: jest.fn() } as never);
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
     if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[0] === "workouts") return queryResult(null);
     if (key[1] === "plan") return queryResult(nutritionPlan);
     if (key[1] === "estimate") return queryResult(null);
@@ -232,98 +186,6 @@ test("hides nutrition dashboard content when the member selects training only", 
   expect(screen.queryByRole("button", { name: "نمایش جزئیات تغذیه" })).toBeNull();
 });
 
-test("shows the next real workout on a rest day instead of the first plan day", () => {
-  mockTimeline = {
-    local_date: "2026-09-13",
-    nutrition: { state: "no_plan" },
-    workout: {
-      completed_sessions: 0,
-      current_week: 1,
-      cycle_id: "cycle-1",
-      duration_weeks: 4,
-      next_session: { ...timelineSession, scheduled_date: "2026-09-14", session_number: 1 },
-      state: "rest_day",
-      total_sessions: 4,
-      workout_plan_id: "workout-plan-1",
-    },
-  };
-  mockUseQuery.mockImplementation(({ queryKey }) => {
-    const key = queryKey as readonly unknown[];
-    if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
-    if (key[0] === "workouts" && key[1] === "plan" && key[2] === "active") return queryResult(activeWorkoutPlan);
-    if (key[0] === "workouts") return queryResult(null);
-    if (key[1] === "plan") return queryResult(nutritionPlan);
-    if (key[1] === "estimate") return queryResult(null);
-    return queryResult(dailyTracking);
-  });
-
-  renderHome();
-
-  expect(screen.getAllByText("روز استراحت").length).toBeGreaterThan(0);
-  expect(screen.getByText("تمرین بعدی: 2026-09-14")).toBeTruthy();
-  expect(screen.queryByText("روز اول برنامه")).toBeNull();
-});
-
-test("shows a ready-to-start workout program on Home", () => {
-  mockTimeline = {
-    local_date: "2026-09-13",
-    nutrition: { state: "no_plan" },
-    workout: {
-      completed_sessions: 0,
-      duration_weeks: 4,
-      next_session: timelineSession,
-      state: "ready_to_start",
-      total_sessions: 4,
-      workout_plan_id: "workout-plan-1",
-    },
-  };
-  mockUseQuery.mockImplementation(({ queryKey }) => {
-    const key = queryKey as readonly unknown[];
-    if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
-    if (key[0] === "workouts" && key[1] === "plan" && key[2] === "active") return queryResult(activeWorkoutPlan);
-    if (key[0] === "workouts") return queryResult(null);
-    if (key[1] === "plan") return queryResult(nutritionPlan);
-    if (key[1] === "estimate") return queryResult(null);
-    return queryResult(dailyTracking);
-  });
-
-  renderHome();
-
-  expect(screen.getByText("برنامه آماده شروع است")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeTruthy();
-});
-
-test("uses timeline targets and absolute nutrition day eight on Home", () => {
-  mockTimeline = {
-    local_date: "2026-09-13",
-    nutrition: {
-      absolute_day_number: 8,
-      nutrient_totals: { energy_kcal: 2_100, protein_g: 140, total_fat_g: 65 },
-      pattern_day_index: 0,
-      plan_id: "nutrition-plan-1",
-      start_date: "2026-09-06",
-      state: "active",
-    },
-    workout: { completed_sessions: 0, state: "no_plan", total_sessions: 0 },
-  };
-  mockUseQuery.mockImplementation(({ queryKey }) => {
-    const key = queryKey as readonly unknown[];
-    if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
-    if (key[0] === "workouts") return queryResult(null);
-    if (key[1] === "plan") return queryResult({ ...nutritionPlan, id: "nutrition-plan-1" });
-    if (key[1] === "estimate") return queryResult(null);
-    return queryResult(dailyTracking);
-  });
-
-  renderHome();
-
-  expect(screen.getByText("۲٬۱۰۰")).toBeTruthy();
-  expect(screen.getByText("امروز · روز ۸ برنامه")).toBeTruthy();
-});
-
 test("previews a pending workout when no active plan exists", () => {
   const pendingPlan = {
     days: [{
@@ -346,7 +208,6 @@ test("previews a pending workout when no active plan exists", () => {
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
     if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[0] === "workouts" && key[1] === "plan" && key[2] === "active") {
       return queryResult(null);
     }
@@ -374,7 +235,6 @@ test("shows a locked workout card instead of implying generation is available to
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
     if (key[0] === "profile") return queryResult({ display_name: "مریم" });
-    if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[0] === "workouts") return queryResult(null);
     if (key[1] === "plan") return queryResult(nutritionPlan);
     if (key[1] === "estimate") return queryResult(null);

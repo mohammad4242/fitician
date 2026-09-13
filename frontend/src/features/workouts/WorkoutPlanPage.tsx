@@ -356,7 +356,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         try {
           const anchor = document.createElement("a");
           anchor.href = url;
-          anchor.download = `fitsho-workout-plan-${planId}.pdf`;
+          anchor.download = `fitician-workout-plan-${planId}.pdf`;
           document.body.append(anchor);
           anchor.click();
           anchor.remove();
@@ -693,7 +693,7 @@ function CoachReviewBanner({ plan, isEnglish, historical }: { plan: WorkoutPlan;
     );
   }
   if (review?.state === "coach_approved") {
-    const coach = review.coach_display_name ?? l("مربی فیتشو", "Fitsho coach");
+    const coach = review.coach_display_name ?? l("مربی فیتیشن", "Fitician coach");
     return (
       <aside className="workout-review-banner workout-review-banner--approved" role="status">
         <span className="workout-review-indicator" aria-hidden="true">✓</span>

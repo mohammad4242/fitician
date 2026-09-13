@@ -230,7 +230,7 @@ it("returns to the existing upload control when the guided camera is unavailable
   await user.click(screen.getByRole("button", { name: /use guided camera/i }));
 
   expect(await screen.findByLabelText(/front photo upload/i)).toBeInTheDocument();
-  expect(screen.getByRole("alert")).toHaveTextContent(/camera access needs a secure fitsho address/i);
+  expect(screen.getByRole("alert")).toHaveTextContent(/camera access needs a secure fitician address/i);
 });
 
 it("explains how to recover when the phone origin is not trusted", async () => {
@@ -246,7 +246,7 @@ it("explains how to recover when the phone origin is not trusted", async () => {
   await user.click(screen.getByRole("button", { name: /confirm and upload front/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    /current phone address is not trusted by fitsho/i,
+    /current phone address is not trusted by fitician/i,
   );
 });
 

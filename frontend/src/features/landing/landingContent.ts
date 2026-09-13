@@ -18,7 +18,7 @@ export type LandingScene = {
 export const landingScenes = [
   {
     id: "strength",
-    eyebrow: "فیتشو، مسیر شخصی تو",
+    eyebrow: "فیتیشن، مسیر شخصی تو",
     title: "از امروز، قوی‌تر.",
     body: "برنامه‌ای روشن برای شروعی که واقعاً ادامه پیدا می‌کند.",
     videoSrc: heroVideo,

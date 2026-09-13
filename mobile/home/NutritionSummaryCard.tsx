@@ -1,5 +1,4 @@
 import { nutritionProgressTone, type NutritionProgressTone } from "@fitician/core";
-import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -11,7 +10,6 @@ export interface NutritionSummaryCardProps {
   readonly error?: boolean;
   readonly loading: boolean;
   readonly summary: HomeNutritionSummary;
-  readonly timeline?: TimelineNutrition | null;
 }
 
 const nutritionRingColors: Record<NutritionProgressTone, string> = {
@@ -20,7 +18,7 @@ const nutritionRingColors: Record<NutritionProgressTone, string> = {
   red: fiticianTokens.colors.danger,
 };
 
-export function NutritionSummaryCard({ error = false, loading, summary, timeline }: NutritionSummaryCardProps) {
+export function NutritionSummaryCard({ error = false, loading, summary }: NutritionSummaryCardProps) {
   const router = useRouter();
   const hasTarget = summary.targetCalories !== null;
   const aboveExpenditureCalories = summary.targetCalories !== null
@@ -42,18 +40,6 @@ export function NutritionSummaryCard({ error = false, loading, summary, timeline
           <View style={styles.headingCopy}>
             <Text style={styles.eyebrow}>سوخت امروز</Text>
             <Text style={styles.title}>تغذیه روزانه</Text>
-            {timeline?.absolute_day_number !== null && timeline?.absolute_day_number !== undefined ? (
-              <Text style={styles.timelineDay}>امروز · روز {formatNumber(timeline.absolute_day_number)} برنامه</Text>
-            ) : null}
-            {timeline?.state === "pending_review" ? (
-              <Text style={styles.timelineStatus}>برنامه تغذیه در انتظار بررسی است</Text>
-            ) : null}
-            {timeline?.state === "ready_to_start" ? (
-              <Text style={styles.timelineStatus}>برنامه تغذیه آماده شروع است</Text>
-            ) : null}
-            {timeline?.state === "scheduled_start" ? (
-              <Text style={styles.timelineStatus}>شروع برنامه تغذیه زمان‌بندی شده است</Text>
-            ) : null}
           </View>
           <View style={styles.iconBadge}>
             <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={fiticianTokens.iconSize.md} />
@@ -234,20 +220,6 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h2,
     lineHeight: 32,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
-  timelineDay: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.xs,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
-  timelineStatus: {
-    color: fiticianTokens.colors.amber,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
     writingDirection: "rtl",
   },

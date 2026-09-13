@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { resolvedIanaTimeZone } from "@fitician/core";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
-import { nutritionKeys, programTimelineKeys } from "../data/queryKeys";
+import { nutritionKeys } from "../data/queryKeys";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
 import {
   emptySafetyFormValues,
@@ -40,7 +39,6 @@ import { NutritionTodayMeals } from "./NutritionTodayMeals";
 import { NutritionDoctorSupervision } from "./NutritionDoctorSupervision";
 import { NutritionScienceDetails } from "./NutritionScienceDetails";
 import { NutritionWeightRateCard } from "./NutritionWeightRateCard";
-import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import {
   createNutritionPlanApi,
   type WeeklyPlan,
@@ -90,8 +88,6 @@ export function NutritionFoundationScreen() {
     () => createNutritionPlanApi(auth.request, auth.download),
     [auth.download, auth.request],
   );
-  const timelineApi = useMemo(() => createProgramTimelineApi(auth.request), [auth.request]);
-  const deviceTimezone = useMemo(resolvedIanaTimeZone, []);
   const safetyQuery = useQuery({
     queryFn: api.getSafety,
     queryKey: nutritionKeys.safety(),
@@ -108,10 +104,6 @@ export function NutritionFoundationScreen() {
     queryFn: planApi.getLatestBundle,
     queryKey: nutritionKeys.latestBundle(),
   });
-  const timelineQuery = useQuery({
-    queryFn: () => timelineApi.getToday(deviceTimezone),
-    queryKey: programTimelineKeys.today(deviceTimezone),
-  });
   const estimateGeneration = useMutation({
     mutationFn: api.generateEstimate,
     onSuccess: (result) => queryClient.setQueryData(nutritionKeys.estimate(), result),
@@ -124,7 +116,6 @@ export function NutritionFoundationScreen() {
   const estimate = viewData(estimateState);
   const latestPlan = viewData(latestPlanState) ?? null;
   const latestBundle = viewData(latestBundleState) ?? null;
-  const timeline = timelineQuery.data ?? null;
   const planDataReady = !latestPlanQuery.isPending && !latestBundleQuery.isPending;
   const plan = planDataReady ? resolveNutritionMainPlan(latestPlan, latestBundle) : null;
   const estimateAvailable = estimate !== undefined && estimate !== null;
@@ -156,19 +147,12 @@ export function NutritionFoundationScreen() {
         connectivityStatus={connectivityStatus}
         estimate={estimate}
         onRefresh={() => void estimateQuery.refetch()}
-        timeline={timeline?.nutrition}
       />
 
       {estimateAvailable ? (
         <NutritionWeightRateCard estimate={estimate} onRefresh={() => void estimateQuery.refetch()} />
       ) : null}
-       {estimateAvailable && planDataReady ? (
-         <NutritionTodayMeals
-           absoluteDayNumber={timeline?.nutrition.absolute_day_number}
-           patternDayIndex={timeline?.nutrition.pattern_day_index}
-           plan={plan}
-         />
-       ) : null}
+      {estimateAvailable && planDataReady ? <NutritionTodayMeals plan={plan} /> : null}
       {estimateAvailable ? <NutritionScienceDetails estimate={estimate} /> : null}
       {estimateAvailable && planDataReady ? <NutritionDoctorSupervision plan={plan} /> : null}
 

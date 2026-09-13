@@ -64,7 +64,7 @@ describe("AccountDeletionPage", () => {
   it("provides account deletion access to signed-out visitors", () => {
     renderAccountPage();
 
-    expect(screen.getByRole("heading", { name: "حذف حساب فیتشو" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "حذف حساب فیتیشن" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ورود برای ادامه" })).toHaveAttribute(
       "href",
       "/login?returnTo=%2Fdelete-account",

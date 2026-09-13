@@ -154,13 +154,13 @@ it("stops unnecessary questions for a manual-only safety outcome", async () => {
     outcome: "physician_manual_plan_required",
     requires_physician_review: true,
     can_continue_onboarding: false,
-    message: "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتشو تنظیم شود.",
+    message: "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتیشن تنظیم شود.",
   });
   const user = await reachSafety();
   await user.click(screen.getByLabelText("بیماری کلیه"));
   await completeSafetyQuestions(user);
 
-  expect(await screen.findByRole("heading", { name: "ادامه مسیر با پزشک فیتشو" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "ادامه مسیر با پزشک فیتیشن" })).toBeInTheDocument();
   expect(screen.queryByLabelText("بودجه ماهانه غذا (تومان)")).not.toBeInTheDocument();
 });
 

@@ -4,9 +4,12 @@ import { initReactI18next } from "react-i18next";
 import en from "./en";
 import fa from "./fa";
 
-const STORAGE_KEY = "fitsho-language";
+const STORAGE_KEY = "fitician-language";
+const LEGACY_STORAGE_KEY = "fitsho-language";
 const storedLanguage =
-  typeof window === "undefined" ? null : window.localStorage.getItem(STORAGE_KEY);
+  typeof window === "undefined"
+    ? null
+    : (window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY));
 const initialLanguage = storedLanguage === "en" ? "en" : "fa";
 
 function applyDocumentLanguage(language: string) {

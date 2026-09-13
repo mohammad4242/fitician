@@ -16,8 +16,8 @@ export function PrivacyPolicyPage() {
         <h1 className="fitsho-display">{l("سیاست حریم خصوصی", "Privacy policy")}</h1>
         <p className="public-account-card__lead">
           {l(
-            "فیتشو برای کمک به برنامه‌ریزی تمرین و تغذیه، اطلاعاتی را که خودت در حساب وارد می‌کنی پردازش می‌کند.",
-            "Fitsho processes the information you enter in your account to help plan training and nutrition.",
+            "فیتیشن برای کمک به برنامه‌ریزی تمرین و تغذیه، اطلاعاتی را که خودت در حساب وارد می‌کنی پردازش می‌کند.",
+            "Fitician processes the information you enter in your account to help plan training and nutrition.",
           )}
         </p>
 
@@ -25,8 +25,8 @@ export function PrivacyPolicyPage() {
           <h2>{l("چه اطلاعاتی پردازش می‌شود؟", "What information is processed?")}</h2>
           <p>
             {l(
-              "اطلاعات ورود، مشخصات پروفایل، ترجیحات تمرینی و تغذیه‌ای، سابقه برنامه‌ها و داده‌هایی که برای استفاده از قابلیت‌های فیتشو ثبت می‌کنی پردازش می‌شوند. تصاویر خصوصی بدن، عکس‌های غذا و مدارک آزمایشگاهی به عنوان داده خصوصی نگهداری می‌شوند و فقط برای قابلیت مربوط به خودشان استفاده می‌شوند.",
-              "Account credentials, profile details, training and nutrition preferences, program history, and data you submit to use Fitsho features are processed. Private body images, food photos, and laboratory documents are kept as private data and used only for their related feature.",
+              "اطلاعات ورود، مشخصات پروفایل، ترجیحات تمرینی و تغذیه‌ای، سابقه برنامه‌ها و داده‌هایی که برای استفاده از قابلیت‌های فیتیشن ثبت می‌کنی پردازش می‌شوند. تصاویر خصوصی بدن، عکس‌های غذا و مدارک آزمایشگاهی به عنوان داده خصوصی نگهداری می‌شوند و فقط برای قابلیت مربوط به خودشان استفاده می‌شوند.",
+              "Account credentials, profile details, training and nutrition preferences, program history, and data you submit to use Fitician features are processed. Private body images, food photos, and laboratory documents are kept as private data and used only for their related feature.",
             )}
           </p>
         </section>
@@ -35,8 +35,8 @@ export function PrivacyPolicyPage() {
           <h2>{l("استفاده و اشتراک‌گذاری", "Use and sharing")}</h2>
           <p>
             {l(
-              "این داده‌ها برای ارائه، ایمن‌سازی و بهبود سرویس استفاده می‌شوند. فیتشو داده‌های حساب را برای تبلیغات شخصی‌سازی‌شده نمی‌فروشد. هر پردازش متخصص یا سرویس بیرونی باید فقط در محدوده قابلیت مربوط و با کنترل‌های دسترسی فیتشو انجام شود.",
-              "This data is used to provide, secure, and improve the service. Fitsho does not sell account data for personalized advertising. Specialist or external-service processing must remain within the related feature and Fitsho access controls.",
+              "این داده‌ها برای ارائه، ایمن‌سازی و بهبود سرویس استفاده می‌شوند. فیتیشن داده‌های حساب را برای تبلیغات شخصی‌سازی‌شده نمی‌فروشد. هر پردازش متخصص یا سرویس بیرونی باید فقط در محدوده قابلیت مربوط و با کنترل‌های دسترسی فیتیشن انجام شود.",
+              "This data is used to provide, secure, and improve the service. Fitician does not sell account data for personalized advertising. Specialist or external-service processing must remain within the related feature and Fitician access controls.",
             )}
           </p>
         </section>

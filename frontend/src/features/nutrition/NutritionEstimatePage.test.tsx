@@ -517,7 +517,7 @@ it("uses one compact weekly nutrition plan action", async () => {
   expect(await screen.findByRole("button", { name: "ساخت برنامه تغذیه هفتگی" })).toBeInTheDocument();
   expect(screen.queryByText("گام بعد")).not.toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "برنامه هفتگی شخصی‌ات را بساز" })).not.toBeInTheDocument();
-  expect(screen.queryByText(/فیتشو هدف‌های علمی/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/فیتیشن هدف‌های علمی/)).not.toBeInTheDocument();
 });
 
 it("explains a strict budget failure from its reason code", async () => {
@@ -538,7 +538,7 @@ it("explains a micronutrient upper-limit failure without naming a nutrient", asy
   await i18n.changeLanguage("fa");
   await generatePlan(generationResult("infeasible", ["NUTRIENT_UPPER_LIMIT_EXCEEDED"]));
 
-  const message = await screen.findByText("برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتشو آن را قبول نکرد.");
+  const message = await screen.findByText("برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتیشن آن را قبول نکرد.");
   expect(message).toBeInTheDocument();
   expect(message).not.toHaveTextContent(/سدیم|آهن|ویتامین/);
 });

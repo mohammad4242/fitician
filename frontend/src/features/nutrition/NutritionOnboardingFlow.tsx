@@ -113,11 +113,11 @@ const splitNames = (value: string) => value.split(/[،,\n]/).map((item) => item.
 
 const flowCopy = {
   fa: {
-    loading: "در حال آماده‌کردن مسیرت…", eyebrow: "مسیر تغذیه با مربی فیتشو", progress: "پیشرفت تکمیل پروفایل",
+    loading: "در حال آماده‌کردن مسیرت…", eyebrow: "مسیر تغذیه با مربی فیتیشن", progress: "پیشرفت تکمیل پروفایل",
     error: "درخواست انجام نشد. پاسخ‌ها حفظ شده‌اند؛ دوباره تلاش کن.",
   },
   en: {
-    loading: "Preparing your path…", eyebrow: "Nutrition with your Fitsho coach", progress: "Profile setup progress",
+    loading: "Preparing your path…", eyebrow: "Nutrition with your Fitician coach", progress: "Profile setup progress",
     error: "The request could not be completed. Your answers are saved; please try again.",
   },
 } as const;
@@ -442,8 +442,8 @@ export function NutritionOnboardingFlow({
     return (
       <section className="nutrition-step safety-result-card" aria-live="polite">
         <p className="eyebrow eyebrow--accent">{language === "en" ? "Safety assessment result" : "نتیجه ارزیابی ایمنی"}</p>
-        <h2 className="fitsho-display">{language === "en" ? "Continue with a Fitsho physician" : "ادامه مسیر با پزشک فیتشو"}</h2>
-        <p>{language === "en" ? "For your safety, this path needs review by a Fitsho physician." : decision?.message}</p>
+        <h2 className="fitsho-display">{language === "en" ? "Continue with a Fitician physician" : "ادامه مسیر با پزشک فیتیشن"}</h2>
+        <p>{language === "en" ? "For your safety, this path needs review by a Fitician physician." : decision?.message}</p>
         <p>{language === "en" ? "Allowed information is saved and no automatic plan will be created." : "اطلاعات مجاز ذخیره شد و هیچ برنامه خودکاری ساخته نمی‌شود."}</p>
         {draftMode && <button className="primary-button" type="button" onClick={() => onDraftComplete?.({ safety: safetyInput() })}>{language === "en" ? "Continue to account setup" : "ادامه و ساخت حساب"}</button>}
         <button className="secondary-button" type="button" onClick={() => setStep("safety")}>{language === "en" ? "Back and edit answers" : "بازگشت و اصلاح پاسخ‌ها"}</button>

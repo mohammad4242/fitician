@@ -244,10 +244,10 @@ export function CoachWorkoutReviewPage() {
                   <div className="coach-review-member">
                     <ProfilePhotoAvatar
                       url={item.member_profile_photo_url}
-                      label={item.member_display_name ?? l("کاربر فیتشو", "Fitsho member")}
+                      label={item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}
                       size="sm"
                     />
-                    <small>{item.member_display_name ?? l("کاربر فیتشو", "Fitsho member")}</small>
+                    <small>{item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small>
                   </div>
                   <strong>{humanize(item.fitness_goal, fa)}</strong>
                   <span>{humanize(item.experience_level, fa)}</span>
@@ -275,10 +275,10 @@ export function CoachWorkoutReviewPage() {
                     <div className="coach-review-case-member">
                       <ProfilePhotoAvatar
                         url={selected.member_profile_photo_url}
-                        label={selected.member_display_name ?? l("کاربر فیتشو", "Fitsho member")}
+                        label={selected.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}
                         size="md"
                       />
-                      <h2>{selected.member_display_name ?? l("کاربر فیتشو", "Fitsho member")}</h2>
+                      <h2>{selected.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</h2>
                     </div>
                   </div>
                   <span data-status={selected.status}>{statusTitle(selected.status, fa)}</span>

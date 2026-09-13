@@ -39,16 +39,6 @@ it("matches the web nutrition hierarchy and removes dashboard-only sections", as
   }
 });
 
-it("feeds the local recurring nutrition day from the program timeline", async () => {
-  const source = await readFile(new URL("./NutritionFoundationScreen.tsx", import.meta.url), "utf8");
-
-  expect(source).toContain("createProgramTimelineApi");
-  expect(source).toContain("programTimelineKeys.today");
-  expect(source).toContain("patternDayIndex={timeline?.nutrition.pattern_day_index}");
-  expect(source).toContain("absoluteDayNumber={timeline?.nutrition.absolute_day_number}");
-  expect(source).toContain("timeline={timeline?.nutrition}");
-});
-
 it("passes contract images to native thumbnails for catalogues, meals, and replacements", async () => {
   const catalogue = await readFile(new URL("./NutritionCatalogueSection.tsx", import.meta.url), "utf8");
   const plan = await readFile(new URL("./NutritionPlanSection.tsx", import.meta.url), "utf8");

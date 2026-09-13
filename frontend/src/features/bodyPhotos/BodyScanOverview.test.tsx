@@ -62,7 +62,7 @@ it("renders male hero image for male user and female for female user", () => {
     />,
   );
 
-  const img = screen.getByRole("img", { name: /fitsho physique scan visual/i });
+  const img = screen.getByRole("img", { name: /fitician physique scan visual/i });
   expect(img).toHaveAttribute("src", expect.stringContaining("male-hero.png"));
 
   rerender(
@@ -86,7 +86,7 @@ it("toggles view buttons and shows view labels and updates image", async () => {
     />,
   );
 
-  const img = screen.getByRole("img", { name: /fitsho physique scan visual/i });
+  const img = screen.getByRole("img", { name: /fitician physique scan visual/i });
   const front = screen.getByRole("button", { name: /^front$/i });
   const side = screen.getByRole("button", { name: /^side$/i });
   const back = screen.getByRole("button", { name: /^back$/i });

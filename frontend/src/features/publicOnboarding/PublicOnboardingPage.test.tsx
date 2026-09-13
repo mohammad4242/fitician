@@ -207,7 +207,7 @@ it("starts with product mode and marks the combined path as recommended", () => 
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
 
   expect(screen.getByRole("heading", { name: "تو چه زمینه‌ای به کمک نیاز داری؟" })).toBeInTheDocument();
-  expect(screen.getByText("پیشنهاد فیتشو")).toBeInTheDocument();
+  expect(screen.getByText("پیشنهاد فیتیشن")).toBeInTheDocument();
   expect(screen.queryByLabelText("ایمیل")).not.toBeInTheDocument();
 });
 

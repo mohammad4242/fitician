@@ -92,10 +92,10 @@ export function AccountDeletionPage() {
     <PublicPageFrame>
       <section className="public-account-card" aria-labelledby="account-deletion-title">
         <p className="public-account-card__eyebrow">حساب / Account</p>
-        <h1 id="account-deletion-title" className="fitsho-display">{l("حذف حساب فیتشو", "Delete your Fitsho account")}</h1>
+        <h1 id="account-deletion-title" className="fitsho-display">{l("حذف حساب فیتیشن", "Delete your Fitician account")}</h1>
         <p className="public-account-card__lead">
           {l(
-            "درخواست حذف حساب را از همین صفحه ثبت کن. این مسیر برای اعضای فیتشو، خارج از اپلیکیشن هم در دسترس است.",
+            "درخواست حذف حساب را از همین صفحه ثبت کن. این مسیر برای اعضای فیتیشن، خارج از اپلیکیشن هم در دسترس است.",
             "Submit your account deletion request here. This flow is available outside the app too.",
           )}
         </p>

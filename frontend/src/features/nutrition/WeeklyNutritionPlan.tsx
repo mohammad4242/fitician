@@ -221,7 +221,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
         try {
           const anchor = document.createElement("a");
           anchor.href = url;
-          anchor.download = `fitsho-nutrition-plan-${currentPlan.id}.pdf`;
+          anchor.download = `fitician-nutrition-plan-${currentPlan.id}.pdf`;
           document.body.append(anchor);
           anchor.click();
           anchor.remove();
@@ -540,7 +540,7 @@ function mealTitle(
 
 function FreeMealCard({ meal, entryDate, language }: { meal: WeeklyPlan["days"][number]["meals"][number]; entryDate: string; language: "fa" | "en" }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
-  const stored = sessionStorage.getItem(`fitsho-free-meal:${meal.id}`);
+  const stored = sessionStorage.getItem(`fitician-free-meal:${meal.id}`) ?? sessionStorage.getItem(`fitsho-free-meal:${meal.id}`);
   const initial = stored ? JSON.parse(stored) as api.FreeMealMacros : null;
   const [values, setValues] = useState({
     calories: initial?.calories?.toString() ?? "",
@@ -567,6 +567,7 @@ function FreeMealCard({ meal, entryDate, language }: { meal: WeeklyPlan["days"][
         carbohydrate_g: Number(values.carbohydrate_g),
         fat_g: Number(values.fat_g),
       });
+      sessionStorage.removeItem(`fitician-free-meal:${meal.id}`);
       sessionStorage.removeItem(`fitsho-free-meal:${meal.id}`);
       setActualTotal(summary.actual_totals.energy_kcal ?? 0);
     } finally { setSaving(false); }
