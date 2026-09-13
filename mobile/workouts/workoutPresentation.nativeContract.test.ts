@@ -196,7 +196,7 @@ it("keeps expanded exercise details as separate web-parity stats and actions", a
   expect(source).toContain('textDecorationLine: "underline"');
   expect(source).toContain("onOpenExercise");
   expect(source).toContain('name={expanded ? "chevronUp" : "chevronDown"}');
-  expect(source).toContain("accessibilityState={{ expanded }}");
+  expect(source).toContain("accessibilityState={{ expanded, selected: focus }}");
   expect(source).not.toContain("statusStack");
 });
 
@@ -216,6 +216,8 @@ it("keeps cycle, check-in, replacement, and completion behavior secondary to the
   expect(source).toContain("api.getWeeklyCheckIn");
   expect(source).toContain("api.recordReplacement");
   expect(source).toContain("api.getCompletionFeedback");
+  expect(source).toContain("WorkoutTimelineCard");
+  expect(source).toContain("timelineCardProps");
 });
 
 it("moves completion feedback into the reusable plan-tools controller", async () => {

@@ -34,6 +34,8 @@ import {
   type WeeklyCheckInForm,
 } from "./workoutCycleModel";
 import { workoutCycleWeekDisplay } from "./workoutModel";
+import type { TimelineWorkout } from "@fitician/core/program-timeline";
+import { WorkoutTimelineCard, type WorkoutTimelineCardProps } from "./WorkoutTimelineCard";
 
 type Choice<TValue extends string> = {
   readonly label: string;
@@ -94,10 +96,14 @@ export function WorkoutCyclePanel({
   expectedCycleId,
   plan,
   replacementRequest,
+  timeline,
+  timelineCardProps,
 }: {
   readonly expectedCycleId?: string;
   readonly plan: WorkoutPlan;
   readonly replacementRequest?: WorkoutReplacementRequest | null;
+  readonly timeline?: TimelineWorkout | null;
+  readonly timelineCardProps?: Omit<WorkoutTimelineCardProps, "timeline">;
 }) {
   const auth = useMobileAuth();
   const connectivityStatus = useConnectivityStatus();
@@ -137,7 +143,10 @@ export function WorkoutCyclePanel({
   }
 
   return (
-    <View style={styles.panel}>
+    <View style={styles.panel} testID="workout-cycle-panel">
+      {timeline !== undefined && timeline !== null && timelineCardProps !== undefined ? (
+        <WorkoutTimelineCard timeline={timeline} {...timelineCardProps} />
+      ) : null}
       {cycleState.status === "stale" ? (
         <Notice message="اطلاعات چرخه تازه‌سازی نشده است." variant="warning" />
       ) : null}

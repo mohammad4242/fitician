@@ -43,7 +43,7 @@ import {
   workoutPlanAverageDuration,
 } from "./workoutModel";
 import { workoutTimelinePresentation } from "./workoutCycleModel";
-import { WorkoutTimelineCard } from "./WorkoutTimelineCard";
+import { WorkoutTimelineCard, type WorkoutTimelineCardProps } from "./WorkoutTimelineCard";
 import {
   ExpoWorkoutPlanPdfStore,
   type StoredWorkoutPlanPdf,
@@ -323,6 +323,22 @@ export function WorkoutPlansScreen() {
     sessionAction.mutate({ action: "reschedule", scheduledDate, sessionId });
   }
 
+  const timelineCardProps: Omit<WorkoutTimelineCardProps, "timeline"> = {
+    actionError: sessionActionError,
+    actionPending: sessionAction.isPending,
+    cycleStartError,
+    cycleStartPending: startCycle.isPending,
+    durationWeeks: displayedPlan?.plan_duration_weeks ?? 0,
+    rescheduleDate,
+    startDate: cycleStartDate,
+    onChangeRescheduleDate: setRescheduleDate,
+    onChangeStartDate: setCycleStartDate,
+    onCompleteSession: completeTimelineSession,
+    onRescheduleSession: rescheduleTimelineSession,
+    onSkipSession: skipTimelineSession,
+    onStart: startProgram,
+  };
+
   function selectHistoryVersion(version: WorkoutPlanVersionSummary) {
     setReplacementRequest(null);
     if (version.id === currentPlanId) {
@@ -442,22 +458,11 @@ export function WorkoutPlansScreen() {
       ) : null}
 
       {!loading && !activeLoadError && !activeOffline && displayedPlan !== undefined && displayedPlan !== null ? (
-        timelineWorkout !== null && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical) ? (
+        timelineWorkout?.state === "ready_to_start"
+          && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical) ? (
           <WorkoutTimelineCard
-            actionError={sessionActionError}
-            actionPending={sessionAction.isPending}
-            cycleStartError={cycleStartError}
-            cycleStartPending={startCycle.isPending}
-            durationWeeks={displayedPlan.plan_duration_weeks}
-            rescheduleDate={rescheduleDate}
-            startDate={cycleStartDate}
             timeline={timelineWorkout}
-            onChangeRescheduleDate={setRescheduleDate}
-            onChangeStartDate={setCycleStartDate}
-            onCompleteSession={completeTimelineSession}
-            onRescheduleSession={rescheduleTimelineSession}
-            onSkipSession={skipTimelineSession}
-            onStart={startProgram}
+            {...timelineCardProps}
           />
         ) : null
       ) : null}
@@ -479,6 +484,8 @@ export function WorkoutPlansScreen() {
           expectedCycleId={cycleTargetId}
           plan={displayedPlan}
           replacementRequest={replacementRequest}
+          timeline={timelineWorkout}
+          timelineCardProps={timelineCardProps}
         />
       ) : null}
 

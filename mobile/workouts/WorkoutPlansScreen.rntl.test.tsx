@@ -155,6 +155,21 @@ function makeTimeline(overrides: Partial<TimelineWorkout> = {}) {
   };
 }
 
+function makeCurrentCycle() {
+  return {
+    completed_sessions: 0,
+    current_week: 1,
+    cycle_id: "cycle-1",
+    duration_weeks: 4,
+    has_exact_session_tracking: true,
+    sessions: [],
+    started_at: "2026-09-13T00:00:00Z",
+    status: "active",
+    total_sessions: 4,
+    workout_plan_id: "active-plan",
+  };
+}
+
 function renderWorkoutPlans() {
   return render(
     <SafeAreaProvider initialMetrics={{
@@ -301,6 +316,7 @@ test("shows an explicit start control for an active plan without a cycle", () =>
 
 test("shows the actual next session on a rest day", () => {
   mockActivePlan = makePlan("active", []);
+  mockCycle = makeCurrentCycle();
   mockTimeline = makeTimeline({
     next_session: makeSession({
       day_number: 2,
@@ -344,6 +360,7 @@ test("focuses the workout day referenced by today's timeline session", () => {
 
 test("focuses the overdue timeline session instead of a later plan day", () => {
   mockActivePlan = makePlan("active", [], "active-plan", 2);
+  mockCycle = makeCurrentCycle();
   mockTimeline = makeTimeline({
     next_session: makeSession({
       day_number: 2,
@@ -394,6 +411,7 @@ test("starts the active workout plan with the selected local date and timezone",
 
 test("completes today's exact session through the cycle API", async () => {
   mockActivePlan = makePlan("active", []);
+  mockCycle = makeCurrentCycle();
   mockTimeline = makeTimeline({
     state: "workout_today",
     today_session: makeSession(),
@@ -407,6 +425,32 @@ test("completes today's exact session through the cycle API", async () => {
     method: "POST",
     path: "/api/v1/workout-cycles/current/sessions/session-1/complete",
   }));
+});
+
+test("renders started-session execution inside the cycle panel", () => {
+  mockActivePlan = makePlan("active", []);
+  mockCycle = {
+    completed_sessions: 0,
+    current_week: 1,
+    cycle_id: "cycle-1",
+    duration_weeks: 4,
+    has_exact_session_tracking: true,
+    sessions: [],
+    started_at: "2026-09-13T00:00:00Z",
+    status: "active",
+    total_sessions: 4,
+    workout_plan_id: "active-plan",
+  };
+  mockTimeline = makeTimeline({
+    state: "workout_today",
+    today_session: makeSession(),
+  });
+
+  renderWorkoutPlans();
+
+  const panel = screen.getByTestId("workout-cycle-panel");
+  expect(within(panel).getByTestId("workout-timeline-card")).toBeTruthy();
+  expect(screen.getAllByTestId("workout-timeline-card")).toHaveLength(1);
 });
 
 test("keeps workout history readable but locks new generation without access", () => {
