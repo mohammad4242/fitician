@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import "../../i18n";
 
 const billingApi = vi.hoisted(() => ({
+  getOrder: vi.fn(),
   verifyPayment: vi.fn(),
 }));
 const entitlementState = vi.hoisted(() => ({ refresh: vi.fn(async () => undefined) }));
@@ -26,6 +27,8 @@ import { CheckoutResultPage } from "./CheckoutResultPage";
 
 beforeEach(() => {
   billingApi.verifyPayment.mockReset();
+  billingApi.getOrder.mockReset();
+  billingApi.getOrder.mockResolvedValue({ provider: "fake" });
   entitlementState.refresh.mockClear();
 });
 
@@ -43,6 +46,7 @@ it("refreshes entitlements only after verified payment", async () => {
 
   expect(await screen.findByRole("heading", { name: "پرداخت موفق بود" })).toBeInTheDocument();
   await waitFor(() => expect(entitlementState.refresh).toHaveBeenCalledOnce());
+  expect(billingApi.getOrder).toHaveBeenCalledWith("order-1");
   expect(billingApi.verifyPayment).toHaveBeenCalledWith("fake", {
     transaction_id: "transaction-1",
     provider_reference: "ref",
@@ -62,5 +66,6 @@ it("does not refresh entitlements after a failed payment", async () => {
   render(<MemoryRouter initialEntries={["/billing/result?order_id=order-1&transaction_id=transaction-1"]}><CheckoutResultPage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: "پرداخت ناموفق بود" })).toBeInTheDocument();
+  expect(billingApi.getOrder).toHaveBeenCalledWith("order-1");
   expect(entitlementState.refresh).not.toHaveBeenCalled();
 });

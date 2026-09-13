@@ -24,7 +24,7 @@ export function createPurchaseService(
         await openExternal(checkout.checkout_url);
         return null;
       }
-      if (checkout.provider !== "fake" || checkout.provider_reference === null) {
+      if (checkout.provider_reference === null) {
         throw new Error("A local checkout requires a normalized provider reference");
       }
       return api.verifyPayment(checkout.provider, {

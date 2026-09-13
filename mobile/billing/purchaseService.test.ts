@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 
 import { createPurchaseService, type PurchaseBillingApi } from "./purchaseService";
 
-it("completes the deterministic fake checkout through server verification", async () => {
+it("completes a local redirect checkout through server verification", async () => {
   const verifyPayment = vi.fn().mockResolvedValue({
     access_grant_id: "grant-1",
     order_id: "order-1",
@@ -26,6 +26,26 @@ it("completes the deterministic fake checkout through server verification", asyn
   expect(result?.verified).toBe(true);
   expect(verifyPayment).toHaveBeenCalledWith("fake", {
     provider_reference: "fake-payment:transaction-1",
+    transaction_id: "transaction-1",
+  });
+});
+
+it("verifies any normalized local provider without provider-specific branching", async () => {
+  const verifyPayment = vi.fn().mockResolvedValue({ verified: true });
+  const service = createPurchaseService({ verifyPayment } as PurchaseBillingApi);
+
+  await service.completeCheckout({
+    checkout_kind: "redirect",
+    checkout_url: "/billing/checkout-result",
+    order_id: "order-1",
+    provider: "future" as never,
+    provider_product_id: null,
+    provider_reference: "provider-reference",
+    transaction_id: "transaction-1",
+  });
+
+  expect(verifyPayment).toHaveBeenCalledWith("future", {
+    provider_reference: "provider-reference",
     transaction_id: "transaction-1",
   });
 });

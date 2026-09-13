@@ -3,7 +3,7 @@ import { Linking, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import fa from "@fitician/core/i18n/fa";
-import type { BillingOffer } from "@fitician/core/billing";
+import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
@@ -59,7 +59,7 @@ export function PlansScreen() {
       const order = await api.createOrder({
         client_idempotency_key: `mobile-${offer.offer_code}-${Date.now()}`,
         offer_code: offer.offer_code,
-        provider: "fake",
+        provider: paymentProviderCodes[0],
       });
       const checkout = await api.createCheckout(order.id, { provider: order.provider });
       const result = await purchaseService.completeCheckout(checkout);

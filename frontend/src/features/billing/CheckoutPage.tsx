@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import type { BillingOffer } from "@fitician/core/billing";
+import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
 
 import { createCheckout, createOrder, getOffers } from "./api";
 import "./billing.css";
@@ -20,6 +20,7 @@ export function CheckoutPage() {
   const [error, setError] = useState(false);
   const idempotencyKey = useRef(createIdempotencyKey());
   const english = i18n.resolvedLanguage === "en";
+  const provider = paymentProviderCodes[0];
 
   useEffect(() => {
     if (offer !== null || offerCode === undefined) return;
@@ -44,7 +45,7 @@ export function CheckoutPage() {
     try {
       const order = await createOrder({
         offer_code: offer.offer_code,
-        provider: "fake",
+        provider,
         client_idempotency_key: idempotencyKey.current,
       });
       const checkout = await createCheckout(order.id, { provider: order.provider });

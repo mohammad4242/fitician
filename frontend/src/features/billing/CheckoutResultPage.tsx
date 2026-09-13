@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useEntitlements } from "../entitlements/EntitlementContext";
-import { verifyPayment } from "./api";
+import { getOrder, verifyPayment } from "./api";
 import "./billing.css";
 
 export function CheckoutResultPage() {
@@ -13,19 +13,22 @@ export function CheckoutResultPage() {
   const [state, setState] = useState<"loading" | "success" | "failed">("loading");
 
   const transactionId = searchParams.get("transaction_id");
+  const orderId = searchParams.get("order_id");
   const providerReference = searchParams.get("provider_reference");
 
   useEffect(() => {
     let active = true;
-    if (transactionId === null) {
+    if (transactionId === null || orderId === null) {
       setState("failed");
       return () => { active = false; };
     }
-    void verifyPayment("fake", {
-      transaction_id: transactionId,
-      provider_reference: providerReference,
-    })
-      .then(async (result) => {
+    void getOrder(orderId)
+      .then(async (order) => {
+        if (!active) return;
+        const result = await verifyPayment(order.provider, {
+          transaction_id: transactionId,
+          provider_reference: providerReference,
+        });
         if (!active) return;
         if (result.verified) {
           await refresh();
@@ -38,7 +41,7 @@ export function CheckoutResultPage() {
         if (active) setState("failed");
       });
     return () => { active = false; };
-  }, [providerReference, refresh, transactionId]);
+  }, [orderId, providerReference, refresh, transactionId]);
 
   const success = state === "success";
   return (
