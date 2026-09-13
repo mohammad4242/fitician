@@ -44,7 +44,7 @@ const initialForm: CampaignFormState = {
 };
 
 export function AdminAccessCampaignsPage() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [campaigns, setCampaigns] = useState<AdminAccessCampaign[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [editing, setEditing] = useState<AdminAccessCampaign | null>(null);
@@ -69,6 +69,7 @@ export function AdminAccessCampaignsPage() {
 
   const editingSemanticsLocked = editing !== null && editing.redemption_count > 0;
   const availablePackages = useMemo(() => adminAccessPackageCodes, []);
+  const english = i18n.resolvedLanguage === "en";
 
   function openCreate() {
     setEditing(null);
@@ -135,7 +136,7 @@ export function AdminAccessCampaignsPage() {
           <div>
             <p className="eyebrow eyebrow--accent">{t("adminAccess.campaign")}</p>
             <h1>{t("adminAccess.campaignsTrials")}</h1>
-            <p>{t("adminAccess.campaignsDescription", "دسترسی‌های زمان‌دار را با قوانین روشن مدیریت کنید.")}</p>
+            <p>{t("adminAccess.campaignsDescription")}</p>
           </div>
           <button className="access-admin-button access-admin-button--primary" onClick={openCreate} type="button">
             {t("adminAccess.createCampaign")}
@@ -166,7 +167,9 @@ export function AdminAccessCampaignsPage() {
                 <dl className="access-campaign-card__facts">
                   <div><dt>{t("adminAccess.package")}</dt><dd>{t(`entitlements.packageLabels.${campaign.package_code}`, { defaultValue: campaign.package_code })}</dd></div>
                   <div><dt>{t("adminAccess.benefitDuration")}</dt><dd>{campaign.duration_days}</dd></div>
-                  <div><dt>{t("adminAccess.trainingTerm")}</dt><dd>{campaign.term_weeks === null ? "—" : `${campaign.term_weeks} ${t("adminAccess.weeks", "هفته")}`}</dd></div>
+                  <div><dt>{t("adminAccess.trainingTerm")}</dt><dd>{campaign.term_weeks === null ? "—" : `${campaign.term_weeks} ${t("adminAccess.weeks")}`}</dd></div>
+                  <div><dt>{t("adminAccess.campaignStart")}</dt><dd>{campaign.available_from === null ? "—" : formatDate(campaign.available_from, english)}</dd></div>
+                  <div><dt>{t("adminAccess.campaignEnd")}</dt><dd>{campaign.available_until === null ? "—" : formatDate(campaign.available_until, english)}</dd></div>
                   <div><dt>{t("adminAccess.redemptions")}</dt><dd>{campaign.redemption_count}{campaign.max_total_redemptions === null ? "" : ` / ${campaign.max_total_redemptions}`}</dd></div>
                 </dl>
                 {campaign.redemption_count > 0 && <p className="access-campaign-card__warning">{t("adminAccess.immutableAfterRedemption")}</p>}
@@ -203,11 +206,11 @@ export function AdminAccessCampaignsPage() {
                 <input disabled={editing !== null} onChange={(event) => setField("code", event.currentTarget.value)} value={form.code} />
               </label>
               <label>
-                {t("adminAccess.campaignName", "نام کمپین")}
+                {t("adminAccess.campaignName")}
                 <input onChange={(event) => setField("name", event.currentTarget.value)} value={form.name} />
               </label>
               <label>
-                {t("adminAccess.kind", "نوع کمپین")}
+                {t("adminAccess.kind")}
                 <select disabled={editingSemanticsLocked} onChange={(event) => setField("kind", event.currentTarget.value as AccessCampaignKind)} value={form.kind}>
                   <option value="signup_trial">{t("adminAccess.signupTrial")}</option>
                   <option value="manual_promotion">{t("adminAccess.manualPromotion")}</option>
@@ -250,7 +253,7 @@ export function AdminAccessCampaignsPage() {
               </label>
             </div>
             <label className="access-admin-form-card__description">
-              {t("adminAccess.description", "توضیحات")}
+              {t("adminAccess.description")}
               <textarea onChange={(event) => setField("description", event.currentTarget.value)} value={form.description} />
             </label>
             <p className="access-campaign-card__help">
@@ -322,4 +325,8 @@ function toDateTimeLocal(value: string | null): string {
 
 function toIsoDateTime(value: string): string | null {
   return value === "" ? null : new Date(value).toISOString();
+}
+
+function formatDate(value: string, english: boolean): string {
+  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
 }

@@ -174,7 +174,7 @@ export function AdminUserAccessDetailPage() {
   return (
     <main className="access-admin-page fitsho-page">
       <div className="access-admin-page__container">
-        <Link className="access-admin-back-link" to="/admin/billing/users">{t("adminAccess.backToUsers", "بازگشت به کاربران")}</Link>
+        <Link className="access-admin-back-link" to="/admin/billing/users">{t("adminAccess.backToUsers")}</Link>
         <header className="access-user-detail__header">
           <div>
             <p className="eyebrow eyebrow--accent">{t("adminAccess.user")}</p>
@@ -209,7 +209,7 @@ export function AdminUserAccessDetailPage() {
                 </header>
                 <dl>
                   <div><dt>{t("adminAccess.accessSource")}</dt><dd>{sourceLabel(grant.source, t)}</dd></div>
-                  <div><dt>{t("adminAccess.trainingTerm")}</dt><dd>{grant.term_weeks === null ? "—" : `${grant.term_weeks} ${t("adminAccess.weeks", "هفته")}`}</dd></div>
+                  <div><dt>{t("adminAccess.trainingTerm")}</dt><dd>{grant.term_weeks === null ? "—" : `${grant.term_weeks} ${t("adminAccess.weeks")}`}</dd></div>
                   <div><dt>{t("adminAccess.start")}</dt><dd>{formatDate(grant.starts_at, english)}</dd></div>
                   <div><dt>{t("adminAccess.end")}</dt><dd>{grant.ends_at === null ? "—" : formatDate(grant.ends_at, english)}</dd></div>
                   {grant.revoked_at !== null && <div><dt>{t("adminAccess.revokedAt")}</dt><dd>{formatDate(grant.revoked_at, english)}</dd></div>}
@@ -249,11 +249,11 @@ export function AdminUserAccessDetailPage() {
                 <div className="access-revoke-form">
                   {selectedGrant.source === "subscription" && <p className="access-campaign-card__warning">{t("adminAccess.paidRevokeWarning")}</p>}
                   <p>{t("adminAccess.noUnrevoke")}</p>
-                  <label>{t("adminAccess.revokeReason", "دلیل قطع دسترسی")}<textarea required aria-label={t("adminAccess.revokeReason", "دلیل قطع دسترسی")} onChange={(event) => setReason(event.currentTarget.value)} value={reason} /></label>
+                  <label>{t("adminAccess.revokeReason")}<textarea required aria-label={t("adminAccess.revokeReason")} onChange={(event) => setReason(event.currentTarget.value)} value={reason} /></label>
                 </div>
               )}
               {formError && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.saveError")}</p>}
-              <button className="access-admin-button access-admin-button--primary" disabled={saving} type="submit">{action === "revoke" ? t("adminAccess.confirmRevoke", "تأیید قطع دسترسی") : t("adminAccess.saveChanges")}</button>
+              <button className="access-admin-button access-admin-button--primary" disabled={saving} type="submit">{action === "revoke" ? t("adminAccess.confirmRevoke") : t("adminAccess.saveChanges")}</button>
             </form>
           </section>
         )}
@@ -277,11 +277,11 @@ function toTermWeeks(value: string): AccessTermWeeks | null {
 
 function sourceLabel(source: AdminGrant["source"], t: TFunction): string {
   const labels: Record<AdminGrant["source"], string> = {
-    subscription: t("adminAccess.sourceSubscription", "اشتراک"),
-    admin: t("adminAccess.sourceAdmin", "ادمین"),
-    promotion: t("adminAccess.sourcePromotion", "کمپین"),
-    launch_trial: t("adminAccess.sourceLaunchTrial", "Launch Trial"),
-    manual: t("adminAccess.sourceManual", "دستی"),
+    subscription: t("adminAccess.sourceSubscription"),
+    admin: t("adminAccess.sourceAdmin"),
+    promotion: t("adminAccess.sourcePromotion"),
+    launch_trial: t("adminAccess.sourceLaunchTrial"),
+    manual: t("adminAccess.sourceManual"),
   };
   return labels[source];
 }

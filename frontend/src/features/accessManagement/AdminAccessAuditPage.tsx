@@ -73,17 +73,17 @@ export function AdminAccessAuditPage() {
     <main className="access-admin-page fitsho-page">
       <div className="access-admin-page__container">
         <header className="access-admin-page__header">
-          <div><p className="eyebrow eyebrow--accent">{t("adminAccess.audit")}</p><h1>{t("adminAccess.changeHistory")}</h1><p>{t("adminAccess.auditDescription", "تغییرات حساس مدیریتی به‌صورت خواندنی و قابل پیگیری ثبت می‌شوند.")}</p></div>
+          <div><p className="eyebrow eyebrow--accent">{t("adminAccess.audit")}</p><h1>{t("adminAccess.changeHistory")}</h1><p>{t("adminAccess.auditDescription")}</p></div>
         </header>
 
         <form className="access-admin-search access-audit-filters" onSubmit={submit}>
-          <label>{t("adminAccess.action", "عملیات")}<select aria-label={t("adminAccess.action", "عملیات")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, action: value })); }} value={filters.action}><option value="">{t("adminAccess.all")}</option>{auditActions.map((action) => <option key={action} value={action}>{action}</option>)}</select></label>
+          <label>{t("adminAccess.action")}<select aria-label={t("adminAccess.action")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, action: value })); }} value={filters.action}><option value="">{t("adminAccess.all")}</option>{auditActions.map((action) => <option key={action} value={action}>{actionLabel(action, t)}</option>)}</select></label>
           <label>{t("adminAccess.actor")}<input aria-label={t("adminAccess.actor")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, actor_user_id: value })); }} value={filters.actor_user_id} /></label>
           <label>{t("adminAccess.targetUser")}<input aria-label={t("adminAccess.targetUser")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, target_user_id: value })); }} value={filters.target_user_id} /></label>
           <label>{t("adminAccess.resource")}<input aria-label={t("adminAccess.resource")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, resource_type: value })); }} value={filters.resource_type} /></label>
-          <label>{t("adminAccess.from", "از")}<input aria-label={t("adminAccess.from", "از")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, from_datetime: value })); }} type="datetime-local" value={filters.from_datetime} /></label>
-          <label>{t("adminAccess.to", "تا")}<input aria-label={t("adminAccess.to", "تا")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, to_datetime: value })); }} type="datetime-local" value={filters.to_datetime} /></label>
-          <button className="access-admin-button access-admin-button--primary" type="submit">{t("adminAccess.applyFilters", "اعمال فیلتر")}</button>
+          <label>{t("adminAccess.from")}<input aria-label={t("adminAccess.from")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, from_datetime: value })); }} type="datetime-local" value={filters.from_datetime} /></label>
+          <label>{t("adminAccess.to")}<input aria-label={t("adminAccess.to")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, to_datetime: value })); }} type="datetime-local" value={filters.to_datetime} /></label>
+          <button className="access-admin-button access-admin-button--primary" type="submit">{t("adminAccess.applyFilters")}</button>
         </form>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}

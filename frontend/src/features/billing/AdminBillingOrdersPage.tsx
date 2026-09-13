@@ -60,7 +60,7 @@ export function AdminBillingOrdersPage() {
           <div>
             <p className="eyebrow eyebrow--accent">{t("adminAccess.orders")}</p>
             <h1>{t("adminAccess.ordersPayments")}</h1>
-            <p>{t("adminAccess.ordersDescription", "سفارش‌ها و تراکنش‌ها را بدون تغییر وضعیت مالی ببینید.")}</p>
+            <p>{t("adminAccess.ordersDescription")}</p>
           </div>
         </header>
 
@@ -68,30 +68,30 @@ export function AdminBillingOrdersPage() {
           <label>{t("adminAccess.status")}<select aria-label={t("adminAccess.status")} onChange={(event) => { const value = event.currentTarget.value as OrderFilters["status"]; setFilters((current) => ({ ...current, status: value })); }} value={filters.status}><option value="">{t("adminAccess.all")}</option>{billingOrderStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
           <label>{t("adminAccess.provider")}<select aria-label={t("adminAccess.provider")} onChange={(event) => { const value = event.currentTarget.value as OrderFilters["provider"]; setFilters((current) => ({ ...current, provider: value })); }} value={filters.provider}><option value="">{t("adminAccess.all")}</option>{paymentProviderCodes.map((provider) => <option key={provider} value={provider}>{provider}</option>)}</select></label>
           <label>{t("adminAccess.user")}<input aria-label={t("adminAccess.user")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, user_id: value })); }} value={filters.user_id} /></label>
-          <button className="access-admin-button access-admin-button--primary" type="submit">{t("adminAccess.applyFilters", "اعمال فیلتر")}</button>
+          <button className="access-admin-button access-admin-button--primary" type="submit">{t("adminAccess.applyFilters")}</button>
         </form>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
         {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
-        {state === "ready" && orders.length === 0 && <p className="access-admin-status">{t("adminAccess.noOrders", "سفارشی پیدا نشد.")}</p>}
+        {state === "ready" && orders.length === 0 && <p className="access-admin-status">{t("adminAccess.noOrders")}</p>}
         {state === "ready" && orders.length > 0 && (
           <div className="access-order-list">
             {orders.map((order) => (
               <article className="access-order-card" data-testid={`admin-order-${order.id}`} key={order.id}>
                 <header>
-                  <div><span className="access-admin-code">{order.id}</span><h2>{order.offer_code}</h2><p>{t(`entitlements.packageLabels.${order.package_code_snapshot}`, { defaultValue: order.package_code_snapshot })} · {order.duration_weeks_snapshot} {t("adminAccess.weeks", "هفته")}</p></div>
+                  <div><span className="access-admin-code">{order.id}</span><h2>{order.offer_code}</h2><p>{t(`entitlements.packageLabels.${order.package_code_snapshot}`, { defaultValue: order.package_code_snapshot })} · {order.duration_weeks_snapshot} {t("adminAccess.weeks")}</p></div>
                   <span className="access-order-card__status"><b>{order.status}</b><small>{order.provider}</small></span>
                 </header>
                 <dl>
                   <div><dt>{t("adminAccess.memberId")}</dt><dd>{order.user_id ?? "—"}</dd></div>
                   <div><dt>{t("adminAccess.amount")}</dt><dd>{formatAmount(order.amount_irr_snapshot, order.currency_snapshot, english)}</dd></div>
                   <div><dt>{t("adminAccess.created")}</dt><dd>{formatDate(order.created_at, english)}</dd></div>
-                  <div><dt>{t("adminAccess.accessGrant", "دسترسی مرتبط")}</dt><dd>{order.access_grant_id ?? "—"}</dd></div>
+                  <div><dt>{t("adminAccess.accessGrant")}</dt><dd>{order.access_grant_id ?? "—"}</dd></div>
                 </dl>
                 <footer>
-                  {order.paid_at !== null && <span>{t("adminAccess.paidAt", "پرداخت‌شده در")} {formatDate(order.paid_at, english)}</span>}
-                  {order.refunded_at !== null && <span>{t("adminAccess.refundedAt", "Refund شده در")} {formatDate(order.refunded_at, english)}</span>}
-                  <Link className="access-admin-button access-admin-button--quiet" to={`/admin/billing/orders/${order.id}`}>{t("adminAccess.orderDetails", "جزئیات سفارش")}</Link>
+                  {order.paid_at !== null && <span>{t("adminAccess.paidAt")} {formatDate(order.paid_at, english)}</span>}
+                  {order.refunded_at !== null && <span>{t("adminAccess.refundedAt")} {formatDate(order.refunded_at, english)}</span>}
+                  <Link className="access-admin-button access-admin-button--quiet" to={`/admin/billing/orders/${order.id}`}>{t("adminAccess.orderDetails")}</Link>
                 </footer>
               </article>
             ))}

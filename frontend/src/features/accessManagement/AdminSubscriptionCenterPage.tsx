@@ -21,7 +21,7 @@ export function AdminSubscriptionCenterPage() {
           <div>
             <p className="eyebrow eyebrow--accent">Fitition Control Plane</p>
             <h1>{t("adminAccess.title")}</h1>
-            <p>{t("adminAccess.subtitle", "مدیریت متمرکز پلن‌ها، کمپین‌ها و دسترسی اعضا")}</p>
+            <p>{t("adminAccess.subtitle")}</p>
           </div>
           <span className="admin-subscription-center__signal" aria-hidden="true" />
         </header>

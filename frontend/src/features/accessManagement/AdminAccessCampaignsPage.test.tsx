@@ -26,8 +26,8 @@ const launchTrial = {
   package_code: "launch_trial" as const,
   duration_days: 30,
   term_weeks: 4 as const,
-  available_from: null,
-  available_until: null,
+  available_from: "2026-09-15T08:00:00Z",
+  available_until: "2026-10-15T08:00:00Z",
   is_active: true,
   max_total_redemptions: null,
   redemption_count: 4,
@@ -73,6 +73,8 @@ it("lists campaign semantics and activates or deactivates without entitlement to
   expect(screen.queryByRole("checkbox", { name: /body_analysis|training\.plan/ })).not.toBeInTheDocument();
 
   const launchCard = screen.getByTestId("access-campaign-launch_trial_v1");
+  expect(within(launchCard).getByText("شروع کمپین")).toBeInTheDocument();
+  expect(within(launchCard).getByText("پایان کمپین")).toBeInTheDocument();
   await user.click(within(launchCard).getByRole("button", { name: "غیرفعال‌سازی" }));
 
   expect(accessApi.deactivateCampaign).toHaveBeenCalledWith("launch-1");

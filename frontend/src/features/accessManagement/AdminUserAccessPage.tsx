@@ -45,7 +45,7 @@ export function AdminUserAccessPage() {
           <div>
             <p className="eyebrow eyebrow--accent">{t("adminAccess.user")}</p>
             <h1>{t("adminAccess.usersAccess")}</h1>
-            <p>{t("adminAccess.usersDescription", "دسترسی و سابقه هر عضو را از یک نقطه بررسی کنید.")}</p>
+            <p>{t("adminAccess.usersDescription")}</p>
           </div>
         </header>
 
@@ -82,7 +82,7 @@ export function AdminUserAccessPage() {
                   <div><dt>{t("adminAccess.accessEnd")}</dt><dd>{user.paid_access_end === null ? "—" : formatDate(user.paid_access_end, english)}</dd></div>
                 </dl>
                 <Link className="access-admin-button access-admin-button--quiet" to={`/admin/billing/users/${user.user_id}`}>
-                  {t("adminAccess.viewAccess", "مشاهده دسترسی")}
+                  {t("adminAccess.viewAccess")}
                 </Link>
               </article>
             ))}
