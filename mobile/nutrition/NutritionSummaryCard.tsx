@@ -1,3 +1,4 @@
+import { localIsoDate } from "@fitician/core/local-date";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -54,7 +55,7 @@ function NutritionEstimateSummaryCard({
   readonly onRefresh?: () => void;
 }) {
   const auth = useMobileAuth();
-  const entryDate = useMemo(todayIsoDate, []);
+  const entryDate = useMemo(localIsoDate, []);
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
     [auth.download, auth.request],
@@ -273,10 +274,6 @@ function confidenceLabel(confidence: string): string {
   if (confidence === "high") return "اطمینان بالا";
   if (confidence === "medium") return "اطمینان متوسط";
   return "اطمینان پایین";
-}
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 const summaryStyles = StyleSheet.create({

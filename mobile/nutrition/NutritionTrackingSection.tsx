@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { components, MultipartUploadRequest } from "@fitician/core";
+import { localIsoDate } from "@fitician/core/local-date";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
@@ -73,7 +74,7 @@ export function NutritionTrackingSection() {
   const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
-  const entryDate = useMemo(todayIsoDate, []);
+  const entryDate = useMemo(localIsoDate, []);
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
     [auth.download, auth.request],
@@ -1326,12 +1327,6 @@ function numericValue(value: string): number {
     .replace(/[٬,]/gu, "")
     .replace(/٫/gu, ".");
   return Number(normalized);
-}
-
-function todayIsoDate(): string {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
 }
 
 function nutritionTrackingError(error: unknown): string {

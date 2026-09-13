@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { localIsoDate } from "@fitician/core/local-date";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -33,7 +34,7 @@ export function NutritionAdherenceSection({
 }: NutritionAdherenceSectionProps = {}) {
   const auth = useMobileAuth();
   const connectivityStatus = useConnectivityStatus();
-  const today = useMemo(todayIsoDate, []);
+  const today = useMemo(localIsoDate, []);
   const [rangeStart, setRangeStart] = useState(() => daysAgoIsoDate(6));
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
@@ -300,17 +301,10 @@ function isIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/u.test(value);
 }
 
-function todayIsoDate(): string {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
-}
-
 function daysAgoIsoDate(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
+  return localIsoDate(date);
 }
 
 function useConnectivityStatus(): ConnectivityStatus {

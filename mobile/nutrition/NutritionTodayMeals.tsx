@@ -1,3 +1,4 @@
+import { localIsoDate } from "@fitician/core/local-date";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -5,15 +6,30 @@ import { Card } from "../ui/components";
 import { fiticianTokens } from "../ui/tokens";
 import type { WeeklyPlan, WeeklyPlanMeal } from "./nutritionPlanApi";
 
-export function NutritionTodayMeals({ plan }: { readonly plan: WeeklyPlan | null }) {
+export function NutritionTodayMeals({
+  absoluteDayNumber,
+  patternDayIndex,
+  plan,
+}: {
+  readonly absoluteDayNumber?: number | null;
+  readonly patternDayIndex?: number | null;
+  readonly plan: WeeklyPlan | null;
+}) {
   const router = useRouter();
-  const day = plan?.days.find((item) => item.plan_date === todayIsoDate()) ?? plan?.days[0];
+  const day = patternDayIndex === null || patternDayIndex === undefined
+    ? plan?.days.find((item) => item.plan_date === localIsoDate())
+    : plan?.days.find((item) => item.day_index === patternDayIndex);
   if (day === undefined) return null;
 
   return (
     <Card accessibilityLabel="وعده‌های امروز" style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>وعده‌های امروز</Text>
+        <View style={styles.headingCopy}>
+          <Text style={styles.title}>وعده‌های امروز</Text>
+          {absoluteDayNumber !== null && absoluteDayNumber !== undefined ? (
+            <Text style={styles.todayLabel}>روز {formatNumber(absoluteDayNumber)} برنامه</Text>
+          ) : null}
+        </View>
         <Pressable
           accessibilityLabel="ثبت وعده"
           accessibilityRole="button"
@@ -53,10 +69,6 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(value);
 }
 
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 const styles = StyleSheet.create({
   calories: {
     color: fiticianTokens.colors.ink,
@@ -85,6 +97,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minHeight: 58,
     paddingHorizontal: fiticianTokens.spacing[3],
+  },
+  headingCopy: {
+    alignItems: "stretch",
+    flex: 1,
+    gap: fiticianTokens.spacing[1],
   },
   mealName: {
     color: fiticianTokens.colors.muted,
@@ -128,6 +145,13 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  todayLabel: {
+    color: fiticianTokens.colors.aqua,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
     writingDirection: "rtl",
   },

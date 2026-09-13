@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { expect, jest, test } from "@jest/globals";
 import { StyleSheet } from "react-native";
 import type { ReactTestInstance } from "react-test-renderer";
+import { localIsoDate } from "@fitician/core/local-date";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: jest.fn(() => ({ push: mockPush })) }));
@@ -11,7 +12,7 @@ jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 import { NutritionTodayMeals } from "./NutritionTodayMeals";
 import type { WeeklyPlan } from "./nutritionPlanApi";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = localIsoDate();
 const plan = {
   days: [{
     day_index: 0,
@@ -23,6 +24,26 @@ const plan = {
     nutrient_totals: {},
     plan_date: today,
   }],
+} as unknown as WeeklyPlan;
+
+const recurringPlan = {
+  ...plan,
+  days: [
+    {
+      ...plan.days[0],
+      plan_date: "2026-09-07",
+    },
+    {
+      ...plan.days[0],
+      day_index: 1,
+      meals: [{
+        ...plan.days[0]?.meals[0],
+        id: "recurring-day-two",
+        nutrient_totals: { energy_kcal: 999 },
+      }],
+      plan_date: "2026-09-08",
+    },
+  ],
 } as unknown as WeeklyPlan;
 
 function findAncestorStyle(node: ReactTestInstance, key: string): Record<string, unknown> {
@@ -60,4 +81,11 @@ test("shows only today's planned meal rows and the track-meal action", () => {
 test("does not invent a meal card without a plan day", () => {
   render(<NutritionTodayMeals plan={null} />);
   expect(screen.queryByText("وعده‌های امروز")).toBeNull();
+});
+
+test("uses the recurring timeline pattern index after the first plan week", () => {
+  render(<NutritionTodayMeals absoluteDayNumber={8} patternDayIndex={1} plan={recurringPlan} />);
+
+  expect(screen.getByText("۹۹۹ کیلوکالری")).toBeTruthy();
+  expect(screen.queryByText("۱٬۰۰۰ کیلوکالری")).toBeNull();
 });
