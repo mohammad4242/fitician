@@ -19,7 +19,10 @@ from app.entitlements.service import consume_quota, require_quota_available
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
-from app.nutrition.calendar import archive_superseded_future_nutrition_successors
+from app.nutrition.calendar import (
+    archive_superseded_future_nutrition_successors,
+    effective_nutrition_plan_for_date,
+)
 from app.nutrition.candidate_selection import (
     CandidateEvaluation,
     CandidateQuality,
@@ -344,7 +347,9 @@ def generate_weekly_plan(
     user_id: UUID,
     *,
     physician_review_allowed: bool = False,
+    now: datetime | None = None,
 ) -> WeeklyPlanGenerationResponse:
+    reference = now or datetime.now(UTC)
     safety = current_safety_decision(db, user_id)
     if (
         safety.outcome is SafetyOutcome.AUTOMATIC_DRAFT_REQUIRES_PHYSICIAN_REVIEW
@@ -902,6 +907,7 @@ def generate_weekly_plan(
             food_manifest=food_manifest,
             micro_metadata=micro_metadata,
             program_id=ideal_program,
+            now=reference,
         )
 
     budget_plan_model: NutritionWeeklyPlan | None = None
@@ -918,6 +924,7 @@ def generate_weekly_plan(
             food_manifest=food_manifest,
             micro_metadata=micro_metadata,
             program_id=budget_program,
+            now=reference,
         )
 
     if not (
@@ -1347,12 +1354,19 @@ def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
     return weekly_plan_response(plan)
 
 
+def _member_local_today(
+    db: Session, user_id: UUID, *, now: datetime | None = None
+) -> date:
+    profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
+    return local_date_for_timezone(
+        member_timezone_or_default(profile_timezone),
+        now=now,
+    )
+
+
 def active_weekly_plan(
     db: Session, user_id: UUID, *, now: datetime | None = None
 ) -> WeeklyPlanResponse:
-    from app.nutrition.calendar import effective_nutrition_plan_for_date
-    from app.time_context import local_date_for_timezone, member_timezone_or_default
-
     timezone_name = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
     local_date = local_date_for_timezone(member_timezone_or_default(timezone_name), now=now)
     plan = effective_nutrition_plan_for_date(db, user_id, local_date)
@@ -1736,6 +1750,7 @@ def _persist_successful_plan(
     food_manifest: dict[str, object],
     micro_metadata: dict[str, dict[str, object]],
     program_id: UUID | None,
+    now: datetime | None = None,
 ) -> NutritionWeeklyPlan:
     latest_revision = db.scalar(
         select(NutritionWeeklyPlan.revision)
@@ -1743,7 +1758,10 @@ def _persist_successful_plan(
         .order_by(NutritionWeeklyPlan.revision.desc())
         .limit(1)
     )
-    start_date = _next_weekday(date.today(), profile.preferred_plan_start_day)
+    start_date = _next_weekday(
+        _member_local_today(db, profile.user_id, now=now),
+        profile.preferred_plan_start_day,
+    )
     plan_revision = (latest_revision or 0) + 1
     plan = NutritionWeeklyPlan(
         program_id=program_id,
@@ -1902,6 +1920,7 @@ def _persist_ideal_plan(
     food_manifest: dict[str, object],
     micro_metadata: dict[str, dict[str, object]],
     program_id: UUID | None,
+    now: datetime | None = None,
 ) -> NutritionWeeklyPlan:
     """Persist an ideal reference plan — GENERATED lifecycle, no physician review."""
     latest_revision = db.scalar(
@@ -1910,7 +1929,10 @@ def _persist_ideal_plan(
         .order_by(NutritionWeeklyPlan.revision.desc())
         .limit(1)
     )
-    start_date = _next_weekday(date.today(), profile.preferred_plan_start_day)
+    start_date = _next_weekday(
+        _member_local_today(db, profile.user_id, now=now),
+        profile.preferred_plan_start_day,
+    )
     plan_revision = (latest_revision or 0) + 1
     plan = NutritionWeeklyPlan(
         program_id=program_id,

@@ -145,6 +145,12 @@ def test_four_day_plan_repeats_for_each_program_week(db: Session) -> None:
     assert len(sessions) == 16
     assert [session.week_number for session in sessions[:4]] == [1, 1, 1, 1]
     assert [session.week_number for session in sessions[4:8]] == [2, 2, 2, 2]
+    assert [session.scheduled_date for session in sessions[:4]] == [
+        date(2026, 9, 12),
+        date(2026, 9, 14),
+        date(2026, 9, 16),
+        date(2026, 9, 18),
+    ]
     assert sessions[4].scheduled_date == sessions[0].scheduled_date + timedelta(days=7)
     assert sessions[8].scheduled_date == sessions[0].scheduled_date + timedelta(days=14)
 

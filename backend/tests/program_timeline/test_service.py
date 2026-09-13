@@ -1,6 +1,7 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -265,6 +266,28 @@ def test_scheduled_workout_cycle_uses_local_start_date(db: Session) -> None:
 
     assert timeline.local_date == date(2026, 9, 14)
     assert timeline.workout.state.value == "workout_today"
+
+
+def test_tehran_midnight_switches_workout_today_at_the_local_boundary(db: Session) -> None:
+    user = _user(db, "timeline-tehran-boundary@example.com")
+    _profile(db, user.id, timezone="Asia/Tehran")
+    plan = _workout_plan(db, user.id, (2,))
+    _cycle(db, user.id, plan, date(2026, 9, 14), timezone_name="Asia/Tehran")
+    tehran_midnight = datetime.combine(
+        date(2026, 9, 14), time.min, tzinfo=ZoneInfo("Asia/Tehran")
+    ).astimezone(UTC)
+
+    before = build_program_timeline(
+        db,
+        user_id=user.id,
+        now=tehran_midnight - timedelta(microseconds=1),
+    )
+    after = build_program_timeline(db, user_id=user.id, now=tehran_midnight)
+
+    assert before.local_date == date(2026, 9, 13)
+    assert before.workout.state.value == "scheduled_start"
+    assert after.local_date == date(2026, 9, 14)
+    assert after.workout.state.value == "workout_today"
 
 
 def test_workout_logical_start_date_survives_profile_timezone_change(db: Session) -> None:

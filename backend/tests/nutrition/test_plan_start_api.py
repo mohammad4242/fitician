@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,6 +19,7 @@ from app.nutrition.models import (
 )
 from app.nutrition.plan_service import (
     ActiveWeeklyPlanNotFoundError,
+    _member_local_today,
     active_weekly_plan,
     select_bundle_plan,
 )
@@ -196,6 +198,64 @@ def test_active_plan_uses_profile_local_date(
     )
     assert tracked.status_code == 200
     assert tracked.json()["plan_revision_id"] == str(persisted.id)
+
+
+def test_active_nutrition_and_tracking_switch_at_tehran_midnight(
+    client: TestClient, db: Session
+) -> None:
+    plan = _ready_plan(client, db)
+    persisted = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted is not None
+    persisted.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    persisted.start_date = date(2026, 9, 14)
+    profile = db.get(UserProfile, persisted.user_id)
+    assert profile is not None
+    profile.timezone = "Asia/Tehran"
+    db.commit()
+    tehran_midnight = datetime.combine(
+        date(2026, 9, 14), time.min, tzinfo=ZoneInfo("Asia/Tehran")
+    ).astimezone(UTC)
+    before = tehran_midnight - timedelta(microseconds=1)
+
+    with pytest.raises(ActiveWeeklyPlanNotFoundError):
+        active_weekly_plan(db, persisted.user_id, now=before)
+    before_timeline = build_program_timeline(db, user_id=persisted.user_id, now=before)
+    assert before_timeline.local_date == date(2026, 9, 13)
+    assert before_timeline.nutrition.state.value == "scheduled_start"
+
+    active = active_weekly_plan(db, persisted.user_id, now=tehran_midnight)
+    assert active.id == persisted.id
+    after_timeline = build_program_timeline(
+        db, user_id=persisted.user_id, now=tehran_midnight
+    )
+    assert after_timeline.local_date == date(2026, 9, 14)
+    assert after_timeline.nutrition.state.value == "active"
+    assert after_timeline.nutrition.effective_today is not None
+    assert after_timeline.nutrition.effective_today.plan_id == persisted.id
+
+    tracked = client.put(
+        "/api/v1/nutrition/tracking/check-in",
+        headers=ORIGIN,
+        json={"entry_date": "2026-09-14", "status": "on_plan"},
+    )
+    assert tracked.status_code == 200
+    assert tracked.json()["plan_revision_id"] == str(persisted.id)
+
+
+def test_nutrition_generation_uses_member_local_today(client: TestClient, db: Session) -> None:
+    plan = _ready_plan(client, db)
+    persisted = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted is not None
+    profile = db.get(UserProfile, persisted.user_id)
+    assert profile is not None
+    profile.timezone = "Asia/Tehran"
+    db.flush()
+
+    assert _member_local_today(
+        db,
+        profile.user_id,
+        now=datetime(2026, 9, 13, 20, 45, tzinfo=UTC),
+    ) == date(2026, 9, 14)
 
 
 def test_future_selected_plan_keeps_current_plan_effective_until_handoff(

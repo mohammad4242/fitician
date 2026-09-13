@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from hashlib import sha256
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import select
@@ -238,6 +239,46 @@ def test_cycle_reminder_producer_persists_and_deduplicates_events(db: Session) -
         select(NotificationOutboxEvent).where(NotificationOutboxEvent.user_id == user.id)
     ).all()
     assert len(events) == 2
+
+
+def test_cycle_reminders_use_tehran_local_start_boundary(db: Session) -> None:
+    from app.notifications.reminders import enqueue_due_cycle_reminders
+    from app.workout_cycles.models import WorkoutCycle
+
+    user = User(email=f"tehran-reminders-{uuid4()}@example.com", password_hash="hash")
+    db.add(user)
+    db.flush()
+    plan = WorkoutPlan(
+        user_id=user.id,
+        status=WorkoutPlanStatus.ACTIVE,
+        generation_signature="7" * 64,
+        profile_snapshot={"plan_duration_weeks": 4},
+        provider="fake",
+        model_id="fake-model",
+        prompt_version="v1",
+        generation_policy_version="v1",
+        candidate_set_hash="8" * 64,
+        generation_method="ai",
+    )
+    db.add(plan)
+    db.flush()
+    local_midnight = datetime.combine(
+        date(2026, 9, 14), time.min, tzinfo=ZoneInfo("Asia/Tehran")
+    ).astimezone(UTC)
+    db.add(
+        WorkoutCycle(
+            user_id=user.id,
+            workout_plan_id=plan.id,
+            duration_weeks=4,
+            started_at=local_midnight,
+            start_date=date(2026, 9, 14),
+            start_timezone="Asia/Tehran",
+        )
+    )
+    db.flush()
+
+    assert enqueue_due_cycle_reminders(db, now=local_midnight - timedelta(microseconds=1)) == 0
+    assert enqueue_due_cycle_reminders(db, now=local_midnight) == 1
 
 
 def test_cycle_reminders_ignore_future_and_superseded_cycles(db: Session) -> None:

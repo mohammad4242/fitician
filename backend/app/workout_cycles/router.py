@@ -9,6 +9,7 @@ from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.database.session import get_db
 from app.profile.training_compatibility import UnsupportedResistanceTrainingCombinationError
+from app.time_context import DEFAULT_MEMBER_TIMEZONE
 from app.workout_cycles.body_progress_schemas import (
     WorkoutCycleBodyProgressComparisonResponse,
     WorkoutCycleFeedbackBodyProgressContext,
@@ -77,7 +78,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def _cycle_response(
-    cycle: WorkoutCycle, *, timezone_name: str = "UTC"
+    cycle: WorkoutCycle, *, timezone_name: str = DEFAULT_MEMBER_TIMEZONE
 ) -> WorkoutCycleCurrentResponse:
     sessions = sorted(
         cycle.sessions,
@@ -270,7 +271,7 @@ def reschedule_current_session(
 
 
 def _completion_feedback_response(
-    cycle: WorkoutCycle, *, timezone_name: str = "UTC"
+    cycle: WorkoutCycle, *, timezone_name: str = DEFAULT_MEMBER_TIMEZONE
 ) -> WorkoutCycleCompletionFeedbackResponse:
     feedback = cycle.completion_feedback
     return WorkoutCycleCompletionFeedbackResponse(
