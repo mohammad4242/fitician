@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.access_management.enums import AccessCampaignKind
 from app.access_management.models import AccessCampaign, AccessCampaignRedemption
+from app.auth.models import User
+from app.auth.security import normalize_iranian_phone
+from app.profile.models import UserProfile
 
 
 def get_campaign(
@@ -76,3 +79,38 @@ def get_redemption(
     if lock:
         statement = statement.with_for_update()
     return db.scalar(statement)
+
+
+def search_users(
+    db: Session,
+    query: str | None,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+) -> list[User]:
+    statement = (
+        select(User)
+        .outerjoin(UserProfile, UserProfile.user_id == User.id)
+        .order_by(User.created_at.desc(), User.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    normalized_query = query.strip() if query is not None else ""
+    if normalized_query:
+        filters = [
+            User.email.ilike(f"%{normalized_query}%"),
+            User.phone_number.ilike(f"%{normalized_query}%"),
+            UserProfile.display_name.ilike(f"%{normalized_query}%"),
+        ]
+        try:
+            filters.append(User.phone_number == normalize_iranian_phone(normalized_query))
+        except ValueError:
+            pass
+        try:
+            from uuid import UUID
+
+            filters.append(User.id == UUID(normalized_query))
+        except ValueError:
+            pass
+        statement = statement.where(or_(*filters)).distinct()
+    return list(db.scalars(statement).all())

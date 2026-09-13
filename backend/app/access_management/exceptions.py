@@ -27,6 +27,11 @@ class CampaignConflictError(AccessManagementError):
     status_code = 409
 
 
+class CampaignValidationError(AccessManagementError):
+    code = "ACCESS_CAMPAIGN_INVALID"
+    status_code = 422
+
+
 class CampaignOverlapError(CampaignConflictError):
     code = "ACCESS_CAMPAIGN_WINDOW_OVERLAPS"
 

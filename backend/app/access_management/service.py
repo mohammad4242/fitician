@@ -15,6 +15,8 @@ from app.access_management.exceptions import (
     CampaignNotFoundError,
     CampaignOverlapError,
     CampaignRedemptionUnavailableError,
+    CampaignValidationError,
+    GrantIdempotencyConflictError,
     GrantNotFoundError,
     UserNotFoundError,
 )
@@ -55,6 +57,18 @@ class CampaignRedemptionResult:
     redemption: AccessCampaignRedemption
     grant: UserAccessGrant
     created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AdminGrantMutationResult:
+    grant: UserAccessGrant
+    created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class GrantRevocationResult:
+    grant: UserAccessGrant
+    revoked: bool
 
 
 def utc_now(value: datetime | None = None) -> datetime:
@@ -101,28 +115,28 @@ def _validate_campaign_values(
     max_total_redemptions: int | None,
 ) -> None:
     if package_code is AccessPackageCode.FREE:
-        raise CampaignConflictError("Campaign package cannot be free")
+        raise CampaignValidationError("Campaign package cannot be free")
     if duration_days < 1 or duration_days > MAX_CAMPAIGN_DURATION_DAYS:
-        raise CampaignConflictError("duration_days must be between 1 and 3650")
+        raise CampaignValidationError("duration_days must be between 1 and 3650")
     if term_weeks is not None and term_weeks not in {4, 6, 8}:
-        raise CampaignConflictError("term_weeks must be one of 4, 6, or 8")
+        raise CampaignValidationError("term_weeks must be one of 4, 6, or 8")
     if (
         EntitlementCode.TRAINING_PLAN_GENERATE in package_definition(package_code).entitlements
         and term_weeks is None
     ):
-        raise CampaignConflictError("term_weeks is required for training access")
+        raise CampaignValidationError("term_weeks is required for training access")
     if package_code is AccessPackageCode.LAUNCH_TRIAL and term_weeks != 4:
-        raise CampaignConflictError("Launch Trial campaigns require term_weeks=4")
+        raise CampaignValidationError("Launch Trial campaigns require term_weeks=4")
     if (
         available_from is not None
         and available_until is not None
         and utc_now(available_until) < utc_now(available_from)
     ):
-        raise CampaignConflictError("available_until must be after available_from")
+        raise CampaignValidationError("available_until must be after available_from")
     if max_total_redemptions is not None and max_total_redemptions < 1:
-        raise CampaignConflictError("max_total_redemptions must be positive")
+        raise CampaignValidationError("max_total_redemptions must be positive")
     if kind not in {AccessCampaignKind.SIGNUP_TRIAL, AccessCampaignKind.MANUAL_PROMOTION}:
-        raise CampaignConflictError("Unsupported campaign kind")
+        raise CampaignValidationError("Unsupported campaign kind")
 
 
 def _intervals_overlap(
@@ -571,14 +585,14 @@ def grant_response(
 ) -> AdminGrantResponse:
     from app.access_management.models import AccessCampaignRedemption
 
-    redemption = db.scalar(
+    redemption_row = db.execute(
         select(AccessCampaignRedemption, AccessCampaign)
         .join(AccessCampaign, AccessCampaign.id == AccessCampaignRedemption.campaign_id)
         .where(AccessCampaignRedemption.access_grant_id == grant.id)
-    )
+    ).first()
     campaign = None
-    if redemption is not None:
-        _redemption, campaign = redemption
+    if redemption_row is not None:
+        _redemption, campaign = redemption_row
     order = db.scalar(select(BillingOrder).where(BillingOrder.access_grant_id == grant.id))
     current = grant_status(grant, now=now)
     return AdminGrantResponse(
@@ -640,3 +654,124 @@ def grant_or_raise(db: Session, grant_id: UUID, *, lock: bool = False) -> UserAc
     if grant is None:
         raise GrantNotFoundError
     return grant
+
+
+def _admin_grant_state(grant: UserAccessGrant) -> dict[str, object]:
+    return {
+        "id": str(grant.id),
+        "user_id": str(grant.user_id),
+        "package_code": AccessPackageCode(grant.package_code).value,
+        "source": GrantSource(grant.source).value,
+        "term_weeks": grant.term_weeks,
+        "starts_at": grant.starts_at.isoformat(),
+        "ends_at": grant.ends_at.isoformat() if grant.ends_at is not None else None,
+        "revoked_at": grant.revoked_at.isoformat() if grant.revoked_at is not None else None,
+    }
+
+
+def create_admin_grant(
+    db: Session,
+    user_id: UUID,
+    *,
+    package_code: AccessPackageCode | str,
+    term_weeks: int | None,
+    starts_at: datetime | None,
+    ends_at: datetime,
+    reason: str,
+    client_idempotency_key: str,
+    actor_user_id: UUID,
+) -> AdminGrantMutationResult:
+    user_or_raise(db, user_id)
+    code = AccessPackageCode(package_code)
+    start = utc_now(starts_at)
+    end = utc_now(ends_at)
+    _validate_campaign_values(
+        kind=AccessCampaignKind.MANUAL_PROMOTION,
+        package_code=code,
+        duration_days=1,
+        term_weeks=term_weeks,
+        available_from=None,
+        available_until=None,
+        max_total_redemptions=None,
+    )
+    if end <= start:
+        raise CampaignConflictError("ends_at must be after starts_at")
+    if not reason.strip():
+        raise CampaignConflictError("A reason is required for manual access grant")
+    idempotency_key = f"admin:{client_idempotency_key}"
+    existing = db.scalar(
+        select(UserAccessGrant)
+        .where(
+            UserAccessGrant.user_id == user_id,
+            UserAccessGrant.idempotency_key == idempotency_key,
+        )
+        .with_for_update()
+    )
+    if existing is not None:
+        same_request = (
+            AccessPackageCode(existing.package_code) is code
+            and existing.term_weeks == term_weeks
+            and utc_now(existing.starts_at) == start
+            and (
+                existing.ends_at is not None
+                and utc_now(existing.ends_at) == end
+            )
+        )
+        if not same_request:
+            raise GrantIdempotencyConflictError(
+                "The idempotency key is already used for a different grant"
+            )
+        return AdminGrantMutationResult(existing, False)
+
+    grant = grant_package(
+        db,
+        user_id,
+        code,
+        source=GrantSource.ADMIN,
+        starts_at=start,
+        ends_at=end,
+        idempotency_key=idempotency_key,
+        term_weeks=term_weeks,
+    )
+    db.flush()
+    record_admin_audit_event(
+        db,
+        action=AdminAuditAction.ACCESS_GRANT_CREATED,
+        actor_user_id=actor_user_id,
+        target_user_id=user_id,
+        resource_type="access_grant",
+        resource_key=str(grant.id),
+        reason=reason.strip(),
+        after_state=_admin_grant_state(grant),
+    )
+    return AdminGrantMutationResult(grant, True)
+
+
+def revoke_grant(
+    db: Session,
+    grant_id: UUID,
+    *,
+    reason: str,
+    actor_user_id: UUID,
+    now: datetime | None = None,
+) -> GrantRevocationResult:
+    if not reason.strip():
+        raise CampaignConflictError("A reason is required for access revocation")
+    grant = grant_or_raise(db, grant_id, lock=True)
+    if grant.revoked_at is not None:
+        return GrantRevocationResult(grant, False)
+    before = _admin_grant_state(grant)
+    grant.revoked_at = utc_now(now)
+    db.flush()
+    record_admin_audit_event(
+        db,
+        action=AdminAuditAction.ACCESS_GRANT_REVOKED,
+        actor_user_id=actor_user_id,
+        target_user_id=grant.user_id,
+        resource_type="access_grant",
+        resource_key=str(grant.id),
+        reason=reason.strip(),
+        before_state=before,
+        after_state=_admin_grant_state(grant),
+    )
+    return GrantRevocationResult(grant, True)

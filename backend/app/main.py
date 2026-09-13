@@ -13,6 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.access_management.exceptions import AccessManagementError
+from app.access_management.router import router as access_management_router
 from app.account_deletion.router import router as account_deletion_router
 from app.account_deletion.scheduler import account_deletion_scheduler_loop
 from app.admin.router import router as admin_router
@@ -258,9 +260,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content={"detail": {"code": error.code, "message": error.message}},
         )
 
+    @app.exception_handler(AccessManagementError)
+    async def access_management_error_handler(
+        _request: Request,
+        error: AccessManagementError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=error.status_code,
+            content={"detail": {"code": error.code, "message": error.message}},
+        )
+
     app.include_router(auth_router)
     app.include_router(billing_router)
     app.include_router(billing_admin_router)
+    app.include_router(access_management_router)
     app.include_router(entitlements_router)
     app.include_router(account_deletion_router)
     app.include_router(body_photo_router)
