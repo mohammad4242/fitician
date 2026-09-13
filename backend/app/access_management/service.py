@@ -201,7 +201,7 @@ def _campaign_response(db: Session, campaign: AccessCampaign) -> AccessCampaignR
         kind=campaign.kind,
         package_code=campaign.package_code,
         duration_days=campaign.duration_days,
-        term_weeks=campaign.term_weeks,  # type: ignore[arg-type]
+        term_weeks=campaign.term_weeks,
         available_from=campaign.available_from,
         available_until=campaign.available_until,
         is_active=campaign.is_active,
@@ -602,12 +602,12 @@ def grant_response(
         id=grant.id,
         package_code=AccessPackageCode(grant.package_code),
         source=GrantSource(grant.source),
-        term_weeks=grant.term_weeks,  # type: ignore[arg-type]
+        term_weeks=grant.term_weeks,
         starts_at=grant.starts_at,
         ends_at=grant.ends_at,
         revoked_at=grant.revoked_at,
         created_at=grant.created_at,
-        status=current,  # type: ignore[arg-type]
+        status=current,
         is_currently_active=current == "active",
         billing_order_id=order.id if order is not None else None,
         campaign_id=campaign.id if campaign is not None else None,

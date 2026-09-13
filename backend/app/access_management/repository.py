@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.access_management.enums import AccessCampaignKind
@@ -97,7 +97,7 @@ def search_users(
     )
     normalized_query = query.strip() if query is not None else ""
     if normalized_query:
-        filters = [
+        filters: list[ColumnElement[bool]] = [
             User.email.ilike(f"%{normalized_query}%"),
             User.phone_number.ilike(f"%{normalized_query}%"),
             UserProfile.display_name.ilike(f"%{normalized_query}%"),
@@ -107,8 +107,6 @@ def search_users(
         except ValueError:
             pass
         try:
-            from uuid import UUID
-
             filters.append(User.id == UUID(normalized_query))
         except ValueError:
             pass
