@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import json
 import dataclasses
 
-engine = create_engine("postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test")
+engine = create_engine("postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test")
 with Session(engine) as db:
     templates = load_template_references(db)
 catalog = full_catalog()

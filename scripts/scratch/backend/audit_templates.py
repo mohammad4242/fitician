@@ -22,7 +22,7 @@ def _trace_entry(result, stage):
     return None
 
 def run_audit():
-    engine = create_engine("postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test")
+    engine = create_engine("postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test")
     with Session(engine) as db:
         templates = load_template_references(db)
         

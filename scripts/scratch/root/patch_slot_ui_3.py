@@ -19,7 +19,7 @@ actions_buttons = """                                      <div className="admin
                                           onClick={() => removeSlot(dayIndex, slotIndex)}
                                           type="button"
                                           className="admin-slot-remove-btn"
-                                          style={{ color: 'var(--fitsho-destructive)', background: 'none', border: 'none', cursor: 'pointer' }}
+                                          style={{ color: 'var(--fitician-destructive)', background: 'none', border: 'none', cursor: 'pointer' }}
                                         >
                                           {t("admin.templateEditor.removeExercise")}
                                         </button>

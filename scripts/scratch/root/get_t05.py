@@ -7,7 +7,7 @@ from uuid import uuid4
 app = create_app()
 
 def override_get_current_user():
-    user = User(email='admin@fitsho.test', id=uuid4())
+    user = User(email='admin@fitician.test', id=uuid4())
     user.is_admin = True
     return user
 

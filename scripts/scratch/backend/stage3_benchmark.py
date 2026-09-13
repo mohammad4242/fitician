@@ -150,7 +150,7 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
     
     for experience, days in SUPPORTED_MATRIX:
         for variant in range(count_per_cell):
-            rng = Random(f"fitsho:stage3:{experience}:{days}:{variant}")
+            rng = Random(f"fitician:stage3:{experience}:{days}:{variant}")
             
             goal = rng.choice(goals)
             if experience == ExperienceLevel.FIRST_MONTH.value:
@@ -186,7 +186,7 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
                 priority_muscles = [rng.choice(muscles)]
                 
             profiles.append(BenchmarkProfile(
-                profile_id=str(uuid5(NAMESPACE_URL, f"https://fitsho.test/stage3/{experience}/{days}/{variant}")) if 'uuid5' in globals() else str(variant),
+                profile_id=str(uuid5(NAMESPACE_URL, f"https://fitician.test/stage3/{experience}/{days}/{variant}")) if 'uuid5' in globals() else str(variant),
                 variant=variant,
                 experience_level=ExperienceLevel(experience),
                 resistance_days=days,
@@ -226,10 +226,10 @@ def _body_analysis(profile: BenchmarkProfile) -> BodyAnalysisInfluence | None:
         return None
     return BodyAnalysisInfluence(
         analysis_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/analysis"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/analysis"
         ),
         result_version_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/result"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/result"
         ),
         analysis_revision=1,
         schema_version="1.0",
@@ -1277,7 +1277,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--database-url",
         default=os.environ.get(
             "BENCHMARK_DATABASE_URL",
-            "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+            "postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         ),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("var/benchmarks/phase11"))

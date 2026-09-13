@@ -75,8 +75,8 @@ def make_exercise(slug: str = "push-up") -> Exercise:
         safety_notes_fa=["گردن را در وضعیت خنثی نگه دار."],
         media_path="/exercises/exercise-placeholder.svg",
         media_type=MediaType.PLACEHOLDER,
-        media_license="Fitsho original",
-        media_attribution="Fitsho",
+        media_license="Fitician original",
+        media_attribution="Fitician",
     )
 
 

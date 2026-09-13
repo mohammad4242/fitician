@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass, is_dataclass
 from datetime import date
 from enum import Enum
 from pathlib import Path
+from random import Random
 from types import SimpleNamespace
 from typing import Any, cast
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -125,7 +126,6 @@ class BenchmarkProfile:
     blocked_exercise_tokens: tuple[str, ...] = ()
     physical_limitation_note: str | None = None
 
-from random import Random
 
 def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
     goals = (
@@ -143,35 +143,35 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
     impact_limits = tuple(ImpactLimit)
     load_limits = tuple(LoadLimit)
     balance_abilities = tuple(BalanceAbility)
-    
+
     profiles = []
-    
+
     count_per_cell = 25
-    
+
     for experience, days in SUPPORTED_MATRIX:
         for variant in range(count_per_cell):
-            rng = Random(f"fitsho:stage3:{experience}:{days}:{variant}")
-            
+            rng = Random(f"fitician:stage3:{experience}:{days}:{variant}")
+
             goal = rng.choice(goals)
             if experience == ExperienceLevel.FIRST_MONTH.value:
                 goal = Goal.GENERAL_FITNESS
-                
+
             location = rng.choice(locations)
             home_setup = None
             equipment_label = "full_gym"
             if location == TrainingLocation.HOME:
                 home_setup = rng.choice(home_setups)
                 equipment_label = f"home_{home_setup.value}"
-                
+
             training_cautions = []
             impact_limit = None
             axial_load = None
             overhead = None
             balance = None
-            
+
             if rng.random() < 0.2:
                 training_cautions = [rng.choice(cautions)]
-            
+
             if rng.random() < 0.1:
                 impact_limit = rng.choice(impact_limits)
             if rng.random() < 0.1:
@@ -180,33 +180,45 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
                 overhead = rng.choice(load_limits)
             if rng.random() < 0.1:
                 balance = rng.choice(balance_abilities)
-                
+
             priority_muscles = []
             if rng.random() < 0.3:
                 priority_muscles = [rng.choice(muscles)]
-                
-            profiles.append(BenchmarkProfile(
-                profile_id=str(uuid5(NAMESPACE_URL, f"https://fitsho.test/stage3/{experience}/{days}/{variant}")) if 'uuid5' in globals() else str(variant),
-                variant=variant,
-                experience_level=ExperienceLevel(experience),
-                resistance_days=days,
-                goal=goal,
-                priority_muscles=tuple(priority_muscles),
-                body_analysis_priorities=(),
-                sex=rng.choice((Sex.MALE, Sex.FEMALE)),
-                duration_minutes=rng.choice(durations),
-                equipment_label=equipment_label,
-                training_location=location,
-                home_setup=home_setup,
-                available_equipment_override=None,
-                training_cautions=tuple(training_cautions),
-                impact_limit=impact_limit,
-                axial_load_limit=axial_load,
-                overhead_limit=overhead,
-                balance_requirement=balance,
-            ))
-            
+
+            profile_id = (
+                str(
+                    uuid5(
+                        NAMESPACE_URL, f"https://fitician.test/stage3/{experience}/{days}/{variant}"
+                    )
+                )
+                if "uuid5" in globals()
+                else str(variant)
+            )
+            profiles.append(
+                BenchmarkProfile(
+                    profile_id=profile_id,
+                    variant=variant,
+                    experience_level=ExperienceLevel(experience),
+                    resistance_days=days,
+                    goal=goal,
+                    priority_muscles=tuple(priority_muscles),
+                    body_analysis_priorities=(),
+                    sex=rng.choice((Sex.MALE, Sex.FEMALE)),
+                    duration_minutes=rng.choice(durations),
+                    equipment_label=equipment_label,
+                    training_location=location,
+                    home_setup=home_setup,
+                    available_equipment_override=None,
+                    training_cautions=tuple(training_cautions),
+                    impact_limit=impact_limit,
+                    axial_load_limit=axial_load,
+                    overhead_limit=overhead,
+                    balance_requirement=balance,
+                )
+            )
+
     return tuple(profiles)
+
 
 NEGATIVE_PROFILES: tuple[BenchmarkProfile, ...] = ()
 
@@ -226,10 +238,10 @@ def _body_analysis(profile: BenchmarkProfile) -> BodyAnalysisInfluence | None:
         return None
     return BodyAnalysisInfluence(
         analysis_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/analysis"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/analysis"
         ),
         result_version_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/result"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/result"
         ),
         analysis_revision=1,
         schema_version="1.0",
@@ -1277,7 +1289,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--database-url",
         default=os.environ.get(
             "BENCHMARK_DATABASE_URL",
-            "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+            "postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         ),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("var/benchmarks/phase11"))

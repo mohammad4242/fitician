@@ -8,7 +8,7 @@ from app.exercises.enums import MuscleGroup, MovementPattern, ExerciseCautionTag
 from tests.workouts.program_engine.phase11_benchmark import BenchmarkProfile, SUPPORTED_MATRIX
 
 def _uuid(seed_str: str) -> str:
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"https://fitsho.test/stage3/{seed_str}"))
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"https://fitician.test/stage3/{seed_str}"))
 
 def generate_stage3_profiles(count_per_cell: int = 25) -> list[BenchmarkProfile]:
     profiles = []
@@ -25,7 +25,7 @@ def generate_stage3_profiles(count_per_cell: int = 25) -> list[BenchmarkProfile]
     
     for experience, days in SUPPORTED_MATRIX:
         for variant in range(count_per_cell):
-            rng = Random(f"fitsho:stage3:{experience}:{days}:{variant}")
+            rng = Random(f"fitician:stage3:{experience}:{days}:{variant}")
             
             goal = rng.choice(goals)
             if experience == ExperienceLevel.FIRST_MONTH.value:

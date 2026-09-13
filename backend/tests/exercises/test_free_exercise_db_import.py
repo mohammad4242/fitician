@@ -728,8 +728,8 @@ def test_importer_does_not_overwrite_admin_owned_media(
     )
     admin_asset.media_path = admin_path
     admin_asset.media_source_url = "https://admin.invalid/push-up.mp4"
-    admin_asset.media_license = "Fitsho internal"
-    admin_asset.media_attribution = "Fitsho admin"
+    admin_asset.media_license = "Fitician internal"
+    admin_asset.media_attribution = "Fitician admin"
     admin_asset.source = "admin"
     admin_asset.source_id = "admin-push-up-video"
     admin_asset.sort_order = 0
@@ -747,8 +747,8 @@ def test_importer_does_not_overwrite_admin_owned_media(
     preserved = next(asset for asset in exercise.media_assets if asset.source == "admin")
     assert preserved.media_path == admin_path
     assert preserved.media_source_url == "https://admin.invalid/push-up.mp4"
-    assert preserved.media_license == "Fitsho internal"
-    assert preserved.media_attribution == "Fitsho admin"
+    assert preserved.media_license == "Fitician internal"
+    assert preserved.media_attribution == "Fitician admin"
     assert preserved.sort_order == 0
     assert {
         (asset.source, asset.presentation, asset.sort_order) for asset in exercise.media_assets
@@ -846,8 +846,8 @@ def test_importer_preserves_owner_and_admin_assets_when_syncing_fedb_media(
     owner_asset.source_id = "owner-push-up-video"
     owner_asset.sort_order = 0
     admin_asset.media_source_url = "https://admin.invalid/push-up.mp4"
-    admin_asset.media_license = "Fitsho internal"
-    admin_asset.media_attribution = "Fitsho admin"
+    admin_asset.media_license = "Fitician internal"
+    admin_asset.media_attribution = "Fitician admin"
     admin_asset.source = "admin"
     admin_asset.source_id = "admin-push-up-video"
     admin_asset.sort_order = 0
@@ -873,8 +873,8 @@ def test_importer_preserves_owner_and_admin_assets_when_syncing_fedb_media(
     assert preserved_owner.sort_order == 0
     assert preserved_admin.media_path == admin_path
     assert preserved_admin.media_source_url == "https://admin.invalid/push-up.mp4"
-    assert preserved_admin.media_license == "Fitsho internal"
-    assert preserved_admin.media_attribution == "Fitsho admin"
+    assert preserved_admin.media_license == "Fitician internal"
+    assert preserved_admin.media_attribution == "Fitician admin"
     assert preserved_admin.sort_order == 0
     assert {
         (asset.source, asset.presentation, asset.sort_order) for asset in exercise.media_assets
@@ -935,8 +935,8 @@ def test_repeated_unchanged_import_skips_with_mixed_media_provenance(
         source_id="admin-push-up-video",
         media_path=female_path,
         media_source_url="https://admin.invalid/push-up.mp4",
-        media_license="Fitsho internal",
-        media_attribution="Fitsho admin",
+        media_license="Fitician internal",
+        media_attribution="Fitician admin",
     )
     db.commit()
     before = sorted(

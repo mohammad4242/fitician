@@ -287,7 +287,7 @@ def _baseline_request(level: str, days: int, duration: int) -> ProgramGeneration
     consistent_weeks = 52 if experience is TrainingExperience.INTERMEDIATE else 156
     return ProgramGenerationRequest(
         user_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.local/template-survival/{level}/{days}/{duration}"
+            NAMESPACE_URL, f"https://fitician.local/template-survival/{level}/{days}/{duration}"
         ),
         age=30,
         height_cm=178,

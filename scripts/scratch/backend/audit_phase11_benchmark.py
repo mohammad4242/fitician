@@ -126,7 +126,7 @@ class BenchmarkProfile:
 
 def _profile_id(experience: ExperienceLevel, days: int, variant: int) -> str:
     return str(
-        uuid5(NAMESPACE_URL, f"https://fitsho.test/phase11/{experience.value}/{days}/{variant}")
+        uuid5(NAMESPACE_URL, f"https://fitician.test/phase11/{experience.value}/{days}/{variant}")
     )
 
 
@@ -272,10 +272,10 @@ def _body_analysis(profile: BenchmarkProfile) -> BodyAnalysisInfluence | None:
         return None
     return BodyAnalysisInfluence(
         analysis_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/analysis"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/analysis"
         ),
         result_version_id=uuid5(
-            NAMESPACE_URL, f"https://fitsho.test/phase11/{profile.profile_id}/result"
+            NAMESPACE_URL, f"https://fitician.test/phase11/{profile.profile_id}/result"
         ),
         analysis_revision=1,
         schema_version="1.0",
@@ -1338,7 +1338,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--database-url",
         default=os.environ.get(
             "BENCHMARK_DATABASE_URL",
-            "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+            "postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         ),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("var/benchmarks/phase11"))

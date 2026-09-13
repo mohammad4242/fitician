@@ -5,7 +5,7 @@ from sqlalchemy.schema import MetaData
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test",
+    "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test",
 )
 
 engine = create_engine(TEST_DATABASE_URL)

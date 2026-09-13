@@ -15,7 +15,7 @@ export function DualProgressRing({ primaryValue, secondaryValue, total, label }:
 
   return (
     <div
-      className="fitician-progress-ring fitsho-progress-ring fitician-progress-ring--dual fitsho-progress-ring--dual"
+      className="fitician-progress-ring fitician-progress-ring--dual"
       role="progressbar"
       aria-label={label ?? `${percent}%`}
       aria-valuemin={0}

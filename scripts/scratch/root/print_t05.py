@@ -17,7 +17,7 @@ engine = get_engine(settings.database_url)
 app = create_app()
 
 def override_get_current_user():
-    user = User(email="admin@fitsho.test", id=uuid4(), hashed_password="x")
+    user = User(email="admin@fitician.test", id=uuid4(), hashed_password="x")
     user.is_admin = True
     return user
 

@@ -135,7 +135,7 @@ test("the public menu stays contained on a narrow RTL viewport", async ({ page }
 });
 
 test("the public shell keeps English LTR semantics", async ({ page }) => {
-  await page.addInitScript(() => window.localStorage.setItem("fitsho-language", "en"));
+  await page.addInitScript(() => window.localStorage.setItem("fitician-language", "en"));
   await page.goto("/login", { waitUntil: "networkidle" });
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");

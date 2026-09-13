@@ -6,7 +6,7 @@ from app.training_templates.engine_reference import load_template_references
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-engine = create_engine("postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test")
+engine = create_engine("postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test")
 with Session(engine) as db:
     templates = load_template_references(db)
 catalog = full_catalog()

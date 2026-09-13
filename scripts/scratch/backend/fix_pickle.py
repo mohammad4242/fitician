@@ -117,7 +117,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--database-url",
         default=os.environ.get(
             "BENCHMARK_DATABASE_URL",
-            "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+            "postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         ),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("var/benchmarks/phase11"))

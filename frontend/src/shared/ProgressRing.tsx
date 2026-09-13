@@ -30,7 +30,7 @@ export function ProgressRing({
 
   return (
     <div
-      className={`fitician-progress-ring fitsho-progress-ring${animateOnMount ? " fitician-progress-ring--mount-animated fitsho-progress-ring--mount-animated" : ""}`}
+      className={`fitician-progress-ring${animateOnMount ? " fitician-progress-ring--mount-animated" : ""}`}
       role="progressbar"
       aria-label={label ?? `${percent}%`}
       aria-valuemin={0}

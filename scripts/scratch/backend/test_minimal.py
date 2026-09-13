@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from audit_phase11_benchmark import benchmark_profiles, profile_to_request
 
-engine = create_engine("postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test")
+engine = create_engine("postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test")
 with Session(engine) as db:
     templates = load_template_references(db)
 catalog = full_catalog()

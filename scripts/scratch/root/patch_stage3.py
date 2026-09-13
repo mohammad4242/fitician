@@ -29,7 +29,7 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
     
     for experience, days in SUPPORTED_MATRIX:
         for variant in range(count_per_cell):
-            rng = Random(f"fitsho:stage3:{experience}:{days}:{variant}")
+            rng = Random(f"fitician:stage3:{experience}:{days}:{variant}")
             
             goal = rng.choice(goals)
             if experience == ExperienceLevel.FIRST_MONTH.value:
@@ -65,7 +65,7 @@ def benchmark_profiles() -> tuple[BenchmarkProfile, ...]:
                 priority_muscles = [rng.choice(muscles)]
                 
             profiles.append(BenchmarkProfile(
-                profile_id=str(uuid5(NAMESPACE_URL, f"https://fitsho.test/stage3/{experience}/{days}/{variant}")),
+                profile_id=str(uuid5(NAMESPACE_URL, f"https://fitician.test/stage3/{experience}/{days}/{variant}")),
                 variant=variant,
                 experience_level=ExperienceLevel(experience),
                 resistance_days=days,
