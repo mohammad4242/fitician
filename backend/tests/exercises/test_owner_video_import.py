@@ -189,6 +189,60 @@ def build_importer(
     )
 
 
+def test_owner_creation_uses_curated_notes_for_canonical_back_slug(
+    db: Session,
+    test_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    from app.exercises.curated_safety_notes import get_curated_safety_notes
+    from app.exercises.owner_video_import import OwnerVideoImporter
+
+    source_root = tmp_path / "raw"
+    source_path, _ = write_video(source_root, "row.mp4", b"row")
+    source_id = "e0c26a271aac" + "0" * 52
+    analysis = analysis_for(source_id).model_copy(
+        update={
+            "name_en": "Barbell Bent-Over Row",
+            "name_fa": "پارویی خم هالتر",
+            "body_region": BodyRegion.UPPER_BODY,
+            "primary_muscle": MuscleGroup.BACK,
+            "muscle_focus": MuscleFocus.GENERAL_BACK,
+            "secondary_muscles": [],
+            "equipment": [Equipment.BARBELL],
+            "movement_pattern": MovementPattern.HORIZONTAL_PULL,
+            "caution_tags": [],
+        }
+    )
+    settings = importer_settings(test_settings, tmp_path)
+    importer = OwnerVideoImporter(
+        db,
+        settings=settings,
+        source_root=source_root,
+        analyzer=FakeAnalyzer({}),
+        prepare_video=fake_prepare,
+        publish_video=fake_publish,
+    )
+    published = PublishedOwnerVideo(
+        public_path="/media/owner-row.mp4",
+        absolute_path=tmp_path / "owner-row.mp4",
+        created=False,
+    )
+
+    exercise = importer._create_exercise(
+        source_path,
+        analysis,
+        source_id,
+        published,
+        needs_review=False,
+        review_reasons=[],
+    )
+    curated = get_curated_safety_notes("owner-e0c26a271aac-barbell-bent-over-row")
+
+    assert curated is not None
+    assert exercise.safety_notes_fa == list(curated.fa)
+    assert exercise.safety_notes_en == list(curated.en)
+
+
 def test_importer_matches_existing_exercise_and_uses_next_media_sort_order(
     db: Session,
     test_settings: Settings,

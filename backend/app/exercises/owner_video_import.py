@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.exercises.curated_safety_notes import get_curated_safety_notes
 from app.exercises.enums import MediaRole, MediaType
 from app.exercises.models import (
     Exercise,
@@ -414,8 +415,10 @@ class OwnerVideoImporter:
         presentation = resolve_presentation(analysis, self._settings)
         source_metadata = analysis.model_dump(mode="json")
         source_metadata["review_reasons"] = review_reasons
+        slug = self._slug_for(source_id, analysis.name_en)
+        curated_safety_notes = get_curated_safety_notes(slug)
         exercise = Exercise(
-            slug=self._slug_for(source_id, analysis.name_en),
+            slug=slug,
             name_en=analysis.name_en.strip(),
             name_fa=analysis.name_fa.strip(),
             body_region=analysis.body_region,
@@ -426,8 +429,16 @@ class OwnerVideoImporter:
             exercise_type=analysis.exercise_type,
             instructions_en=[item.strip() for item in analysis.instructions_en],
             instructions_fa=[item.strip() for item in analysis.instructions_fa],
-            safety_notes_en=[item.strip() for item in analysis.safety_notes_en],
-            safety_notes_fa=[item.strip() for item in analysis.safety_notes_fa],
+            safety_notes_en=(
+                list(curated_safety_notes.en)
+                if curated_safety_notes
+                else [item.strip() for item in analysis.safety_notes_en]
+            ),
+            safety_notes_fa=(
+                list(curated_safety_notes.fa)
+                if curated_safety_notes
+                else [item.strip() for item in analysis.safety_notes_fa]
+            ),
             media_path=published.public_path,
             media_type=MediaType.VIDEO,
             media_attribution="Fitsho owner-provided",

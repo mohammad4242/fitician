@@ -474,6 +474,88 @@ def test_importer_applies_and_repairs_curated_safety_notes(
     assert exercise.safety_notes_en == list(curated.en)
 
 
+@pytest.mark.parametrize(
+    ("source_id", "name", "target", "equipment", "slug"),
+    [
+        (
+            "0974",
+            "Cable Close Grip Lat Pulldown",
+            "lats",
+            "cable",
+            "fedb-0974-cable-close-grip-lat-pulldown",
+        ),
+        (
+            "0238",
+            "Cable Straight Arm Pulldown",
+            "lats",
+            "cable",
+            "fedb-0238-cable-straight-arm-pulldown",
+        ),
+        (
+            "0581",
+            "Lever High Row",
+            "upper back",
+            "leverage machine",
+            "fedb-0581-lever-high-row",
+        ),
+    ],
+)
+def test_back_curated_notes_survive_a_second_import(
+    db: Session,
+    test_settings: Settings,
+    tmp_path: Path,
+    source_id: str,
+    name: str,
+    target: str,
+    equipment: str,
+    slug: str,
+) -> None:
+    from app.exercises.curated_safety_notes import get_curated_safety_notes
+    from app.exercises.free_exercise_db_import import FreeExerciseDbImporter
+
+    source_root = tmp_path / "source"
+    record = source_record()
+    record.update(
+        {
+            "id": source_id,
+            "name": name,
+            "bodyPart": "back",
+            "target": target,
+            "secondaryMuscles": ["biceps"],
+            "equipment": equipment,
+        }
+    )
+    write_source(source_root, record)
+    translator = FakeTranslator()
+    importer = FreeExerciseDbImporter(
+        db,
+        settings=test_settings,
+        source_root=source_root,
+        translator=translator,
+    )
+
+    first = importer.run()
+    exercise = db.scalar(select(Exercise).where(Exercise.slug == slug))
+    curated = get_curated_safety_notes(slug)
+
+    assert curated is not None
+    assert first.imported_records == [source_id]
+    assert exercise is not None
+    assert exercise.safety_notes_fa == list(curated.fa)
+    assert exercise.safety_notes_en == list(curated.en)
+
+    exercise.safety_notes_fa = ["یادداشت قدیمی"]
+    exercise.safety_notes_en = ["Old note"]
+    db.commit()
+
+    second = importer.run()
+    db.refresh(exercise)
+
+    assert second.updated_records == [source_id]
+    assert exercise.safety_notes_fa == list(curated.fa)
+    assert exercise.safety_notes_en == list(curated.en)
+
+
 def test_importer_stores_media_at_verified_content_addressed_exercise_paths(
     db: Session,
     test_settings: Settings,
