@@ -68,6 +68,18 @@ class TimelineNutritionResponse(BaseModel):
     pattern_day_index: int | None = None
     day_id: UUID | None = None
     nutrient_totals: dict[str, float] = Field(default_factory=dict)
+    effective_today: "TimelineNutritionEffectiveDayResponse | None" = None
+
+
+class TimelineNutritionEffectiveDayResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    plan_id: UUID
+    start_date: date
+    absolute_day_number: int
+    pattern_day_index: int
+    day_id: UUID | None = None
+    nutrient_totals: dict[str, float] = Field(default_factory=dict)
 
 
 class ProgramTimelineTodayResponse(BaseModel):

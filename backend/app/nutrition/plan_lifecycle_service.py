@@ -7,6 +7,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth.models import User
+from app.nutrition.calendar import archive_superseded_future_nutrition_successors
 from app.nutrition.enums import (
     NutritionPlanLifecycleStatus,
     NutritionPlanReviewStatus,
@@ -25,7 +26,7 @@ from app.nutrition.models import (
 from app.nutrition.plan_service import weekly_plan_response
 from app.nutrition.schemas import WeeklyPlanResponse
 from app.profile.models import UserProfile
-from app.time_context import validate_timezone_name
+from app.time_context import local_date_for_timezone, validate_timezone_name
 
 
 def _plan_query() -> Select[tuple[NutritionWeeklyPlan]]:
@@ -132,6 +133,7 @@ def start_nutrition_plan(
     timezone_name: str,
 ) -> WeeklyPlanResponse:
     timezone_name = validate_timezone_name(timezone_name)
+    reference = datetime.now(UTC)
     user = db.scalar(select(User).where(User.id == user_id).with_for_update())
     if user is None:
         raise NutritionPlanStartNotFoundError
@@ -141,11 +143,18 @@ def start_nutrition_plan(
 
     if should_start:
         plan.start_date = start_date
-        plan.started_at = datetime.now(UTC)
+        plan.started_at = reference
         plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
         for day in plan.days:
             day.plan_date = start_date + timedelta(days=day.day_index)
         _persist_timezone(db, user_id=user_id, timezone_name=timezone_name)
+
+    archive_superseded_future_nutrition_successors(
+        db,
+        user_id,
+        local_date=local_date_for_timezone(timezone_name, now=reference),
+        keep_plan_id=plan.id,
+    )
 
     db.commit()
     return weekly_plan_response(_reload_plan(db, user_id=user_id, plan_id=plan.id))

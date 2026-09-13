@@ -5,13 +5,23 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.nutrition.enums import NutritionPlanLifecycleStatus, NutritionPlanReviewStatus
-from app.nutrition.models import NutritionWeeklyPlan
+from app.nutrition.enums import (
+    NutritionPlanBudgetStatus,
+    NutritionPlanLifecycleStatus,
+    NutritionPlanReviewStatus,
+    NutritionPlanRole,
+)
+from app.nutrition.models import (
+    NutritionPlanGeneration,
+    NutritionWeeklyPlan,
+    NutritionWeeklyPlanDay,
+)
 from app.nutrition.plan_service import (
     ActiveWeeklyPlanNotFoundError,
     active_weekly_plan,
     select_bundle_plan,
 )
+from app.nutrition.planner_policy import PLANNER_POLICY_VERSION, PLANNER_VERSION
 from app.profile.models import UserProfile
 from app.program_timeline.service import build_program_timeline
 from tests.nutrition.test_bundle_selection import _seed_test_bundle
@@ -146,9 +156,10 @@ def test_selected_ideal_plan_can_start(client: TestClient, db: Session) -> None:
     )
     assert timeline.nutrition.state.value == "active"
     assert timeline.nutrition.plan_id == ideal_plan.id
-    assert active_weekly_plan(
-        db, user.id, now=datetime(2026, 9, 14, 12, tzinfo=UTC)
-    ).id == ideal_plan.id
+    assert (
+        active_weekly_plan(db, user.id, now=datetime(2026, 9, 14, 12, tzinfo=UTC)).id
+        == ideal_plan.id
+    )
 
 
 def test_active_plan_uses_profile_local_date(
@@ -164,9 +175,7 @@ def test_active_plan_uses_profile_local_date(
     profile.timezone = "Asia/Tehran"
     db.commit()
 
-    active = active_weekly_plan(
-        db, persisted.user_id, now=datetime(2026, 9, 13, 21, tzinfo=UTC)
-    )
+    active = active_weekly_plan(db, persisted.user_id, now=datetime(2026, 9, 13, 21, tzinfo=UTC))
 
     assert active.id == persisted.id
     monkeypatch.setattr(
@@ -193,6 +202,16 @@ def test_future_selected_plan_keeps_current_plan_effective_until_handoff(
     client: TestClient, db: Session
 ) -> None:
     user, bundle, current_plan, next_plan = _seed_test_bundle(client, db)
+    for plan, calories in ((current_plan, 2100.0), (next_plan, 2400.0)):
+        plan.days.extend(
+            NutritionWeeklyPlanDay(
+                day_index=index,
+                plan_date=date(2026, 9, 1) + timedelta(days=index),
+                cost_irr=0,
+                nutrient_totals={"energy_kcal": calories, "protein_g": calories / 10},
+            )
+            for index in range(7)
+        )
     current_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
     current_plan.start_date = date(2026, 9, 1)
     db.commit()
@@ -201,7 +220,7 @@ def test_future_selected_plan_keeps_current_plan_effective_until_handoff(
     db.refresh(current_plan)
     assert current_plan.lifecycle_status is NutritionPlanLifecycleStatus.ACTIVE
 
-    start = date(2026, 9, 20)
+    start = date(2026, 9, 17)
     response = client.post(
         f"/api/v1/nutrition/plans/{next_plan.id}/start",
         headers=ORIGIN,
@@ -209,16 +228,128 @@ def test_future_selected_plan_keeps_current_plan_effective_until_handoff(
     )
     assert response.status_code == 200, response.text
     timeline = build_program_timeline(
-        db, user_id=user.id, now=datetime(2026, 9, 19, 12, tzinfo=UTC)
+        db, user_id=user.id, now=datetime(2026, 9, 14, 12, tzinfo=UTC)
     )
     assert timeline.nutrition.state.value == "scheduled_start"
     assert timeline.nutrition.plan_id == next_plan.id
-    assert active_weekly_plan(
-        db, user.id, now=datetime(2026, 9, 19, 12, tzinfo=UTC)
-    ).id == current_plan.id
-    assert active_weekly_plan(
-        db, user.id, now=datetime(2026, 9, 20, 12, tzinfo=UTC)
-    ).id == next_plan.id
+    assert timeline.nutrition.effective_today is not None
+    assert timeline.nutrition.effective_today.plan_id == current_plan.id
+    assert timeline.nutrition.effective_today.absolute_day_number == 14
+    assert timeline.nutrition.effective_today.pattern_day_index == 6
+    assert timeline.nutrition.effective_today.nutrient_totals == {
+        "energy_kcal": 2100.0,
+        "protein_g": 210.0,
+    }
+    tracked = client.put(
+        "/api/v1/nutrition/tracking/check-in",
+        headers=ORIGIN,
+        json={"entry_date": "2026-09-14", "status": "on_plan"},
+    )
+    assert tracked.status_code == 200
+    assert tracked.json()["plan_revision_id"] == str(current_plan.id)
+    assert (
+        active_weekly_plan(db, user.id, now=datetime(2026, 9, 16, 12, tzinfo=UTC)).id
+        == current_plan.id
+    )
+    assert (
+        active_weekly_plan(db, user.id, now=datetime(2026, 9, 17, 12, tzinfo=UTC)).id
+        == next_plan.id
+    )
+
+
+def test_new_future_successor_replaces_an_older_successor_without_touching_today(
+    client: TestClient, db: Session
+) -> None:
+    user, bundle, current_plan, first_successor = _seed_test_bundle(client, db)
+    current_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    current_plan.start_date = date(2026, 9, 1)
+    first_successor.start_date = date(2026, 9, 20)
+    db.flush()
+
+    select_bundle_plan(
+        db,
+        user_id=user.id,
+        bundle_id=bundle.id,
+        plan_id=first_successor.id,
+    )
+    first_started = client.post(
+        f"/api/v1/nutrition/plans/{first_successor.id}/start",
+        headers=ORIGIN,
+        json={"start_date": "2026-09-20", "timezone": "Asia/Tehran"},
+    )
+    assert first_started.status_code == 200, first_started.text
+
+    generation = NutritionPlanGeneration(
+        user_id=user.id,
+        safety_decision_id=first_successor.safety_decision_id,
+        estimate_id=first_successor.estimate_id,
+        bundle_id=bundle.id,
+        plan_role=NutritionPlanRole.LEGACY.value,
+        outcome="success",
+        reason_codes=[],
+        warning_codes=[],
+        input_signature="sig-successor-b",
+        input_snapshot={},
+        diagnostic_snapshot={},
+        planner_policy_version=PLANNER_POLICY_VERSION,
+        planner_version=PLANNER_VERSION,
+    )
+    db.add(generation)
+    db.flush()
+    second_successor = NutritionWeeklyPlan(
+        user_id=user.id,
+        generation_id=generation.id,
+        estimate_id=first_successor.estimate_id,
+        safety_decision_id=first_successor.safety_decision_id,
+        revision=3,
+        lifecycle_status=NutritionPlanLifecycleStatus.GENERATED,
+        is_user_visible=True,
+        start_date=date(2026, 9, 18),
+        planner_policy_version=PLANNER_POLICY_VERSION,
+        planner_version=PLANNER_VERSION,
+        scientific_policy_version="sc-v1",
+        formula_version="fm-v1",
+        food_data_manifest={},
+        input_snapshot={},
+        price_snapshot={},
+        repair_snapshot=[],
+        warning_codes=[],
+        explanation_codes=[],
+        weekly_cost_irr=40_000_000,
+        weekly_budget_irr=40_000_000,
+        budget_status=NutritionPlanBudgetStatus.WITHIN_BUDGET,
+    )
+    db.add(second_successor)
+    db.commit()
+
+    selected = select_bundle_plan(
+        db,
+        user_id=user.id,
+        bundle_id=bundle.id,
+        plan_id=second_successor.id,
+        now=datetime(2026, 9, 14, 12, tzinfo=UTC),
+    )
+    assert selected.selected_plan_id == second_successor.id
+    db.refresh(current_plan)
+    db.refresh(first_successor)
+    assert current_plan.lifecycle_status is NutritionPlanLifecycleStatus.ACTIVE
+    assert first_successor.lifecycle_status is NutritionPlanLifecycleStatus.ARCHIVED
+    assert first_successor.is_user_visible is False
+
+    from app.nutrition.calendar import effective_nutrition_plan_for_date
+
+    assert effective_nutrition_plan_for_date(db, user.id, date(2026, 9, 17)) is current_plan
+    assert effective_nutrition_plan_for_date(db, user.id, date(2026, 9, 20)) is current_plan
+
+    second_started = client.post(
+        f"/api/v1/nutrition/plans/{second_successor.id}/start",
+        headers=ORIGIN,
+        json={"start_date": "2026-09-18", "timezone": "Asia/Tehran"},
+    )
+    assert second_started.status_code == 200, second_started.text
+    assert effective_nutrition_plan_for_date(db, user.id, date(2026, 9, 17)) is current_plan
+    assert effective_nutrition_plan_for_date(db, user.id, date(2026, 9, 18)) is second_successor
+    assert effective_nutrition_plan_for_date(db, user.id, date(2026, 9, 20)) is second_successor
 
 
 def test_wrong_owner_cannot_start_another_members_plan(client: TestClient, db: Session) -> None:

@@ -302,8 +302,7 @@ def physician_medical_context(
     ).all()
     return {
         "conditions": [
-            {"code": condition.code, "details": condition.details}
-            for condition in conditions
+            {"code": condition.code, "details": condition.details} for condition in conditions
         ],
         "medications": [
             {"name": medication.name, "dosage": medication.dosage, "notes": medication.notes}
@@ -491,9 +490,7 @@ def review_queue(
             "plan_id": review.plan_id,
             "user_id": user_id,
             "member_display_name": display_name,
-            "member_profile_photo_url": authorized_profile_photo_url(
-                db, physician_id, user_id
-            ),
+            "member_profile_photo_url": authorized_profile_photo_url(db, physician_id, user_id),
             "status": review.status.value,
             "priority": review.priority,
             "physician_user_id": review.physician_user_id,

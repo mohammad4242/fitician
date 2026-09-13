@@ -1985,8 +1985,12 @@ class NutritionFoodPhotoAnalysisJob(Base):
     )
     locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked_by: Mapped[str | None] = mapped_column(String(128))
-    attempt_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
-    max_attempts: Mapped[int] = mapped_column(Integer, default=3, server_default="3", nullable=False)
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    max_attempts: Mapped[int] = mapped_column(
+        Integer, default=3, server_default="3", nullable=False
+    )
     execution_config: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     last_error_code: Mapped[str | None] = mapped_column(String(80))
     last_error_message: Mapped[str | None] = mapped_column(String(300))

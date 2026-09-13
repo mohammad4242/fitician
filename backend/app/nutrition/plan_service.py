@@ -19,6 +19,7 @@ from app.entitlements.service import consume_quota, require_quota_available
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
+from app.nutrition.calendar import archive_superseded_future_nutrition_successors
 from app.nutrition.candidate_selection import (
     CandidateEvaluation,
     CandidateQuality,
@@ -137,6 +138,7 @@ from app.nutrition.schemas import (
 )
 from app.nutrition.service import current_safety_decision
 from app.profile.models import UserProfile
+from app.time_context import local_date_for_timezone, member_timezone_or_default
 
 _HARD_EXCLUSION_KINDS = {
     FoodItemKind.NEVER_SUGGEST,
@@ -1367,6 +1369,7 @@ def select_bundle_plan(
     plan_id: UUID | None = None,
     plan_role: str | None = None,
     physician_review_allowed: bool = False,
+    now: datetime | None = None,
 ) -> PlanBundleSelectResponse:
     _lock_user_for_plan_lifecycle(db, user_id)
     bundle = db.scalar(
@@ -1420,7 +1423,7 @@ def select_bundle_plan(
     if target_plan is None or target_role is None:
         raise PlanSelectionInvalidError("Selected plan does not belong to the specified bundle")
 
-    now = datetime.now(UTC)
+    reference = now or datetime.now(UTC)
     _finalize_selected_plan(
         db,
         bundle=bundle,
@@ -1428,7 +1431,17 @@ def select_bundle_plan(
         target_role=target_role,
         physician_review_allowed=physician_review_allowed,
         bundle_plans=tuple(plan for plan, _ in plans_with_role),
-        now=now,
+        now=reference,
+    )
+    profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
+    archive_superseded_future_nutrition_successors(
+        db,
+        user_id,
+        local_date=local_date_for_timezone(
+            member_timezone_or_default(profile_timezone),
+            now=reference,
+        ),
+        keep_plan_id=target_plan.id,
     )
     db.commit()
 
@@ -1440,7 +1453,7 @@ def select_bundle_plan(
         bundle_id=bundle.id,
         selected_plan_id=target_plan.id,
         selected_plan_role=target_role,
-        selected_at=now,
+        selected_at=reference,
         plan=weekly_plan_response(loaded_plan),
     )
 

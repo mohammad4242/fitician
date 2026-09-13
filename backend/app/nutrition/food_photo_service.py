@@ -873,7 +873,8 @@ def confirm_photo_macro_preview(db: Session, user_id: UUID, estimate_id: UUID) -
 
 def delete_photo(db: Session, user_id: UUID, estimate_id: UUID, settings: Settings) -> None:
     row = db.scalar(
-        select(NutritionFoodPhotoEstimate).where(
+        select(NutritionFoodPhotoEstimate)
+        .where(
             NutritionFoodPhotoEstimate.id == estimate_id,
             NutritionFoodPhotoEstimate.user_id == user_id,
         )

@@ -43,8 +43,7 @@ def effective_nutrition_plan_for_date(
             NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
             NutritionWeeklyPlan.start_date <= target_date,
             or_(
-                NutritionPlanGeneration.plan_role
-                != NutritionPlanRole.IDEAL_REFERENCE.value,
+                NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value,
                 NutritionPlanBundle.selected_plan_id == NutritionWeeklyPlan.id,
             ),
         )
@@ -60,3 +59,28 @@ def effective_nutrition_plan_for_date(
         )
         .limit(1)
     )
+
+
+def archive_superseded_future_nutrition_successors(
+    db: Session,
+    user_id: UUID,
+    *,
+    local_date: date,
+    keep_plan_id: UUID | None = None,
+) -> None:
+    """Archive active successors that can no longer be the member's next plan."""
+    query = (
+        select(NutritionWeeklyPlan)
+        .where(
+            NutritionWeeklyPlan.user_id == user_id,
+            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
+            NutritionWeeklyPlan.start_date > local_date,
+        )
+        .with_for_update()
+    )
+    if keep_plan_id is not None:
+        query = query.where(NutritionWeeklyPlan.id != keep_plan_id)
+
+    for successor in db.scalars(query):
+        successor.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
+        successor.is_user_visible = False

@@ -8,6 +8,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.nutrition.calendar import (
+    effective_nutrition_plan_for_date,
     nutrition_absolute_day_number,
     nutrition_pattern_day_index,
 )
@@ -25,6 +26,7 @@ from app.profile.models import UserProfile
 from app.program_timeline.schemas import (
     NutritionTimelineState,
     ProgramTimelineTodayResponse,
+    TimelineNutritionEffectiveDayResponse,
     TimelineNutritionResponse,
     TimelineWorkoutResponse,
     TimelineWorkoutSessionResponse,
@@ -165,23 +167,15 @@ def _workout_timeline(
         )
 
     unfinished = sorted(
-        (
-            session
-            for session in sessions
-            if session.status is WorkoutCycleSessionStatus.SCHEDULED
-        ),
+        (session for session in sessions if session.status is WorkoutCycleSessionStatus.SCHEDULED),
         key=lambda session: session.session_number,
     )
     actionable = get_actionable_workout_session(cycle)
     overdue = (
-        actionable
-        if actionable is not None and actionable.scheduled_date < local_date
-        else None
+        actionable if actionable is not None and actionable.scheduled_date < local_date else None
     )
     today = (
-        actionable
-        if actionable is not None and actionable.scheduled_date == local_date
-        else None
+        actionable if actionable is not None and actionable.scheduled_date == local_date else None
     )
     completed_today = next(
         (
@@ -292,8 +286,13 @@ def _nutrition_timeline(
     local_date: date,
 ) -> TimelineNutritionResponse:
     plan = _latest_nutrition_plan(db, user_id=user_id)
+    effective_plan = effective_nutrition_plan_for_date(db, user_id, local_date)
+    effective_today = _effective_nutrition_day_response(effective_plan, local_date)
     if plan is None:
-        return TimelineNutritionResponse(state=NutritionTimelineState.NO_PLAN)
+        return TimelineNutritionResponse(
+            state=NutritionTimelineState.NO_PLAN,
+            effective_today=effective_today,
+        )
 
     if (
         plan.lifecycle_status in _PENDING_REVIEW_STATUSES
@@ -304,6 +303,7 @@ def _nutrition_timeline(
             state=NutritionTimelineState.PENDING_REVIEW,
             plan_id=plan.id,
             start_date=plan.start_date,
+            effective_today=effective_today,
         )
 
     if plan.lifecycle_status is not NutritionPlanLifecycleStatus.ACTIVE:
@@ -316,14 +316,19 @@ def _nutrition_timeline(
                 state=NutritionTimelineState.READY_TO_START,
                 plan_id=plan.id,
                 start_date=plan.start_date,
+                effective_today=effective_today,
             )
-        return TimelineNutritionResponse(state=NutritionTimelineState.NO_PLAN)
+        return TimelineNutritionResponse(
+            state=NutritionTimelineState.NO_PLAN,
+            effective_today=effective_today,
+        )
 
     if plan.start_date > local_date:
         return TimelineNutritionResponse(
             state=NutritionTimelineState.SCHEDULED_START,
             plan_id=plan.id,
             start_date=plan.start_date,
+            effective_today=effective_today,
         )
 
     pattern_index = nutrition_pattern_day_index(plan.start_date, local_date)
@@ -333,6 +338,25 @@ def _nutrition_timeline(
         plan_id=plan.id,
         start_date=plan.start_date,
         absolute_day_number=nutrition_absolute_day_number(plan.start_date, local_date),
+        pattern_day_index=pattern_index,
+        day_id=day.id if day else None,
+        nutrient_totals=_numeric_totals(day.nutrient_totals) if day else {},
+        effective_today=effective_today,
+    )
+
+
+def _effective_nutrition_day_response(
+    plan: NutritionWeeklyPlan | None,
+    target_date: date,
+) -> TimelineNutritionEffectiveDayResponse | None:
+    if plan is None:
+        return None
+    pattern_index = nutrition_pattern_day_index(plan.start_date, target_date)
+    day = next((day for day in plan.days if day.day_index == pattern_index), None)
+    return TimelineNutritionEffectiveDayResponse(
+        plan_id=plan.id,
+        start_date=plan.start_date,
+        absolute_day_number=nutrition_absolute_day_number(plan.start_date, target_date),
         pattern_day_index=pattern_index,
         day_id=day.id if day else None,
         nutrient_totals=_numeric_totals(day.nutrient_totals) if day else {},
