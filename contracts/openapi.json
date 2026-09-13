@@ -377,6 +377,390 @@
         "title": "AITaskType",
         "type": "string"
       },
+      "AccessCampaignCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "code": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9_.-]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "duration_days": {
+            "maximum": 3650.0,
+            "minimum": 1.0,
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "is_active": {
+            "default": false,
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AccessCampaignKind"
+          },
+          "max_total_redemptions": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Total Redemptions"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "kind",
+          "package_code",
+          "duration_days"
+        ],
+        "title": "AccessCampaignCreateRequest",
+        "type": "object"
+      },
+      "AccessCampaignKind": {
+        "enum": [
+          "signup_trial",
+          "manual_promotion"
+        ],
+        "title": "AccessCampaignKind",
+        "type": "string"
+      },
+      "AccessCampaignResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AccessCampaignKind"
+          },
+          "max_total_redemptions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Total Redemptions"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "redemption_count": {
+            "title": "Redemption Count",
+            "type": "integer"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "kind",
+          "package_code",
+          "duration_days",
+          "term_weeks",
+          "available_from",
+          "available_until",
+          "is_active",
+          "max_total_redemptions",
+          "redemption_count",
+          "created_by_user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AccessCampaignResponse",
+        "type": "object"
+      },
+      "AccessCampaignUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "duration_days": {
+            "anyOf": [
+              {
+                "maximum": 3650.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Days"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessCampaignKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_total_redemptions": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Total Redemptions"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "package_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessPackageCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          }
+        },
+        "title": "AccessCampaignUpdateRequest",
+        "type": "object"
+      },
       "AccessGrantSummaryResponse": {
         "additionalProperties": false,
         "properties": {
@@ -616,6 +1000,166 @@
         "title": "ActivityLevel",
         "type": "string"
       },
+      "AdminAuditAction": {
+        "enum": [
+          "billing.offer.updated",
+          "access.campaign.created",
+          "access.campaign.updated",
+          "access.campaign.activated",
+          "access.campaign.deactivated",
+          "access.grant.created",
+          "access.grant.revoked",
+          "access.campaign.manually_redeemed"
+        ],
+        "title": "AdminAuditAction",
+        "type": "string"
+      },
+      "AdminAuditActorSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "phone_number"
+        ],
+        "title": "AdminAuditActorSummary",
+        "type": "object"
+      },
+      "AdminAuditEventResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AdminAuditAction"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminAuditActorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After State"
+          },
+          "before_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before State"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "resource_key": {
+            "title": "Resource Key",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminAuditActorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "actor",
+          "target",
+          "resource_type",
+          "resource_key",
+          "reason",
+          "before_state",
+          "after_state",
+          "created_at"
+        ],
+        "title": "AdminAuditEventResponse",
+        "type": "object"
+      },
       "AdminBillingOfferResponse": {
         "additionalProperties": false,
         "properties": {
@@ -722,6 +1266,18 @@
       "AdminBillingOrderResponse": {
         "additionalProperties": false,
         "properties": {
+          "access_grant_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Grant Id"
+          },
           "amount_irr_snapshot": {
             "title": "Amount Irr Snapshot",
             "type": "integer"
@@ -837,9 +1393,74 @@
           "paid_at",
           "refunded_at",
           "user_id",
+          "access_grant_id",
           "transactions"
         ],
         "title": "AdminBillingOrderResponse",
+        "type": "object"
+      },
+      "AdminCampaignRedemptionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {
+            "$ref": "#/components/schemas/AccessCampaignResponse"
+          },
+          "grant": {
+            "$ref": "#/components/schemas/AdminGrantResponse"
+          }
+        },
+        "required": [
+          "campaign",
+          "grant"
+        ],
+        "title": "AdminCampaignRedemptionResponse",
+        "type": "object"
+      },
+      "AdminEntitlementSnapshotResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "active_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AccessPackageCode"
+            },
+            "title": "Active Packages",
+            "type": "array"
+          },
+          "granted_entitlements": {
+            "items": {
+              "$ref": "#/components/schemas/EntitlementCode"
+            },
+            "title": "Granted Entitlements",
+            "type": "array"
+          },
+          "primary_package": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "trial_active": {
+            "title": "Trial Active",
+            "type": "boolean"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          }
+        },
+        "required": [
+          "primary_package",
+          "active_packages",
+          "granted_entitlements",
+          "trial_active",
+          "trial_ends_at"
+        ],
+        "title": "AdminEntitlementSnapshotResponse",
         "type": "object"
       },
       "AdminExerciseDetail": {
@@ -1501,6 +2122,299 @@
           "categories"
         ],
         "title": "AdminFoodCataloguePageResponse",
+        "type": "object"
+      },
+      "AdminGrantRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Client Idempotency Key",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "starts_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starts At"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          }
+        },
+        "required": [
+          "package_code",
+          "ends_at",
+          "reason",
+          "client_idempotency_key"
+        ],
+        "title": "AdminGrantRequest",
+        "type": "object"
+      },
+      "AdminGrantResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "billing_order_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Order Id"
+          },
+          "campaign_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Id"
+          },
+          "campaign_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaign Name"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_currently_active": {
+            "title": "Is Currently Active",
+            "type": "boolean"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GrantSource"
+          },
+          "starts_at": {
+            "format": "date-time",
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "future",
+              "expired",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          }
+        },
+        "required": [
+          "id",
+          "package_code",
+          "source",
+          "term_weeks",
+          "starts_at",
+          "ends_at",
+          "revoked_at",
+          "created_at",
+          "status",
+          "is_currently_active",
+          "billing_order_id",
+          "campaign_id",
+          "campaign_name"
+        ],
+        "title": "AdminGrantResponse",
+        "type": "object"
+      },
+      "AdminMemberSummaryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "active_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AccessPackageCode"
+            },
+            "title": "Active Packages",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "paid_access_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Access End"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number"
+          },
+          "primary_package": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "trial_active": {
+            "title": "Trial Active",
+            "type": "boolean"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "phone_number",
+          "created_at",
+          "primary_package",
+          "active_packages",
+          "trial_active",
+          "trial_ends_at",
+          "paid_access_end"
+        ],
+        "title": "AdminMemberSummaryResponse",
         "type": "object"
       },
       "AdminTrainingProgramStructure": {
@@ -2592,6 +3506,31 @@
           "rest_seconds"
         ],
         "title": "AdminTrainingTemplateSlotWrite",
+        "type": "object"
+      },
+      "AdminUserAccessResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "entitlement_snapshot": {
+            "$ref": "#/components/schemas/AdminEntitlementSnapshotResponse"
+          },
+          "grants": {
+            "items": {
+              "$ref": "#/components/schemas/AdminGrantResponse"
+            },
+            "title": "Grants",
+            "type": "array"
+          },
+          "member": {
+            "$ref": "#/components/schemas/AdminMemberSummaryResponse"
+          }
+        },
+        "required": [
+          "member",
+          "entitlement_snapshot",
+          "grants"
+        ],
+        "title": "AdminUserAccessResponse",
         "type": "object"
       },
       "AgentServiceAuthActiveCancellationResponse": {
@@ -11235,6 +12174,22 @@
         "title": "MainMealCountBucket",
         "type": "string"
       },
+      "ManualCampaignRedemptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ManualCampaignRedemptionRequest",
+        "type": "object"
+      },
       "MealCalculationMode": {
         "enum": [
           "simple",
@@ -19033,6 +19988,22 @@
         "title": "ResistanceTrainingDayStatus",
         "type": "string"
       },
+      "RevokeGrantRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RevokeGrantRequest",
+        "type": "object"
+      },
       "SafetyDecisionResponse": {
         "properties": {
           "can_continue_onboarding": {
@@ -23964,6 +24935,628 @@
         ]
       }
     },
+    "/api/v1/admin/access/campaigns": {
+      "get": {
+        "operationId": "read_campaigns_api_v1_admin_access_campaigns_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccessCampaignResponse"
+                  },
+                  "title": "Response Read Campaigns Api V1 Admin Access Campaigns Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Campaigns",
+        "tags": [
+          "admin-access"
+        ]
+      },
+      "post": {
+        "operationId": "create_access_campaign_api_v1_admin_access_campaigns_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessCampaignCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCampaignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Access Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/campaigns/{campaign_id}": {
+      "get": {
+        "operationId": "read_campaign_api_v1_admin_access_campaigns__campaign_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCampaignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      },
+      "patch": {
+        "operationId": "update_access_campaign_api_v1_admin_access_campaigns__campaign_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessCampaignUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCampaignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Access Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/campaigns/{campaign_id}/activate": {
+      "post": {
+        "operationId": "activate_access_campaign_api_v1_admin_access_campaigns__campaign_id__activate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCampaignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Activate Access Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/campaigns/{campaign_id}/deactivate": {
+      "post": {
+        "operationId": "deactivate_access_campaign_api_v1_admin_access_campaigns__campaign_id__deactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessCampaignResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Deactivate Access Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/grants/{grant_id}/revoke": {
+      "post": {
+        "operationId": "revoke_access_grant_api_v1_admin_access_grants__grant_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrantResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Access Grant",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users": {
+      "get": {
+        "operationId": "search_access_users_api_v1_admin_access_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminMemberSummaryResponse"
+                  },
+                  "title": "Response Search Access Users Api V1 Admin Access Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search Access Users",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}": {
+      "get": {
+        "operationId": "read_user_access_api_v1_admin_access_users__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserAccessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read User Access",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/campaigns/{campaign_id}/redeem": {
+      "post": {
+        "operationId": "redeem_access_campaign_api_v1_admin_access_users__user_id__campaigns__campaign_id__redeem_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualCampaignRedemptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCampaignRedemptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Redeem Access Campaign",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/grants": {
+      "post": {
+        "operationId": "create_access_grant_api_v1_admin_access_users__user_id__grants_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGrantResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Access Grant",
+        "tags": [
+          "admin-access"
+        ]
+      }
+    },
     "/api/v1/admin/ai/agent-service/auth/cancel-active": {
       "post": {
         "operationId": "cancel_active_agent_authentication_api_v1_admin_ai_agent_service_auth_cancel_active_post",
@@ -24721,6 +26314,338 @@
         ]
       }
     },
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "read_audit_events_api_v1_admin_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AdminAuditAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resource Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_datetime",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From Datetime"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_datetime",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To Datetime"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminAuditEventResponse"
+                  },
+                  "title": "Response Read Audit Events Api V1 Admin Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Audit Events",
+        "tags": [
+          "admin-audit"
+        ]
+      }
+    },
+    "/api/v1/admin/audit/events": {
+      "get": {
+        "operationId": "read_audit_events_api_v1_admin_audit_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AdminAuditAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "target_user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resource Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_datetime",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From Datetime"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_datetime",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To Datetime"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminAuditEventResponse"
+                  },
+                  "title": "Response Read Audit Events Api V1 Admin Audit Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Audit Events",
+        "tags": [
+          "admin-audit"
+        ]
+      }
+    },
     "/api/v1/admin/billing/offers": {
       "get": {
         "operationId": "admin_billing_offers_api_v1_admin_billing_offers_get",
@@ -24810,6 +26735,80 @@
     "/api/v1/admin/billing/orders": {
       "get": {
         "operationId": "admin_billing_orders_api_v1_admin_billing_orders_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BillingOrderStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PaymentProviderCode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provider"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -24824,6 +26823,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [

@@ -39,6 +39,161 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/access/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Campaigns */
+        get: operations["read_campaigns_api_v1_admin_access_campaigns_get"];
+        put?: never;
+        /** Create Access Campaign */
+        post: operations["create_access_campaign_api_v1_admin_access_campaigns_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/campaigns/{campaign_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Campaign */
+        get: operations["read_campaign_api_v1_admin_access_campaigns__campaign_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Access Campaign */
+        patch: operations["update_access_campaign_api_v1_admin_access_campaigns__campaign_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/access/campaigns/{campaign_id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Access Campaign */
+        post: operations["activate_access_campaign_api_v1_admin_access_campaigns__campaign_id__activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/campaigns/{campaign_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate Access Campaign */
+        post: operations["deactivate_access_campaign_api_v1_admin_access_campaigns__campaign_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/grants/{grant_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Access Grant */
+        post: operations["revoke_access_grant_api_v1_admin_access_grants__grant_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Access Users */
+        get: operations["search_access_users_api_v1_admin_access_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read User Access */
+        get: operations["read_user_access_api_v1_admin_access_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/campaigns/{campaign_id}/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem Access Campaign */
+        post: operations["redeem_access_campaign_api_v1_admin_access_users__user_id__campaigns__campaign_id__redeem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Access Grant */
+        post: operations["create_access_grant_api_v1_admin_access_users__user_id__grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/ai/agent-service/auth/{session_id}": {
         parameters: {
             query?: never;
@@ -289,6 +444,40 @@ export type paths = {
         get?: never;
         /** Update Task Config */
         put: operations["update_task_config_api_v1_admin_ai_task_configs__task_type__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Audit Events */
+        get: operations["read_audit_events_api_v1_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Audit Events */
+        get: operations["read_audit_events_api_v1_admin_audit_events_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -3346,6 +3535,100 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        /** AccessCampaignCreateRequest */
+        AccessCampaignCreateRequest: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
+            /** Code */
+            code: string;
+            /** Description */
+            description?: string | null;
+            /** Duration Days */
+            duration_days: number;
+            /**
+             * Is Active
+             * @default false
+             */
+            is_active: boolean;
+            kind: components["schemas"]["AccessCampaignKind"];
+            /** Max Total Redemptions */
+            max_total_redemptions?: number | null;
+            /** Name */
+            name: string;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Term Weeks */
+            term_weeks?: (4 | 6 | 8) | null;
+        };
+        /**
+         * AccessCampaignKind
+         * @enum {string}
+         */
+        AccessCampaignKind: "signup_trial" | "manual_promotion";
+        /** AccessCampaignResponse */
+        AccessCampaignResponse: {
+            /** Available From */
+            available_from: string | null;
+            /** Available Until */
+            available_until: string | null;
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id: string | null;
+            /** Description */
+            description: string | null;
+            /** Duration Days */
+            duration_days: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            kind: components["schemas"]["AccessCampaignKind"];
+            /** Max Total Redemptions */
+            max_total_redemptions: number | null;
+            /** Name */
+            name: string;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Redemption Count */
+            redemption_count: number;
+            /** Term Weeks */
+            term_weeks: (4 | 6 | 8) | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AccessCampaignUpdateRequest */
+        AccessCampaignUpdateRequest: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Duration Days */
+            duration_days?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            kind?: components["schemas"]["AccessCampaignKind"] | null;
+            /** Max Total Redemptions */
+            max_total_redemptions?: number | null;
+            /** Name */
+            name?: string | null;
+            package_code?: components["schemas"]["AccessPackageCode"] | null;
+            /** Term Weeks */
+            term_weeks?: (4 | 6 | 8) | null;
+        };
         /** AccessGrantSummaryResponse */
         AccessGrantSummaryResponse: {
             /** Ends At */
@@ -3420,6 +3703,55 @@ export type components = {
          * @enum {string}
          */
         ActivityLevel: "low" | "moderate" | "high";
+        /**
+         * AdminAuditAction
+         * @enum {string}
+         */
+        AdminAuditAction: "billing.offer.updated" | "access.campaign.created" | "access.campaign.updated" | "access.campaign.activated" | "access.campaign.deactivated" | "access.grant.created" | "access.grant.revoked" | "access.campaign.manually_redeemed";
+        /** AdminAuditActorSummary */
+        AdminAuditActorSummary: {
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Phone Number */
+            phone_number: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** AdminAuditEventResponse */
+        AdminAuditEventResponse: {
+            action: components["schemas"]["AdminAuditAction"];
+            actor: components["schemas"]["AdminAuditActorSummary"] | null;
+            /** After State */
+            after_state: {
+                [key: string]: unknown;
+            } | null;
+            /** Before State */
+            before_state: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string | null;
+            /** Resource Key */
+            resource_key: string;
+            /** Resource Type */
+            resource_type: string;
+            target: components["schemas"]["AdminAuditActorSummary"] | null;
+        };
         /** AdminBillingOfferResponse */
         AdminBillingOfferResponse: {
             /** Available From */
@@ -3448,6 +3780,8 @@ export type components = {
         };
         /** AdminBillingOrderResponse */
         AdminBillingOrderResponse: {
+            /** Access Grant Id */
+            access_grant_id: string | null;
             /** Amount Irr Snapshot */
             amount_irr_snapshot: number;
             /**
@@ -3486,6 +3820,23 @@ export type components = {
             updated_at: string;
             /** User Id */
             user_id: string | null;
+        };
+        /** AdminCampaignRedemptionResponse */
+        AdminCampaignRedemptionResponse: {
+            campaign: components["schemas"]["AccessCampaignResponse"];
+            grant: components["schemas"]["AdminGrantResponse"];
+        };
+        /** AdminEntitlementSnapshotResponse */
+        AdminEntitlementSnapshotResponse: {
+            /** Active Packages */
+            active_packages: components["schemas"]["AccessPackageCode"][];
+            /** Granted Entitlements */
+            granted_entitlements: components["schemas"]["EntitlementCode"][];
+            primary_package: components["schemas"]["AccessPackageCode"];
+            /** Trial Active */
+            trial_active: boolean;
+            /** Trial Ends At */
+            trial_ends_at: string | null;
         };
         /** AdminExerciseDetail */
         AdminExerciseDetail: {
@@ -3653,6 +4004,90 @@ export type components = {
             page_size: number;
             /** Total */
             total: number;
+        };
+        /** AdminGrantRequest */
+        AdminGrantRequest: {
+            /** Client Idempotency Key */
+            client_idempotency_key: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Reason */
+            reason: string;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Term Weeks */
+            term_weeks?: (4 | 6 | 8) | null;
+        };
+        /** AdminGrantResponse */
+        AdminGrantResponse: {
+            /** Billing Order Id */
+            billing_order_id: string | null;
+            /** Campaign Id */
+            campaign_id: string | null;
+            /** Campaign Name */
+            campaign_name: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Currently Active */
+            is_currently_active: boolean;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Revoked At */
+            revoked_at: string | null;
+            source: components["schemas"]["GrantSource"];
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "future" | "expired" | "revoked";
+            /** Term Weeks */
+            term_weeks: (4 | 6 | 8) | null;
+        };
+        /** AdminMemberSummaryResponse */
+        AdminMemberSummaryResponse: {
+            /** Active Packages */
+            active_packages: components["schemas"]["AccessPackageCode"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Paid Access End */
+            paid_access_end: string | null;
+            /** Phone Number */
+            phone_number: string | null;
+            primary_package: components["schemas"]["AccessPackageCode"];
+            /** Trial Active */
+            trial_active: boolean;
+            /** Trial Ends At */
+            trial_ends_at: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** AdminTrainingProgramStructure */
         AdminTrainingProgramStructure: {
@@ -3956,6 +4391,13 @@ export type components = {
             target_muscles: components["schemas"]["MuscleGroup"][];
             /** Target Rir */
             target_rir?: number | null;
+        };
+        /** AdminUserAccessResponse */
+        AdminUserAccessResponse: {
+            entitlement_snapshot: components["schemas"]["AdminEntitlementSnapshotResponse"];
+            /** Grants */
+            grants: components["schemas"]["AdminGrantResponse"][];
+            member: components["schemas"]["AdminMemberSummaryResponse"];
         };
         /** AgentServiceAuthActiveCancellationResponse */
         AgentServiceAuthActiveCancellationResponse: {
@@ -7085,6 +7527,11 @@ export type components = {
          * @enum {string}
          */
         MainMealCountBucket: "two_main_meals" | "three_main_meals" | "four_or_more_main_meals";
+        /** ManualCampaignRedemptionRequest */
+        ManualCampaignRedemptionRequest: {
+            /** Reason */
+            reason: string;
+        };
         /**
          * MealCalculationMode
          * @enum {string}
@@ -9761,6 +10208,11 @@ export type components = {
          * @enum {string}
          */
         ResistanceTrainingDayStatus: "recommended" | "allowed" | "unsupported";
+        /** RevokeGrantRequest */
+        RevokeGrantRequest: {
+            /** Reason */
+            reason: string;
+        };
         /** SafetyDecisionResponse */
         SafetyDecisionResponse: {
             /** Can Continue Onboarding */
@@ -11617,6 +12069,369 @@ export interface operations {
             };
         };
     };
+    read_campaigns_api_v1_admin_access_campaigns_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_access_campaign_api_v1_admin_access_campaigns_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessCampaignCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_campaign_api_v1_admin_access_campaigns__campaign_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_access_campaign_api_v1_admin_access_campaigns__campaign_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessCampaignUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_access_campaign_api_v1_admin_access_campaigns__campaign_id__activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_access_campaign_api_v1_admin_access_campaigns__campaign_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCampaignResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_access_grant_api_v1_admin_access_grants__grant_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_access_users_api_v1_admin_access_users_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMemberSummaryResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_user_access_api_v1_admin_access_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserAccessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    redeem_access_campaign_api_v1_admin_access_users__user_id__campaigns__campaign_id__redeem_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                campaign_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualCampaignRedemptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCampaignRedemptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_access_grant_api_v1_admin_access_users__user_id__grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_agent_authentication_api_v1_admin_ai_agent_service_auth__session_id__get: {
         parameters: {
             query?: never;
@@ -12123,6 +12938,82 @@ export interface operations {
             };
         };
     };
+    read_audit_events_api_v1_admin_audit_get: {
+        parameters: {
+            query?: {
+                action?: components["schemas"]["AdminAuditAction"] | null;
+                actor_user_id?: string | null;
+                from_datetime?: string | null;
+                limit?: number;
+                offset?: number;
+                resource_type?: string | null;
+                target_user_id?: string | null;
+                to_datetime?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_audit_events_api_v1_admin_audit_events_get: {
+        parameters: {
+            query?: {
+                action?: components["schemas"]["AdminAuditAction"] | null;
+                actor_user_id?: string | null;
+                from_datetime?: string | null;
+                limit?: number;
+                offset?: number;
+                resource_type?: string | null;
+                target_user_id?: string | null;
+                to_datetime?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditEventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_billing_offers_api_v1_admin_billing_offers_get: {
         parameters: {
             query?: never;
@@ -12180,7 +13071,13 @@ export interface operations {
     };
     admin_billing_orders_api_v1_admin_billing_orders_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+                provider?: components["schemas"]["PaymentProviderCode"] | null;
+                status?: components["schemas"]["BillingOrderStatus"] | null;
+                user_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -12194,6 +13091,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminBillingOrderResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
