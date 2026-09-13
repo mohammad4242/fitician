@@ -39,6 +39,7 @@ def _access_start(
     valid_grants = db.scalars(
         select(UserAccessGrant).where(
             UserAccessGrant.user_id == order.user_id,
+            UserAccessGrant.starts_at <= reference,
             UserAccessGrant.revoked_at.is_(None),
             UserAccessGrant.ends_at.is_not(None),
             UserAccessGrant.ends_at > reference,
