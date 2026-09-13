@@ -139,7 +139,10 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
         : preview.kind === "meal"
           ? await api.confirmMealReplacement(currentPlan.id, preview.data.meal_id, preview.replacement.id)
           : await api.confirmFoodReplacement(currentPlan.id, preview.data.meal_id, preview.food.food_id!, preview.replacement.food_id);
-      setCurrentPlan(next); setPreview(null); setSelector(null); setSelectedDay(0);
+      setCurrentPlan(next);
+      setPreview(null);
+      setSelector(null);
+      setSelectedDay((current) => Math.min(current, Math.max(next.days.length - 1, 0)));
     } catch (error: unknown) { runError(error); }
     finally { setBusyAction(null); }
   }
