@@ -24,6 +24,7 @@ from app.auth.providers import (
 )
 from app.auth.router import router as auth_router
 from app.billing.exceptions import BillingError
+from app.billing.providers import build_payment_providers
 from app.billing.router import router as billing_router
 from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.router import router as admin_ai_settings_router
@@ -122,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     pass
 
     app = FastAPI(title="Fitsho API", lifespan=lifespan)
+    app.state.billing_providers = build_payment_providers(active_settings)
     app.state.email_provider = build_email_provider(active_settings)
     app.state.sms_provider = build_sms_provider(active_settings)
     app.state.google_identity_provider = build_google_identity_provider(active_settings)

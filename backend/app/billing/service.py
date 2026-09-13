@@ -3,27 +3,55 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.billing.catalog import PAID_OFFER_CATALOG, offer_definition
-from app.billing.enums import BillingOfferCode, BillingOrderStatus
+from app.billing.enums import (
+    BillingOfferCode,
+    BillingOrderStatus,
+    BillingTransactionStatus,
+    PaymentProviderCode,
+)
 from app.billing.exceptions import (
     BillingIdempotencyConflictError,
     BillingOfferUnavailableError,
+    BillingOrderInvalidStateError,
+    BillingOrderNotFoundError,
+    BillingPaymentVerificationError,
+    BillingProviderRequestError,
 )
-from app.billing.models import BillingOfferConfig, BillingOrder
+from app.billing.fulfillment import fulfill_paid_order
+from app.billing.models import (
+    BillingOfferConfig,
+    BillingOrder,
+    BillingProviderProduct,
+    BillingTransaction,
+)
+from app.billing.providers.base import (
+    PaymentProvider,
+    PaymentProviderError,
+    ProviderCheckoutRequest,
+    ProviderVerificationRequest,
+)
 from app.billing.repository import (
     find_order_by_idempotency,
     get_offer_config,
+    get_order_for_user,
+    get_transaction_for_user,
     list_offer_configs,
     list_orders_for_user,
 )
 from app.billing.schemas import (
+    BillingCheckoutResponse,
     BillingOfferResponse,
     BillingOrderResponse,
+    BillingPaymentResultResponse,
     BillingQuotaPolicyResponse,
+    CreateCheckoutRequest,
     CreateOrderRequest,
+    VerifyPaymentRequest,
 )
 from app.config import Settings
 from app.entitlements.catalog import QUOTA_POLICIES, package_definition
@@ -173,3 +201,240 @@ def create_order(
 
 def get_user_orders(db: Session, user_id: UUID) -> list[BillingOrderResponse]:
     return [to_order_response(order) for order in list_orders_for_user(db, user_id)]
+
+
+_FINAL_ORDER_STATUSES = frozenset(
+    {
+        BillingOrderStatus.PAID,
+        BillingOrderStatus.FAILED,
+        BillingOrderStatus.CANCELLED,
+        BillingOrderStatus.EXPIRED,
+        BillingOrderStatus.REFUNDED,
+    }
+)
+
+
+def _payment_result_response(
+    transaction: BillingTransaction,
+    order: BillingOrder,
+) -> BillingPaymentResultResponse:
+    return BillingPaymentResultResponse(
+        order_id=order.id,
+        transaction_id=transaction.id,
+        transaction_status=transaction.status,
+        order_status=order.status,
+        verified=transaction.status is BillingTransactionStatus.VERIFIED,
+        access_grant_id=order.access_grant_id,
+    )
+
+
+def create_checkout(
+    db: Session,
+    user_id: UUID,
+    order_id: UUID,
+    payload: CreateCheckoutRequest,
+    provider: PaymentProvider,
+    *,
+    callback_base_url: str | None = None,
+    now: datetime | None = None,
+) -> BillingCheckoutResponse:
+    reference = utc_now(now)
+    order = get_order_for_user(db, order_id, user_id, lock=True)
+    if order is None:
+        raise BillingOrderNotFoundError
+    if order.status in _FINAL_ORDER_STATUSES:
+        raise BillingOrderInvalidStateError(order.status.value)
+    if order.expires_at is not None and utc_now(order.expires_at) <= reference:
+        order.status = BillingOrderStatus.EXPIRED
+        db.commit()
+        raise BillingOrderInvalidStateError(BillingOrderStatus.EXPIRED.value)
+    if order.provider is not payload.provider or provider.code is not payload.provider:
+        raise BillingProviderRequestError("Payment provider does not match the order")
+
+    mapping = db.scalar(
+        select(BillingProviderProduct).where(
+            BillingProviderProduct.offer_code == order.offer_code,
+            BillingProviderProduct.provider == payload.provider,
+            BillingProviderProduct.is_active.is_(True),
+        )
+    )
+    transaction = BillingTransaction(
+        order_id=order.id,
+        provider=order.provider,
+        amount_irr=order.amount_irr_snapshot,
+        currency=order.currency_snapshot,
+        status=BillingTransactionStatus.CREATED,
+    )
+    db.add(transaction)
+    db.flush()
+    try:
+        result = provider.create_checkout(
+            ProviderCheckoutRequest(
+                order_id=order.id,
+                transaction_id=transaction.id,
+                offer_code=order.offer_code,
+                amount_irr=order.amount_irr_snapshot,
+                currency=order.currency_snapshot,
+                external_product_id=mapping.external_product_id if mapping else None,
+                callback_base_url=callback_base_url,
+            )
+        )
+    except PaymentProviderError as error:
+        db.rollback()
+        raise BillingProviderRequestError(str(error)) from error
+    transaction.provider_reference = result.provider_reference
+    transaction.status = BillingTransactionStatus.PENDING
+    order.status = BillingOrderStatus.PENDING
+    db.flush()
+    db.commit()
+    db.refresh(transaction)
+    return BillingCheckoutResponse(
+        order_id=order.id,
+        transaction_id=transaction.id,
+        provider=order.provider,
+        checkout_kind=result.checkout_kind,
+        checkout_url=result.checkout_url,
+        provider_product_id=result.provider_product_id,
+        provider_reference=result.provider_reference,
+    )
+
+
+def _transaction_and_order_for_user(
+    db: Session,
+    user_id: UUID,
+    transaction_id: UUID,
+) -> tuple[BillingTransaction, BillingOrder]:
+    transaction = get_transaction_for_user(db, transaction_id, user_id)
+    if transaction is None:
+        raise BillingOrderNotFoundError
+    order = get_order_for_user(db, transaction.order_id, user_id)
+    if order is None:
+        raise BillingOrderNotFoundError
+    return transaction, order
+
+
+def _provider_request(
+    transaction: BillingTransaction,
+    order: BillingOrder,
+    provider_reference: str | None,
+) -> ProviderVerificationRequest:
+    reference = provider_reference or transaction.provider_reference
+    if reference is None or reference != transaction.provider_reference:
+        raise BillingPaymentVerificationError("Payment reference does not match the transaction")
+    return ProviderVerificationRequest(
+        order_id=order.id,
+        transaction_id=transaction.id,
+        provider_reference=reference,
+        amount_irr=transaction.amount_irr,
+        currency=transaction.currency,
+    )
+
+
+def verify_payment(
+    db: Session,
+    user_id: UUID,
+    provider_code: PaymentProviderCode,
+    payload: VerifyPaymentRequest,
+    provider: PaymentProvider,
+    *,
+    now: datetime | None = None,
+) -> BillingPaymentResultResponse:
+    transaction, order = _transaction_and_order_for_user(db, user_id, payload.transaction_id)
+    if transaction.provider is not provider_code or provider.code is not provider_code:
+        raise BillingProviderRequestError("Payment provider does not match the transaction")
+    if transaction.status in {
+        BillingTransactionStatus.VERIFIED,
+        BillingTransactionStatus.FAILED,
+        BillingTransactionStatus.REFUNDED,
+    }:
+        return _payment_result_response(transaction, order)
+    request = _provider_request(transaction, order, payload.provider_reference)
+    try:
+        result = provider.verify_payment(request)
+    except PaymentProviderError as error:
+        raise BillingPaymentVerificationError(str(error)) from error
+
+    locked_transaction = db.get(BillingTransaction, transaction.id)
+    locked_order = get_order_for_user(db, order.id, user_id, lock=True)
+    if locked_transaction is None or locked_order is None:
+        raise BillingOrderNotFoundError
+    if result.status == "verified":
+        locked_transaction.status = BillingTransactionStatus.VERIFIED
+        locked_transaction.verified_at = utc_now(now)
+        db.flush()
+        fulfillment = fulfill_paid_order(
+            db,
+            locked_order.id,
+            locked_transaction.id,
+            now=now,
+        )
+        return _payment_result_response(locked_transaction, fulfillment.order)
+    if result.status == "refunded":
+        return revoke_transaction(
+            db,
+            user_id,
+            provider_code,
+            payload,
+            provider,
+            now=now,
+        )
+
+    locked_transaction.status = BillingTransactionStatus.FAILED
+    locked_transaction.failed_at = utc_now(now)
+    open_attempts = db.scalar(
+        select(func.count())
+        .select_from(BillingTransaction)
+        .where(
+            BillingTransaction.order_id == locked_order.id,
+            BillingTransaction.id != locked_transaction.id,
+            BillingTransaction.status.in_(
+                [BillingTransactionStatus.CREATED, BillingTransactionStatus.PENDING]
+            ),
+        )
+    )
+    if not open_attempts and locked_order.access_grant_id is None:
+        locked_order.status = BillingOrderStatus.FAILED
+    db.flush()
+    db.commit()
+    return _payment_result_response(locked_transaction, locked_order)
+
+
+def revoke_transaction(
+    db: Session,
+    user_id: UUID,
+    provider_code: PaymentProviderCode,
+    payload: VerifyPaymentRequest,
+    provider: PaymentProvider,
+    *,
+    now: datetime | None = None,
+) -> BillingPaymentResultResponse:
+    transaction, order = _transaction_and_order_for_user(db, user_id, payload.transaction_id)
+    if transaction.provider is not provider_code or provider.code is not provider_code:
+        raise BillingProviderRequestError("Payment provider does not match the transaction")
+    if transaction.status is BillingTransactionStatus.REFUNDED:
+        return _payment_result_response(transaction, order)
+    request = _provider_request(transaction, order, payload.provider_reference)
+    try:
+        result = provider.verify_refund(request)
+    except PaymentProviderError as error:
+        raise BillingPaymentVerificationError(str(error)) from error
+    if result.status != "refunded":
+        raise BillingPaymentVerificationError("Provider did not verify a refund")
+
+    locked_transaction = db.get(BillingTransaction, transaction.id)
+    locked_order = get_order_for_user(db, order.id, user_id, lock=True)
+    if locked_transaction is None or locked_order is None:
+        raise BillingOrderNotFoundError
+    locked_transaction.status = BillingTransactionStatus.REFUNDED
+    locked_transaction.refunded_at = utc_now(now)
+    locked_order.status = BillingOrderStatus.REFUNDED
+    locked_order.refunded_at = utc_now(now)
+    if locked_order.access_grant_id is not None:
+        from app.entitlements.models import UserAccessGrant
+
+        grant = db.get(UserAccessGrant, locked_order.access_grant_id)
+        if grant is not None and grant.revoked_at is None:
+            grant.revoked_at = utc_now(now)
+    db.flush()
+    db.commit()
+    return _payment_result_response(locked_transaction, locked_order)

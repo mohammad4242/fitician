@@ -66,6 +66,13 @@ class CreateCheckoutRequest(BaseModel):
     provider: PaymentProviderCode
 
 
+class VerifyPaymentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    transaction_id: UUID
+    provider_reference: str | None = Field(default=None, max_length=255)
+
+
 class BillingCheckoutResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
