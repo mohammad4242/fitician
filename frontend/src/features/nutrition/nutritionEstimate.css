@@ -1,25 +1,25 @@
-.nutrition-estimate-page { min-height: 100svh; color: var(--fitsho-mist); background: var(--fitsho-canvas); }
-.nutrition-estimate-page .dashboard-header { max-width: 82rem; margin: 0 auto; padding: 1.25rem clamp(1rem, 4vw, 3rem); color: var(--fitsho-mist); }
-.nutrition-estimate-page .brand-mark--dark, .nutrition-estimate-page .authenticated-nav a { color: var(--fitsho-mist); }
+.nutrition-estimate-page { min-height: 100svh; color: var(--fitician-mist); background: var(--fitician-canvas); }
+.nutrition-estimate-page .dashboard-header { max-width: 82rem; margin: 0 auto; padding: 1.25rem clamp(1rem, 4vw, 3rem); color: var(--fitician-mist); }
+.nutrition-estimate-page .brand-mark--dark, .nutrition-estimate-page .authenticated-nav a { color: var(--fitician-mist); }
 .nutrition-estimate-hero, .nutrition-estimate-summary, .nutrition-target-grid, .nutrition-estimate-notes, .nutrition-estimate-state, .nutrition-science-details { width: min(100% - 2rem, 72rem); margin-inline: auto; }
 .nutrition-estimate-hero { padding: clamp(1.5rem, 4vw, 3.25rem) 0 1.5rem; }
 .nutrition-estimate-hero h1 { max-width: 16ch; margin: .4rem 0 .8rem; font-family: inherit; font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 850; letter-spacing: -.045em; line-height: 1.08; }
 html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-estimate-hero > p:last-child { max-width: 42rem; color: rgb(234 244 241 / 75%); line-height: 1.9; }
 .nutrition-estimate-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 2rem; }
-.nutrition-estimate-back { color: var(--fitsho-aqua); text-decoration: none; font-weight: 800; }
+.nutrition-estimate-back { color: var(--fitician-aqua); text-decoration: none; font-weight: 800; }
 .nutrition-catalogue-entry { display: inline-grid; grid-template-columns: auto 1fr; gap: .05rem .55rem; align-items: center; margin-inline-start: .5rem; padding: .55rem .8rem; color: #ffd798; border: 1px solid rgb(255 215 152 / 24%); border-radius: .85rem; background: rgb(255 215 152 / 7%); text-decoration: none; vertical-align: middle; }
 .nutrition-catalogue-entry > span { grid-row: span 2; font-size: 1.35rem; }
 .nutrition-catalogue-entry strong, .nutrition-catalogue-entry small { line-height: 1.15; }
 .nutrition-catalogue-entry small { color: rgb(234 244 241 / 56%); font-size: .62rem; }
-.nutrition-estimate-state { padding: 2rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: var(--fitsho-radius-card); background: rgb(3 28 27 / 70%); }
+.nutrition-estimate-state { padding: 2rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: var(--fitician-radius-card); background: rgb(3 28 27 / 70%); }
 .nutrition-estimate-summary { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(16rem, .65fr); gap: .75rem; }
-.nutrition-calorie-card, .nutrition-confidence-card, .nutrition-target-card, .nutrition-estimate-notes { border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-card); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
-.nutrition-calorie-card { position: relative; min-height: 14rem; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: clamp(1.5rem, 5vw, 3rem); border-color: var(--fitsho-line-strong); background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 4%)), var(--fitsho-surface); color: var(--fitsho-mist); box-shadow: var(--fitsho-shadow-focus); }
-.nutrition-calorie-card::before { position: absolute; inset-block: 1.25rem; inset-inline-start: 0; width: .22rem; border-radius: 99rem; background: var(--fitsho-aqua); content: ""; }
-.nutrition-calorie-card strong { margin: .45rem 0; color: var(--fitsho-aqua); font-family: "Sora Variable", sans-serif; font-size: clamp(2.3rem, 5.5vw, 4.5rem); line-height: 1.05; }
+.nutrition-calorie-card, .nutrition-confidence-card, .nutrition-target-card, .nutrition-estimate-notes { border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
+.nutrition-calorie-card { position: relative; min-height: 14rem; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding: clamp(1.5rem, 5vw, 3rem); border-color: var(--fitician-line-strong); background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 4%)), var(--fitician-surface); color: var(--fitician-mist); box-shadow: var(--fitician-shadow-focus); }
+.nutrition-calorie-card::before { position: absolute; inset-block: 1.25rem; inset-inline-start: 0; width: .22rem; border-radius: 99rem; background: var(--fitician-aqua); content: ""; }
+.nutrition-calorie-card strong { margin: .45rem 0; color: var(--fitician-aqua); font-family: "Sora Variable", sans-serif; font-size: clamp(2.3rem, 5.5vw, 4.5rem); line-height: 1.05; }
 .nutrition-confidence-card { display: flex; flex-direction: column; justify-content: center; padding: 2rem; }
-.nutrition-confidence { align-self: start; padding: .5rem .8rem; border-radius: 99rem; background: rgb(80 223 206 / 15%); color: var(--fitsho-aqua); font-weight: 850; }
+.nutrition-confidence { align-self: start; padding: .5rem .8rem; border-radius: 99rem; background: rgb(80 223 206 / 15%); color: var(--fitician-aqua); font-weight: 850; }
 .nutrition-confidence-card p { color: rgb(234 244 241 / 70%); line-height: 1.8; }
 .nutrition-target-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; padding-block: .75rem; }
 .nutrition-target-grid--secondary { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -29,7 +29,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin-block: .35rem;
   padding: .65rem .95rem;
   border: 1px solid rgb(80 223 206 / 14%);
-  border-radius: var(--fitsho-radius-card);
+  border-radius: var(--fitician-radius-card);
   background: linear-gradient(135deg, rgb(80 223 206 / 4%) 0%, rgb(4 30 29 / 80%) 50%, rgb(3 24 23 / 90%) 100%);
   box-shadow: 0 4px 18px rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 255 255 / 4%);
   backdrop-filter: blur(10px);
@@ -59,7 +59,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: .85rem;
   font-weight: 750;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   letter-spacing: -0.01em;
 }
 .nutrition-weight-rate-header-right { display: flex; align-items: center; gap: .4rem; }
@@ -91,7 +91,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .12rem .45rem;
   border-radius: 99rem;
   background: rgb(80 223 206 / 10%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: .66rem;
   font-weight: 600;
   border: 1px solid rgb(80 223 206 / 20%);
@@ -121,11 +121,11 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   font-family: inherit;
 }
 .nutrition-weight-rate-mode-btn:hover:not(:disabled) {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   background: rgb(255 255 255 / 6%);
 }
 .nutrition-weight-rate-mode-btn.is-active {
-  background: var(--fitsho-aqua);
+  background: var(--fitician-aqua);
   color: #03211f;
   font-weight: 750;
   box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
@@ -210,10 +210,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   line-height: 1.25;
 }
 .nutrition-weight-rate-item--recommended .nutrition-weight-rate-val {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 .nutrition-weight-rate-item--applied .nutrition-weight-rate-val {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 .nutrition-weight-rate-item--clamped .nutrition-weight-rate-val {
   color: #f87171;
@@ -240,21 +240,21 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 /* Onboarding & Settings Rate Card */
 .nutrition-rate-setting-box { padding: .75rem .9rem; background: rgb(255 255 255 / 3%); border: 1px solid rgb(234 244 241 / 10%); border-radius: .85rem; display: flex; flex-direction: column; gap: .6rem; margin-bottom: .6rem; }
 .nutrition-rate-setting-box__header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.nutrition-rate-setting-box__title { display: flex; align-items: center; gap: .5rem; font-size: .88rem; font-weight: 600; color: var(--fitsho-mist); }
-.nutrition-rate-setting-box__select { max-width: 14rem; padding: .4rem .65rem; border-radius: .6rem; border: 1px solid var(--fitsho-line); background: var(--fitsho-canvas); color: var(--fitsho-ink); font-size: .82rem; }
+.nutrition-rate-setting-box__title { display: flex; align-items: center; gap: .5rem; font-size: .88rem; font-weight: 600; color: var(--fitician-mist); }
+.nutrition-rate-setting-box__select { max-width: 14rem; padding: .4rem .65rem; border-radius: .6rem; border: 1px solid var(--fitician-line); background: var(--fitician-canvas); color: var(--fitician-ink); font-size: .82rem; }
 .nutrition-rate-setting-box__modes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 @media (max-width: 520px) { .nutrition-rate-setting-box__modes { grid-template-columns: 1fr; } }
 .nutrition-rate-mode-option { padding: .55rem .75rem; border-radius: .65rem; text-align: start; cursor: pointer; border: 1px solid rgb(234 244 241 / 8%); background: rgb(0 0 0 / 20%); transition: all .2s ease; display: flex; flex-direction: column; gap: .2rem; font-family: inherit; }
 .nutrition-rate-mode-option:hover { background: rgb(255 255 255 / 4%); border-color: rgb(234 244 241 / 18%); }
-.nutrition-rate-mode-option.is-selected { border-color: var(--fitsho-aqua); background: rgb(80 223 206 / 8%); }
+.nutrition-rate-mode-option.is-selected { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 8%); }
 .nutrition-rate-mode-option.is-selected.is-override { border-color: #f59e0b; background: rgb(245 158 11 / 8%); }
 .nutrition-rate-mode-option__head { display: flex; align-items: center; gap: .4rem; }
 .nutrition-rate-mode-option__radio { width: .85rem; height: .85rem; border-radius: 50%; border: 1.5px solid rgb(234 244 241 / 35%); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio { border-color: var(--fitsho-aqua); }
-.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio::after { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: var(--fitsho-aqua); }
+.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio { border-color: var(--fitician-aqua); }
+.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio::after { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: var(--fitician-aqua); }
 .nutrition-rate-mode-option.is-selected.is-override .nutrition-rate-mode-option__radio { border-color: #f59e0b; }
 .nutrition-rate-mode-option.is-selected.is-override .nutrition-rate-mode-option__radio::after { background: #f59e0b; }
-.nutrition-rate-mode-option strong { font-size: .8rem; color: var(--fitsho-ink); font-weight: 700; }
+.nutrition-rate-mode-option strong { font-size: .8rem; color: var(--fitician-ink); font-weight: 700; }
 .nutrition-rate-mode-option p { margin: 0; font-size: .7rem; color: rgb(234 244 241 / 55%); line-height: 1.35; }
 .nutrition-rate-override-notice { display: flex; align-items: center; gap: .4rem; padding: .35rem .6rem; border-radius: .5rem; background: rgb(245 158 11 / 10%); border: 1px solid rgb(245 158 11 / 25%); color: #fbbf24; font-size: .72rem; }
 
@@ -270,23 +270,23 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-micronutrient-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
 .nutrition-micronutrient-grid article { display: flex; flex-direction: column; gap: .3rem; padding: .8rem; border-radius: .8rem; background: rgb(255 255 255 / 5%); }
 .nutrition-micronutrient-grid small { color: rgb(234 244 241 / 58%); }
-.nutrition-science-details { margin-block: .5rem 1rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: var(--fitsho-radius-card); background: rgb(9 54 51 / 52%); }
-.nutrition-science-details > summary { padding: 1.1rem 1.3rem; color: var(--fitsho-aqua); font-weight: 850; cursor: pointer; }
+.nutrition-science-details { margin-block: .5rem 1rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: var(--fitician-radius-card); background: rgb(9 54 51 / 52%); }
+.nutrition-science-details > summary { padding: 1.1rem 1.3rem; color: var(--fitician-aqua); font-weight: 850; cursor: pointer; }
 .nutrition-science-details[open] > summary { border-bottom: 1px solid rgb(234 244 241 / 10%); }
 .nutrition-science-details .nutrition-estimate-notes { width: auto; margin: 1rem; box-shadow: none; }
 .nutrition-science-details .nutrition-target-grid { padding-inline: 1rem; }
 .weekly-plan, .weekly-plan-empty { width: min(100% - 2rem, 76rem); margin-inline: auto; }
-.weekly-plan-empty { margin-block: 1rem 6rem; padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid rgb(128 255 232 / 18%); border-radius: var(--fitsho-radius-card); background: linear-gradient(125deg, rgb(9 54 51 / 88%), rgb(3 28 27 / 88%)); }
+.weekly-plan-empty { margin-block: 1rem 6rem; padding: clamp(1.5rem, 4vw, 2.5rem); border: 1px solid rgb(128 255 232 / 18%); border-radius: var(--fitician-radius-card); background: linear-gradient(125deg, rgb(9 54 51 / 88%), rgb(3 28 27 / 88%)); }
 .weekly-plan-empty h2 { max-width: 24ch; margin: .4rem 0 .8rem; font-size: clamp(1.8rem, 4vw, 3.4rem); }
 .weekly-plan-empty p { max-width: 46rem; color: rgb(234 244 241 / 72%); line-height: 1.85; }
 .weekly-plan-empty small { display: block; margin-block: .75rem 1.2rem; color: #ffd798; }
 .weekly-plan-empty .primary-button { margin-top: 1rem; }
-.nutrition-plan-start-card { width: min(100% - 2rem, 76rem); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; align-items: end; margin: 1rem auto; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid rgb(128 255 232 / 30%); border-radius: var(--fitsho-radius-card); background: linear-gradient(135deg, rgb(80 223 206 / 13%), rgb(3 28 27 / 88%)); box-shadow: var(--fitsho-shadow-focus); }
-.nutrition-plan-start-card__eyebrow { margin: 0 0 .35rem; color: var(--fitsho-aqua); font-size: .78rem; font-weight: 850; }
+.nutrition-plan-start-card { width: min(100% - 2rem, 76rem); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; align-items: end; margin: 1rem auto; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid rgb(128 255 232 / 30%); border-radius: var(--fitician-radius-card); background: linear-gradient(135deg, rgb(80 223 206 / 13%), rgb(3 28 27 / 88%)); box-shadow: var(--fitician-shadow-focus); }
+.nutrition-plan-start-card__eyebrow { margin: 0 0 .35rem; color: var(--fitician-aqua); font-size: .78rem; font-weight: 850; }
 .nutrition-plan-start-card h2 { margin: 0 0 .4rem; font-size: clamp(1.35rem, 3vw, 2.25rem); }
 .nutrition-plan-start-card p { max-width: 48rem; margin: 0; color: rgb(234 244 241 / 72%); line-height: 1.7; }
 .nutrition-plan-start-card label { display: grid; gap: .35rem; min-width: 10rem; color: rgb(234 244 241 / 72%); font-size: .82rem; font-weight: 750; }
-.nutrition-plan-start-card input { min-height: 2.8rem; padding: .55rem .7rem; color: var(--fitsho-ink); border: 1px solid rgb(234 244 241 / 22%); border-radius: .75rem; background: var(--fitsho-mist); font: inherit; }
+.nutrition-plan-start-card input { min-height: 2.8rem; padding: .55rem .7rem; color: var(--fitician-ink); border: 1px solid rgb(234 244 241 / 22%); border-radius: .75rem; background: var(--fitician-mist); font: inherit; }
 .nutrition-plan-start-card__error { grid-column: 1 / -1; color: #ffb9ad !important; }
 .weekly-plan { margin-block: 1rem 6rem; }
 .weekly-plan__heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, .65fr); gap: 1rem; align-items: end; }
@@ -302,9 +302,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__review-content { display: flex; flex-direction: column; gap: .25rem; }
 .weekly-plan__meta { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: 1.1rem; }
 .weekly-plan__meta-chip { display: inline-flex; align-items: center; gap: .45rem; padding: .42rem .8rem; border-radius: 999px; background: rgb(255 255 255 / 4%); border: 1px solid rgb(234 244 241 / 11%); color: rgb(234 244 241 / 82%); font-size: .82rem; backdrop-filter: blur(6px); }
-.weekly-plan__meta-chip strong { color: var(--fitsho-aqua); font-weight: 700; }
+.weekly-plan__meta-chip strong { color: var(--fitician-aqua); font-weight: 700; }
 .weekly-plan__meta-icon { font-size: .95rem; line-height: 1; }
-.weekly-plan__meta-tag { display: inline-block; padding: .1rem .45rem; border-radius: 999px; background: rgb(128 255 232 / 12%); color: var(--fitsho-aqua); font-size: .72rem; font-weight: 600; }
+.weekly-plan__meta-tag { display: inline-block; padding: .1rem .45rem; border-radius: 999px; background: rgb(128 255 232 / 12%); color: var(--fitician-aqua); font-size: .72rem; font-weight: 600; }
 .weekly-plan__notice, .weekly-plan__confirm, .weekly-plan__shopping, .weekly-plan__history { margin-top: 1rem; padding: 1.2rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: 1.2rem; background: rgb(3 28 27 / 64%); }
 .weekly-plan__notice p { margin-bottom: 0; color: rgb(234 244 241 / 72%); }
 .weekly-plan__error, .weekly-plan__warning { color: #ffd798; }
@@ -363,7 +363,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 .weekly-plan__ledger strong,
 .weekly-plan__ledger-value {
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   font-size: .86rem;
   font-weight: 700;
   line-height: 1.25;
@@ -372,7 +372,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   text-overflow: ellipsis;
 }
 .weekly-plan__ledger-item--cost strong {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 .weekly-plan__ledger-item--budget strong {
   color: rgb(234 244 241 / 92%);
@@ -390,7 +390,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__days button { min-width: 5rem; padding: .9rem .5rem; color: rgb(234 244 241 / 72%); border: 1px solid rgb(234 244 241 / 10%); border-radius: 1rem; background: rgb(9 54 51 / 55%); cursor: pointer; }
 .weekly-plan__days button span, .weekly-plan__days button small { display: block; }
 .weekly-plan__days button small { margin-top: .3rem; opacity: .62; }
-.weekly-plan__days button.is-selected { color: var(--fitsho-petrol); border-color: var(--fitsho-aqua); background: var(--fitsho-aqua); transform: translateY(-.2rem); }
+.weekly-plan__days button.is-selected { color: var(--fitician-petrol); border-color: var(--fitician-aqua); background: var(--fitician-aqua); transform: translateY(-.2rem); }
 .weekly-plan__days button:focus-visible { outline: .2rem solid #fff; outline-offset: .15rem; }
 .weekly-plan__meals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: .8rem; }
 .weekly-plan__meal { overflow: hidden; border: 1px solid rgb(234 244 241 / 11%); border-radius: 1.2rem; background: rgb(3 28 27 / 60%); }
@@ -409,44 +409,44 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__prepared-recipe > div span { padding: .2rem .5rem; color: #f5ca78; border-radius: 999px; background: rgb(245 202 120 / 10%); font-size: .72rem; }
 .weekly-plan__prepared-recipe dl { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; margin: .7rem 0; }
 .weekly-plan__prepared-recipe dl div { display: flex; justify-content: space-between; gap: .35rem; color: rgb(234 244 241 / 72%); font-size: .75rem; }
-.weekly-plan__prepared-recipe dd { margin: 0; color: var(--fitsho-mist); }
+.weekly-plan__prepared-recipe dd { margin: 0; color: var(--fitician-mist); }
 .weekly-plan__prepared-recipe small { color: rgb(234 244 241 / 62%); }
 .weekly-plan__meal-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; margin: 0; padding: 0 1rem 1rem; }
 .weekly-plan__meal-totals div { padding: .55rem; border-radius: .65rem; background: rgb(255 255 255 / 5%); }
 .weekly-plan__meal-totals dt { color: rgb(234 244 241 / 52%); font-size: .68rem; }
 .weekly-plan__meal-totals dd { margin: .2rem 0 0; font-size: .82rem; }
 .weekly-plan__meal-actions { display: flex; flex-wrap: wrap; gap: .45rem; padding: 0 1rem 1rem; }
-.weekly-plan__meal-actions button, .weekly-plan__confirm button, .weekly-plan__history button { padding: .55rem .75rem; color: var(--fitsho-mist); border: 1px solid rgb(234 244 241 / 16%); border-radius: .7rem; background: rgb(255 255 255 / 5%); cursor: pointer; }
+.weekly-plan__meal-actions button, .weekly-plan__confirm button, .weekly-plan__history button { padding: .55rem .75rem; color: var(--fitician-mist); border: 1px solid rgb(234 244 241 / 16%); border-radius: .7rem; background: rgb(255 255 255 / 5%); cursor: pointer; }
 .weekly-plan__meal-actions button:disabled { opacity: .45; cursor: not-allowed; }
-.weekly-plan__meal-actions button.is-selected, .weekly-plan__replacement-options button.is-selected, .weekly-plan__food-targets button.is-selected { border-color: var(--fitsho-aqua); background: rgb(80 223 206 / 18%); color: var(--fitsho-aqua); box-shadow: 0 0 0 .12rem rgb(80 223 206 / 12%); }
+.weekly-plan__meal-actions button.is-selected, .weekly-plan__replacement-options button.is-selected, .weekly-plan__food-targets button.is-selected { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 18%); color: var(--fitician-aqua); box-shadow: 0 0 0 .12rem rgb(80 223 206 / 12%); }
 .weekly-plan__meal-actions button:focus-visible, .weekly-plan__modal button:focus-visible { outline: .2rem solid #fff; outline-offset: .15rem; }
 .weekly-plan__modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding-block: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); background: rgb(0 15 14 / 76%); }
-.weekly-plan__modal { position: relative; width: min(100%, 38rem); max-height: min(calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem), 48rem); overflow-y: auto; overscroll-behavior: contain; padding: 1.4rem; border: 1px solid rgb(128 255 232 / 32%); border-radius: 1.2rem; background: var(--fitsho-surface); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%); }
+.weekly-plan__modal { position: relative; width: min(100%, 38rem); max-height: min(calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 2rem), 48rem); overflow-y: auto; overscroll-behavior: contain; padding: 1.4rem; border: 1px solid rgb(128 255 232 / 32%); border-radius: 1.2rem; background: var(--fitician-surface); box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 35%); }
 .weekly-plan__modal h3 { margin: 0 2.5rem .8rem 0; }
-.weekly-plan__modal h4 { margin-bottom: .6rem; color: var(--fitsho-aqua); }
+.weekly-plan__modal h4 { margin-bottom: .6rem; color: var(--fitician-aqua); }
 .weekly-plan__modal p { color: rgb(234 244 241 / 76%); line-height: 1.7; }
-.weekly-plan__modal-close { position: absolute; inset-block-start: .8rem; inset-inline-end: .8rem; padding: .35rem .55rem; color: var(--fitsho-mist); border: 1px solid rgb(234 244 241 / 18%); border-radius: .55rem; background: transparent; cursor: pointer; }
+.weekly-plan__modal-close { position: absolute; inset-block-start: .8rem; inset-inline-end: .8rem; padding: .35rem .55rem; color: var(--fitician-mist); border: 1px solid rgb(234 244 241 / 18%); border-radius: .55rem; background: transparent; cursor: pointer; }
 .weekly-plan__replacement-options { display: grid; gap: .55rem; }
-.weekly-plan__replacement-options > button { display: flex; gap: .7rem; align-items: center; width: 100%; padding: .65rem; color: var(--fitsho-mist); border: 1px solid rgb(234 244 241 / 14%); border-radius: .8rem; background: rgb(255 255 255 / 5%); text-align: start; cursor: pointer; }
+.weekly-plan__replacement-options > button { display: flex; gap: .7rem; align-items: center; width: 100%; padding: .65rem; color: var(--fitician-mist); border: 1px solid rgb(234 244 241 / 14%); border-radius: .8rem; background: rgb(255 255 255 / 5%); text-align: start; cursor: pointer; }
 .weekly-plan__replacement-options > button span { display: grid; gap: .25rem; }
 .weekly-plan__replacement-options small { color: rgb(234 244 241 / 64%); }
 .weekly-plan__replacement-image { flex: 0 0 auto; width: 3rem; height: 3rem; border-radius: .6rem; }
 .weekly-plan__food-targets { display: grid; gap: .45rem; margin-bottom: 1rem; }
-.weekly-plan__food-targets button { padding: .65rem; color: var(--fitsho-mist); border: 1px solid rgb(234 244 241 / 14%); border-radius: .7rem; background: rgb(255 255 255 / 5%); text-align: start; cursor: pointer; }
+.weekly-plan__food-targets button { padding: .65rem; color: var(--fitician-mist); border: 1px solid rgb(234 244 241 / 14%); border-radius: .7rem; background: rgb(255 255 255 / 5%); text-align: start; cursor: pointer; }
 .weekly-plan__modal-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
-.weekly-plan__modal-actions button { padding: .65rem .85rem; color: var(--fitsho-mist); border: 1px solid rgb(234 244 241 / 16%); border-radius: .7rem; background: rgb(255 255 255 / 5%); cursor: pointer; }
+.weekly-plan__modal-actions button { padding: .65rem .85rem; color: var(--fitician-mist); border: 1px solid rgb(234 244 241 / 16%); border-radius: .7rem; background: rgb(255 255 255 / 5%); cursor: pointer; }
 .weekly-plan__modal-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .weekly-plan__preview-impact { padding-inline-start: 1.2rem; color: rgb(234 244 241 / 76%); }
 .weekly-plan__day-actions { display: flex; justify-content: flex-end; margin-top: .6rem; }
 .weekly-plan__daily-summary { display: flex; flex-wrap: wrap; gap: .5rem 1.3rem; margin-top: .7rem; padding: .8rem 1rem; border-radius: .9rem; background: rgb(255 255 255 / 5%); }
-.weekly-plan__day-actions button { padding: .7rem 1rem; color: var(--fitsho-aqua); border: 1px solid rgb(80 223 206 / 30%); border-radius: .8rem; background: rgb(80 223 206 / 7%); }
+.weekly-plan__day-actions button { padding: .7rem 1rem; color: var(--fitician-aqua); border: 1px solid rgb(80 223 206 / 30%); border-radius: .8rem; background: rgb(80 223 206 / 7%); }
 .weekly-plan__confirm { border-color: rgb(255 215 152 / 35%); }
 .weekly-plan__confirm button + button { margin-inline-start: .5rem; }
 .weekly-plan__shopping ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: 0; list-style: none; }
 .weekly-plan__shopping li { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; padding: .8rem; border-radius: .8rem; background: rgb(255 255 255 / 5%); }
 .weekly-plan__shopping li small { grid-column: 1 / -1; color: rgb(234 244 241 / 55%); }
 .weekly-plan__history > div { display: flex; flex-wrap: wrap; gap: .5rem; }
-.weekly-plan__history button.is-current { color: var(--fitsho-petrol); background: var(--fitsho-aqua); }
+.weekly-plan__history button.is-current { color: var(--fitician-petrol); background: var(--fitician-aqua); }
 .weekly-plan__nutrients { margin-top: 1rem; padding: 1.2rem; border: 1px solid rgb(234 244 241 / 10%); border-radius: 1.2rem; background: rgb(9 54 51 / 45%); }
 .weekly-plan__nutrients h3 { margin: 0 0 1rem; }
 .weekly-plan__nutrient-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
@@ -454,13 +454,13 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__nutrients span, .weekly-plan__nutrients small { color: rgb(234 244 241 / 58%); font-size: .75rem; }
 .weekly-plan__nutrients small[data-status="data_incomplete"], .weekly-plan__nutrients small[data-status="above_applicable_limit"] { color: #ffd798; }
 .weekly-plan__pdf-section { margin-top: 1.5rem; }
-.weekly-plan__pdf-button { width: 100%; min-height: 4.8rem; display: flex; align-items: center; gap: 1.1rem; padding: 1rem 1.35rem; border: 1px solid rgb(80 223 206 / 24%); border-radius: 1.2rem; background: linear-gradient(135deg, rgb(9 54 51 / 75%) 0%, rgb(3 28 27 / 85%) 100%); color: var(--fitsho-ink, #eaf4f1); font: inherit; text-align: right; cursor: pointer; transition: all .2s ease; box-shadow: 0 4px 16px rgb(0 0 0 / 20%); }
+.weekly-plan__pdf-button { width: 100%; min-height: 4.8rem; display: flex; align-items: center; gap: 1.1rem; padding: 1rem 1.35rem; border: 1px solid rgb(80 223 206 / 24%); border-radius: 1.2rem; background: linear-gradient(135deg, rgb(9 54 51 / 75%) 0%, rgb(3 28 27 / 85%) 100%); color: var(--fitician-ink, #eaf4f1); font: inherit; text-align: right; cursor: pointer; transition: all .2s ease; box-shadow: 0 4px 16px rgb(0 0 0 / 20%); }
 [dir="ltr"] .weekly-plan__pdf-button { text-align: left; }
-.weekly-plan__pdf-button:hover:not(:disabled) { border-color: var(--fitsho-aqua); background: linear-gradient(135deg, rgb(12 68 64 / 85%) 0%, rgb(5 38 36 / 90%) 100%); box-shadow: 0 6px 20px rgb(80 223 206 / 15%); }
+.weekly-plan__pdf-button:hover:not(:disabled) { border-color: var(--fitician-aqua); background: linear-gradient(135deg, rgb(12 68 64 / 85%) 0%, rgb(5 38 36 / 90%) 100%); box-shadow: 0 6px 20px rgb(80 223 206 / 15%); }
 @media (hover: hover) and (pointer: fine) { .weekly-plan__pdf-button:hover:not(:disabled) { transform: translateY(-2px); } }
-.weekly-plan__pdf-button:focus-visible { outline: 2px solid var(--fitsho-aqua); outline-offset: 2px; }
+.weekly-plan__pdf-button:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 2px; }
 .weekly-plan__pdf-button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.weekly-plan__pdf-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: .85rem; background: rgb(80 223 206 / 15%); border: 1px solid rgb(80 223 206 / 30%); color: var(--fitsho-aqua, #50dfce); flex-shrink: 0; }
+.weekly-plan__pdf-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: .85rem; background: rgb(80 223 206 / 15%); border: 1px solid rgb(80 223 206 / 30%); color: var(--fitician-aqua, #50dfce); flex-shrink: 0; }
 .weekly-plan__pdf-icon svg { width: 1.4rem; height: 1.4rem; }
 .weekly-plan__pdf-content { display: flex; flex-direction: column; gap: .25rem; }
 .weekly-plan__pdf-content strong { font-size: 1rem; color: #ffffff; font-weight: 700; }
@@ -552,88 +552,88 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 @media (max-width: 850px) { .physician-review-hero { grid-template-columns: 1fr; }.physician-review-summary { width: fit-content; }.physician-review-workspace { grid-template-columns: 1fr; }.physician-clinical-tabs { grid-template-columns: repeat(2, 1fr); } }
 
 /* Compact authenticated nutrition composition */
-.nutrition-estimate-page { padding-bottom: 6rem; background: var(--fitsho-canvas); }
+.nutrition-estimate-page { padding-bottom: 6rem; background: var(--fitician-canvas); }
 .nutrition-estimate-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding: 1rem 0 .8rem; }
 .nutrition-estimate-hero h1 { max-width: none; margin: .15rem 0 0; font-size: clamp(1.45rem, 4vw, 2.2rem); line-height: 1.2; letter-spacing: 0; }
 .nutrition-estimate-hero > p:last-child { display: none; }
 .nutrition-estimate-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; margin: 0; }
-.nutrition-tool-link { min-height: 2.7rem; display: grid; align-content: center; padding: .45rem .7rem; border: 1px solid var(--fitsho-line); border-radius: .75rem; color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font-size: .72rem; text-decoration: none; }
-.nutrition-tool-link small { color: var(--fitsho-muted); font-size: .6rem; }
-.nutrition-tool-link--primary { border-color: var(--fitsho-line-strong); color: var(--fitsho-aqua); }
+.nutrition-tool-link { min-height: 2.7rem; display: grid; align-content: center; padding: .45rem .7rem; border: 1px solid var(--fitician-line); border-radius: .75rem; color: var(--fitician-ink); background: var(--fitician-surface-subtle); font-size: .72rem; text-decoration: none; }
+.nutrition-tool-link small { color: var(--fitician-muted); font-size: .6rem; }
+.nutrition-tool-link--primary { border-color: var(--fitician-line-strong); color: var(--fitician-aqua); }
 .nutrition-estimate-summary { grid-template-columns: minmax(0, 1.4fr) minmax(15rem, .6fr); }
 .nutrition-today-panel, .nutrition-meal-summary { width: min(100% - 2rem, 72rem); margin-inline: auto; }
-.nutrition-today-panel { overflow: hidden; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-soft); }
+.nutrition-today-panel { overflow: hidden; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-soft); }
 .nutrition-today-panel__top { min-height: 8rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: .85rem; }
 .nutrition-calorie-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.25rem; align-items: center; }
 .nutrition-calorie-item { display: flex; align-items: center; justify-content: space-between; gap: .85rem; }
-.nutrition-calorie-item + .nutrition-calorie-item { border-inline-start: 1px solid var(--fitsho-line); padding-inline-start: 1.25rem; }
+.nutrition-calorie-item + .nutrition-calorie-item { border-inline-start: 1px solid var(--fitician-line); padding-inline-start: 1.25rem; }
 .nutrition-breakdown-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; margin-top: .35rem; }
-.nutrition-breakdown-pill { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; color: var(--fitsho-muted); }
+.nutrition-breakdown-pill { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; color: var(--fitician-muted); }
 .nutrition-breakdown-dot { width: .5rem; height: .5rem; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
-.nutrition-breakdown-dot--bmr { background: var(--fitsho-blue, #3b82f6); box-shadow: 0 0 .5rem rgb(59 130 246 / 45%); }
-.nutrition-breakdown-dot--activity { background: var(--fitsho-aqua); box-shadow: 0 0 .5rem rgb(80 223 206 / 45%); }
+.nutrition-breakdown-dot--bmr { background: var(--fitician-blue, #3b82f6); box-shadow: 0 0 .5rem rgb(59 130 246 / 45%); }
+.nutrition-breakdown-dot--activity { background: var(--fitician-aqua); box-shadow: 0 0 .5rem rgb(80 223 206 / 45%); }
 .nutrition-today-panel .nutrition-calorie-card { min-height: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .nutrition-today-panel .nutrition-calorie-card strong { display: block; margin-block: .2rem; font: 850 clamp(1.8rem, 5vw, 2.75rem)/1 "Sora Variable", sans-serif; }
 .nutrition-today-panel .fitsho-progress-ring { width: 4.75rem; }
-.nutrition-today-panel .nutrition-confidence-card { min-width: 8rem; align-self: stretch; display: grid; align-content: center; justify-items: start; padding: .75rem; border: 0; border-inline-start: 1px solid var(--fitsho-line); border-radius: 0; background: transparent; box-shadow: none; }
-.nutrition-today-panel .nutrition-target-grid--primary { width: auto; margin: 0; border: 0; border-top: 1px solid var(--fitsho-line); border-radius: 0; background: rgb(255 255 255 / 2%); box-shadow: none; }
-.nutrition-meal-summary { margin-top: .65rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); }
-.nutrition-meal-summary header { display: flex; align-items: center; justify-content: space-between; padding: .75rem .85rem; border-bottom: 1px solid var(--fitsho-line); }
+.nutrition-today-panel .nutrition-confidence-card { min-width: 8rem; align-self: stretch; display: grid; align-content: center; justify-items: start; padding: .75rem; border: 0; border-inline-start: 1px solid var(--fitician-line); border-radius: 0; background: transparent; box-shadow: none; }
+.nutrition-today-panel .nutrition-target-grid--primary { width: auto; margin: 0; border: 0; border-top: 1px solid var(--fitician-line); border-radius: 0; background: rgb(255 255 255 / 2%); box-shadow: none; }
+.nutrition-meal-summary { margin-top: .65rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
+.nutrition-meal-summary header { display: flex; align-items: center; justify-content: space-between; padding: .75rem .85rem; border-bottom: 1px solid var(--fitician-line); }
 .nutrition-meal-summary h2 { margin: 0; font-size: .9rem; }
-.nutrition-meal-summary a { color: var(--fitsho-aqua); font-size: .7rem; font-weight: 850; text-decoration: none; }
+.nutrition-meal-summary a { color: var(--fitician-aqua); font-size: .7rem; font-weight: 850; text-decoration: none; }
 .nutrition-meal-summary article { min-height: 2.75rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem .85rem; }
-.nutrition-meal-summary article + article { border-top: 1px solid var(--fitsho-line); }
-.nutrition-meal-summary article span { color: var(--fitsho-muted); font-size: .75rem; }
+.nutrition-meal-summary article + article { border-top: 1px solid var(--fitician-line); }
+.nutrition-meal-summary article span { color: var(--fitician-muted); font-size: .75rem; }
 .nutrition-meal-summary article strong { font: 750 .78rem "Sora Variable", sans-serif; }
 .nutrition-science-links { display: flex; gap: .45rem; margin: .8rem 1rem 0; }
-.nutrition-science-links a { padding: .5rem .7rem; border: 1px solid var(--fitsho-line); border-radius: .6rem; color: var(--fitsho-aqua); font-size: .72rem; font-weight: 800; text-decoration: none; }
-.nutrition-calorie-card { min-height: 8.5rem; padding: 1rem; border-radius: var(--fitsho-radius-lg); }
+.nutrition-science-links a { padding: .5rem .7rem; border: 1px solid var(--fitician-line); border-radius: .6rem; color: var(--fitician-aqua); font-size: .72rem; font-weight: 800; text-decoration: none; }
+.nutrition-calorie-card { min-height: 8.5rem; padding: 1rem; border-radius: var(--fitician-radius-lg); }
 .nutrition-calorie-card strong { font-size: clamp(2rem, 6vw, 3.25rem); }
-.nutrition-confidence-card { min-height: 0; padding: 1rem; border-radius: var(--fitsho-radius-lg); }
+.nutrition-confidence-card { min-height: 0; padding: 1rem; border-radius: var(--fitician-radius-lg); }
 .nutrition-confidence-card p { margin: .5rem 0 0; font-size: .72rem; line-height: 1.55; }
 .nutrition-target-grid--primary.fitsho-metric-strip { gap: 0; padding-block: .65rem; }
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card { min-height: 0; padding: .75rem; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card + .nutrition-target-card { border-inline-start: 1px solid var(--fitsho-line); }
+.nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card + .nutrition-target-card { border-inline-start: 1px solid var(--fitician-line); }
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card strong { font-size: 1rem; }
 .nutrition-target-grid--primary.fitsho-metric-strip .nutrition-target-card small { display: none; }
-.nutrition-science-details { margin-top: .2rem; border-radius: var(--fitsho-radius-md); }
+.nutrition-science-details { margin-top: .2rem; border-radius: var(--fitician-radius-md); }
 .nutrition-science-details > summary { min-height: 3rem; padding: .75rem 1rem; font-size: .78rem; }
-.nutrition-doctor-supervision { width: min(100% - 2rem, 72rem); margin: .75rem auto 0; padding: 0; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: linear-gradient(145deg, rgb(9 54 51 / 45%), var(--fitsho-surface)); box-shadow: var(--fitsho-shadow-soft); backdrop-filter: blur(8px); overflow: hidden; }
+.nutrition-doctor-supervision { width: min(100% - 2rem, 72rem); margin: .75rem auto 0; padding: 0; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: linear-gradient(145deg, rgb(9 54 51 / 45%), var(--fitician-surface)); box-shadow: var(--fitician-shadow-soft); backdrop-filter: blur(8px); overflow: hidden; }
 .nutrition-doctor-accordion { width: 100%; }
-.nutrition-doctor-accordion__summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.15rem; cursor: pointer; list-style: none; user-select: none; transition: background var(--fitsho-duration-fast) var(--fitsho-ease); }
+.nutrition-doctor-accordion__summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.15rem; cursor: pointer; list-style: none; user-select: none; transition: background var(--fitician-duration-fast) var(--fitician-ease); }
 .nutrition-doctor-accordion__summary::-webkit-details-marker { display: none; }
 .nutrition-doctor-accordion__summary:hover { background: rgb(80 223 206 / 5%); }
-.nutrition-doctor-accordion[open] .nutrition-doctor-accordion__summary { border-bottom: 1px solid var(--fitsho-line); }
+.nutrition-doctor-accordion[open] .nutrition-doctor-accordion__summary { border-bottom: 1px solid var(--fitician-line); }
 .nutrition-doctor-accordion__lead { display: flex; align-items: center; gap: .75rem; min-width: 0; }
 .nutrition-doctor-accordion__titles { min-width: 0; }
 .nutrition-doctor-accordion__titles h2 { margin: 0; font-size: 1.02rem; font-weight: 800; }
-.nutrition-doctor-accordion__titles p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .68rem; }
+.nutrition-doctor-accordion__titles p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .68rem; }
 .nutrition-doctor-accordion__trailing { display: flex; align-items: center; gap: .75rem; flex-shrink: 0; }
-.nutrition-doctor-accordion__chevron { font-size: .95rem; color: var(--fitsho-aqua); transition: transform var(--fitsho-duration-fast) var(--fitsho-ease); }
+.nutrition-doctor-accordion__chevron { font-size: .95rem; color: var(--fitician-aqua); transition: transform var(--fitician-duration-fast) var(--fitician-ease); }
 .nutrition-doctor-accordion[open] .nutrition-doctor-accordion__chevron { transform: rotate(180deg); }
-.nutrition-doctor-icon { width: 2.75rem; aspect-ratio: 1; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 30%); border-radius: .9rem; color: var(--fitsho-aqua); background: linear-gradient(135deg, rgb(80 223 206 / 14%), rgb(9 54 51 / 25%)); box-shadow: 0 2px 10px rgb(80 223 206 / 8%); }
+.nutrition-doctor-icon { width: 2.75rem; aspect-ratio: 1; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 30%); border-radius: .9rem; color: var(--fitician-aqua); background: linear-gradient(135deg, rgb(80 223 206 / 14%), rgb(9 54 51 / 25%)); box-shadow: 0 2px 10px rgb(80 223 206 / 8%); }
 .nutrition-doctor-icon svg { width: 1.55rem; }
-.nutrition-doctor-header-status { display: flex; align-items: center; gap: .35rem; padding: .2rem .6rem; border-radius: 999px; background: rgb(255 128 111 / 10%); border: 1px solid rgb(255 128 111 / 25%); color: var(--fitsho-coral); font-size: .68rem; font-weight: 800; }
-.nutrition-doctor-header-status i, .nutrition-doctor-status--pending i { width: .42rem; aspect-ratio: 1; display: inline-block; flex: 0 0 auto; border-radius: 50%; background: var(--fitsho-coral); box-shadow: 0 0 .7rem rgb(255 128 111 / 55%); }
+.nutrition-doctor-header-status { display: flex; align-items: center; gap: .35rem; padding: .2rem .6rem; border-radius: 999px; background: rgb(255 128 111 / 10%); border: 1px solid rgb(255 128 111 / 25%); color: var(--fitician-coral); font-size: .68rem; font-weight: 800; }
+.nutrition-doctor-header-status i, .nutrition-doctor-status--pending i { width: .42rem; aspect-ratio: 1; display: inline-block; flex: 0 0 auto; border-radius: 50%; background: var(--fitician-coral); box-shadow: 0 0 .7rem rgb(255 128 111 / 55%); }
 .nutrition-doctor-accordion .nutrition-doctor-grid { display: flex; flex-direction: column; gap: .55rem; padding: 1rem 1.15rem 1.15rem; }
-.nutrition-doctor-item { min-height: 4.5rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .85rem; padding: .8rem 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); text-decoration: none; transition: all var(--fitsho-duration-fast) var(--fitsho-ease); }
+.nutrition-doctor-item { min-height: 4.5rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .85rem; padding: .8rem 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); text-decoration: none; transition: all var(--fitician-duration-fast) var(--fitician-ease); }
 .nutrition-doctor-item > span:nth-child(2), .nutrition-doctor-item__content { min-width: 0; display: flex; flex-direction: column; gap: .22rem; }
 .nutrition-doctor-item strong { font-size: .86rem; font-weight: 700; }
-.nutrition-doctor-item small { overflow: hidden; color: var(--fitsho-muted); font-size: .7rem; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.nutrition-doctor-item__symbol { width: 2.5rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: .75rem; color: var(--fitsho-aqua); background: rgb(80 223 206 / 8%); border: 1px solid rgb(80 223 206 / 20%); font: 800 .85rem "Sora Variable", sans-serif; flex-shrink: 0; }
+.nutrition-doctor-item small { overflow: hidden; color: var(--fitician-muted); font-size: .7rem; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.nutrition-doctor-item__symbol { width: 2.5rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: .75rem; color: var(--fitician-aqua); background: rgb(80 223 206 / 8%); border: 1px solid rgb(80 223 206 / 20%); font: 800 .85rem "Sora Variable", sans-serif; flex-shrink: 0; }
 .nutrition-doctor-item__symbol svg { width: 1.35rem; height: 1.35rem; }
-.nutrition-doctor-item__symbol--supplements { background: linear-gradient(135deg, rgb(80 223 206 / 20%), rgb(3 28 27 / 35%)); border-color: rgb(80 223 206 / 40%); color: var(--fitsho-aqua); box-shadow: 0 2px 10px rgb(80 223 206 / 15%); }
+.nutrition-doctor-item__symbol--supplements { background: linear-gradient(135deg, rgb(80 223 206 / 20%), rgb(3 28 27 / 35%)); border-color: rgb(80 223 206 / 40%); color: var(--fitician-aqua); box-shadow: 0 2px 10px rgb(80 223 206 / 15%); }
 .nutrition-doctor-item__symbol--approved { background: linear-gradient(135deg, rgb(64 220 139 / 18%), rgb(3 28 27 / 35%)); border-color: rgb(64 220 139 / 35%); color: #8ff3bb; box-shadow: 0 2px 10px rgb(64 220 139 / 12%); }
 .nutrition-doctor-item__symbol--labs { background: linear-gradient(135deg, rgb(150 160 255 / 18%), rgb(3 28 27 / 35%)); border-color: rgb(150 160 255 / 35%); color: #b4beff; box-shadow: 0 2px 10px rgb(150 160 255 / 12%); }
 .nutrition-doctor-item__symbol--guidance { background: linear-gradient(135deg, rgb(255 215 152 / 18%), rgb(3 28 27 / 35%)); border-color: rgb(255 215 152 / 35%); color: #ffd798; box-shadow: 0 2px 10px rgb(255 215 152 / 12%); }
-.nutrition-doctor-item--supplements { background: linear-gradient(140deg, rgb(80 223 206 / 6%), var(--fitsho-surface-subtle)); border-color: rgb(80 223 206 / 26%); position: relative; overflow: hidden; }
-.nutrition-doctor-item--supplements::before { content: ""; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--fitsho-aqua), transparent); }
+.nutrition-doctor-item--supplements { background: linear-gradient(140deg, rgb(80 223 206 / 6%), var(--fitician-surface-subtle)); border-color: rgb(80 223 206 / 26%); position: relative; overflow: hidden; }
+.nutrition-doctor-item--supplements::before { content: ""; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--fitician-aqua), transparent); }
 .nutrition-doctor-item__header-row { display: flex; align-items: center; gap: .45rem; }
-.nutrition-doctor-item__tag { display: inline-block; padding: .1rem .45rem; border-radius: 999px; font-size: .62rem; font-weight: 700; background: rgb(80 223 206 / 14%); color: var(--fitsho-aqua); border: 1px solid rgb(80 223 206 / 30%); }
-.nutrition-doctor-item b, .nutrition-doctor-item__chevron { color: var(--fitsho-muted); font-size: 1.25rem; font-weight: 500; transition: transform var(--fitsho-duration-fast) var(--fitsho-ease), color var(--fitsho-duration-fast) var(--fitsho-ease); }
-.nutrition-doctor-status--pending { display: flex; align-items: center; gap: .3rem; color: var(--fitsho-coral) !important; }
-.nutrition-doctor-item--link:hover, .nutrition-doctor-item--link:focus-visible { border-color: var(--fitsho-aqua); background: linear-gradient(140deg, rgb(80 223 206 / 12%), var(--fitsho-surface-subtle)); box-shadow: 0 4px 16px rgb(80 223 206 / 12%); outline: none; }
-.nutrition-doctor-item--link:hover .nutrition-doctor-item__chevron, .nutrition-doctor-item--link:hover b, .nutrition-doctor-item--link:focus-visible .nutrition-doctor-item__chevron, .nutrition-doctor-item--link:focus-visible b { color: var(--fitsho-aqua); }
+.nutrition-doctor-item__tag { display: inline-block; padding: .1rem .45rem; border-radius: 999px; font-size: .62rem; font-weight: 700; background: rgb(80 223 206 / 14%); color: var(--fitician-aqua); border: 1px solid rgb(80 223 206 / 30%); }
+.nutrition-doctor-item b, .nutrition-doctor-item__chevron { color: var(--fitician-muted); font-size: 1.25rem; font-weight: 500; transition: transform var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease); }
+.nutrition-doctor-status--pending { display: flex; align-items: center; gap: .3rem; color: var(--fitician-coral) !important; }
+.nutrition-doctor-item--link:hover, .nutrition-doctor-item--link:focus-visible { border-color: var(--fitician-aqua); background: linear-gradient(140deg, rgb(80 223 206 / 12%), var(--fitician-surface-subtle)); box-shadow: 0 4px 16px rgb(80 223 206 / 12%); outline: none; }
+.nutrition-doctor-item--link:hover .nutrition-doctor-item__chevron, .nutrition-doctor-item--link:hover b, .nutrition-doctor-item--link:focus-visible .nutrition-doctor-item__chevron, .nutrition-doctor-item--link:focus-visible b { color: var(--fitician-aqua); }
 @media (hover: hover) and (pointer: fine) {
   .nutrition-doctor-item--link:hover { transform: translateY(-1px); }
   .nutrition-doctor-item--link:hover .nutrition-doctor-item__chevron,
@@ -643,9 +643,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 [dir="ltr"] .nutrition-doctor-item b, [dir="ltr"] .nutrition-doctor-item__chevron { transform: rotate(180deg); }
 .weekly-plan-empty, .weekly-plan { margin-top: .75rem; }
-.weekly-plan-empty { width: min(100% - 2rem, 72rem); margin-block: .75rem 6rem; padding: 0; border-color: var(--fitsho-line-strong); border-radius: var(--fitsho-radius-lg); background: linear-gradient(115deg, rgb(80 223 206 / 9%), rgb(255 255 255 / 2%)), var(--fitsho-surface); }
+.weekly-plan-empty { width: min(100% - 2rem, 72rem); margin-block: .75rem 6rem; padding: 0; border-color: var(--fitician-line-strong); border-radius: var(--fitician-radius-lg); background: linear-gradient(115deg, rgb(80 223 206 / 9%), rgb(255 255 255 / 2%)), var(--fitician-surface); }
 .weekly-plan-empty .primary-button { width: 100%; min-height: 4.25rem; display: flex; align-items: center; justify-content: center; margin: 0; border-radius: inherit; font-size: 1rem; }
-.weekly-plan-empty__message { margin: 0; padding: .7rem .85rem 0; color: var(--fitsho-muted); font-size: .7rem; text-align: center; }
+.weekly-plan-empty__message { margin: 0; padding: .7rem .85rem 0; color: var(--fitician-muted); font-size: .7rem; text-align: center; }
 .weekly-plan-empty > small { margin: 0; padding: .65rem .85rem 0; text-align: center; }
 
 .nutrition-tracking-page {
@@ -681,10 +681,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   gap: .75rem;
   margin-inline: auto;
   padding: .85rem 1.1rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-lg);
-  background: linear-gradient(135deg, rgb(80 223 206 / 12%), rgb(80 223 206 / 3%)), var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-soft);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-lg);
+  background: linear-gradient(135deg, rgb(80 223 206 / 12%), rgb(80 223 206 / 3%)), var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-soft);
   text-align: start;
 }
 .nutrition-entry-root::after {
@@ -693,7 +693,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   inset-inline-start: 50%;
   width: 1px;
   height: 1rem;
-  background: var(--fitsho-line-strong);
+  background: var(--fitician-line-strong);
   content: "";
   transform: translateX(-50%);
 }
@@ -704,15 +704,15 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   flex: 0 0 auto;
   place-items: center;
   border-radius: .85rem;
-  color: var(--fitsho-canvas);
-  background: var(--fitsho-aqua);
+  color: var(--fitician-canvas);
+  background: var(--fitician-aqua);
   box-shadow: 0 .55rem 1.2rem rgb(80 223 206 / 16%);
 }
 .nutrition-entry-root__icon svg { width: 1.4rem; height: 1.4rem; }
 .nutrition-entry-root__copy { min-width: 0; display: grid; gap: .15rem; }
-.nutrition-entry-root__copy h2 { margin: 0; color: var(--fitsho-ink); font-size: 1rem; font-weight: 850; }
-.nutrition-entry-root__copy p { margin: 0; color: var(--fitsho-muted); font-size: .68rem; line-height: 1.5; }
-.nutrition-entry-hub__eyebrow { color: var(--fitsho-aqua) !important; font-size: .62rem !important; font-weight: 850; }
+.nutrition-entry-root__copy h2 { margin: 0; color: var(--fitician-ink); font-size: 1rem; font-weight: 850; }
+.nutrition-entry-root__copy p { margin: 0; color: var(--fitician-muted); font-size: .68rem; line-height: 1.5; }
+.nutrition-entry-hub__eyebrow { color: var(--fitician-aqua) !important; font-size: .62rem !important; font-weight: 850; }
 .nutrition-entry-branches {
   position: relative;
   display: grid;
@@ -725,7 +725,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   inset-block-start: 0;
   inset-inline: 25% 25%;
   height: 1px;
-  background: var(--fitsho-line-strong);
+  background: var(--fitician-line-strong);
   content: "";
 }
 .nutrition-entry-choice {
@@ -737,14 +737,14 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   align-items: center;
   gap: .65rem;
   padding: .8rem .9rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  color: var(--fitsho-ink);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2.5%), transparent), var(--fitsho-surface);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  color: var(--fitician-ink);
+  background: linear-gradient(180deg, rgb(255 255 255 / 2.5%), transparent), var(--fitician-surface);
   font: inherit;
   text-align: start;
   cursor: pointer;
-  transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), background var(--fitsho-duration-fast) var(--fitsho-ease), box-shadow var(--fitsho-duration-fast) var(--fitsho-ease), transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease), box-shadow var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 .nutrition-entry-choice::before {
   position: absolute;
@@ -752,20 +752,20 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   inset-inline-start: 50%;
   width: 1px;
   height: 1rem;
-  background: var(--fitsho-line-strong);
+  background: var(--fitician-line-strong);
   content: "";
 }
 .nutrition-entry-choice:hover,
 .nutrition-entry-choice:focus-visible {
-  border-color: var(--fitsho-aqua);
-  background: var(--fitsho-surface-interactive);
+  border-color: var(--fitician-aqua);
+  background: var(--fitician-surface-interactive);
   box-shadow: 0 .55rem 1.2rem rgb(80 223 206 / 10%);
   outline: none;
 }
 @media (hover: hover) and (pointer: fine) { .nutrition-entry-choice:hover { transform: translateY(-2px); } }
 .nutrition-entry-choice.is-active {
-  border-color: var(--fitsho-aqua);
-  background: linear-gradient(135deg, rgb(80 223 206 / 10%), transparent), var(--fitsho-surface-raised);
+  border-color: var(--fitician-aqua);
+  background: linear-gradient(135deg, rgb(80 223 206 / 10%), transparent), var(--fitician-surface-raised);
   box-shadow: 0 .55rem 1.4rem rgb(80 223 206 / 12%);
 }
 .nutrition-entry-choice:focus-visible { outline: .15rem solid rgb(80 223 206 / 35%); outline-offset: .15rem; }
@@ -777,84 +777,84 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   place-items: center;
   border: 1px solid rgb(80 223 206 / 24%);
   border-radius: .8rem;
-  color: var(--fitsho-aqua);
-  background: var(--fitsho-surface-interactive);
+  color: var(--fitician-aqua);
+  background: var(--fitician-surface-interactive);
 }
 .nutrition-entry-choice__icon svg { width: 1.25rem; height: 1.25rem; }
 .nutrition-entry-choice__copy { min-width: 0; display: grid; gap: .18rem; }
-.nutrition-entry-choice__copy strong { color: var(--fitsho-ink); font-size: .85rem; font-weight: 850; }
-.nutrition-entry-choice__copy small { color: var(--fitsho-muted); font-size: .66rem; line-height: 1.45; overflow-wrap: anywhere; }
+.nutrition-entry-choice__copy strong { color: var(--fitician-ink); font-size: .85rem; font-weight: 850; }
+.nutrition-entry-choice__copy small { color: var(--fitician-muted); font-size: .66rem; line-height: 1.45; overflow-wrap: anywhere; }
 .nutrition-entry-choice__indicator {
   width: .55rem;
   aspect-ratio: 1;
   flex: 0 0 auto;
-  border-inline-end: .12rem solid var(--fitsho-aqua);
-  border-block-end: .12rem solid var(--fitsho-aqua);
+  border-inline-end: .12rem solid var(--fitician-aqua);
+  border-block-end: .12rem solid var(--fitician-aqua);
   transform: rotate(45deg) translateY(-.1rem);
-  transition: transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 .nutrition-entry-choice.is-active .nutrition-entry-choice__indicator { transform: rotate(225deg) translateY(-.1rem); }
 
 .nutrition-entry-panel {
   margin-block: 0 .85rem;
   padding: 1rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-lg);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2%), transparent), var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-soft);
-  animation: nutrition-entry-panel-in var(--fitsho-duration-medium) var(--fitsho-ease) both;
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-lg);
+  background: linear-gradient(180deg, rgb(255 255 255 / 2%), transparent), var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-soft);
+  animation: nutrition-entry-panel-in var(--fitician-duration-medium) var(--fitician-ease) both;
 }
 .nutrition-entry-panel > header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .65rem; }
 .nutrition-entry-panel > header h2 { margin: .1rem 0 0; font-size: 1.05rem; }
-.nutrition-entry-panel > header p:last-child { margin: .25rem 0 0; color: var(--fitsho-muted); font-size: .66rem; line-height: 1.6; }
+.nutrition-entry-panel > header p:last-child { margin: .25rem 0 0; color: var(--fitician-muted); font-size: .66rem; line-height: 1.6; }
 @keyframes nutrition-entry-panel-in {
   from { opacity: 0; transform: translateY(-.35rem); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.nutrition-daily-panel { display: grid; grid-template-columns: minmax(12rem, .65fr) minmax(18rem, 1fr); align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); }
+.nutrition-daily-panel { display: grid; grid-template-columns: minmax(12rem, .65fr) minmax(18rem, 1fr); align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
 .nutrition-daily-panel__calories { display: grid; }
-.nutrition-daily-panel__calories > span { color: var(--fitsho-muted); font-size: .7rem; }
+.nutrition-daily-panel__calories > span { color: var(--fitician-muted); font-size: .7rem; }
 .nutrition-daily-panel__calories > strong { font: 850 clamp(2rem, 6vw, 3rem)/1 "Sora Variable", sans-serif; }
-.nutrition-daily-panel__calories > small { margin-top: .3rem; color: var(--fitsho-muted); }
-.nutrition-daily-panel__calories b { color: var(--fitsho-ink); }
+.nutrition-daily-panel__calories > small { margin-top: .3rem; color: var(--fitician-muted); }
+.nutrition-daily-panel__calories b { color: var(--fitician-ink); }
 .nutrition-tracking-page > .nutrition-photo-panel { padding: 1rem; }
 .nutrition-photo-panel > header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .65rem; }
 .nutrition-photo-panel h2 { margin: .1rem 0 0; font-size: 1.05rem; }
-.nutrition-photo-estimate-badge { padding: .4rem .55rem; border-radius: 2rem; color: var(--fitsho-aqua); background: rgb(80 223 206 / 10%); font-size: .65rem; }
-.nutrition-photo-stage { position: relative; overflow: hidden; min-height: 14rem; display: grid; place-items: center; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); background: linear-gradient(145deg, rgb(80 223 206 / 7%), transparent), var(--fitsho-canvas); }
-.nutrition-photo-stage > div { display: grid; justify-items: center; gap: .4rem; color: var(--fitsho-muted); font-size: .75rem; }
-.nutrition-photo-stage > div svg { width: 2.25rem; height: 2.25rem; color: var(--fitsho-aqua); }
+.nutrition-photo-estimate-badge { padding: .4rem .55rem; border-radius: 2rem; color: var(--fitician-aqua); background: rgb(80 223 206 / 10%); font-size: .65rem; }
+.nutrition-photo-stage { position: relative; overflow: hidden; min-height: 14rem; display: grid; place-items: center; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: linear-gradient(145deg, rgb(80 223 206 / 7%), transparent), var(--fitician-canvas); }
+.nutrition-photo-stage > div { display: grid; justify-items: center; gap: .4rem; color: var(--fitician-muted); font-size: .75rem; }
+.nutrition-photo-stage > div svg { width: 2.25rem; height: 2.25rem; color: var(--fitician-aqua); }
 .nutrition-photo-stage img { width: 100%; height: 100%; min-height: 14rem; max-height: 24rem; object-fit: cover; }
-.nutrition-photo-stage__busy { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fitsho-ink); background: rgb(2 10 10 / 72%); font-size: .8rem; font-weight: 850; }
-.nutrition-photo-disclosure { margin: .65rem 0; color: var(--fitsho-muted); font-size: .68rem; line-height: 1.6; }
-.nutrition-photo-consent { display: flex; align-items: flex-start; gap: .45rem; color: var(--fitsho-muted); font-size: .7rem; }
-.nutrition-photo-picker { width: fit-content; min-height: 2.5rem; display: grid; place-items: center; margin-top: .65rem; padding: .5rem .8rem; border: 1px solid var(--fitsho-line); border-radius: .65rem; color: var(--fitsho-muted); font-size: .72rem; font-weight: 850; }
-.nutrition-photo-picker.is-enabled { border-color: var(--fitsho-line-strong); color: var(--fitsho-aqua); cursor: pointer; }
+.nutrition-photo-stage__busy { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fitician-ink); background: rgb(2 10 10 / 72%); font-size: .8rem; font-weight: 850; }
+.nutrition-photo-disclosure { margin: .65rem 0; color: var(--fitician-muted); font-size: .68rem; line-height: 1.6; }
+.nutrition-photo-consent { display: flex; align-items: flex-start; gap: .45rem; color: var(--fitician-muted); font-size: .7rem; }
+.nutrition-photo-picker { width: fit-content; min-height: 2.5rem; display: grid; place-items: center; margin-top: .65rem; padding: .5rem .8rem; border: 1px solid var(--fitician-line); border-radius: .65rem; color: var(--fitician-muted); font-size: .72rem; font-weight: 850; }
+.nutrition-photo-picker.is-enabled { border-color: var(--fitician-line-strong); color: var(--fitician-aqua); cursor: pointer; }
 .nutrition-photo-picker input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.nutrition-photo-history { display: grid; gap: .45rem; margin-top: .8rem; padding-top: .75rem; border-top: 1px solid var(--fitsho-line); }
+.nutrition-photo-history { display: grid; gap: .45rem; margin-top: .8rem; padding-top: .75rem; border-top: 1px solid var(--fitician-line); }
 .nutrition-photo-history__heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.nutrition-photo-history__heading h3 { margin: 0; color: var(--fitsho-ink); font-size: .72rem; }
-.nutrition-photo-history__heading span { color: var(--fitsho-muted); font-size: .62rem; }
+.nutrition-photo-history__heading h3 { margin: 0; color: var(--fitician-ink); font-size: .72rem; }
+.nutrition-photo-history__heading span { color: var(--fitician-muted); font-size: .62rem; }
 .nutrition-photo-history ul { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
-.nutrition-photo-history button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .55rem .65rem; border: 1px solid var(--fitsho-line); border-radius: .55rem; color: var(--fitsho-muted); background: var(--fitsho-canvas); font: inherit; font-size: .64rem; text-align: start; cursor: pointer; }
-.nutrition-photo-history button:hover, .nutrition-photo-history button:focus-visible, .nutrition-photo-history button[aria-current="true"] { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); outline: none; }
+.nutrition-photo-history button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .55rem .65rem; border: 1px solid var(--fitician-line); border-radius: .55rem; color: var(--fitician-muted); background: var(--fitician-canvas); font: inherit; font-size: .64rem; text-align: start; cursor: pointer; }
+.nutrition-photo-history button:hover, .nutrition-photo-history button:focus-visible, .nutrition-photo-history button[aria-current="true"] { border-color: var(--fitician-aqua); color: var(--fitician-aqua); outline: none; }
 .nutrition-photo-history button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nutrition-photo-status { display: grid; gap: .25rem; margin-top: .8rem; padding: .75rem; border: 1px solid var(--fitsho-line); border-radius: .65rem; background: var(--fitsho-surface-subtle); }
-.nutrition-photo-status strong { color: var(--fitsho-ink); font-size: .78rem; }
-.nutrition-photo-status p { margin: 0; color: var(--fitsho-muted); font-size: .68rem; line-height: 1.6; }
+.nutrition-photo-status { display: grid; gap: .25rem; margin-top: .8rem; padding: .75rem; border: 1px solid var(--fitician-line); border-radius: .65rem; background: var(--fitician-surface-subtle); }
+.nutrition-photo-status strong { color: var(--fitician-ink); font-size: .78rem; }
+.nutrition-photo-status p { margin: 0; color: var(--fitician-muted); font-size: .68rem; line-height: 1.6; }
 .nutrition-photo-status--pending { border-color: rgb(80 223 206 / 35%); }
 .nutrition-photo-status--error { border-color: rgb(255 111 97 / 42%); }
-.nutrition-photo-result { margin-top: .75rem; border-top: 1px solid var(--fitsho-line); }
-.nutrition-photo-result > p { margin: .7rem 0 .3rem; color: var(--fitsho-muted); font-size: .7rem; }
+.nutrition-photo-result { margin-top: .75rem; border-top: 1px solid var(--fitician-line); }
+.nutrition-photo-result > p { margin: .7rem 0 .3rem; color: var(--fitician-muted); font-size: .7rem; }
 .nutrition-photo-result ul { margin: 0 0 .65rem; padding: 0; list-style: none; }
 .nutrition-photo-result li { min-height: 3.2rem; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .55rem; padding: .55rem 0; }
-.nutrition-photo-result li + li { border-top: 1px solid var(--fitsho-line); }
+.nutrition-photo-result li + li { border-top: 1px solid var(--fitician-line); }
 .nutrition-photo-result li > span { display: grid; }
-.nutrition-photo-result li small { color: var(--fitsho-muted); font-size: .6rem; }
-.nutrition-photo-result li label { color: var(--fitsho-muted); font-size: .62rem; }
-.nutrition-photo-result input { width: 4.5rem; min-height: 2.2rem; padding: .35rem; border: 1px solid var(--fitsho-line); border-radius: .5rem; color: var(--fitsho-ink); background: var(--fitsho-canvas); }
-.nutrition-photo-result li button { border: 0; color: var(--fitsho-coral); background: transparent; font: inherit; font-size: .68rem; cursor: pointer; }
+.nutrition-photo-result li small { color: var(--fitician-muted); font-size: .6rem; }
+.nutrition-photo-result li label { color: var(--fitician-muted); font-size: .62rem; }
+.nutrition-photo-result input { width: 4.5rem; min-height: 2.2rem; padding: .35rem; border: 1px solid var(--fitician-line); border-radius: .5rem; color: var(--fitician-ink); background: var(--fitician-canvas); }
+.nutrition-photo-result li button { border: 0; color: var(--fitician-coral); background: transparent; font: inherit; font-size: .68rem; cursor: pointer; }
 .nutrition-manual-panel { padding: .25rem; }
 .nutrition-manual-panel .nutrition-off-plan-card { padding: .8rem; }
 .nutrition-manual-panel .nutrition-off-plan-card > header { padding: .4rem .1rem .35rem; }
@@ -865,15 +865,15 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   gap: .65rem;
   margin: 0 0 .1rem;
   padding: .75rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
-  background: var(--fitsho-surface-subtle);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  background: var(--fitician-surface-subtle);
 }
 .nutrition-recent-foods__heading { display: flex; align-items: center; gap: .55rem; }
 .nutrition-recent-foods__heading > span:last-child { min-width: 0; display: grid; gap: .12rem; }
-.nutrition-recent-foods__heading strong { color: var(--fitsho-ink); font-size: .75rem; font-weight: 850; }
-.nutrition-recent-foods__heading small { color: var(--fitsho-muted); font-size: .62rem; }
-.nutrition-recent-foods__icon { width: 2rem; height: 2rem; display: grid; flex: 0 0 auto; place-items: center; border-radius: .6rem; color: var(--fitsho-aqua); background: rgb(80 223 206 / 9%); }
+.nutrition-recent-foods__heading strong { color: var(--fitician-ink); font-size: .75rem; font-weight: 850; }
+.nutrition-recent-foods__heading small { color: var(--fitician-muted); font-size: .62rem; }
+.nutrition-recent-foods__icon { width: 2rem; height: 2rem; display: grid; flex: 0 0 auto; place-items: center; border-radius: .6rem; color: var(--fitician-aqua); background: rgb(80 223 206 / 9%); }
 .nutrition-recent-foods__icon svg { width: 1.05rem; height: 1.05rem; }
 .nutrition-recent-foods__list { display: flex; flex-wrap: wrap; gap: .4rem; }
 .nutrition-recent-foods__list button {
@@ -881,25 +881,25 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   max-width: 100%;
   padding: .5rem .7rem;
   overflow-wrap: anywhere;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: .65rem;
-  color: var(--fitsho-muted);
-  background: var(--fitsho-canvas);
+  color: var(--fitician-muted);
+  background: var(--fitician-canvas);
   font: inherit;
   font-size: .66rem;
   text-align: start;
   cursor: pointer;
-  transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), color var(--fitsho-duration-fast) var(--fitsho-ease), background var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease);
 }
 .nutrition-recent-foods__list button:hover:not(:disabled),
-.nutrition-recent-foods__list button:focus-visible { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); background: var(--fitsho-surface-interactive); outline: none; }
+.nutrition-recent-foods__list button:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: var(--fitician-surface-interactive); outline: none; }
 .nutrition-recent-foods__list button:disabled { opacity: .45; cursor: not-allowed; }
 
 .nutrition-tracking-error {
   margin-block: -.15rem .85rem !important;
   padding: .75rem 1rem;
-  border-inline-start: .2rem solid var(--fitsho-coral);
-  color: var(--fitsho-ink);
+  border-inline-start: .2rem solid var(--fitician-coral);
+  color: var(--fitician-ink);
   font-size: .75rem;
   line-height: 1.6;
 }
@@ -909,98 +909,98 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   gap: .75rem;
   margin-block: .75rem 0;
   padding: 1rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: linear-gradient(135deg, rgb(255 255 255 / 2%), transparent), var(--fitsho-surface);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: linear-gradient(135deg, rgb(255 255 255 / 2%), transparent), var(--fitician-surface);
 }
 .nutrition-checkin__heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .nutrition-checkin__heading > div { min-width: 0; }
-.nutrition-checkin__eyebrow { margin: 0; color: var(--fitsho-aqua); font-size: .62rem; font-weight: 850; }
-.nutrition-checkin__heading h2 { margin: .15rem 0 0; color: var(--fitsho-ink); font-size: .9rem; }
-.nutrition-checkin__hint { flex: 0 0 auto; padding: .25rem .5rem; border: 1px solid var(--fitsho-line); border-radius: 99rem; color: var(--fitsho-muted); font-size: .6rem; }
+.nutrition-checkin__eyebrow { margin: 0; color: var(--fitician-aqua); font-size: .62rem; font-weight: 850; }
+.nutrition-checkin__heading h2 { margin: .15rem 0 0; color: var(--fitician-ink); font-size: .9rem; }
+.nutrition-checkin__hint { flex: 0 0 auto; padding: .25rem .5rem; border: 1px solid var(--fitician-line); border-radius: 99rem; color: var(--fitician-muted); font-size: .6rem; }
 .nutrition-checkin__options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .45rem; }
 .nutrition-checkin__options button {
   min-width: 0;
   min-height: 2.75rem;
   padding: .45rem .55rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: .65rem;
-  color: var(--fitsho-muted);
-  background: var(--fitsho-surface-subtle);
+  color: var(--fitician-muted);
+  background: var(--fitician-surface-subtle);
   font: inherit;
   font-size: .68rem;
   cursor: pointer;
-  transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), color var(--fitsho-duration-fast) var(--fitsho-ease), background var(--fitsho-duration-fast) var(--fitsho-ease), transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 .nutrition-checkin__options button:hover:not(:disabled),
-.nutrition-checkin__options button:focus-visible { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); background: var(--fitsho-surface-interactive); outline: none; }
+.nutrition-checkin__options button:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: var(--fitician-surface-interactive); outline: none; }
 @media (hover: hover) and (pointer: fine) { .nutrition-checkin__options button:hover:not(:disabled) { transform: translateY(-1px); } }
-.nutrition-checkin__options button.is-active { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); background: rgb(80 223 206 / 7%); }
+.nutrition-checkin__options button.is-active { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: rgb(80 223 206 / 7%); }
 .nutrition-checkin__options button:disabled { opacity: .55; cursor: not-allowed; }
 
 .nutrition-off-plan-card { display: grid; gap: .55rem; padding: .75rem; }
 .nutrition-off-plan-card > header { padding: .05rem .1rem .25rem; }
 .nutrition-off-plan-card h2 { margin: 0; font-size: 1rem; }
-.nutrition-off-plan-card header p { margin: .25rem 0 0; color: var(--fitsho-muted); font-size: .66rem; line-height: 1.6; }
-.nutrition-off-plan-group { min-width: 0; margin: 0; padding: .65rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); }
-.nutrition-off-plan-group legend { padding-inline: .3rem; color: var(--fitsho-aqua); font-size: .67rem; font-weight: 850; }
-.nutrition-off-plan-group--estimate { border-color: var(--fitsho-line-strong); background: rgb(80 223 206 / 4%); }
+.nutrition-off-plan-card header p { margin: .25rem 0 0; color: var(--fitician-muted); font-size: .66rem; line-height: 1.6; }
+.nutrition-off-plan-group { min-width: 0; margin: 0; padding: .65rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
+.nutrition-off-plan-group legend { padding-inline: .3rem; color: var(--fitician-aqua); font-size: .67rem; font-weight: 850; }
+.nutrition-off-plan-group--estimate { border-color: var(--fitician-line-strong); background: rgb(80 223 206 / 4%); }
 .nutrition-off-plan-fields { display: grid; align-items: end; gap: .5rem; }
 .nutrition-off-plan-fields--catalogue { grid-template-columns: minmax(0, 1fr) minmax(8rem, .35fr) auto; }
 .nutrition-off-plan-fields--estimate { grid-template-columns: minmax(0, 1fr) auto; }
-.nutrition-off-plan-field { min-width: 0; display: grid; gap: .3rem; color: var(--fitsho-muted); font-size: .62rem; font-weight: 750; }
-.nutrition-off-plan-control { min-width: 0; min-height: 2.85rem; display: flex; align-items: center; overflow: hidden; border: 1px solid var(--fitsho-line); border-radius: .72rem; color: var(--fitsho-ink); background: var(--fitsho-canvas); transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), box-shadow var(--fitsho-duration-fast) var(--fitsho-ease); }
-.nutrition-off-plan-control:focus-within { border-color: var(--fitsho-aqua); box-shadow: 0 0 0 .18rem rgb(80 223 206 / 10%); }
-.nutrition-off-plan-control input, .nutrition-off-plan-control select { min-width: 0; width: 100%; min-height: 2.75rem; padding: .55rem .7rem; border: 0; outline: 0; color: var(--fitsho-ink); background: transparent; font: inherit; font-size: .76rem; }
+.nutrition-off-plan-field { min-width: 0; display: grid; gap: .3rem; color: var(--fitician-muted); font-size: .62rem; font-weight: 750; }
+.nutrition-off-plan-control { min-width: 0; min-height: 2.85rem; display: flex; align-items: center; overflow: hidden; border: 1px solid var(--fitician-line); border-radius: .72rem; color: var(--fitician-ink); background: var(--fitician-canvas); transition: border-color var(--fitician-duration-fast) var(--fitician-ease), box-shadow var(--fitician-duration-fast) var(--fitician-ease); }
+.nutrition-off-plan-control:focus-within { border-color: var(--fitician-aqua); box-shadow: 0 0 0 .18rem rgb(80 223 206 / 10%); }
+.nutrition-off-plan-control input, .nutrition-off-plan-control select { min-width: 0; width: 100%; min-height: 2.75rem; padding: .55rem .7rem; border: 0; outline: 0; color: var(--fitician-ink); background: transparent; font: inherit; font-size: .76rem; }
 .nutrition-off-plan-control select { padding-inline-end: 2rem; appearance: none; cursor: pointer; }
-.nutrition-off-plan-control select option { color: var(--fitsho-ink); background: var(--fitsho-canvas); }
+.nutrition-off-plan-control select option { color: var(--fitician-ink); background: var(--fitician-canvas); }
 .nutrition-off-plan-control input[type="number"] { appearance: textfield; }
 .nutrition-off-plan-control input[type="number"]::-webkit-inner-spin-button, .nutrition-off-plan-control input[type="number"]::-webkit-outer-spin-button { margin: 0; appearance: none; }
-.nutrition-off-plan-control b { flex: 0 0 auto; padding-inline-end: .65rem; color: var(--fitsho-muted); font: 700 .6rem "Vazirmatn Variable", sans-serif; }
+.nutrition-off-plan-control b { flex: 0 0 auto; padding-inline-end: .65rem; color: var(--fitician-muted); font: 700 .6rem "Vazirmatn Variable", sans-serif; }
 .nutrition-off-plan-control--select { position: relative; }
-.nutrition-off-plan-control--select i { position: absolute; inset-inline-end: .75rem; width: .45rem; aspect-ratio: 1; border-inline-end: .1rem solid var(--fitsho-aqua); border-block-end: .1rem solid var(--fitsho-aqua); pointer-events: none; transform: rotate(45deg) translateY(-.15rem); }
+.nutrition-off-plan-control--select i { position: absolute; inset-inline-end: .75rem; width: .45rem; aspect-ratio: 1; border-inline-end: .1rem solid var(--fitician-aqua); border-block-end: .1rem solid var(--fitician-aqua); pointer-events: none; transform: rotate(45deg) translateY(-.15rem); }
 .nutrition-catalogue-submit, .nutrition-off-plan-primary { min-height: 2.85rem; padding: .55rem .85rem; border-radius: .72rem; font: inherit; font-size: .7rem; font-weight: 850; cursor: pointer; }
-.nutrition-catalogue-submit { border: 1px solid var(--fitsho-line-strong); color: var(--fitsho-aqua); background: rgb(80 223 206 / 7%); }
-.nutrition-catalogue-submit:hover:not(:disabled), .nutrition-catalogue-submit:focus-visible { border-color: var(--fitsho-aqua); background: rgb(80 223 206 / 12%); outline: none; }
-.nutrition-off-plan-primary { min-width: 8.5rem; margin: 0; border: 0; color: var(--fitsho-canvas); background: var(--fitsho-aqua); box-shadow: 0 .65rem 1.5rem rgb(80 223 206 / 12%); }
-.nutrition-off-plan-primary:hover:not(:disabled), .nutrition-off-plan-primary:focus-visible { color: var(--fitsho-canvas); background: #79eee0; box-shadow: 0 .8rem 1.8rem rgb(80 223 206 / 18%); outline: none; }
+.nutrition-catalogue-submit { border: 1px solid var(--fitician-line-strong); color: var(--fitician-aqua); background: rgb(80 223 206 / 7%); }
+.nutrition-catalogue-submit:hover:not(:disabled), .nutrition-catalogue-submit:focus-visible { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 12%); outline: none; }
+.nutrition-off-plan-primary { min-width: 8.5rem; margin: 0; border: 0; color: var(--fitician-canvas); background: var(--fitician-aqua); box-shadow: 0 .65rem 1.5rem rgb(80 223 206 / 12%); }
+.nutrition-off-plan-primary:hover:not(:disabled), .nutrition-off-plan-primary:focus-visible { color: var(--fitician-canvas); background: #79eee0; box-shadow: 0 .8rem 1.8rem rgb(80 223 206 / 18%); outline: none; }
 @media (hover: hover) and (pointer: fine) { .nutrition-off-plan-primary:hover:not(:disabled) { transform: translateY(-.08rem); } }
 .nutrition-catalogue-submit:disabled, .nutrition-off-plan-primary:disabled { opacity: .45; cursor: not-allowed; }
-.nutrition-adherence-card { overflow: hidden; margin-block: .65rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-soft); }
+.nutrition-adherence-card { overflow: hidden; margin-block: .65rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-soft); }
 .nutrition-adherence-header { min-height: 3.65rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .55rem .75rem; }
 .nutrition-adherence-header h2 { margin: 0; font-size: inherit; }
-.nutrition-adherence-header button { width: 100%; min-height: 2.65rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .45rem .2rem; border: 0; color: var(--fitsho-ink); background: transparent; font: inherit; font-size: .85rem; font-weight: 850; text-align: start; cursor: pointer; }
-.nutrition-adherence-header button i { width: .55rem; aspect-ratio: 1; display: block; flex: 0 0 auto; border-inline-end: .12rem solid currentColor; border-block-end: .12rem solid currentColor; color: var(--fitsho-aqua); transform: rotate(45deg); transition: transform var(--fitsho-duration-fast) var(--fitsho-ease); }
+.nutrition-adherence-header button { width: 100%; min-height: 2.65rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .45rem .2rem; border: 0; color: var(--fitician-ink); background: transparent; font: inherit; font-size: .85rem; font-weight: 850; text-align: start; cursor: pointer; }
+.nutrition-adherence-header button i { width: .55rem; aspect-ratio: 1; display: block; flex: 0 0 auto; border-inline-end: .12rem solid currentColor; border-block-end: .12rem solid currentColor; color: var(--fitician-aqua); transform: rotate(45deg); transition: transform var(--fitician-duration-fast) var(--fitician-ease); }
 .nutrition-adherence-header button:focus-visible { border-radius: .55rem; outline: .15rem solid rgb(80 223 206 / 35%); outline-offset: .12rem; }
 .nutrition-adherence-card.is-open .nutrition-adherence-header button i { transform: rotate(225deg); }
-.nutrition-adherence-date { display: flex; align-items: center; gap: .45rem; color: var(--fitsho-muted); font-size: .62rem; white-space: nowrap; }
+.nutrition-adherence-date { display: flex; align-items: center; gap: .45rem; color: var(--fitician-muted); font-size: .62rem; white-space: nowrap; }
 .nutrition-adherence-date input { font-size: .68rem; }
-.nutrition-adherence-content { display: grid; grid-template-rows: 0fr; opacity: 0; border-top: 1px solid transparent; transition: grid-template-rows .3s var(--fitsho-ease), opacity .22s var(--fitsho-ease), border-color .22s var(--fitsho-ease); }
-.nutrition-adherence-card.is-open .nutrition-adherence-content { grid-template-rows: 1fr; opacity: 1; border-color: var(--fitsho-line); }
+.nutrition-adherence-content { display: grid; grid-template-rows: 0fr; opacity: 0; border-top: 1px solid transparent; transition: grid-template-rows .3s var(--fitician-ease), opacity .22s var(--fitician-ease), border-color .22s var(--fitician-ease); }
+.nutrition-adherence-card.is-open .nutrition-adherence-content { grid-template-rows: 1fr; opacity: 1; border-color: var(--fitician-line); }
 .nutrition-adherence-content__inner { min-height: 0; overflow: hidden; padding-inline: .75rem; }
 .nutrition-adherence-card.is-open .nutrition-adherence-content__inner { padding-block: .55rem .75rem; }
 .nutrition-adherence-card .nutrition-adherence-chart { margin: 0; }
-.nutrition-adherence-content p { margin: .65rem .1rem 0; color: var(--fitsho-muted); font-size: .68rem; line-height: 1.6; }
-.nutrition-adherence-history { margin-top: .6rem; border-top: 1px solid var(--fitsho-line); }
-.nutrition-adherence-history > summary { padding: .6rem .1rem 0; color: var(--fitsho-aqua); font-size: .67rem; font-weight: 800; cursor: pointer; }
-.nutrition-adherence-history article { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem .1rem; color: var(--fitsho-muted); font-size: .68rem; }
+.nutrition-adherence-content p { margin: .65rem .1rem 0; color: var(--fitician-muted); font-size: .68rem; line-height: 1.6; }
+.nutrition-adherence-history { margin-top: .6rem; border-top: 1px solid var(--fitician-line); }
+.nutrition-adherence-history > summary { padding: .6rem .1rem 0; color: var(--fitician-aqua); font-size: .67rem; font-weight: 800; cursor: pointer; }
+.nutrition-adherence-history article { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem .1rem; color: var(--fitician-muted); font-size: .68rem; }
 .nutrition-tracking-page > .nutrition-estimate-notes { margin-block: .65rem; padding: 1rem; }
 .nutrition-tracking-page > .nutrition-estimate-notes h2 { margin-top: 0; font-size: 1rem; }
-.nutrition-tracking-entries > label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .45rem; color: var(--fitsho-muted); font-size: .68rem; }
-.nutrition-tracking-entries > label select { min-height: 2.5rem; padding: .4rem 2rem .4rem .55rem; border: 1px solid var(--fitsho-line); border-radius: .6rem; color: var(--fitsho-ink); background: var(--fitsho-canvas); font: inherit; font-size: .68rem; }
+.nutrition-tracking-entries > label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .45rem; color: var(--fitician-muted); font-size: .68rem; }
+.nutrition-tracking-entries > label select { min-height: 2.5rem; padding: .4rem 2rem .4rem .55rem; border: 1px solid var(--fitician-line); border-radius: .6rem; color: var(--fitician-ink); background: var(--fitician-canvas); font: inherit; font-size: .68rem; }
 .nutrition-tracking-entries > ul { display: grid; gap: .45rem; margin: .75rem 0 0; padding: 0; list-style: none; }
-.nutrition-tracking-entries > ul > li { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .45rem; padding: .65rem 0; color: var(--fitsho-muted); font-size: .68rem; }
-.nutrition-tracking-entries > ul > li + li { border-top: 1px solid var(--fitsho-line); }
+.nutrition-tracking-entries > ul > li { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .45rem; padding: .65rem 0; color: var(--fitician-muted); font-size: .68rem; }
+.nutrition-tracking-entries > ul > li + li { border-top: 1px solid var(--fitician-line); }
 .nutrition-tracking-entries > ul > li > span { min-width: 0; overflow-wrap: anywhere; }
-.nutrition-tracking-entries > ul input { width: 4.5rem; min-height: 2.35rem; padding: .35rem; border: 1px solid var(--fitsho-line); border-radius: .55rem; color: var(--fitsho-ink); background: var(--fitsho-canvas); font: inherit; font-size: .68rem; }
-.nutrition-tracking-entries > ul button { min-height: 2.35rem; padding: .35rem .55rem; border: 1px solid var(--fitsho-line); border-radius: .55rem; color: var(--fitsho-muted); background: var(--fitsho-surface-subtle); font: inherit; font-size: .64rem; cursor: pointer; }
+.nutrition-tracking-entries > ul input { width: 4.5rem; min-height: 2.35rem; padding: .35rem; border: 1px solid var(--fitician-line); border-radius: .55rem; color: var(--fitician-ink); background: var(--fitician-canvas); font: inherit; font-size: .68rem; }
+.nutrition-tracking-entries > ul button { min-height: 2.35rem; padding: .35rem .55rem; border: 1px solid var(--fitician-line); border-radius: .55rem; color: var(--fitician-muted); background: var(--fitician-surface-subtle); font: inherit; font-size: .64rem; cursor: pointer; }
 .nutrition-tracking-entries > ul button:hover:not(:disabled),
-.nutrition-tracking-entries > ul button:focus-visible { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); outline: none; }
-.nutrition-tracking-entries > ul button:last-child { border-color: transparent; color: var(--fitsho-coral); background: transparent; }
+.nutrition-tracking-entries > ul button:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); outline: none; }
+.nutrition-tracking-entries > ul button:last-child { border-color: transparent; color: var(--fitician-coral); background: transparent; }
 .nutrition-tracking-entries > ul button:disabled { opacity: .45; cursor: not-allowed; }
 .nutrition-tracking-page .nutrition-adherence-chart article { grid-template-columns: 4rem 1fr 1fr; padding: .6rem; }
-.nutrition-tracking-page input[type="date"] { min-height: 2.5rem; padding: .4rem .55rem; border: 1px solid var(--fitsho-line); border-radius: .6rem; color: var(--fitsho-ink); background: var(--fitsho-canvas); color-scheme: dark; }
-.nutrition-confidence-card .text-button { width: fit-content; margin-top: .45rem; padding: .35rem 0; border: 0; color: var(--fitsho-aqua); background: transparent; font: inherit; font-size: .72rem; font-weight: 850; cursor: pointer; }
+.nutrition-tracking-page input[type="date"] { min-height: 2.5rem; padding: .4rem .55rem; border: 1px solid var(--fitician-line); border-radius: .6rem; color: var(--fitician-ink); background: var(--fitician-canvas); color-scheme: dark; }
+.nutrition-confidence-card .text-button { width: fit-content; margin-top: .45rem; padding: .35rem 0; border: 0; color: var(--fitician-aqua); background: transparent; font: inherit; font-size: .72rem; font-weight: 850; cursor: pointer; }
 
 @media (max-width: 600px) {
   .nutrition-estimate-hero { align-items: flex-start; flex-direction: column; padding-top: .75rem; }
@@ -1017,8 +1017,8 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   .nutrition-doctor-header-status { width: 100%; margin-inline-start: 3.3rem; }
   .nutrition-today-panel__top { min-height: 7.6rem; grid-template-columns: 1fr; gap: .85rem; padding: .8rem; }
   .nutrition-calorie-group { grid-template-columns: 1fr; gap: .85rem; }
-  .nutrition-calorie-item + .nutrition-calorie-item { border-inline-start: 0; border-top: 1px solid var(--fitsho-line); padding-inline-start: 0; padding-top: .85rem; }
-  .nutrition-today-panel .nutrition-confidence-card { grid-column: 1 / -1; min-width: 0; min-height: 2rem; display: flex; align-items: center; justify-content: space-between; padding: .45rem 0 0; border: 0; border-top: 1px solid var(--fitsho-line); }
+  .nutrition-calorie-item + .nutrition-calorie-item { border-inline-start: 0; border-top: 1px solid var(--fitician-line); padding-inline-start: 0; padding-top: .85rem; }
+  .nutrition-today-panel .nutrition-confidence-card { grid-column: 1 / -1; min-width: 0; min-height: 2rem; display: flex; align-items: center; justify-content: space-between; padding: .45rem 0 0; border: 0; border-top: 1px solid var(--fitician-line); }
   .nutrition-today-panel .fitsho-progress-ring { width: 4.4rem; }
   .nutrition-tracking-header { flex-direction: row; }
   .nutrition-tracking-page { --nutrition-content-width: min(100% - 1.5rem, 72rem); }
@@ -1045,27 +1045,27 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   .nutrition-entry-choice, .nutrition-entry-choice__indicator, .nutrition-entry-panel, .nutrition-adherence-header button i, .nutrition-adherence-content { animation: none; transition: none; }
 }
 
-.weekly-plan__free-meal { border-color: rgb(80 223 206 / 35%); background: linear-gradient(145deg, rgb(80 223 206 / 10%), transparent), var(--fitsho-surface); }
-.weekly-plan__free-meal > p { color: var(--fitsho-muted); line-height: 1.8; }
+.weekly-plan__free-meal { border-color: rgb(80 223 206 / 35%); background: linear-gradient(145deg, rgb(80 223 206 / 10%), transparent), var(--fitician-surface); }
+.weekly-plan__free-meal > p { color: var(--fitician-muted); line-height: 1.8; }
 .weekly-plan__free-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
-.weekly-plan__free-fields label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .35rem; padding: .65rem; border: 1px solid var(--fitsho-line); border-radius: .8rem; }
-.weekly-plan__free-fields i { width: 1.15rem; height: 1.15rem; border: 2px solid var(--fitsho-aqua); border-radius: 50%; }
-.weekly-plan__free-fields span { grid-column: 1 / -1; color: var(--fitsho-muted); font-size: .72rem; }
-.weekly-plan__free-fields input { min-width: 0; border: 0; background: transparent; color: var(--fitsho-ink); font: inherit; }
+.weekly-plan__free-fields label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .35rem; padding: .65rem; border: 1px solid var(--fitician-line); border-radius: .8rem; }
+.weekly-plan__free-fields i { width: 1.15rem; height: 1.15rem; border: 2px solid var(--fitician-aqua); border-radius: 50%; }
+.weekly-plan__free-fields span { grid-column: 1 / -1; color: var(--fitician-muted); font-size: .72rem; }
+.weekly-plan__free-fields input { min-width: 0; border: 0; background: transparent; color: var(--fitician-ink); font: inherit; }
 @media (max-width: 600px) { .weekly-plan__free-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Native weekly plan disclosures */
-.weekly-plan__section { overflow: hidden; margin-top: .8rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-soft); }
-.weekly-plan__section > summary { min-height: 3.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; color: var(--fitsho-ink); font-size: .9rem; font-weight: 850; list-style: none; cursor: pointer; }
+.weekly-plan__section { overflow: hidden; margin-top: .8rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-soft); }
+.weekly-plan__section > summary { min-height: 3.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; color: var(--fitician-ink); font-size: .9rem; font-weight: 850; list-style: none; cursor: pointer; }
 .weekly-plan__section > summary::-webkit-details-marker, .weekly-plan__meal > summary::-webkit-details-marker { display: none; }
 .weekly-plan__section > summary:focus-visible, .weekly-plan__meal > summary:focus-visible { outline: .16rem solid rgb(80 223 206 / 48%); outline-offset: -.2rem; }
-.weekly-plan__section[open] > summary { border-bottom: 1px solid var(--fitsho-line); background: rgb(80 223 206 / 4%); }
-.weekly-plan__section-chevron, .weekly-plan__meal-chevron { width: .58rem; height: .58rem; display: block; flex: 0 0 auto; border-inline-end: .13rem solid var(--fitsho-aqua); border-block-end: .13rem solid var(--fitsho-aqua); transform: rotate(45deg) translateY(-.12rem); transition: transform var(--fitsho-duration-fast) var(--fitsho-ease); }
+.weekly-plan__section[open] > summary { border-bottom: 1px solid var(--fitician-line); background: rgb(80 223 206 / 4%); }
+.weekly-plan__section-chevron, .weekly-plan__meal-chevron { width: .58rem; height: .58rem; display: block; flex: 0 0 auto; border-inline-end: .13rem solid var(--fitician-aqua); border-block-end: .13rem solid var(--fitician-aqua); transform: rotate(45deg) translateY(-.12rem); transition: transform var(--fitician-duration-fast) var(--fitician-ease); }
 .weekly-plan__section[open] > summary .weekly-plan__section-chevron, .weekly-plan__meal[open] > .weekly-plan__meal-summary .weekly-plan__meal-chevron { transform: rotate(225deg) translateY(-.12rem); }
 .weekly-plan__section-content { padding: 1rem; }
 .weekly-plan__section-content > .weekly-plan__ledger { margin: 0 0 1rem; }
 .weekly-plan__section-content > .weekly-plan__days { margin-bottom: .7rem; }
-.weekly-plan__nutrients, .weekly-plan__shopping { padding: 0; background: var(--fitsho-surface); }
+.weekly-plan__nutrients, .weekly-plan__shopping { padding: 0; background: var(--fitician-surface); }
 .weekly-plan__nutrients .weekly-plan__section-content, .weekly-plan__shopping .weekly-plan__section-content { background: rgb(9 54 51 / 22%); }
 
 .weekly-plan__meal { min-width: 0; }
@@ -1075,7 +1075,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__meal-heading > div { overflow: hidden; }
 .weekly-plan__meal-heading span { color: rgb(234 244 241 / 58%); font-size: .72rem; }
 .weekly-plan__meal-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.weekly-plan__meal-summary-metrics { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: .55rem; flex: 0 1 auto; color: var(--fitsho-muted); font-size: .72rem; }
+.weekly-plan__meal-summary-metrics { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: .55rem; flex: 0 1 auto; color: var(--fitician-muted); font-size: .72rem; }
 .weekly-plan__meal-summary-metrics > span:not(.weekly-plan__meal-chevron) { white-space: nowrap; }
 .weekly-plan__meal-content { min-width: 0; }
 .weekly-plan__meal-content > ul { margin: 0; padding: .5rem 1.1rem 1rem; list-style: none; }
@@ -1103,7 +1103,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding-bottom: 5rem;
   background:
     radial-gradient(circle at 88% 0%, rgb(80 223 206 / 10%), transparent 25rem),
-    var(--fitsho-canvas);
+    var(--fitician-canvas);
 }
 
 .nutrition-labs-page::before {
@@ -1122,89 +1122,89 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-labs-hero__topline, .nutrition-labs-hero__content, .nutrition-labs-section-heading, .nutrition-labs-item__top, .nutrition-labs-item__actions { display: flex; align-items: center; }
 .nutrition-labs-hero__topline { justify-content: space-between; gap: 1rem; }
 .nutrition-labs-back, .nutrition-labs-privacy, .nutrition-labs-eyebrow, .nutrition-labs-status, .nutrition-labs-item__open, .nutrition-labs-item__delete, .nutrition-labs-field__label, .nutrition-labs-upload__button, .nutrition-labs-item__meta dt { display: inline-flex; align-items: center; gap: .45rem; }
-.nutrition-labs-back { min-height: 2.5rem; padding: .55rem .75rem; border: 1px solid var(--fitsho-line); border-radius: .8rem; color: var(--fitsho-mist); background: rgb(255 255 255 / 4%); font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer; }
-.nutrition-labs-back:hover { border-color: var(--fitsho-aqua); color: var(--fitsho-aqua); background: rgb(80 223 206 / 7%); }
+.nutrition-labs-back { min-height: 2.5rem; padding: .55rem .75rem; border: 1px solid var(--fitician-line); border-radius: .8rem; color: var(--fitician-mist); background: rgb(255 255 255 / 4%); font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer; }
+.nutrition-labs-back:hover { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: rgb(80 223 206 / 7%); }
 .nutrition-labs-privacy { padding: .45rem .65rem; border: 1px solid rgb(128 255 190 / 20%); border-radius: 999px; color: #a1edc5; background: rgb(64 220 139 / 8%); font-size: .66rem; font-weight: 750; }
 .nutrition-labs-hero__content { justify-content: space-between; gap: 1.2rem; align-items: flex-end; margin-top: 2.2rem; }
 .nutrition-labs-hero__content > div:first-child { min-width: 0; }
-.nutrition-labs-page .nutrition-eyebrow { display: inline-flex; align-items: center; gap: .4rem; margin: 0; color: var(--fitsho-aqua); font-size: .68rem; font-weight: 850; letter-spacing: .05em; }
-.nutrition-labs-hero h1 { display: flex; align-items: center; gap: .7rem; max-width: none; margin: .55rem 0 .75rem; color: var(--fitsho-ink); font-size: clamp(2rem, 7vw, 4.1rem); }
-.nutrition-labs-title-icon { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 30%); border-radius: 1rem; color: var(--fitsho-aqua); background: linear-gradient(145deg, rgb(80 223 206 / 17%), rgb(80 223 206 / 4%)); box-shadow: 0 .8rem 2rem rgb(80 223 206 / 8%); }
-.nutrition-labs-hero__content p:last-child { max-width: 43rem; margin: 0; color: var(--fitsho-muted); font-size: .86rem; line-height: 1.9; }
-.nutrition-labs-hero__count { min-width: 5.6rem; display: grid; gap: .1rem; padding: .85rem .95rem; border-inline-start: 1px solid var(--fitsho-line); }
-.nutrition-labs-hero__count strong { color: var(--fitsho-aqua); font: 800 1.65rem/1 "Sora Variable", sans-serif; }
-.nutrition-labs-hero__count span { color: var(--fitsho-muted); font-size: .65rem; white-space: nowrap; }
+.nutrition-labs-page .nutrition-eyebrow { display: inline-flex; align-items: center; gap: .4rem; margin: 0; color: var(--fitician-aqua); font-size: .68rem; font-weight: 850; letter-spacing: .05em; }
+.nutrition-labs-hero h1 { display: flex; align-items: center; gap: .7rem; max-width: none; margin: .55rem 0 .75rem; color: var(--fitician-ink); font-size: clamp(2rem, 7vw, 4.1rem); }
+.nutrition-labs-title-icon { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 30%); border-radius: 1rem; color: var(--fitician-aqua); background: linear-gradient(145deg, rgb(80 223 206 / 17%), rgb(80 223 206 / 4%)); box-shadow: 0 .8rem 2rem rgb(80 223 206 / 8%); }
+.nutrition-labs-hero__content p:last-child { max-width: 43rem; margin: 0; color: var(--fitician-muted); font-size: .86rem; line-height: 1.9; }
+.nutrition-labs-hero__count { min-width: 5.6rem; display: grid; gap: .1rem; padding: .85rem .95rem; border-inline-start: 1px solid var(--fitician-line); }
+.nutrition-labs-hero__count strong { color: var(--fitician-aqua); font: 800 1.65rem/1 "Sora Variable", sans-serif; }
+.nutrition-labs-hero__count span { color: var(--fitician-muted); font-size: .65rem; white-space: nowrap; }
 .nutrition-labs-state, .nutrition-labs-alert { margin-block: 0 1rem; padding: .9rem 1rem; border-radius: .9rem; font-size: .78rem; }
-.nutrition-labs-state { border: 1px solid var(--fitsho-line); color: var(--fitsho-muted); background: var(--fitsho-surface); }
+.nutrition-labs-state { border: 1px solid var(--fitician-line); color: var(--fitician-muted); background: var(--fitician-surface); }
 .nutrition-labs-alert { border: 1px solid rgb(255 215 152 / 30%); color: #ffd798; background: rgb(255 177 70 / 8%); }
 .nutrition-labs-layout { display: grid; gap: .85rem; }
-.nutrition-labs-card, .nutrition-labs-empty { border: 1px solid var(--fitsho-line); border-radius: 1.35rem; background: linear-gradient(145deg, rgb(9 54 51 / 58%), rgb(3 28 27 / 86%)); box-shadow: var(--fitsho-shadow-soft); }
+.nutrition-labs-card, .nutrition-labs-empty { border: 1px solid var(--fitician-line); border-radius: 1.35rem; background: linear-gradient(145deg, rgb(9 54 51 / 58%), rgb(3 28 27 / 86%)); box-shadow: var(--fitician-shadow-soft); }
 .nutrition-labs-card { min-width: 0; padding: 1.15rem; }
 .nutrition-labs-card__header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.15rem; }
-.nutrition-labs-card__header h2 { margin: .2rem 0 0; color: var(--fitsho-ink); font-size: 1.08rem; }
-.nutrition-labs-card__icon, .nutrition-labs-empty__icon, .nutrition-labs-item__file-icon { display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 32%); color: var(--fitsho-aqua); background: rgb(80 223 206 / 9%); }
+.nutrition-labs-card__header h2 { margin: .2rem 0 0; color: var(--fitician-ink); font-size: 1.08rem; }
+.nutrition-labs-card__icon, .nutrition-labs-empty__icon, .nutrition-labs-item__file-icon { display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgb(80 223 206 / 32%); color: var(--fitician-aqua); background: rgb(80 223 206 / 9%); }
 .nutrition-labs-card__icon { width: 2.55rem; height: 2.55rem; border-radius: .85rem; }
 .nutrition-labs-card__icon--soft { border-color: rgb(255 215 152 / 28%); color: #ffd798; background: rgb(255 177 70 / 8%); }
 .nutrition-labs-form__fields { display: grid; gap: .85rem; }
 .nutrition-labs-field, .nutrition-labs-upload { min-width: 0; display: grid; gap: .45rem; }
-.nutrition-labs-field__label { color: var(--fitsho-mist); font-size: .73rem; font-weight: 800; }
-.nutrition-labs-field__icon { display: inline-grid; place-items: center; color: var(--fitsho-aqua); }
-.nutrition-labs-field input, .nutrition-labs-field textarea { width: 100%; min-width: 0; border: 1px solid var(--fitsho-line); border-radius: .82rem; color: var(--fitsho-ink); background: rgb(3 28 27 / 72%); font: inherit; font-size: .78rem; transition: border-color var(--fitsho-duration-fast) ease, box-shadow var(--fitsho-duration-fast) ease, background var(--fitsho-duration-fast) ease; }
+.nutrition-labs-field__label { color: var(--fitician-mist); font-size: .73rem; font-weight: 800; }
+.nutrition-labs-field__icon { display: inline-grid; place-items: center; color: var(--fitician-aqua); }
+.nutrition-labs-field input, .nutrition-labs-field textarea { width: 100%; min-width: 0; border: 1px solid var(--fitician-line); border-radius: .82rem; color: var(--fitician-ink); background: rgb(3 28 27 / 72%); font: inherit; font-size: .78rem; transition: border-color var(--fitician-duration-fast) ease, box-shadow var(--fitician-duration-fast) ease, background var(--fitician-duration-fast) ease; }
 .nutrition-labs-field input { min-height: 2.85rem; padding: .65rem .8rem; }
 .nutrition-labs-field textarea { min-height: 6rem; padding: .75rem .8rem; resize: vertical; }
-.nutrition-labs-field input:hover, .nutrition-labs-field textarea:hover { border-color: var(--fitsho-line-strong); background: var(--fitsho-surface-interactive); }
-.nutrition-labs-field input:focus, .nutrition-labs-field textarea:focus { border-color: var(--fitsho-aqua); outline: 0; box-shadow: 0 0 0 .2rem rgb(80 223 206 / 12%); }
+.nutrition-labs-field input:hover, .nutrition-labs-field textarea:hover { border-color: var(--fitician-line-strong); background: var(--fitician-surface-interactive); }
+.nutrition-labs-field input:focus, .nutrition-labs-field textarea:focus { border-color: var(--fitician-aqua); outline: 0; box-shadow: 0 0 0 .2rem rgb(80 223 206 / 12%); }
 .nutrition-labs-field input[type="date"] { color-scheme: dark; }
 .nutrition-labs-upload__row { min-width: 0; display: grid; gap: .55rem; }
-.nutrition-labs-upload__button { position: relative; justify-content: center; min-height: 2.85rem; padding: .65rem .9rem; border: 1px solid var(--fitsho-aqua); border-radius: .82rem; color: var(--fitsho-canvas); background: var(--fitsho-aqua); font-size: .76rem; font-weight: 850; cursor: pointer; transition: transform var(--fitsho-duration-fast) ease, background var(--fitsho-duration-fast) ease, box-shadow var(--fitsho-duration-fast) ease; }
+.nutrition-labs-upload__button { position: relative; justify-content: center; min-height: 2.85rem; padding: .65rem .9rem; border: 1px solid var(--fitician-aqua); border-radius: .82rem; color: var(--fitician-canvas); background: var(--fitician-aqua); font-size: .76rem; font-weight: 850; cursor: pointer; transition: transform var(--fitician-duration-fast) ease, background var(--fitician-duration-fast) ease, box-shadow var(--fitician-duration-fast) ease; }
 .nutrition-labs-upload__button:hover { background: #79eee0; box-shadow: 0 .65rem 1.5rem rgb(80 223 206 / 14%); }
 @media (hover: hover) and (pointer: fine) { .nutrition-labs-upload__button:hover { transform: translateY(-1px); } }
 .nutrition-labs-upload__button:has(input:focus-visible) { outline: 3px solid var(--saffron); outline-offset: 3px; }
 .nutrition-labs-upload__button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
-.nutrition-labs-upload__filename { min-width: 0; display: flex; align-items: center; gap: .55rem; padding: .55rem .7rem; border: 1px dashed var(--fitsho-line); border-radius: .75rem; color: var(--fitsho-muted); background: rgb(255 255 255 / 2%); font-size: .72rem; }
-.nutrition-labs-upload__filename.has-file { border-style: solid; border-color: rgb(80 223 206 / 28%); color: var(--fitsho-ink); background: rgb(80 223 206 / 6%); }
-.nutrition-labs-upload__filename svg { flex: 0 0 auto; color: var(--fitsho-aqua); }
+.nutrition-labs-upload__filename { min-width: 0; display: flex; align-items: center; gap: .55rem; padding: .55rem .7rem; border: 1px dashed var(--fitician-line); border-radius: .75rem; color: var(--fitician-muted); background: rgb(255 255 255 / 2%); font-size: .72rem; }
+.nutrition-labs-upload__filename.has-file { border-style: solid; border-color: rgb(80 223 206 / 28%); color: var(--fitician-ink); background: rgb(80 223 206 / 6%); }
+.nutrition-labs-upload__filename svg { flex: 0 0 auto; color: var(--fitician-aqua); }
 .nutrition-labs-upload__filename span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nutrition-labs-upload > small { color: var(--fitsho-muted); font-size: .64rem; line-height: 1.6; }
-.nutrition-labs-requests__empty, .nutrition-labs-requests__list { margin: 0; color: var(--fitsho-muted); font-size: .75rem; line-height: 1.8; }
+.nutrition-labs-upload > small { color: var(--fitician-muted); font-size: .64rem; line-height: 1.6; }
+.nutrition-labs-requests__empty, .nutrition-labs-requests__list { margin: 0; color: var(--fitician-muted); font-size: .75rem; line-height: 1.8; }
 .nutrition-labs-requests__list { display: grid; gap: .55rem; }
-.nutrition-labs-requests__list article { padding: .7rem .75rem; border: 1px solid var(--fitsho-line); border-radius: .8rem; background: rgb(255 255 255 / 3%); }
+.nutrition-labs-requests__list article { padding: .7rem .75rem; border: 1px solid var(--fitician-line); border-radius: .8rem; background: rgb(255 255 255 / 3%); }
 .nutrition-labs-requests__list article > div { display: flex; justify-content: space-between; gap: .6rem; align-items: center; }
-.nutrition-labs-requests__list strong { color: var(--fitsho-ink); font-size: .76rem; }
+.nutrition-labs-requests__list strong { color: var(--fitician-ink); font-size: .76rem; }
 .nutrition-labs-requests__list span { flex: 0 0 auto; color: #ffd798; font-size: .64rem; font-weight: 800; }
 .nutrition-labs-requests__list p { margin: .25rem 0 0; }
 .nutrition-labs-empty { display: grid; gap: 1rem; align-items: center; margin-top: .85rem; padding: 1.35rem; border-color: rgb(80 223 206 / 22%); }
 .nutrition-labs-empty__icon { width: 3.8rem; height: 3.8rem; border-radius: 1.1rem; }
-.nutrition-labs-empty h2 { margin: .25rem 0 .4rem; color: var(--fitsho-ink); font-size: 1.1rem; }
-.nutrition-labs-empty p:last-child { max-width: 40rem; margin: 0; color: var(--fitsho-muted); font-size: .78rem; line-height: 1.9; }
+.nutrition-labs-empty h2 { margin: .25rem 0 .4rem; color: var(--fitician-ink); font-size: 1.1rem; }
+.nutrition-labs-empty p:last-child { max-width: 40rem; margin: 0; color: var(--fitician-muted); font-size: .78rem; line-height: 1.9; }
 .nutrition-labs-history { margin-top: 2rem; }
 .nutrition-labs-section-heading { justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
-.nutrition-labs-section-heading h2 { margin: .25rem 0 0; color: var(--fitsho-ink); font-size: 1.2rem; }
-.nutrition-labs-section-heading > span { color: var(--fitsho-muted); font-size: .7rem; white-space: nowrap; }
+.nutrition-labs-section-heading h2 { margin: .25rem 0 0; color: var(--fitician-ink); font-size: 1.2rem; }
+.nutrition-labs-section-heading > span { color: var(--fitician-muted); font-size: .7rem; white-space: nowrap; }
 .nutrition-labs-list { display: grid; gap: .75rem; }
-.nutrition-labs-item { min-width: 0; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: 1.15rem; background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-soft); transition: border-color var(--fitsho-duration-fast) ease, background var(--fitsho-duration-fast) ease, transform var(--fitsho-duration-fast) ease; }
-.nutrition-labs-item:hover { border-color: var(--fitsho-line-strong); background: var(--fitsho-surface-interactive); }
+.nutrition-labs-item { min-width: 0; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: 1.15rem; background: var(--fitician-surface); box-shadow: var(--fitician-shadow-soft); transition: border-color var(--fitician-duration-fast) ease, background var(--fitician-duration-fast) ease, transform var(--fitician-duration-fast) ease; }
+.nutrition-labs-item:hover { border-color: var(--fitician-line-strong); background: var(--fitician-surface-interactive); }
 @media (hover: hover) and (pointer: fine) { .nutrition-labs-item:hover { transform: translateY(-1px); } }
 .nutrition-labs-item__top { min-width: 0; align-items: flex-start; gap: .7rem; }
 .nutrition-labs-item__file-icon { width: 2.65rem; height: 2.65rem; border-radius: .8rem; }
 .nutrition-labs-item__title { min-width: 0; flex: 1 1 auto; }
-.nutrition-labs-item__title h3 { min-width: 0; overflow: hidden; margin: .1rem 0 .2rem; color: var(--fitsho-ink); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
-.nutrition-labs-item__title span { color: var(--fitsho-muted); font-size: .64rem; }
+.nutrition-labs-item__title h3 { min-width: 0; overflow: hidden; margin: .1rem 0 .2rem; color: var(--fitician-ink); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.nutrition-labs-item__title span { color: var(--fitician-muted); font-size: .64rem; }
 .nutrition-labs-status { flex: 0 0 auto; padding: .35rem .5rem; border: 1px solid rgb(128 255 190 / 23%); border-radius: 999px; color: #9bf0be; background: rgb(64 220 139 / 8%); font-size: .61rem; font-weight: 800; white-space: nowrap; }
 .nutrition-labs-status--review { border-color: rgb(255 215 152 / 25%); color: #ffd798; background: rgb(255 177 70 / 8%); }
 .nutrition-labs-status--attention { border-color: rgb(255 134 120 / 28%); color: #ffb1a6; background: rgb(255 102 82 / 8%); }
-.nutrition-labs-item__meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 1rem 0 0; padding-top: .85rem; border-top: 1px solid var(--fitsho-line); }
+.nutrition-labs-item__meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 1rem 0 0; padding-top: .85rem; border-top: 1px solid var(--fitician-line); }
 .nutrition-labs-item__meta > div { min-width: 0; }
-.nutrition-labs-item__meta dt { color: var(--fitsho-muted); font-size: .61rem; }
-.nutrition-labs-item__meta dt svg { flex: 0 0 auto; color: var(--fitsho-aqua); }
-.nutrition-labs-item__meta dd { min-width: 0; overflow: hidden; margin: .22rem 0 0; color: var(--fitsho-ink); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
-.nutrition-labs-item__note { display: flex; gap: .45rem; margin-top: .8rem; padding: .6rem .7rem; border-radius: .65rem; color: var(--fitsho-muted); background: rgb(255 255 255 / 3%); font-size: .7rem; line-height: 1.7; }
+.nutrition-labs-item__meta dt { color: var(--fitician-muted); font-size: .61rem; }
+.nutrition-labs-item__meta dt svg { flex: 0 0 auto; color: var(--fitician-aqua); }
+.nutrition-labs-item__meta dd { min-width: 0; overflow: hidden; margin: .22rem 0 0; color: var(--fitician-ink); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.nutrition-labs-item__note { display: flex; gap: .45rem; margin-top: .8rem; padding: .6rem .7rem; border-radius: .65rem; color: var(--fitician-muted); background: rgb(255 255 255 / 3%); font-size: .7rem; line-height: 1.7; }
 .nutrition-labs-item__note svg { flex: 0 0 auto; margin-top: .15rem; color: #ffd798; }
 .nutrition-labs-item__note p { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .nutrition-labs-item__actions { justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
 .nutrition-labs-item__open, .nutrition-labs-item__delete { min-height: 2.45rem; padding: .5rem .75rem; border-radius: .7rem; font: inherit; font-size: .68rem; font-weight: 800; cursor: pointer; }
-.nutrition-labs-item__open { border: 1px solid rgb(80 223 206 / 28%); color: var(--fitsho-aqua); background: rgb(80 223 206 / 6%); }
-.nutrition-labs-item__open:hover { border-color: var(--fitsho-aqua); background: rgb(80 223 206 / 12%); }
+.nutrition-labs-item__open { border: 1px solid rgb(80 223 206 / 28%); color: var(--fitician-aqua); background: rgb(80 223 206 / 6%); }
+.nutrition-labs-item__open:hover { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 12%); }
 .nutrition-labs-item__delete { border: 1px solid rgb(255 134 120 / 25%); color: #ffb1a6; background: rgb(255 102 82 / 5%); }
 .nutrition-labs-item__delete:hover:not(:disabled) { border-color: #ff8e80; background: rgb(255 102 82 / 11%); }
 .nutrition-labs-item__delete:disabled { cursor: wait; opacity: .45; }
@@ -1243,9 +1243,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-photo-summary {
   margin-top: .75rem;
   padding: .85rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-md);
-  background: linear-gradient(140deg, rgb(80 223 206 / 8%), rgb(80 223 206 / 2%)), var(--fitsho-surface);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-md);
+  background: linear-gradient(140deg, rgb(80 223 206 / 8%), rgb(80 223 206 / 2%)), var(--fitician-surface);
 }
 
 .nutrition-photo-calories {
@@ -1253,17 +1253,17 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   flex-direction: column;
   gap: .2rem;
   padding-bottom: .65rem;
-  border-bottom: 1px solid var(--fitsho-line);
+  border-bottom: 1px solid var(--fitician-line);
   margin-bottom: .65rem;
 }
 
 .nutrition-photo-calories__label {
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .68rem;
 }
 
 .nutrition-photo-calories__value {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font: 850 clamp(1.75rem, 5vw, 2.5rem)/1.05 "Sora Variable", sans-serif;
 }
 
@@ -1272,7 +1272,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .2rem .5rem;
   border-radius: 99rem;
   background: rgb(80 223 206 / 12%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: .62rem;
   font-weight: 850;
   align-self: flex-start;
@@ -1294,13 +1294,13 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .nutrition-photo-macro > span {
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .62rem;
 }
 
 .nutrition-photo-macro > strong {
   font: 750 .95rem "Sora Variable", sans-serif;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .nutrition-photo-partial-note {
@@ -1317,9 +1317,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 /* ── Detection details ──────────────────────────────────────────────────── */
 .nutrition-photo-details {
   margin-top: .65rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
-  background: var(--fitsho-surface-subtle);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  background: var(--fitician-surface-subtle);
   overflow: hidden;
 }
 
@@ -1330,7 +1330,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   justify-content: space-between;
   gap: .75rem;
   padding: .6rem .85rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: .78rem;
   font-weight: 850;
   list-style: none;
@@ -1345,10 +1345,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   aspect-ratio: 1;
   display: block;
   flex: 0 0 auto;
-  border-inline-end: .12rem solid var(--fitsho-aqua);
-  border-block-end: .12rem solid var(--fitsho-aqua);
+  border-inline-end: .12rem solid var(--fitician-aqua);
+  border-block-end: .12rem solid var(--fitician-aqua);
   transform: rotate(45deg) translateY(-.15rem);
-  transition: transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .nutrition-photo-details[open] .nutrition-photo-details__chevron {
@@ -1356,7 +1356,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .nutrition-photo-details[open] .nutrition-photo-details__summary {
-  border-bottom: 1px solid var(--fitsho-line);
+  border-bottom: 1px solid var(--fitician-line);
 }
 
 .nutrition-photo-details__list {
@@ -1368,7 +1368,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 /* ── Detected item rows ─────────────────────────────────────────────────── */
 .nutrition-photo-item {
   padding: .65rem .85rem;
-  border-bottom: 1px solid var(--fitsho-line);
+  border-bottom: 1px solid var(--fitician-line);
 }
 
 .nutrition-photo-item:last-child { border-bottom: 0; }
@@ -1398,7 +1398,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-photo-item__status--ok {
   background: rgb(80 223 206 / 12%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .nutrition-photo-item__status--review {
@@ -1417,7 +1417,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   display: flex;
   align-items: center;
   gap: .4rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .68rem;
 }
 
@@ -1425,10 +1425,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   width: 5.5rem;
   min-height: 2.2rem;
   padding: .35rem .5rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: .5rem;
-  color: var(--fitsho-ink);
-  background: var(--fitsho-canvas);
+  color: var(--fitician-ink);
+  background: var(--fitician-canvas);
   font: inherit;
   font-size: .78rem;
   text-align: center;
@@ -1447,7 +1447,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-photo-item__review-label {
   display: grid;
   gap: .25rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .65rem;
   font-weight: 750;
 }
@@ -1455,10 +1455,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-photo-item__review-label input {
   min-height: 2.55rem;
   padding: .45rem .6rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: .6rem;
-  color: var(--fitsho-ink);
-  background: var(--fitsho-canvas);
+  color: var(--fitician-ink);
+  background: var(--fitician-canvas);
   font: inherit;
   font-size: .76rem;
   appearance: textfield;
@@ -1469,7 +1469,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-photo-item__ai-hint {
   margin: 0;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .65rem;
   font-style: italic;
 }
@@ -1484,15 +1484,15 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-photo-item__apply {
   min-height: 2.35rem;
   padding: .4rem .75rem;
-  border: 1px solid var(--fitsho-line-strong);
+  border: 1px solid var(--fitician-line-strong);
   border-radius: .6rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 7%);
   font: inherit;
   font-size: .7rem;
   font-weight: 850;
   cursor: pointer;
-  transition: background var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: background var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .nutrition-photo-item__apply:hover:not(:disabled),
@@ -1508,14 +1508,14 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .4rem .65rem;
   border: 0;
   border-radius: .6rem;
-  color: var(--fitsho-coral);
+  color: var(--fitician-coral);
   background: transparent;
   font: inherit;
   font-size: .7rem;
   cursor: pointer;
 }
 
-.nutrition-photo-item__remove:focus-visible { outline: .15rem solid var(--fitsho-coral); }
+.nutrition-photo-item__remove:focus-visible { outline: .15rem solid var(--fitician-coral); }
 
 /* ── Confirm CTA ────────────────────────────────────────────────────────── */
 .nutrition-photo-confirm {
@@ -1530,7 +1530,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-photo-confirm__hint {
   margin: 0;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .68rem;
   line-height: 1.6;
   text-align: center;
@@ -1557,10 +1557,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   width: min(100% - 2rem, 76rem);
   margin: 1.5rem auto 5rem;
   padding: 1.25rem 1.5rem;
-  border: 1px solid var(--fitsho-line, rgb(234 244 241 / 12%));
-  border-radius: var(--fitsho-radius-card, 1.2rem);
-  background: var(--fitsho-surface, rgb(3 28 27 / 60%));
-  box-shadow: var(--fitsho-shadow-soft, 0 4px 20px rgb(0 0 0 / 15%));
+  border: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  border-radius: var(--fitician-radius-card, 1.2rem);
+  background: var(--fitician-surface, rgb(3 28 27 / 60%));
+  box-shadow: var(--fitician-shadow-soft, 0 4px 20px rgb(0 0 0 / 15%));
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -1590,14 +1590,14 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   height: 2.75rem;
   border-radius: 50%;
   background: rgb(80 223 206 / 10%);
-  color: var(--fitsho-aqua, #50dfce);
+  color: var(--fitician-aqua, #50dfce);
   border: 1px solid rgb(80 223 206 / 20%);
 }
 
 .nutrition-plan-regenerate__icon {
   width: 1.35rem;
   height: 1.35rem;
-  color: var(--fitsho-aqua, #50dfce);
+  color: var(--fitician-aqua, #50dfce);
 }
 
 .nutrition-plan-regenerate__text {
@@ -1611,7 +1611,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: 1.05rem;
   font-weight: 750;
-  color: var(--fitsho-mist, #eaf4f1);
+  color: var(--fitician-mist, #eaf4f1);
 }
 
 .nutrition-plan-regenerate__text p {
@@ -1628,24 +1628,24 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   gap: .55rem;
   min-height: 2.75rem;
   padding: .65rem 1.25rem;
-  border: 1px solid var(--fitsho-line-strong, #31d0aa);
-  border-radius: var(--fitsho-radius-button, .85rem);
+  border: 1px solid var(--fitician-line-strong, #31d0aa);
+  border-radius: var(--fitician-radius-button, .85rem);
   background: rgb(80 223 206 / 10%);
-  color: var(--fitsho-aqua, #50dfce);
+  color: var(--fitician-aqua, #50dfce);
   font: inherit;
   font-size: .88rem;
   font-weight: 750;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--fitsho-duration-fast, .15s) ease,
-              border-color var(--fitsho-duration-fast, .15s) ease,
-              color var(--fitsho-duration-fast, .15s) ease,
-              transform var(--fitsho-duration-fast, .15s) ease;
+  transition: background var(--fitician-duration-fast, .15s) ease,
+              border-color var(--fitician-duration-fast, .15s) ease,
+              color var(--fitician-duration-fast, .15s) ease,
+              transform var(--fitician-duration-fast, .15s) ease;
 }
 
 .nutrition-plan-regenerate__button:hover:not(:disabled) {
   background: rgb(80 223 206 / 20%);
-  border-color: var(--fitsho-aqua, #50dfce);
+  border-color: var(--fitician-aqua, #50dfce);
 }
 
 .nutrition-plan-regenerate__button:active:not(:disabled) {
@@ -1698,7 +1698,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   border: 1px solid rgb(80 223 206 / 30%);
   border-radius: .75rem;
   background: rgb(80 223 206 / 10%);
-  color: var(--fitsho-aqua, #50dfce);
+  color: var(--fitician-aqua, #50dfce);
   font-size: .84rem;
   line-height: 1.5;
 }
@@ -1761,10 +1761,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin-inline: auto;
   margin-block: 1rem .75rem;
   padding: clamp(.85rem, 2.5vw, 1.25rem);
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-card);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-card);
   background: linear-gradient(135deg, rgb(14 32 30 / 65%), rgb(8 18 17 / 95%));
-  box-shadow: var(--fitsho-shadow-card);
+  box-shadow: var(--fitician-shadow-card);
   position: relative;
   overflow: hidden;
 }
@@ -1775,7 +1775,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   inset-inline: 0;
   top: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--fitsho-aqua), transparent);
+  background: linear-gradient(90deg, var(--fitician-aqua), transparent);
 }
 
 .nutrition-plan-comparison-header {
@@ -1802,16 +1802,16 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
 }
 
 .nutrition-plan-comparison-badge {
   display: inline-flex;
   align-items: center;
   padding: .2rem .55rem;
-  border-radius: var(--fitsho-radius-pill);
+  border-radius: var(--fitician-radius-pill);
   background: rgb(80 223 206 / 12%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: .72rem;
   font-weight: 700;
   border: 1px solid rgb(80 223 206 / 25%);
@@ -1833,7 +1833,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   border-radius: .75rem;
   background: linear-gradient(135deg, rgb(80 223 206 / 15%), rgb(8 18 17 / 95%));
   border: 1.5px solid rgb(80 223 206 / 45%);
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   font-size: .86rem;
   box-shadow: 0 0 16px rgb(80 223 206 / 15%);
 }
@@ -1861,8 +1861,8 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   justify-content: space-between;
   padding: 1.15rem;
   border-radius: 1rem;
-  background: var(--fitsho-surface-raised);
-  border: 1.5px solid var(--fitsho-line);
+  background: var(--fitician-surface-raised);
+  border: 1.5px solid var(--fitician-line);
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -1875,7 +1875,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 @media (hover: hover) and (pointer: fine) { .nutrition-bundle-card:hover { transform: translateY(-2px); } }
 
 .nutrition-bundle-card.is-selected {
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
   background: linear-gradient(150deg, rgb(80 223 206 / 14%), rgb(8 18 17 / 95%));
   box-shadow: 0 0 20px rgb(80 223 206 / 16%);
 }
@@ -1900,12 +1900,12 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   font-size: .72rem;
   font-weight: 800;
   padding: .2rem .65rem;
-  border-radius: var(--fitsho-radius-pill);
+  border-radius: var(--fitician-radius-pill);
 }
 
 .nutrition-bundle-card__tag--budget {
   background: rgb(80 223 206 / 15%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   border: 1px solid rgb(80 223 206 / 35%);
 }
 
@@ -1929,7 +1929,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: 1.08rem;
   font-weight: 850;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
 }
 
 .nutrition-bundle-card__subtitle {
@@ -1944,9 +1944,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   align-items: center;
   gap: .3rem;
   padding: .2rem .55rem;
-  border-radius: var(--fitsho-radius-pill);
+  border-radius: var(--fitician-radius-pill);
   background: rgb(80 223 206 / 18%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: .72rem;
   font-weight: 800;
   border: 1.5px solid rgb(80 223 206 / 45%);
@@ -1956,8 +1956,8 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   width: .42rem;
   height: .42rem;
   border-radius: 50%;
-  background: var(--fitsho-aqua);
-  box-shadow: 0 0 6px var(--fitsho-aqua);
+  background: var(--fitician-aqua);
+  box-shadow: 0 0 6px var(--fitician-aqua);
 }
 
 .nutrition-bundle-card__cost-block {
@@ -1979,7 +1979,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-bundle-card__cost-val {
   font-size: 1.35rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-family: "Sora Variable", sans-serif;
   font-weight: 850;
   line-height: 1.2;
@@ -2021,7 +2021,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-bundle-card__macro-box .macro-box-val {
   font-size: 1.05rem;
   font-weight: 850;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   font-family: "Sora Variable", sans-serif;
 }
 
@@ -2036,7 +2036,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .nutrition-bundle-card__macro-box--protein .macro-box-val {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .nutrition-bundle-card__macro-box--protein.nutrition-bundle-card__macro-box--ideal {
@@ -2077,7 +2077,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-bundle-card .secondary-button.is-active {
   background: rgb(80 223 206 / 12%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   border: 1.5px solid rgb(80 223 206 / 40%);
   cursor: default;
 }
@@ -2094,7 +2094,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .comparison-table__target-badge--protein {
   background: rgb(80 223 206 / 18%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   border: 1px solid rgb(80 223 206 / 35%);
   font-weight: 800;
 }
@@ -2146,7 +2146,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .nutrition-plan-comparison-item .comparison-item-val {
   font-size: .92rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-family: "Sora Variable", sans-serif;
   font-weight: 750;
   line-height: 1.25;
@@ -2186,7 +2186,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: .84rem;
   font-weight: 800;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .plan-comparison-explanation__body {
@@ -2208,7 +2208,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0 0 .5rem;
   font-size: .88rem;
   font-weight: 800;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   display: flex;
   align-items: center;
   gap: .4rem;
@@ -2255,7 +2255,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   align-items: center;
   gap: .45rem;
   font-weight: 650;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
 }
 
 .nutrition-comparison-table__metric-cell .metric-icon {
@@ -2267,7 +2267,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   display: inline-flex;
   align-items: center;
   padding: .2rem .55rem;
-  border-radius: var(--fitsho-radius-pill);
+  border-radius: var(--fitician-radius-pill);
   background: rgb(255 255 255 / 6%);
   border: 1px solid rgb(234 244 241 / 12%);
   font-size: .78rem;
@@ -2283,7 +2283,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .comparison-table__val--ideal {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .comparison-table__muted {
@@ -2344,12 +2344,12 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: .83rem;
   font-weight: 800;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   line-height: 1.35;
 }
 
 .comparison-detail-card--budget h4 {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .comparison-detail-card--ideal h4 {
@@ -2378,16 +2378,16 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .weekly-plan-accordion {
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-card);
-  background: var(--fitsho-surface);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-card);
+  background: var(--fitician-surface);
   overflow: hidden;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 
 .weekly-plan-accordion[open] {
   border-color: rgb(80 223 206 / 25%);
-  box-shadow: var(--fitsho-shadow-card);
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .weekly-plan-accordion__summary {
@@ -2397,7 +2397,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .75rem 1.15rem;
   font-size: .95rem;
   font-weight: 800;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   background: rgb(255 255 255 / 2.5%);
   cursor: pointer;
   list-style: none;
@@ -2415,7 +2415,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .weekly-plan-accordion__chevron {
   font-size: 1rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   transition: transform .25s ease;
 }
 
@@ -2446,23 +2446,23 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   border-radius: 999px;
   font-size: .84rem;
   font-weight: 700;
-  border: 1px solid var(--fitsho-line-strong);
-  background: var(--fitsho-surface);
-  color: var(--fitsho-ink);
+  border: 1px solid var(--fitician-line-strong);
+  background: var(--fitician-surface);
+  color: var(--fitician-ink);
   cursor: pointer;
-  transition: all var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: all var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .supplement-back-button__icon {
   font-size: 1.2rem;
   line-height: 1;
-  transition: transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .supplement-back-button:hover {
   background: rgb(80 223 206 / 12%);
-  border-color: var(--fitsho-aqua);
-  color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
+  color: var(--fitician-aqua);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2500,7 +2500,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .supplement-hero__title-group p {
   margin: 0;
   max-width: 48ch;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: .88rem;
   line-height: 1.6;
 }
@@ -2513,10 +2513,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   gap: .8rem;
   padding: .75rem 1.1rem;
   margin-bottom: 1.5rem;
-  border-radius: var(--fitsho-radius-md);
-  background: var(--fitsho-surface);
-  border: 1px solid var(--fitsho-line);
-  box-shadow: var(--fitsho-shadow-soft);
+  border-radius: var(--fitician-radius-md);
+  background: var(--fitician-surface);
+  border: 1px solid var(--fitician-line);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
 .supplement-filter-bar__group {
@@ -2528,7 +2528,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .supplement-filter-bar__label {
   font-size: .82rem;
   font-weight: 700;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .supplement-select-wrapper {
@@ -2541,13 +2541,13 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   appearance: none;
   padding: .45rem 2.2rem .45rem 1rem;
   border-radius: .65rem;
-  border: 1px solid var(--fitsho-line-strong);
+  border: 1px solid var(--fitician-line-strong);
   background: rgb(255 255 255 / 4%);
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: .84rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: all var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 [dir="ltr"] .supplement-select-wrapper select {
@@ -2556,7 +2556,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .supplement-select-wrapper select:hover,
 .supplement-select-wrapper select:focus-visible {
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
   background: rgb(80 223 206 / 8%);
   outline: none;
 }
@@ -2566,12 +2566,12 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   inset-inline-end: .75rem;
   pointer-events: none;
   font-size: .75rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .supplement-filter-bar__count {
   font-size: .78rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-weight: 600;
 }
 
@@ -2586,11 +2586,11 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   flex-direction: column;
   gap: .85rem;
   padding: 1.15rem;
-  border-radius: var(--fitsho-radius-md);
-  border: 1px solid var(--fitsho-line);
-  background: var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-soft);
-  transition: all var(--fitsho-duration-fast) var(--fitsho-ease);
+  border-radius: var(--fitician-radius-md);
+  border: 1px solid var(--fitician-line);
+  background: var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-soft);
+  transition: all var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .supplement-card:hover {
@@ -2629,14 +2629,14 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   display: block;
   font-size: .96rem;
   font-weight: 800;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .supplement-card__dose {
   display: block;
   margin-top: .15rem;
   font-size: .78rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-weight: 600;
 }
 
@@ -2693,10 +2693,10 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .supplement-status--discontinued {
   background: rgb(255 128 111 / 12%);
   border: 1px solid rgb(255 128 111 / 30%);
-  color: var(--fitsho-coral);
+  color: var(--fitician-coral);
 }
 .supplement-status--discontinued i {
-  background: var(--fitsho-coral);
+  background: var(--fitician-coral);
   box-shadow: 0 0 .5rem rgb(255 128 111 / 60%);
 }
 
@@ -2713,9 +2713,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .2rem .55rem;
   border-radius: 999px;
   background: rgb(255 255 255 / 4%);
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   font-size: .75rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .supplement-card__instruction-box {
@@ -2729,14 +2729,14 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   display: block;
   font-size: .72rem;
   font-weight: 700;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   margin-bottom: .2rem;
 }
 
 .supplement-card__instruction-text {
   margin: 0;
   font-size: .82rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   line-height: 1.5;
 }
 
@@ -2744,26 +2744,26 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .65rem .85rem;
   border-radius: .65rem;
   background: rgb(255 255 255 / 3%);
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
 }
 
 .supplement-card__rationale-label {
   display: block;
   font-size: .7rem;
   font-weight: 700;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   margin-bottom: .15rem;
 }
 
 .supplement-card__rationale p {
   margin: 0;
   font-size: .78rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   line-height: 1.5;
 }
 
 .supplement-card__breakdown {
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: .65rem;
   background: rgb(255 255 255 / 2%);
 }
@@ -2775,7 +2775,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   padding: .6rem .85rem;
   font-size: .76rem;
   font-weight: 700;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   cursor: pointer;
   list-style: none;
 }
@@ -2785,16 +2785,16 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 }
 
 .supplement-card__breakdown summary:hover {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .supplement-card__breakdown[open] summary {
-  border-bottom: 1px solid var(--fitsho-line);
+  border-bottom: 1px solid var(--fitician-line);
 }
 
 .supplement-card__chevron {
   font-size: .75rem;
-  transition: transform var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .supplement-card__breakdown[open] .supplement-card__chevron {
@@ -2810,7 +2810,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 .supplement-card__breakdown-content small {
   font-size: .72rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   line-height: 1.5;
 }
 
@@ -2832,16 +2832,16 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   justify-content: center;
   gap: .65rem;
   padding: 2rem;
-  border-radius: var(--fitsho-radius-md);
-  background: var(--fitsho-surface);
-  border: 1px solid var(--fitsho-line);
-  color: var(--fitsho-muted);
+  border-radius: var(--fitician-radius-md);
+  background: var(--fitician-surface);
+  border: 1px solid var(--fitician-line);
+  color: var(--fitician-muted);
   font-size: .88rem;
 }
 
 .supplement-state-card--error {
   border-color: rgb(255 128 111 / 30%);
-  color: var(--fitsho-coral);
+  color: var(--fitician-coral);
   background: rgb(255 128 111 / 6%);
 }
 
@@ -2852,9 +2852,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   text-align: center;
   gap: .6rem;
   padding: 3rem 1.5rem;
-  border-radius: var(--fitsho-radius-lg);
-  background: var(--fitsho-surface);
-  border: 1px dashed var(--fitsho-line-strong);
+  border-radius: var(--fitician-radius-lg);
+  background: var(--fitician-surface);
+  border: 1px dashed var(--fitician-line-strong);
 }
 
 .supplement-empty-card__icon {
@@ -2867,12 +2867,12 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   margin: 0;
   font-size: .95rem;
   font-weight: 700;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .supplement-empty-card small {
   font-size: .8rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   max-width: 40ch;
 }
 

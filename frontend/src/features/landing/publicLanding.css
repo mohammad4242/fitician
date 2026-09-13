@@ -2,7 +2,7 @@
   --landing-header-height: 5.5rem;
   min-width: 0;
   overflow: clip;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   background: #020b0c;
 }
 
@@ -20,7 +20,7 @@
   background: linear-gradient(180deg, rgb(2 11 12 / 48%), transparent);
 }
 
-.landing-header .brand-mark { color: var(--fitsho-mist); }
+.landing-header .brand-mark { color: var(--fitician-mist); }
 
 .landing-header__nav {
   display: flex;
@@ -30,15 +30,15 @@
 
 .landing-header__nav a {
   padding: 0.55rem 0.8rem;
-  border-radius: var(--fitsho-radius-pill);
-  color: var(--fitsho-muted);
+  border-radius: var(--fitician-radius-pill);
+  color: var(--fitician-muted);
   font-size: 0.8rem;
   font-weight: 750;
   text-decoration: none;
 }
 
 .landing-header__nav a:hover,
-.landing-header__nav a:focus-visible { color: var(--fitsho-aqua); }
+.landing-header__nav a:focus-visible { color: var(--fitician-aqua); }
 
 .landing-header__actions {
   justify-self: end;
@@ -48,8 +48,8 @@
 }
 
 .landing-header .language-switcher {
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-mist);
+  border-color: var(--fitician-line);
+  color: var(--fitician-mist);
   background: rgb(255 255 255 / 3%);
 }
 
@@ -60,9 +60,9 @@
   place-content: center;
   gap: 0.35rem;
   padding: 0.7rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: 50%;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   background: transparent;
   cursor: pointer;
 }
@@ -87,8 +87,8 @@
   padding-right: max(1.2rem, env(safe-area-inset-right));
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-inline-start: 1px solid var(--fitsho-line);
-  color: var(--fitsho-mist);
+  border-inline-start: 1px solid var(--fitician-line);
+  color: var(--fitician-mist);
   background: rgb(6 21 19 / 98%);
   box-shadow: 0 0 5rem rgb(0 0 0 / 45%);
 }
@@ -101,20 +101,20 @@
   display: grid;
   place-items: center;
   margin-inline-start: auto;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: 50%;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   background: transparent;
   font-size: 1.4rem;
   cursor: pointer;
 }
 
 .landing-menu nav { display: grid; margin-top: 2rem; }
-.landing-menu nav a { padding: 1rem; border-bottom: 1px solid var(--fitsho-line); color: inherit; font-weight: 800; text-decoration: none; }
+.landing-menu nav a { padding: 1rem; border-bottom: 1px solid var(--fitician-line); color: inherit; font-weight: 800; text-decoration: none; }
 
 .landing-kicker {
   margin: 0 0 0.75rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font: 750 0.72rem/1 "Sora Variable", sans-serif;
   letter-spacing: 0.16em;
 }
@@ -127,20 +127,20 @@
   gap: 0.8rem;
   margin-top: 1.6rem;
   padding: 0.8rem 1.45rem;
-  border-radius: var(--fitsho-radius-pill);
-  color: var(--fitsho-canvas);
-  background: var(--fitsho-aqua);
+  border-radius: var(--fitician-radius-pill);
+  color: var(--fitician-canvas);
+  background: var(--fitician-aqua);
   font-weight: 900;
   text-decoration: none;
   box-shadow: 0 0.8rem 2.4rem rgb(80 223 206 / 10%);
-  transition: transform var(--fitsho-duration-fast) ease, box-shadow var(--fitsho-duration-fast) ease;
+  transition: transform var(--fitician-duration-fast) ease, box-shadow var(--fitician-duration-fast) ease;
 }
 
 .landing-primary-cta:hover { box-shadow: 0 1rem 2.8rem rgb(80 223 206 / 16%); }
 @media (hover: hover) and (pointer: fine) {
   .landing-primary-cta:hover { transform: translateY(-2px); }
 }
-.landing-primary-cta:focus-visible { outline: 2px solid var(--fitsho-mist); outline-offset: 0.22rem; }
+.landing-primary-cta:focus-visible { outline: 2px solid var(--fitician-mist); outline-offset: 0.22rem; }
 [dir="ltr"] .landing-primary-cta span { transform: rotate(180deg); }
 
 .landing-final {

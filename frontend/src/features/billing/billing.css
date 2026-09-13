@@ -1,6 +1,6 @@
 .billing-page {
   min-height: 100%;
-  padding-block-end: var(--fitsho-space-8);
+  padding-block-end: var(--fitician-space-8);
 }
 
 .billing-page__container {
@@ -13,7 +13,7 @@
 
 .billing-hero { margin-block-end: 1.25rem; }
 .billing-hero h1 { margin: 0.25rem 0 0; font-size: clamp(1.6rem, 4vw, 2.5rem); }
-.billing-hero p:last-child { margin: 0.55rem 0 0; color: var(--fitsho-muted); }
+.billing-hero p:last-child { margin: 0.55rem 0 0; color: var(--fitician-muted); }
 
 .billing-access-summary,
 .billing-checkout-card,
@@ -21,10 +21,10 @@
   display: grid;
   gap: 0.8rem;
   padding: 1rem 1.1rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: linear-gradient(135deg, rgb(80 223 206 / 7%), var(--fitsho-surface));
-  box-shadow: var(--fitsho-shadow-card);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: linear-gradient(135deg, rgb(80 223 206 / 7%), var(--fitician-surface));
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .billing-access-summary {
@@ -39,37 +39,37 @@
 .billing-access-summary span,
 .billing-checkout-card__row span,
 .billing-history-card span,
-.billing-history-card time { color: var(--fitsho-muted); font-size: 0.75rem; }
+.billing-history-card time { color: var(--fitician-muted); font-size: 0.75rem; }
 .billing-access-summary strong { font-size: 1rem; }
 .billing-access-summary > span { text-align: end; }
 
 .billing-offer-groups { display: grid; gap: 1rem; }
 .billing-package {
   padding: 0.8rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: var(--fitsho-surface);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: var(--fitician-surface);
 }
 .billing-package__header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; padding: 0.2rem 0.2rem 0.75rem; }
 .billing-package__header h2 { margin: 0; font-size: 1.05rem; }
-.billing-package__header span { color: var(--fitsho-aqua); font-size: 0.72rem; font-weight: 750; }
+.billing-package__header span { color: var(--fitician-aqua); font-size: 0.72rem; font-weight: 750; }
 .billing-offer-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; }
 
 .billing-offer {
   display: grid;
   gap: 0.7rem;
   padding: 0.85rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
-  background: var(--fitsho-surface-subtle);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  background: var(--fitician-surface-subtle);
 }
-.billing-offer--eligible { border-color: var(--fitsho-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 14%); }
+.billing-offer--eligible { border-color: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 14%); }
 .billing-offer--unavailable { opacity: 0.62; }
 .billing-offer__meta { display: grid; gap: 0.18rem; }
-.billing-offer__meta span { color: var(--fitsho-muted); font-size: 0.7rem; }
+.billing-offer__meta span { color: var(--fitician-muted); font-size: 0.7rem; }
 .billing-offer__meta strong { font-size: 1rem; }
-.billing-offer__price { margin: 0; color: var(--fitsho-aqua); font-size: 0.9rem; font-weight: 800; }
-.billing-offer__notice { margin: 0; color: var(--fitsho-muted); font-size: 0.7rem; line-height: 1.45; }
+.billing-offer__price { margin: 0; color: var(--fitician-aqua); font-size: 0.9rem; font-weight: 800; }
+.billing-offer__notice { margin: 0; color: var(--fitician-muted); font-size: 0.7rem; line-height: 1.45; }
 
 .billing-button {
   display: inline-flex;
@@ -78,7 +78,7 @@
   justify-content: center;
   padding: 0.55rem 0.9rem;
   border: 1px solid transparent;
-  border-radius: var(--fitsho-radius-md);
+  border-radius: var(--fitician-radius-md);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 750;
@@ -86,38 +86,38 @@
   cursor: pointer;
 }
 .billing-button:disabled { cursor: not-allowed; opacity: 0.55; }
-.billing-button--primary { color: var(--fitsho-canvas); background: var(--fitsho-aqua); }
-.billing-button--secondary { border-color: var(--fitsho-line-strong); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); }
+.billing-button--primary { color: var(--fitician-canvas); background: var(--fitician-aqua); }
+.billing-button--secondary { border-color: var(--fitician-line-strong); color: var(--fitician-ink); background: var(--fitician-surface-subtle); }
 .billing-checkout-card__row { grid-template-columns: 1fr auto; align-items: center; padding-block: 0.25rem; }
-.billing-checkout-card__row + .billing-checkout-card__row { border-block-start: 1px solid var(--fitsho-line); padding-block-start: 0.85rem; }
+.billing-checkout-card__row + .billing-checkout-card__row { border-block-start: 1px solid var(--fitician-line); padding-block-start: 0.85rem; }
 .billing-checkout-card > .billing-button { margin-block-start: 0.35rem; }
 
-.billing-status { color: var(--fitsho-muted); }
+.billing-status { color: var(--fitician-muted); }
 .billing-status--danger { color: #ffad98; }
 .billing-result { text-align: center; padding-block: 2.5rem; }
 .billing-result--success { border-color: rgb(80 223 206 / 42%); }
 .billing-result--failed { border-color: rgb(246 120 89 / 38%); }
 .billing-result h1 { margin: 0; font-size: 1.55rem; }
-.billing-result p:not(.eyebrow) { margin: 0; color: var(--fitsho-muted); }
+.billing-result p:not(.eyebrow) { margin: 0; color: var(--fitician-muted); }
 .billing-result__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-block-start: 0.65rem; }
 
 .billing-history-list { display: grid; gap: 0.65rem; }
-.billing-history-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface); }
+.billing-history-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: var(--fitician-surface); }
 .billing-history-card > div:last-child { align-items: end; text-align: end; }
-.billing-history-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
+.billing-history-card strong { color: var(--fitician-ink); font-size: 0.9rem; }
 
 .billing-admin-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-.billing-admin-card { display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); }
+.billing-admin-card { display: grid; gap: 0.85rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
 .billing-admin-card > header, .billing-admin-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .billing-admin-card h2 { margin: 0.2rem 0 0; font-size: 1rem; }
-.billing-admin-card p { margin: 0.2rem 0 0; color: var(--fitsho-muted); font-size: 0.75rem; }
-.billing-admin-card__code { color: var(--fitsho-aqua); font-family: "Sora Variable", sans-serif; font-size: 0.7rem; }
-.billing-admin-card__availability { color: var(--fitsho-muted); font-size: 0.72rem; }
+.billing-admin-card p { margin: 0.2rem 0 0; color: var(--fitician-muted); font-size: 0.75rem; }
+.billing-admin-card__code { color: var(--fitician-aqua); font-family: "Sora Variable", sans-serif; font-size: 0.7rem; }
+.billing-admin-card__availability { color: var(--fitician-muted); font-size: 0.72rem; }
 .billing-admin-card__fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.75rem; }
-.billing-admin-card__fields label { display: grid; gap: 0.3rem; color: var(--fitsho-muted); font-size: 0.72rem; }
-.billing-admin-card__fields input[type="number"], .billing-admin-card__fields input[type="datetime-local"] { width: 100%; min-height: 2.45rem; padding: 0.4rem 0.55rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
+.billing-admin-card__fields label { display: grid; gap: 0.3rem; color: var(--fitician-muted); font-size: 0.72rem; }
+.billing-admin-card__fields input[type="number"], .billing-admin-card__fields input[type="datetime-local"] { width: 100%; min-height: 2.45rem; padding: 0.4rem 0.55rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); font: inherit; }
 .billing-admin-card__check { display: flex !important; min-height: 2.45rem; grid-template-columns: auto auto; align-items: center; white-space: nowrap; }
-.billing-admin-card__success { color: var(--fitsho-aqua); font-size: 0.72rem; }
+.billing-admin-card__success { color: var(--fitician-aqua); font-size: 0.72rem; }
 
 @media (max-width: 680px) {
   .billing-offer-grid { grid-template-columns: 1fr; }

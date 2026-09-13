@@ -1,7 +1,7 @@
 .public-onboarding {
   min-height: 100svh;
-  color: var(--fitsho-ink);
-  background: var(--fitsho-canvas);
+  color: var(--fitician-ink);
+  background: var(--fitician-canvas);
 }
 
 .public-onboarding__header {
@@ -48,7 +48,7 @@
   padding: 0;
   border: 1px solid rgb(80 223 206 / 24%);
   border-radius: 1rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 8%);
 }
 .public-onboarding .product-mode-card__icon svg { width: 1.75rem; height: 1.75rem; }
@@ -68,14 +68,14 @@
   padding: 0.22rem 0.55rem;
   border-radius: 999px;
   color: #071313;
-  background: var(--fitsho-aqua);
+  background: var(--fitician-aqua);
   font-size: 0.7rem;
   font-weight: 850;
 }
 .public-onboarding .product-mode-card.mode-training,
-.public-onboarding .product-mode-card.mode-nutrition { background: var(--fitsho-surface); }
+.public-onboarding .product-mode-card.mode-nutrition { background: var(--fitician-surface); }
 .public-onboarding .product-mode-card.mode-both { border-color: rgb(80 223 206 / 60%); background: rgb(80 223 206 / 10%); }
-.public-onboarding .product-mode-card.mode-both .product-mode-card__icon { color: #071313; background: var(--fitsho-aqua); }
+.public-onboarding .product-mode-card.mode-both .product-mode-card__icon { color: #071313; background: var(--fitician-aqua); }
 .public-onboarding .product-mode-card:hover, .public-onboarding .product-mode-card:focus-visible { border-color: #f4f1e9; background: rgb(255 255 255 / 13%); }
 .public-question-card { width: min(100%, 48rem); margin: 0 auto; }
 .public-question-card--fullscreen {
@@ -115,7 +115,7 @@
 .guided-body-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
 .guided-body-fields > label { display: grid; gap: 0.7rem; color: rgb(255 255 255 / 72%); font-weight: 800; }
 .guided-body-fields small { color: rgb(255 255 255 / 46%); font-size: 0.78rem; font-weight: 650; }
-.guided-body-confirmation { grid-column: 1 / -1; grid-template-columns: auto 1fr; align-items: center; padding: 0.9rem 1rem; border: 1px solid var(--fitsho-line-strong); border-radius: 1rem; color: #f4f1e9 !important; background: rgb(255 255 255 / 5%); }
+.guided-body-confirmation { grid-column: 1 / -1; grid-template-columns: auto 1fr; align-items: center; padding: 0.9rem 1rem; border: 1px solid var(--fitician-line-strong); border-radius: 1rem; color: #f4f1e9 !important; background: rgb(255 255 255 / 5%); }
 .guided-body-confirmation input { min-height: 1.1rem !important; width: 1.1rem; }
 .birth-date-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; padding: 0; border: 0; }
 .birth-date-picker legend { width: 100%; margin-bottom: 0.8rem; color: rgb(255 255 255 / 72%); font-weight: 800; }
@@ -306,7 +306,7 @@
   background:
     radial-gradient(circle at 12% 18%, rgb(80 223 206 / 12%), transparent 28rem),
     radial-gradient(circle at 88% 80%, rgb(246 120 89 / 9%), transparent 26rem),
-    var(--fitsho-canvas);
+    var(--fitician-canvas);
 }
 
 .public-account-step::before {
@@ -330,10 +330,10 @@
   gap: 1.15rem;
   padding: clamp(1.25rem, 4vw, 3rem);
   overflow: hidden;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-xl);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-xl);
   background: linear-gradient(145deg, rgb(16 30 28 / 96%), rgb(5 11 12 / 98%));
-  box-shadow: var(--fitsho-shadow);
+  box-shadow: var(--fitician-shadow);
 }
 
 .public-account-step__card::before {
@@ -341,7 +341,7 @@
   inset-block-start: 0;
   inset-inline: 12%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--fitsho-aqua), transparent);
+  background: linear-gradient(90deg, transparent, var(--fitician-aqua), transparent);
   content: "";
   opacity: 0.8;
 }
@@ -364,8 +364,8 @@
   gap: 0.8rem;
   padding: 0.8rem 0.9rem;
   border: 1px solid rgb(80 223 206 / 20%);
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-ink);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-ink);
   background: rgb(80 223 206 / 6%);
 }
 
@@ -377,14 +377,14 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.75rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 9%);
 }
 
 .account-security-note__icon svg { width: 1.2rem; height: 1.2rem; }
 .account-security-note > span:last-child { min-width: 0; display: grid; gap: 0.15rem; }
 .account-security-note strong { font-size: 0.86rem; }
-.account-security-note small { color: var(--fitsho-muted); font-size: 0.76rem; line-height: 1.6; }
+.account-security-note small { color: var(--fitician-muted); font-size: 0.76rem; line-height: 1.6; }
 
 .account-methods {
   display: grid;
@@ -392,8 +392,8 @@
   gap: 0.35rem;
   margin-block-start: 0.35rem;
   padding: 0.3rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
   background: rgb(255 255 255 / 4%);
 }
 
@@ -402,15 +402,15 @@
   padding-inline: 0.8rem;
   border: 0;
   border-radius: 0.65rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   background: transparent;
   font-weight: 800;
   cursor: pointer;
-  transition: color var(--fitsho-duration-fast) ease, background var(--fitsho-duration-fast) ease, box-shadow var(--fitsho-duration-fast) ease;
+  transition: color var(--fitician-duration-fast) ease, background var(--fitician-duration-fast) ease, box-shadow var(--fitician-duration-fast) ease;
 }
 
-.account-methods button:hover { color: var(--fitsho-ink); background: rgb(255 255 255 / 7%); }
-.account-methods button[aria-selected="true"] { color: #071313; background: var(--fitsho-aqua); box-shadow: var(--fitsho-shadow-glow); }
+.account-methods button:hover { color: var(--fitician-ink); background: rgb(255 255 255 / 7%); }
+.account-methods button[aria-selected="true"] { color: #071313; background: var(--fitician-aqua); box-shadow: var(--fitician-shadow-glow); }
 
 .account-provider-grid {
   display: grid;
@@ -427,8 +427,8 @@
   gap: 0.8rem;
   padding: 0.7rem 0.85rem;
   border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-ink);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-ink);
   background: rgb(255 255 255 / 5%);
 }
 
@@ -444,33 +444,33 @@
 }
 
 .account-provider--future span { font-weight: 800; }
-.account-provider--future small { color: var(--fitsho-aqua); font-size: 0.72rem; font-weight: 750; }
+.account-provider--future small { color: var(--fitician-aqua); font-size: 0.72rem; font-weight: 750; }
 
-.account-divider { display: flex; align-items: center; gap: 1rem; margin-block: 0.25rem -0.1rem; color: var(--fitsho-muted); font-size: 0.76rem; }
+.account-divider { display: flex; align-items: center; gap: 1rem; margin-block: 0.25rem -0.1rem; color: var(--fitician-muted); font-size: 0.76rem; }
 .account-divider::before,
-.account-divider::after { height: 1px; flex: 1; content: ""; background: var(--fitsho-line); }
+.account-divider::after { height: 1px; flex: 1; content: ""; background: var(--fitician-line); }
 
-.account-auth-form { margin-block: 0; padding: 1.05rem; border: 1px solid rgb(255 255 255 / 9%); border-radius: var(--fitsho-radius-lg); background: rgb(0 0 0 / 13%); }
-.account-auth-form input { min-height: 3.6rem; margin-block-end: 0.35rem; border-color: rgb(255 255 255 / 17%); border-radius: var(--fitsho-radius-md); background: rgb(255 255 255 / 6%); }
+.account-auth-form { margin-block: 0; padding: 1.05rem; border: 1px solid rgb(255 255 255 / 9%); border-radius: var(--fitician-radius-lg); background: rgb(0 0 0 / 13%); }
+.account-auth-form input { min-height: 3.6rem; margin-block-end: 0.35rem; border-color: rgb(255 255 255 / 17%); border-radius: var(--fitician-radius-md); background: rgb(255 255 255 / 6%); }
 .account-auth-form input:hover { border-color: rgb(80 223 206 / 48%); }
-.account-auth-form input:focus { border-color: var(--fitsho-aqua); box-shadow: 0 0 0 4px rgb(80 223 206 / 12%); }
-.account-form-hint { margin: -0.15rem 0 0.25rem; color: var(--fitsho-muted); font-size: 0.84rem; line-height: 1.7; }
+.account-auth-form input:focus { border-color: var(--fitician-aqua); box-shadow: 0 0 0 4px rgb(80 223 206 / 12%); }
+.account-form-hint { margin: -0.15rem 0 0.25rem; color: var(--fitician-muted); font-size: 0.84rem; line-height: 1.7; }
 .account-phone-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-block: -0.1rem 0.15rem; }
-.account-phone-actions .text-button { padding: 0; color: var(--fitsho-muted); font-size: 0.78rem; }
-.account-phone-actions .text-button:hover:not(:disabled) { color: var(--fitsho-ink); }
-.account-mode-toggle { justify-self: center; margin-block-start: -0.25rem; color: var(--fitsho-muted); }
-.account-mode-toggle:hover { color: var(--fitsho-aqua); }
+.account-phone-actions .text-button { padding: 0; color: var(--fitician-muted); font-size: 0.78rem; }
+.account-phone-actions .text-button:hover:not(:disabled) { color: var(--fitician-ink); }
+.account-mode-toggle { justify-self: center; margin-block-start: -0.25rem; color: var(--fitician-muted); }
+.account-mode-toggle:hover { color: var(--fitician-aqua); }
 
 .public-account-step .primary-button {
   min-height: 3.6rem;
   margin-block-start: 0.35rem;
   color: #071313;
-  background: var(--fitsho-aqua);
-  box-shadow: var(--fitsho-shadow-glow);
+  background: var(--fitician-aqua);
+  box-shadow: var(--fitician-shadow-glow);
 }
 
 .public-account-step .primary-button:hover:not(:disabled) { color: #071313; background: #7be9dc; box-shadow: 0 0.9rem 2.2rem rgb(80 223 206 / 28%); }
-.public-account-step .form-error { border-inline-start-color: var(--fitsho-coral); color: #ffd4c9; background: rgb(246 120 89 / 10%); }
+.public-account-step .form-error { border-inline-start-color: var(--fitician-coral); color: #ffd4c9; background: rgb(246 120 89 / 10%); }
 
 @media (max-width: 650px) {
   .public-onboarding__stage { width: min(100% - 1.25rem, 68rem); }
@@ -481,7 +481,7 @@
   .public-onboarding .product-mode-card .product-mode-card__icon { width: 3.25rem; flex-basis: 3.25rem; border-radius: 0.9rem; }
   .public-onboarding .product-mode-card__icon svg { width: 1.5rem; height: 1.5rem; }
   .public-account-step { align-items: start; padding: 0.75rem; }
-  .public-account-step__card { width: 100%; min-height: calc(100svh - 1.5rem); align-content: start; padding: 1.1rem; border-radius: var(--fitsho-radius-lg); }
+  .public-account-step__card { width: 100%; min-height: calc(100svh - 1.5rem); align-content: start; padding: 1.1rem; border-radius: var(--fitician-radius-lg); }
   .public-account-step__header { flex-direction: column; gap: 0.8rem; }
   .public-account-step__header > .text-button { align-self: flex-start; order: -1; }
   .public-account-step__header h1 { font-size: clamp(2.25rem, 12vw, 3.5rem); }

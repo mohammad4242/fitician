@@ -387,7 +387,7 @@ it("uses the blue tone at the exact 60 percent boundary and animates Home entry"
 
   const ring = await screen.findByRole("progressbar", { name: "پیشرفت کالری امروز" });
   expect(ring).toHaveClass("fitsho-progress-ring--mount-animated");
-  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitsho-blue)");
+  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-blue)");
   expect(ring).toHaveAttribute("aria-valuenow", "1800");
   expect(ring).toHaveAttribute("aria-valuemax", "3000");
 });
@@ -417,7 +417,7 @@ it("caps a gain target ring while showing the target above estimated expenditure
   expect(ring).toHaveTextContent("100%");
   expect(ring).toHaveAttribute("aria-valuenow", "3000");
   expect(ring).toHaveAttribute("aria-valuemax", "2400");
-  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitsho-danger)");
+  expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-danger)");
   expect(screen.getByText("۶۰۰ کیلوکالری بالاتر از مصرف تقریبی روزانه")).toBeInTheDocument();
 });
 

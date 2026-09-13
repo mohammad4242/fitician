@@ -2,7 +2,7 @@
   min-height: 100%;
   background:
     radial-gradient(circle at 8% 5%, rgb(80 223 206 / 13%), transparent 18rem),
-    var(--fitsho-surface);
+    var(--fitician-surface);
 }
 
 .admin-subscription-center__container {
@@ -19,10 +19,10 @@
   min-height: 10rem;
   padding: clamp(1.25rem, 4vw, 2.5rem);
   border: 1px solid rgb(80 223 206 / 24%);
-  border-radius: var(--fitsho-radius-card);
-  color: var(--fitsho-ink);
-  background: linear-gradient(125deg, rgb(80 223 206 / 13%), var(--fitsho-surface));
-  box-shadow: var(--fitsho-shadow-card);
+  border-radius: var(--fitician-radius-card);
+  color: var(--fitician-ink);
+  background: linear-gradient(125deg, rgb(80 223 206 / 13%), var(--fitician-surface));
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .admin-subscription-center__hero h1 {
@@ -33,7 +33,7 @@
 
 .admin-subscription-center__hero p:last-child {
   margin: .5rem 0 0;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .admin-subscription-center__signal {
@@ -42,7 +42,7 @@
   width: 4.4rem;
   height: 4.4rem;
   border: .55rem solid rgb(80 223 206 / 20%);
-  border-block-start-color: var(--fitsho-aqua);
+  border-block-start-color: var(--fitician-aqua);
   border-radius: 50%;
   transform: rotate(30deg);
 }
@@ -53,8 +53,8 @@
   gap: .45rem;
   margin-block: 1rem;
   padding: .4rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
   background: rgb(255 255 255 / 62%);
 }
 
@@ -64,8 +64,8 @@
   min-height: 3.8rem;
   align-content: center;
   padding: .55rem .7rem;
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-muted);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-muted);
   font-size: .78rem;
   font-weight: 800;
   text-decoration: none;
@@ -73,7 +73,7 @@
 }
 
 .admin-subscription-center__nav a span {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   direction: ltr;
   font-family: "Sora Variable", sans-serif;
   font-size: .65rem;
@@ -82,17 +82,17 @@
 
 .admin-subscription-center__nav a:hover,
 .admin-subscription-center__nav a:focus-visible {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   background: rgb(80 223 206 / 10%);
 }
 
 .admin-subscription-center__nav a.is-active {
-  color: var(--fitsho-canvas);
-  background: var(--fitsho-petrol);
+  color: var(--fitician-canvas);
+  background: var(--fitician-petrol);
   box-shadow: 0 .35rem .8rem rgb(10 31 30 / 13%);
 }
 
-.admin-subscription-center__nav a.is-active span { color: var(--fitsho-aqua); }
+.admin-subscription-center__nav a.is-active span { color: var(--fitician-aqua); }
 
 .admin-subscription-center__content { min-width: 0; }
 
@@ -116,11 +116,11 @@
 .access-admin-page__header h1,
 .access-admin-form-card h2 {
   margin: .25rem 0 0;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: clamp(1.45rem, 3vw, 2.1rem);
 }
 
-.access-admin-page__header p:last-child { margin: .4rem 0 0; color: var(--fitsho-muted); }
+.access-admin-page__header p:last-child { margin: .4rem 0 0; color: var(--fitician-muted); }
 
 .access-admin-button {
   display: inline-flex;
@@ -129,8 +129,8 @@
   justify-content: center;
   padding: .55rem .85rem;
   border: 1px solid transparent;
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-ink);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-ink);
   background: transparent;
   font: inherit;
   font-size: .8rem;
@@ -139,17 +139,17 @@
 }
 
 .access-admin-button:disabled { cursor: wait; opacity: .55; }
-.access-admin-button--primary { color: var(--fitsho-canvas); background: var(--fitsho-petrol); }
-.access-admin-button--quiet { border-color: var(--fitsho-line-strong); background: var(--fitsho-surface); }
-.access-admin-button--quiet:hover, .access-admin-button--quiet:focus-visible { border-color: var(--fitsho-aqua); }
+.access-admin-button--primary { color: var(--fitician-canvas); background: var(--fitician-petrol); }
+.access-admin-button--quiet { border-color: var(--fitician-line-strong); background: var(--fitician-surface); }
+.access-admin-button--quiet:hover, .access-admin-button--quiet:focus-visible { border-color: var(--fitician-aqua); }
 
 .access-admin-status {
   margin: 1rem 0;
   padding: 1rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-muted);
-  background: var(--fitsho-surface);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-muted);
+  background: var(--fitician-surface);
 }
 
 .access-admin-status--error { color: #a13f32; border-color: rgb(161 63 50 / 30%); }
@@ -161,110 +161,110 @@
   gap: .75rem;
   margin-block-end: 1rem;
   padding: .85rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
   background: rgb(255 255 255 / 55%);
 }
 
-.access-admin-search label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 800; }
-.access-admin-search input { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; }
-.access-admin-search input:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-admin-search label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 800; }
+.access-admin-search input { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface); font: inherit; }
+.access-admin-search input:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
 
 .access-user-list { display: grid; gap: .75rem; }
-.access-user-card { display: grid; grid-template-columns: minmax(12rem, 1.1fr) minmax(0, 2fr) auto; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-user-card { display: grid; grid-template-columns: minmax(12rem, 1.1fr) minmax(0, 2fr) auto; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-user-card h2 { margin: .25rem 0 0; font-size: 1rem; }
-.access-user-card p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .76rem; overflow-wrap: anywhere; }
+.access-user-card p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .76rem; overflow-wrap: anywhere; }
 .access-user-card__facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; margin: 0; }
 .access-user-card__facts div { display: grid; gap: .18rem; min-width: 0; }
-.access-user-card__facts dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-user-card__facts dt { color: var(--fitician-muted); font-size: .67rem; }
 .access-user-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 800; }
 .access-user-card > a { white-space: nowrap; }
 
-.access-admin-back-link { display: inline-flex; margin-block-end: .8rem; color: var(--fitsho-teal); font-size: .8rem; font-weight: 800; text-decoration: none; }
+.access-admin-back-link { display: inline-flex; margin-block-end: .8rem; color: var(--fitician-teal); font-size: .8rem; font-weight: 800; text-decoration: none; }
 .access-admin-back-link:hover { text-decoration: underline; }
 .access-user-detail__header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-block-end: 1rem; }
-.access-user-detail__header h1 { margin: .25rem 0 0; color: var(--fitsho-ink); font-size: clamp(1.4rem, 3vw, 2.2rem); }
-.access-user-detail__header p:last-child { margin: .3rem 0 0; color: var(--fitsho-muted); overflow-wrap: anywhere; }
+.access-user-detail__header h1 { margin: .25rem 0 0; color: var(--fitician-ink); font-size: clamp(1.4rem, 3vw, 2.2rem); }
+.access-user-detail__header p:last-child { margin: .3rem 0 0; color: var(--fitician-muted); overflow-wrap: anywhere; }
 .access-user-detail__actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .5rem; }
 
-.access-detail-summary { display: grid; gap: .8rem; margin-block-end: 1.2rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 9%), var(--fitsho-surface)); box-shadow: var(--fitsho-shadow-card); }
-.access-detail-summary h2 { margin: 0; color: var(--fitsho-ink); font-size: 1rem; }
+.access-detail-summary { display: grid; gap: .8rem; margin-block-end: 1.2rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 9%), var(--fitician-surface)); box-shadow: var(--fitician-shadow-card); }
+.access-detail-summary h2 { margin: 0; color: var(--fitician-ink); font-size: 1rem; }
 .access-detail-summary__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
 .access-detail-summary__grid div { display: grid; gap: .2rem; min-width: 0; }
-.access-detail-summary__grid span { color: var(--fitsho-muted); font-size: .68rem; }
+.access-detail-summary__grid span { color: var(--fitician-muted); font-size: .68rem; }
 .access-detail-summary__grid strong { overflow-wrap: anywhere; font-size: .82rem; }
-.access-detail-summary__entitlements { margin: 0; padding-block-start: .65rem; border-block-start: 1px solid var(--fitsho-line); color: var(--fitsho-muted); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .7rem; text-align: start; overflow-wrap: anywhere; }
+.access-detail-summary__entitlements { margin: 0; padding-block-start: .65rem; border-block-start: 1px solid var(--fitician-line); color: var(--fitician-muted); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .7rem; text-align: start; overflow-wrap: anywhere; }
 
 .access-grants-section { display: grid; gap: .8rem; }
 .access-detail-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
-.access-detail-section-heading h2 { margin: .2rem 0 0; color: var(--fitsho-ink); font-size: 1.15rem; }
-.access-detail-section-heading > span { color: var(--fitsho-muted); font-size: .78rem; }
+.access-detail-section-heading h2 { margin: .2rem 0 0; color: var(--fitician-ink); font-size: 1.15rem; }
+.access-detail-section-heading > span { color: var(--fitician-muted); font-size: .78rem; }
 .access-grant-list { display: grid; gap: .7rem; }
-.access-grant-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-grant-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-grant-card > header { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
 .access-grant-card h3 { margin: .2rem 0 0; font-size: 1rem; }
-.access-grant-card__status { color: var(--fitsho-teal); font-family: "Sora Variable", sans-serif; font-size: .68rem; font-weight: 850; letter-spacing: .06em; }
+.access-grant-card__status { color: var(--fitician-teal); font-family: "Sora Variable", sans-serif; font-size: .68rem; font-weight: 850; letter-spacing: .06em; }
 .access-grant-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: 0; }
 .access-grant-card dl div { display: grid; gap: .18rem; min-width: 0; }
-.access-grant-card dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-grant-card dt { color: var(--fitician-muted); font-size: .67rem; }
 .access-grant-card dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
 .access-grant-card > button { justify-self: start; }
 .access-action-form { margin-block-start: 1.2rem; }
 .access-action-form > form { display: grid; gap: .9rem; }
 .access-action-form .access-admin-form-grid label:last-child { grid-column: 1 / -1; }
 .access-revoke-form { display: grid; gap: .8rem; }
-.access-revoke-form p { margin: 0; color: var(--fitsho-muted); font-size: .8rem; }
-.access-revoke-form label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 750; }
-.access-revoke-form textarea { min-height: 5rem; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); color: var(--fitsho-ink); font: inherit; resize: vertical; }
+.access-revoke-form p { margin: 0; color: var(--fitician-muted); font-size: .8rem; }
+.access-revoke-form label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 750; }
+.access-revoke-form textarea { min-height: 5rem; padding: .55rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); color: var(--fitician-ink); font: inherit; resize: vertical; }
 
 .access-order-filters { grid-template-columns: minmax(9rem, .8fr) minmax(9rem, .8fr) minmax(12rem, 1.4fr) auto; }
-.access-order-filters label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 800; }
-.access-order-filters input, .access-order-filters select { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; }
-.access-order-filters input:focus, .access-order-filters select:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-order-filters label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 800; }
+.access-order-filters input, .access-order-filters select { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface); font: inherit; }
+.access-order-filters input:focus, .access-order-filters select:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
 .access-order-list { display: grid; gap: .75rem; }
-.access-order-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-order-card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-order-card > header, .access-order-card > footer { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
 .access-order-card h2 { margin: .2rem 0 0; direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .95rem; text-align: start; }
-.access-order-card header p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .76rem; }
-.access-order-card__status { display: grid; gap: .2rem; justify-items: end; color: var(--fitsho-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; }
-.access-order-card__status small { color: var(--fitsho-muted); font-family: inherit; font-size: .65rem; }
+.access-order-card header p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .76rem; }
+.access-order-card__status { display: grid; gap: .2rem; justify-items: end; color: var(--fitician-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; }
+.access-order-card__status small { color: var(--fitician-muted); font-family: inherit; font-size: .65rem; }
 .access-order-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: 0; }
 .access-order-card dl div { display: grid; gap: .18rem; min-width: 0; }
-.access-order-card dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-order-card dt { color: var(--fitician-muted); font-size: .67rem; }
 .access-order-card dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
-.access-order-card > footer { align-items: center; flex-wrap: wrap; color: var(--fitsho-muted); font-size: .72rem; }
+.access-order-card > footer { align-items: center; flex-wrap: wrap; color: var(--fitician-muted); font-size: .72rem; }
 .access-order-card > footer a { margin-inline-start: auto; }
-.access-order-detail-card, .access-transaction-card { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-order-detail-card, .access-transaction-card { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-order-detail-card > header, .access-transaction-card > header { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
 .access-order-detail-card h2 { margin: .2rem 0 0; font-size: 1.1rem; }
 .access-order-detail-card dl, .access-transaction-card dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
 .access-order-detail-card dl div, .access-transaction-card dl div { display: grid; gap: .18rem; min-width: 0; }
-.access-order-detail-card dt, .access-transaction-card dt { color: var(--fitsho-muted); font-size: .68rem; }
+.access-order-detail-card dt, .access-transaction-card dt { color: var(--fitician-muted); font-size: .68rem; }
 .access-order-detail-card dd, .access-transaction-card dd { margin: 0; overflow-wrap: anywhere; font-size: .8rem; font-weight: 750; }
 .access-transaction-section { display: grid; gap: .8rem; margin-block-start: 1.2rem; }
 .access-transaction-list { display: grid; gap: .7rem; }
 .access-transaction-card > header strong { direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .78rem; }
-.access-transaction-card > header span { color: var(--fitsho-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; font-weight: 800; }
+.access-transaction-card > header span { color: var(--fitician-teal); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .72rem; font-weight: 800; }
 .access-audit-filters { grid-template-columns: minmax(10rem, 1.2fr) repeat(3, minmax(9rem, 1fr)) repeat(2, minmax(9rem, 1fr)) auto; }
-.access-audit-filters label { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .76rem; font-weight: 800; }
-.access-audit-filters input, .access-audit-filters select { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .5rem .6rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; }
-.access-audit-filters input:focus, .access-audit-filters select:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-audit-filters label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .76rem; font-weight: 800; }
+.access-audit-filters input, .access-audit-filters select { width: 100%; min-height: 2.7rem; box-sizing: border-box; padding: .5rem .6rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface); font: inherit; }
+.access-audit-filters input:focus, .access-audit-filters select:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
 .access-audit-list { display: grid; gap: .7rem; }
-.access-audit-card { display: grid; gap: .7rem; padding: 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
+.access-audit-card { display: grid; gap: .7rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-audit-card > header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-.access-audit-card > header time { color: var(--fitsho-muted); direction: ltr; font-size: .7rem; }
-.access-audit-card > header span { color: var(--fitsho-teal); font-size: .78rem; font-weight: 800; }
-.access-audit-card > p { margin: 0; color: var(--fitsho-muted); font-size: .82rem; }
-.access-audit-card > p strong { color: var(--fitsho-ink); }
+.access-audit-card > header time { color: var(--fitician-muted); direction: ltr; font-size: .7rem; }
+.access-audit-card > header span { color: var(--fitician-teal); font-size: .78rem; font-weight: 800; }
+.access-audit-card > p { margin: 0; color: var(--fitician-muted); font-size: .82rem; }
+.access-audit-card > p strong { color: var(--fitician-ink); }
 .access-audit-card dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: .65rem; margin: 0; }
 .access-audit-card dl div { display: grid; gap: .18rem; min-width: 0; }
-.access-audit-card dt { color: var(--fitsho-muted); font-size: .67rem; }
+.access-audit-card dt { color: var(--fitician-muted); font-size: .67rem; }
 .access-audit-card dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
-.access-audit-card details { border-block-start: 1px solid var(--fitsho-line); padding-block-start: .55rem; }
-.access-audit-card summary { width: fit-content; color: var(--fitsho-teal); cursor: pointer; font-size: .76rem; font-weight: 800; }
+.access-audit-card details { border-block-start: 1px solid var(--fitician-line); padding-block-start: .55rem; }
+.access-audit-card summary { width: fit-content; color: var(--fitician-teal); cursor: pointer; font-size: .76rem; font-weight: 800; }
 .access-audit-card__state { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-block-start: .65rem; }
-.access-audit-card__state h3 { margin: 0 0 .35rem; color: var(--fitsho-muted); font-size: .7rem; }
-.access-audit-card pre { max-width: 100%; margin: 0; padding: .65rem; overflow: auto; border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); direction: ltr; font-size: .7rem; text-align: start; }
+.access-audit-card__state h3 { margin: 0 0 .35rem; color: var(--fitician-muted); font-size: .7rem; }
+.access-audit-card pre { max-width: 100%; margin: 0; padding: .65rem; overflow: auto; border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); direction: ltr; font-size: .7rem; text-align: start; }
 
 .access-campaign-list { display: grid; gap: .75rem; }
 
@@ -273,25 +273,25 @@
   display: grid;
   gap: .85rem;
   padding: clamp(1rem, 3vw, 1.35rem);
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-card);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .access-campaign-card > header,
 .access-campaign-card > footer { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
 .access-campaign-card h2 { margin: .25rem 0 0; font-size: 1.08rem; }
-.access-campaign-card header p { margin: .2rem 0 0; color: var(--fitsho-muted); font-size: .78rem; }
-.access-admin-code { color: var(--fitsho-aqua); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .68rem; }
+.access-campaign-card header p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .78rem; }
+.access-admin-code { color: var(--fitician-aqua); direction: ltr; font-family: "Sora Variable", sans-serif; font-size: .68rem; }
 .access-admin-state { padding: .3rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; white-space: nowrap; }
-.access-admin-state.is-active { color: var(--fitsho-teal); background: rgb(80 223 206 / 14%); }
+.access-admin-state.is-active { color: var(--fitician-teal); background: rgb(80 223 206 / 14%); }
 .access-admin-state.is-inactive { color: #a13f32; background: rgb(161 63 50 / 10%); }
-.access-campaign-card__help { margin: 0; color: var(--fitsho-muted); font-size: .78rem; line-height: 1.6; }
+.access-campaign-card__help { margin: 0; color: var(--fitician-muted); font-size: .78rem; line-height: 1.6; }
 .access-campaign-card__warning { margin: 0; color: #936700; font-size: .75rem; font-weight: 750; }
 .access-campaign-card__facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; margin: 0; }
-.access-campaign-card__facts div { display: grid; gap: .18rem; min-width: 0; padding: .65rem; border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface-subtle); }
-.access-campaign-card__facts dt { color: var(--fitsho-muted); font-size: .68rem; }
+.access-campaign-card__facts div { display: grid; gap: .18rem; min-width: 0; padding: .65rem; border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
+.access-campaign-card__facts dt { color: var(--fitician-muted); font-size: .68rem; }
 .access-campaign-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .82rem; font-weight: 800; }
 .access-campaign-card footer { align-items: center; justify-content: start; }
 
@@ -299,12 +299,12 @@
 .access-admin-form-card > header { align-items: start; margin: 0; }
 .access-admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
 .access-admin-form-grid label,
-.access-admin-form-card__description { display: grid; gap: .35rem; color: var(--fitsho-ink); font-size: .78rem; font-weight: 750; }
+.access-admin-form-card__description { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 750; }
 .access-admin-form-grid input,
 .access-admin-form-grid select,
-.access-admin-form-card textarea { width: 100%; min-height: 2.65rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
+.access-admin-form-card textarea { width: 100%; min-height: 2.65rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); font: inherit; }
 .access-admin-form-card textarea { min-height: 5rem; resize: vertical; }
-.access-admin-form-grid input:focus, .access-admin-form-grid select:focus, .access-admin-form-card textarea:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitsho-aqua); }
+.access-admin-form-grid input:focus, .access-admin-form-grid select:focus, .access-admin-form-card textarea:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
 .access-admin-checkbox { display: flex !important; align-items: center; gap: .45rem; align-self: end; min-height: 2.65rem; }
 .access-admin-checkbox input { width: auto; min-height: auto; }
 

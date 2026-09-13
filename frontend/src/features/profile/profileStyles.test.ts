@@ -13,12 +13,12 @@ const profileCss = nodeProcess
 
 it("keeps profile questions bright, helpers muted, and section legends turquoise", () => {
   expect(profileCss).toMatch(
-    /\.profile-form \.profile-field label\s*\{[^}]*color:\s*var\(--fitsho-ink\)/,
+    /\.profile-form \.profile-field label\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-ink\)/,
   );
   expect(profileCss).toMatch(
-    /\.profile-form \.profile-field__hint\s*\{[^}]*color:\s*var\(--fitsho-muted\)/,
+    /\.profile-form \.profile-field__hint\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-muted\)/,
   );
   expect(profileCss).toMatch(
-    /\.profile-form \.profile-fieldset legend\s*\{[^}]*color:\s*var\(--fitsho-aqua\)/,
+    /\.profile-form \.profile-fieldset legend\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-aqua\)/,
   );
 });

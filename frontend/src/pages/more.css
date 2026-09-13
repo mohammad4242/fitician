@@ -1,5 +1,5 @@
 .more-page {
-  padding-block-end: var(--fitsho-space-8);
+  padding-block-end: var(--fitician-space-8);
 }
 
 .more-page__container {
@@ -24,10 +24,10 @@
   align-items: center;
   gap: 0.9rem;
   padding: 0.95rem 1.15rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: linear-gradient(135deg, rgb(80 223 206 / 6%), var(--fitsho-surface));
-  box-shadow: var(--fitsho-shadow-card);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: linear-gradient(135deg, rgb(80 223 206 / 6%), var(--fitician-surface));
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .more-profile-card__avatar {
@@ -36,8 +36,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: var(--fitsho-canvas);
-  background: var(--fitsho-aqua);
+  color: var(--fitician-canvas);
+  background: var(--fitician-aqua);
   font-family: "Sora Variable", sans-serif;
   font-size: 1.15rem;
   font-weight: 800;
@@ -45,22 +45,22 @@
 }
 
 .more-profile-card div { min-width: 0; display: grid; gap: 0.15rem; }
-.more-profile-card strong { color: var(--fitsho-ink); font-size: 0.95rem; font-weight: 750; }
-.more-profile-card span { overflow: hidden; color: var(--fitsho-muted); font-size: 0.78rem; text-overflow: ellipsis; }
+.more-profile-card strong { color: var(--fitician-ink); font-size: 0.95rem; font-weight: 750; }
+.more-profile-card span { overflow: hidden; color: var(--fitician-muted); font-size: 0.78rem; text-overflow: ellipsis; }
 .more-profile-card > a {
   padding: 0.45rem 0.85rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-pill);
-  color: var(--fitsho-aqua);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-pill);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 6%);
   font-size: 0.8rem;
   font-weight: 750;
   text-decoration: none;
-  transition: all var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: all var(--fitician-duration-fast) var(--fitician-ease);
 }
 .more-profile-card > a:hover {
   background: rgb(80 223 206 / 14%);
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
 }
 
 .more-page__grid {
@@ -75,22 +75,22 @@
   justify-content: space-between;
   gap: 0.8rem;
   padding: 0.85rem 1rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: var(--fitsho-surface-subtle);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: var(--fitician-surface-subtle);
 }
 
 .more-access-card div { display: grid; gap: 0.15rem; }
 .more-access-card p, .more-access-card strong, .more-access-card span { margin: 0; }
-.more-access-card p, .more-access-card span { color: var(--fitsho-muted); font-size: 0.72rem; }
-.more-access-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
+.more-access-card p, .more-access-card span { color: var(--fitician-muted); font-size: 0.72rem; }
+.more-access-card strong { color: var(--fitician-ink); font-size: 0.9rem; }
 .more-access-card > span { text-align: end; }
 .more-access-card__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
 .more-access-card__actions a {
   padding: 0.4rem 0.7rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-pill);
-  color: var(--fitsho-aqua);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-pill);
+  color: var(--fitician-aqua);
   font-size: 0.72rem;
   font-weight: 750;
   text-decoration: none;
@@ -99,16 +99,16 @@
 .more-group {
   min-width: 0;
   padding: 0.35rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-lg);
-  background: var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-card);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-lg);
+  background: var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-card);
 }
 
 .more-group h2 {
   margin: 0;
   padding: 0.65rem 0.85rem 0.35rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: 0.72rem;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -124,17 +124,17 @@
   align-items: center;
   gap: 0.8rem;
   padding: 0.65rem 0.8rem;
-  border-radius: var(--fitsho-radius-md);
+  border-radius: var(--fitician-radius-md);
   text-decoration: none;
-  transition: background var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: background var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .more-row + .more-row, .more-row + .more-language-row {
-  border-block-start: 1px solid var(--fitsho-line);
+  border-block-start: 1px solid var(--fitician-line);
 }
 
 .more-row:hover {
-  background: var(--fitsho-surface-interactive);
+  background: var(--fitician-surface-interactive);
 }
 
 .more-row > span:nth-child(2), .more-language-row > div {
@@ -144,13 +144,13 @@
 }
 
 .more-row strong, .more-language-row strong {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: 0.88rem;
   font-weight: 700;
 }
 
 .more-row small, .more-language-row span {
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: 0.72rem;
   line-height: 1.45;
 }
@@ -162,7 +162,7 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 20%);
   border-radius: 0.65rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 7%);
 }
 
@@ -174,11 +174,11 @@
 .more-row__chevron {
   width: 1rem;
   height: 1rem;
-  color: var(--fitsho-muted);
-  transition: transform var(--fitsho-duration-fast) var(--fitsho-ease), color var(--fitsho-duration-fast) var(--fitsho-ease);
+  color: var(--fitician-muted);
+  transition: transform var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease);
 }
 
-.more-row:hover .more-row__chevron { color: var(--fitsho-aqua); }
+.more-row:hover .more-row__chevron { color: var(--fitician-aqua); }
 
 [dir="rtl"] .more-row__chevron { transform: scaleX(-1); }
 @media (hover: hover) and (pointer: fine) {
@@ -188,9 +188,9 @@
 
 .more-language-row .language-switcher {
   min-height: 2.5rem;
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-ink);
-  background: var(--fitsho-surface-subtle);
+  border-color: var(--fitician-line);
+  color: var(--fitician-ink);
+  background: var(--fitician-surface-subtle);
 }
 
 .more-page__logout {
@@ -198,14 +198,14 @@
   min-height: 3.125rem;
   margin-block-start: 1rem;
   border: 1px solid rgb(246 120 89 / 25%);
-  border-radius: var(--fitsho-radius-md);
+  border-radius: var(--fitician-radius-md);
   color: #ffad98;
   background: rgb(246 120 89 / 6%);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 750;
   cursor: pointer;
-  transition: all var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: all var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .more-page__logout:hover:not(:disabled) {

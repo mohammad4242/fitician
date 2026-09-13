@@ -11,7 +11,7 @@ type Props = {
 
 export function ProgressRing({
   animateOnMount = false,
-  color = "var(--fitsho-aqua)",
+  color = "var(--fitician-aqua)",
   value,
   max,
   label,

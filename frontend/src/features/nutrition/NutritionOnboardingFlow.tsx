@@ -767,7 +767,7 @@ function PostAccountNutritionDetails(props: {
             />
           )}
           {isRecomp && (
-            <p style={{ color: "var(--fitsho-aqua)", fontSize: "0.85rem", margin: "0.25rem 0" }}>
+            <p style={{ color: "var(--fitician-aqua)", fontSize: "0.85rem", margin: "0.25rem 0" }}>
               {l("هدف روند وزن: تقریباً ثابت (بدون تغییر وزن هفتگی)", "Target weight trend: approximately stable")}
             </p>
           )}

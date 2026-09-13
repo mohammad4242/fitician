@@ -125,8 +125,8 @@
   width: 100%;
   height: 45%;
   display: block;
-  background: var(--fitsho-aqua);
-  animation: cinematic-scroll 1.8s var(--fitsho-ease) infinite;
+  background: var(--fitician-aqua);
+  animation: cinematic-scroll 1.8s var(--fitician-ease) infinite;
 }
 
 .supervision-moment {
@@ -153,7 +153,7 @@
 .supervision-moment__copy > p,
 .meal-analysis__copy > p {
   margin: 0 0 1rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font: 750 0.72rem/1 "Sora Variable", sans-serif;
   letter-spacing: 0.24em;
 }
@@ -175,7 +175,7 @@
   padding: clamp(1.5rem, 3vw, 2.6rem);
   border: 1px solid rgb(205 239 232 / 12%);
   border-radius: 1rem 1.75rem 1.1rem 1.35rem;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   background:
     linear-gradient(145deg, rgb(255 255 255 / 6%), transparent 42%),
     linear-gradient(160deg, rgb(10 32 30 / 88%), rgb(3 15 15 / 82%));
@@ -254,7 +254,7 @@
 .verification-seal circle { fill: none; stroke-width: 2; }
 .verification-seal__track { stroke: rgb(102 200 159 / 16%); }
 .verification-seal__ring {
-  stroke: var(--fitsho-success);
+  stroke: var(--fitician-success);
   stroke-dasharray: 100;
   stroke-dashoffset: calc(100 - var(--seal-progress) * 100);
   stroke-linecap: round;
@@ -264,7 +264,7 @@
 
 .verification-seal__check {
   fill: none;
-  stroke: var(--fitsho-success);
+  stroke: var(--fitician-success);
   stroke-width: 8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -300,7 +300,7 @@
 .meal-analysis__copy small {
   display: block;
   margin-top: 1rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .meal-analysis__visual {
@@ -336,7 +336,7 @@
   z-index: 3;
   width: 2.3rem;
   height: 2.3rem;
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
   opacity: var(--scan-progress, var(--meal-scan));
 }
 
@@ -351,7 +351,7 @@
   inset: calc(8% + var(--scan-progress, var(--meal-scan)) * 84%) 6% auto;
   height: 1px;
   display: block;
-  background: var(--fitsho-aqua);
+  background: var(--fitician-aqua);
   box-shadow: 0 0 0.7rem rgb(80 223 206 / 72%), 0 0.5rem 2rem rgb(80 223 206 / 22%);
   opacity: clamp(0, calc(var(--scan-progress, var(--meal-scan)) * 2), 1);
 }
@@ -372,10 +372,10 @@
 }
 
 [dir="ltr"] .meal-result { inset-inline: 0 auto; }
-.meal-result > strong { display: block; color: var(--fitsho-mist); font: 700 clamp(1.8rem, 4vw, 3rem)/1 "Sora Variable", sans-serif; direction: ltr; }
+.meal-result > strong { display: block; color: var(--fitician-mist); font: 700 clamp(1.8rem, 4vw, 3rem)/1 "Sora Variable", sans-serif; direction: ltr; }
 .meal-result > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.8rem; }
 .meal-result span { display: grid; gap: 0.2rem; }
-.meal-result small { color: var(--fitsho-aqua); font-size: 0.68rem; }
+.meal-result small { color: var(--fitician-aqua); font-size: 0.68rem; }
 .meal-result b { color: rgb(232 244 241 / 76%); font: 650 0.72rem/1 "Sora Variable", sans-serif; direction: ltr; }
 
 .process-story {
@@ -458,17 +458,17 @@
 .process-step__marker circle { fill: none; stroke-width: 2.4; }
 .process-step__track { stroke: rgb(232 244 241 / 10%); }
 .process-step__ring {
-  stroke: var(--fitsho-aqua);
+  stroke: var(--fitician-aqua);
   stroke-dasharray: 100;
   stroke-dashoffset: calc(100 - var(--step-fill) * 100);
   stroke-linecap: round;
   filter: drop-shadow(0 0 0.4rem rgb(80 223 206 / 38%));
 }
 
-.process-step__marker span { color: color-mix(in srgb, var(--fitsho-aqua) calc(var(--step-fill) * 100%), var(--fitsho-muted)); font: 700 0.8rem/1 "Sora Variable", sans-serif; }
+.process-step__marker span { color: color-mix(in srgb, var(--fitician-aqua) calc(var(--step-fill) * 100%), var(--fitician-muted)); font: 700 0.8rem/1 "Sora Variable", sans-serif; }
 .process-step__copy { max-width: 14rem; display: grid; align-content: start; gap: 0.4rem; padding-inline-end: 1rem; opacity: calc(0.26 + var(--copy-fill) * 0.74); transform: translateY(calc((1 - var(--copy-fill)) * 0.4rem)); }
-.process-step__copy strong { color: var(--fitsho-mist); font-size: clamp(1.05rem, 1.4vw, 1.25rem); }
-.process-step__copy small { color: var(--fitsho-muted); line-height: 1.6; }
+.process-step__copy strong { color: var(--fitician-mist); font-size: clamp(1.05rem, 1.4vw, 1.25rem); }
+.process-step__copy small { color: var(--fitician-muted); line-height: 1.6; }
 
 .process-step__connector {
   position: absolute;
@@ -481,7 +481,7 @@
 }
 
 [dir="ltr"] .process-step__connector { inset-inline: calc(clamp(5.8rem, 8vw, 7.2rem) * 0.82) auto; }
-.process-step__connector i { width: 100%; height: 100%; display: block; background: var(--fitsho-aqua); transform: scaleX(var(--line-fill)); transform-origin: right; }
+.process-step__connector i { width: 100%; height: 100%; display: block; background: var(--fitician-aqua); transform: scaleX(var(--line-fill)); transform-origin: right; }
 [dir="ltr"] .process-step__connector i { transform-origin: left; }
 
 .body-intelligence {
@@ -512,7 +512,7 @@
 
 .body-intelligence__heading { position: relative; z-index: 6; grid-column: 1; grid-row: 1; }
 .body-intelligence__heading h2 { max-width: 12ch; margin: 0; font-size: clamp(2.6rem, 4.6vw, 4.8rem); line-height: 1.04; text-wrap: balance; }
-.body-intelligence__heading > p:last-child { max-width: 30rem; margin: 1rem 0 0; color: var(--fitsho-muted); line-height: 1.8; }
+.body-intelligence__heading > p:last-child { max-width: 30rem; margin: 1rem 0 0; color: var(--fitician-muted); line-height: 1.8; }
 
 .body-analysis-capture,
 .body-interface {
@@ -539,7 +539,7 @@
 }
 
 .scan-frame--body img { object-position: center 43%; }
-.body-analysis-capture > small { color: var(--fitsho-muted); }
+.body-analysis-capture > small { color: var(--fitician-muted); }
 
 .body-analysis-capture__mapping {
   position: absolute;
@@ -554,8 +554,8 @@
   width: 0.5rem;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--fitsho-aqua);
-  box-shadow: 0 0 0.9rem var(--fitsho-aqua);
+  background: var(--fitician-aqua);
+  box-shadow: 0 0 0.9rem var(--fitician-aqua);
 }
 
 .body-analysis-capture__mapping i:nth-child(1) { inset: 36% auto auto 31%; }
@@ -581,12 +581,12 @@
 .body-interface__connectors,
 .body-interface__hotspots { position: absolute; inset: 0; width: 100%; height: 100%; }
 .body-interface__muscles { z-index: 2; pointer-events: none; }
-.muscle-region { opacity: 0; transition: opacity 420ms var(--fitsho-ease); }
+.muscle-region { opacity: 0; transition: opacity 420ms var(--fitician-ease); }
 .muscle-region[data-active="true"] { opacity: 1; }
 .muscle-region__glow { fill: url(#body-muscle-aqua); opacity: 0.42; mix-blend-mode: screen; }
 .muscle-region__light { fill: url(#body-muscle-aqua); opacity: 0.17; mix-blend-mode: screen; filter: blur(0.8px); }
 .body-interface__connectors { z-index: 3; overflow: visible; pointer-events: none; }
-.connector { fill: none; stroke: var(--fitsho-aqua); stroke-width: 1; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0; vector-effect: non-scaling-stroke; transition: stroke-dashoffset 480ms var(--fitsho-ease), opacity 240ms ease; }
+.connector { fill: none; stroke: var(--fitician-aqua); stroke-width: 1; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0; vector-effect: non-scaling-stroke; transition: stroke-dashoffset 480ms var(--fitician-ease), opacity 240ms ease; }
 .body-interface[data-active-muscle="shoulders"] .connector--shoulders,
 .body-interface[data-active-muscle="back"] .connector--back { stroke-dashoffset: 0; opacity: 1; }
 
@@ -600,7 +600,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
@@ -608,7 +608,7 @@
 
 .body-hotspot::before,
 .body-hotspot span { position: absolute; border-radius: 50%; content: ""; }
-.body-hotspot::before { inset: 0; border: 1px solid currentColor; opacity: 0.25; transform: scale(0.65); transition: transform 300ms var(--fitsho-ease), opacity 300ms ease; }
+.body-hotspot::before { inset: 0; border: 1px solid currentColor; opacity: 0.25; transform: scale(0.65); transition: transform 300ms var(--fitician-ease), opacity 300ms ease; }
 .body-hotspot span { width: 0.55rem; aspect-ratio: 1; background: currentColor; box-shadow: 0 0 1rem currentColor; }
 .body-hotspot--shoulders { inset: 21% 23% auto auto; }
 .body-hotspot--back { inset: 36% 46% auto auto; }
@@ -617,7 +617,7 @@
 .body-hotspot:hover,
 .body-hotspot:focus-visible,
 .body-hotspot[aria-pressed="true"] { opacity: 1; }
-.body-hotspot:focus-visible { outline: 2px solid var(--fitsho-mist); outline-offset: 0.2rem; }
+.body-hotspot:focus-visible { outline: 2px solid var(--fitician-mist); outline-offset: 0.2rem; }
 
 .body-interface__callout {
   position: absolute;
@@ -628,17 +628,17 @@
   gap: 0.25rem;
   padding: 0.85rem 1rem;
   border: 1px solid rgb(80 223 206 / 18%);
-  border-inline-start: 2px solid var(--fitsho-aqua);
+  border-inline-start: 2px solid var(--fitician-aqua);
   border-radius: 0.75rem;
   background: rgb(4 18 17 / 90%);
   box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 28%);
   backdrop-filter: blur(12px);
-  transition: inset 360ms var(--fitsho-ease);
+  transition: inset 360ms var(--fitician-ease);
 }
 
 .body-interface[data-active-muscle="back"] .body-interface__callout { inset-block-start: 46%; }
-.body-interface__callout small { color: var(--fitsho-muted); }
-.body-interface__callout strong { color: var(--fitsho-aqua); }
+.body-interface__callout small { color: var(--fitician-muted); }
+.body-interface__callout strong { color: var(--fitician-aqua); }
 
 @keyframes cinematic-scroll {
   0% { transform: translateY(-110%); }

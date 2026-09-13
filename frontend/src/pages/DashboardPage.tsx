@@ -27,9 +27,9 @@ type PlanState = "loading" | "empty" | "ready" | "error";
 type NutritionState = "loading" | "pending" | "ready" | "empty";
 
 const nutritionRingColors: Record<NutritionProgressTone, string> = {
-  blue: "var(--fitsho-blue)",
-  green: "var(--fitsho-success)",
-  red: "var(--fitsho-danger)",
+  blue: "var(--fitician-blue)",
+  green: "var(--fitician-success)",
+  red: "var(--fitician-danger)",
 };
 
 export function DashboardPage() {

@@ -178,7 +178,7 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.5rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: linear-gradient(135deg, rgb(80 223 206 / 15%), rgb(80 223 206 / 4%));
   box-shadow: 0 1px 4px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 15%);
   backdrop-filter: blur(8px);
@@ -220,10 +220,10 @@
   width: 100%;
   min-height: 2.85rem;
   padding: 0.65rem 0.95rem;
-  border: 1px solid var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-md);
-  color: var(--fitsho-ink);
-  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitsho-canvas);
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-ink);
+  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitician-canvas);
   font: inherit;
   font-size: 0.9rem;
   box-shadow: 0 2px 6px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 5%);
@@ -265,7 +265,7 @@ html[dir="rtl"] .profile-field select {
   border: 1px solid rgb(80 223 206 / 30%);
   border-radius: 0.45rem;
   background: rgb(80 223 206 / 12%);
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: 0.72rem;
   font-weight: 850;
   pointer-events: none;
@@ -284,10 +284,10 @@ html[dir="rtl"] .profile-field select {
   gap: 0.65rem;
   min-height: 2.85rem;
   padding: 0.55rem 0.85rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-md);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
   background: rgb(255 255 255 / 3%);
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
@@ -301,7 +301,7 @@ html[dir="rtl"] .profile-field select {
 }
 
 .profile-checkboxes label:has(input:checked) {
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
   background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 5%));
   box-shadow: 0 0 10px rgb(80 223 206 / 14%);
 }
@@ -313,7 +313,7 @@ html[dir="rtl"] .profile-field select {
   min-height: 1.15rem;
   margin: 0;
   padding: 0;
-  accent-color: var(--fitsho-aqua);
+  accent-color: var(--fitician-aqua);
   cursor: pointer;
 }
 
@@ -332,7 +332,7 @@ html[dir="rtl"] .profile-field select {
 .profile-field input:focus,
 .profile-field select:focus,
 .profile-field textarea:focus {
-  border-color: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
   box-shadow: 0 0 0 3px rgb(80 223 206 / 20%), 0 4px 16px rgb(0 0 0 / 20%);
   outline: none;
 }
@@ -469,14 +469,14 @@ html[dir="rtl"] .profile-field select {
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 1.4rem;
   background: rgb(247 251 250 / 88%);
-  box-shadow: var(--fitsho-shadow);
+  box-shadow: var(--fitician-shadow);
   scrollbar-gutter: stable;
 }
 
 .profile-wizard__page > h2 {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--fitsho-petrol);
+  color: var(--fitician-petrol);
   font-size: clamp(1.8rem, 4vw, 3rem);
 }
 
@@ -572,20 +572,20 @@ html[dir="rtl"] .profile-field select {
 
 .profile-page-shell {
   padding-block-end: 7rem;
-  background: radial-gradient(circle at 92% 4%, rgb(80 223 206 / 16%), transparent 24rem), var(--fitsho-surface);
+  background: radial-gradient(circle at 92% 4%, rgb(80 223 206 / 16%), transparent 24rem), var(--fitician-surface);
 }
 
 .profile-page-heading {
-  border-radius: var(--fitsho-radius-card);
-  background: linear-gradient(135deg, var(--fitsho-petrol), var(--fitsho-teal));
-  box-shadow: var(--fitsho-shadow);
+  border-radius: var(--fitician-radius-card);
+  background: linear-gradient(135deg, var(--fitician-petrol), var(--fitician-teal));
+  box-shadow: var(--fitician-shadow);
 }
 
 .measurement-card {
-  color: var(--fitsho-petrol);
-  border-radius: var(--fitsho-radius-card);
-  background: var(--fitsho-aqua);
-  box-shadow: var(--fitsho-shadow);
+  color: var(--fitician-petrol);
+  border-radius: var(--fitician-radius-card);
+  background: var(--fitician-aqua);
+  box-shadow: var(--fitician-shadow);
 }
 
 .profile-fieldset { border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 7%); }
@@ -704,22 +704,22 @@ html[dir="rtl"] .profile-page-heading h1 {
 /* Compact account composition */
 .profile-page-shell .member-page-background { display: none; }
 .profile-page-main { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: .8rem; }
-.profile-page-heading { grid-column: 1 / -1; padding: .8rem 1rem; border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: none; }
+.profile-page-heading { grid-column: 1 / -1; padding: .8rem 1rem; border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: none; }
 .profile-page-heading .eyebrow, .profile-page-heading > p:last-child { display: none; }
 .profile-page-heading h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2.2rem); letter-spacing: 0; }
-.profile-account-summary { grid-column: 1 / -1; overflow: hidden; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); }
-.profile-account-summary > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .8rem; border-bottom: 1px solid var(--fitsho-line); }
-.profile-account-summary > header > span { width: 3rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; color: var(--fitsho-canvas); background: var(--fitsho-aqua); font: 850 1.1rem "Sora Variable", sans-serif; }
+.profile-account-summary { grid-column: 1 / -1; overflow: hidden; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
+.profile-account-summary > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .8rem; border-bottom: 1px solid var(--fitician-line); }
+.profile-account-summary > header > span { width: 3rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; color: var(--fitician-canvas); background: var(--fitician-aqua); font: 850 1.1rem "Sora Variable", sans-serif; }
 .profile-account-summary > header > .profile-photo-avatar { --profile-photo-size: 3rem; box-shadow: none; }
 .profile-page-photo-control { grid-column: 1 / -1; }
 .profile-account-summary header div { min-width: 0; }
 .profile-account-summary h2, .profile-account-summary p { margin: 0; }
 .profile-account-summary h2 { font-size: 1rem; }
-.profile-account-summary p { overflow: hidden; color: var(--fitsho-muted); font-size: .72rem; text-overflow: ellipsis; }
-.profile-account-summary header a { color: var(--fitsho-aqua); font-size: .72rem; font-weight: 850; text-decoration: none; }
+.profile-account-summary p { overflow: hidden; color: var(--fitician-muted); font-size: .72rem; text-overflow: ellipsis; }
+.profile-account-summary header a { color: var(--fitician-aqua); font-size: .72rem; font-weight: 850; text-decoration: none; }
 .profile-account-summary dl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; }
 .profile-account-summary dl > div { min-width: 0; display: grid; gap: .2rem; padding: .7rem .8rem; }
-.profile-account-summary dl > div + div { border-inline-start: 1px solid var(--fitsho-line); }
+.profile-account-summary dl > div + div { border-inline-start: 1px solid var(--fitician-line); }
 .profile-summary-stat {
   display: flex !important;
   align-items: center;
@@ -738,7 +738,7 @@ html[dir="rtl"] .profile-page-heading h1 {
   place-items: center;
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.65rem;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   background: linear-gradient(135deg, rgb(80 223 206 / 15%), rgb(80 223 206 / 5%));
   box-shadow: 0 2px 8px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 15%);
   backdrop-filter: blur(8px);
@@ -752,9 +752,9 @@ html[dir="rtl"] .profile-page-heading h1 {
   display: grid;
   gap: .15rem;
 }
-.profile-account-summary dt { color: var(--fitsho-muted); font-size: .64rem; }
+.profile-account-summary dt { color: var(--fitician-muted); font-size: .64rem; }
 .profile-account-summary dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 850; }
-.measurement-card { min-height: 4.5rem; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2rem .75rem; justify-content: initial; padding: .7rem .85rem; border-radius: var(--fitsho-radius-md); box-shadow: none; }
+.measurement-card { min-height: 4.5rem; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2rem .75rem; justify-content: initial; padding: .7rem .85rem; border-radius: var(--fitician-radius-md); box-shadow: none; }
 .measurement-card p { grid-column: 1; }
 .measurement-card strong { grid-column: 1; margin: 0; font-size: 1.25rem; }
 .measurement-card span { grid-column: 2; grid-row: 1 / span 2; font-size: .66rem; }
@@ -762,20 +762,20 @@ html[dir="rtl"] .profile-page-heading h1 {
 .measurement-card--body-progress strong { max-width: none; overflow: hidden; font-size: .72rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .measurement-card--body-progress .secondary-button { grid-column: 2; grid-row: 1 / span 2; min-height: 2.4rem; margin: 0; padding-inline: .7rem; font-size: .7rem; }
 .profile-wizard { gap: .6rem; }
-.profile-wizard .profile-progress { padding: .65rem .85rem; border-radius: var(--fitsho-radius-md); box-shadow: none; }
+.profile-wizard .profile-progress { padding: .65rem .85rem; border-radius: var(--fitician-radius-md); box-shadow: none; }
 .profile-progress__count { display: none; }
 .profile-progress ol { gap: .35rem; }
 .profile-progress ol::before { display: none; }
-.profile-progress li { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.4rem; padding: .35rem .6rem; border: 1px solid var(--fitsho-line); border-radius: .75rem; background: var(--fitsho-surface-subtle); backdrop-filter: blur(8px); transition: all 180ms ease; }
+.profile-progress li { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.4rem; padding: .35rem .6rem; border: 1px solid var(--fitician-line); border-radius: .75rem; background: var(--fitician-surface-subtle); backdrop-filter: blur(8px); transition: all 180ms ease; }
 .profile-progress li.is-active { border-color: rgb(80 223 206 / 35%); background: rgb(80 223 206 / 8%); }
-.profile-progress li[aria-current="step"] { border-color: var(--fitsho-aqua); background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 5%)); box-shadow: 0 0 12px rgb(80 223 206 / 15%); }
-.profile-progress__badge { width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 0.5rem; border: 1px solid rgb(80 223 206 / 25%); background: rgb(80 223 206 / 10%); color: var(--fitsho-aqua); flex-shrink: 0; }
-.profile-progress li.is-active .profile-progress__badge { border-color: var(--fitsho-aqua); background: var(--fitsho-aqua); color: var(--fitsho-canvas); box-shadow: 0 0 8px rgb(80 223 206 / 35%); }
+.profile-progress li[aria-current="step"] { border-color: var(--fitician-aqua); background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 5%)); box-shadow: 0 0 12px rgb(80 223 206 / 15%); }
+.profile-progress__badge { width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 0.5rem; border: 1px solid rgb(80 223 206 / 25%); background: rgb(80 223 206 / 10%); color: var(--fitician-aqua); flex-shrink: 0; }
+.profile-progress li.is-active .profile-progress__badge { border-color: var(--fitician-aqua); background: var(--fitician-aqua); color: var(--fitician-canvas); box-shadow: 0 0 8px rgb(80 223 206 / 35%); }
 .profile-progress__icon { width: 0.95rem; height: 0.95rem; }
 .profile-progress li > strong { margin: 0; font-size: .72rem; font-weight: 750; }
-.profile-wizard__page { padding: .8rem; border-radius: var(--fitsho-radius-md); box-shadow: none; }
+.profile-wizard__page { padding: .8rem; border-radius: var(--fitician-radius-md); box-shadow: none; }
 .profile-wizard__page > h2 { font-size: 1.15rem; }
-.profile-fieldset { padding: .75rem; border-radius: var(--fitsho-radius-md); }
+.profile-fieldset { padding: .75rem; border-radius: var(--fitician-radius-md); }
 
 @media (max-width: 620px) {
   .profile-page-main { grid-template-columns: 1fr; }
@@ -786,9 +786,9 @@ html[dir="rtl"] .profile-page-heading h1 {
 
 /* Authenticated profile surface */
 .profile-page-shell {
-  padding: 0 clamp(1rem, 3vw, 3rem) var(--fitsho-space-8);
-  color: var(--fitsho-ink);
-  background: var(--fitsho-canvas);
+  padding: 0 clamp(1rem, 3vw, 3rem) var(--fitician-space-8);
+  color: var(--fitician-ink);
+  background: var(--fitician-canvas);
 }
 
 .profile-page-shell .member-page-background {
@@ -805,10 +805,10 @@ html[dir="rtl"] .profile-page-heading h1 {
 
 .profile-page-heading {
   padding: clamp(1.4rem, 3vw, 2.25rem);
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-xl);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-xl);
   background: linear-gradient(135deg, rgb(80 223 206 / 8%), rgb(11 32 31 / 90%));
-  box-shadow: var(--fitsho-shadow-focus);
+  box-shadow: var(--fitician-shadow-focus);
   backdrop-filter: blur(12px);
 }
 
@@ -821,22 +821,22 @@ html[dir="rtl"] .profile-page-heading h1 {
 }
 
 html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
-.profile-page-heading > p:last-child { color: var(--fitsho-muted); }
+.profile-page-heading > p:last-child { color: var(--fitician-muted); }
 
 .measurement-card {
   min-height: 10rem;
   justify-content: center;
   padding: 1.25rem;
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-xl);
-  color: var(--fitsho-ink);
-  background: var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-soft);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-xl);
+  color: var(--fitician-ink);
+  background: var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
-.measurement-card:first-of-type { border-color: var(--fitsho-line-strong); background: linear-gradient(135deg, rgb(80 223 206 / 12%), var(--fitsho-surface)); }
-.measurement-card strong { color: var(--fitsho-aqua); font-family: "Sora Variable", sans-serif; font-size: clamp(1.6rem, 3vw, 2.5rem); }
-.measurement-card p, .measurement-card span { color: var(--fitsho-muted); }
+.measurement-card:first-of-type { border-color: var(--fitician-line-strong); background: linear-gradient(135deg, rgb(80 223 206 / 12%), var(--fitician-surface)); }
+.measurement-card strong { color: var(--fitician-aqua); font-family: "Sora Variable", sans-serif; font-size: clamp(1.6rem, 3vw, 2.5rem); }
+.measurement-card p, .measurement-card span { color: var(--fitician-muted); }
 .measurement-card .secondary-button { width: fit-content; margin-block-start: .75rem; }
 
 .measurement-card--body-progress {
@@ -846,7 +846,7 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 
 .measurement-card--body-progress strong {
   max-width: 34rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-family: inherit;
   font-size: 1rem;
   line-height: 1.65;
@@ -857,41 +857,41 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
   display: inline-flex;
   align-items: center;
   padding-inline: 1rem;
-  border-color: var(--fitsho-line-strong);
-  border-radius: var(--fitsho-radius-pill);
-  color: var(--fitsho-aqua);
+  border-color: var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-pill);
+  color: var(--fitician-aqua);
   background: transparent;
   text-decoration: none;
 }
 
 .profile-wizard .profile-progress,
 .profile-wizard__page {
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-ink);
+  border-color: var(--fitician-line);
+  color: var(--fitician-ink);
   background: rgb(11 32 31 / 94%);
-  box-shadow: var(--fitsho-shadow-soft);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
 .profile-wizard .profile-progress { backdrop-filter: blur(12px); }
-.profile-progress ol::before { background: var(--fitsho-line); }
-.profile-progress li > span { border-color: var(--fitsho-line); color: var(--fitsho-muted); background: var(--fitsho-surface-raised); }
-.profile-progress li > strong { color: var(--fitsho-muted); }
-.profile-progress li.is-active > span { color: var(--fitsho-canvas); background: var(--fitsho-aqua); }
-.profile-progress li.is-active > strong { color: var(--fitsho-ink); }
-.profile-wizard__page > h2 { color: var(--fitsho-ink); font-family: inherit; font-size: clamp(1.55rem, 3vw, 2.25rem); font-weight: 850; }
-.profile-fieldset { border-color: var(--fitsho-line); background: var(--fitsho-surface-subtle); box-shadow: none; }
-.profile-fieldset legend { color: var(--fitsho-aqua); }
-.profile-form .profile-field label { color: var(--fitsho-ink); }
-.profile-form .profile-field__hint { color: var(--fitsho-muted); }
-.profile-form .profile-fieldset legend { color: var(--fitsho-aqua); }
+.profile-progress ol::before { background: var(--fitician-line); }
+.profile-progress li > span { border-color: var(--fitician-line); color: var(--fitician-muted); background: var(--fitician-surface-raised); }
+.profile-progress li > strong { color: var(--fitician-muted); }
+.profile-progress li.is-active > span { color: var(--fitician-canvas); background: var(--fitician-aqua); }
+.profile-progress li.is-active > strong { color: var(--fitician-ink); }
+.profile-wizard__page > h2 { color: var(--fitician-ink); font-family: inherit; font-size: clamp(1.55rem, 3vw, 2.25rem); font-weight: 850; }
+.profile-fieldset { border-color: var(--fitician-line); background: var(--fitician-surface-subtle); box-shadow: none; }
+.profile-fieldset legend { color: var(--fitician-aqua); }
+.profile-form .profile-field label { color: var(--fitician-ink); }
+.profile-form .profile-field__hint { color: var(--fitician-muted); }
+.profile-form .profile-fieldset legend { color: var(--fitician-aqua); }
 .profile-field :is(input, select, textarea) {
-  border-color: var(--fitsho-line-strong);
-  color: var(--fitsho-ink);
-  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitsho-canvas);
+  border-color: var(--fitician-line-strong);
+  color: var(--fitician-ink);
+  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitician-canvas);
 }
-.profile-field__hint { color: var(--fitsho-muted); }
+.profile-field__hint { color: var(--fitician-muted); }
 .profile-wizard__actions { background: linear-gradient(transparent, rgb(11 32 31 / 98%) 30%); }
-.profile-optional-state { border-color: var(--fitsho-line-strong); color: var(--fitsho-ink); background: var(--fitsho-surface-interactive); }
+.profile-optional-state { border-color: var(--fitician-line-strong); color: var(--fitician-ink); background: var(--fitician-surface-interactive); }
 
 @media (max-width: 900px) {
   .profile-page-main { grid-template-columns: 1fr; }
@@ -900,7 +900,7 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 
 @media (max-width: 620px) {
   .profile-account-summary dl { grid-template-columns: repeat(3, 1fr); }
-  .profile-account-summary dl div:nth-child(n+4) { border-top: 1px solid var(--fitsho-line); }
+  .profile-account-summary dl div:nth-child(n+4) { border-top: 1px solid var(--fitician-line); }
   .profile-account-summary dl div:nth-child(4) { border-inline-start: 0; }
 }
 
@@ -912,15 +912,15 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 }
 
 /* Final density overrides: account pages use app-scale surfaces, not landing heroes. */
-.profile-page-heading { padding: .85rem 1.15rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 5%), var(--fitsho-surface)); box-shadow: var(--fitsho-shadow-card); }
+.profile-page-heading { padding: .85rem 1.15rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 5%), var(--fitician-surface)); box-shadow: var(--fitician-shadow-card); }
 .profile-page-heading h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2.2rem); letter-spacing: 0; font-weight: 800; }
-.measurement-card { min-height: 4.5rem; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2rem .75rem; justify-content: initial; padding: .75rem .95rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); box-shadow: var(--fitsho-shadow-card); transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease); }
-.measurement-card:hover { border-color: var(--fitsho-line-strong); }
+.measurement-card { min-height: 4.5rem; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .2rem .75rem; justify-content: initial; padding: .75rem .95rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); box-shadow: var(--fitician-shadow-card); transition: border-color var(--fitician-duration-fast) var(--fitician-ease); }
+.measurement-card:hover { border-color: var(--fitician-line-strong); }
 .measurement-card p, .measurement-card strong { grid-column: 1; margin: 0; }
 .measurement-card strong { font-size: 1.25rem; font-weight: 800; }
 .measurement-card span { grid-column: 2; grid-row: 1 / span 2; font-size: .66rem; }
 .measurement-card--body-progress strong { max-width: none; overflow: hidden; font-size: .72rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.measurement-card--body-progress .secondary-button { grid-column: 2; grid-row: 1 / span 2; min-height: 2.4rem; margin: 0; padding-inline: .7rem; font-size: .7rem; border-radius: var(--fitsho-radius-pill); }
+.measurement-card--body-progress .secondary-button { grid-column: 2; grid-row: 1 / span 2; min-height: 2.4rem; margin: 0; padding-inline: .7rem; font-size: .7rem; border-radius: var(--fitician-radius-pill); }
 
 @media (max-width: 900px) {
   .measurement-card { min-height: 4.25rem; }

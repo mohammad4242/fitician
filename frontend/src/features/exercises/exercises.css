@@ -366,15 +366,15 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   gap: 1rem;
   margin-block: 1rem 1.4rem;
   padding: 1rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: 1rem;
-  background: var(--fitsho-surface-subtle);
+  background: var(--fitician-surface-subtle);
 }
 
 .catalog-admin-toolbar label {
   display: grid;
   gap: 0.35rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: 0.78rem;
   font-weight: 780;
 }
@@ -382,10 +382,10 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 .catalog-admin-toolbar select {
   min-height: 2.8rem;
   padding-inline: 0.8rem;
-  border: 1px solid var(--fitsho-line);
+  border: 1px solid var(--fitician-line);
   border-radius: 0.7rem;
-  color: var(--fitsho-ink);
-  background: var(--fitsho-surface-raised);
+  color: var(--fitician-ink);
+  background: var(--fitician-surface-raised);
   font: inherit;
 }
 
@@ -396,10 +396,10 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   align-items: center;
   justify-content: center;
   padding-inline: 1rem;
-  border: 1px solid var(--fitsho-aqua);
+  border: 1px solid var(--fitician-aqua);
   border-radius: 0.7rem;
-  color: var(--fitsho-petrol);
-  background: var(--fitsho-aqua);
+  color: var(--fitician-petrol);
+  background: var(--fitician-aqua);
   font-weight: 820;
   text-decoration: none;
 }
@@ -576,9 +576,9 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   width: 100%;
   min-height: 2.8rem;
   margin-block-start: 0.55rem;
-  border: 1px solid var(--fitsho-danger, #b44a4a);
+  border: 1px solid var(--fitician-danger, #b44a4a);
   border-radius: 0.7rem;
-  color: var(--fitsho-danger, #b44a4a);
+  color: var(--fitician-danger, #b44a4a);
   background: transparent;
   font: inherit;
   font-size: 0.78rem;
@@ -606,28 +606,28 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1.35rem;
-  border: 1px solid color-mix(in srgb, var(--fitsho-danger) 30%, var(--fitsho-line));
+  border: 1px solid color-mix(in srgb, var(--fitician-danger) 30%, var(--fitician-line));
   border-radius: 1.35rem;
-  color: var(--fitsho-text);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--fitsho-danger) 7%, var(--fitsho-surface)), var(--fitsho-surface) 48%);
+  color: var(--fitician-text);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--fitician-danger) 7%, var(--fitician-surface)), var(--fitician-surface) 48%);
   box-shadow: 0 2rem 6rem rgb(0 0 0 / 48%);
   animation: exercise-delete-enter 180ms ease-out both;
 }
 
-.exercise-delete-dialog__rail { position: absolute; inset-block: 0; inset-inline-start: 0; width: .3rem; background: var(--fitsho-danger); box-shadow: 0 0 1.5rem color-mix(in srgb, var(--fitsho-danger) 55%, transparent); }
+.exercise-delete-dialog__rail { position: absolute; inset-block: 0; inset-inline-start: 0; width: .3rem; background: var(--fitician-danger); box-shadow: 0 0 1.5rem color-mix(in srgb, var(--fitician-danger) 55%, transparent); }
 .exercise-delete-dialog > header { display: flex; align-items: center; gap: .85rem; }
-.exercise-delete-dialog > header p { margin: 0 0 .2rem; color: var(--fitsho-danger); font-size: .72rem; font-weight: 850; letter-spacing: .04em; }
+.exercise-delete-dialog > header p { margin: 0 0 .2rem; color: var(--fitician-danger); font-size: .72rem; font-weight: 850; letter-spacing: .04em; }
 .exercise-delete-dialog h2 { margin: 0; font-size: clamp(1.3rem, 4vw, 1.65rem); }
-.exercise-delete-dialog__icon { flex: 0 0 auto; width: 3rem; height: 3rem; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--fitsho-danger) 38%, transparent); border-radius: 1rem; color: var(--fitsho-danger); background: color-mix(in srgb, var(--fitsho-danger) 12%, transparent); }
+.exercise-delete-dialog__icon { flex: 0 0 auto; width: 3rem; height: 3rem; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--fitician-danger) 38%, transparent); border-radius: 1rem; color: var(--fitician-danger); background: color-mix(in srgb, var(--fitician-danger) 12%, transparent); }
 .exercise-delete-dialog__icon svg { width: 1.4rem; height: 1.4rem; }
-.exercise-delete-dialog__description { margin: 1rem 0; color: var(--fitsho-muted); line-height: 1.85; }
-.exercise-delete-dialog__error { margin: .85rem 0 0; color: var(--fitsho-danger); font-weight: 750; line-height: 1.7; }
+.exercise-delete-dialog__description { margin: 1rem 0; color: var(--fitician-muted); line-height: 1.85; }
+.exercise-delete-dialog__error { margin: .85rem 0 0; color: var(--fitician-danger); font-weight: 750; line-height: 1.7; }
 .exercise-delete-dialog footer { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin-block-start: 1.15rem; }
 .exercise-delete-dialog footer button { min-height: 3rem; border-radius: .9rem; font: inherit; font-weight: 850; cursor: pointer; }
 .exercise-delete-dialog footer button:disabled { cursor: wait; opacity: .68; }
-.exercise-delete-dialog__cancel { border: 1px solid var(--fitsho-line-strong); color: var(--fitsho-text); background: transparent; }
-.exercise-delete-dialog__confirm { border: 1px solid var(--fitsho-danger); color: #190603; background: linear-gradient(135deg, #ff9b7f, var(--fitsho-danger)); box-shadow: 0 .65rem 1.6rem color-mix(in srgb, var(--fitsho-danger) 24%, transparent); }
-.exercise-delete-dialog footer button:focus-visible { outline: 3px solid color-mix(in srgb, var(--fitsho-aqua) 65%, transparent); outline-offset: 2px; }
+.exercise-delete-dialog__cancel { border: 1px solid var(--fitician-line-strong); color: var(--fitician-text); background: transparent; }
+.exercise-delete-dialog__confirm { border: 1px solid var(--fitician-danger); color: #190603; background: linear-gradient(135deg, #ff9b7f, var(--fitician-danger)); box-shadow: 0 .65rem 1.6rem color-mix(in srgb, var(--fitician-danger) 24%, transparent); }
+.exercise-delete-dialog footer button:focus-visible { outline: 3px solid color-mix(in srgb, var(--fitician-aqua) 65%, transparent); outline-offset: 2px; }
 
 @keyframes exercise-delete-enter {
   from { opacity: 0; transform: translateY(.65rem) scale(.985); }
@@ -647,7 +647,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   display: inline-flex;
   margin-block-start: 0.45rem;
   margin-inline-end: 0.4rem;
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
   font-size: 0.72rem;
   font-weight: 760;
 }
@@ -742,8 +742,8 @@ html[dir="ltr"] .exercise-card__link span {
   position: relative;
   min-height: clamp(8rem, 18vw, 13rem);
   overflow: hidden;
-  border-radius: var(--fitsho-radius-card);
-  box-shadow: var(--fitsho-shadow);
+  border-radius: var(--fitician-radius-card);
+  box-shadow: var(--fitician-shadow);
 }
 
 .exercise-detail-hero .member-header-media__asset {
@@ -903,9 +903,9 @@ html[dir="ltr"] .exercise-card__link span {
 }
 
 .exercise-media-presentation-toggle button[aria-pressed="true"] {
-  border-color: var(--fitsho-aqua);
-  color: var(--fitsho-petrol);
-  background: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
+  color: var(--fitician-petrol);
+  background: var(--fitician-aqua);
 }
 
 .exercise-media-presentation-toggle button:disabled {
@@ -1039,7 +1039,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
 
 .exercise-detail-accordion > summary::after {
   margin-inline-start: auto;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   content: "+";
   font-size: 1.6rem;
   font-weight: 400;
@@ -1051,21 +1051,21 @@ html[dir="rtl"] .exercise-detail-heading h1 {
 }
 
 .exercise-detail-accordion > summary:focus-visible {
-  outline: 3px solid var(--fitsho-aqua);
+  outline: 3px solid var(--fitician-aqua);
   outline-offset: -3px;
 }
 
 .exercise-detail-overview {
   grid-column: 2;
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-ink);
+  border-color: var(--fitician-line);
+  color: var(--fitician-ink);
   background: rgb(11 32 31 / 91%);
-  box-shadow: var(--fitsho-shadow-soft);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
 .exercise-detail-heading {
   border: 0;
-  border-block-start: 1px solid var(--fitsho-line);
+  border-block-start: 1px solid var(--fitician-line);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -1303,32 +1303,32 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 /* Performance Pulse visual layer */
 .exercise-catalog-shell {
   padding-block-end: 7rem;
-  background: radial-gradient(circle at 92% 6%, rgb(246 120 89 / 14%), transparent 25rem), var(--fitsho-surface);
+  background: radial-gradient(circle at 92% 6%, rgb(246 120 89 / 14%), transparent 25rem), var(--fitician-surface);
 }
 .exercise-catalog-main,
 .exercise-detail-main { max-width: 82rem; }
 .exercise-catalog-hero {
   border: 0;
-  border-radius: var(--fitsho-radius-card);
-  color: var(--fitsho-mist);
-  background: linear-gradient(135deg, var(--fitsho-petrol), var(--fitsho-teal));
-  box-shadow: var(--fitsho-shadow);
+  border-radius: var(--fitician-radius-card);
+  color: var(--fitician-mist);
+  background: linear-gradient(135deg, var(--fitician-petrol), var(--fitician-teal));
+  box-shadow: var(--fitician-shadow);
 }
 .exercise-catalog-hero h1 { font-size: clamp(3.8rem, 8vw, 6.8rem); letter-spacing: 0; }
 .exercise-catalog-hero > p { color: rgb(234 244 241 / 74%); }
 .catalog-stage,
-.catalog-results { border: 0; border-radius: var(--fitsho-radius-card); box-shadow: var(--fitsho-shadow); }
-.catalog-stage__heading > span { color: var(--fitsho-coral); background: rgb(246 120 89 / 12%); }
+.catalog-results { border: 0; border-radius: var(--fitician-radius-card); box-shadow: var(--fitician-shadow); }
+.catalog-stage__heading > span { color: var(--fitician-coral); background: rgb(246 120 89 / 12%); }
 .catalog-stage__heading h2,
 .exercise-detail-heading h1 { letter-spacing: 0; }
 .region-button,
 .muscle-button { border-radius: 1rem; }
 .region-button[aria-pressed="true"],
-.muscle-button[aria-pressed="true"] { border-color: var(--fitsho-aqua); color: var(--fitsho-petrol); background: var(--fitsho-aqua); }
+.muscle-button[aria-pressed="true"] { border-color: var(--fitician-aqua); color: var(--fitician-petrol); background: var(--fitician-aqua); }
 .exercise-card { border: 0; border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 9%); }
 .exercise-card__media { border-radius: 1rem; }
-.exercise-detail-sheet { border: 0; border-radius: var(--fitsho-radius-card); box-shadow: var(--fitsho-shadow); }
-.exercise-detail-heading { background: var(--fitsho-mist); }
+.exercise-detail-sheet { border: 0; border-radius: var(--fitician-radius-card); box-shadow: var(--fitician-shadow); }
+.exercise-detail-heading { background: var(--fitician-mist); }
 .exercise-detail-media img,
 .exercise-detail-media video { border-radius: 1rem; }
 .exercise-instructions,
@@ -1338,10 +1338,10 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-catalog-shell {
   min-height: 100%;
   padding: clamp(1rem, 2.5vw, 2rem) clamp(0.85rem, 3vw, 2rem) 7rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   background:
     radial-gradient(circle at 82% 0%, rgb(80 223 206 / 7%), transparent 24rem),
-    var(--fitsho-canvas);
+    var(--fitician-canvas);
 }
 
 .exercise-catalog-shell .member-page-background {
@@ -1351,7 +1351,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-catalog-main,
 .exercise-detail-main {
-  width: min(100%, var(--fitsho-content));
+  width: min(100%, var(--fitician-content));
   margin-block-start: 0;
 }
 
@@ -1360,17 +1360,17 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.55fr);
   gap: clamp(1.5rem, 5vw, 5rem);
   padding: clamp(1.5rem, 4vw, 3rem);
-  border: 1px solid var(--fitsho-line-strong);
+  border: 1px solid var(--fitician-line-strong);
   background:
     linear-gradient(125deg, rgb(80 223 206 / 10%), transparent 52%),
     rgb(7 23 22 / 88%);
-  box-shadow: var(--fitsho-shadow-soft);
+  box-shadow: var(--fitician-shadow-soft);
   backdrop-filter: blur(14px);
 }
 
 .exercise-catalog-hero h1 {
   max-width: 14ch;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   font-size: clamp(2.25rem, 5vw, 4rem);
   line-height: 1.05;
 }
@@ -1383,17 +1383,17 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-detail-heading__secondary,
 .exercise-detail-facts dt,
 .exercise-detail-message p {
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .catalog-breadcrumb a,
 .catalog-breadcrumb button {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .catalog-breadcrumb a:hover,
 .catalog-breadcrumb button:hover {
-  background: var(--fitsho-surface-interactive);
+  background: var(--fitician-surface-interactive);
 }
 
 .catalog-special-filters,
@@ -1402,15 +1402,15 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-detail-heading,
 .exercise-instructions,
 .exercise-detail-message {
-  border: 1px solid var(--fitsho-line);
-  color: var(--fitsho-ink);
+  border: 1px solid var(--fitician-line);
+  color: var(--fitician-ink);
   background: rgb(11 32 31 / 91%);
-  box-shadow: var(--fitsho-shadow-soft);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
 .catalog-special-filters {
-  border-inline-start-color: var(--fitsho-aqua);
-  border-radius: var(--fitsho-radius-md);
+  border-inline-start-color: var(--fitician-aqua);
+  border-radius: var(--fitician-radius-md);
 }
 
 .catalog-special-filters p,
@@ -1421,7 +1421,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-detail-section-heading h2,
 .exercise-detail-facts dd,
 .exercise-detail-message h1 {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .catalog-special-filters button,
@@ -1430,9 +1430,9 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-filters select,
 .exercise-filters input,
 .catalog-pagination button {
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-ink);
-  background: var(--fitsho-surface-raised);
+  border-color: var(--fitician-line);
+  color: var(--fitician-ink);
+  background: var(--fitician-surface-raised);
 }
 
 .catalog-special-filters button.is-active,
@@ -1440,34 +1440,34 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .muscle-button.is-active,
 .region-button[aria-pressed="true"],
 .muscle-button[aria-pressed="true"] {
-  border-color: var(--fitsho-aqua);
-  color: var(--fitsho-petrol);
-  background: var(--fitsho-aqua);
+  border-color: var(--fitician-aqua);
+  color: var(--fitician-petrol);
+  background: var(--fitician-aqua);
 }
 
 .region-button small,
 .muscle-button small {
-  color: var(--fitsho-muted);
+  color: var(--fitician-muted);
 }
 
 .exercise-filters {
-  background: var(--fitsho-surface-subtle);
+  background: var(--fitician-surface-subtle);
 }
 
 .exercise-filters label {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 .exercise-card {
-  border: 1px solid var(--fitsho-line);
-  color: var(--fitsho-ink);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2%) 0%, transparent 100%), var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-card);
-  transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), transform var(--fitsho-duration-fast) var(--fitsho-ease), box-shadow var(--fitsho-duration-fast) var(--fitsho-ease);
+  border: 1px solid var(--fitician-line);
+  color: var(--fitician-ink);
+  background: linear-gradient(180deg, rgb(255 255 255 / 2%) 0%, transparent 100%), var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-card);
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease), box-shadow var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .exercise-card:hover {
-  border-color: var(--fitsho-line-strong);
+  border-color: var(--fitician-line-strong);
   box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -1475,19 +1475,19 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 }
 
 .exercise-card dl > div {
-  border-bottom-color: var(--fitsho-line);
+  border-bottom-color: var(--fitician-line);
 }
 
 .exercise-card__link,
 .exercise-detail-back {
-  color: var(--fitsho-petrol);
-  background: var(--fitsho-aqua);
+  color: var(--fitician-petrol);
+  background: var(--fitician-aqua);
 }
 
 .catalog-status {
-  border-color: var(--fitsho-line);
-  color: var(--fitsho-muted);
-  background: var(--fitsho-surface-subtle);
+  border-color: var(--fitician-line);
+  color: var(--fitician-muted);
+  background: var(--fitician-surface-subtle);
 }
 
 .exercise-detail-sheet {
@@ -1497,9 +1497,9 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-detail-media,
 .exercise-safety {
-  border-color: var(--fitsho-line);
-  background: var(--fitsho-surface);
-  box-shadow: var(--fitsho-shadow-soft);
+  border-color: var(--fitician-line);
+  background: var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-soft);
 }
 
 .exercise-detail-heading {
@@ -1512,13 +1512,13 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 }
 
 .exercise-detail-facts > div {
-  border-inline-start-color: var(--fitsho-aqua);
-  background: var(--fitsho-surface-raised);
+  border-inline-start-color: var(--fitician-aqua);
+  background: var(--fitician-surface-raised);
 }
 
 .exercise-instructions li,
 .exercise-safety li {
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
 }
 
 @media (max-width: 767px) {
@@ -1554,7 +1554,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-detail-accordion > summary::after {
   margin-inline-start: auto;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   content: "+";
   font-size: 1.6rem;
   font-weight: 400;
@@ -1566,7 +1566,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 }
 
 .exercise-detail-accordion > summary:focus-visible {
-  outline: 3px solid var(--fitsho-aqua);
+  outline: 3px solid var(--fitician-aqua);
   outline-offset: -3px;
 }
 
@@ -1576,7 +1576,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-detail-heading {
   border: 0;
-  border-block-start: 1px solid var(--fitsho-line);
+  border-block-start: 1px solid var(--fitician-line);
   border-radius: 0;
   background: transparent;
   box-shadow: none;

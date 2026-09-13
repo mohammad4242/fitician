@@ -13,7 +13,7 @@
 .meal-catalogue-page {
   min-height: 100svh;
   padding-bottom: 5rem;
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
   background: transparent;
 }
 
@@ -36,7 +36,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--fitsho-accent, #32d8cc);
+  color: var(--fitician-accent, #32d8cc);
 }
 
 .meal-catalogue-hero h1 {
@@ -49,7 +49,7 @@
 .meal-catalogue-hero p.meal-catalogue-description {
   margin: 0;
   font-size: clamp(0.9rem, 2vw, 1.05rem);
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   max-width: 42rem;
   line-height: 1.6;
 }
@@ -71,7 +71,7 @@
 .meal-catalogue-filter-label {
   font-size: 0.82rem;
   font-weight: 800;
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   flex-shrink: 0;
 }
 
@@ -95,7 +95,7 @@
   border: 1px solid rgb(234 244 241 / 14%);
   background: rgb(10 31 30 / 65%);
   backdrop-filter: blur(12px);
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -105,14 +105,14 @@
 
 .meal-catalogue-chip:hover {
   background: rgb(10 31 30 / 85%);
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .meal-catalogue-chip.is-active,
 .meal-catalogue-chip[aria-selected="true"] {
-  background: var(--fitsho-accent, #32d8cc);
+  background: var(--fitician-accent, #32d8cc);
   color: #061514;
-  border-color: var(--fitsho-accent, #32d8cc);
+  border-color: var(--fitician-accent, #32d8cc);
   font-weight: 800;
 }
 
@@ -128,7 +128,7 @@
   gap: 0.4rem;
   padding: 0.6rem 1.25rem;
   border-radius: 999px;
-  background: var(--fitsho-accent, #32d8cc);
+  background: var(--fitician-accent, #32d8cc);
   color: #061514;
   font-size: 0.9rem;
   font-weight: 850;
@@ -151,7 +151,7 @@
   background: rgb(10 31 30 / 70%);
   backdrop-filter: blur(12px);
   border: 1px dashed rgb(234 244 241 / 18%);
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   font-size: 0.95rem;
 }
 
@@ -168,7 +168,7 @@
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
   border: none;
-  background: var(--fitsho-accent, #32d8cc);
+  background: var(--fitician-accent, #32d8cc);
   color: #061514;
   font-size: 0.85rem;
   font-weight: 800;
@@ -256,14 +256,14 @@
   margin: 0.15rem 0 0;
   font-size: clamp(1rem, 2.5vw, 1.2rem);
   font-weight: 800;
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .admin-meal-card__identity .eyebrow {
   margin: 0;
   font-size: 0.76rem;
   font-weight: 800;
-  color: var(--fitsho-accent, #32d8cc);
+  color: var(--fitician-accent, #32d8cc);
   letter-spacing: 0.03em;
 }
 
@@ -322,18 +322,18 @@
 .admin-meal-ingredients strong {
   display: block;
   font-size: 0.92rem;
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .admin-meal-ingredients small {
   display: block;
   margin-top: 0.15rem;
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   font-size: 0.78rem;
 }
 
 .admin-meal-ingredients li > span {
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
   font-size: 0.82rem;
   font-weight: 750;
 }
@@ -351,7 +351,7 @@
   padding: 0.45rem 0.85rem;
   border: 1px solid rgb(234 244 241 / 18%);
   border-radius: 999px;
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
   background: rgb(10 31 30 / 80%);
   cursor: pointer;
   font-weight: 750;
@@ -363,8 +363,8 @@
 .admin-meal-card footer a:hover,
 .admin-meal-card footer button:hover {
   background: rgb(50 216 204 / 15%);
-  border-color: var(--fitsho-accent, #32d8cc);
-  color: var(--fitsho-accent, #32d8cc);
+  border-color: var(--fitician-accent, #32d8cc);
+  color: var(--fitician-accent, #32d8cc);
 }
 
 .admin-meal-card footer button.admin-meal-delete-button {
@@ -382,7 +382,7 @@
 .admin-meal-card footer span {
   margin-inline-start: auto;
   font-size: 0.76rem;
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
 }
 
 @media (max-width: 767px) {
@@ -425,7 +425,7 @@
   background: #0d2826;
   border: 1px solid rgb(234 244 241 / 18%);
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 50%);
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .admin-meal-image-dialog header,
@@ -441,12 +441,12 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 850;
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .admin-meal-image-dialog header button {
   border: 0;
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   background: transparent;
   cursor: pointer;
   font-size: 1.5rem;
@@ -464,7 +464,7 @@
   border: 1px dashed rgb(234 244 241 / 20%);
   border-radius: 0.75rem;
   background: rgb(6 21 20 / 60%);
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
 }
 
 .admin-meal-image-dialog form > button {
@@ -473,7 +473,7 @@
   border: 0;
   border-radius: 0.75rem;
   color: #061514;
-  background: var(--fitsho-accent, #32d8cc);
+  background: var(--fitician-accent, #32d8cc);
   cursor: pointer;
   font-weight: 850;
   transition: opacity 0.15s ease;
@@ -496,7 +496,7 @@
 
 .meal-delete-dialog__description {
   margin: 1rem 0;
-  color: var(--fitsho-muted, #94a3b8);
+  color: var(--fitician-muted, #94a3b8);
   line-height: 1.7;
   font-size: 0.95rem;
 }
@@ -536,7 +536,7 @@
 
 .meal-delete-dialog__cancel {
   border: 1px solid rgb(234 244 241 / 20%);
-  color: var(--fitsho-ink, #e4f0ed);
+  color: var(--fitician-ink, #e4f0ed);
   background: transparent;
 }
 

@@ -1,10 +1,10 @@
 .food-catalogue-page {
   min-height: 100svh;
   padding-bottom: 5rem;
-  color: var(--fitsho-ink);
+  color: var(--fitician-ink);
   background:
     radial-gradient(circle at 50% -12%, rgb(50 216 204 / 10%), transparent 30rem),
-    var(--fitsho-canvas);
+    var(--fitician-canvas);
 }
 
 .food-catalogue-hero,
@@ -37,18 +37,18 @@
   min-height: 2.75rem;
   align-items: center;
   padding: .45rem .85rem;
-  color: var(--fitsho-muted);
-  border: 1px solid var(--fitsho-line);
-  border-radius: var(--fitsho-radius-pill);
+  color: var(--fitician-muted);
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-pill);
   text-decoration: none;
   font-size: .78rem;
   font-weight: 750;
-  transition: border-color var(--fitsho-duration-fast) var(--fitsho-ease), color var(--fitsho-duration-fast) var(--fitsho-ease), background var(--fitsho-duration-fast) var(--fitsho-ease);
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .food-catalogue-back:hover {
-  border-color: var(--fitsho-line-strong);
-  color: var(--fitsho-aqua);
+  border-color: var(--fitician-line-strong);
+  color: var(--fitician-aqua);
   background: rgb(80 223 206 / 6%);
 }
 
@@ -94,7 +94,7 @@
   min-height: 2.9rem;
   box-sizing: border-box;
   padding: .7rem .85rem;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px solid rgb(234 244 241 / 14%);
   border-radius: .8rem;
   outline: none;
@@ -112,10 +112,10 @@
 .food-catalogue-state button {
   min-height: 2.9rem;
   padding: .65rem .95rem;
-  color: var(--fitsho-petrol);
+  color: var(--fitician-petrol);
   border: 0;
   border-radius: .8rem;
-  background: var(--fitsho-aqua);
+  background: var(--fitician-aqua);
   font: inherit;
   font-size: .78rem;
   font-weight: 900;
@@ -404,7 +404,7 @@
 }
 
 .food-price-ticket.is-missing {
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px dashed rgb(234 244 241 / 20%);
   background: rgb(255 255 255 / 4%);
 }
@@ -459,10 +459,10 @@
   overflow: auto;
   box-sizing: border-box;
   padding: clamp(1.3rem, 4vw, 2.3rem);
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px solid rgb(234 244 241 / 16%);
   border-radius: 1.4rem;
-  background: var(--fitsho-surface-raised);
+  background: var(--fitician-surface-raised);
   box-shadow: 0 2rem 6rem rgb(0 0 0 / 44%);
 }
 
@@ -472,7 +472,7 @@
   inset-inline-end: .8rem;
   width: 2.75rem;
   height: 2.75rem;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px solid rgb(234 244 241 / 15%);
   border-radius: 50%;
   background: rgb(255 255 255 / 6%);
@@ -497,7 +497,7 @@
 .food-basis-selector button {
   min-height: 2.75rem;
   padding: .45rem .7rem;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px solid rgb(234 244 241 / 18%);
   border-radius: .65rem;
   background: transparent;
@@ -505,9 +505,9 @@
 }
 
 .food-basis-selector button.is-selected {
-  color: var(--fitsho-petrol);
-  border-color: var(--fitsho-aqua);
-  background: var(--fitsho-aqua);
+  color: var(--fitician-petrol);
+  border-color: var(--fitician-aqua);
+  background: var(--fitician-aqua);
 }
 
 .food-detail-basis {
@@ -548,7 +548,7 @@
 .food-dialog__actions button {
   min-height: 2.8rem;
   padding: .6rem 1rem;
-  color: var(--fitsho-mist);
+  color: var(--fitician-mist);
   border: 1px solid rgb(234 244 241 / 18%);
   border-radius: .75rem;
   background: rgb(255 255 255 / 6%);
@@ -574,7 +574,7 @@
 }
 
 .food-dialog a {
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
 }
 
 .food-admin-form {
@@ -607,7 +607,7 @@
 
 .food-image-file {
   margin: 0;
-  color: var(--fitsho-aqua);
+  color: var(--fitician-aqua);
   font-size: .78rem;
 }
 
@@ -719,7 +719,7 @@
 .food-ai-quotes h4 {
   margin: 0 0 0.5rem;
   font-size: 0.88rem;
-  color: var(--fitsho-mist, #eaf4f1);
+  color: var(--fitician-mist, #eaf4f1);
 }
 
 .food-ai-quotes ul {
@@ -751,7 +751,7 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   background: rgb(50 216 204 / 15%);
-  color: var(--fitsho-mist, #eaf4f1);
+  color: var(--fitician-mist, #eaf4f1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
