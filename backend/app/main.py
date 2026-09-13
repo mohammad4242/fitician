@@ -18,6 +18,7 @@ from app.access_management.router import router as access_management_router
 from app.account_deletion.router import router as account_deletion_router
 from app.account_deletion.scheduler import account_deletion_scheduler_loop
 from app.admin.router import router as admin_router
+from app.admin_audit.router import router as admin_audit_router
 from app.auth.providers import (
     build_apple_identity_provider,
     build_email_provider,
@@ -273,6 +274,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(billing_router)
     app.include_router(billing_admin_router)
+    app.include_router(admin_audit_router)
     app.include_router(access_management_router)
     app.include_router(entitlements_router)
     app.include_router(account_deletion_router)

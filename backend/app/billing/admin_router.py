@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.admin.dependencies import require_admin
+from app.admin.dependencies import AdminUser, require_admin
 from app.auth.cookies import require_trusted_origin
 from app.billing.enums import BillingOfferCode
 from app.billing.schemas import (
@@ -42,8 +42,16 @@ def update_admin_billing_offer(
     offer_code: BillingOfferCode,
     db: DatabaseSession,
     payload: UpdateBillingOfferConfigRequest,
+    admin: AdminUser,
 ) -> AdminBillingOfferResponse:
-    return update_offer_config(db, offer_code, payload)
+    response = update_offer_config(
+        db,
+        offer_code,
+        payload,
+        actor_user_id=admin.id,
+    )
+    db.commit()
+    return response
 
 
 @router.get("/orders", response_model=list[AdminBillingOrderResponse])

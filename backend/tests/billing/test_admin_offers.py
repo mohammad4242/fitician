@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.admin_audit.enums import AdminAuditAction
+from app.admin_audit.models import AdminAuditEvent
 from app.auth.models import User
 from app.billing.enums import BillingOfferCode
 from app.billing.models import BillingOfferConfig
@@ -74,6 +76,51 @@ def test_admin_update_cannot_change_immutable_offer_definition(client, db: Sessi
     )
 
     assert response.status_code == 422
+
+
+def test_admin_offer_price_and_activation_changes_are_audited(client, db: Session) -> None:
+    admin = register_admin(client, db, "billing-admin-audit@example.com")
+    db.add(
+        BillingOfferConfig(
+            offer_code=BillingOfferCode.TRAINING_4W,
+            price_irr=1_000_000,
+            currency="IRR",
+            is_active=True,
+        )
+    )
+    db.flush()
+
+    response = client.patch(
+        "/api/v1/admin/billing/offers/training_4w",
+        headers=ORIGIN,
+        json={"price_irr": 1_250_000, "is_active": False},
+    )
+
+    assert response.status_code == 200
+    event = db.scalar(
+        select(AdminAuditEvent)
+        .where(
+            AdminAuditEvent.action == AdminAuditAction.BILLING_OFFER_UPDATED,
+            AdminAuditEvent.resource_key == "training_4w",
+        )
+        .order_by(AdminAuditEvent.created_at.desc())
+    )
+    assert event is not None
+    assert event.actor_user_id == admin.id
+    assert event.before_state == {
+        "price_irr": 1_000_000,
+        "currency": "IRR",
+        "is_active": True,
+        "available_from": None,
+        "available_until": None,
+    }
+    assert event.after_state == {
+        "price_irr": 1_250_000,
+        "currency": "IRR",
+        "is_active": False,
+        "available_from": None,
+        "available_until": None,
+    }
 
 
 def test_non_admin_cannot_access_billing_admin_api(client) -> None:

@@ -7,6 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.admin_audit.enums import AdminAuditAction
+from app.admin_audit.service import record_admin_audit_event
 from app.billing.catalog import PAID_OFFER_CATALOG, offer_definition
 from app.billing.enums import (
     BillingOfferCode,
@@ -169,16 +171,32 @@ def list_admin_offer_responses(
     ]
 
 
+def _admin_offer_config_state(config: BillingOfferConfig) -> dict[str, object]:
+    return {
+        "price_irr": config.price_irr,
+        "currency": config.currency,
+        "is_active": config.is_active,
+        "available_from": (
+            config.available_from.isoformat() if config.available_from is not None else None
+        ),
+        "available_until": (
+            config.available_until.isoformat() if config.available_until is not None else None
+        ),
+    }
+
+
 def update_offer_config(
     db: Session,
     offer_code: BillingOfferCode,
     payload: UpdateBillingOfferConfigRequest,
     *,
     now: datetime | None = None,
+    actor_user_id: UUID | None = None,
 ) -> AdminBillingOfferResponse:
     reference = utc_now(now)
     offer_definition(offer_code)
     config = get_offer_config(db, offer_code)
+    before_state = _admin_offer_config_state(config) if config is not None else None
     if config is None:
         if payload.price_irr is None:
             raise BillingOfferPriceRequiredError(offer_code.value)
@@ -213,8 +231,19 @@ def update_offer_config(
     if config.price_irr < 0:
         raise BillingOfferConfigInvalidError("price_irr must not be negative")
     db.flush()
-    db.commit()
-    db.refresh(config)
+    if actor_user_id is not None:
+        record_admin_audit_event(
+            db,
+            action=AdminAuditAction.BILLING_OFFER_UPDATED,
+            actor_user_id=actor_user_id,
+            resource_type="billing_offer",
+            resource_key=offer_code.value,
+            before_state=before_state,
+            after_state=_admin_offer_config_state(config),
+        )
+    else:
+        db.commit()
+        db.refresh(config)
     return _admin_offer_response(offer_code, config, now=reference)
 
 
