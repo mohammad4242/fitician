@@ -320,7 +320,7 @@ class PublicPageProvider:
         response = await self._client.get(
             url,
             timeout=15,
-            headers={"User-Agent": "FitshoPriceBot/1.0 (+public food price monitoring)"},
+            headers={"User-Agent": "FiticianPriceBot/1.0 (+public food price monitoring)"},
         )
         self._last_request_at = time.monotonic()
         if response.status_code == 429:

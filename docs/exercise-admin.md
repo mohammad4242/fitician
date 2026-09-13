@@ -88,7 +88,7 @@ media_attribution    optional
 ## Docker، پایداری و پشتیبان‌گیری
 
 سرویس backend در Compose، `ffprobe` را داخل image دارد. رسانه‌ها در volume نام‌دار
-`fitsho_exercise_media` زیر `/var/lib/fitsho/media` می‌مانند. حذف container فایل‌ها را
+`fitician_exercise_media` زیر `/var/lib/fitician/media` می‌مانند. حذف container فایل‌ها را
 حذف نمی‌کند، اما حذف volume آن‌ها را از بین می‌برد.
 
 پشتیبان عملیاتی باید PostgreSQL و volume رسانه را در یک نقطه زمانی هماهنگ نگه دارد.
@@ -115,5 +115,5 @@ upgrade، migration یا جابه‌جایی محیط، از هر دو نسخه 
 لینک مدیریت فقط برای مدیر نمایش داده می‌شود و `AdminRoute` دسترسی مستقیم مهمان و
 غیرمدیر را نیز می‌بندد. فرم دوزبانه با RTL/LTR، پیشنهاد slug قابل‌ویرایش، کنترل‌های
 چندانتخابی، فیلدهای تکرارشونده، پیش‌نمایش رسانه، placeholder، وضعیت ارسال و retry از
-قراردادهای فعلی فیتشو استفاده می‌کند. چون API client فعلی Fetch درصد پیشرفت upload
+قراردادهای فعلی فیتیشن استفاده می‌کند. چون API client فعلی Fetch درصد پیشرفت upload
 نمی‌دهد، رابط وضعیت بارگذاری نامعین و واقعی نمایش می‌دهد.

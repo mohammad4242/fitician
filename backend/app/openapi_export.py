@@ -17,7 +17,7 @@ def export_openapi(output: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Export Fitsho's deterministic OpenAPI document")
+    parser = argparse.ArgumentParser(description="Export Fitician's deterministic OpenAPI document")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     export_openapi(args.output)

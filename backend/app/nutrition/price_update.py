@@ -45,7 +45,7 @@ async def main(*, catch_up: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Refresh Fitsho food prices")
+    parser = ArgumentParser(description="Refresh Fitician food prices")
     parser.add_argument(
         "--catch-up",
         action="store_true",

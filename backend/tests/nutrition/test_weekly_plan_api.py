@@ -696,9 +696,8 @@ def test_download_nutrition_plan_pdf(client: TestClient, db: Session) -> None:
     pdf_resp = client.get(f"/api/v1/nutrition/plans/{plan_id}/pdf")
     assert pdf_resp.status_code == 200
     assert pdf_resp.headers["content-type"] == "application/pdf"
-    assert (
-        f'filename="fitsho-nutrition-plan-{plan_id}.pdf"' in pdf_resp.headers["content-disposition"]
-    )
+    expected_pdf_name = f'filename="fitician-nutrition-plan-{plan_id}.pdf"'
+    assert expected_pdf_name in pdf_resp.headers["content-disposition"]
     assert pdf_resp.content.startswith(b"%PDF-")
 
     missing_resp = client.get("/api/v1/nutrition/plans/018f0000-0000-7000-8000-000000000000/pdf")

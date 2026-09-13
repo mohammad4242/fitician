@@ -333,7 +333,7 @@ def import_curated_foundation_foods(db: Session, source_path: Path) -> list[Cata
 
 
 def main() -> None:
-    parser = ArgumentParser(description="Import curated USDA Foundation Foods into Fitsho")
+    parser = ArgumentParser(description="Import curated USDA Foundation Foods into Fitician")
     parser.add_argument("source", type=Path, help="Extracted Foundation Foods JSON file")
     args = parser.parse_args()
     with Session(get_engine(get_settings().database_url)) as db:

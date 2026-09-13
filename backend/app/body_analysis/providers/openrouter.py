@@ -38,7 +38,7 @@ class OpenRouterProvider:
         base_url: str = "https://openrouter.ai/api/v1",
         timeout_seconds: float = 420.0,
         app_url: str | None = None,
-        app_name: str = "Fitsho",
+        app_name: str = "Fitician",
         private_media_resolver: PrivateMediaResolver | None = None,
     ) -> None:
         self._client = client

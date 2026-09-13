@@ -510,8 +510,8 @@ def test_first_public_run_discovers_mappings_and_accepts_three_source_mean(db) -
 
     food = NutritionCatalogueFood(
         slug="discovery-test-grain",
-        name_fa="دانه آزمایشی فیتشو",
-        name_en="Fitsho test grain",
+        name_fa="دانه آزمایشی فیتیشن",
+        name_en="Fitician test grain",
         verification_status=FoodVerificationStatus.VERIFIED,
         source_name="test",
         source_reference="test",
@@ -552,7 +552,7 @@ def test_first_public_run_discovers_mappings_and_accepts_three_source_mean(db) -
                 PublicProductCandidate(
                     provider_code=self.code,
                     product_id=f"{self.code}-rice",
-                    title="دانه آزمایشی فیتشو ۱۰ کیلوگرم",
+                    title="دانه آزمایشی فیتیشن ۱۰ کیلوگرم",
                     public_url=f"https://{self.code}.example/rice",
                     currency="TOMAN",
                     normal_price=self.price,

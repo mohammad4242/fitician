@@ -32,8 +32,8 @@ from app.profile.enums import ExperienceLevel
 from app.training_templates.seed_data import TRAINING_PROGRAM_TEMPLATE_SEEDS
 from app.workouts.bodyweight_templates import get_bodyweight_template
 
-BENCHMARK_SOURCE = "fitsho-ci-benchmark"
-BENCHMARK_ID_NAMESPACE = "https://fitsho.local/ci-benchmark/catalog/"
+BENCHMARK_SOURCE = "fitician-ci-benchmark"
+BENCHMARK_ID_NAMESPACE = "https://fitician.local/ci-benchmark/catalog/"
 
 _BODYWEIGHT_METADATA: dict[str, tuple[MuscleGroup, MovementPattern]] = {
     "fedb-drv-squat-squat": (MuscleGroup.QUADRICEPS, MovementPattern.SQUAT),

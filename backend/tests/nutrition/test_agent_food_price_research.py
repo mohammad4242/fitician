@@ -107,13 +107,13 @@ def test_request_targets_three_sources_and_uses_canonical_prompt() -> None:
     assert "public HTTPS" in request.system_prompt
     assert "canonical domain" in request.system_prompt
     assert "Do not answer from model memory" in request.system_prompt
-    assert "Do not calculate the Fitsho" in request.system_prompt
+    assert "Do not calculate the Fitician" in request.system_prompt
     assert "reference price" in request.system_prompt
     assert "final average" not in request.system_prompt.lower()
     assert "database ID" not in request.system_prompt
     assert "search_url" not in request.system_prompt
     assert "view_file" not in request.system_prompt
-    assert request.schema_name == "fitsho_food_price_research_v1"
+    assert request.schema_name == "fitician_food_price_research_v1"
 
 
 def test_output_models_forbid_extra_fields_and_bound_quotes() -> None:

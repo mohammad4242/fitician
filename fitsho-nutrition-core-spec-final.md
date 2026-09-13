@@ -542,7 +542,7 @@ Show short deterministic feedback after important answers, for example:
 - `فعالیت روزانه و تمرینت را جداگانه محاسبه می‌کنیم تا تخمین انرژی دقیق‌تر باشد.`
 - `بودجه هفتگی از بودجه ماهانه محاسبه می‌شود و برنامه سعی می‌کند تا حد ممکن به هدف تغذیه‌ای ترجیحی نزدیک شود.`
 - `تعداد وعده‌های اصلی و میان‌وعده‌ها را در تقسیم کالری و مواد مغذی برنامه لحاظ می‌کنیم.`
-- `به‌دلیل شرایط پزشکی ثبت‌شده، برنامه قبل از فعال‌شدن باید توسط پزشک فیتشو بررسی شود.`
+- `به‌دلیل شرایط پزشکی ثبت‌شده، برنامه قبل از فعال‌شدن باید توسط پزشک فیتیشن بررسی شود.`
 
 Do not call OpenRouter or any AI API during normal onboarding.
 
@@ -2654,7 +2654,7 @@ Do not display wording implying physician review before a real physician has rev
 
 Only after approval may the UI display wording equivalent to:
 
-> این نسخه از برنامه غذایی توسط پزشک فیتشو بررسی و تأیید شده است.
+> این نسخه از برنامه غذایی توسط پزشک فیتیشن بررسی و تأیید شده است.
 
 After approval, the user-facing plan experience must also:
 

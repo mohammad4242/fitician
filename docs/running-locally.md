@@ -1,4 +1,4 @@
-# اجرای محلی فیتشو
+# اجرای محلی فیتیشن
 
 ## درگاه‌ها
 
@@ -104,7 +104,7 @@ http://localhost:5173
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test .venv/bin/pytest
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test .venv/bin/pytest
 .venv/bin/ruff check app tests
 .venv/bin/ruff format --check app tests
 .venv/bin/mypy app tests
@@ -137,5 +137,5 @@ docker compose up --build
 ```
 
 Compose migrationها را پیش از اجرای API اعمال می‌کند و رسانه‌ها را در volume نام‌دار
-`fitsho_exercise_media` نگه می‌دارد. برای backup و restore هماهنگ پایگاه داده و این
+`fitician_exercise_media` نگه می‌دارد. برای backup و restore هماهنگ پایگاه داده و این
 volume به `docs/exercise-admin.md` مراجعه کن.

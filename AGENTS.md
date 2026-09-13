@@ -2,7 +2,7 @@
 
 ## Project
 
-Fitsho is an AI-powered fitness and nutrition companion. Monorepo with two packages:
+Fitician is an AI-powered fitness and nutrition companion. Monorepo with two packages:
 
 - `backend/` — Python 3.12, FastAPI, SQLAlchemy, Alembic, PostgreSQL
 - `frontend/` — React 19, TypeScript, Vite, Vitest, Oxlint
@@ -31,7 +31,7 @@ docker compose up --build
 ```
 
 The compose stack runs `alembic upgrade head` before starting the backend. The Docker
-init script (`docker/postgres/init/01-create-test-db.sql`) creates the `fitsho_test`
+init script (`docker/postgres/init/01-create-test-db.sql`) creates the `fitician_test`
 database used by the test suite.
 
 ## Commands
@@ -82,7 +82,7 @@ database used by the test suite.
 - **Settings** (`app/config.py`): loaded from a `.env` file in the current working
   directory. Run backend commands from `backend/` so it picks up `backend/.env`.
   `app_env` controls cookie security: `production` requires HTTPS, secure cookies,
-  and the `__Host-fitsho_session` cookie name.
+  and the `__Host-fitician_session` cookie name.
 - **App entrypoint** (`app/main.py`): `app = create_app()`. The lifespan handler
   creates an `httpx.AsyncClient` stored on `app.state.zen_http_client` for the
   OpenCode Zen API.
@@ -98,7 +98,7 @@ database used by the test suite.
 - **Admin grant** (`app/admin/grant_admin.py`): promotes an existing user to
   admin by email. Admin routes are under `/admin/*`.
 - **Test DB** (`tests/conftest.py`): uses `TEST_DATABASE_URL` env var
-  (default `postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test`).
+  (default `postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test`).
   A session-scoped fixture runs `alembic upgrade head` automatically. Each test
   gets a transaction that rolls back, so tests don't pollute each other.
 - **Media**: stored in `var/media/` (gitignored). Served at `/media` via

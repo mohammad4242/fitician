@@ -139,7 +139,7 @@ def test_under_18_shared_profile_is_rejected_with_stable_domain_error(
     assert response.json() == {
         "detail": {
             "code": "AGE_NOT_SUPPORTED",
-            "message": "فیتشو در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
+            "message": "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
         }
     }
     profile = db.get(UserProfile, user_id)
@@ -235,7 +235,7 @@ def test_public_safety_preview_is_deterministic_and_does_not_persist(
         "reason_codes": ["kidney_disease"],
         "requires_physician_review": True,
         "can_continue_onboarding": False,
-        "message": "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتشو تنظیم شود.",
+        "message": "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتیشن تنظیم شود.",
     }
     assert db.scalar(select(NutritionSafetyDecision)) is None
 

@@ -154,7 +154,7 @@ def test_build_nutrition_plan_html_renders_rtl_and_fonts() -> None:
     assert 'dir="rtl"' in html
     assert 'lang="fa"' in html
     assert 'font-family: "Vazirmatn", "DejaVu Sans", sans-serif' in html
-    assert "فیت‌شو | FITSHO" in html
+    assert "فیتیشن | FITICIAN" in html
     assert "برنامه رژیم و تغذیه اختصاصی" in html
 
 

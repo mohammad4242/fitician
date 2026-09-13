@@ -70,7 +70,7 @@ from app.nutrition.schemas import WeeklyPlanResponse
 from app.profile.enums import FitnessGoal, ProductMode, Sex, TrainingIntensity
 from app.profile.models import BodyMeasurement, UserProfile
 
-DB_URL = "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_nutrition_audit"
+DB_URL = os.environ.get("DATABASE_URL", "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_nutrition_audit")
 HOLDOUT_PROFILE_SEED = 20261017
 
 # Persian translations

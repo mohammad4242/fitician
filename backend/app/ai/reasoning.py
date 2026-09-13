@@ -181,7 +181,7 @@ class AIReasoningService:
         *,
         fallback_on_provider_failure: bool = False,
     ) -> AIReasoningOutput:
-        """Rank or explain only candidates already approved by Fitsho."""
+        """Rank or explain only candidates already approved by Fitician."""
         return await self.reason(
             request,
             provider,

@@ -1,4 +1,4 @@
-# مولد برنامهٔ تمرینی Fitsho
+# مولد برنامهٔ تمرینی Fitician
 
 تصمیم‌های برنامه از نسخهٔ V1 به‌صورت deterministic داخل backend گرفته می‌شوند. هیچ LLM یا provider
 خارجی split، exercise، volume، ترتیب، prescription، progression یا اعتبار برنامه را تعیین نمی‌کند.
@@ -44,10 +44,10 @@ API قبلی و فیلدهای مصرفی frontend حفظ شده‌اند. body 
 
 ```bash
 cd backend
-TEST_DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test .venv/bin/pytest -q
+TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test .venv/bin/pytest -q
 .venv/bin/ruff check
 .venv/bin/mypy app
-DATABASE_URL=postgresql+psycopg://fitsho:fitsho@localhost:55433/fitsho_test .venv/bin/alembic check
+DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:55433/fitician_test .venv/bin/alembic check
 
 cd ../frontend
 npm run test

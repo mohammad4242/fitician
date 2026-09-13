@@ -12,8 +12,8 @@ from app.database.session import get_engine
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Grant Fitsho administrator access")
-    parser.add_argument("email", help="Email address of an existing Fitsho user")
+    parser = argparse.ArgumentParser(description="Grant Fitician administrator access")
+    parser.add_argument("email", help="Email address of an existing Fitician user")
     return parser
 
 
