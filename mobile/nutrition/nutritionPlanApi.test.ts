@@ -118,3 +118,30 @@ it("preserves non-404 nutrition plan failures", async () => {
   await expect(api.getActive()).rejects.toMatchObject({ status: 503 });
   await expect(api.getLatestBundle()).rejects.toMatchObject({ status: 503 });
 });
+
+it("starts an owned nutrition plan with the selected local date and timezone", async () => {
+  const requests: TransportRequest[] = [];
+  const api = createNutritionPlanApi(
+    async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+      requests.push(request);
+      return {} as TResponse;
+    },
+    async () => binaryDownload(),
+  );
+
+  await api.startPlan("plan/id", {
+    start_date: "2026-09-13",
+    timezone: "Asia/Tehran",
+  });
+
+  expect(requests).toEqual([
+    {
+      body: {
+        start_date: "2026-09-13",
+        timezone: "Asia/Tehran",
+      },
+      method: "POST",
+      path: "/api/v1/nutrition/plans/plan%2Fid/start",
+    },
+  ]);
+});

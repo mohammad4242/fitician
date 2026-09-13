@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 
 import type { components } from "@fitician/core";
+import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
 import {
   classifyNutritionGenerationOutcome,
@@ -8,6 +9,7 @@ import {
   formatNutritionPlanMoney,
   getNutritionPlanStatus,
   isNutritionPlanExecutable,
+  nutritionTimelinePresentation,
   preparedRecipePresentation,
   selectNutritionPlan,
   nutritionPlanPdfFilename,
@@ -144,5 +146,41 @@ it("shows only public prepared-recipe nutrients and marks missing summaries esti
       { code: "carbohydrate_g", value: 20.5 },
     ],
     status: "verified",
+  });
+});
+
+it("anchors the nutrition view to the recurring template day from the timeline", () => {
+  const presentation = nutritionTimelinePresentation({
+    absolute_day_number: 9,
+    day_id: "day-2",
+    nutrient_totals: { energy_kcal: 2_100 },
+    pattern_day_index: 1,
+    plan_id: "plan-1",
+    start_date: "2026-09-05",
+    state: "active",
+  } satisfies TimelineNutrition);
+
+  expect(presentation).toEqual({
+    absoluteDayNumber: 9,
+    selectedDayIndex: 1,
+    state: "active",
+  });
+});
+
+it("preserves non-active nutrition timeline states for presentation", () => {
+  expect(nutritionTimelinePresentation({ state: "no_plan" })).toEqual({
+    absoluteDayNumber: null,
+    selectedDayIndex: null,
+    state: "none",
+  });
+  expect(nutritionTimelinePresentation({ state: "ready_to_start" })).toEqual({
+    absoluteDayNumber: null,
+    selectedDayIndex: null,
+    state: "ready",
+  });
+  expect(nutritionTimelinePresentation({ state: "scheduled_start" })).toEqual({
+    absoluteDayNumber: null,
+    selectedDayIndex: null,
+    state: "scheduled",
   });
 });

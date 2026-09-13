@@ -18,6 +18,7 @@ export type WeeklyPlanHistoryItem = components["schemas"]["WeeklyPlanHistoryItem
 export type PartialRegenerationInput = components["schemas"]["PartialRegenerationInput"];
 export type PlanBundleSelectionInput = components["schemas"]["PlanBundleSelectInput"];
 export type PlanBundleSelectResponse = components["schemas"]["PlanBundleSelectResponse"];
+export type NutritionPlanStartInput = components["schemas"]["NutritionPlanStartRequest"];
 export type { ShoppingList } from "./nutritionShoppingList";
 
 export type AuthenticatedNutritionDownload = (
@@ -35,6 +36,7 @@ export interface NutritionPlanApi {
   getShoppingList(planId: string): Promise<ShoppingList>;
   partialRegenerate(planId: string, dayIndexes: readonly number[]): Promise<WeeklyPlan>;
   selectBundle(bundleId: string, input: PlanBundleSelectionInput): Promise<PlanBundleSelectResponse>;
+  startPlan(planId: string, input: NutritionPlanStartInput): Promise<WeeklyPlan>;
 }
 
 const nutritionPlansPath = "/api/v1/nutrition/plans";
@@ -124,6 +126,14 @@ export function createNutritionPlanApi(
         body: jsonBody(input),
         method: "POST",
         path: `${nutritionBundlesPath}/${encodeURIComponent(bundleId)}/select`,
+      });
+    },
+
+    startPlan(planId, input) {
+      return request<WeeklyPlan>({
+        body: jsonBody(input),
+        method: "POST",
+        path: `${nutritionPlansPath}/${encodeURIComponent(planId)}/start`,
       });
     },
   };

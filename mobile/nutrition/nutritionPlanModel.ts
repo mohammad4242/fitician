@@ -1,4 +1,5 @@
 import { irrToRoundedToman } from "@fitician/core";
+import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
 import type { WeeklyPlan, WeeklyPlanFood } from "./nutritionPlanApi";
 
@@ -16,7 +17,21 @@ export type NutritionPlanStatus =
   | "physician_approved"
   | "physician_review"
   | "pending_review"
+  | "ready_to_start"
   | "rejected";
+
+export type NutritionTimelinePresentationState =
+  | "active"
+  | "none"
+  | "pending_review"
+  | "ready"
+  | "scheduled";
+
+export type NutritionTimelinePresentation = {
+  readonly absoluteDayNumber: number | null;
+  readonly selectedDayIndex: number | null;
+  readonly state: NutritionTimelinePresentationState;
+};
 
 export type NutritionGenerationStatus =
   | "failed"
@@ -53,6 +68,8 @@ export function getNutritionPlanStatus(
       return "changes_requested";
     case "physician_approved":
       return "physician_approved";
+    case "ready_to_start":
+      return "ready_to_start";
     case "pending_physician_review":
       return "pending_review";
     case "physician_review_in_progress":
@@ -63,6 +80,28 @@ export function getNutritionPlanStatus(
     default:
       return "generated";
   }
+}
+
+export function nutritionTimelinePresentation(
+  timeline: TimelineNutrition | null | undefined,
+): NutritionTimelinePresentation {
+  if (timeline === null || timeline === undefined || timeline.state === "no_plan") {
+    return { absoluteDayNumber: null, selectedDayIndex: null, state: "none" };
+  }
+
+  const state = timeline.state === "pending_review"
+    ? "pending_review"
+    : timeline.state === "ready_to_start"
+      ? "ready"
+      : timeline.state === "scheduled_start"
+        ? "scheduled"
+        : "active";
+
+  return {
+    absoluteDayNumber: timeline.absolute_day_number ?? null,
+    selectedDayIndex: timeline.pattern_day_index ?? null,
+    state,
+  };
 }
 
 export function isNutritionPlanExecutable(plan: WeeklyPlan, historical = false): boolean {
