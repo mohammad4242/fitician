@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -59,7 +59,7 @@ it("shows code-defined package and duration while updating database price", asyn
   expect(adminApi.updateAdminBillingOffer).toHaveBeenCalledWith("training_4w", {
     price_irr: 150000,
   });
-  expect(within(card).getByText("قیمت به‌روز شد")).toBeInTheDocument();
+  expect(within(card).getByText("پیشنهاد به‌روز شد")).toBeInTheDocument();
 });
 
 it("disables an offer without exposing immutable package or duration controls", async () => {
@@ -74,4 +74,21 @@ it("disables an offer without exposing immutable package or duration controls", 
     is_active: false,
   });
   expect(within(card).queryByRole("textbox", { name: /بسته|مدت/ })).not.toBeInTheDocument();
+});
+
+it("updates the offer availability window", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  const card = await screen.findByTestId("admin-offer-training_4w");
+  const availableFrom = within(card).getByLabelText("شروع دسترسی");
+  const availableUntil = within(card).getByLabelText("پایان دسترسی");
+  fireEvent.change(availableFrom, { target: { value: "2026-09-20T10:30" } });
+  fireEvent.change(availableUntil, { target: { value: "2026-10-20T10:30" } });
+  await user.click(within(card).getByRole("button", { name: "ذخیره" }));
+
+  expect(adminApi.updateAdminBillingOffer).toHaveBeenCalledWith("training_4w", {
+    available_from: new Date("2026-09-20T10:30").toISOString(),
+    available_until: new Date("2026-10-20T10:30").toISOString(),
+  });
 });

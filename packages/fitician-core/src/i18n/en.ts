@@ -69,8 +69,10 @@ const en = {
       adminUpdateError: "This offer could not be updated.",
       save: "Save",
       saving: "Saving…",
-      updateSuccess: "Price updated",
+      updateSuccess: "Offer updated",
       active: "Active",
+      availableFrom: "Available from",
+      availableUntil: "Available until",
     },
     landing: {
       cta: "Build my plan",

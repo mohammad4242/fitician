@@ -115,7 +115,7 @@
 .billing-admin-card__availability { color: var(--fitsho-muted); font-size: 0.72rem; }
 .billing-admin-card__fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.75rem; }
 .billing-admin-card__fields label { display: grid; gap: 0.3rem; color: var(--fitsho-muted); font-size: 0.72rem; }
-.billing-admin-card__fields input[type="number"] { width: 100%; min-height: 2.45rem; padding: 0.4rem 0.55rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
+.billing-admin-card__fields input[type="number"], .billing-admin-card__fields input[type="datetime-local"] { width: 100%; min-height: 2.45rem; padding: 0.4rem 0.55rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-md); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); font: inherit; }
 .billing-admin-card__check { display: flex !important; min-height: 2.45rem; grid-template-columns: auto auto; align-items: center; white-space: nowrap; }
 .billing-admin-card__success { color: var(--fitsho-aqua); font-size: 0.72rem; }
 

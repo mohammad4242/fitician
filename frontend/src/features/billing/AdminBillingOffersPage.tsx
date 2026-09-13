@@ -85,6 +85,24 @@ export function AdminBillingOffersPage() {
                       value={offer.price_irr ?? ""}
                     />
                   </label>
+                  <label>
+                    {t("billing.availableFrom")}
+                    <input
+                      aria-label={t("billing.availableFrom")}
+                      onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
+                      type="datetime-local"
+                      value={toDateTimeLocal(offer.available_from)}
+                    />
+                  </label>
+                  <label>
+                    {t("billing.availableUntil")}
+                    <input
+                      aria-label={t("billing.availableUntil")}
+                      onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
+                      type="datetime-local"
+                      value={toDateTimeLocal(offer.available_until)}
+                    />
+                  </label>
                   <label className="billing-admin-card__check">
                     <input
                       aria-label={t("billing.active")}
@@ -114,10 +132,30 @@ export function AdminBillingOffersPage() {
     </main>
   );
 
-  function updateOffer(code: BillingOffer["offer_code"], changes: { price_irr?: number | null; is_active?: boolean }) {
+  function updateOffer(
+    code: BillingOffer["offer_code"],
+    changes: {
+      price_irr?: number | null;
+      is_active?: boolean;
+      available_from?: string | null;
+      available_until?: string | null;
+    },
+  ) {
     setUpdated(null);
     setOffers((current) => current.map((offer) => offer.offer_code === code ? { ...offer, ...changes } : offer));
   }
+}
+
+function toDateTimeLocal(value: string | null): string {
+  if (value === null) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
+function toIsoDateTime(value: string): string | null {
+  return value === "" ? null : new Date(value).toISOString();
 }
 
 function buildUpdateInput(offer: AdminBillingOffer, previous: AdminBillingOffer | undefined): UpdateAdminBillingOfferInput {

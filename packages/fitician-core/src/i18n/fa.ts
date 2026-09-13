@@ -69,8 +69,10 @@ const fa = {
       adminUpdateError: "تغییر این پیشنهاد ذخیره نشد.",
       save: "ذخیره",
       saving: "در حال ذخیره…",
-      updateSuccess: "قیمت به‌روز شد",
+      updateSuccess: "پیشنهاد به‌روز شد",
       active: "فعال",
+      availableFrom: "شروع دسترسی",
+      availableUntil: "پایان دسترسی",
     },
     landing: {
       cta: "برنامه من را بساز",
