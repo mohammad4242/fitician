@@ -104,6 +104,32 @@ def test_campaign_mutations_require_admin_and_trusted_origin(client: TestClient)
     )
 
 
+def test_campaign_patch_cannot_change_activation_state(client: TestClient, db: Session) -> None:
+    admin = register_admin(client, db, "campaign-patch-state-admin@example.com")
+    created = client.post(
+        "/api/v1/admin/access/campaigns",
+        headers=ORIGIN,
+        json={
+            "code": "patch-state-campaign",
+            "name": "Patch state",
+            "kind": "manual_promotion",
+            "package_code": "complete",
+            "duration_days": 30,
+            "term_weeks": 8,
+        },
+    )
+    assert created.status_code == 201
+
+    patched = client.patch(
+        f"/api/v1/admin/access/campaigns/{created.json()['id']}",
+        headers=ORIGIN,
+        json={"is_active": True},
+    )
+
+    assert patched.status_code == 422
+    assert admin.is_admin is True
+
+
 def test_admin_can_manually_redeem_only_a_manual_campaign_with_reason(
     client: TestClient,
     db: Session,

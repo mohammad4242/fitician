@@ -1,4 +1,3 @@
-from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
@@ -25,9 +24,6 @@ class Settings(BaseSettings):
     account_deletion_grace_period_days: int = Field(default=7, ge=1, le=30)
     account_deletion_reauth_window_seconds: int = Field(default=600, ge=60, le=3600)
     account_deletion_worker_interval_seconds: int = Field(default=60, ge=10, le=3600)
-    launch_trial_enabled: bool = True
-    launch_trial_signup_deadline: datetime | None = None
-    launch_trial_duration_days: int = Field(default=30, ge=1, le=3650)
     billing_default_provider: str | None = None
     billing_fake_provider_enabled: bool = False
     billing_order_ttl_minutes: int = Field(default=30, ge=1, le=1440)

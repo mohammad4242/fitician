@@ -40,6 +40,7 @@ class AccessCampaignCreateRequest(BaseModel):
     @model_validator(mode="after")
     def validate_semantics(self) -> "AccessCampaignCreateRequest":
         _validate_campaign_semantics(
+            self.kind,
             self.package_code,
             self.term_weeks,
             self.available_from,
@@ -59,7 +60,6 @@ class AccessCampaignUpdateRequest(BaseModel):
     term_weeks: AccessTermWeeks | None = None
     available_from: datetime | None = None
     available_until: datetime | None = None
-    is_active: bool | None = None
     max_total_redemptions: int | None = Field(default=None, gt=0)
 
     @field_validator("name", mode="before")
@@ -119,6 +119,13 @@ class AdminGrantRequest(BaseModel):
     @classmethod
     def normalize_text(cls, value: object) -> object:
         return _trim(value)
+
+    @field_validator("package_code")
+    @classmethod
+    def validate_package_code(cls, value: AccessPackageCode) -> AccessPackageCode:
+        if package_definition(value).kind.value != "subscription":
+            raise ValueError("Admin grants support normal subscription packages only")
+        return value
 
     @model_validator(mode="after")
     def validate_dates(self) -> "AdminGrantRequest":
@@ -202,6 +209,7 @@ class AdminCampaignRedemptionResponse(BaseModel):
 
 
 def _validate_campaign_semantics(
+    kind: AccessCampaignKind,
     package_code: AccessPackageCode,
     term_weeks: AccessTermWeeks | None,
     available_from: datetime | None,
@@ -209,6 +217,16 @@ def _validate_campaign_semantics(
 ) -> None:
     if package_code is AccessPackageCode.FREE:
         raise ValueError("Campaign package cannot be free")
+    if (
+        kind is AccessCampaignKind.SIGNUP_TRIAL
+        and package_code is not AccessPackageCode.LAUNCH_TRIAL
+    ):
+        raise ValueError("signup_trial campaigns must use the launch_trial package")
+    if (
+        kind is AccessCampaignKind.MANUAL_PROMOTION
+        and package_code is AccessPackageCode.LAUNCH_TRIAL
+    ):
+        raise ValueError("manual_promotion campaigns cannot use the launch_trial package")
     if EntitlementCode.TRAINING_PLAN_GENERATE in package_definition(package_code).entitlements:
         if term_weeks is None:
             raise ValueError("term_weeks is required for training access")

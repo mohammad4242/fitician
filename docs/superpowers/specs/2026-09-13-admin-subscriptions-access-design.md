@@ -45,10 +45,11 @@ rejects `free`, rejects arbitrary entitlement keys, and never changes coach,
 physician, or admin roles. Revocation sets `revoked_at` and retains the grant;
 it does not change a paid order to refunded.
 
-The existing `ensure_launch_trial_grant()` remains only as a backwards-
-compatible legacy helper for callers/tests that still use environment settings.
-Normal signup provisioning uses database campaigns, and the legacy settings are
-not used by the new Admin control plane.
+Signup provisioning uses database campaigns exclusively. The former
+`ensure_launch_trial_grant()` helper and `LAUNCH_TRIAL_*` settings are no longer
+part of the operational path; old environment keys are ignored for deployment
+compatibility. The seeded `launch_trial_v1` campaign preserves the default
+Launch Trial behavior.
 
 ## API and UI
 

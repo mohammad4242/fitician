@@ -21,6 +21,18 @@ def _load_migration():
     return migration
 
 
+def _load_semantic_migration():
+    path = (
+        Path(__file__).parents[2]
+        / "alembic/versions/20260913_148_harden_access_campaign_package_semantics.py"
+    )
+    spec = spec_from_file_location("access_campaign_semantic_migration", path)
+    assert spec is not None and spec.loader is not None
+    migration = module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    return migration
+
+
 def test_access_management_migration_has_expected_revision_and_tables(db: Session) -> None:
     migration = _load_migration()
     assert migration.revision == "20260913_145"
@@ -65,3 +77,29 @@ def test_access_management_migration_downgrades_and_upgrades_cleanly(db: Session
         "access_campaign_redemptions",
         "admin_audit_events",
     }.issubset(inspect(db.get_bind()).get_table_names())
+
+
+def test_campaign_semantic_migration_round_trips_constraints(db: Session) -> None:
+    migration = _load_semantic_migration()
+    assert migration.revision == "20260913_148"
+    assert migration.down_revision == "20260913_147"
+
+    migration.op = Operations(MigrationContext.configure(db.connection()))
+    migration.downgrade()
+    check_names = {
+        check["name"]
+        for check in inspect(db.get_bind()).get_check_constraints("access_campaigns")
+    }
+    assert "ck_access_campaigns_signup_trial_package" not in check_names
+    assert "ck_access_campaigns_manual_promotion_package" not in check_names
+
+    migration.op = Operations(MigrationContext.configure(db.connection()))
+    migration.upgrade()
+    check_names = {
+        check["name"]
+        for check in inspect(db.get_bind()).get_check_constraints("access_campaigns")
+    }
+    assert {
+        "ck_access_campaigns_signup_trial_package",
+        "ck_access_campaigns_manual_promotion_package",
+    } <= check_names

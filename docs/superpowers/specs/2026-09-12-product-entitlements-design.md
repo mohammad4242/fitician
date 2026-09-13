@@ -94,10 +94,10 @@ granted capabilities, and applicable quota status.
 
 ## Launch Trial provisioning
 
-`ensure_launch_trial_grant` creates exactly one `launch_trial` grant with source
-`launch_trial`, idempotency key `launch_trial:v1`, and an end exactly 30 days
-after its start. It runs after a newly created User has an ID and before the
-account transaction commits.
+The database `launch_trial_v1` signup campaign creates exactly one
+`launch_trial` grant with source `launch_trial`, idempotency key
+`campaign:launch_trial_v1:v1`, and an end based on the campaign duration. It runs
+after a newly created User has an ID and before the account transaction commits.
 
 The email registration branch, new Google account branch, new Apple account
 branch, and new phone-only account branch provision the grant. Existing Google

@@ -1,8 +1,11 @@
+import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from threading import Lock
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import create_engine, delete, event, select, update
 from sqlalchemy.orm import Session
 
 from app.access_management.enums import AccessCampaignKind
@@ -20,6 +23,7 @@ from app.access_management.service import (
     create_campaign,
     provision_signup_campaigns,
     redeem_campaign,
+    set_campaign_active,
     update_campaign,
 )
 from app.auth.models import User
@@ -53,7 +57,7 @@ def campaign_request(
     code: str,
     *,
     kind: AccessCampaignKind = AccessCampaignKind.SIGNUP_TRIAL,
-    package_code: AccessPackageCode = AccessPackageCode.TRAINING,
+    package_code: AccessPackageCode = AccessPackageCode.LAUNCH_TRIAL,
     duration_days: int = 14,
     term_weeks: int | None = 4,
     active: bool = True,
@@ -82,8 +86,8 @@ def test_active_signup_campaign_provisions_one_package_and_is_idempotent(db: Ses
         db,
         campaign_request(
             "signup-service",
-            package_code=AccessPackageCode.COMPLETE_CARE,
-            term_weeks=8,
+            package_code=AccessPackageCode.LAUNCH_TRIAL,
+            term_weeks=4,
         ),
         actor_user_id=admin.id,
     )
@@ -96,8 +100,8 @@ def test_active_signup_campaign_provisions_one_package_and_is_idempotent(db: Ses
     assert len(first) == 1
     assert len(second) == 1
     assert first[0].grant.id == second[0].grant.id
-    assert first[0].grant.package_code is AccessPackageCode.COMPLETE_CARE
-    assert first[0].grant.source is GrantSource.PROMOTION
+    assert first[0].grant.package_code is AccessPackageCode.LAUNCH_TRIAL
+    assert first[0].grant.source is GrantSource.LAUNCH_TRIAL
     assert first[0].grant.ends_at == now + timedelta(days=14)
     assert db.scalar(
         select(AccessCampaignRedemption).where(
@@ -198,6 +202,8 @@ def test_active_signup_campaigns_cannot_overlap_but_promotions_can(db: Session) 
         campaign_request(
             "manual-overlap",
             kind=AccessCampaignKind.MANUAL_PROMOTION,
+            package_code=AccessPackageCode.COMPLETE,
+            term_weeks=8,
             active=True,
             available_from=first.available_from,
             available_until=first.available_until,
@@ -270,8 +276,83 @@ def test_redeemed_campaign_semantics_are_immutable(db: Session) -> None:
     updated = update_campaign(
         db,
         campaign.id,
-        AccessCampaignUpdateRequest(name="renamed", is_active=False),
+        AccessCampaignUpdateRequest(name="renamed"),
         actor_user_id=admin.id,
     )
     assert updated.name == "renamed"
-    assert updated.is_active is False
+    deactivated = set_campaign_active(db, campaign.id, False, actor_user_id=admin.id)
+    assert deactivated.is_active is False
+
+
+def test_overlapping_signup_campaign_creates_are_serialized_across_sessions() -> None:
+    engine = create_engine(_test_database_url())
+    suffix = str(uuid4())
+    admin_email = f"campaign-concurrency-admin-{suffix}@example.com"
+    codes = (f"concurrent-signup-a-{suffix}", f"concurrent-signup-b-{suffix}")
+    lock_statements: list[str] = []
+    statement_lock = Lock()
+
+    def record_advisory_lock(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: object,
+    ) -> None:
+        if "pg_advisory_xact_lock" in statement:
+            with statement_lock:
+                lock_statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record_advisory_lock)
+    try:
+        with Session(engine) as setup_db:
+            admin = make_user(setup_db, suffix)
+            admin.email = admin_email
+            admin.is_admin = True
+            disable_default_trial(setup_db)
+            admin_id = admin.id
+            setup_db.commit()
+
+        def create_in_session(code: str) -> str:
+            with Session(engine) as worker_db:
+                try:
+                    create_campaign(
+                        worker_db,
+                        campaign_request(
+                            code,
+                            available_from=datetime(2026, 11, 1, tzinfo=UTC),
+                            available_until=datetime(2026, 11, 30, tzinfo=UTC),
+                        ),
+                        actor_user_id=admin_id,
+                    )
+                    worker_db.commit()
+                    return "created"
+                except CampaignOverlapError:
+                    worker_db.rollback()
+                    return "overlap"
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            outcomes = list(executor.map(create_in_session, codes))
+
+        assert sorted(outcomes) == ["created", "overlap"]
+        assert len(lock_statements) == 2
+    finally:
+        event.remove(engine, "before_cursor_execute", record_advisory_lock)
+        with Session(engine) as cleanup_db:
+            cleanup_db.execute(delete(AccessCampaign).where(AccessCampaign.code.in_(codes)))
+            cleanup_db.execute(
+                update(AccessCampaign)
+                .where(AccessCampaign.code == "launch_trial_v1")
+                .values(is_active=True)
+            )
+            cleanup_db.execute(delete(User).where(User.email == admin_email))
+            cleanup_db.commit()
+        engine.dispose()
+
+
+def _test_database_url() -> str:
+    return os.environ.get(
+        "TEST_DATABASE_URL",
+        "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test",
+    )

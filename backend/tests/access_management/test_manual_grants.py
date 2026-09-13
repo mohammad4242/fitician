@@ -126,6 +126,11 @@ def test_admin_grant_rejects_free_arbitrary_entitlements_missing_reason_and_inde
     }
 
     free = client.post(path, headers=ORIGIN, json={**common, "package_code": "free"})
+    launch_trial = client.post(
+        path,
+        headers=ORIGIN,
+        json={**common, "package_code": "launch_trial", "term_weeks": 4},
+    )
     arbitrary = client.post(
         path,
         headers=ORIGIN,
@@ -168,6 +173,12 @@ def test_admin_grant_rejects_free_arbitrary_entitlements_missing_reason_and_inde
         },
     )
 
-    assert free.status_code == arbitrary.status_code == missing_reason.status_code == 422
+    assert (
+        free.status_code
+        == launch_trial.status_code
+        == arbitrary.status_code
+        == missing_reason.status_code
+        == 422
+    )
     assert indefinite.status_code == 422
     assert null_reason.status_code == null_key.status_code == 422

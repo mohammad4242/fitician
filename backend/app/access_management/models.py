@@ -58,6 +58,16 @@ class AccessCampaign(Base):
             name="ck_access_campaigns_launch_trial_term",
         ),
         CheckConstraint(
+            "kind <> 'signup_trial' OR "
+            "(package_code = 'launch_trial' AND term_weeks = 4)",
+            name="ck_access_campaigns_signup_trial_package",
+        ),
+        CheckConstraint(
+            "kind <> 'manual_promotion' "
+            "OR package_code NOT IN ('free', 'launch_trial')",
+            name="ck_access_campaigns_manual_promotion_package",
+        ),
+        CheckConstraint(
             "package_code NOT IN ('training', 'training_coach', 'complete', 'complete_care') "
             "OR term_weeks IS NOT NULL",
             name="ck_access_campaigns_training_term",

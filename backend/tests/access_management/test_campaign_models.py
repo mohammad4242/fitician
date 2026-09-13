@@ -28,8 +28,28 @@ def test_campaign_schema_rejects_free_and_invalid_benefit_semantics() -> None:
             code="too-long",
             name="Too long",
             kind=AccessCampaignKind.SIGNUP_TRIAL,
-            package_code=AccessPackageCode.TRAINING,
+            package_code=AccessPackageCode.LAUNCH_TRIAL,
             duration_days=3651,
+            term_weeks=4,
+        )
+
+    with pytest.raises(ValidationError, match="signup_trial"):
+        AccessCampaignCreateRequest(
+            code="signup-package",
+            name="Signup package",
+            kind=AccessCampaignKind.SIGNUP_TRIAL,
+            package_code=AccessPackageCode.TRAINING,
+            duration_days=14,
+            term_weeks=4,
+        )
+
+    with pytest.raises(ValidationError, match="manual_promotion"):
+        AccessCampaignCreateRequest(
+            code="manual-trial",
+            name="Manual trial",
+            kind=AccessCampaignKind.MANUAL_PROMOTION,
+            package_code=AccessPackageCode.LAUNCH_TRIAL,
+            duration_days=14,
             term_weeks=4,
         )
 
@@ -49,7 +69,7 @@ def test_campaign_schema_requires_training_term_and_valid_window() -> None:
         AccessCampaignCreateRequest(
             code="missing-term",
             name="Missing term",
-            kind=AccessCampaignKind.SIGNUP_TRIAL,
+            kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.TRAINING,
             duration_days=14,
         )
@@ -58,7 +78,7 @@ def test_campaign_schema_requires_training_term_and_valid_window() -> None:
         AccessCampaignCreateRequest(
             code="bad-window",
             name="Bad window",
-            kind=AccessCampaignKind.SIGNUP_TRIAL,
+            kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.COMPLETE,
             duration_days=14,
             term_weeks=8,
@@ -115,3 +135,5 @@ def test_campaign_table_declares_stable_kind_and_training_term_constraints() -> 
 
     assert "ck_access_campaigns_kind_values" in constraint_names
     assert "ck_access_campaigns_training_term" in constraint_names
+    assert "ck_access_campaigns_signup_trial_package" in constraint_names
+    assert "ck_access_campaigns_manual_promotion_package" in constraint_names

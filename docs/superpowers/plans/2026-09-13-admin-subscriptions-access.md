@@ -103,7 +103,7 @@
 
 - [ ] Add failing regression tests for email, Google, Apple, phone, existing login/linking, and repeat redemption behavior.
 - [ ] Run those tests and confirm they fail because auth still uses the legacy helper.
-- [ ] Replace every new-account `ensure_launch_trial_grant()` call with campaign provisioning; leave the legacy helper for compatibility.
+- [ ] Replace every new-account Trial helper call with database campaign provisioning; legacy settings must not remain operational.
 - [ ] Run the provider-focused auth and campaign tests; separate the known SMS-provider baseline setup failures if they remain.
 - [ ] Commit `feat(auth): provision signup access from database campaigns`.
 

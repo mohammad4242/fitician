@@ -8,7 +8,6 @@ from sqlalchemy import asc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.config import Settings, get_settings
 from app.entitlements.catalog import (
     QUOTA_POLICIES,
     QuotaPolicy,
@@ -324,44 +323,6 @@ def grant_package(
     db.add(grant)
     db.flush()
     return grant
-
-
-def ensure_launch_trial_grant(
-    db: Session,
-    user_id: UUID,
-    *,
-    now: datetime | None = None,
-    settings: Settings | None = None,
-) -> UserAccessGrant | None:
-    reference = _utc_now(now)
-    user = db.scalar(select(User).where(User.id == user_id).with_for_update())
-    if user is None:
-        raise ValueError(f"User not found: {user_id}")
-    existing = db.scalar(
-        select(UserAccessGrant).where(
-            UserAccessGrant.user_id == user_id,
-            UserAccessGrant.idempotency_key == "launch_trial:v1",
-        )
-    )
-    if existing is not None:
-        return existing
-    active_settings = settings or get_settings()
-    if not active_settings.launch_trial_enabled:
-        return None
-    signup_at = _optional_utc(user.created_at) or reference
-    deadline = _optional_utc(active_settings.launch_trial_signup_deadline)
-    if deadline is not None and signup_at > deadline:
-        return None
-    return grant_package(
-        db,
-        user_id,
-        AccessPackageCode.LAUNCH_TRIAL,
-        source=GrantSource.LAUNCH_TRIAL,
-        starts_at=reference,
-        ends_at=reference + timedelta(days=active_settings.launch_trial_duration_days),
-        idempotency_key="launch_trial:v1",
-        term_weeks=4,
-    )
 
 
 def max_active_term_weeks_for_entitlement(

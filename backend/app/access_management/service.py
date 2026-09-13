@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.access_management.enums import AccessCampaignKind
@@ -49,6 +49,7 @@ from app.entitlements.service import grant_package, resolve_access_snapshot
 from app.profile.models import UserProfile
 
 MAX_CAMPAIGN_DURATION_DAYS = 3650
+CAMPAIGN_MUTATION_LOCK_KEY = 748_391_527
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +117,18 @@ def _validate_campaign_values(
 ) -> None:
     if package_code is AccessPackageCode.FREE:
         raise CampaignValidationError("Campaign package cannot be free")
+    if (
+        kind is AccessCampaignKind.SIGNUP_TRIAL
+        and package_code is not AccessPackageCode.LAUNCH_TRIAL
+    ):
+        raise CampaignValidationError("signup_trial campaigns must use the launch_trial package")
+    if (
+        kind is AccessCampaignKind.MANUAL_PROMOTION
+        and package_code is AccessPackageCode.LAUNCH_TRIAL
+    ):
+        raise CampaignValidationError(
+            "manual_promotion campaigns cannot use the launch_trial package"
+        )
     if duration_days < 1 or duration_days > MAX_CAMPAIGN_DURATION_DAYS:
         raise CampaignValidationError("duration_days must be between 1 and 3650")
     if term_weeks is not None and term_weeks not in {4, 6, 8}:
@@ -137,6 +150,20 @@ def _validate_campaign_values(
         raise CampaignValidationError("max_total_redemptions must be positive")
     if kind not in {AccessCampaignKind.SIGNUP_TRIAL, AccessCampaignKind.MANUAL_PROMOTION}:
         raise CampaignValidationError("Unsupported campaign kind")
+
+
+def _lock_campaign_mutations(db: Session) -> None:
+    """Serialize campaign writes in the current PostgreSQL transaction.
+
+    A single transaction-scoped advisory lock keeps the overlap read and write
+    together for create, update, and activation operations. It is deliberately
+    global because an update can change a campaign's kind or eligibility window.
+    """
+
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(:lock_key)"),
+        {"lock_key": CAMPAIGN_MUTATION_LOCK_KEY},
+    )
 
 
 def _intervals_overlap(
@@ -233,6 +260,7 @@ def create_campaign(
     *,
     actor_user_id: UUID,
 ) -> AccessCampaign:
+    _lock_campaign_mutations(db)
     if get_campaign_by_code(db, payload.code) is not None:
         raise CampaignConflictError("Campaign code is already in use")
     available_from = _optional_utc(payload.available_from)
@@ -288,6 +316,7 @@ def update_campaign(
     *,
     actor_user_id: UUID,
 ) -> AccessCampaign:
+    _lock_campaign_mutations(db)
     campaign = _campaign_or_raise(db, campaign_id, lock=True)
     fields = payload.model_fields_set
     if not fields:
@@ -351,6 +380,7 @@ def set_campaign_active(
     *,
     actor_user_id: UUID,
 ) -> AccessCampaign:
+    _lock_campaign_mutations(db)
     campaign = _campaign_or_raise(db, campaign_id, lock=True)
     if campaign.is_active is is_active:
         return campaign

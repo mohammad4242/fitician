@@ -4,11 +4,9 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.config import Settings
 from app.entitlements.enums import AccessPackageCode, EntitlementCode, GrantSource
 from app.entitlements.exceptions import AccessTermTooShortError
 from app.entitlements.service import (
-    ensure_launch_trial_grant,
     ensure_requested_term_weeks,
     grant_package,
     has_entitlement,
@@ -95,22 +93,6 @@ def test_expired_and_revoked_grants_do_not_authorize(db: Session) -> None:
     assert resolve_access_snapshot(db, user.id, now=now).primary_package is AccessPackageCode.FREE
 
 
-def test_trial_grant_is_idempotent_and_lasts_thirty_days(db: Session) -> None:
-    user = make_user(db, "trial@example.com")
-    now = datetime(2026, 9, 12, tzinfo=UTC)
-
-    first = ensure_launch_trial_grant(db, user.id, now=now)
-    second = ensure_launch_trial_grant(db, user.id, now=now + timedelta(days=1))
-
-    assert first.id == second.id
-    assert first.package_code is AccessPackageCode.LAUNCH_TRIAL
-    assert first.source is GrantSource.LAUNCH_TRIAL
-    assert first.starts_at == now
-    assert first.ends_at == now + timedelta(days=30)
-    assert len(list_active_grants(db, user.id, now=now + timedelta(days=29))) == 1
-    assert list_active_grants(db, user.id, now=now + timedelta(days=30, seconds=1)) == []
-
-
 def test_paid_term_is_persisted_and_invalid_terms_are_rejected(db: Session) -> None:
     user = make_user(db, "term@example.com")
 
@@ -131,56 +113,6 @@ def test_paid_term_is_persisted_and_invalid_terms_are_rejected(db: Session) -> N
             source=GrantSource.SUBSCRIPTION,
             term_weeks=5,
         )
-
-
-def test_launch_trial_uses_configured_duration_and_four_week_term(db: Session) -> None:
-    user = make_user(db, "configured-trial@example.com")
-    now = datetime(2026, 9, 12, tzinfo=UTC)
-    settings = Settings(app_env="test", launch_trial_duration_days=14)
-
-    grant = ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
-
-    assert grant is not None
-    assert grant.term_weeks == 4
-    assert grant.ends_at == now + timedelta(days=14)
-
-
-def test_disabled_trial_campaign_does_not_create_a_grant(db: Session) -> None:
-    user = make_user(db, "disabled-trial@example.com")
-    settings = Settings(app_env="test", launch_trial_enabled=False)
-
-    assert ensure_launch_trial_grant(db, user.id, settings=settings) is None
-    assert list_active_grants(db, user.id) == []
-
-
-@pytest.mark.parametrize(
-    ("created_at", "qualifies"),
-    [
-        (datetime(2026, 9, 1, tzinfo=UTC), True),
-        (datetime(2026, 9, 3, tzinfo=UTC), False),
-    ],
-)
-def test_trial_deadline_uses_the_users_creation_time(
-    db: Session,
-    created_at: datetime,
-    qualifies: bool,
-) -> None:
-    user = make_user(db, f"deadline-{created_at.day}@example.com")
-    user.created_at = created_at
-    db.flush()
-    settings = Settings(
-        app_env="test",
-        launch_trial_signup_deadline=datetime(2026, 9, 2, 23, 59, tzinfo=UTC),
-    )
-
-    grant = ensure_launch_trial_grant(
-        db,
-        user.id,
-        now=datetime(2026, 9, 10, tzinfo=UTC),
-        settings=settings,
-    )
-
-    assert (grant is not None) is qualifies
 
 
 def test_training_term_limit_uses_active_grants_that_provide_generation(db: Session) -> None:

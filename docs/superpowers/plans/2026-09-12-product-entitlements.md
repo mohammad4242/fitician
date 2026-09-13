@@ -207,7 +207,7 @@ git push origin main
 - Create: backend/tests/entitlements/test_quota.py
 
 **Interfaces:**
-- Produces AccessSnapshot, QuotaStatus, list_active_grants(), resolve_access_snapshot(), has_entitlement(), require_entitlement(), quota_status(), require_quota_available(), consume_quota(), grant_package(), and ensure_launch_trial_grant().
+- Produces AccessSnapshot, QuotaStatus, list_active_grants(), resolve_access_snapshot(), has_entitlement(), require_entitlement(), quota_status(), require_quota_available(), consume_quota(), and grant_package(). Signup Trial provisioning is owned by AccessCampaign.
 - EntitlementRequiredError carries entitlement and eligible purchasable package codes.
 - EntitlementQuotaExceededError carries entitlement, reset_at, and retry seconds.
 - consume_quota() returns idempotently when the exact resource event already exists and never commits.
@@ -237,7 +237,7 @@ Expected: failures because service symbols are absent.
 
 - [ ] **Step 4: Implement transactional quota consumption.** Lock User with FOR UPDATE, look up the exact event, calculate window_start and the earliest-event reset, count current-window events, raise the domain error at the limit, or insert one event. Keep all changes pending for the caller transaction.
 
-- [ ] **Step 5: Implement grant APIs.** Validate catalog codes, support arbitrary future normal grants, use nullable (user_id, idempotency_key) idempotency, and make ensure_launch_trial_grant() use launch_trial:v1 and starts_at + timedelta(days=30).
+- [ ] **Step 5: Implement grant APIs.** Validate catalog codes, support arbitrary future normal grants, and use nullable (user_id, idempotency_key) idempotency. Signup Trial provisioning belongs to AccessCampaign.
 
 - [ ] **Step 6: Run the focused suites.**
 
@@ -306,7 +306,7 @@ git push origin main
 - Produces one trial for email registration, new Google, new Apple, and new phone-only users.
 - Does not create a trial for Google/Apple linking, existing provider login, existing phone login, password login, refresh, or session reissue.
 
-- [ ] **Step 1: Add failing flow-count tests.** Create/count UserAccessGrant rows by user and idempotency key for all four signup methods, provider-link cases, repeated login/token issuance, and a direct repeated ensure_launch_trial_grant() call.
+- [ ] **Step 1: Add failing flow-count tests.** Create/count campaign redemption and UserAccessGrant rows by user for all four signup methods, provider-link cases, and repeated login/token issuance.
 
 - [ ] **Step 2: Run the affected auth/trial tests before code changes.**
 
@@ -314,7 +314,7 @@ Run: uv run pytest tests/entitlements/test_launch_trial.py tests/auth/test_regis
 
 Expected: new trial assertions fail while existing auth assertions identify any baseline failures.
 
-- [ ] **Step 3: Add provisioning after each genuinely new User flush.** Call ensure_launch_trial_grant(db, user.id, now=now) in register_user, the new-user branches of Google and Apple helpers, and the new branch in _verify_phone_otp_user. Keep existing helper return shapes unless a created flag is needed; no frontend/mobile provisioning.
+- [ ] **Step 3: Add provisioning after each genuinely new User flush.** Call provision_signup_campaigns(db, user.id, now=now) in register_user, the new-user branches of Google and Apple helpers, and the new branch in _verify_phone_otp_user. Keep existing helper return shapes unless a created flag is needed; no frontend/mobile provisioning.
 
 - [ ] **Step 4: Re-run the same auth/trial scope.**
 
@@ -326,7 +326,7 @@ Expected: all focused trial/auth tests pass with no duplicate grants.
 
 ~~~bash
 git add backend/app/auth/service.py backend/tests/entitlements/test_launch_trial.py backend/tests/auth/test_register.py backend/tests/auth/test_google_auth.py backend/tests/auth/test_apple_auth.py backend/tests/auth/test_phone_otp.py backend/tests/auth/test_mobile_auth.py
-git commit -m "feat(auth): provision idempotent launch trial"
+git commit -m "feat(auth): provision signup access from campaigns"
 git push origin main
 ~~~
 
