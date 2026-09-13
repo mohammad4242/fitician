@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import type { TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
 
 import {
   completionFeedbackFormFromResponse,
@@ -7,7 +8,30 @@ import {
   toCompletionFeedbackInput,
   toWeeklyCheckInInput,
   weeklyCheckInFormFromResponse,
+  workoutTimelinePresentation,
 } from "./workoutCycleModel";
+
+const session: TimelineWorkoutSession = {
+  day_number: 2,
+  estimated_duration_minutes: 45,
+  id: "session-2",
+  scheduled_date: "2026-09-14",
+  session_number: 2,
+  status: "scheduled",
+  title_en: "Pull",
+  title_fa: "پول",
+  week_number: 1,
+  workout_day_id: "day-2",
+};
+
+function workout(overrides: Partial<TimelineWorkout> = {}): TimelineWorkout {
+  return {
+    completed_sessions: 0,
+    state: "rest_day",
+    total_sessions: 4,
+    ...overrides,
+  };
+}
 
 it("maps a saved weekly check-in into an editable native form", () => {
   expect(weeklyCheckInFormFromResponse({
@@ -76,5 +100,36 @@ it("maps end-cycle feedback defaults and preserves submitted values", () => {
     pain_or_limitation_feedback: null,
     performance_changes: "قدرت بیشتر شد",
     strength_progress: "unchanged",
+  });
+});
+
+it("maps timeline precedence to one focused session without choosing the first day", () => {
+  expect(workoutTimelinePresentation(workout({
+    next_session: session,
+    overdue_session: { ...session, id: "session-1", session_number: 1 },
+    state: "overdue",
+    today_session: { ...session, id: "session-3", session_number: 3 },
+  }))).toEqual({
+    focusedSession: { ...session, id: "session-1", session_number: 1 },
+    nextSession: session,
+    state: "overdue",
+  });
+
+  expect(workoutTimelinePresentation(workout({
+    next_session: session,
+    state: "rest_day",
+  }))).toEqual({
+    focusedSession: null,
+    nextSession: session,
+    state: "rest",
+  });
+
+  expect(workoutTimelinePresentation(workout({
+    state: "completed_today",
+    today_session: { ...session, status: "completed" },
+  }))).toEqual({
+    focusedSession: { ...session, status: "completed" },
+    nextSession: null,
+    state: "completed",
   });
 });

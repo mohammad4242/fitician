@@ -68,3 +68,42 @@ it("maps missing current-cycle resources to empty states", async () => {
   await expect(api.getWeeklyCheckIn()).resolves.toBeNull();
   await expect(api.getCompletionFeedback()).resolves.toBeNull();
 });
+
+it("starts cycles and mutates exact sessions through authenticated endpoints", async () => {
+  const requests: TransportRequest[] = [];
+  const api = createWorkoutCycleApi(async <TResponse>(request: TransportRequest) => {
+    requests.push(request);
+    return {} as TResponse;
+  });
+  const startInput = {
+    start_date: "2026-09-13",
+    timezone: "Asia/Tehran",
+    workout_plan_id: "plan-1",
+  };
+
+  await api.start(startInput);
+  await api.completeSession("session-1");
+  await api.skipSession("session-2");
+  await api.rescheduleSession("session-3", { scheduled_date: "2026-09-16" });
+
+  expect(requests).toEqual([
+    {
+      body: startInput,
+      method: "POST",
+      path: "/api/v1/workout-cycles/start",
+    },
+    {
+      method: "POST",
+      path: "/api/v1/workout-cycles/current/sessions/session-1/complete",
+    },
+    {
+      method: "POST",
+      path: "/api/v1/workout-cycles/current/sessions/session-2/skip",
+    },
+    {
+      body: { scheduled_date: "2026-09-16" },
+      method: "POST",
+      path: "/api/v1/workout-cycles/current/sessions/session-3/reschedule",
+    },
+  ]);
+});
