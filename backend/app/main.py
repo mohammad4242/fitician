@@ -126,7 +126,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 except asyncio.CancelledError:
                     pass
 
-    app = FastAPI(title="Fitsho API", lifespan=lifespan)
+    app = FastAPI(title="Fitician API", lifespan=lifespan)
     app.state.billing_providers = build_payment_providers(active_settings)
     app.state.email_provider = build_email_provider(active_settings)
     app.state.sms_provider = build_sms_provider(active_settings)
@@ -141,14 +141,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=[
             "Content-Type",
             "Idempotency-Key",
-            "X-Fitsho-Food-Photo-Consent",
-            "X-Fitsho-Client-Crop-Confirmed",
-            "X-Fitsho-Client-Crop-Confidence",
-            "X-Fitsho-Original-Height",
-            "X-Fitsho-Crop-Top",
-            "X-Fitsho-Crop-Bottom",
-            "X-Fitsho-Processed-SHA256",
-            "X-Fitsho-Crop-Evidence-SHA256",
+            "X-Fitician-Food-Photo-Consent",
+            "X-Fitician-Client-Crop-Confirmed",
+            "X-Fitician-Client-Crop-Confidence",
+            "X-Fitician-Original-Height",
+            "X-Fitician-Crop-Top",
+            "X-Fitician-Crop-Bottom",
+            "X-Fitician-Processed-SHA256",
+            "X-Fitician-Crop-Evidence-SHA256",
         ],
     )
 
@@ -174,7 +174,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 content={
                     "detail": {
                         "code": "AGE_NOT_SUPPORTED",
-                        "message": "فیتشو در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
+                        "message": "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
                     }
                 },
             )

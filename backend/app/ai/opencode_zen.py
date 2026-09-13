@@ -154,7 +154,7 @@ class OpenCodeZenWorkoutPlanProvider:
             if self._api_kind is ZenApiKind.MESSAGES:
                 contract = self._extract_messages_tool_input(
                     payload,
-                    tool_name="fitsho_model_test_contract",
+                    tool_name="fitician_model_test_contract",
                 )
             elif self._api_kind is ZenApiKind.CHAT_COMPLETIONS:
                 contract = self._load_plan_json(self._extract_chat_completions_output_text(payload))
@@ -207,7 +207,7 @@ class OpenCodeZenWorkoutPlanProvider:
                 "response_format": {
                     "type": "json_schema",
                     "json_schema": {
-                        "name": "fitsho_workout_plan",
+                        "name": "fitician_workout_plan",
                         "strict": True,
                         "schema": request.response_schema,
                     },
@@ -221,12 +221,12 @@ class OpenCodeZenWorkoutPlanProvider:
                 "messages": [{"role": "user", "content": self._input_text(request)}],
                 "tools": [
                     {
-                        "name": "fitsho_workout_plan",
-                        "description": "Return the generated Fitsho workout plan.",
+                        "name": "fitician_workout_plan",
+                        "description": "Return the generated Fitician workout plan.",
                         "input_schema": request.response_schema,
                     }
                 ],
-                "tool_choice": {"type": "tool", "name": "fitsho_workout_plan"},
+                "tool_choice": {"type": "tool", "name": "fitician_workout_plan"},
             }
         if self._api_kind is ZenApiKind.GEMINI:
             return {
@@ -259,7 +259,7 @@ class OpenCodeZenWorkoutPlanProvider:
             "text": {
                 "format": {
                     "type": "json_schema",
-                    "name": "fitsho_workout_plan",
+                    "name": "fitician_workout_plan",
                     "strict": True,
                     "schema": request.response_schema,
                 }
@@ -300,7 +300,7 @@ class OpenCodeZenWorkoutPlanProvider:
                 "response_format": {
                     "type": "json_schema",
                     "json_schema": {
-                        "name": "fitsho_model_test_contract",
+                        "name": "fitician_model_test_contract",
                         "strict": True,
                         "schema": _MODEL_TEST_CONTRACT_SCHEMA,
                     },
@@ -313,12 +313,12 @@ class OpenCodeZenWorkoutPlanProvider:
                 "messages": [{"role": "user", "content": _MODEL_TEST_CONTRACT_PROMPT}],
                 "tools": [
                     {
-                        "name": "fitsho_model_test_contract",
+                        "name": "fitician_model_test_contract",
                         "description": "Return the model test contract.",
                         "input_schema": _MODEL_TEST_CONTRACT_SCHEMA,
                     }
                 ],
-                "tool_choice": {"type": "tool", "name": "fitsho_model_test_contract"},
+                "tool_choice": {"type": "tool", "name": "fitician_model_test_contract"},
             }
         if self._api_kind is ZenApiKind.GEMINI:
             return {
@@ -336,7 +336,7 @@ class OpenCodeZenWorkoutPlanProvider:
             "text": {
                 "format": {
                     "type": "json_schema",
-                    "name": "fitsho_model_test_contract",
+                    "name": "fitician_model_test_contract",
                     "strict": True,
                     "schema": _MODEL_TEST_CONTRACT_SCHEMA,
                 }
@@ -534,7 +534,7 @@ class OpenCodeZenWorkoutPlanProvider:
     def _extract_messages_tool_input(
         payload: dict[str, Any],
         *,
-        tool_name: str = "fitsho_workout_plan",
+        tool_name: str = "fitician_workout_plan",
     ) -> object:
         if payload.get("stop_reason") == "refusal":
             raise WorkoutProviderError(

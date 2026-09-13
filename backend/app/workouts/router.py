@@ -238,7 +238,7 @@ def download_plan_pdf(
         content=content,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="fitsho-workout-plan-{plan.id}.pdf"'
+            "Content-Disposition": f'attachment; filename="fitician-workout-plan-{plan.id}.pdf"'
         },
     )
 

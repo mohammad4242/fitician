@@ -6,7 +6,7 @@ import secrets
 from pwdlib import PasswordHash
 
 _password_hash = PasswordHash.recommended()
-DUMMY_PASSWORD_HASH = _password_hash.hash("fitsho-dummy-password-value")
+DUMMY_PASSWORD_HASH = _password_hash.hash("fitician-dummy-password-value")
 
 
 def hash_password(password: str) -> str:

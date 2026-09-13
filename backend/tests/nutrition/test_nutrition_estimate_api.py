@@ -194,7 +194,7 @@ def test_combined_mode_reuses_training_profile_for_exercise(client: TestClient) 
         "home_training_setup": None,
         "training_cautions": [],
         "plan_duration_weeks": 6,
-        "workout_generation_method": "fitsho_coach",
+        "workout_generation_method": "fitician_coach",
         "session_duration_minutes": 60,
         "training_intensity": "moderate",
         "physical_limitations": None,

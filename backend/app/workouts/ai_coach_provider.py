@@ -81,7 +81,7 @@ class AiCoachProvider:
             response = await self._provider.generate_structured_text(
                 StructuredGenerationRequest(
                     system_prompt=(
-                        "You are Fitsho AI Coach. Select exactly one supplied candidate program. "
+                        "You are Fitician AI Coach. Select exactly one supplied candidate program. "
                         "Do not modify exercises, prescriptions, or safety constraints. "
                         "Explain the selection in clear Persian. Add a Persian day explanation "
                         "only when it provides useful user-specific context."
@@ -91,7 +91,7 @@ class AiCoachProvider:
                         "candidate_programs": list(request.candidate_programs),
                     },
                     response_schema=AiCoachRecommendationPayload.model_json_schema(),
-                    schema_name="fitsho_ai_coach_recommendation",
+                    schema_name="fitician_ai_coach_recommendation",
                     route=ModelRoute(
                         primary_model=request.primary_model,
                         fallback_models=request.fallback_models,

@@ -41,7 +41,7 @@ from app.workout_reviews.models import WorkoutPlanReview
 from app.workout_reviews.repository import ensure_pending_review
 from app.workout_reviews.schemas import WorkoutReviewDraftUpdate, WorkoutReviewExerciseDraft
 from app.workout_reviews.service import ReviewConflict, WorkoutReviewService
-from app.workout_reviews.summary import build_athlete_summary, build_fitsho_recommendation
+from app.workout_reviews.summary import build_athlete_summary, build_fitician_recommendation
 from app.workout_reviews.validation import DraftValidationError
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
@@ -262,7 +262,7 @@ def test_athlete_summary_preserves_distinct_signals_and_provenance() -> None:
     assert response.athlete_state.provenance.preference_ids == (preference_source_id,)
 
 
-def test_fitsho_recommendation_reuses_adaptation_difference_reasons(db: Session) -> None:
+def test_fitician_recommendation_reuses_adaptation_difference_reasons(db: Session) -> None:
     member = _user(db, "recommendation-member")
     previous_exercise = _exercise(db, "recommendation-previous")
     previous = _active_plan(db, user=member, exercises=[previous_exercise])
@@ -300,7 +300,7 @@ def test_fitsho_recommendation_reuses_adaptation_difference_reasons(db: Session)
     )
     db.flush()
 
-    recommendation = build_fitsho_recommendation(db, review, state=state)
+    recommendation = build_fitician_recommendation(db, review, state=state)
 
     volume = next(
         item for item in recommendation.difference_summary if item.change.value == "muscle_volume"
@@ -316,7 +316,7 @@ def test_fitsho_recommendation_reuses_adaptation_difference_reasons(db: Session)
     assert priority.next is True
     assert (
         recommendation.to_snapshot_json()
-        == build_fitsho_recommendation(
+        == build_fitician_recommendation(
             db,
             review,
             state=state,
@@ -324,7 +324,7 @@ def test_fitsho_recommendation_reuses_adaptation_difference_reasons(db: Session)
     )
 
 
-def test_fitsho_recommendation_keeps_safety_and_preference_decisions_distinct(
+def test_fitician_recommendation_keeps_safety_and_preference_decisions_distinct(
     db: Session,
 ) -> None:
     member = _user(db, "recommendation-safety-member")
@@ -371,7 +371,7 @@ def test_fitsho_recommendation_keeps_safety_and_preference_decisions_distinct(
         ),
     )
 
-    recommendation = build_fitsho_recommendation(db, review, state=state)
+    recommendation = build_fitician_recommendation(db, review, state=state)
 
     safety = next(
         item

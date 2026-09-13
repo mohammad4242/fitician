@@ -2684,6 +2684,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/nutrition/plans/{plan_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Plan */
+        post: operations["start_plan_api_v1_nutrition_plans__plan_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/nutrition/plans/active": {
         parameters: {
             query?: never;
@@ -3290,6 +3307,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile/timezone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Timezone */
+        put: operations["update_timezone_api_v1_profile_timezone_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews/body-analyses/{analysis_id}": {
         parameters: {
             query?: never;
@@ -3427,6 +3461,57 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workout-cycles/current/sessions/{session_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Current Session */
+        post: operations["complete_current_session_api_v1_workout_cycles_current_sessions__session_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-cycles/current/sessions/{session_id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reschedule Current Session */
+        post: operations["reschedule_current_session_api_v1_workout_cycles_current_sessions__session_id__reschedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-cycles/current/sessions/{session_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip Current Session */
+        post: operations["skip_current_session_api_v1_workout_cycles_current_sessions__session_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workout-cycles/current/weekly-check-in": {
         parameters: {
             query?: never;
@@ -3439,6 +3524,23 @@ export type paths = {
         /** Upsert Current Weekly Check In Route */
         put: operations["upsert_current_weekly_check_in_route_api_v1_workout_cycles_current_weekly_check_in_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-cycles/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Current Cycle */
+        post: operations["start_current_cycle_api_v1_workout_cycles_start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8556,6 +8658,16 @@ export type components = {
          * @enum {string}
          */
         NutritionOnboardingStatus: "in_progress" | "completed";
+        /** NutritionPlanStartRequest */
+        NutritionPlanStartRequest: {
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Timezone */
+            timezone: string;
+        };
         /**
          * NutritionPlanStyle
          * @enum {string}
@@ -9771,7 +9883,7 @@ export type components = {
             training_location: components["schemas"]["TrainingLocation"];
             /** Waist Circumference Cm */
             waist_circumference_cm?: number | string | null;
-            /** @default fitsho_coach */
+            /** @default fitician_coach */
             workout_generation_method: components["schemas"]["WorkoutGenerationMethod"];
         };
         /** ProfilePhotoResponse */
@@ -10543,7 +10655,7 @@ export type components = {
          * StructuredExerciseSource
          * @enum {string}
          */
-        StructuredExerciseSource: "user_reported" | "training_profile" | "active_fitsho_plan";
+        StructuredExerciseSource: "user_reported" | "training_profile" | "active_fitician_plan";
         /**
          * StructuredExerciseType
          * @enum {string}
@@ -10614,6 +10726,16 @@ export type components = {
          * @enum {string}
          */
         TemplateFocusTag: "full_body" | "upper_lower" | "push_pull_legs" | "body_part_rotation" | "balanced" | "lower_priority" | "chest_priority" | "back_priority" | "shoulders_priority" | "arms_priority" | "glute_priority" | "quad_priority" | "hamstrings_priority" | "strength_bias" | "compound_focus" | "specialization";
+        /** TimezoneResponse */
+        TimezoneResponse: {
+            /** Timezone */
+            timezone: string;
+        };
+        /** TimezoneUpdateRequest */
+        TimezoneUpdateRequest: {
+            /** Timezone */
+            timezone: string;
+        };
         /**
          * TrainingCaution
          * @enum {string}
@@ -11174,6 +11296,8 @@ export type components = {
              * Format: date
              */
             start_date: string;
+            /** Started At */
+            started_at?: string | null;
             /** Supersedes Plan Id */
             supersedes_plan_id: string | null;
             /** Warning Codes */
@@ -11234,6 +11358,11 @@ export type components = {
         };
         /** WorkoutCycleCurrentResponse */
         WorkoutCycleCurrentResponse: {
+            /**
+             * Completed Sessions
+             * @default 0
+             */
+            completed_sessions: number;
             /** Current Week */
             current_week: number;
             /**
@@ -11244,11 +11373,23 @@ export type components = {
             /** Duration Weeks */
             duration_weeks: number;
             /**
+             * Has Exact Session Tracking
+             * @default false
+             */
+            has_exact_session_tracking: boolean;
+            /** Sessions */
+            sessions?: components["schemas"]["WorkoutCycleSessionResponse"][];
+            /**
              * Started At
              * Format: date-time
              */
             started_at: string;
             status: components["schemas"]["WorkoutCycleStatus"];
+            /**
+             * Total Sessions
+             * @default 0
+             */
+            total_sessions: number;
             /**
              * Workout Plan Id
              * Format: uuid
@@ -11355,6 +11496,61 @@ export type components = {
          * @enum {string}
          */
         WorkoutCycleFeedbackSatisfaction: "very_dissatisfied" | "dissatisfied" | "neutral" | "satisfied" | "very_satisfied";
+        /** WorkoutCycleSessionRescheduleRequest */
+        WorkoutCycleSessionRescheduleRequest: {
+            /**
+             * Scheduled Date
+             * Format: date
+             */
+            scheduled_date: string;
+        };
+        /** WorkoutCycleSessionResponse */
+        WorkoutCycleSessionResponse: {
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Scheduled Date
+             * Format: date
+             */
+            scheduled_date: string;
+            /** Session Number */
+            session_number: number;
+            /** Skipped At */
+            skipped_at: string | null;
+            status: components["schemas"]["WorkoutCycleSessionStatus"];
+            /** Week Number */
+            week_number: number;
+            /**
+             * Workout Day Id
+             * Format: uuid
+             */
+            workout_day_id: string;
+        };
+        /**
+         * WorkoutCycleSessionStatus
+         * @enum {string}
+         */
+        WorkoutCycleSessionStatus: "scheduled" | "completed" | "skipped";
+        /** WorkoutCycleStartRequest */
+        WorkoutCycleStartRequest: {
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Workout Plan Id
+             * Format: uuid
+             */
+            workout_plan_id: string;
+        };
         /**
          * WorkoutCycleStatus
          * @enum {string}
@@ -11578,7 +11774,7 @@ export type components = {
          * WorkoutGenerationMethod
          * @enum {string}
          */
-        WorkoutGenerationMethod: "fitsho_coach" | "ai";
+        WorkoutGenerationMethod: "fitician_coach" | "ai";
         /** WorkoutPlanCoachReviewResponse */
         WorkoutPlanCoachReviewResponse: {
             /** Approved At */
@@ -11827,9 +12023,9 @@ export type components = {
             exercise_options: components["schemas"]["WorkoutReviewExerciseOption"][];
             /** Experience Level */
             experience_level: string | null;
+            fitician_recommendation: components["schemas"]["CycleAdaptationDecision"];
             /** Fitness Goal */
             fitness_goal: string | null;
-            fitsho_recommendation: components["schemas"]["CycleAdaptationDecision"];
             /**
              * Id
              * Format: uuid
@@ -17664,6 +17860,41 @@ export interface operations {
             };
         };
     };
+    start_plan_api_v1_nutrition_plans__plan_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NutritionPlanStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_active_plan_api_v1_nutrition_plans_active_get: {
         parameters: {
             query?: never;
@@ -18344,7 +18575,7 @@ export interface operations {
             header: {
                 "Accept-Language"?: string | null;
                 "Idempotency-Key"?: string | null;
-                "X-Fitsho-Food-Photo-Consent": boolean;
+                "X-Fitician-Food-Photo-Consent": boolean;
             };
             path?: never;
             cookie?: never;
@@ -18981,6 +19212,39 @@ export interface operations {
             };
         };
     };
+    update_timezone_api_v1_profile_timezone_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimezoneUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimezoneResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_specialist_review_detail_api_v1_reviews_body_analyses__analysis_id__get: {
         parameters: {
             query?: never;
@@ -19246,6 +19510,103 @@ export interface operations {
             };
         };
     };
+    complete_current_session_api_v1_workout_cycles_current_sessions__session_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCycleSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reschedule_current_session_api_v1_workout_cycles_current_sessions__session_id__reschedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutCycleSessionRescheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCycleSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    skip_current_session_api_v1_workout_cycles_current_sessions__session_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCycleSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_current_weekly_check_in_api_v1_workout_cycles_current_weekly_check_in_get: {
         parameters: {
             query?: never;
@@ -19286,6 +19647,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutCycleWeeklyCheckInResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_current_cycle_api_v1_workout_cycles_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutCycleStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutCycleCurrentResponse"];
                 };
             };
             /** @description Validation Error */

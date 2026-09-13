@@ -113,7 +113,7 @@ def test_seed_manifest_uses_only_approved_media() -> None:
         assert seed.media_type is MediaType.GIF
         assert seed.media_source_url is None
         assert seed.media_license == "Project owner supplied and authorized"
-        assert seed.media_attribution == "Provided by Fitsho project owner"
+        assert seed.media_attribution == "Provided by Fitician project owner"
     placeholder_media = {
         seed.slug for seed in EXERCISE_SEEDS if seed.media_type is MediaType.PLACEHOLDER
     }
@@ -166,8 +166,8 @@ def test_seed_is_idempotent_and_restores_seed_owned_fields(db: Session) -> None:
         safety_notes_fa=["اگر حرکت باعث درد شد، آن را متوقف کن."],
         media_path="/exercises/exercise-placeholder.svg",
         media_type=MediaType.PLACEHOLDER,
-        media_license="Fitsho original",
-        media_attribution="Fitsho",
+        media_license="Fitician original",
+        media_attribution="Fitician",
     )
     custom.equipment_items.append(ExerciseEquipment(equipment=Equipment.BODYWEIGHT))
     db.add(custom)

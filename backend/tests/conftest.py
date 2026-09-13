@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -19,16 +20,17 @@ from tests.database_lifecycle import (
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test",
+    "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test",
 )
 
 
 @pytest.fixture(scope="session", autouse=True)
 def migrated_database() -> Iterator[None]:
-    ensure_database_exists(TEST_DATABASE_URL, expected_database="fitsho_test")
-    with hold_database_lock(TEST_DATABASE_URL, expected_database="fitsho_test"):
-        reset_public_schema(TEST_DATABASE_URL, expected_database="fitsho_test")
-        upgrade_database(TEST_DATABASE_URL, expected_database="fitsho_test")
+    expected_database = make_url(TEST_DATABASE_URL).database or "fitician_test"
+    ensure_database_exists(TEST_DATABASE_URL, expected_database=expected_database)
+    with hold_database_lock(TEST_DATABASE_URL, expected_database=expected_database):
+        reset_public_schema(TEST_DATABASE_URL, expected_database=expected_database)
+        upgrade_database(TEST_DATABASE_URL, expected_database=expected_database)
         yield
 
 
@@ -54,9 +56,12 @@ def test_settings(tmp_path: Path) -> Settings:
         frontend_origin="http://localhost:5173",
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         session_ttl_seconds=604800,
         media_root=tmp_path / "media",
+        sms_provider="fake",
+        email_provider="fake",
+        _env_file=None,
     )
 
 

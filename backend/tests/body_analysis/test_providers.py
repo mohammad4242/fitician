@@ -47,7 +47,7 @@ def _request(*, fallback_models: tuple[str, ...] = ()) -> StructuredGenerationRe
             "required": ["status"],
             "additionalProperties": False,
         },
-        schema_name="fitsho_body_analysis",
+        schema_name="fitician_body_analysis",
         route=ModelRoute(primary_model="vision-primary", fallback_models=fallback_models),
         temperature=0.1,
         max_output_tokens=1200,
@@ -216,7 +216,7 @@ def test_openrouter_connection_test_validates_key_before_loading_catalog() -> No
         paths.append(request.url.path)
         assert request.headers["authorization"] == "Bearer test-openrouter-secret"
         if request.url.path.endswith("/auth/key"):
-            return httpx.Response(200, json={"data": {"label": "fitsho"}})
+            return httpx.Response(200, json={"data": {"label": "fitician"}})
         return httpx.Response(200, json={"data": []})
 
     result = _run(_provider(httpx.MockTransport(handler)).test_connection())
@@ -261,7 +261,7 @@ def test_openrouter_image_request_sends_three_standardized_images_with_json_sche
     assert body["response_format"] == {
         "type": "json_schema",
         "json_schema": {
-            "name": "fitsho_body_analysis",
+            "name": "fitician_body_analysis",
             "strict": True,
             "schema": _request().response_schema,
         },

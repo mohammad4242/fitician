@@ -122,8 +122,8 @@ Priority = TrainingTemplateSlotPriority
 
 LEGACY_SOURCE_NAME = "Fitsho synthesis: Stronger By Science · Jeff Nippard · RP Strength"
 LEGACY_SOURCE_URL = "https://www.strongerbyscience.com/exercise-order-video/"
-SOURCE_NAME = "Fitsho canonical training template catalog"
-SOURCE_URL = "https://fitsho.local/training-template-catalog"
+SOURCE_NAME = "Fitician canonical training template catalog"
+SOURCE_URL = "https://fitician.local/training-template-catalog"
 NOVICE_DEFAULT_PRESCRIPTION = (3, 8, 12)
 LEGACY_NOVICE_PRESCRIPTIONS = frozenset({(2, 10, 15), (2, 12, 15), (2, 12, 20)})
 
@@ -1985,8 +1985,8 @@ def _approved_definition(
         canonical_slug=slug,
         name_en=f"{structure_name_en} — {level_name_en}",
         name_fa=f"{structure_name_fa} — {level_name_fa}",
-        description_en=f"Approved Fitsho default program: {structure_name_en} for {level_name_en} trainees.",
-        description_fa=f"برنامه پیش‌فرض تأییدشده فیتشو: {structure_name_fa} برای سطح {level_name_fa}.",
+        description_en=f"Approved Fitician default program: {structure_name_en} for {level_name_en} trainees.",
+        description_fa=f"برنامه پیش‌فرض تأییدشده فیتیشن: {structure_name_fa} برای سطح {level_name_fa}.",
         supported_levels=(level,),
         focus_tags=_APPROVED_TAGS[structure_slug],
         days=tuple(day for day, _ in days),
@@ -2880,8 +2880,8 @@ def _approved_catalog_definition(
         canonical_slug=slug,
         name_en=name_en or f"{structure_name_en} — {_LEVEL_NAMES[level][0]}",
         name_fa=name_fa or f"{structure_name_fa} — {_LEVEL_NAMES[level][1]}",
-        description_en=f"Approved Fitsho default program: {structure_name_en} for {_LEVEL_NAMES[level][0]} trainees.",
-        description_fa=f"برنامه پیش‌فرض تأییدشده فیتشو: {structure_name_fa} برای سطح {_LEVEL_NAMES[level][1]}.",
+        description_en=f"Approved Fitician default program: {structure_name_en} for {_LEVEL_NAMES[level][0]} trainees.",
+        description_fa=f"برنامه پیش‌فرض تأییدشده فیتیشن: {structure_name_fa} برای سطح {_LEVEL_NAMES[level][1]}.",
         supported_levels=(level,),
         focus_tags=tags,
         days=rendered_days,

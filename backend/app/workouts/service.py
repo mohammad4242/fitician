@@ -144,7 +144,7 @@ class WorkoutGenerationSettings:
     max_request_bytes: int
     warmup_minutes: int
     deterministic_fallback_enabled: bool = True
-    generation_method: str = "fitsho_coach"
+    generation_method: str = "fitician_coach"
     ai_coach_fallback_models: tuple[str, ...] = ()
     ai_coach_temperature: float = 0.0
     ai_coach_max_output_tokens: int = 4096
@@ -436,7 +436,7 @@ class WorkoutGenerationService:
                 program=program,
                 previous=current_plan,
             )
-            generation.provider = "fitsho_bodyweight_template"
+            generation.provider = "fitician_bodyweight_template"
             generation.model_id = template.slug
             generation.latency_ms = int((perf_counter() - started_at) * 1000)
             generation.validation_diagnostics = [
@@ -603,7 +603,7 @@ class WorkoutGenerationService:
                         "ai_output_persisted": False,
                     },
                 ]
-            generation.provider = "fitsho_domain"
+            generation.provider = "fitician_domain"
             generation.model_id = result.program.engine_version
             generation.latency_ms = int((perf_counter() - started_at) * 1000)
             generation.validation_diagnostics = [
@@ -1155,7 +1155,9 @@ class WorkoutGenerationService:
             status=WorkoutPlanStatus.GENERATING,
             generation_signature=signature,
             profile_snapshot=program.user_profile_snapshot,
-            provider=("fitsho_bodyweight_template" if is_bodyweight_template else "fitsho_domain"),
+            provider=(
+                "fitician_bodyweight_template" if is_bodyweight_template else "fitician_domain"
+            ),
             model_id=template_slug or program.engine_version,
             prompt_version="none",
             generation_policy_version=program.ruleset_version,

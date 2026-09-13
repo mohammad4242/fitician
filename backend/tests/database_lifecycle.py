@@ -11,10 +11,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL, make_url
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-_ALLOWED_DATABASE_NAMES = frozenset(("fitsho_test", "fitsho_nutrition_audit"))
+_ALLOWED_DATABASE_NAMES = frozenset(
+    ("fitsho_test", "fitsho_nutrition_audit", "fitician_test", "fitician_nutrition_audit")
+)
 _DATABASE_LOCK_KEYS = {
     "fitsho_test": 58421901,
     "fitsho_nutrition_audit": 58421902,
+    "fitician_test": 58421901,
+    "fitician_nutrition_audit": 58421902,
 }
 
 

@@ -74,5 +74,5 @@ class TrainingCaution(StrEnum):
 
 
 class WorkoutGenerationMethod(StrEnum):
-    FITSHO_COACH = "fitsho_coach"
+    FITICIAN_COACH = "fitician_coach"
     AI = "ai"

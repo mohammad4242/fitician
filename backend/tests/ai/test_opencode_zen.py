@@ -106,7 +106,7 @@ def _success(api_kind: ZenApiKind) -> dict[str, object]:
         return {
             "id": "msg_123",
             "usage": {"input_tokens": 12, "output_tokens": 34},
-            "content": [{"type": "tool_use", "name": "fitsho_workout_plan", "input": _plan()}],
+            "content": [{"type": "tool_use", "name": "fitician_workout_plan", "input": _plan()}],
         }
     return {
         "responseId": "gem_123",
@@ -231,7 +231,7 @@ def test_zen_provider_availability_check_uses_minimal_request(
     assert isinstance(body, dict)
     serialized = json.dumps(body)
     assert "Reply only: OK" in serialized
-    assert "fitsho_workout_plan" not in serialized
+    assert "fitician_workout_plan" not in serialized
     assert "response_format" not in body
     assert "tools" not in body
     if api_kind is ZenApiKind.RESPONSES:
@@ -262,7 +262,7 @@ def _structured_test_success(api_kind: ZenApiKind) -> dict[str, object]:
             "content": [
                 {
                     "type": "tool_use",
-                    "name": "fitsho_model_test_contract",
+                    "name": "fitician_model_test_contract",
                     "input": {"status": "ok"},
                 }
             ],
@@ -307,7 +307,7 @@ def test_zen_provider_model_test_contract_uses_compact_structured_output(
     elif api_kind is ZenApiKind.CHAT_COMPLETIONS:
         assert body["response_format"]["type"] == "json_schema"
     elif api_kind is ZenApiKind.MESSAGES:
-        assert body["tool_choice"] == {"type": "tool", "name": "fitsho_model_test_contract"}
+        assert body["tool_choice"] == {"type": "tool", "name": "fitician_model_test_contract"}
     else:
         assert body["generationConfig"]["responseMimeType"] == "application/json"
 

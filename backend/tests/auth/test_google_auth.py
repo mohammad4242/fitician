@@ -24,7 +24,7 @@ class StubGoogleIdentityProvider:
             sub=sub,
             email=email,
             email_verified=email_verified,
-            name="Fitsho Member",
+            name="Fitician Member",
             picture="https://example.com/avatar.jpg",
         )
         self.error = error
@@ -54,7 +54,7 @@ def test_valid_google_token_creates_user_auth_session_and_cookie(
 
     assert response.status_code == 200
     assert response.json()["email"] == "member@example.com"
-    assert "fitsho_session" in response.cookies
+    assert "fitician_session" in response.cookies
     user = db.scalar(select(User).where(User.google_sub == "google-sub-1"))
     assert user is not None
     assert user.password_hash is None

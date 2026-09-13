@@ -943,7 +943,7 @@ def test_generate_uses_authenticated_user_and_returns_reuse_flag(
     assert called_user_ids == [user_id]
 
 
-def test_strength_profile_is_created_and_reaches_real_fitsho_coach_generation(
+def test_strength_profile_is_created_and_reaches_real_fitician_coach_generation(
     client: TestClient, db: Session
 ) -> None:
     registration = client.post(

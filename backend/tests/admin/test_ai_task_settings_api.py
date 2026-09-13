@@ -101,7 +101,7 @@ def _restore_agent_service(client: TestClient, replacement: httpx.AsyncClient) -
 def _catalog_response(request: httpx.Request) -> httpx.Response:
     assert request.headers["authorization"] == "Bearer sk-openrouter-secret"
     if request.url.path.endswith("/auth/key"):
-        return httpx.Response(200, json={"data": {"label": "Fitsho"}})
+        return httpx.Response(200, json={"data": {"label": "Fitician"}})
     return httpx.Response(
         200,
         json={

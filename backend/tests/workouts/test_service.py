@@ -764,7 +764,7 @@ def _service(
         db,
         ai_coach_provider=ai_coach_provider,
         settings=WorkoutGenerationSettings(
-            provider_name="fitsho_domain",
+            provider_name="fitician_domain",
             model_id="program_engine_v1",
             prompt_version="none",
             generation_policy_version="resistance_training_v1",
@@ -792,7 +792,7 @@ def _persist_active_plan(
         status=WorkoutPlanStatus.ACTIVE,
         generation_signature="z" * 64,
         profile_snapshot={"plan_duration_weeks": 4},
-        provider="fitsho_domain",
+        provider="fitician_domain",
         model_id="program_engine_v1",
         prompt_version="none",
         generation_policy_version="resistance_training_v2",
@@ -1295,7 +1295,7 @@ def test_ai_provider_unavailable_falls_back_to_one_deterministic_reviewable_plan
     assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 1
     generation = db.query(WorkoutPlanGeneration).filter_by(user_id=user.id).one()
     assert generation.status is WorkoutGenerationStatus.SUCCEEDED
-    assert generation.provider == "fitsho_domain"
+    assert generation.provider == "fitician_domain"
     assert generation.workout_plan_id == result.plan.id
 
 
@@ -1583,7 +1583,7 @@ def test_generation_in_progress_rejects_second_request(db: Session) -> None:
     create_generation(
         db,
         user_id=user.id,
-        provider="fitsho_domain",
+        provider="fitician_domain",
         model_id="program_engine_v1",
         candidate_count=3,
     )

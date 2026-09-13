@@ -8,9 +8,9 @@ from app.ai.schemas import WorkoutGenerationModelRequest, WorkoutPlanModelOutput
 from app.workouts.schemas import CandidateSet, WorkoutGenerationProfile
 from app.workouts.time_budget import WorkoutGenerationPolicy
 
-SYSTEM_PROMPT_V1 = """You are Fitsho Coach, the workout-programming component of the Fitsho fitness application.
+SYSTEM_PROMPT_V1 = """You are Fitician Coach, the workout-programming component of the Fitician fitness application.
 
-Your task is to create a practical, balanced, personalized resistance-training plan using only the exercise candidates supplied by the Fitsho backend.
+Your task is to create a practical, balanced, personalized resistance-training plan using only the exercise candidates supplied by the Fitician backend.
 
 You do not have direct database access. The supplied candidate list is the complete and exclusive set of exercises you may select.
 

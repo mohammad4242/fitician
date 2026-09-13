@@ -146,7 +146,7 @@ def test_successful_otp_creates_phone_user_and_existing_session_cookie(
     assert response.status_code == 200
     assert response.json()["email"] is None
     assert response.json()["phone_number"] == NORMALIZED_PHONE
-    assert "fitsho_session" in response.cookies
+    assert "fitician_session" in response.cookies
     user = db.scalar(select(User).where(User.phone_number == NORMALIZED_PHONE))
     assert user is not None
     assert user.password_hash is None

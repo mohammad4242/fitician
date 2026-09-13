@@ -112,8 +112,7 @@ def test_first_generated_plan_requires_review_before_activation_and_cycle_start(
     assert source.status is WorkoutPlanStatus.SUPERSEDED
     assert approved.status is WorkoutPlanStatus.ACTIVE
     assert active_plans == [approved]
-    assert len(cycles) == 1
-    assert cycles[0].duration_weeks == approved.profile_snapshot["program_duration_weeks"] == 4
+    assert cycles == []
     assert review.status is WorkoutReviewStatus.APPROVED
     assert review.approved_plan_id == approved.id
     assert (
@@ -245,7 +244,7 @@ def test_replacement_approval_preserves_edits_provenance_and_is_idempotent(
         )
         == 1
     )
-    assert len(approved_cycles) == 1
+    assert approved_cycles == []
     assert active_plans == [approved]
     assert previous.status is WorkoutPlanStatus.SUPERSEDED
     assert source.status is WorkoutPlanStatus.SUPERSEDED

@@ -374,7 +374,7 @@ def test_detail_returns_complete_bilingual_exercise(
     assert payload["media_path"].endswith("/dumbbell-bench-press.gif")
     assert payload["media_source_url"] is None
     assert payload["media_license"] == "Project owner supplied and authorized"
-    assert payload["media_attribution"] == "Provided by Fitsho project owner"
+    assert payload["media_attribution"] == "Provided by Fitician project owner"
     assert payload["source"] == "free-exercise-db"
     assert payload["source_id"] == "0031"
     assert payload["aliases_en"] == ["Dumbbell chest press"]

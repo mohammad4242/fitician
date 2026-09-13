@@ -37,7 +37,7 @@ def _settings(tmp_path: Path) -> Settings:
     return Settings(
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         media_root=tmp_path / "public-media",
         profile_photo_storage_root=tmp_path / "private-profile-photos",
     )

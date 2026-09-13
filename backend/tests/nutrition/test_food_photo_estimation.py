@@ -158,7 +158,7 @@ def test_food_photo_request_builder_is_the_canonical_task_contract() -> None:
             "و روزمره ارائه بده."
         )
     }
-    assert request_fa.schema_name == "fitsho_food_photo_estimate_v1"
+    assert request_fa.schema_name == "fitician_food_photo_estimate_v1"
     assert request_fa.route.primary_model == "vision-primary"
     assert request_fa.route.fallback_models == ("vision-fallback",)
     assert request_fa.provider_preferences == ProviderRoutingPreferences(zdr=True)
@@ -196,7 +196,7 @@ def test_photo_requires_explicit_consent(client: TestClient) -> None:
     _register(client)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "false"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "false"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
     assert response.status_code == 409
@@ -209,7 +209,7 @@ def test_photo_estimation_is_safely_disabled_without_openrouter_task_config(
     _register(client)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
     assert response.status_code == 409
@@ -248,7 +248,7 @@ def test_photo_estimate_maps_catalogue_and_writes_only_after_confirmation(
         "/api/v1/nutrition/tracking/photo-estimates",
         headers={
             **ORIGIN,
-            "X-Fitsho-Food-Photo-Consent": "true",
+            "X-Fitician-Food-Photo-Consent": "true",
             "Idempotency-Key": "meal-photo-request-1",
         },
         files={"file": ("meal.png", _image(), "image/png")},
@@ -267,7 +267,7 @@ def test_photo_estimate_maps_catalogue_and_writes_only_after_confirmation(
         "/api/v1/nutrition/tracking/photo-estimates",
         headers={
             **ORIGIN,
-            "X-Fitsho-Food-Photo-Consent": "true",
+            "X-Fitician-Food-Photo-Consent": "true",
             "Idempotency-Key": "meal-photo-request-1",
         },
         files={"file": ("meal.png", _image(), "image/png")},
@@ -349,7 +349,7 @@ def test_agent_photo_estimate_uses_agent_metadata_without_api_credential_decrypt
 
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
 
@@ -430,7 +430,7 @@ def test_agent_photo_invalid_output_is_rejected_and_stored_photo_removed(
 
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
 
@@ -492,7 +492,7 @@ def test_agent_photo_provider_failure_deletes_only_stored_photo(
 
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
 
@@ -542,7 +542,7 @@ def _setup_estimate(
     )
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
     assert response.status_code == 202, response.text
@@ -1008,7 +1008,7 @@ def test_unmapped_food_with_direct_ai_macros_is_complete_and_confirms(
     resp = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
         files={"file": ("joojeh.jpg", _image(), "image/png")},
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
     )
     assert resp.status_code == 202
     queued = resp.json()

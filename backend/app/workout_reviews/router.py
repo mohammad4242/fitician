@@ -31,7 +31,7 @@ from app.workout_reviews.schemas import (
 )
 from app.workout_reviews.service import ReviewConflict
 from app.workout_reviews.summary import (
-    build_fitsho_recommendation,
+    build_fitician_recommendation,
     build_review_athlete_summary,
 )
 from app.workout_reviews.template_selection import build_coach_template_selection
@@ -256,7 +256,7 @@ def _detail_response(
         source_plan=to_plan_response(review.source_plan, db=db).model_dump(mode="json"),
         exercise_options=options,
         athlete_summary=build_review_athlete_summary(db, review),
-        fitsho_recommendation=build_fitsho_recommendation(db, review),
+        fitician_recommendation=build_fitician_recommendation(db, review),
         template_selection=build_coach_template_selection(review.source_plan.decision_trace),
         coach_quality_metrics=build_coach_quality_projection(review.source_plan.decision_trace),
     )

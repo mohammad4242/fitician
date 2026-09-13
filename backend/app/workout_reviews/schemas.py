@@ -177,7 +177,7 @@ class WorkoutReviewDetailResponse(WorkoutReviewQueueItemResponse):
     source_plan: dict[str, object]
     exercise_options: list[WorkoutReviewExerciseOption]
     athlete_summary: WorkoutReviewAthleteSummary
-    fitsho_recommendation: CycleAdaptationDecision
+    fitician_recommendation: CycleAdaptationDecision
     template_selection: CoachTemplateSelectionResponse | None = None
     coach_quality_metrics: CoachQualityMetricsResponse | None = None
 

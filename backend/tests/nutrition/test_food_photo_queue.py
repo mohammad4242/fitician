@@ -115,7 +115,7 @@ def _enqueue_photo(
     _configure_photo_task(db)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
     assert response.status_code == 202, response.text
@@ -156,7 +156,7 @@ def test_food_photo_upload_commits_a_queued_job_without_running_ai(
     db.flush()
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
 
@@ -201,7 +201,7 @@ def test_food_photo_queue_has_owner_scoped_get_and_history_endpoints(
 
     created = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
-        headers={**ORIGIN, "X-Fitsho-Food-Photo-Consent": "true"},
+        headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
         files={"file": ("meal.png", _image(), "image/png")},
     )
     assert created.status_code == 202

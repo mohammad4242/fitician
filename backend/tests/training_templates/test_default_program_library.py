@@ -1005,7 +1005,8 @@ def test_seed_creates_exactly_53_linked_programs_with_valid_structures(db: Sessi
             select(func.count())
             .select_from(TrainingProgramTemplate)
             .where(
-                TrainingProgramTemplate.source_name == "Fitsho canonical training template catalog"
+                TrainingProgramTemplate.source_name
+                == "Fitician canonical training template catalog"
             )
         )
         == 53
@@ -1014,7 +1015,8 @@ def test_seed_creates_exactly_53_linked_programs_with_valid_structures(db: Sessi
         db.scalars(
             select(TrainingProgramTemplate)
             .where(
-                TrainingProgramTemplate.source_name == "Fitsho canonical training template catalog"
+                TrainingProgramTemplate.source_name
+                == "Fitician canonical training template catalog"
             )
             .options(
                 selectinload(TrainingProgramTemplate.days).selectinload(

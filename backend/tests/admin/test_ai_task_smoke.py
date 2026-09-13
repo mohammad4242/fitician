@@ -113,7 +113,7 @@ class _SmokeProvider:
         self, request: StructuredGenerationRequest
     ) -> StructuredGenerationResponse:
         self.requests.append(("text", request, ()))
-        if request.schema_name == "fitsho_ai_coach_recommendation":
+        if request.schema_name == "fitician_ai_coach_recommendation":
             payload: dict[str, Any] = {
                 "selected_candidate_id": "smoke-upper",
                 "program_explanation_fa": "برنامهٔ نمونه از کاندیدای معتبر انتخاب شد.",
@@ -166,7 +166,7 @@ class _SmokeProvider:
         images: tuple[ImageInput, ...],
     ) -> StructuredGenerationResponse:
         self.requests.append(("image", request, images))
-        if request.schema_name == "fitsho_body_analysis_v4_evidence":
+        if request.schema_name == "fitician_body_analysis_v4_evidence":
             payload: dict[str, Any] = _body_output()
         else:
             payload = {
@@ -293,7 +293,7 @@ def test_task_smoke_runs_all_four_safe_fixtures(db: Session, test_settings: Sett
     body_images = [
         images
         for kind, request, images in provider.requests
-        if kind == "image" and request.schema_name == "fitsho_body_analysis_v4_evidence"
+        if kind == "image" and request.schema_name == "fitician_body_analysis_v4_evidence"
     ]
     assert len(body_images) == 1
     assert len(body_images[0]) == 3
@@ -301,7 +301,7 @@ def test_task_smoke_runs_all_four_safe_fixtures(db: Session, test_settings: Sett
     food_request = next(
         request
         for kind, request, _ in provider.requests
-        if kind == "image" and request.schema_name == "fitsho_food_photo_estimate_v1"
+        if kind == "image" and request.schema_name == "fitician_food_photo_estimate_v1"
     )
     assert food_request == build_food_photo_request(
         primary_model=profile.model_id,

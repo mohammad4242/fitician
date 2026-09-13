@@ -29,13 +29,13 @@ from app.nutrition.pricing import (
 from app.nutrition.public_price_matching import CanonicalFoodIdentity, match_candidate
 from app.nutrition.public_price_sources import PublicProductCandidate
 
-FOOD_PRICE_RESEARCH_SCHEMA_NAME = "fitsho_food_price_research_v1"
+FOOD_PRICE_RESEARCH_SCHEMA_NAME = "fitician_food_price_research_v1"
 MEDIAN_BAND_FRACTION = Decimal("0.20")
 MAX_RESEARCH_SOURCES = 5
 INITIAL_RESEARCH_SOURCES = 3
 
 FOOD_PRICE_RESEARCH_SYSTEM_PROMPT = (
-    "You are Fitsho's public Iranian food-price research agent.\n\n"
+    "You are Fitician's public Iranian food-price research agent.\n\n"
     "This is a bounded evidence task and requires live web research. Use the "
     "live web/search/fetch tool exposed by your runner for this request. "
     "Do not answer from model memory. Return only one JSON object matching the "
@@ -58,7 +58,7 @@ FOOD_PRICE_RESEARCH_SYSTEM_PROMPT = (
     "price, product, source, or URL.\n\n"
     "The Backend owns food matching, normalization, unit comparability, "
     "validation, median calculation, reference-price promotion, and review "
-    "decisions. Do not calculate the Fitsho reference price or return it. "
+    "decisions. Do not calculate the Fitician reference price or return it. "
     "Return only observed evidence; do not provide medical advice or personal data."
 )
 

@@ -73,8 +73,8 @@ def test_novice_upgrade_updates_owned_defaults_and_preserves_custom_prescription
         focus_tags=["full_body"],
         intensity_methods=["standard"],
         programming_rationale=[],
-        source_name="Fitsho admin library",
-        source_url="https://fitsho.local/admin-library",
+        source_name="Fitician admin library",
+        source_url="https://fitician.local/admin-library",
         is_active=True,
     )
     custom.days.append(

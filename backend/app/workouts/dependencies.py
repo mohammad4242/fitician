@@ -32,7 +32,7 @@ def get_workout_generation_service(
     if method is None:
         raise RuntimeError("Completed fitness profile required")
     ai_coach_provider: AiCoachProvider | None = None
-    provider_name = "fitsho_domain"
+    provider_name = "fitician_domain"
     model_id = "program_engine_v1"
     prompt_version = "none"
     generation_policy_version = "resistance_training_v1"

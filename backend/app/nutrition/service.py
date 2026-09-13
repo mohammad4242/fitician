@@ -65,10 +65,10 @@ class NutritionSnapshot:
 _SAFETY_MESSAGES = {
     SafetyOutcome.STANDARD_AUTOMATIC: "عالی، می‌توانیم اطلاعات تغذیه‌ات را کامل کنیم.",
     SafetyOutcome.AUTOMATIC_DRAFT_REQUIRES_PHYSICIAN_REVIEW: (
-        "برنامه اولیه آماده می‌شود اما برای فعال‌شدن به بررسی پزشک فیتشو نیاز دارد."
+        "برنامه اولیه آماده می‌شود اما برای فعال‌شدن به بررسی پزشک فیتیشن نیاز دارد."
     ),
     SafetyOutcome.PHYSICIAN_MANUAL_PLAN_REQUIRED: (
-        "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتشو تنظیم شود."
+        "برای حفظ ایمنی، برنامه غذایی باید توسط پزشک فیتیشن تنظیم شود."
     ),
     SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED: (
         "در حال حاضر امکان ارائه برنامه خودکار ایمن برای این شرایط وجود ندارد."

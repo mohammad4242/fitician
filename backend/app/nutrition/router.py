@@ -1558,7 +1558,7 @@ def download_nutrition_plan_pdf(
         io.BytesIO(content),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="fitsho-nutrition-plan-{plan.id}.pdf"'
+            "Content-Disposition": f'attachment; filename="fitician-nutrition-plan-{plan.id}.pdf"'
         },
     )
 
@@ -2132,7 +2132,7 @@ async def create_food_photo_estimate(
     user: CurrentUser,
     settings: AppSettings,
     file: Annotated[UploadFile, File()],
-    consent: Annotated[bool, Header(alias="X-Fitsho-Food-Photo-Consent")],
+    consent: Annotated[bool, Header(alias="X-Fitician-Food-Photo-Consent")],
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
     language: str = Query(default="fa"),

@@ -8,12 +8,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho"
+    database_url: str = "postgresql+psycopg://fitician:fitician@localhost:5432/fitician"
     frontend_origin: str = "http://localhost:5173"
     frontend_origins: str | None = None
     app_env: Literal["local", "test", "production"] = "local"
     cookie_secure: bool = True
-    session_cookie_name: str = "__Host-fitsho_session"
+    session_cookie_name: str = "__Host-fitician_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 7
     mobile_access_token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     mobile_refresh_token_ttl_seconds: int = Field(
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     farazsms_pattern_code: str | None = None
     sms_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
     phone_otp_hmac_secret: SecretStr = Field(
-        default=SecretStr("fitsho-local-phone-otp-secret-change-me"), repr=False
+        default=SecretStr("fitician-local-phone-otp-secret-change-me"), repr=False
     )
     phone_otp_ttl_seconds: int = Field(default=300, ge=60, le=900)
     phone_otp_resend_cooldown_seconds: int = Field(default=60, ge=10, le=600)
@@ -124,7 +124,7 @@ class Settings(BaseSettings):
     nutrition_upload_rate_window_seconds: int = Field(default=3600, ge=60, le=86400)
     private_file_access_ttl_seconds: int = Field(default=300, ge=30, le=900)
     private_file_signing_key: SecretStr = Field(
-        default=SecretStr("fitsho-local-private-file-signing-key-change-me"), repr=False
+        default=SecretStr("fitician-local-private-file-signing-key-change-me"), repr=False
     )
     ffprobe_path: str = "ffprobe"
     ffprobe_timeout_seconds: float = 5.0
@@ -262,8 +262,8 @@ class Settings(BaseSettings):
             )
         if not self.cookie_secure:
             raise ValueError("Production requires secure cookies")
-        if self.session_cookie_name != "__Host-fitsho_session":
-            raise ValueError("Production requires the __Host-fitsho_session cookie name")
+        if self.session_cookie_name != "__Host-fitician_session":
+            raise ValueError("Production requires the __Host-fitician_session cookie name")
         if self.email_provider != "smtp" or not self.smtp_host or not self.smtp_from_address:
             raise ValueError("Production requires a configured SMTP email provider")
         if (
@@ -281,11 +281,11 @@ class Settings(BaseSettings):
         if not self.apple_client_id:
             raise ValueError("Production requires an Apple client ID")
         otp_secret = self.phone_otp_hmac_secret.get_secret_value()
-        if otp_secret == "fitsho-local-phone-otp-secret-change-me" or len(otp_secret) < 32:
+        if otp_secret == "fitician-local-phone-otp-secret-change-me" or len(otp_secret) < 32:
             raise ValueError("Production requires a strong phone OTP HMAC secret")
         signing_key = self.private_file_signing_key.get_secret_value()
         if (
-            signing_key == "fitsho-local-private-file-signing-key-change-me"
+            signing_key == "fitician-local-private-file-signing-key-change-me"
             or len(signing_key) < 32
         ):
             raise ValueError("Production requires a strong private file signing key")

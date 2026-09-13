@@ -412,7 +412,7 @@ def test_admin_creates_exercise_with_gif_and_safe_owner_metadata(
     assert response.json()["media_type"] == "gif"
     assert response.json()["media_path"].startswith("/media/")
     assert response.json()["media_license"] == "Project owner supplied and authorized"
-    assert response.json()["media_attribution"] == "Provided by Fitsho project owner"
+    assert response.json()["media_attribution"] == "Provided by Fitician project owner"
     assert len(list(test_settings.media_root.rglob("*.gif"))) == 1
     public_media = client.get(response.json()["media_path"])
     assert public_media.status_code == 200

@@ -685,5 +685,5 @@ def test_cycle_completion_is_concurrency_safe_with_optional_feedback() -> None:
 def _test_database_url() -> str:
     return os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho_test",
+        "postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test",
     )

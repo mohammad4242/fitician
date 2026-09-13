@@ -456,7 +456,7 @@ def _resolve_exercise(db: Session, profile: UserProfile) -> ResolvedStructuredEx
             days_per_week=len(active_plan.days),
             minutes_per_session=minutes,
             intensity=profile.training_intensity,
-            source=StructuredExerciseSource.ACTIVE_FITSHO_PLAN,
+            source=StructuredExerciseSource.ACTIVE_FITICIAN_PLAN,
             active_plan_id=active_plan.id,
         )
     return ResolvedStructuredExercise(

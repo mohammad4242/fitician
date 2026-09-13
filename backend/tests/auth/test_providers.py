@@ -211,7 +211,7 @@ class FakeSmtp:
         pass
 
     def login(self, username: str, password: str) -> None:
-        assert (username, password) == ("fitsho", "smtp-secret")
+        assert (username, password) == ("fitician", "smtp-secret")
 
     def send_message(self, message: Any) -> None:
         type(self).last_message = message
@@ -225,15 +225,15 @@ def test_smtp_provider_sends_reset_link_without_exposing_credentials(
         Settings(
             email_provider="smtp",
             smtp_host="smtp.example.com",
-            smtp_username="fitsho",
+            smtp_username="fitician",
             smtp_password="smtp-secret",
-            smtp_from_address="no-reply@fitsho.example",
+            smtp_from_address="no-reply@fitician.example",
         )
     )
 
     provider.send_password_reset(
         "user@example.com",
-        "https://fitsho.example/reset-password?token=raw-token",
+        "https://fitician.example/reset-password?token=raw-token",
     )
 
     message = FakeSmtp.last_message
@@ -250,17 +250,17 @@ def test_smtp_provider_reuses_delivery_for_verification_and_welcome(
         Settings(
             email_provider="smtp",
             smtp_host="smtp.example.com",
-            smtp_from_address="no-reply@fitsho.example",
+            smtp_from_address="no-reply@fitician.example",
         )
     )
 
     provider.send_email_verification(
         "user@example.com",
-        "https://fitsho.example/verify-email?token=verification-token",
+        "https://fitician.example/verify-email?token=verification-token",
     )
     assert "verification-token" in FakeSmtp.last_message.get_content()
     provider.send_welcome_email("user@example.com")
-    assert "فیتشو" in FakeSmtp.last_message.get_content()
+    assert "فیتیشن" in FakeSmtp.last_message.get_content()
 
 
 def test_google_provider_passes_backend_audience_to_official_verifier(
@@ -281,10 +281,10 @@ def test_google_provider_passes_backend_audience_to_official_verifier(
 
     monkeypatch.setattr("google.oauth2.id_token.verify_oauth2_token", fake_verify)
     assert hasattr(providers, "GoogleIdTokenProvider")
-    provider = providers.GoogleIdTokenProvider(Settings(google_client_id="fitsho-client-id"))
+    provider = providers.GoogleIdTokenProvider(Settings(google_client_id="fitician-client-id"))
 
     identity = provider.verify("signed-token")
 
-    assert captured == {"token": "signed-token", "audience": "fitsho-client-id"}
+    assert captured == {"token": "signed-token", "audience": "fitician-client-id"}
     assert identity.sub == "google-sub"
     assert identity.email_verified is True

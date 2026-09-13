@@ -1,1 +1,1 @@
-"""Fitsho backend test package."""
+"""Fitician backend test package."""

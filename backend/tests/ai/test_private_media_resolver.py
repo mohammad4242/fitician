@@ -12,7 +12,7 @@ def _resolver(tmp_path: Path) -> tuple[PrivateMediaResolver, Path, Path]:
     settings = Settings(
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         media_root=tmp_path / "public-media",
         body_photo_storage_root=body_root,
         food_photo_storage_root=food_root,

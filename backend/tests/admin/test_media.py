@@ -35,7 +35,7 @@ def settings(
     return Settings(
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         media_root=tmp_path,
         media_max_bytes=media_max_bytes,
     )

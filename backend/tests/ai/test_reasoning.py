@@ -137,7 +137,7 @@ def test_internal_generation_mode_cannot_invoke_reasoning_provider() -> None:
     from app.ai.reasoning import AIReasoningInput, AIReasoningNotAllowedError, AIReasoningService
 
     reasoning_input = AIReasoningInput.model_validate(
-        _input(method=WorkoutGenerationMethod.FITSHO_COACH)
+        _input(method=WorkoutGenerationMethod.FITICIAN_COACH)
     )
 
     with pytest.raises(AIReasoningNotAllowedError):
@@ -306,7 +306,7 @@ def test_deterministic_mode_makes_zero_ai_calls() -> None:
 
     provider = _CountingProvider({})
     reasoning_input = AIReasoningInput.model_validate(
-        _input(method=WorkoutGenerationMethod.FITSHO_COACH)
+        _input(method=WorkoutGenerationMethod.FITICIAN_COACH)
     )
 
     with pytest.raises(AIReasoningNotAllowedError):
@@ -320,7 +320,7 @@ def test_deterministic_mode_makes_zero_ai_calls_for_coach_summary() -> None:
 
     provider = _CountingProvider({})
     reasoning_input = AIReasoningInput.model_validate(
-        _input(method=WorkoutGenerationMethod.FITSHO_COACH)
+        _input(method=WorkoutGenerationMethod.FITICIAN_COACH)
     )
 
     with pytest.raises(AIReasoningNotAllowedError):

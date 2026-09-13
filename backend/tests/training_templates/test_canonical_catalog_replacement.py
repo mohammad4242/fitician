@@ -191,8 +191,8 @@ def test_catalog_seed_removes_all_legacy_source_rows_but_preserves_custom_rows(d
         focus_tags=["full_body"],
         intensity_methods=["standard"],
         programming_rationale=[],
-        source_name="Fitsho admin library",
-        source_url="https://fitsho.local/admin-library",
+        source_name="Fitician admin library",
+        source_url="https://fitician.local/admin-library",
         is_active=True,
     )
     db.add_all([*legacy, custom])

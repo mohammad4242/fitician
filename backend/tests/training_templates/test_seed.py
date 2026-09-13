@@ -179,8 +179,8 @@ def test_seed_physically_deletes_legacy_source_rows_and_keeps_custom_templates(
         focus_tags=["full_body"],
         intensity_methods=["standard"],
         programming_rationale=[],
-        source_name="Fitsho admin library",
-        source_url="https://fitsho.local/admin-library",
+        source_name="Fitician admin library",
+        source_url="https://fitician.local/admin-library",
         is_active=True,
     )
     db.add_all([*legacy, custom])
@@ -213,7 +213,7 @@ def test_seed_physically_deletes_legacy_source_rows_and_keeps_custom_templates(
         )
         == 53
     )
-    assert SOURCE_URL == "https://fitsho.local/training-template-catalog"
+    assert SOURCE_URL == "https://fitician.local/training-template-catalog"
 
 
 def test_seed_fails_when_a_required_real_library_movement_is_missing(db: Session) -> None:

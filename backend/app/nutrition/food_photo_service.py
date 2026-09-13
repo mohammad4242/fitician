@@ -221,7 +221,7 @@ def build_food_photo_request(
         system_prompt=system_prompt,
         input_payload={"instruction": instruction},
         response_schema=RESPONSE_SCHEMA,
-        schema_name="fitsho_food_photo_estimate_v1",
+        schema_name="fitician_food_photo_estimate_v1",
         route=ModelRoute(primary_model=primary_model, fallback_models=fallback_models),
         provider_preferences=provider_preferences,
         temperature=temperature,

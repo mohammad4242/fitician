@@ -22,7 +22,7 @@ def test_register_creates_user_session_and_cookie(client: TestClient, db: Sessio
     assert response.status_code == 201
     assert response.json()["email"] == "new@example.com"
     assert "password_hash" not in response.json()
-    assert "fitsho_session" in response.cookies
+    assert "fitician_session" in response.cookies
     user = db.scalar(select(User).where(User.email == "new@example.com"))
     assert user is not None
     assert user.password_hash != "long password"
@@ -112,9 +112,9 @@ def test_production_cookie_uses_host_security_prefix(
     production_settings = test_settings.model_copy(
         update={
             "app_env": "production",
-            "frontend_origin": "https://fitsho.example",
+            "frontend_origin": "https://fitician.example",
             "cookie_secure": True,
-            "session_cookie_name": "__Host-fitsho_session",
+            "session_cookie_name": "__Host-fitician_session",
         }
     )
     app = create_app(production_settings)
@@ -126,13 +126,13 @@ def test_production_cookie_uses_host_security_prefix(
     with TestClient(app, base_url="https://testserver") as secure_client:
         response = secure_client.post(
             "/api/v1/auth/register",
-            headers={"Origin": "https://fitsho.example"},
+            headers={"Origin": "https://fitician.example"},
             json={"email": "secure@example.com", "password": "long password"},
         )
 
     cookie = response.headers["set-cookie"]
     assert response.status_code == 201
-    assert cookie.startswith("__Host-fitsho_session=")
+    assert cookie.startswith("__Host-fitician_session=")
     assert "HttpOnly" in cookie
     assert "Secure" in cookie
     assert "SameSite=lax" in cookie

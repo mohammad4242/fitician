@@ -552,7 +552,7 @@ def test_v4_execution_rejects_partial_provider_status(db: Session) -> None:
 
     assert failed.status is BodyAnalysisStatus.FAILED
     assert provider.calls == 1
-    assert provider.requests[0].schema_name == "fitsho_body_analysis_v4_evidence"
+    assert provider.requests[0].schema_name == "fitician_body_analysis_v4_evidence"
 
 
 def test_execution_uses_one_provider_for_body_analysis_without_cost(db: Session) -> None:
@@ -565,7 +565,7 @@ def test_execution_uses_one_provider_for_body_analysis_without_cost(db: Session)
     completed = asyncio.run(service.execute(analysis.id, provider, config))
 
     assert completed.status is BodyAnalysisStatus.REVIEW_PENDING
-    assert provider.schema_names == ["fitsho_body_analysis"]
+    assert provider.schema_names == ["fitician_body_analysis"]
     assert provider.calls == 1
     assert completed.input_tokens == 100
     assert completed.output_tokens == 200
@@ -1016,14 +1016,14 @@ def test_v3_provider_request_includes_advisory_profile_context() -> None:
 def test_v4_provider_request_is_evidence_only() -> None:
     request = BodyAnalysisService._request(_v4_config())
 
-    assert request.schema_name == "fitsho_body_analysis_v4_evidence"
+    assert request.schema_name == "fitician_body_analysis_v4_evidence"
     assert request.input_payload == {
         "task": "analyze_processed_body_views",
         "schema_version": "4.0",
     }
-    assert request.system_prompt.startswith("You are Fitsho's evidence-only v4 body analysis")
+    assert request.system_prompt.startswith("You are Fitician's evidence-only v4 body analysis")
     normalized_prompt = " ".join(request.system_prompt.split())
-    assert "already passed Fitsho's local browser-side photo validation" in normalized_prompt
+    assert "already passed Fitician's local browser-side photo validation" in normalized_prompt
     assert "Do not perform photo acceptance or preflight" in normalized_prompt
     assert "set assessment_status to complete" in normalized_prompt
 

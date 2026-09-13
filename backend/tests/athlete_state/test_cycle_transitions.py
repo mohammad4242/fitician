@@ -47,7 +47,7 @@ def _service(db: Session, provider: _NeverCalledAIProvider) -> WorkoutGeneration
         db,
         ai_coach_provider=cast(OpenRouterAiCoachProvider, provider),
         settings=WorkoutGenerationSettings(
-            provider_name="fitsho_domain",
+            provider_name="fitician_domain",
             model_id="program_engine_v1",
             prompt_version="none",
             generation_policy_version=RULESET.version,
@@ -57,7 +57,7 @@ def _service(db: Session, provider: _NeverCalledAIProvider) -> WorkoutGeneration
             max_candidates=5000,
             max_request_bytes=262144,
             warmup_minutes=5,
-            generation_method=WorkoutGenerationMethod.FITSHO_COACH.value,
+            generation_method=WorkoutGenerationMethod.FITICIAN_COACH.value,
         ),
     )
 

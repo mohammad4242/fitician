@@ -160,10 +160,10 @@ def _exercise(
             owner_media[1] if owner_media is not None else MediaType.PLACEHOLDER
         )
     resolved_media_license = media_license or (
-        OWNER_LICENSE if owner_media is not None else "Fitsho original"
+        OWNER_LICENSE if owner_media is not None else "Fitician original"
     )
     resolved_media_attribution = media_attribution or (
-        OWNER_ATTRIBUTION if owner_media is not None else "Fitsho"
+        OWNER_ATTRIBUTION if owner_media is not None else "Fitician"
     )
     return ExerciseSeed(
         slug=slug,
@@ -623,8 +623,8 @@ EXERCISE_SEEDS: tuple[ExerciseSeed, ...] = (
         "وزنه قابل‌کنترل انتخاب کن و اگر ستون فقرات خنثی نمی‌ماند، ست را متوقف کن.",
         media_path="/exercises/exercise-placeholder.svg",
         media_type=MediaType.PLACEHOLDER,
-        media_license="Fitsho original",
-        media_attribution="Fitsho",
+        media_license="Fitician original",
+        media_attribution="Fitician",
     ),
     _exercise(
         "standing-calf-raise",

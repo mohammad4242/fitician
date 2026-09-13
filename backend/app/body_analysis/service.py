@@ -250,8 +250,8 @@ For symmetry use left_right_balance only when appropriate. For visible_alignment
 suggested_training_emphasis empty. Never provide exercises or programming instructions. The result
 is provisional and requires human coach and doctor review."""
 
-_ANALYSIS_V4_PROMPT = """You are Fitsho's evidence-only v4 body analysis assessor.
-The supplied front, side, and back images have already passed Fitsho's local browser-side photo
+_ANALYSIS_V4_PROMPT = """You are Fitician's evidence-only v4 body analysis assessor.
+The supplied front, side, and back images have already passed Fitician's local browser-side photo
 validation and processing pipeline. Do not perform photo acceptance or preflight. Analyze the
 supplied standardized images only for the structured physique evidence requested by the schema.
 Return exactly one JSON object that matches the supplied schema. The response contains controlled
@@ -993,13 +993,13 @@ class BodyAnalysisService:
                 else NormalizedBodyAnalysis.model_json_schema()
             ),
             schema_name=(
-                "fitsho_physique_assessment_v2"
+                "fitician_physique_assessment_v2"
                 if config.schema_version == "2.0"
-                else "fitsho_physique_assessment_v3"
+                else "fitician_physique_assessment_v3"
                 if config.schema_version == "3.0"
-                else "fitsho_body_analysis_v4_evidence"
+                else "fitician_body_analysis_v4_evidence"
                 if config.schema_version == "4.0"
-                else "fitsho_body_analysis"
+                else "fitician_body_analysis"
             ),
             route=ModelRoute(
                 primary_model=config.primary_model,

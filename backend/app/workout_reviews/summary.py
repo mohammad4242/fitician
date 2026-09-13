@@ -44,7 +44,7 @@ def build_review_athlete_summary(
     )
 
 
-def build_fitsho_recommendation(
+def build_fitician_recommendation(
     db: Session,
     review: WorkoutPlanReview,
     *,

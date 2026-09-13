@@ -199,8 +199,8 @@ def test_admin_rejects_empty_or_duplicate_supported_levels(
         "focus_tags": ["full_body", "balanced"],
         "intensity_methods": ["standard"],
         "programming_rationale": _rationale_payload(),
-        "source_name": "Fitsho admin library",
-        "source_url": "https://fitsho.local/admin-library",
+        "source_name": "Fitician admin library",
+        "source_url": "https://fitician.local/admin-library",
         "days": [_day_payload(day, exercise_id) for day in range(1, 3)],
     }
 
@@ -465,8 +465,8 @@ def test_admin_rejects_template_slot_with_unknown_exercise(client: TestClient, d
         "focus_tags": ["full_body", "balanced"],
         "intensity_methods": ["standard"],
         "programming_rationale": _rationale_payload(),
-        "source_name": "Fitsho admin library",
-        "source_url": "https://fitsho.local/admin-library",
+        "source_name": "Fitician admin library",
+        "source_url": "https://fitician.local/admin-library",
         "days": [_day_payload(day, "00000000-0000-0000-0000-000000000000") for day in range(1, 3)],
     }
 
@@ -656,8 +656,8 @@ def test_admin_rejects_conflicting_canonical_template_tags(
             "focus_tags": ["full_body", "balanced", "chest_priority"],
             "intensity_methods": ["standard"],
             "programming_rationale": _rationale_payload(),
-            "source_name": "Fitsho admin library",
-            "source_url": "https://fitsho.local/admin-library",
+            "source_name": "Fitician admin library",
+            "source_url": "https://fitician.local/admin-library",
             "days": [_day_payload(day, exercise_id) for day in range(1, 3)],
         },
     )
@@ -687,8 +687,8 @@ def test_admin_rejects_guide_from_training_template_slots(client: TestClient, db
             "focus_tags": ["full_body", "balanced"],
             "intensity_methods": ["standard"],
             "programming_rationale": _rationale_payload(),
-            "source_name": "Fitsho admin library",
-            "source_url": "https://fitsho.local/admin-library",
+            "source_name": "Fitician admin library",
+            "source_url": "https://fitician.local/admin-library",
             "days": [_day_payload(day, str(guide.id)) for day in range(1, 3)],
         },
     )
@@ -742,8 +742,8 @@ def _template_payload_for_catalog(
         "focus_tags": ["full_body", "balanced"],
         "intensity_methods": ["standard"],
         "programming_rationale": _rationale_payload(),
-        "source_name": "Fitsho admin library",
-        "source_url": "https://fitsho.local/admin-library",
+        "source_name": "Fitician admin library",
+        "source_url": "https://fitician.local/admin-library",
         "days": days,
     }
 

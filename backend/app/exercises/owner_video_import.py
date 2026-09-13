@@ -394,7 +394,7 @@ class OwnerVideoImporter:
                 sort_order=max(scoped_orders, default=-1) + 1,
                 media_path=published.public_path,
                 media_type=MediaType.VIDEO,
-                media_attribution="Fitsho owner-provided",
+                media_attribution="Fitician owner-provided",
                 source=OWNER_VIDEO_SOURCE,
                 source_id=source_id,
             )
@@ -441,7 +441,7 @@ class OwnerVideoImporter:
             ),
             media_path=published.public_path,
             media_type=MediaType.VIDEO,
-            media_attribution="Fitsho owner-provided",
+            media_attribution="Fitician owner-provided",
             source=OWNER_VIDEO_SOURCE,
             source_id=source_id,
             aliases_en=[item.strip() for item in analysis.aliases_en],
@@ -481,7 +481,7 @@ class OwnerVideoImporter:
                 sort_order=0,
                 media_path=published.public_path,
                 media_type=MediaType.VIDEO,
-                media_attribution="Fitsho owner-provided",
+                media_attribution="Fitician owner-provided",
                 source=OWNER_VIDEO_SOURCE,
                 source_id=source_id,
             )

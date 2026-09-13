@@ -10,24 +10,25 @@ from app.main import create_app
 PRODUCTION_AUTH_DELIVERY = {
     "email_provider": "smtp",
     "smtp_host": "smtp.example.com",
-    "smtp_from_address": "no-reply@fitsho.example",
+    "smtp_from_address": "no-reply@fitician.example",
     "sms_provider": "farazsms",
     "farazsms_api_key": "test-faraz-api-key",
     "farazsms_from_number": "50002178584000",
     "farazsms_pattern_code": "SJ3FgPrE0C",
     "phone_otp_hmac_secret": "production-phone-otp-hmac-secret-for-tests",
-    "google_client_id": "fitsho-client-id.apps.googleusercontent.com",
+    "google_client_id": "fitician-client-id.apps.googleusercontent.com",
     "apple_client_id": "com.fitician.app",
 }
 
 
 def test_settings_accept_explicit_environment_values() -> None:
     settings = Settings(
-        database_url="postgresql+psycopg://fitsho:fitsho@localhost:5432/fitsho",
+        _env_file=None,
+        database_url="postgresql+psycopg://fitician:fitician@localhost:5432/fitician",
         frontend_origin="http://localhost:5173",
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
     )
 
     assert settings.session_ttl_seconds == 604800
@@ -58,14 +59,16 @@ def test_delivery_credentials_are_redacted() -> None:
 def test_production_requires_google_identity_configuration() -> None:
     with pytest.raises(ValidationError, match="Google client ID"):
         Settings(
+            _env_file=None,
+            google_client_id=None,
             app_env="production",
-            frontend_origin="https://fitsho.example",
+            frontend_origin="https://fitician.example",
             cookie_secure=True,
-            session_cookie_name="__Host-fitsho_session",
+            session_cookie_name="__Host-fitician_session",
             private_file_signing_key="production-private-file-signing-key-for-tests",
             email_provider="smtp",
             smtp_host="smtp.example.com",
-            smtp_from_address="no-reply@fitsho.example",
+            smtp_from_address="no-reply@fitician.example",
             sms_provider="farazsms",
             farazsms_api_key="test-faraz-api-key",
             farazsms_from_number="50002178584000",
@@ -78,9 +81,9 @@ def test_production_rejects_fake_auth_delivery_providers() -> None:
     with pytest.raises(ValidationError, match="SMTP email provider"):
         Settings(
             app_env="production",
-            frontend_origin="https://fitsho.example",
+            frontend_origin="https://fitician.example",
             cookie_secure=True,
-            session_cookie_name="__Host-fitsho_session",
+            session_cookie_name="__Host-fitician_session",
             private_file_signing_key="production-private-file-signing-key-for-tests",
         )
 
@@ -103,9 +106,9 @@ def test_production_requires_complete_faraz_sms_configuration(
 ) -> None:
     values: dict[str, object] = {
         "app_env": "production",
-        "frontend_origin": "https://fitsho.example",
+        "frontend_origin": "https://fitician.example",
         "cookie_secure": True,
-        "session_cookie_name": "__Host-fitsho_session",
+        "session_cookie_name": "__Host-fitician_session",
         "private_file_signing_key": "production-private-file-signing-key-for-tests",
         **PRODUCTION_AUTH_DELIVERY,
     }
@@ -121,7 +124,7 @@ def test_local_settings_accept_multiple_explicit_frontend_origins() -> None:
         frontend_origin="http://localhost:5173",
         frontend_origins="http://localhost:5173,http://100.97.78.5:5173",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
     )
 
     assert settings.allowed_frontend_origins == (
@@ -133,9 +136,9 @@ def test_local_settings_accept_multiple_explicit_frontend_origins() -> None:
 def test_production_settings_accept_secure_cookie_contract() -> None:
     settings = Settings(
         app_env="production",
-        frontend_origin="https://fitsho.example",
+        frontend_origin="https://fitician.example",
         cookie_secure=True,
-        session_cookie_name="__Host-fitsho_session",
+        session_cookie_name="__Host-fitician_session",
         private_file_signing_key="production-private-file-signing-key-for-tests",
         **PRODUCTION_AUTH_DELIVERY,  # type: ignore[arg-type]
     )
@@ -151,9 +154,9 @@ def test_production_account_deletion_requires_legal_approval() -> None:
     with pytest.raises(ValidationError, match="legal approval"):
         Settings(
             app_env="production",
-            frontend_origin="https://fitsho.example",
+            frontend_origin="https://fitician.example",
             cookie_secure=True,
-            session_cookie_name="__Host-fitsho_session",
+            session_cookie_name="__Host-fitician_session",
             private_file_signing_key="production-private-file-signing-key-for-tests",
             account_deletion_enabled=True,
             **PRODUCTION_AUTH_DELIVERY,  # type: ignore[arg-type]
@@ -163,9 +166,9 @@ def test_production_account_deletion_requires_legal_approval() -> None:
 def test_production_account_deletion_accepts_recorded_legal_approval() -> None:
     settings = Settings(
         app_env="production",
-        frontend_origin="https://fitsho.example",
+        frontend_origin="https://fitician.example",
         cookie_secure=True,
-        session_cookie_name="__Host-fitsho_session",
+        session_cookie_name="__Host-fitician_session",
         private_file_signing_key="production-private-file-signing-key-for-tests",
         account_deletion_enabled=True,
         account_deletion_legal_approval="legal-approval-2026-09-08",
@@ -178,35 +181,35 @@ def test_production_account_deletion_accepts_recorded_legal_approval() -> None:
 def test_production_settings_normalize_a_trailing_origin_slash() -> None:
     settings = Settings(
         app_env="production",
-        frontend_origin="https://fitsho.example/",
+        frontend_origin="https://fitician.example/",
         cookie_secure=True,
-        session_cookie_name="__Host-fitsho_session",
+        session_cookie_name="__Host-fitician_session",
         private_file_signing_key="production-private-file-signing-key-for-tests",
         **PRODUCTION_AUTH_DELIVERY,  # type: ignore[arg-type]
     )
 
-    assert settings.frontend_origin == "https://fitsho.example"
+    assert settings.frontend_origin == "https://fitician.example"
 
 
 @pytest.mark.parametrize(
     ("override", "expected_message"),
     [
-        ({"frontend_origin": "http://fitsho.example"}, "HTTPS frontend origin"),
+        ({"frontend_origin": "http://fitician.example"}, "HTTPS frontend origin"),
         ({"frontend_origin": "https://"}, "complete frontend origin"),
         (
-            {"frontend_origin": "https://fitsho.example/app"},
+            {"frontend_origin": "https://fitician.example/app"},
             "origin without credentials, path, query, or fragment",
         ),
         (
-            {"frontend_origin": "https://user@fitsho.example"},
+            {"frontend_origin": "https://user@fitician.example"},
             "origin without credentials, path, query, or fragment",
         ),
         (
-            {"frontend_origin": "https://fitsho.example?source=config"},
+            {"frontend_origin": "https://fitician.example?source=config"},
             "origin without credentials, path, query, or fragment",
         ),
         ({"cookie_secure": False}, "secure cookies"),
-        ({"session_cookie_name": "fitsho_session"}, "__Host-fitsho_session"),
+        ({"session_cookie_name": "fitician_session"}, "__Host-fitician_session"),
     ],
 )
 def test_production_settings_reject_insecure_cookie_contract(
@@ -215,9 +218,9 @@ def test_production_settings_reject_insecure_cookie_contract(
 ) -> None:
     values: dict[str, object] = {
         "app_env": "production",
-        "frontend_origin": "https://fitsho.example",
+        "frontend_origin": "https://fitician.example",
         "cookie_secure": True,
-        "session_cookie_name": "__Host-fitsho_session",
+        "session_cookie_name": "__Host-fitician_session",
         "private_file_signing_key": "production-private-file-signing-key-for-tests",
         **PRODUCTION_AUTH_DELIVERY,
     }
@@ -231,9 +234,9 @@ def test_production_settings_reject_default_private_file_signing_key() -> None:
     with pytest.raises(ValidationError, match="strong private file signing key"):
         Settings(
             app_env="production",
-            frontend_origin="https://fitsho.example",
+            frontend_origin="https://fitician.example",
             cookie_secure=True,
-            session_cookie_name="__Host-fitsho_session",
+            session_cookie_name="__Host-fitician_session",
             **PRODUCTION_AUTH_DELIVERY,  # type: ignore[arg-type]
         )
 
@@ -270,7 +273,7 @@ def test_app_lifespan_owns_a_dedicated_agent_service_client(tmp_path: Path) -> N
     settings = Settings(
         app_env="test",
         cookie_secure=False,
-        session_cookie_name="fitsho_session",
+        session_cookie_name="fitician_session",
         media_root=tmp_path / "media",
     )
     app = create_app(settings)

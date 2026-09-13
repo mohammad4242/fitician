@@ -256,12 +256,8 @@ def _backfill_comparison_metrics(
     b_cal = _extract_plan_metric(b_resp, "energy_kcal")
     i_cal = _extract_plan_metric(i_resp, "energy_kcal")
     t_cal = None
-    i_cal_target = (
-        i_resp.nutrients.get("goal_calories") if i_resp and i_resp.nutrients else None
-    )
-    b_cal_target = (
-        b_resp.nutrients.get("goal_calories") if b_resp and b_resp.nutrients else None
-    )
+    i_cal_target = i_resp.nutrients.get("goal_calories") if i_resp and i_resp.nutrients else None
+    b_cal_target = b_resp.nutrients.get("goal_calories") if b_resp and b_resp.nutrients else None
     if i_cal_target and i_cal_target.preferred:
         t_cal = round(float(i_cal_target.preferred), 1)
     elif b_cal_target and b_cal_target.preferred:
@@ -288,12 +284,8 @@ def _backfill_comparison_metrics(
     b_carb = _extract_plan_metric(b_resp, "carbohydrate_g")
     i_carb = _extract_plan_metric(i_resp, "carbohydrate_g")
     t_carb = None
-    i_carb_target = (
-        i_resp.nutrients.get("carbohydrate") if i_resp and i_resp.nutrients else None
-    )
-    b_carb_target = (
-        b_resp.nutrients.get("carbohydrate") if b_resp and b_resp.nutrients else None
-    )
+    i_carb_target = i_resp.nutrients.get("carbohydrate") if i_resp and i_resp.nutrients else None
+    b_carb_target = b_resp.nutrients.get("carbohydrate") if b_resp and b_resp.nutrients else None
     if i_carb_target and i_carb_target.preferred:
         t_carb = round(float(i_carb_target.preferred), 1)
     elif b_carb_target and b_carb_target.preferred:
@@ -944,9 +936,7 @@ def generate_weekly_plan(
                 ),
                 physician_review_allowed=physician_review_allowed,
                 bundle_plans=tuple(
-                    plan
-                    for plan in (budget_plan_model, ideal_plan_model)
-                    if plan is not None
+                    plan for plan in (budget_plan_model, ideal_plan_model) if plan is not None
                 ),
             )
 
@@ -1626,9 +1616,7 @@ def latest_plan_bundle(db: Session, user_id: UUID) -> WeeklyPlanGenerationRespon
             generation_id = gen.id
         reason_codes.extend(gen.reason_codes or [])
         warning_codes.extend(gen.warning_codes or [])
-        plan_model = db.scalar(
-            _plan_query().where(NutritionWeeklyPlan.generation_id == gen.id)
-        )
+        plan_model = db.scalar(_plan_query().where(NutritionWeeklyPlan.generation_id == gen.id))
         if plan_model is not None:
             if gen.plan_role == NutritionPlanRole.BUDGET.value:
                 budget_plan_resp = weekly_plan_response(plan_model)
@@ -2486,7 +2474,7 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
             else None
         ),
         physician_display_name=(
-            "Fitsho physician"
+            "Fitician physician"
             if plan.review and plan.review.status == NutritionPlanReviewStatus.APPROVED
             else None
         ),

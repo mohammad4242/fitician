@@ -414,7 +414,7 @@ def run_all_profiles():
                 session_duration_minutes=p["session_duration_minutes"],
                 plan_duration_weeks=p["plan_duration_weeks"],
                 training_intensity=p["training_intensity"],
-                workout_generation_method=WorkoutGenerationMethod.FITSHO_COACH,
+                workout_generation_method=WorkoutGenerationMethod.FITICIAN_COACH,
                 priority_muscles=p["priority_muscles"] if p["priority_muscles"] else None,
                 physical_limitations=p["limitations_text"],
                 training_caution_items=[

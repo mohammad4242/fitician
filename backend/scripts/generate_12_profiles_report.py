@@ -743,7 +743,7 @@ async def main():
                 session_duration_minutes=p['duration'],
                 training_intensity=TrainingIntensity.MODERATE,
                 plan_duration_weeks=p['plan_weeks'],
-                workout_generation_method=WorkoutGenerationMethod.FITSHO_COACH,
+                workout_generation_method=WorkoutGenerationMethod.FITICIAN_COACH,
             )
             db.add(profile)
             

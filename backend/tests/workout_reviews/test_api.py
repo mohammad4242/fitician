@@ -362,7 +362,7 @@ def test_coach_review_detail_includes_safe_athlete_summary(
     assert summary["athlete_state"]["recovery_trend"]["summary"] == "unknown"
     assert summary["athlete_state"]["difficulty_trend"]["summary"] == "unknown"
     assert summary["athlete_state"]["provenance"]["profile_user_id"] is None
-    recommendation = response.json()["fitsho_recommendation"]
+    recommendation = response.json()["fitician_recommendation"]
     assert recommendation["overall_action"] == "maintain"
     assert "INSUFFICIENT_RELIABLE_EVIDENCE" in recommendation["reason_codes"]
     assert recommendation["difference_summary"] == []

@@ -37,7 +37,7 @@ PDF_CSS = """
   size: A4;
   margin: 14mm 12mm 14mm 12mm;
   @bottom-right {
-    content: "فیت‌شو (Fitsho) — برنامه اختصاصی تغذیه و رژیم غذایی";
+    content: "فیتیشن (Fitician) — برنامه اختصاصی تغذیه و رژیم غذایی";
     font-family: "Vazirmatn", "DejaVu Sans", sans-serif;
     font-size: 8pt;
     color: #728a84;
@@ -414,13 +414,13 @@ def build_nutrition_plan_html(plan: WeeklyPlanResponse) -> str:
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>برنامه تغذیه فیت‌شو</title>
+  <title>برنامه تغذیه فیتیشن</title>
   <style>{PDF_CSS}</style>
 </head>
 <body>
   <header class="hero">
     <div class="hero-top">
-      <span class="brand-badge">فیت‌شو | FITSHO</span>
+      <span class="brand-badge">فیتیشن | FITICIAN</span>
       <span class="plan-status">{escape(status_label)}</span>
     </div>
     <h1 class="hero-title">برنامه رژیم و تغذیه اختصاصی</h1>

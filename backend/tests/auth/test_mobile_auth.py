@@ -62,7 +62,7 @@ def test_mobile_password_login_issues_opaque_tokens_and_bearer_auth(
     assert body["expires_in"] == 900
     assert body["refresh_expires_in"] == 30 * 24 * 60 * 60
     assert body["user"]["email"] == "member@example.com"
-    assert "fitsho_session" not in client.cookies
+    assert "fitician_session" not in client.cookies
     user = db.scalar(select(User).where(User.email == "member@example.com"))
     assert user is not None
     assert db.scalar(select(AuthSession).where(AuthSession.user_id == user.id)) is None

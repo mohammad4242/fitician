@@ -14877,6 +14877,25 @@
         "title": "NutritionOnboardingStatus",
         "type": "string"
       },
+      "NutritionPlanStartRequest": {
+        "properties": {
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "timezone"
+        ],
+        "title": "NutritionPlanStartRequest",
+        "type": "object"
+      },
       "NutritionPlanStyle": {
         "enum": [
           "economical",
@@ -18558,7 +18577,7 @@
           },
           "workout_generation_method": {
             "$ref": "#/components/schemas/WorkoutGenerationMethod",
-            "default": "fitsho_coach"
+            "default": "fitician_coach"
           }
         },
         "required": [
@@ -20971,7 +20990,7 @@
         "enum": [
           "user_reported",
           "training_profile",
-          "active_fitsho_plan"
+          "active_fitician_plan"
         ],
         "title": "StructuredExerciseSource",
         "type": "string"
@@ -21157,6 +21176,32 @@
         ],
         "title": "TemplateFocusTag",
         "type": "string"
+      },
+      "TimezoneResponse": {
+        "properties": {
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone"
+        ],
+        "title": "TimezoneResponse",
+        "type": "object"
+      },
+      "TimezoneUpdateRequest": {
+        "properties": {
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone"
+        ],
+        "title": "TimezoneUpdateRequest",
+        "type": "object"
       },
       "TrainingCaution": {
         "enum": [
@@ -22692,6 +22737,18 @@
             "title": "Start Date",
             "type": "string"
           },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
           "supersedes_plan_id": {
             "anyOf": [
               {
@@ -22872,6 +22929,11 @@
       "WorkoutCycleCurrentResponse": {
         "additionalProperties": false,
         "properties": {
+          "completed_sessions": {
+            "default": 0,
+            "title": "Completed Sessions",
+            "type": "integer"
+          },
           "current_week": {
             "title": "Current Week",
             "type": "integer"
@@ -22885,6 +22947,18 @@
             "title": "Duration Weeks",
             "type": "integer"
           },
+          "has_exact_session_tracking": {
+            "default": false,
+            "title": "Has Exact Session Tracking",
+            "type": "boolean"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutCycleSessionResponse"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
           "started_at": {
             "format": "date-time",
             "title": "Started At",
@@ -22892,6 +22966,11 @@
           },
           "status": {
             "$ref": "#/components/schemas/WorkoutCycleStatus"
+          },
+          "total_sessions": {
+            "default": 0,
+            "title": "Total Sessions",
+            "type": "integer"
           },
           "workout_plan_id": {
             "format": "uuid",
@@ -23164,6 +23243,123 @@
         ],
         "title": "WorkoutCycleFeedbackSatisfaction",
         "type": "string"
+      },
+      "WorkoutCycleSessionRescheduleRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "scheduled_date": {
+            "format": "date",
+            "title": "Scheduled Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scheduled_date"
+        ],
+        "title": "WorkoutCycleSessionRescheduleRequest",
+        "type": "object"
+      },
+      "WorkoutCycleSessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "scheduled_date": {
+            "format": "date",
+            "title": "Scheduled Date",
+            "type": "string"
+          },
+          "session_number": {
+            "title": "Session Number",
+            "type": "integer"
+          },
+          "skipped_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipped At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkoutCycleSessionStatus"
+          },
+          "week_number": {
+            "title": "Week Number",
+            "type": "integer"
+          },
+          "workout_day_id": {
+            "format": "uuid",
+            "title": "Workout Day Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workout_day_id",
+          "week_number",
+          "session_number",
+          "scheduled_date",
+          "status",
+          "completed_at",
+          "skipped_at"
+        ],
+        "title": "WorkoutCycleSessionResponse",
+        "type": "object"
+      },
+      "WorkoutCycleSessionStatus": {
+        "enum": [
+          "scheduled",
+          "completed",
+          "skipped"
+        ],
+        "title": "WorkoutCycleSessionStatus",
+        "type": "string"
+      },
+      "WorkoutCycleStartRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "workout_plan_id": {
+            "format": "uuid",
+            "title": "Workout Plan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workout_plan_id",
+          "start_date",
+          "timezone"
+        ],
+        "title": "WorkoutCycleStartRequest",
+        "type": "object"
       },
       "WorkoutCycleStatus": {
         "enum": [
@@ -23625,7 +23821,7 @@
       },
       "WorkoutGenerationMethod": {
         "enum": [
-          "fitsho_coach",
+          "fitician_coach",
           "ai"
         ],
         "title": "WorkoutGenerationMethod",
@@ -24303,6 +24499,9 @@
             ],
             "title": "Experience Level"
           },
+          "fitician_recommendation": {
+            "$ref": "#/components/schemas/CycleAdaptationDecision"
+          },
           "fitness_goal": {
             "anyOf": [
               {
@@ -24313,9 +24512,6 @@
               }
             ],
             "title": "Fitness Goal"
-          },
-          "fitsho_recommendation": {
-            "$ref": "#/components/schemas/CycleAdaptationDecision"
           },
           "id": {
             "format": "uuid",
@@ -24403,7 +24599,7 @@
           "source_plan",
           "exercise_options",
           "athlete_summary",
-          "fitsho_recommendation"
+          "fitician_recommendation"
         ],
         "title": "WorkoutReviewDetailResponse",
         "type": "object"
@@ -24803,7 +24999,7 @@
     }
   },
   "info": {
-    "title": "Fitsho API",
+    "title": "Fitician API",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",
@@ -34408,6 +34604,64 @@
         ]
       }
     },
+    "/api/v1/nutrition/plans/{plan_id}/start": {
+      "post": {
+        "operationId": "start_plan_api_v1_nutrition_plans__plan_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionPlanStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Plan",
+        "tags": [
+          "nutrition"
+        ]
+      }
+    },
     "/api/v1/nutrition/profile": {
       "get": {
         "operationId": "read_nutrition_profile_api_v1_nutrition_profile_get",
@@ -35320,10 +35574,10 @@
           },
           {
             "in": "header",
-            "name": "X-Fitsho-Food-Photo-Consent",
+            "name": "X-Fitician-Food-Photo-Consent",
             "required": true,
             "schema": {
-              "title": "X-Fitsho-Food-Photo-Consent",
+              "title": "X-Fitician-Food-Photo-Consent",
               "type": "boolean"
             }
           },
@@ -36301,6 +36555,52 @@
         ]
       }
     },
+    "/api/v1/profile/timezone": {
+      "put": {
+        "operationId": "update_timezone_api_v1_profile_timezone_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimezoneUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimezoneResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Timezone",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
     "/api/v1/reviews/body-analyses/{analysis_id}": {
       "get": {
         "operationId": "get_specialist_review_detail_api_v1_reviews_body_analyses__analysis_id__get",
@@ -36549,6 +36849,160 @@
         ]
       }
     },
+    "/api/v1/workout-cycles/current/sessions/{session_id}/complete": {
+      "post": {
+        "operationId": "complete_current_session_api_v1_workout_cycles_current_sessions__session_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCycleSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete Current Session",
+        "tags": [
+          "workout-cycles"
+        ]
+      }
+    },
+    "/api/v1/workout-cycles/current/sessions/{session_id}/reschedule": {
+      "post": {
+        "operationId": "reschedule_current_session_api_v1_workout_cycles_current_sessions__session_id__reschedule_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutCycleSessionRescheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCycleSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reschedule Current Session",
+        "tags": [
+          "workout-cycles"
+        ]
+      }
+    },
+    "/api/v1/workout-cycles/current/sessions/{session_id}/skip": {
+      "post": {
+        "operationId": "skip_current_session_api_v1_workout_cycles_current_sessions__session_id__skip_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCycleSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Skip Current Session",
+        "tags": [
+          "workout-cycles"
+        ]
+      }
+    },
     "/api/v1/workout-cycles/current/weekly-check-in": {
       "get": {
         "operationId": "read_current_weekly_check_in_api_v1_workout_cycles_current_weekly_check_in_get",
@@ -36614,6 +37068,52 @@
           }
         ],
         "summary": "Upsert Current Weekly Check In Route",
+        "tags": [
+          "workout-cycles"
+        ]
+      }
+    },
+    "/api/v1/workout-cycles/start": {
+      "post": {
+        "operationId": "start_current_cycle_api_v1_workout_cycles_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutCycleStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutCycleCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Current Cycle",
         "tags": [
           "workout-cycles"
         ]

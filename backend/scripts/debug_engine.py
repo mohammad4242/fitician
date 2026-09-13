@@ -49,7 +49,7 @@ profile = UserProfile(
     fitness_goal=p["goal"], experience_level=p["level"], training_age_months=p["training_age_months"],
     training_days_per_week=p["days"], training_location=p["location"], home_training_setup=p["home_setup"],
     priority_muscles=None, session_duration_minutes=p["duration"], training_intensity=TrainingIntensity.MODERATE,
-    plan_duration_weeks=p["plan_weeks"], workout_generation_method=WorkoutGenerationMethod.FITSHO_COACH,
+    plan_duration_weeks=p["plan_weeks"], workout_generation_method=WorkoutGenerationMethod.FITICIAN_COACH,
 )
 db.add(profile)
 db.add(BodyMeasurement(

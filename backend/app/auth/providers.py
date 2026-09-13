@@ -140,7 +140,7 @@ class SmtpEmailProvider:
     def send_password_reset(self, recipient: str, reset_url: str) -> None:
         self._send(
             recipient,
-            "بازنشانی رمز عبور فیتشو",
+            "بازنشانی رمز عبور فیتیشن",
             "برای انتخاب رمز عبور جدید، لینک زیر را باز کنید:\n\n"
             f"{reset_url}\n\n"
             "اگر این درخواست را ثبت نکرده‌اید، این پیام را نادیده بگیرید.",
@@ -149,17 +149,17 @@ class SmtpEmailProvider:
     def send_email_verification(self, recipient: str, verification_url: str) -> None:
         self._send(
             recipient,
-            "تأیید ایمیل فیتشو",
+            "تأیید ایمیل فیتیشن",
             "برای تأیید نشانی ایمیل خود، لینک زیر را باز کنید:\n\n"
             f"{verification_url}\n\n"
-            "اگر در فیتشو ثبت‌نام نکرده‌اید، این پیام را نادیده بگیرید.",
+            "اگر در فیتیشن ثبت‌نام نکرده‌اید، این پیام را نادیده بگیرید.",
         )
 
     def send_welcome_email(self, recipient: str) -> None:
         self._send(
             recipient,
-            "به فیتشو خوش آمدید",
-            "ایمیل شما با موفقیت تأیید شد. به فیتشو خوش آمدید.",
+            "به فیتیشن خوش آمدید",
+            "ایمیل شما با موفقیت تأیید شد. به فیتیشن خوش آمدید.",
         )
 
 
