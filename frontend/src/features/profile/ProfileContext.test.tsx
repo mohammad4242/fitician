@@ -154,6 +154,49 @@ it("best-effort syncs the browser timezone once per authenticated user", async (
   expect(api.updateTimezone).toHaveBeenCalledTimes(1);
 });
 
+it("retries timezone sync after the profile lifecycle becomes available", async () => {
+  authUser = user;
+  vi.mocked(api.updateTimezone)
+    .mockRejectedValueOnce(new Error("profile missing"))
+    .mockResolvedValueOnce({ timezone: "UTC" });
+  vi.mocked(api.getProfile).mockResolvedValue(profile);
+
+  const view = renderProfile();
+
+  await screen.findByText("status:ready");
+  await waitFor(() => expect(api.updateTimezone).toHaveBeenCalledTimes(2));
+  view.rerender(
+    <ProfileProvider>
+      <Probe />
+    </ProfileProvider>,
+  );
+  await act(async () => undefined);
+  expect(api.updateTimezone).toHaveBeenCalledTimes(2);
+});
+
+it("retries timezone sync after profile creation without a status change", async () => {
+  authUser = user;
+  vi.mocked(api.getProfileStatus).mockResolvedValue({
+    user_id: user.id,
+    product_mode: "both",
+    completion_state: "shared_profile_incomplete",
+  });
+  vi.mocked(api.createProfile).mockResolvedValue(profile);
+  vi.mocked(api.updateTimezone)
+    .mockRejectedValueOnce(new Error("profile missing"))
+    .mockRejectedValueOnce(new Error("profile missing"))
+    .mockResolvedValueOnce({ timezone: "UTC" });
+  const browserUser = userEvent.setup();
+
+  renderProfile();
+  await screen.findByText("status:mode_selected");
+  await waitFor(() => expect(api.updateTimezone).toHaveBeenCalledTimes(2));
+  await browserUser.click(screen.getByRole("button", { name: "create" }));
+
+  await waitFor(() => expect(api.updateTimezone).toHaveBeenCalledTimes(3));
+  expect(screen.getByText("status:mode_selected")).toBeInTheDocument();
+});
+
 it("marks an authenticated user without a profile as missing", async () => {
   authUser = user;
   vi.mocked(api.getProfileStatus).mockResolvedValue({

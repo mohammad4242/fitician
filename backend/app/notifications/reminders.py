@@ -7,9 +7,16 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.profile.models import UserProfile
 from app.workout_cycles.enums import WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleFeedback, WorkoutCycleWeeklyCheckIn
-from app.workout_cycles.service import calculate_current_week, cycle_has_reached_nominal_end
+from app.workout_cycles.service import (
+    calculate_cycle_current_week,
+    cycle_has_reached_nominal_end,
+    workout_cycle_has_started,
+)
+from app.workouts.enums import WorkoutPlanStatus
+from app.workouts.models import WorkoutPlan
 
 from .content import build_notification_payload
 from .models import NotificationOutboxEvent
@@ -74,14 +81,23 @@ def due_cycle_reminders(candidate: CycleReminderCandidate) -> tuple[CycleReminde
 def enqueue_due_cycle_reminders(db: Session, *, now: datetime | None = None) -> int:
     current = now or datetime.now(UTC)
     cycles = db.scalars(
-        select(WorkoutCycle).where(WorkoutCycle.status == WorkoutCycleStatus.ACTIVE)
+        select(WorkoutCycle)
+        .join(WorkoutPlan, WorkoutCycle.workout_plan_id == WorkoutPlan.id)
+        .where(
+            WorkoutCycle.status == WorkoutCycleStatus.ACTIVE,
+            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
+            WorkoutPlan.deleted_at.is_(None),
+        )
     ).all()
     enqueued = 0
     for cycle in cycles:
-        current_week = calculate_current_week(
-            cycle.started_at,
-            cycle.duration_weeks,
-            now=current,
+        timezone_name = db.scalar(
+            select(UserProfile.timezone).where(UserProfile.user_id == cycle.user_id)
+        ) or cycle.start_timezone or "UTC"
+        if not workout_cycle_has_started(cycle, timezone_name=timezone_name, now=current):
+            continue
+        current_week = calculate_cycle_current_week(
+            cycle, timezone_name=timezone_name, now=current
         )
         has_check_in = (
             db.scalar(
@@ -103,7 +119,9 @@ def enqueue_due_cycle_reminders(db: Session, *, now: datetime | None = None) -> 
             user_id=cycle.user_id,
             current_week=current_week,
             has_current_week_check_in=has_check_in,
-            reached_nominal_end=cycle_has_reached_nominal_end(cycle, now=current),
+            reached_nominal_end=cycle_has_reached_nominal_end(
+                cycle, now=current, timezone_name=timezone_name
+            ),
             has_completion_feedback=has_feedback,
         )
         for reminder in due_cycle_reminders(candidate):

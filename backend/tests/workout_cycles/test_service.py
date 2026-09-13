@@ -18,6 +18,7 @@ from app.profile.models import BodyMeasurement, UserProfile
 from app.workout_cycles.enums import (
     WorkoutCycleFeedbackProgress,
     WorkoutCycleFeedbackSatisfaction,
+    WorkoutCycleSessionStatus,
     WorkoutCycleStatus,
     WorkoutCycleWeeklyCheckInDifficulty,
     WorkoutCycleWeeklyCheckInRecovery,
@@ -26,15 +27,22 @@ from app.workout_cycles.models import WorkoutCycle, WorkoutCycleFeedback
 from app.workout_cycles.schemas import CompletionFeedbackInput
 from app.workout_cycles.service import (
     WorkoutCycleAlreadyCompletedError,
+    WorkoutCycleCompletionFeedbackNotDueError,
+    WorkoutCycleCompletionFeedbackNotFoundError,
     WorkoutCycleNotFoundError,
     WorkoutCyclePlanInactiveError,
+    WorkoutCycleWeeklyCheckInNoActiveCycleError,
     calculate_current_week,
     complete_cycle,
+    cycle_has_reached_nominal_end,
+    get_current_completion_feedback_cycle,
+    get_current_weekly_check_in,
     get_cycle_for_user,
     start_cycle,
+    upsert_current_weekly_check_in,
 )
 from app.workouts.enums import WorkoutPlanStatus
-from app.workouts.models import WorkoutPlan
+from app.workouts.models import WorkoutDay, WorkoutPlan
 from app.workouts.program_engine.enums import Goal
 
 
@@ -163,6 +171,168 @@ def test_start_cycle_is_idempotent_for_one_plan(db: Session) -> None:
 
     assert second.id == first.id
     assert db.query(WorkoutCycle).filter_by(workout_plan_id=plan.id).count() == 1
+
+
+def test_superseded_plan_cycle_is_historical_not_current(db: Session) -> None:
+    user = make_user(db, "superseded-cycle-current@example.com")
+    plan = make_plan(db, user.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
+    plan.status = WorkoutPlanStatus.SUPERSEDED
+    db.flush()
+
+    with pytest.raises(WorkoutCycleCompletionFeedbackNotFoundError):
+        get_current_completion_feedback_cycle(db, user_id=user.id)
+    assert get_cycle_for_user(db, cycle_id=cycle.id, user_id=user.id) is cycle
+
+
+def test_future_current_cycle_hides_historical_completion_feedback(db: Session) -> None:
+    user = make_user(db, "future-cycle-current-feedback@example.com")
+    old_plan = make_plan(db, user.id)
+    old_cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=old_plan.id,
+        start_date=date(2026, 8, 1),
+        timezone_name="UTC",
+    )
+    complete_cycle(
+        db,
+        cycle_id=old_cycle.id,
+        user_id=user.id,
+        feedback=CompletionFeedbackInput(adherence_percent=80),
+    )
+    old_plan.status = WorkoutPlanStatus.SUPERSEDED
+    future_plan = make_plan(db, user.id)
+    start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=future_plan.id,
+        start_date=date.today() + timedelta(days=5),
+        timezone_name="UTC",
+    )
+
+    with pytest.raises(WorkoutCycleCompletionFeedbackNotFoundError):
+        get_current_completion_feedback_cycle(db, user_id=user.id)
+
+
+def test_future_cycle_has_no_current_weekly_check_in(db: Session) -> None:
+    user = make_user(db, "future-cycle-check-in@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id)
+    start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date.today() + timedelta(days=5),
+        timezone_name="UTC",
+    )
+
+    with pytest.raises(WorkoutCycleWeeklyCheckInNoActiveCycleError):
+        get_current_weekly_check_in(db, user_id=user.id)
+    with pytest.raises(WorkoutCycleWeeklyCheckInNoActiveCycleError):
+        upsert_current_weekly_check_in(
+            db,
+            user_id=user.id,
+            sessions_completed=0,
+            perceived_difficulty=WorkoutCycleWeeklyCheckInDifficulty.APPROPRIATE,
+            recovery_rating=WorkoutCycleWeeklyCheckInRecovery.GOOD,
+            has_pain_or_limitation=False,
+        )
+
+
+def test_exact_cycle_nominal_end_waits_for_all_sessions(db: Session) -> None:
+    user = make_user(db, "exact-cycle-end@example.com")
+    plan = make_plan(db, user.id)
+    plan.days = [
+        WorkoutDay(
+            day_number=1,
+            title_en="Day 1",
+            title_fa="روز ۱",
+            estimated_duration_minutes=45,
+            weekday=0,
+        )
+    ]
+    db.flush()
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 8, 1),
+        timezone_name="UTC",
+    )
+    after_nominal_end = datetime(2026, 8, 30, 12, tzinfo=UTC)
+
+    assert cycle_has_reached_nominal_end(cycle, now=after_nominal_end) is False
+    with pytest.raises(WorkoutCycleCompletionFeedbackNotDueError):
+        complete_cycle(db, cycle_id=cycle.id, user_id=user.id)
+    for session in cycle.sessions:
+        session.status = WorkoutCycleSessionStatus.SKIPPED
+        session.skipped_at = after_nominal_end
+    db.flush()
+    assert cycle_has_reached_nominal_end(cycle, now=after_nominal_end) is True
+
+
+def test_rescheduled_last_exact_session_extends_execution_until_resolved(
+    db: Session,
+) -> None:
+    user = make_user(db, "exact-cycle-rescheduled-end@example.com")
+    plan = make_plan(db, user.id)
+    plan.days = [
+        WorkoutDay(
+            day_number=1,
+            title_en="Day 1",
+            title_fa="روز ۱",
+            estimated_duration_minutes=45,
+            weekday=0,
+        )
+    ]
+    db.flush()
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 8, 1),
+        timezone_name="UTC",
+    )
+    sessions = sorted(cycle.sessions, key=lambda item: item.session_number)
+    for session in sessions[:-1]:
+        session.status = WorkoutCycleSessionStatus.SKIPPED
+        session.skipped_at = datetime(2026, 8, 30, 12, tzinfo=UTC)
+    sessions[-1].scheduled_date = date(2026, 9, 5)
+    db.flush()
+
+    after_nominal_end = datetime(2026, 8, 30, 12, tzinfo=UTC)
+    assert cycle_has_reached_nominal_end(cycle, now=after_nominal_end) is False
+    sessions[-1].status = WorkoutCycleSessionStatus.SKIPPED
+    sessions[-1].skipped_at = datetime(2026, 9, 5, 12, tzinfo=UTC)
+    db.flush()
+    assert cycle_has_reached_nominal_end(
+        cycle, now=datetime(2026, 9, 5, 12, tzinfo=UTC)
+    ) is True
+
+
+def test_legacy_cycle_keeps_nominal_end_behavior(db: Session) -> None:
+    user = make_user(db, "legacy-cycle-end@example.com")
+    plan = make_plan(db, user.id)
+    cycle = WorkoutCycle(
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        duration_weeks=4,
+        started_at=datetime(2026, 8, 1, tzinfo=UTC),
+        start_date=date(2026, 8, 1),
+    )
+    db.add(cycle)
+    db.flush()
+
+    assert cycle_has_reached_nominal_end(
+        cycle, now=datetime(2026, 8, 30, tzinfo=UTC)
+    ) is True
 
 
 def test_start_cycle_rejects_unsupported_plan_duration(db: Session) -> None:

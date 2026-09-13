@@ -5,9 +5,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { ReactTestInstance } from "react-test-renderer";
 
 jest.mock("@tanstack/react-query", () => ({
-  useMutation: jest.fn(() => ({ isPending: false, mutate: jest.fn() })),
+  useMutation: jest.fn(),
   useQuery: jest.fn(),
-  useQueryClient: jest.fn(() => ({ invalidateQueries: jest.fn(), setQueryData: jest.fn() })),
+  useQueryClient: jest.fn(),
 }));
 jest.mock("expo-file-system", () => ({ Directory: class {}, File: class {}, Paths: { document: "document" } }));
 jest.mock("expo-crypto", () => ({ randomUUID: jest.fn(() => "uuid") }));
@@ -29,7 +29,7 @@ jest.mock("./nutritionPlanApi", () => ({ createNutritionPlanApi: jest.fn() }));
 jest.mock("./nutritionPlanActionsApi", () => ({ createNutritionPlanActionsApi: jest.fn() }));
 jest.mock("./nutritionPlanPdfStore", () => ({ ExpoNutritionPlanPdfStore: jest.fn() }));
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
@@ -40,6 +40,8 @@ import { createNutritionPlanApi, type WeeklyPlan } from "./nutritionPlanApi";
 import { ExpoNutritionPlanPdfStore, type StoredNutritionPlanPdf } from "./nutritionPlanPdfStore";
 
 const mockUseQuery = jest.mocked(useQuery);
+const mockUseMutation = jest.mocked(useMutation);
+const mockUseQueryClient = jest.mocked(useQueryClient);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
 const mockUseMobileEntitlements = jest.mocked(useMobileEntitlements);
 const mockCreatePlanApi = jest.mocked(createNutritionPlanApi);
@@ -53,6 +55,8 @@ const mockPdfSave = jest.fn<(planId: string, result: unknown) => Promise<StoredN
 const mockShoppingRefetch = jest.fn<() => Promise<unknown>>();
 const mockSetMealLock = jest.fn<(planId: string, mealId: string, locked: boolean) => Promise<{ meal_id: string; is_locked: boolean }>>();
 const mockPartialRegenerate = jest.fn<(planId: string, dayIndexes: readonly number[]) => Promise<WeeklyPlan>>();
+const mockInvalidateQueries = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+const mockSetQueryData = jest.fn();
 
 const storedPdf = {
   byteSize: 4,
@@ -284,6 +288,13 @@ beforeEach(() => {
   mockSetMealLock.mockResolvedValue({ meal_id: "meal-0", is_locked: true });
   mockPartialRegenerate.mockReset();
   mockPartialRegenerate.mockResolvedValue(activePlan);
+  mockInvalidateQueries.mockClear();
+  mockSetQueryData.mockClear();
+  mockUseQueryClient.mockReturnValue({
+    invalidateQueries: mockInvalidateQueries,
+    setQueryData: mockSetQueryData,
+  } as never);
+  mockUseMutation.mockImplementation(() => ({ isPending: false, mutate: jest.fn() }) as never);
   mockCreatePlanApi.mockReturnValue({
     downloadPdf: mockDownloadPdf,
     generate: jest.fn(),
@@ -428,6 +439,58 @@ test("opens the recurring nutrition template on the timeline pattern day", async
   const tabs = screen.getAllByRole("tab");
   expect(tabs[1]?.props.accessibilityState).toMatchObject({ selected: true });
   expect(screen.getByText(/امروز · روز ۹ برنامه/u)).toBeTruthy();
+});
+
+test("selecting a ready plan refreshes timeline without caching it as active", async () => {
+  mockBundle = {
+    bundle_id: "bundle-1",
+    budget_plan: activePlan,
+    comparison: { monthly_cost_gap_irr: 100_000, show_ideal_plan: true },
+    ideal_plan: readyPlan,
+    selected_plan_id: activePlan.id,
+    selected_plan_role: "budget",
+  };
+  const selectBundle = jest.fn(async () => ({
+    bundle_id: "bundle-1",
+    plan: readyPlan,
+    selected_plan_id: readyPlan.id,
+    selected_plan_role: "ideal",
+    selected_at: "2026-09-14T00:00:00Z",
+  }));
+  mockCreatePlanApi.mockReturnValue({
+    downloadPdf: mockDownloadPdf,
+    generate: jest.fn(),
+    get: jest.fn(),
+    getActive: jest.fn(),
+    getHistory: jest.fn(),
+    getLatest: jest.fn(),
+    getLatestBundle: jest.fn(),
+    getShoppingList: jest.fn(),
+    partialRegenerate: mockPartialRegenerate,
+    selectBundle,
+    startPlan: jest.fn(),
+  } as never);
+  mockUseMutation.mockImplementation(((options: {
+    mutationFn: (variables: unknown) => Promise<unknown>;
+    onSuccess?: (result: unknown) => void | Promise<void>;
+  }) => ({
+    isPending: false,
+    mutate: (variables: unknown) => {
+      void options.mutationFn(variables).then((result) => options.onSuccess?.(result));
+    },
+  })) as never);
+
+  renderPlan();
+  fireEvent.press(screen.getByRole("radio", { name: "نسخه ایده‌آل" }));
+
+  await waitFor(() => expect(selectBundle).toHaveBeenCalled());
+  await waitFor(() => expect(mockInvalidateQueries).toHaveBeenCalledWith({
+    queryKey: ["program-timeline"],
+  }));
+  expect(mockSetQueryData).not.toHaveBeenCalledWith(
+    ["nutrition", "plan", "active"],
+    readyPlan,
+  );
 });
 
 test("does not present a standard nutrition plan as waiting for a physician", async () => {

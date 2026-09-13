@@ -33,7 +33,11 @@ from app.program_timeline.schemas import (
 from app.time_context import local_date_for_timezone, validate_timezone_name
 from app.workout_cycles.enums import WorkoutCycleSessionStatus, WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleSession
-from app.workout_cycles.service import calculate_current_week
+from app.workout_cycles.service import (
+    calculate_cycle_current_week,
+    get_actionable_workout_session,
+    workout_cycle_start_date,
+)
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutPlan
 
@@ -119,7 +123,7 @@ def _workout_timeline(
             workout_plan_id=plan.id,
         )
 
-    start_date = local_date_for_timezone(timezone_name, now=cycle.started_at)
+    start_date = workout_cycle_start_date(cycle, timezone_name=timezone_name)
     sessions = sorted(
         cycle.sessions,
         key=lambda session: (session.scheduled_date, session.session_number),
@@ -128,7 +132,11 @@ def _workout_timeline(
         "workout_plan_id": plan.id,
         "cycle_id": cycle.id,
         "start_date": start_date,
-        "current_week": calculate_current_week(cycle.started_at, cycle.duration_weeks, now=now),
+        "current_week": calculate_cycle_current_week(
+            cycle,
+            timezone_name=timezone_name,
+            now=now,
+        ),
         "duration_weeks": cycle.duration_weeks,
         "completed_sessions": sum(
             session.status is WorkoutCycleSessionStatus.COMPLETED for session in sessions
@@ -152,15 +160,32 @@ def _workout_timeline(
             **response_base,
         )
 
-    unfinished = [
-        session for session in sessions if session.status is WorkoutCycleSessionStatus.SCHEDULED
-    ]
-    overdue = next(
-        (session for session in unfinished if session.scheduled_date < local_date),
-        None,
+    unfinished = sorted(
+        (
+            session
+            for session in sessions
+            if session.status is WorkoutCycleSessionStatus.SCHEDULED
+        ),
+        key=lambda session: session.session_number,
     )
-    today = next(
-        (session for session in sessions if session.scheduled_date == local_date),
+    actionable = get_actionable_workout_session(cycle)
+    overdue = (
+        actionable
+        if actionable is not None and actionable.scheduled_date < local_date
+        else None
+    )
+    today = (
+        actionable
+        if actionable is not None and actionable.scheduled_date == local_date
+        else None
+    )
+    completed_today = next(
+        (
+            session
+            for session in reversed(sessions)
+            if session.scheduled_date == local_date
+            and session.status is WorkoutCycleSessionStatus.COMPLETED
+        ),
         None,
     )
     next_session = next(
@@ -176,23 +201,23 @@ def _workout_timeline(
             today_session=_session_response(today) if today else None,
             **response_base,
         )
-    if today is not None and today.status is WorkoutCycleSessionStatus.SCHEDULED:
+    if today is not None:
         return TimelineWorkoutResponse(
             state=WorkoutTimelineState.WORKOUT_TODAY,
             today_session=_session_response(today),
             next_session=_session_response(next_session) if next_session else None,
             **response_base,
         )
-    if today is not None and today.status is WorkoutCycleSessionStatus.COMPLETED:
+    if completed_today is not None:
         return TimelineWorkoutResponse(
             state=WorkoutTimelineState.COMPLETED_TODAY,
-            today_session=_session_response(today),
+            today_session=_session_response(completed_today),
             next_session=_session_response(next_session) if next_session else None,
             **response_base,
         )
     return TimelineWorkoutResponse(
         state=WorkoutTimelineState.REST_DAY,
-        today_session=_session_response(today) if today else None,
+        today_session=None,
         next_session=_session_response(next_session) if next_session else None,
         **response_base,
     )
@@ -211,7 +236,6 @@ def _latest_nutrition_plan(db: Session, *, user_id: UUID) -> NutritionWeeklyPlan
                 NutritionWeeklyPlan.id == bundle.selected_plan_id,
                 NutritionWeeklyPlan.user_id == user_id,
                 NutritionWeeklyPlan.is_user_visible.is_(True),
-                NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value,
             )
         )
         if selected is not None:

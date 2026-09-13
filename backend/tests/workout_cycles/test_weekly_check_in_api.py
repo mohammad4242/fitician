@@ -111,11 +111,14 @@ def _plan_with_cycle(
         plan.days.append(day)
     db.add(plan)
     db.flush()
+    started_at = datetime.now(UTC) - timedelta(days=days_ago)
     cycle = WorkoutCycle(
         user_id=user_id,
         workout_plan_id=plan.id,
         duration_weeks=4,
-        started_at=datetime.now(UTC) - timedelta(days=days_ago),
+        started_at=started_at,
+        start_date=started_at.date(),
+        start_timezone="UTC",
     )
     db.add(cycle)
     db.flush()

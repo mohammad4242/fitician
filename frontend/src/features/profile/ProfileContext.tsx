@@ -42,24 +42,34 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<ProfileStatus>("idle");
   const [productMode, setProductMode] = useState<ProductMode | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [timezoneSyncLifecycle, setTimezoneSyncLifecycle] = useState(0);
   const requestGeneration = useRef(0);
-  const timezoneSyncKey = useRef<string | null>(null);
+  const timezoneSyncSuccessKey = useRef<string | null>(null);
+  const timezoneSyncAttemptKey = useRef<string | null>(null);
   const timezone = resolvedIanaTimeZone();
 
   useEffect(() => {
     if (userId === null) {
-      timezoneSyncKey.current = null;
+      timezoneSyncSuccessKey.current = null;
+      timezoneSyncAttemptKey.current = null;
       return;
     }
     const syncKey = `${userId}:${timezone}`;
-    if (timezoneSyncKey.current === syncKey) {
+    const attemptKey = `${syncKey}:${timezoneSyncLifecycle}`;
+    if (
+      timezoneSyncSuccessKey.current === syncKey
+      || timezoneSyncAttemptKey.current === attemptKey
+    ) {
       return;
     }
-    timezoneSyncKey.current = syncKey;
+    timezoneSyncAttemptKey.current = attemptKey;
     void Promise.resolve()
       .then(() => api.updateTimezone(timezone))
+      .then(() => {
+        timezoneSyncSuccessKey.current = syncKey;
+      })
       .catch(() => undefined);
-  }, [timezone, userId]);
+  }, [timezone, timezoneSyncLifecycle, userId]);
 
   useEffect(() => {
     const refreshAfterHydration = () => setRetryAttempt((attempt) => attempt + 1);
@@ -107,6 +117,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           setStatus(profileStatus.completion_state === "product_mode_not_selected"
             ? "missing"
             : readyStates.has(profileStatus.completion_state) ? "ready" : "mode_selected");
+          setTimezoneSyncLifecycle((lifecycle) => lifecycle + 1);
         }
       })
       .catch(() => {
@@ -137,6 +148,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           if (generation === requestGeneration.current) {
             setProfile(createdProfile);
             setStatus(productMode === "training" ? "ready" : "mode_selected");
+            setTimezoneSyncLifecycle((lifecycle) => lifecycle + 1);
           }
           return createdProfile;
         } catch (error) {

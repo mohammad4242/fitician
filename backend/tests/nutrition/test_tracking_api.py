@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -158,6 +158,50 @@ def test_free_meal_macros_update_actual_totals_without_changing_plan_targets(
     assert second.json()["entries"][0]["source"] == "free_meal"
     db.refresh(day)
     assert day.nutrient_totals == planned_targets
+
+
+def test_free_meal_recurs_on_day_8_and_rejects_wrong_meal(client: TestClient, db: Session) -> None:
+    plan_json, _food = _setup(client, db)
+    plan = db.get(NutritionWeeklyPlan, plan_json["id"])
+    assert plan is not None and plan.review is not None
+    plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    plan.review.status = NutritionPlanReviewStatus.APPROVED
+    day = plan.days[0]
+    free_meal = NutritionWeeklyPlanMeal(
+        day_id=day.id, catalogue_meal_id=None, catalogue_meal_category="lunch",
+        slot_role=MealSlotRole.FREE_MEAL, slot_index=0, target_distribution={},
+        nutrient_totals={}, cost_irr=0,
+    )
+    db.add(free_meal)
+    db.commit()
+
+    payload = {
+        "calories": 700,
+        "protein_g": 30,
+        "carbohydrate_g": 80,
+        "fat_g": 25,
+    }
+    responses = [
+        client.put(
+            f"/api/v1/nutrition/tracking/free-meals/{free_meal.id}",
+            headers=ORIGIN,
+            json={
+                **payload,
+                "entry_date": (plan.start_date + timedelta(days=offset)).isoformat(),
+            },
+        )
+        for offset in (7, 14)
+    ]
+    non_free_meal = next(meal for meal in day.meals if meal.slot_role is not MealSlotRole.FREE_MEAL)
+    wrong = client.put(
+        f"/api/v1/nutrition/tracking/free-meals/{non_free_meal.id}",
+        headers=ORIGIN,
+        json={**payload, "entry_date": (plan.start_date + timedelta(days=7)).isoformat()},
+    )
+
+    assert [response.status_code for response in responses] == [200, 200]
+    assert wrong.status_code == 404
+    assert wrong.json()["detail"]["code"] == "ACTIVE_FREE_MEAL_NOT_FOUND"
 
 
 def test_member_can_edit_own_catalogue_entry_and_read_recent_foods(

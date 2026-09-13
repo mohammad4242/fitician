@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { Text } from "react-native";
+import { Button, Text } from "react-native";
 
 jest.mock("expo-router", () => ({ Redirect: () => null }));
 jest.mock("../../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
@@ -29,7 +29,11 @@ jest.mock("../components", () => {
 });
 
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
-import { MobileRouteStateProviderFromAuth, RouteGuard } from "./RouteGuards";
+import {
+  MobileRouteStateProviderFromAuth,
+  RouteGuard,
+  useRefreshMobileProfileStatus,
+} from "./RouteGuards";
 
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
 
@@ -40,6 +44,11 @@ const user = {
   is_admin: false,
   phone_number: null,
 };
+
+function ProfileRefreshProbe() {
+  const refresh = useRefreshMobileProfileStatus();
+  return <Button title="refresh-profile" onPress={() => void refresh()} />;
+}
 
 beforeEach(() => {
   mockUseMobileAuth.mockReset();
@@ -167,6 +176,70 @@ test("persists the device timezone once for each signed-in user", async () => {
     </MobileRouteStateProviderFromAuth>,
   );
   await waitFor(() => expect(timezoneUpdates).toHaveLength(1));
+});
+
+test("retries timezone persistence after profile availability changes", async () => {
+  let timezoneAttempts = 0;
+  const request = jest.fn(async (input: { path: string }) => {
+    if (input.path === "/api/v1/profile/status") {
+      return {
+        completion_state: "both_ready",
+        product_mode: "both",
+        user_id: "member-1",
+      };
+    }
+    if (input.path === "/api/v1/profile/timezone") {
+      timezoneAttempts += 1;
+      if (timezoneAttempts === 1) throw new Error("profile missing");
+      return { timezone: "UTC" };
+    }
+    return { authorized: false };
+  });
+  mockUseMobileAuth.mockReturnValue({ request, status: "signed_in", user } as never);
+
+  const view = render(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member"><Text>member-content</Text></RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+
+  await waitFor(() => expect(timezoneAttempts).toBe(2));
+  view.rerender(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member"><Text>member-content</Text></RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+  await waitFor(() => expect(timezoneAttempts).toBe(2));
+});
+
+test("retries timezone persistence after an explicit profile refresh", async () => {
+  let timezoneAttempts = 0;
+  const request = jest.fn(async (input: { path: string }) => {
+    if (input.path === "/api/v1/profile/status") {
+      return {
+        completion_state: "both_ready",
+        product_mode: "both",
+        user_id: "member-1",
+      };
+    }
+    if (input.path === "/api/v1/profile/timezone") {
+      timezoneAttempts += 1;
+      if (timezoneAttempts <= 2) throw new Error("profile missing");
+      return { timezone: "UTC" };
+    }
+    return { authorized: false };
+  });
+  mockUseMobileAuth.mockReturnValue({ request, status: "signed_in", user } as never);
+
+  render(
+    <MobileRouteStateProviderFromAuth>
+      <ProfileRefreshProbe />
+    </MobileRouteStateProviderFromAuth>,
+  );
+
+  await waitFor(() => expect(timezoneAttempts).toBe(2));
+  fireEvent.press(screen.getByRole("button", { name: "refresh-profile" }));
+  await waitFor(() => expect(timezoneAttempts).toBe(3));
 });
 
 test("retries timezone persistence when the authenticated identity changes", async () => {

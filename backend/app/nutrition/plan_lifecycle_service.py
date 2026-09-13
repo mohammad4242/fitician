@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import Select, select, update
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth.models import User
@@ -61,7 +61,9 @@ def _ensure_selected_member_plan(plan: NutritionWeeklyPlan) -> None:
             "NUTRITION_PLAN_NOT_SELECTED",
             "این برنامه غذایی برای شروع انتخاب نشده است.",
         )
-    if generation.plan_role == NutritionPlanRole.IDEAL_REFERENCE.value:
+    if generation.plan_role == NutritionPlanRole.IDEAL_REFERENCE.value and (
+        generation.bundle is None or generation.bundle.selected_plan_id != plan.id
+    ):
         raise NutritionPlanStartConflictError(
             "NUTRITION_REFERENCE_PLAN_NOT_STARTABLE",
             "برنامه مقایسه‌ای قابل شروع نیست.",
@@ -103,19 +105,6 @@ def _ensure_startable_lifecycle(plan: NutritionWeeklyPlan, requested_start: date
     return True
 
 
-def _archive_other_active_plans(db: Session, *, user_id: UUID, plan_id: UUID) -> None:
-    db.execute(
-        update(NutritionWeeklyPlan)
-        .where(
-            NutritionWeeklyPlan.user_id == user_id,
-            NutritionWeeklyPlan.id != plan_id,
-            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-        )
-        .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
-    )
-    db.flush()
-
-
 def _persist_timezone(db: Session, *, user_id: UUID, timezone_name: str) -> None:
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id).with_for_update())
     if profile is not None:
@@ -151,7 +140,6 @@ def start_nutrition_plan(
     should_start = _ensure_startable_lifecycle(plan, start_date)
 
     if should_start:
-        _archive_other_active_plans(db, user_id=user_id, plan_id=plan.id)
         plan.start_date = start_date
         plan.started_at = datetime.now(UTC)
         plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE

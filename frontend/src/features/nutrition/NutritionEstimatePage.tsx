@@ -115,7 +115,7 @@ export function NutritionEstimatePage() {
     setCalculating(true);
     setState("loading");
     void nutritionApi.createNutritionEstimate()
-      .then(async (result) => {
+      .then((result) => {
         setEstimate(result);
         setState("ready");
       })

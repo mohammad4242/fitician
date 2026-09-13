@@ -273,6 +273,20 @@ def test_athlete_state_selects_current_cycle_and_previous_history(db: Session) -
     assert set(state.provenance.workout_plan_ids) == {current_plan.id, old_plan.id}
 
 
+def test_athlete_state_does_not_treat_superseded_active_cycle_as_current(db: Session) -> None:
+    user = _user(db)
+    plan, _item, cycle, *_ = _plan_with_cycle(db, user.id)
+    assert cycle is not None
+    plan.status = WorkoutPlanStatus.SUPERSEDED
+    db.flush()
+
+    current = AthleteStateBuilder(db).build(user.id)
+    historical = AthleteStateBuilder(db).build(user.id, cycle_id=cycle.id)
+
+    assert current.current_cycle_id is None
+    assert historical.current_cycle_id == cycle.id
+
+
 def test_athlete_state_never_includes_another_users_data(db: Session) -> None:
     owner, owner_cycle = _cycle_with_snapshots(db)
     other, other_cycle = _cycle_with_snapshots(db)

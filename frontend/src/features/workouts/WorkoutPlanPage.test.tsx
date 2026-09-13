@@ -607,6 +607,7 @@ it("renders the pending plan returned by generation with its review warning", as
   expect(screen.getAllByRole("heading", { name: "برنامه تمرینی من" })).toHaveLength(1);
   expect(screen.getAllByRole("list", { name: "روزهای تمرین تو" })).toHaveLength(1);
   expect(screen.queryByText("پرس سینه دمبل")).not.toBeInTheDocument();
+  await waitFor(() => expect(api.getProgramTimelineToday).toHaveBeenCalledTimes(2));
 });
 
 it("replaces the visible active plan with the generated pending plan", async () => {

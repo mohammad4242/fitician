@@ -1336,6 +1336,7 @@ it("replaces existing plan with new plan, updates idealPlan/comparison, refetche
   expect(screen.getByText("برنامه با اطلاعات جدیدت ساخته شد.")).toBeInTheDocument();
   // Estimate refetch was called
   expect(nutritionApi.getCurrentNutritionEstimate).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(programTimelineApi.getProgramTimelineToday).toHaveBeenCalledTimes(2));
 });
 
 it("preserves old plan and comparison on failure, displays error, and re-enables rebuild button", async () => {

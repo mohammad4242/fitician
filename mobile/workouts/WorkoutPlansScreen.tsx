@@ -197,6 +197,8 @@ export function WorkoutPlansScreen() {
         activeQuery.refetch(),
         historyQuery.refetch(),
         pendingPlanId === null ? Promise.resolve() : pendingQuery.refetch(),
+        timelineQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
       ]);
     },
   });
@@ -241,6 +243,7 @@ export function WorkoutPlansScreen() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: workoutKeys.plans() }),
         queryClient.invalidateQueries({ queryKey: workoutKeys.plan("active") }),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
       ]);
     },
     onSettled: () => setDeletingPlanId(null),

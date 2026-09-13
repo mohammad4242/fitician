@@ -175,6 +175,8 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
         latestQuery.refetch(),
         bundleQuery.refetch(),
         historyQuery.refetch(),
+        timelineQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
       ]);
     },
   });
@@ -185,9 +187,17 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
     onSuccess: async (result: PlanBundleSelectResponse) => {
       setGenerationError(null);
       setGenerationResult(null);
-      queryClient.setQueryData(nutritionKeys.plan("active"), result.plan);
+      if (result.plan.lifecycle_status === "active") {
+        queryClient.setQueryData(nutritionKeys.plan("active"), result.plan);
+      }
       queryClient.setQueryData(nutritionKeys.plan("latest"), result.plan);
-      await Promise.all([activeQuery.refetch(), latestQuery.refetch(), historyQuery.refetch()]);
+      await Promise.all([
+        activeQuery.refetch(),
+        latestQuery.refetch(),
+        historyQuery.refetch(),
+        timelineQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
+      ]);
     },
   });
   const startNutrition = useMutation({
@@ -235,7 +245,13 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
   function handlePlanUpdated(next: WeeklyPlan) {
     queryClient.setQueryData(nutritionKeys.plan(next.id), next);
     queryClient.setQueryData(nutritionKeys.plan("latest"), next);
-    void Promise.all([activeQuery.refetch(), latestQuery.refetch(), historyQuery.refetch()]);
+    void Promise.all([
+      activeQuery.refetch(),
+      latestQuery.refetch(),
+      historyQuery.refetch(),
+      timelineQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
+    ]);
   }
 
   useEffect(() => {

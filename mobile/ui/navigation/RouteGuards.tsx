@@ -69,9 +69,11 @@ export function MobileRouteStateProviderFromAuth({ children }: { readonly childr
     coach: "loading",
     physician: "loading",
   });
+  const [timezoneSyncLifecycle, setTimezoneSyncLifecycle] = useState(0);
   const requestGeneration = useRef(0);
   const specialistRequestGeneration = useRef(0);
-  const timezoneSyncKey = useRef<string | null>(null);
+  const timezoneSyncSuccessKey = useRef<string | null>(null);
+  const timezoneSyncAttemptKey = useRef<string | null>(null);
   const userId = auth.user?.id ?? null;
   const deviceTimezone = resolvedIanaTimeZone();
   const profileApi = useMemo(() => createProfileApi(auth.request), [auth.request]);
@@ -85,6 +87,7 @@ export function MobileRouteStateProviderFromAuth({ children }: { readonly childr
     const nextProfile = await loadMobileProfileStatus(auth.request);
     if (generation === requestGeneration.current) {
       setProfile(nextProfile);
+      setTimezoneSyncLifecycle((lifecycle) => lifecycle + 1);
     }
   }, [auth.request, auth.status, userId]);
 
@@ -111,14 +114,23 @@ export function MobileRouteStateProviderFromAuth({ children }: { readonly childr
 
   useEffect(() => {
     if (auth.status !== "signed_in" || userId === null) {
-      timezoneSyncKey.current = null;
+      timezoneSyncSuccessKey.current = null;
+      timezoneSyncAttemptKey.current = null;
       return;
     }
     const key = `${userId}:${deviceTimezone}`;
-    if (timezoneSyncKey.current === key) return;
-    timezoneSyncKey.current = key;
-    void profileApi.updateTimezone(deviceTimezone).catch(() => undefined);
-  }, [auth.status, deviceTimezone, profileApi, userId]);
+    const attemptKey = `${key}:${timezoneSyncLifecycle}`;
+    if (
+      timezoneSyncSuccessKey.current === key
+      || timezoneSyncAttemptKey.current === attemptKey
+    ) return;
+    timezoneSyncAttemptKey.current = attemptKey;
+    void profileApi.updateTimezone(deviceTimezone)
+      .then(() => {
+        timezoneSyncSuccessKey.current = key;
+      })
+      .catch(() => undefined);
+  }, [auth.status, deviceTimezone, profileApi, timezoneSyncLifecycle, userId]);
 
   const profileSnapshot = profile ?? {
     ...mobileProfileLoadingState,

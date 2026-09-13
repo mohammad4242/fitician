@@ -11,7 +11,7 @@ from app.nutrition.models import NutritionWeeklyPlan
 from app.profile.enums import FitnessGoal, Sex, TrainingLocation
 from app.profile.models import BodyMeasurement, UserProfile
 from app.program_timeline.service import build_program_timeline
-from app.workout_cycles.enums import WorkoutCycleStatus
+from app.workout_cycles.enums import WorkoutCycleSessionStatus, WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle
 from app.workout_cycles.service import complete_current_cycle_session, start_cycle
 from app.workouts.enums import WorkoutPlanStatus
@@ -203,6 +203,26 @@ def test_completed_today_exposes_next_future_session(db: Session) -> None:
     assert timeline.workout.next_session.scheduled_date == date(2026, 9, 14)
 
 
+def test_timeline_focuses_actionable_unfinished_session_on_shared_date(db: Session) -> None:
+    user = _user(db, "timeline-actionable-shared-date@example.com")
+    _profile(db, user.id)
+    plan = _workout_plan(db, user.id, (1, 2))
+    cycle = _cycle(db, user.id, plan)
+    first, second = sorted(cycle.sessions, key=lambda item: item.session_number)[:2]
+    first.status = WorkoutCycleSessionStatus.COMPLETED
+    first.completed_at = datetime(2026, 9, 14, 9, tzinfo=UTC)
+    second.scheduled_date = first.scheduled_date
+    db.flush()
+
+    timeline = build_program_timeline(
+        db, user_id=user.id, now=datetime(2026, 9, 13, 12, tzinfo=UTC)
+    )
+
+    assert timeline.workout.state.value == "workout_today"
+    assert timeline.workout.today_session is not None
+    assert timeline.workout.today_session.id == second.id
+
+
 def test_legacy_cycle_is_neutral_and_cycle_completed_is_explicit(db: Session) -> None:
     user = _user(db, "timeline-legacy@example.com")
     _profile(db, user.id)
@@ -245,6 +265,42 @@ def test_scheduled_workout_cycle_uses_local_start_date(db: Session) -> None:
 
     assert timeline.local_date == date(2026, 9, 14)
     assert timeline.workout.state.value == "workout_today"
+
+
+def test_workout_logical_start_date_survives_profile_timezone_change(db: Session) -> None:
+    user = _user(db, "timeline-workout-travel@example.com")
+    _profile(db, user.id, timezone="Asia/Tehran")
+    plan = _workout_plan(db, user.id, (0,))
+    cycle = _cycle(db, user.id, plan, date(2026, 9, 12), timezone_name="Asia/Tehran")
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).one()
+    profile.timezone = "America/Los_Angeles"
+    db.flush()
+
+    timeline = build_program_timeline(
+        db,
+        user_id=user.id,
+        timezone_name="America/Los_Angeles",
+        now=datetime(2026, 9, 13, 12, tzinfo=UTC),
+    )
+
+    assert cycle.started_at.date() == date(2026, 9, 11)
+    assert timeline.workout.start_date == date(2026, 9, 12)
+
+
+def test_workout_logical_start_is_stable_across_dst_timezone_boundaries(db: Session) -> None:
+    user = _user(db, "timeline-workout-dst@example.com")
+    _profile(db, user.id, timezone="America/New_York")
+    plan = _workout_plan(db, user.id, (1,))
+    _cycle(db, user.id, plan, date(2026, 11, 1), timezone_name="America/New_York")
+
+    timeline = build_program_timeline(
+        db,
+        user_id=user.id,
+        timezone_name="America/Los_Angeles",
+        now=datetime(2026, 11, 2, 12, tzinfo=UTC),
+    )
+
+    assert timeline.workout.start_date == date(2026, 11, 1)
 
 
 def test_nutrition_timeline_states_and_recurring_day(client, db: Session) -> None:

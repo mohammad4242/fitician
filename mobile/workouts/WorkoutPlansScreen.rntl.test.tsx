@@ -882,6 +882,7 @@ test("shows the generated pending replacement immediately instead of the old act
   expect(screen.queryByText("حرکت قبلی")).toBeNull();
   expect(screen.getByText("حرکت جدید")).toBeTruthy();
   expect(screen.getAllByTestId(/workout-plan-view-/)).toHaveLength(1);
+  expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["program-timeline"] });
 });
 
 test("starts the existing replacement workflow from an executable exercise action", async () => {

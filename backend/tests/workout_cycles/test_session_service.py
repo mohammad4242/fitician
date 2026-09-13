@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -10,6 +10,7 @@ from app.auth.models import User
 from app.exercises.enums import MuscleGroup
 from app.profile.enums import FitnessGoal, Sex, TrainingLocation
 from app.profile.models import BodyMeasurement, UserProfile
+from app.program_timeline.service import build_program_timeline
 from app.workout_cycles.enums import WorkoutCycleSessionStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleSession
 from app.workout_cycles.service import (
@@ -117,6 +118,8 @@ def test_start_cycle_on_workout_day_creates_today_session(db: Session) -> None:
     cycle = begin_cycle(db, user.id, plan)
 
     assert cycle.started_at.date() == date(2026, 9, 12)
+    assert cycle.start_date == date(2026, 9, 12)
+    assert cycle.start_timezone == "UTC"
     assert cycle.sessions[0].scheduled_date == date(2026, 9, 12)
     assert cycle.sessions[0].session_number == 1
 
@@ -217,16 +220,16 @@ def test_reschedule_session_moves_only_unfinished_session(db: Session) -> None:
     user = make_user(db, "session-reschedule@example.com")
     plan = make_plan(db, user.id, weekdays=(0, 2))
     cycle = begin_cycle(db, user.id, plan)
-    session = cycle.sessions[1]
+    session = cycle.sessions[0]
 
     moved = reschedule_current_cycle_session(
         db,
         user_id=user.id,
         session_id=session.id,
-        scheduled_date=date(2026, 9, 16),
+        scheduled_date=date(2026, 9, 13),
     )
 
-    assert moved.scheduled_date == date(2026, 9, 16)
+    assert moved.scheduled_date == date(2026, 9, 13)
     assert moved.status is WorkoutCycleSessionStatus.SCHEDULED
 
 
@@ -234,6 +237,13 @@ def test_reschedule_rejects_collision_and_date_before_cycle_start(db: Session) -
     user = make_user(db, "session-reschedule-errors@example.com")
     plan = make_plan(db, user.id, weekdays=(0, 2))
     cycle = begin_cycle(db, user.id, plan)
+    first = cycle.sessions[0]
+    complete_current_cycle_session(
+        db,
+        user_id=user.id,
+        session_id=first.id,
+        now=datetime(2026, 9, 12, 12, tzinfo=UTC),
+    )
     session = cycle.sessions[1]
 
     with pytest.raises(WorkoutCycleSessionDateConflictError):
@@ -241,7 +251,7 @@ def test_reschedule_rejects_collision_and_date_before_cycle_start(db: Session) -
             db,
             user_id=user.id,
             session_id=session.id,
-            scheduled_date=cycle.sessions[0].scheduled_date,
+            scheduled_date=first.scheduled_date,
         )
     with pytest.raises(WorkoutCycleSessionBeforeStartError):
         reschedule_current_cycle_session(
@@ -315,3 +325,139 @@ def test_current_cycle_ignores_cycle_for_superseded_workout_plan(db: Session) ->
 
     assert old_cycle.workout_plan_id != new_plan.id
     assert get_current_active_cycle_for_user(db, user_id=user.id) is None
+
+
+def test_start_cycle_idempotency_uses_immutable_logical_date_after_timezone_change(
+    db: Session,
+) -> None:
+    user = make_user(db, "session-travel-idempotency@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id, weekdays=(0,))
+    first = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="Asia/Tehran",
+    )
+
+    same = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="America/Los_Angeles",
+    )
+
+    assert same.id == first.id
+    assert same.start_date == date(2026, 9, 12)
+    assert same.start_timezone == "Asia/Tehran"
+
+
+def test_future_and_later_unresolved_sessions_are_not_actionable(db: Session) -> None:
+    user = make_user(db, "session-action-order@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id, weekdays=(1, 3))
+    cycle = begin_cycle(db, user.id, plan, date(2026, 9, 20))
+
+    with pytest.raises(ValueError, match="not actionable"):
+        complete_current_cycle_session(
+            db,
+            user_id=user.id,
+            session_id=cycle.sessions[0].id,
+            now=datetime(2026, 9, 19, 12, tzinfo=UTC),
+        )
+    with pytest.raises(ValueError, match="not actionable"):
+        skip_current_cycle_session(
+            db,
+            user_id=user.id,
+            session_id=cycle.sessions[1].id,
+            now=datetime(2026, 9, 23, 12, tzinfo=UTC),
+        )
+
+
+def test_resolving_actionable_session_advances_sequence(db: Session) -> None:
+    user = make_user(db, "session-action-advance@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id, weekdays=(1, 3))
+    cycle = begin_cycle(db, user.id, plan, date(2026, 9, 20))
+    now = datetime(2026, 9, 23, 12, tzinfo=UTC)
+
+    with pytest.raises(ValueError, match="not actionable"):
+        complete_current_cycle_session(
+            db, user_id=user.id, session_id=cycle.sessions[1].id, now=now
+        )
+    complete_current_cycle_session(db, user_id=user.id, session_id=cycle.sessions[0].id, now=now)
+    completed = complete_current_cycle_session(
+        db, user_id=user.id, session_id=cycle.sessions[1].id, now=now
+    )
+
+    assert completed.status is WorkoutCycleSessionStatus.COMPLETED
+
+
+def test_do_today_cascades_later_unresolved_sessions_and_preserves_spacing(
+    db: Session,
+) -> None:
+    user = make_user(db, "session-do-today@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id, weekdays=(2, 4, 6))
+    cycle = begin_cycle(db, user.id, plan, date(2026, 9, 13))
+    sessions = sorted(cycle.sessions, key=lambda item: item.session_number)
+
+    moved = reschedule_current_cycle_session(
+        db,
+        user_id=user.id,
+        session_id=sessions[0].id,
+        scheduled_date=date(2026, 9, 16),
+        now=datetime(2026, 9, 16, 12, tzinfo=UTC),
+    )
+
+    assert moved.scheduled_date == date(2026, 9, 16)
+    assert [item.scheduled_date for item in sessions[:4]] == [
+        date(2026, 9, 16),
+        date(2026, 9, 18),
+        date(2026, 9, 20),
+        date(2026, 9, 23),
+    ]
+    timeline = build_program_timeline(
+        db,
+        user_id=user.id,
+        now=datetime(2026, 9, 16, 12, tzinfo=UTC),
+    )
+    assert timeline.workout.state.value == "workout_today"
+    assert timeline.workout.today_session is not None
+    assert timeline.workout.today_session.id == sessions[0].id
+
+
+def test_cascade_never_rewrites_finished_sessions(db: Session) -> None:
+    user = make_user(db, "session-cascade-history@example.com")
+    make_profile(db, user.id)
+    plan = make_plan(db, user.id, weekdays=(1, 3, 5))
+    cycle = begin_cycle(db, user.id, plan, date(2026, 9, 13))
+    sessions = sorted(cycle.sessions, key=lambda item: item.session_number)
+    complete_current_cycle_session(
+        db,
+        user_id=user.id,
+        session_id=sessions[0].id,
+        now=datetime(2026, 9, 15, 12, tzinfo=UTC),
+    )
+    first_date = sessions[0].scheduled_date
+
+    reschedule_current_cycle_session(
+        db,
+        user_id=user.id,
+        session_id=sessions[1].id,
+        scheduled_date=date(2026, 9, 25),
+        now=datetime(2026, 9, 16, 12, tzinfo=UTC),
+    )
+
+    assert sessions[0].status is WorkoutCycleSessionStatus.COMPLETED
+    assert sessions[0].scheduled_date == first_date
+    assert sessions[1].scheduled_date == date(2026, 9, 25)
+    assert sessions[2].scheduled_date == date(2026, 9, 27)
+    unresolved_dates = [
+        item.scheduled_date
+        for item in sessions
+        if item.status is WorkoutCycleSessionStatus.SCHEDULED
+    ]
+    assert len(unresolved_dates) == len(set(unresolved_dates))

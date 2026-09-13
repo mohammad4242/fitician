@@ -17,6 +17,7 @@ type Props = {
   isReferencePlan?: boolean;
   timeline?: TimelineNutrition | null;
   title?: string;
+  onPlanUpdated?: (plan: WeeklyPlan) => void;
 };
 
 const weekdayFa = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
@@ -39,7 +40,7 @@ function initialDayIndex(plan: WeeklyPlan, timeline: TimelineNutrition | null): 
   return matchingIndex >= 0 ? matchingIndex : 0;
 }
 
-export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, timeline = null, title }: Props) {
+export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, timeline = null, title, onPlanUpdated }: Props) {
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const canManagePlan = hasEntitlement("nutrition.plan.manage");
   const planActionsReady = !entitlementsLoading && canManagePlan;
@@ -140,6 +141,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
           ? await api.confirmMealReplacement(currentPlan.id, preview.data.meal_id, preview.replacement.id)
           : await api.confirmFoodReplacement(currentPlan.id, preview.data.meal_id, preview.food.food_id!, preview.replacement.food_id);
       setCurrentPlan(next);
+      onPlanUpdated?.(next);
       setPreview(null);
       setSelector(null);
       setSelectedDay((current) => Math.min(current, Math.max(next.days.length - 1, 0)));
@@ -209,6 +211,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
     try {
       const updatedPlan = await api.partialRegeneratePlan(currentPlan.id, [selectedDay]);
       setCurrentPlan(updatedPlan);
+      onPlanUpdated?.(updatedPlan);
       setSelectedDay((current) => Math.min(current, Math.max(updatedPlan.days.length - 1, 0)));
     }
     catch (error: unknown) { runError(error); } finally { setBusyAction(null); }

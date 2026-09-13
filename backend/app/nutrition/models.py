@@ -1444,9 +1444,10 @@ class NutritionWeeklyPlan(Base):
         CheckConstraint("revision > 0", name="ck_nutrition_weekly_plan_revision_positive"),
         Index("ix_nutrition_weekly_plans_user_created", "user_id", "created_at"),
         Index(
-            "uq_nutrition_weekly_plans_one_active_per_user",
+            "ix_nutrition_weekly_plans_user_active_start",
             "user_id",
-            unique=True,
+            "start_date",
+            "revision",
             postgresql_where=sql_text("lifecycle_status = 'active'"),
         ),
     )

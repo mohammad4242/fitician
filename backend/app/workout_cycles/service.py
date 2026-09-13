@@ -83,6 +83,10 @@ class WorkoutCycleSessionBeforeStartError(ValueError):
     pass
 
 
+class WorkoutCycleSessionNotActionableError(ValueError):
+    pass
+
+
 class WorkoutCycleAlreadyCompletedError(Exception):
     pass
 
@@ -120,6 +124,10 @@ class WorkoutCycleExerciseFeedbackPlanExerciseNotFoundError(Exception):
 
 
 class WorkoutCycleExerciseFeedbackDuplicateError(Exception):
+    pass
+
+
+class WorkoutCycleExerciseFeedbackNotStartedError(Exception):
     pass
 
 
@@ -171,14 +179,114 @@ def calculate_current_week(
     return min(duration_weeks, elapsed_days // 7 + 1)
 
 
+def workout_cycle_start_date(cycle: WorkoutCycle, *, timezone_name: str = "UTC") -> date:
+    """Return the immutable logical start, with a legacy in-memory fallback."""
+    stored = getattr(cycle, "start_date", None)
+    if isinstance(stored, date):
+        return stored
+    return local_date_for_timezone(timezone_name, now=cycle.started_at)
+
+
+def get_actionable_workout_session(cycle: WorkoutCycle) -> WorkoutCycleSession | None:
+    return min(
+        (
+            session
+            for session in cycle.sessions
+            if session.status is WorkoutCycleSessionStatus.SCHEDULED
+        ),
+        key=lambda session: session.session_number,
+        default=None,
+    )
+
+
+def workout_cycle_timezone(db: Session, *, user_id: UUID, cycle: WorkoutCycle) -> str:
+    profile_timezone = db.scalar(
+        select(UserProfile.timezone).where(UserProfile.user_id == user_id)
+    )
+    return validate_timezone_name(profile_timezone or cycle.start_timezone or "UTC")
+
+
+def _cycle_local_date(
+    db: Session,
+    *,
+    user_id: UUID,
+    cycle: WorkoutCycle,
+    now: datetime | None = None,
+) -> date:
+    return local_date_for_timezone(
+        workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+        now=_as_utc(now or datetime.now(UTC)),
+    )
+
+
+def _ensure_actionable_session(
+    db: Session,
+    *,
+    user_id: UUID,
+    session: WorkoutCycleSession,
+    now: datetime | None,
+    require_due: bool,
+) -> None:
+    actionable = get_actionable_workout_session(session.cycle)
+    local_date = _cycle_local_date(db, user_id=user_id, cycle=session.cycle, now=now)
+    if (
+        actionable is None
+        or actionable.id != session.id
+        or local_date < workout_cycle_start_date(session.cycle)
+        or (require_due and session.scheduled_date > local_date)
+    ):
+        raise WorkoutCycleSessionNotActionableError("Workout cycle session is not actionable")
+
+
 def cycle_has_reached_nominal_end(
     cycle: WorkoutCycle,
     *,
     now: datetime | None = None,
+    timezone_name: str = "UTC",
 ) -> bool:
     current_at = _as_utc(datetime.now(UTC) if now is None else now)
+    if cycle.sessions:
+        if any(
+            session.status is WorkoutCycleSessionStatus.SCHEDULED
+            for session in cycle.sessions
+        ):
+            return False
+        current_date = local_date_for_timezone(timezone_name, now=current_at)
+        return current_date >= workout_cycle_start_date(
+            cycle, timezone_name=timezone_name
+        ) + timedelta(days=cycle.duration_weeks * 7)
     started_at = _as_utc(cycle.started_at)
     return current_at - started_at >= timedelta(days=cycle.duration_weeks * 7)
+
+
+def calculate_cycle_current_week(
+    cycle: WorkoutCycle,
+    *,
+    timezone_name: str = "UTC",
+    now: datetime | None = None,
+) -> int:
+    current_date = local_date_for_timezone(
+        timezone_name,
+        now=_as_utc(now or datetime.now(UTC)),
+    )
+    elapsed_days = max(
+        0,
+        (current_date - workout_cycle_start_date(cycle, timezone_name=timezone_name)).days,
+    )
+    return min(cycle.duration_weeks, elapsed_days // 7 + 1)
+
+
+def workout_cycle_has_started(
+    cycle: WorkoutCycle,
+    *,
+    timezone_name: str = "UTC",
+    now: datetime | None = None,
+) -> bool:
+    current_date = local_date_for_timezone(
+        timezone_name,
+        now=_as_utc(now or datetime.now(UTC)),
+    )
+    return workout_cycle_start_date(cycle, timezone_name=timezone_name) <= current_date
 
 
 def create_weekly_check_in(
@@ -198,6 +306,11 @@ def create_weekly_check_in(
     cycle = get_cycle_for_user(db, cycle_id=cycle_id, user_id=user_id)
     if cycle is None or cycle.workout_plan.user_id != user_id:
         raise WorkoutCycleWeeklyCheckInCycleNotFoundError
+    if not workout_cycle_has_started(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+    ):
+        raise WorkoutCycleWeeklyCheckInNoActiveCycleError
     _validate_weekly_check_in_payload(
         cycle,
         week_number=week_number,
@@ -259,7 +372,10 @@ def get_current_weekly_check_in(
     cycle = get_current_active_cycle_for_user(db, user_id=user_id)
     if cycle is None:
         raise WorkoutCycleWeeklyCheckInNoActiveCycleError
-    week_number = calculate_current_week(cycle.started_at, cycle.duration_weeks)
+    week_number = calculate_cycle_current_week(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+    )
     check_in = get_weekly_check_in_for_cycle_week(
         db,
         cycle_id=cycle.id,
@@ -285,7 +401,10 @@ def upsert_current_weekly_check_in(
     cycle = get_current_active_cycle_for_user(db, user_id=user_id)
     if cycle is None:
         raise WorkoutCycleWeeklyCheckInNoActiveCycleError
-    week_number = calculate_current_week(cycle.started_at, cycle.duration_weeks)
+    week_number = calculate_cycle_current_week(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+    )
     _validate_weekly_check_in_payload(
         cycle,
         week_number=week_number,
@@ -384,7 +503,10 @@ def record_exercise_replacement(
         replacement_exercise_id=replacement_exercise_id,
         reason=reason,
         scope=scope,
-        week_number=calculate_current_week(cycle.started_at, cycle.duration_weeks),
+        week_number=calculate_cycle_current_week(
+            cycle,
+            timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+        ),
     )
     db.add(replacement)
     try:
@@ -411,6 +533,11 @@ def record_workout_cycle_exercise_feedback(
     cycle = get_cycle_for_user(db, cycle_id=cycle_id, user_id=user_id)
     if cycle is None:
         raise WorkoutCycleExerciseFeedbackPlanExerciseNotFoundError
+    if cycle.status is WorkoutCycleStatus.ACTIVE and not workout_cycle_has_started(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+    ):
+        raise WorkoutCycleExerciseFeedbackNotStartedError
 
     prescribed = db.scalar(
         select(WorkoutPlanExercise)
@@ -771,9 +898,9 @@ def start_cycle(
         )
     )
     if existing is not None:
-        existing_start_date = local_date_for_timezone(
-            validated_timezone,
-            now=existing.started_at,
+        existing_start_date = workout_cycle_start_date(
+            existing,
+            timezone_name=validated_timezone,
         )
         if existing_start_date == start_date:
             _persist_cycle_timezone(db, user_id=user_id, timezone_name=validated_timezone)
@@ -787,6 +914,8 @@ def start_cycle(
         workout_plan_id=plan.id,
         duration_weeks=duration_weeks,
         started_at=local_midnight_utc(start_date, validated_timezone),
+        start_date=start_date,
+        start_timezone=validated_timezone,
     )
     try:
         with db.begin_nested():
@@ -797,9 +926,9 @@ def start_cycle(
             select(WorkoutCycle).where(WorkoutCycle.workout_plan_id == workout_plan_id)
         )
         if concurrent_cycle is not None:
-            concurrent_start_date = local_date_for_timezone(
-                validated_timezone,
-                now=concurrent_cycle.started_at,
+            concurrent_start_date = workout_cycle_start_date(
+                concurrent_cycle,
+                timezone_name=validated_timezone,
             )
             if concurrent_start_date == start_date:
                 return concurrent_cycle
@@ -893,8 +1022,13 @@ def _persist_cycle_timezone(db: Session, *, user_id: UUID, timezone_name: str) -
         profile.timezone = timezone_name
 
 
-def _locked_current_cycle(db: Session, *, user_id: UUID) -> WorkoutCycle | None:
-    return db.scalar(
+def _current_plan_cycles(
+    db: Session,
+    *,
+    user_id: UUID,
+    lock: bool,
+) -> list[WorkoutCycle]:
+    query = (
         select(WorkoutCycle)
         .join(WorkoutPlan, WorkoutCycle.workout_plan_id == WorkoutPlan.id)
         .where(
@@ -905,8 +1039,35 @@ def _locked_current_cycle(db: Session, *, user_id: UUID) -> WorkoutCycle | None:
             WorkoutPlan.deleted_at.is_(None),
         )
         .order_by(WorkoutCycle.started_at.desc(), WorkoutCycle.id.desc())
-        .with_for_update()
     )
+    if lock:
+        query = query.with_for_update()
+    return list(db.scalars(query).all())
+
+
+def _current_executable_cycle(
+    db: Session,
+    *,
+    user_id: UUID,
+    lock: bool,
+    now: datetime | None = None,
+) -> WorkoutCycle | None:
+    cycles = _current_plan_cycles(db, user_id=user_id, lock=lock)
+    timezone_name = db.scalar(
+        select(UserProfile.timezone).where(UserProfile.user_id == user_id)
+    ) or "UTC"
+    return next(
+        (
+            cycle
+            for cycle in cycles
+            if workout_cycle_has_started(cycle, timezone_name=timezone_name, now=now)
+        ),
+        None,
+    )
+
+
+def _locked_current_cycle(db: Session, *, user_id: UUID) -> WorkoutCycle | None:
+    return _current_executable_cycle(db, user_id=user_id, lock=True)
 
 
 def _locked_current_session(
@@ -915,14 +1076,17 @@ def _locked_current_session(
     user_id: UUID,
     session_id: UUID,
 ) -> WorkoutCycleSession:
-    cycle = _locked_current_cycle(db, user_id=user_id)
-    if cycle is None:
-        raise WorkoutCycleSessionNotFoundError
     session = db.scalar(
         select(WorkoutCycleSession)
+        .join(WorkoutCycle, WorkoutCycle.id == WorkoutCycleSession.cycle_id)
+        .join(WorkoutPlan, WorkoutPlan.id == WorkoutCycle.workout_plan_id)
         .where(
             WorkoutCycleSession.id == session_id,
-            WorkoutCycleSession.cycle_id == cycle.id,
+            WorkoutCycle.user_id == user_id,
+            WorkoutCycle.status == WorkoutCycleStatus.ACTIVE,
+            WorkoutPlan.user_id == user_id,
+            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
+            WorkoutPlan.deleted_at.is_(None),
         )
         .with_for_update()
     )
@@ -941,6 +1105,13 @@ def complete_current_cycle_session(
     session = _locked_current_session(db, user_id=user_id, session_id=session_id)
     if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
         raise WorkoutCycleSessionAlreadyFinishedError
+    _ensure_actionable_session(
+        db,
+        user_id=user_id,
+        session=session,
+        now=now,
+        require_due=True,
+    )
     session.status = WorkoutCycleSessionStatus.COMPLETED
     session.completed_at = _as_utc(now or datetime.now(UTC))
     session.skipped_at = None
@@ -964,6 +1135,13 @@ def skip_current_cycle_session(
     session = _locked_current_session(db, user_id=user_id, session_id=session_id)
     if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
         raise WorkoutCycleSessionAlreadyFinishedError
+    _ensure_actionable_session(
+        db,
+        user_id=user_id,
+        session=session,
+        now=now,
+        require_due=True,
+    )
     session.status = WorkoutCycleSessionStatus.SKIPPED
     session.skipped_at = _as_utc(now or datetime.now(UTC))
     session.completed_at = None
@@ -983,28 +1161,58 @@ def reschedule_current_cycle_session(
     user_id: UUID,
     session_id: UUID,
     scheduled_date: date,
+    now: datetime | None = None,
 ) -> WorkoutCycleSession:
     session = _locked_current_session(db, user_id=user_id, session_id=session_id)
     if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
         raise WorkoutCycleSessionAlreadyFinishedError
 
+    _ensure_actionable_session(
+        db,
+        user_id=user_id,
+        session=session,
+        now=now,
+        require_due=False,
+    )
+
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
     timezone_name = profile.timezone if profile is not None else "UTC"
-    cycle_start_date = local_date_for_timezone(timezone_name, now=session.cycle.started_at)
+    cycle_start_date = workout_cycle_start_date(session.cycle, timezone_name=timezone_name)
     if scheduled_date < cycle_start_date:
         raise WorkoutCycleSessionBeforeStartError
-    collision = db.scalar(
-        select(WorkoutCycleSession.id).where(
-            WorkoutCycleSession.cycle_id == session.cycle_id,
-            WorkoutCycleSession.id != session.id,
-            WorkoutCycleSession.scheduled_date == scheduled_date,
-            WorkoutCycleSession.status == WorkoutCycleSessionStatus.SCHEDULED,
-        )
+    all_sessions = list(
+        db.scalars(
+            select(WorkoutCycleSession)
+            .where(WorkoutCycleSession.cycle_id == session.cycle_id)
+            .order_by(WorkoutCycleSession.session_number)
+            .with_for_update()
+        ).all()
     )
-    if collision is not None:
+    terminal_dates = {
+        item.scheduled_date
+        for item in all_sessions
+        if item.status is not WorkoutCycleSessionStatus.SCHEDULED
+    }
+    if scheduled_date in terminal_dates:
         raise WorkoutCycleSessionDateConflictError
 
-    session.scheduled_date = scheduled_date
+    unresolved = [
+        item for item in all_sessions if item.status is WorkoutCycleSessionStatus.SCHEDULED
+    ]
+    if not unresolved or unresolved[0].id != session.id:
+        raise WorkoutCycleSessionNotActionableError("Workout cycle session is not actionable")
+    original_dates = [item.scheduled_date for item in unresolved]
+    delta = scheduled_date - original_dates[0]
+    shifted_dates = [scheduled_date]
+    for index, original_date in enumerate(original_dates[1:], start=1):
+        original_gap = max(1, (original_date - original_dates[index - 1]).days)
+        candidate = original_date + delta if delta.days > 0 else original_date
+        candidate = max(candidate, shifted_dates[-1] + timedelta(days=original_gap))
+        while candidate in terminal_dates:
+            candidate += timedelta(days=1)
+        shifted_dates.append(candidate)
+    for item, next_date in zip(unresolved, shifted_dates, strict=True):
+        item.scheduled_date = next_date
     try:
         db.flush()
         db.commit()
@@ -1034,18 +1242,7 @@ def get_current_active_cycle_for_user(
     *,
     user_id: UUID,
 ) -> WorkoutCycle | None:
-    return db.scalar(
-        select(WorkoutCycle)
-        .join(WorkoutPlan, WorkoutCycle.workout_plan_id == WorkoutPlan.id)
-        .where(
-            WorkoutCycle.user_id == user_id,
-            WorkoutCycle.status == WorkoutCycleStatus.ACTIVE,
-            WorkoutPlan.user_id == user_id,
-            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
-            WorkoutPlan.deleted_at.is_(None),
-        )
-        .order_by(WorkoutCycle.started_at.desc(), WorkoutCycle.id.desc())
-    )
+    return _current_executable_cycle(db, user_id=user_id, lock=False)
 
 
 def get_current_completion_feedback_cycle(
@@ -1053,15 +1250,17 @@ def get_current_completion_feedback_cycle(
     *,
     user_id: UUID,
 ) -> WorkoutCycle:
+    current = get_current_active_cycle_for_user(db, user_id=user_id)
+    if current is not None:
+        return current
+    if _current_plan_cycles(db, user_id=user_id, lock=False):
+        raise WorkoutCycleCompletionFeedbackNotFoundError
     cycles = db.scalars(
         select(WorkoutCycle)
         .options(joinedload(WorkoutCycle.completion_feedback))
         .where(WorkoutCycle.user_id == user_id)
         .order_by(WorkoutCycle.started_at.desc(), WorkoutCycle.id.desc())
     ).all()
-    for cycle in cycles:
-        if cycle.status is WorkoutCycleStatus.ACTIVE:
-            return cycle
     for cycle in cycles:
         if cycle.status is WorkoutCycleStatus.COMPLETED and cycle.completion_feedback is not None:
             return cycle
@@ -1122,7 +1321,10 @@ def submit_current_completion_feedback(
     cycle = get_current_completion_feedback_cycle(db, user_id=user_id)
     if cycle.status is WorkoutCycleStatus.COMPLETED:
         return cycle
-    if not cycle_has_reached_nominal_end(cycle):
+    if not cycle_has_reached_nominal_end(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user_id, cycle=cycle),
+    ):
         raise WorkoutCycleCompletionFeedbackNotDueError
     return complete_cycle(
         db,
@@ -1209,6 +1411,10 @@ def complete_cycle(
         raise WorkoutCycleNotFoundError
     if cycle.status is WorkoutCycleStatus.COMPLETED:
         raise WorkoutCycleAlreadyCompletedError
+    if cycle.sessions and any(
+        session.status is WorkoutCycleSessionStatus.SCHEDULED for session in cycle.sessions
+    ):
+        raise WorkoutCycleCompletionFeedbackNotDueError
 
     cycle.status = WorkoutCycleStatus.COMPLETED
     cycle.completed_at = datetime.now(UTC)

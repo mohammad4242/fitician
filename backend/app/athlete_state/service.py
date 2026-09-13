@@ -43,6 +43,7 @@ from app.workout_cycles.models import (
     WorkoutExerciseReplacement,
     WorkoutExerciseSafetySignal,
 )
+from app.workout_cycles.service import get_current_active_cycle_for_user
 from app.workouts.models import WorkoutPlan
 
 
@@ -65,10 +66,7 @@ class AthleteStateBuilder:
                 raise AthleteStateNotFoundError
             current = requested
         else:
-            current = next(
-                (cycle for cycle in cycles if cycle.status is WorkoutCycleStatus.ACTIVE),
-                cycles[0] if cycles else None,
-            )
+            current = get_current_active_cycle_for_user(self._db, user_id=user_id)
         selected_cycles = self._selected_cycles(cycles, current)
         cycle_ids = tuple(cycle.id for cycle in selected_cycles)
 
@@ -157,7 +155,15 @@ class AthleteStateBuilder:
         current: WorkoutCycle | None,
     ) -> list[WorkoutCycle]:
         if current is None:
-            return []
+            latest_completed = next(
+                (
+                    cycle
+                    for cycle in cycles
+                    if cycle.status is WorkoutCycleStatus.COMPLETED
+                ),
+                None,
+            )
+            return [latest_completed] if latest_completed is not None else []
         previous = next(
             (
                 cycle

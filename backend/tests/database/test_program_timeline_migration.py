@@ -19,6 +19,15 @@ def test_program_timeline_schema_has_required_columns_and_constraints(db: Sessio
     }
     assert nutrition_columns["started_at"]["nullable"] is True
 
+    cycle_columns = {
+        column["name"]: column for column in inspector.get_columns("workout_cycles")
+    }
+    assert cycle_columns["start_date"]["nullable"] is False
+    assert cycle_columns["start_timezone"]["nullable"] is True
+    assert "ix_nutrition_weekly_plans_user_active_start" in {
+        index["name"] for index in inspector.get_indexes("nutrition_weekly_plans")
+    }
+
     session_columns = {column["name"] for column in inspector.get_columns("workout_cycle_sessions")}
     assert session_columns == {
         "id",

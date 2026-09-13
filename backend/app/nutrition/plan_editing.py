@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
@@ -377,17 +377,6 @@ def _create_revision(
     if generation is None:
         raise PlanEditError("PLAN_GENERATION_NOT_FOUND")
     review_required = physician_id is not None or physician_review_allowed
-    if not review_required:
-        db.execute(
-            update(NutritionWeeklyPlan)
-            .where(
-                NutritionWeeklyPlan.user_id == user_id,
-                NutritionWeeklyPlan.id != plan.id,
-                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-            )
-            .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
-        )
-        db.flush()
     copied_generation = NutritionPlanGeneration(
         user_id=user_id,
         estimate_id=generation.estimate_id,

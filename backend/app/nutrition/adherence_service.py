@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.nutrition.calendar import nutrition_pattern_day_index
 from app.nutrition.estimate_service import create_estimate
 from app.nutrition.models import (
     NutritionConsumptionEntry,
@@ -90,7 +91,7 @@ def adherence_history(db: Session, user_id: UUID, start: date, end: date) -> dic
         planned: dict[str, Decimal] = {}
         meal_count = 0
         if plan is not None:
-            index = (current - plan.start_date).days % 7
+            index = nutrition_pattern_day_index(plan.start_date, current)
             plan_day = next((row for row in plan.days if row.day_index == index), None)
             if plan_day:
                 planned = {

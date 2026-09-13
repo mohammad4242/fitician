@@ -220,12 +220,14 @@ def test_cycle_reminder_producer_persists_and_deduplicates_events(db: Session) -
     db.add(plan)
     db.flush()
     db.add(
-        WorkoutCycle(
-            user_id=user.id,
-            workout_plan_id=plan.id,
-            duration_weeks=4,
-            started_at=now - timedelta(days=29),
-        )
+            WorkoutCycle(
+                user_id=user.id,
+                workout_plan_id=plan.id,
+                duration_weeks=4,
+                started_at=now - timedelta(days=29),
+                start_date=(now - timedelta(days=29)).date(),
+                start_timezone="UTC",
+            )
     )
     db.flush()
 
@@ -236,6 +238,66 @@ def test_cycle_reminder_producer_persists_and_deduplicates_events(db: Session) -
         select(NotificationOutboxEvent).where(NotificationOutboxEvent.user_id == user.id)
     ).all()
     assert len(events) == 2
+
+
+def test_cycle_reminders_ignore_future_and_superseded_cycles(db: Session) -> None:
+    from app.notifications.reminders import enqueue_due_cycle_reminders
+    from app.workout_cycles.models import WorkoutCycle
+
+    now = datetime(2026, 9, 14, 12, tzinfo=UTC)
+    user = User(email=f"inactive-cycle-reminders-{uuid4()}@example.com", password_hash="hash")
+    db.add(user)
+    db.flush()
+    old_plan = WorkoutPlan(
+        user_id=user.id,
+        status=WorkoutPlanStatus.SUPERSEDED,
+        generation_signature="e" * 64,
+        profile_snapshot={"plan_duration_weeks": 4},
+        provider="fake",
+        model_id="fake",
+        prompt_version="v1",
+        generation_policy_version="v1",
+        candidate_set_hash="f" * 64,
+        generation_method="ai",
+    )
+    future_plan = WorkoutPlan(
+        user_id=user.id,
+        status=WorkoutPlanStatus.ACTIVE,
+        generation_signature="1" * 64,
+        profile_snapshot={"plan_duration_weeks": 4},
+        provider="fake",
+        model_id="fake",
+        prompt_version="v1",
+        generation_policy_version="v1",
+        candidate_set_hash="2" * 64,
+        generation_method="ai",
+    )
+    db.add_all([old_plan, future_plan])
+    db.flush()
+    db.add_all(
+        [
+            WorkoutCycle(
+                user_id=user.id,
+                workout_plan_id=old_plan.id,
+                duration_weeks=4,
+                started_at=now - timedelta(days=35),
+                start_date=(now - timedelta(days=35)).date(),
+            ),
+            WorkoutCycle(
+                user_id=user.id,
+                workout_plan_id=future_plan.id,
+                duration_weeks=4,
+                started_at=now + timedelta(days=3),
+                start_date=(now + timedelta(days=3)).date(),
+            ),
+        ]
+    )
+    db.flush()
+
+    assert enqueue_due_cycle_reminders(db, now=now) == 0
+    assert db.scalars(
+        select(NotificationOutboxEvent).where(NotificationOutboxEvent.user_id == user.id)
+    ).all() == []
 
 
 def test_reminder_payload_has_no_member_or_medical_text() -> None:

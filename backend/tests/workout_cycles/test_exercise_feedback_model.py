@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -24,6 +24,7 @@ from app.workout_cycles.models import WorkoutCycle, WorkoutCycleExerciseFeedback
 from app.workout_cycles.schemas import WorkoutCycleExerciseFeedbackInput
 from app.workout_cycles.service import (
     WorkoutCycleExerciseFeedbackDuplicateError,
+    WorkoutCycleExerciseFeedbackNotStartedError,
     WorkoutCycleExerciseFeedbackPlanExerciseNotFoundError,
     record_workout_cycle_exercise_feedback,
 )
@@ -191,6 +192,23 @@ def test_feedback_allows_completed_cycle_history(db: Session) -> None:
     )
 
     assert feedback.cycle_id == cycle.id
+
+
+def test_feedback_rejects_future_active_cycle(db: Session) -> None:
+    user, cycle, prescribed, _exercise_row = _cycle_with_prescription(db)
+    cycle.start_date = date.today() + timedelta(days=3)
+    cycle.start_timezone = "UTC"
+    db.flush()
+
+    with pytest.raises(WorkoutCycleExerciseFeedbackNotStartedError):
+        record_workout_cycle_exercise_feedback(
+            db,
+            user_id=user.id,
+            cycle_id=cycle.id,
+            workout_plan_exercise_id=prescribed.id,
+            feedback_type=WorkoutCycleExerciseFeedbackType.LIKED,
+            persistent=False,
+        )
 
 
 def test_other_user_cannot_record_feedback_for_cycle(db: Session) -> None:

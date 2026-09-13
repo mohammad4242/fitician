@@ -9,13 +9,13 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.nutrition.calendar import effective_nutrition_plan_for_date, nutrition_pattern_day_index
 from app.nutrition.enums import (
     EstimateConfidence,
     FoodItemKind,
     MealSlotRole,
     NutritionConsumptionSource,
     NutritionDailyCheckInStatus,
-    NutritionPlanLifecycleStatus,
 )
 from app.nutrition.models import (
     NutritionCatalogueFood,
@@ -23,8 +23,6 @@ from app.nutrition.models import (
     NutritionDailyCheckIn,
     NutritionFoodItem,
     NutritionWeeklyPlan,
-    NutritionWeeklyPlanDay,
-    NutritionWeeklyPlanMeal,
 )
 
 
@@ -36,20 +34,7 @@ class TrackingError(Exception):
 def _active_plan_for_date(
     db: Session, user_id: UUID, entry_date: date
 ) -> NutritionWeeklyPlan | None:
-    return db.scalar(
-        select(NutritionWeeklyPlan)
-        .where(
-            NutritionWeeklyPlan.user_id == user_id,
-            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-            NutritionWeeklyPlan.start_date <= entry_date,
-        )
-        .options(
-            selectinload(NutritionWeeklyPlan.days)
-            .selectinload(NutritionWeeklyPlanDay.meals)
-            .selectinload(NutritionWeeklyPlanMeal.foods)
-        )
-        .order_by(NutritionWeeklyPlan.start_date.desc(), NutritionWeeklyPlan.revision.desc())
-    )
+    return effective_nutrition_plan_for_date(db, user_id, entry_date)
 
 
 def _entry_response(entry: NutritionConsumptionEntry) -> dict[str, object]:
@@ -88,7 +73,7 @@ def submit_check_in(
         plan = _active_plan_for_date(db, user_id, entry_date)
         if plan is None:
             raise TrackingError("ACTIVE_PLAN_REQUIRED")
-        day_index = (entry_date - plan.start_date).days % 7
+        day_index = nutrition_pattern_day_index(plan.start_date, entry_date)
         day = next((row for row in plan.days if row.day_index == day_index), None)
         if day is None:
             raise TrackingError("ACTIVE_PLAN_DAY_NOT_FOUND")
@@ -236,7 +221,8 @@ def save_free_meal(
     plan = _active_plan_for_date(db, user_id, entry_date)
     if plan is None:
         raise TrackingError("ACTIVE_PLAN_REQUIRED")
-    day = next((candidate for candidate in plan.days if candidate.plan_date == entry_date), None)
+    day_index = nutrition_pattern_day_index(plan.start_date, entry_date)
+    day = next((candidate for candidate in plan.days if candidate.day_index == day_index), None)
     meal = (
         next((candidate for candidate in day.meals if candidate.id == meal_id), None)
         if day is not None
@@ -414,7 +400,7 @@ def adjust_planned_meal(
     plan = _active_plan_for_date(db, user_id, entry_date)
     if plan is None:
         raise TrackingError("ACTIVE_PLAN_REQUIRED")
-    day_index = (entry_date - plan.start_date).days % 7
+    day_index = nutrition_pattern_day_index(plan.start_date, entry_date)
     day = next((candidate for candidate in plan.days if candidate.day_index == day_index), None)
     meal = (
         next(

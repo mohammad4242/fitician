@@ -280,6 +280,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         } catch {
           // The successful generation response is already a valid foreground plan.
         }
+        await refreshTimeline().catch(() => undefined);
       })
       .catch((error: unknown) => {
         const errorKind = error instanceof ApiError && error.status === 429

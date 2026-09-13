@@ -7,7 +7,7 @@ from decimal import Decimal
 from hashlib import sha256
 from uuid import UUID
 
-from sqlalchemy import Select, or_, select, update
+from sqlalchemy import Select, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
@@ -1345,49 +1345,15 @@ def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
     return weekly_plan_response(plan)
 
 
-def active_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
-    latest_bundle = db.scalar(
-        select(NutritionPlanBundle)
-        .where(NutritionPlanBundle.user_id == user_id)
-        .order_by(NutritionPlanBundle.created_at.desc())
-        .limit(1)
-    )
-    selected_plan_id = latest_bundle.selected_plan_id if latest_bundle else None
+def active_weekly_plan(
+    db: Session, user_id: UUID, *, now: datetime | None = None
+) -> WeeklyPlanResponse:
+    from app.nutrition.calendar import effective_nutrition_plan_for_date
+    from app.time_context import local_date_for_timezone
 
-    due_query = (
-        _plan_query()
-        .join(
-            NutritionPlanGeneration, NutritionWeeklyPlan.generation_id == NutritionPlanGeneration.id
-        )
-        .where(
-            NutritionWeeklyPlan.user_id == user_id,
-            NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-            NutritionWeeklyPlan.start_date <= date.today(),
-        )
-    )
-    if selected_plan_id is not None:
-        due_query = due_query.where(
-            (NutritionWeeklyPlan.id == selected_plan_id)
-            | (NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value)
-        )
-    else:
-        due_query = due_query.where(
-            NutritionPlanGeneration.plan_role != NutritionPlanRole.IDEAL_REFERENCE.value
-        )
-
-    if selected_plan_id is not None:
-        plan = db.scalar(
-            _plan_query().where(
-                NutritionWeeklyPlan.id == selected_plan_id,
-                NutritionWeeklyPlan.user_id == user_id,
-                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-                NutritionWeeklyPlan.start_date <= date.today(),
-            )
-        )
-        if plan is not None:
-            return weekly_plan_response(plan)
-
-    plan = db.scalar(due_query.order_by(NutritionWeeklyPlan.revision.desc()).limit(1))
+    timezone_name = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
+    local_date = local_date_for_timezone(timezone_name or "UTC", now=now)
+    plan = effective_nutrition_plan_for_date(db, user_id, local_date)
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError
     return weekly_plan_response(plan)
@@ -1571,23 +1537,14 @@ def _finalize_selected_plan(
         elif target_plan.lifecycle_status == NutritionPlanLifecycleStatus.GENERATED:
             target_plan.lifecycle_status = NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
     else:
-        db.execute(
-            update(NutritionWeeklyPlan)
-            .where(
-                NutritionWeeklyPlan.user_id == target_plan.user_id,
-                NutritionWeeklyPlan.id != target_plan.id,
-                NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
-            )
-            .values(lifecycle_status=NutritionPlanLifecycleStatus.ARCHIVED)
-        )
-        db.flush()
         target_plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
         target_plan.review = None
 
     for other_plan in bundle_plans:
         if other_plan.id != target_plan.id:
             other_plan.is_user_visible = False
-            other_plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
+            if other_plan.lifecycle_status is not NutritionPlanLifecycleStatus.ACTIVE:
+                other_plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
 
     bundle.selected_plan_id = target_plan.id
     bundle.selected_plan_role = target_role

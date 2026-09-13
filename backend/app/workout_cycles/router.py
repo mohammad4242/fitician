@@ -41,6 +41,7 @@ from app.workout_cycles.service import (
     WorkoutCycleSessionAlreadyFinishedError,
     WorkoutCycleSessionBeforeStartError,
     WorkoutCycleSessionDateConflictError,
+    WorkoutCycleSessionNotActionableError,
     WorkoutCycleSessionNotFoundError,
     WorkoutCycleWeeklyCheckInNoActiveCycleError,
     WorkoutCycleWeeklyCheckInNotFoundError,
@@ -52,7 +53,7 @@ from app.workout_cycles.service import (
     WorkoutExerciseReplacementNoActiveCycleError,
     WorkoutExerciseReplacementPlanExerciseNotFoundError,
     WorkoutExerciseReplacementSelfError,
-    calculate_current_week,
+    calculate_cycle_current_week,
     complete_current_cycle_session,
     completion_feedback_input,
     cycle_has_reached_nominal_end,
@@ -67,6 +68,7 @@ from app.workout_cycles.service import (
     start_cycle,
     submit_current_completion_feedback,
     upsert_current_weekly_check_in,
+    workout_cycle_timezone,
 )
 
 router = APIRouter(prefix="/api/v1/workout-cycles", tags=["workout-cycles"])
@@ -74,7 +76,9 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def _cycle_response(cycle: WorkoutCycle) -> WorkoutCycleCurrentResponse:
+def _cycle_response(
+    cycle: WorkoutCycle, *, timezone_name: str = "UTC"
+) -> WorkoutCycleCurrentResponse:
     sessions = sorted(
         cycle.sessions,
         key=lambda session: (session.scheduled_date, session.session_number),
@@ -85,7 +89,7 @@ def _cycle_response(cycle: WorkoutCycle) -> WorkoutCycleCurrentResponse:
         started_at=cycle.started_at,
         duration_weeks=cycle.duration_weeks,
         status=cycle.status,
-        current_week=calculate_current_week(cycle.started_at, cycle.duration_weeks),
+        current_week=calculate_cycle_current_week(cycle, timezone_name=timezone_name),
         has_exact_session_tracking=bool(sessions),
         completed_sessions=sum(session.status.value == "completed" for session in sessions),
         total_sessions=len(sessions),
@@ -134,7 +138,7 @@ def start_current_cycle(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from None
-    return _cycle_response(cycle)
+    return _cycle_response(cycle, timezone_name=payload.timezone)
 
 
 @router.get("/current", response_model=WorkoutCycleCurrentResponse)
@@ -148,7 +152,10 @@ def read_current_cycle(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No active workout cycle",
         )
-    return _cycle_response(cycle)
+    return _cycle_response(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user.id, cycle=cycle),
+    )
 
 
 def _session_mutation_error(error: Exception) -> HTTPException:
@@ -161,6 +168,11 @@ def _session_mutation_error(error: Exception) -> HTTPException:
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Workout cycle session is already finished",
+        )
+    if isinstance(error, WorkoutCycleSessionNotActionableError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workout cycle session is not actionable",
         )
     if isinstance(error, WorkoutCycleSessionDateConflictError):
         return HTTPException(
@@ -197,6 +209,7 @@ def complete_current_session(
     except (
         WorkoutCycleSessionNotFoundError,
         WorkoutCycleSessionAlreadyFinishedError,
+        WorkoutCycleSessionNotActionableError,
     ) as error:
         raise _session_mutation_error(error) from None
     return WorkoutCycleSessionResponse.model_validate(session)
@@ -221,6 +234,7 @@ def skip_current_session(
     except (
         WorkoutCycleSessionNotFoundError,
         WorkoutCycleSessionAlreadyFinishedError,
+        WorkoutCycleSessionNotActionableError,
     ) as error:
         raise _session_mutation_error(error) from None
     return WorkoutCycleSessionResponse.model_validate(session)
@@ -249,21 +263,23 @@ def reschedule_current_session(
         WorkoutCycleSessionAlreadyFinishedError,
         WorkoutCycleSessionDateConflictError,
         WorkoutCycleSessionBeforeStartError,
+        WorkoutCycleSessionNotActionableError,
     ) as error:
         raise _session_mutation_error(error) from None
     return WorkoutCycleSessionResponse.model_validate(session)
 
 
 def _completion_feedback_response(
-    cycle: WorkoutCycle,
+    cycle: WorkoutCycle, *, timezone_name: str = "UTC"
 ) -> WorkoutCycleCompletionFeedbackResponse:
     feedback = cycle.completion_feedback
     return WorkoutCycleCompletionFeedbackResponse(
         cycle_id=cycle.id,
         status=cycle.status,
         duration_weeks=cycle.duration_weeks,
-        current_week=calculate_current_week(cycle.started_at, cycle.duration_weeks),
-        is_due=cycle.status.value == "active" and cycle_has_reached_nominal_end(cycle),
+        current_week=calculate_cycle_current_week(cycle, timezone_name=timezone_name),
+        is_due=cycle.status.value == "active"
+        and cycle_has_reached_nominal_end(cycle, timezone_name=timezone_name),
         feedback_id=feedback.id if feedback is not None else None,
         feedback=completion_feedback_input(feedback),
         submitted_at=feedback.submitted_at if feedback is not None else None,
@@ -285,7 +301,10 @@ def read_current_completion_feedback(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No workout cycle available",
         ) from None
-    return _completion_feedback_response(cycle)
+    return _completion_feedback_response(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user.id, cycle=cycle),
+    )
 
 
 @router.put(
@@ -322,7 +341,10 @@ def submit_current_completion_feedback_route(
                 "message": str(error),
             },
         ) from None
-    return _completion_feedback_response(cycle)
+    return _completion_feedback_response(
+        cycle,
+        timezone_name=workout_cycle_timezone(db, user_id=user.id, cycle=cycle),
+    )
 
 
 def _weekly_check_in_response(
