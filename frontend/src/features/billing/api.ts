@@ -21,6 +21,10 @@ export type VerifyPaymentInput = {
   provider_reference?: string | null;
 };
 
+export type CreateCheckoutInput = {
+  provider: PaymentProviderCode;
+};
+
 export function getOffers(): Promise<BillingOffer[]> {
   return request<BillingOffer[]>(`${billingPath}/offers`);
 }
@@ -34,11 +38,11 @@ export function createOrder(input: CreateOrderInput): Promise<BillingOrder> {
 
 export function createCheckout(
   orderId: string,
-  provider: PaymentProviderCode,
+  input: CreateCheckoutInput,
 ): Promise<BillingCheckout> {
   return request<BillingCheckout>(`${billingPath}/orders/${orderId}/checkout`, {
     method: "POST",
-    body: JSON.stringify({ provider }),
+    body: JSON.stringify(input),
   });
 }
 

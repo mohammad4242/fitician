@@ -2,6 +2,7 @@
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -23,6 +24,7 @@ export type EntitlementContextValue = {
   loading: boolean;
   error: unknown | null;
   retry: () => void;
+  refresh: () => Promise<void>;
   hasEntitlement: (entitlement: EntitlementCode) => boolean;
   quotaFor: (entitlement: EntitlementCode) => QuotaStatus | null;
 };
@@ -34,6 +36,7 @@ const unavailableEntitlements: EntitlementContextValue = {
   loading: false,
   error: null,
   retry: () => undefined,
+  refresh: async () => undefined,
   hasEntitlement: () => false,
   quotaFor: () => null,
 };
@@ -53,6 +56,16 @@ export function EntitlementProvider({ children }: { children: ReactNode }) {
   const requestGeneration = useRef(0);
   const loadedUserId = useRef<string | null>(null);
   const inFlightRequest = useRef<InFlightRequest | null>(null);
+  const refreshResolvers = useRef<Array<() => void>>([]);
+
+  const refresh = useCallback(() => {
+    if (userId === null) return Promise.resolve();
+    const completed = new Promise<void>((resolve) => {
+      refreshResolvers.current.push(resolve);
+    });
+    setRetryAttempt((attempt) => attempt + 1);
+    return completed;
+  }, [userId]);
 
   useEffect(() => {
     const generation = ++requestGeneration.current;
@@ -109,6 +122,8 @@ export function EntitlementProvider({ children }: { children: ReactNode }) {
         if (active && generation === requestGeneration.current) {
           setLoading(false);
         }
+        const resolvers = refreshResolvers.current.splice(0);
+        resolvers.forEach((resolve) => resolve());
       });
 
     return () => {
@@ -121,13 +136,14 @@ export function EntitlementProvider({ children }: { children: ReactNode }) {
       snapshot,
       loading,
       error,
-      retry: () => setRetryAttempt((attempt) => attempt + 1),
+      retry: () => { void refresh(); },
+      refresh,
       hasEntitlement: (entitlement) => snapshot?.entitlements.granted.includes(entitlement) ?? false,
       quotaFor: (entitlement) => snapshot?.entitlements.quotas.find(
         (quota) => quota.entitlement === entitlement,
       ) ?? null,
     }),
-    [error, loading, snapshot],
+    [error, loading, refresh, snapshot],
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

@@ -29,6 +29,7 @@ vi.mock("../features/entitlements/EntitlementContext", () => ({
     snapshot: entitlementState.snapshot,
     loading: false,
     error: null,
+    refresh: vi.fn(async () => undefined),
     retry: vi.fn(),
     hasEntitlement: () => true,
     quotaFor: () => null,
@@ -75,6 +76,30 @@ it("shows the current launch trial in the access summary", () => {
 
   expect(screen.getByText("دوره آزمایشی شروع")).toBeInTheDocument();
   expect(screen.getByText(/آزمایشی تا/)).toBeInTheDocument();
+});
+
+it("links access management and shows a paid access end date", () => {
+  entitlementState.snapshot = {
+    primary_package: "training",
+    active_packages: ["training"],
+    trial: { active: false, ends_at: null },
+    entitlements: { granted: ["training.plan.generate"], quotas: [] },
+    grants: [{
+      id: "grant-1",
+      package_code: "training",
+      source: "subscription",
+      term_weeks: 4,
+      starts_at: "2026-09-13T12:00:00Z",
+      ends_at: "2026-10-11T12:00:00Z",
+      revoked_at: null,
+    }],
+  };
+
+  render(<MemoryRouter><MorePage /></MemoryRouter>);
+
+  expect(screen.getByRole("link", { name: "مشاهده پلن‌ها" })).toHaveAttribute("href", "/plans");
+  expect(screen.getByRole("link", { name: "تاریخچه خرید" })).toHaveAttribute("href", "/billing/history");
+  expect(screen.getByText(/پایان دسترسی/)).toBeInTheDocument();
 });
 
 it("shows the nutrition program catalogue in the mobile admin workspace", () => {

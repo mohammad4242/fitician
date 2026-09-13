@@ -32,13 +32,14 @@ const authUser = {
 };
 
 function Probe() {
-  const { snapshot: current, loading, error, retry, hasEntitlement, quotaFor } = useEntitlements();
+  const { snapshot: current, loading, error, retry, refresh, hasEntitlement, quotaFor } = useEntitlements();
   return (
     <div>
       <span>{loading ? "loading" : error ? "error" : current?.primary_package ?? "empty"}</span>
       <span>{hasEntitlement("training.plan.generate") ? "can-generate" : "locked"}</span>
       <span>{quotaFor("body_analysis.run")?.remaining ?? "no-quota"}</span>
       <button type="button" onClick={retry}>retry</button>
+      <button type="button" onClick={() => void refresh()}>refresh</button>
     </div>
   );
 }
@@ -104,4 +105,23 @@ it("retries a failed snapshot request", async () => {
   await waitFor(() => expect(screen.getByText("training")).toBeInTheDocument());
   expect(getSnapshot).toHaveBeenCalledTimes(2);
   user.unmount();
+});
+
+it("exposes an explicit async refresh for post-purchase access updates", async () => {
+  vi.spyOn(auth, "useAuth").mockReturnValue({ user: authUser } as ReturnType<typeof auth.useAuth>);
+  const getSnapshot = vi.spyOn(api, "getEntitlementSnapshot").mockResolvedValue(snapshot);
+
+  render(
+    <EntitlementProvider>
+      <Probe />
+    </EntitlementProvider>,
+  );
+  await waitFor(() => expect(screen.getByText("training")).toBeInTheDocument());
+
+  await act(async () => {
+    screen.getByRole("button", { name: "refresh" }).click();
+  });
+
+  await waitFor(() => expect(getSnapshot).toHaveBeenCalledTimes(2));
+  expect(screen.getByText("training")).toBeInTheDocument();
 });

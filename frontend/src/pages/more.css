@@ -85,6 +85,16 @@
 .more-access-card p, .more-access-card span { color: var(--fitsho-muted); font-size: 0.72rem; }
 .more-access-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
 .more-access-card > span { text-align: end; }
+.more-access-card__actions { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+.more-access-card__actions a {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--fitsho-line-strong);
+  border-radius: var(--fitsho-radius-pill);
+  color: var(--fitsho-aqua);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-decoration: none;
+}
 
 .more-group {
   min-width: 0;

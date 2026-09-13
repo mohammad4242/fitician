@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 import type { EntitlementCode } from "@fitician/core/entitlements";
 
@@ -14,10 +16,15 @@ type EntitlementGateProps = {
 export function EntitlementGate({
   entitlement,
   children,
-  fallback = null,
+  fallback,
   loadingFallback = null,
 }: EntitlementGateProps) {
+  const { t } = useTranslation();
   const { loading, hasEntitlement } = useEntitlements();
   if (loading) return <>{loadingFallback}</>;
-  return hasEntitlement(entitlement) ? <>{children}</> : <>{fallback}</>;
+  if (hasEntitlement(entitlement)) return <>{children}</>;
+  const missingFallback = fallback === undefined
+    ? <Link to={`/plans?required=${encodeURIComponent(entitlement)}`}>{t("billing.viewPlans")}</Link>
+    : fallback;
+  return <>{missingFallback}</>;
 }

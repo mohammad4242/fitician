@@ -31,6 +31,10 @@ const AdminTrainingTemplateEditorPage = lazy(() => import("./features/admin/Admi
 const AdminTrainingTemplatesPage = lazy(() => import("./features/admin/AdminTrainingTemplatesPage").then(({ AdminTrainingTemplatesPage }) => ({ default: AdminTrainingTemplatesPage })));
 const AdminTrainingProgramStructuresPage = lazy(() => import("./features/admin/AdminTrainingProgramStructuresPage").then(({ AdminTrainingProgramStructuresPage }) => ({ default: AdminTrainingProgramStructuresPage })));
 const AdminTrainingProgramStructureEditorPage = lazy(() => import("./features/admin/AdminTrainingProgramStructureEditorPage").then(({ AdminTrainingProgramStructureEditorPage }) => ({ default: AdminTrainingProgramStructureEditorPage })));
+const BillingHistoryPage = lazy(() => import("./features/billing/BillingHistoryPage").then(({ BillingHistoryPage }) => ({ default: BillingHistoryPage })));
+const CheckoutPage = lazy(() => import("./features/billing/CheckoutPage").then(({ CheckoutPage }) => ({ default: CheckoutPage })));
+const CheckoutResultPage = lazy(() => import("./features/billing/CheckoutResultPage").then(({ CheckoutResultPage }) => ({ default: CheckoutResultPage })));
+const PlansPage = lazy(() => import("./features/billing/PlansPage").then(({ PlansPage }) => ({ default: PlansPage })));
 const BodyAnalysisResultPage = lazy(() => import("./features/bodyPhotos/BodyAnalysisResultPage").then(({ BodyAnalysisResultPage }) => ({ default: BodyAnalysisResultPage })));
 const BodyPhotoWizard = lazy(() => import("./features/bodyPhotos/BodyPhotoWizard").then(({ BodyPhotoWizard }) => ({ default: BodyPhotoWizard })));
 const BodyProgressPage = lazy(() => import("./features/bodyPhotos/BodyProgressPage").then(({ BodyProgressPage }) => ({ default: BodyProgressPage })));
@@ -72,6 +76,13 @@ export function AppRoutes() {
         <Route path="/reset-password" element={deferred(<ResetPasswordPage />)} />
       </Route>
       <Route element={<ProtectedRoute />}>
+        <Route element={<CompletedAppShellRoute />}>
+          <Route path="/plans" element={deferred(<PlansPage />)} />
+          <Route path="/billing/checkout/:offerCode" element={deferred(<CheckoutPage />)} />
+          <Route path="/billing/checkout-result" element={deferred(<CheckoutResultPage />)} />
+          <Route path="/billing/result" element={deferred(<CheckoutResultPage />)} />
+          <Route path="/billing/history" element={deferred(<BillingHistoryPage />)} />
+        </Route>
         <Route element={<CoachRoute />}>
           <Route path="/coach/workouts" element={deferred(<CoachWorkoutReviewPage />)} />
         </Route>

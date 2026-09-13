@@ -1,0 +1,113 @@
+.billing-page {
+  min-height: 100%;
+  padding-block-end: var(--fitsho-space-8);
+}
+
+.billing-page__container {
+  width: min(100% - 1.5rem, 68rem);
+  margin-inline: auto;
+  padding-block: clamp(1.2rem, 4vw, 3rem);
+}
+
+.billing-page__container--narrow { width: min(100% - 1.5rem, 44rem); }
+
+.billing-hero { margin-block-end: 1.25rem; }
+.billing-hero h1 { margin: 0.25rem 0 0; font-size: clamp(1.6rem, 4vw, 2.5rem); }
+.billing-hero p:last-child { margin: 0.55rem 0 0; color: var(--fitsho-muted); }
+
+.billing-access-summary,
+.billing-checkout-card,
+.billing-result {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-lg);
+  background: linear-gradient(135deg, rgb(80 223 206 / 7%), var(--fitsho-surface));
+  box-shadow: var(--fitsho-shadow-card);
+}
+
+.billing-access-summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  margin-block-end: 1rem;
+}
+
+.billing-access-summary div,
+.billing-checkout-card__row,
+.billing-history-card > div { display: grid; gap: 0.2rem; }
+.billing-access-summary span,
+.billing-checkout-card__row span,
+.billing-history-card span,
+.billing-history-card time { color: var(--fitsho-muted); font-size: 0.75rem; }
+.billing-access-summary strong { font-size: 1rem; }
+.billing-access-summary > span { text-align: end; }
+
+.billing-offer-groups { display: grid; gap: 1rem; }
+.billing-package {
+  padding: 0.8rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-lg);
+  background: var(--fitsho-surface);
+}
+.billing-package__header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; padding: 0.2rem 0.2rem 0.75rem; }
+.billing-package__header h2 { margin: 0; font-size: 1.05rem; }
+.billing-package__header span { color: var(--fitsho-aqua); font-size: 0.72rem; font-weight: 750; }
+.billing-offer-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; }
+
+.billing-offer {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--fitsho-line);
+  border-radius: var(--fitsho-radius-md);
+  background: var(--fitsho-surface-subtle);
+}
+.billing-offer--eligible { border-color: var(--fitsho-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 14%); }
+.billing-offer--unavailable { opacity: 0.62; }
+.billing-offer__meta { display: grid; gap: 0.18rem; }
+.billing-offer__meta span { color: var(--fitsho-muted); font-size: 0.7rem; }
+.billing-offer__meta strong { font-size: 1rem; }
+.billing-offer__price { margin: 0; color: var(--fitsho-aqua); font-size: 0.9rem; font-weight: 800; }
+.billing-offer__notice { margin: 0; color: var(--fitsho-muted); font-size: 0.7rem; line-height: 1.45; }
+
+.billing-button {
+  display: inline-flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: var(--fitsho-radius-md);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+}
+.billing-button:disabled { cursor: not-allowed; opacity: 0.55; }
+.billing-button--primary { color: var(--fitsho-canvas); background: var(--fitsho-aqua); }
+.billing-button--secondary { border-color: var(--fitsho-line-strong); color: var(--fitsho-ink); background: var(--fitsho-surface-subtle); }
+.billing-checkout-card__row { grid-template-columns: 1fr auto; align-items: center; padding-block: 0.25rem; }
+.billing-checkout-card__row + .billing-checkout-card__row { border-block-start: 1px solid var(--fitsho-line); padding-block-start: 0.85rem; }
+.billing-checkout-card > .billing-button { margin-block-start: 0.35rem; }
+
+.billing-status { color: var(--fitsho-muted); }
+.billing-status--danger { color: #ffad98; }
+.billing-result { text-align: center; padding-block: 2.5rem; }
+.billing-result--success { border-color: rgb(80 223 206 / 42%); }
+.billing-result--failed { border-color: rgb(246 120 89 / 38%); }
+.billing-result h1 { margin: 0; font-size: 1.55rem; }
+.billing-result p:not(.eyebrow) { margin: 0; color: var(--fitsho-muted); }
+.billing-result__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-block-start: 0.65rem; }
+
+.billing-history-list { display: grid; gap: 0.65rem; }
+.billing-history-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1rem; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-md); background: var(--fitsho-surface); }
+.billing-history-card > div:last-child { align-items: end; text-align: end; }
+.billing-history-card strong { color: var(--fitsho-ink); font-size: 0.9rem; }
+
+@media (max-width: 680px) {
+  .billing-offer-grid { grid-template-columns: 1fr; }
+  .billing-access-summary, .billing-history-card { align-items: start; flex-direction: column; grid-template-columns: 1fr; }
+  .billing-access-summary > span, .billing-history-card > div:last-child { align-items: start; text-align: start; }
+}

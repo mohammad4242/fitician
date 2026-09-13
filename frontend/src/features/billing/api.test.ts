@@ -55,7 +55,7 @@ it("uses the shared API for checkout, verification, and history", async () => {
     .mockResolvedValueOnce(jsonResponse([]))
     .mockResolvedValueOnce(jsonResponse({ id: "order-1" }));
 
-  await createCheckout("order-1", "fake");
+  await createCheckout("order-1", { provider: "fake" });
   await verifyPayment("fake", { transaction_id: "tx-1", provider_reference: "ref-1" });
   await getOrders();
   await getOrder("order-1");

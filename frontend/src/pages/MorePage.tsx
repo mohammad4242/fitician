@@ -28,6 +28,10 @@ export function MorePage() {
   const hasTraining = productMode === undefined || productMode === null
     || productMode === "training" || productMode === "both";
   const hasNutrition = productMode === "nutrition" || productMode === "both";
+  const paidAccessEnd = (snapshot?.grants ?? [])
+    .filter((grant) => grant.source === "subscription" && grant.ends_at !== null)
+    .map((grant) => grant.ends_at as string)
+    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0] ?? null;
 
   useEffect(() => {
     let active = true;
@@ -107,10 +111,15 @@ export function MorePage() {
               <div>
                 <p>{l("بسته فعلی", "Current package")}</p>
                 <strong>{i18n.t(`entitlements.packageLabels.${snapshot.primary_package}`, snapshot.primary_package)}</strong>
+                {paidAccessEnd && <span>{i18n.t("billing.accessEnds", { date: new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(paidAccessEnd)) })}</span>}
               </div>
               {snapshot.trial.active && snapshot.trial.ends_at && (
                 <span>{l("آزمایشی تا", "Trial ends")} {new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(snapshot.trial.ends_at))}</span>
               )}
+              <div className="more-access-card__actions">
+                <Link to="/plans">{i18n.t("billing.viewPlans")}</Link>
+                <Link to="/billing/history">{i18n.t("billing.purchaseHistory")}</Link>
+              </div>
             </section>
           )}
         </div>
