@@ -140,6 +140,7 @@ export type WorkoutPlanExerciseAlternative = {
 };
 
 export type WorkoutDay = {
+  id?: string;
   day_number: number;
   title_en: string;
   title_fa: string;

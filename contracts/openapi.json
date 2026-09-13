@@ -23931,6 +23931,11 @@
             "title": "Focus",
             "type": "string"
           },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
           "main_exercise_count": {
             "default": 0,
             "minimum": 0.0,
@@ -23970,6 +23975,7 @@
           }
         },
         "required": [
+          "id",
           "day_number",
           "title_en",
           "title_fa",

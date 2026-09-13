@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.pdf import build_workout_plan_html, render_workout_plan_pdf
@@ -22,6 +22,7 @@ def _plan_response() -> WorkoutPlanResponse:
         is_stale=False,
         days=[
             WorkoutDayResponse(
+                id=uuid4(),
                 day_number=1,
                 title_en="Upper body",
                 title_fa="بالاتنه",

@@ -187,6 +187,7 @@ class WorkoutPlanExerciseResponse(BaseModel):
 class WorkoutDayResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    id: UUID
     day_number: int
     title_en: str
     title_fa: str

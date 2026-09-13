@@ -11782,6 +11782,11 @@ export type components = {
              */
             focus: string;
             /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
              * Main Exercise Count
              * @default 0
              */

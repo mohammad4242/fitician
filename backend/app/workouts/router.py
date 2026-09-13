@@ -271,6 +271,7 @@ def to_plan_response(
         is_stale=is_stale,
         days=[
             WorkoutDayResponse(
+                id=day.id,
                 day_number=day.day_number,
                 title_en=_day_titles(plan, day)[0],
                 title_fa=_day_titles(plan, day)[1],

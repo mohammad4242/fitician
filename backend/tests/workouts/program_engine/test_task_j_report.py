@@ -7,6 +7,7 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import uuid4
 
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
@@ -227,6 +228,7 @@ def test_html_uses_projection_evidence_and_escapes_engine_diagnostics() -> None:
 
 def test_persian_day_reports_name_all_three_exercise_count_concepts() -> None:
     day = WorkoutDayResponse.model_construct(
+        id=uuid4(),
         title_fa="روز اول",
         exercises=[],
         estimated_duration_minutes=60,
