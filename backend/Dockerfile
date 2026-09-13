@@ -20,7 +20,7 @@ COPY alembic ./alembic
 COPY app ./app
 
 RUN pip install --no-cache-dir . \
-    && mkdir -p /var/lib/fitsho/media
+    && mkdir -p /var/lib/fitician/media
 
 EXPOSE 8000
 

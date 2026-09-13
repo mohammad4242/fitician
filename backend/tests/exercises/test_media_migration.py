@@ -1214,8 +1214,8 @@ def test_audit_accepts_existing_canonical_media_path_inside_media_root(
 @pytest.mark.parametrize(
     "media_path",
     [
-        "/home/fitsho/video.mp4",
-        "/var/lib/fitsho/video.mp4",
+        "/home/fitician/video.mp4",
+        "/var/lib/fitician/video.mp4",
         "file:///media/exercises/video.mp4",
         "/assets/exercises/video.mp4",
         "/media/exercises/../video.mp4",
@@ -1339,7 +1339,7 @@ def test_audit_command_returns_nonzero_for_unsafe_db_paths(
     import app.exercises.media_migration as media_migration
 
     exercise = _rollback_exercise("audit-command-unsafe")
-    exercise.media_path = "/home/fitsho/video.mp4"
+    exercise.media_path = "/home/fitician/video.mp4"
     db.add(exercise)
     db.flush()
     manifest_dir = tmp_path / "manifest"

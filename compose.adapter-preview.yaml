@@ -1,4 +1,4 @@
 services:
   backend:
     build:
-      context: /home/mohammad/project/fitsho/.worktrees/opencode-chat-completions/backend
+      context: /home/mohammad/project/fitician/.worktrees/opencode-chat-completions/backend

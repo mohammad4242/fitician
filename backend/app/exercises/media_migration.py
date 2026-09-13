@@ -860,14 +860,17 @@ def _rollback_source_candidates(
         if relative is not None:
             for root in legacy_roots:
                 add(root / relative)
-        staging_prefix = Path("/var/lib/fitsho/media-migration-source")
-        try:
-            staging_relative = physical.relative_to(staging_prefix)
-        except ValueError:
-            staging_relative = None
-        if staging_relative is not None:
-            for root in legacy_roots:
-                add(root / staging_prefix.name / staging_relative)
+        for staging_prefix in (
+            Path("/var/lib/fitician/media-migration-source"),
+            Path("/var/lib/fitsho/media-migration-source"),
+        ):
+            try:
+                staging_relative = physical.relative_to(staging_prefix)
+            except ValueError:
+                staging_relative = None
+            if staging_relative is not None:
+                for root in legacy_roots:
+                    add(root / staging_prefix.name / staging_relative)
         for root in legacy_roots:
             add(root / physical.name)
 
@@ -1297,7 +1300,11 @@ def update_database_from_manifest(
                     assets_updated += 1
                     if asset.source is None:
                         if (
-                            asset.media_attribution in {"Provided by Fitician project owner", "Provided by Fitsho project owner"}
+                            asset.media_attribution
+                            in {
+                                "Provided by Fitician project owner",
+                                "Provided by Fitsho project owner",
+                            }
                             and not asset.media_source_url
                             and not old_path.startswith("/media/free-exercise-db/")
                             and not old_path.startswith("/media/owner-video/")
@@ -1398,14 +1405,19 @@ def audit_manifest(
             relative = None
         if relative is not None and any((root / relative).is_file() for root in fallback_roots):
             return True
-        staging_prefix = Path("/var/lib/fitsho/media-migration-source")
-        try:
-            staging_relative = source.relative_to(staging_prefix)
-        except ValueError:
-            return False
-        return any(
-            (root / staging_prefix.name / staging_relative).is_file() for root in fallback_roots
-        )
+        for staging_prefix in (
+            Path("/var/lib/fitician/media-migration-source"),
+            Path("/var/lib/fitsho/media-migration-source"),
+        ):
+            try:
+                staging_relative = source.relative_to(staging_prefix)
+            except ValueError:
+                continue
+            if any(
+                (root / staging_prefix.name / staging_relative).is_file() for root in fallback_roots
+            ):
+                return True
+        return False
 
     missing_sources = [path for path in sorted(source_files) if not source_exists(path)]
     hash_mismatches: list[str] = []
