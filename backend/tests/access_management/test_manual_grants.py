@@ -80,6 +80,36 @@ def test_admin_grant_is_package_only_finite_reasoned_and_idempotent(
     )
 
 
+def test_admin_grant_idempotency_supports_server_default_start(
+    client: TestClient,
+    db: Session,
+) -> None:
+    member = register(client, "manual-grant-default-start@example.com")
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    make_admin(client, db)
+    payload = {
+        "package_code": "complete_care",
+        "term_weeks": 8,
+        "ends_at": (datetime.now(UTC) + timedelta(weeks=8)).isoformat(),
+        "reason": "support entitlement",
+        "client_idempotency_key": "default-start-1",
+    }
+
+    first = client.post(
+        f"/api/v1/admin/access/users/{member['id']}/grants",
+        headers=ORIGIN,
+        json=payload,
+    )
+    second = client.post(
+        f"/api/v1/admin/access/users/{member['id']}/grants",
+        headers=ORIGIN,
+        json=payload,
+    )
+
+    assert first.status_code == second.status_code == 201
+    assert first.json()["id"] == second.json()["id"]
+
+
 def test_admin_grant_rejects_free_arbitrary_entitlements_missing_reason_and_indefinite_access(
     client: TestClient,
     db: Session,
@@ -122,6 +152,22 @@ def test_admin_grant_rejects_free_arbitrary_entitlements_missing_reason_and_inde
             "client_idempotency_key": "indefinite-key",
         },
     )
+    null_reason = client.post(
+        path,
+        headers=ORIGIN,
+        json={**common, "package_code": "training", "term_weeks": 4, "reason": None},
+    )
+    null_key = client.post(
+        path,
+        headers=ORIGIN,
+        json={
+            **common,
+            "package_code": "training",
+            "term_weeks": 4,
+            "client_idempotency_key": None,
+        },
+    )
 
     assert free.status_code == arbitrary.status_code == missing_reason.status_code == 422
     assert indefinite.status_code == 422
+    assert null_reason.status_code == null_key.status_code == 422

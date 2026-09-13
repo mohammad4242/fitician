@@ -686,6 +686,7 @@ def create_admin_grant(
 ) -> AdminGrantMutationResult:
     user_or_raise(db, user_id)
     code = AccessPackageCode(package_code)
+    start_was_provided = starts_at is not None
     start = utc_now(starts_at)
     end = utc_now(ends_at)
     _validate_campaign_values(
@@ -714,11 +715,11 @@ def create_admin_grant(
         same_request = (
             AccessPackageCode(existing.package_code) is code
             and existing.term_weeks == term_weeks
-            and utc_now(existing.starts_at) == start
             and (
                 existing.ends_at is not None
                 and utc_now(existing.ends_at) == end
             )
+            and (not start_was_provided or utc_now(existing.starts_at) == start)
         )
         if not same_request:
             raise GrantIdempotencyConflictError(

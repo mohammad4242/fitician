@@ -11,8 +11,8 @@ from app.entitlements.enums import AccessPackageCode, EntitlementCode, GrantSour
 AccessTermWeeks = Literal[4, 6, 8]
 
 
-def _trim(value: str) -> str:
-    return value.strip()
+def _trim(value: object) -> object:
+    return value.strip() if isinstance(value, str) else value
 
 
 class AccessCampaignCreateRequest(BaseModel):
@@ -35,7 +35,7 @@ class AccessCampaignCreateRequest(BaseModel):
     @field_validator("description", mode="before")
     @classmethod
     def normalize_description(cls, value: object) -> object:
-        return None if value is None else _trim(str(value))
+        return None if value is None else _trim(value)
 
     @model_validator(mode="after")
     def validate_semantics(self) -> "AccessCampaignCreateRequest":
@@ -102,7 +102,7 @@ class ManualCampaignRedemptionRequest(BaseModel):
     @field_validator("reason", mode="before")
     @classmethod
     def normalize_reason(cls, value: object) -> object:
-        return _trim(str(value))
+        return _trim(value)
 
 
 class AdminGrantRequest(BaseModel):
@@ -118,7 +118,7 @@ class AdminGrantRequest(BaseModel):
     @field_validator("reason", "client_idempotency_key", mode="before")
     @classmethod
     def normalize_text(cls, value: object) -> object:
-        return _trim(str(value))
+        return _trim(value)
 
     @model_validator(mode="after")
     def validate_dates(self) -> "AdminGrantRequest":
@@ -140,7 +140,7 @@ class RevokeGrantRequest(BaseModel):
     @field_validator("reason", mode="before")
     @classmethod
     def normalize_reason(cls, value: object) -> object:
-        return _trim(str(value))
+        return _trim(value)
 
 
 class AdminMemberSummaryResponse(BaseModel):
