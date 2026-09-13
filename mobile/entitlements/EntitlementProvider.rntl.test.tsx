@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import type { EntitlementSnapshot } from "@fitician/core/entitlements";
 
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
@@ -31,6 +31,7 @@ function Consumer() {
     <>
       <Text>{state.snapshot?.primary_package ?? "empty"}</Text>
       <Text>{state.hasEntitlement("training.coach_review") ? "allowed" : "denied"}</Text>
+      <Pressable accessibilityRole="button" onPress={state.refresh}><Text>refresh</Text></Pressable>
     </>
   );
 }
@@ -81,4 +82,17 @@ test("clears access after sign out", async () => {
 
   await waitFor(() => expect(screen.getByText("empty")).toBeTruthy());
   expect(screen.getByText("denied")).toBeTruthy();
+});
+
+test("refreshes the snapshot after a verified purchase", async () => {
+  render(
+    <EntitlementProvider>
+      <Consumer />
+    </EntitlementProvider>,
+  );
+  await screen.findByText("training_coach");
+
+  fireEvent.press(screen.getByRole("button", { name: "refresh" }));
+
+  await waitFor(() => expect(mockGetSnapshot).toHaveBeenCalledTimes(2));
 });

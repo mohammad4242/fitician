@@ -153,6 +153,44 @@ test("shows the centralized package label and trial expiration", () => {
   expect(screen.getByText(/دوره آزمایشی فعال · تا/)).toBeTruthy();
 });
 
+test("routes access management actions and shows paid access end date", () => {
+  mockUseMobileEntitlements.mockReturnValue({
+    error: null,
+    hasEntitlement: () => true,
+    loading: false,
+    quotaFor: () => null,
+    refresh: jest.fn(),
+    retry: jest.fn(),
+    snapshot: {
+      active_packages: ["training"],
+      entitlements: { granted: [], quotas: [] },
+      grants: [{
+        ends_at: "2026-10-11T12:00:00Z",
+        id: "grant-1",
+        package_code: "training",
+        revoked_at: null,
+        source: "subscription",
+        starts_at: "2026-09-13T12:00:00Z",
+        term_weeks: 4,
+      }],
+      primary_package: "training",
+      trial: { active: false, ends_at: null },
+    } as never,
+  } as never);
+
+  renderMore();
+
+  expect(screen.getByRole("button", { name: "مشاهده پلن‌ها" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "تاریخچه خرید" })).toBeTruthy();
+  expect(screen.getByText(/پایان دسترسی/)).toBeTruthy();
+
+  fireEvent.press(screen.getByRole("button", { name: "مشاهده پلن‌ها" }));
+  fireEvent.press(screen.getByRole("button", { name: "تاریخچه خرید" }));
+
+  expect(mockPush).toHaveBeenCalledWith("/member/plans");
+  expect(mockPush).toHaveBeenCalledWith("/member/billing-history");
+});
+
 test("shows account actions and specialist workspaces only for granted roles", () => {
   mockUseRouteSnapshot.mockReturnValue({
     profile: { completionState: "both_ready", productMode: "both", status: "resolved" },

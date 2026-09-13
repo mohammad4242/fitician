@@ -44,6 +44,10 @@ export function MoreScreen() {
     || "کاربر فیتشو";
   const profilePhotoUrl = sharedProfile?.profile_photo_url ?? auth.user?.profile_photo_url ?? null;
   const accessSnapshot = entitlements.snapshot;
+  const paidAccessEnd = (accessSnapshot?.grants ?? [])
+    .filter((grant) => grant.source === "subscription" && grant.ends_at !== null)
+    .map((grant) => grant.ends_at as string)
+    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0] ?? null;
 
   useEffect(() => {
     let active = true;
@@ -154,8 +158,13 @@ export function MoreScreen() {
           {accessSnapshot?.trial.active && accessSnapshot.trial.ends_at ? (
             <Text style={styles.accessSummarySubtitle}>دوره آزمایشی فعال · تا {formatAccessDate(accessSnapshot.trial.ends_at)}</Text>
           ) : null}
+          {paidAccessEnd ? <Text style={styles.accessSummarySubtitle}>پایان دسترسی: {formatAccessDate(paidAccessEnd)}</Text> : null}
         </View>
         <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={fiticianTokens.iconSize.md} />
+      </View>
+      <View style={styles.accessActions}>
+        <Button label="مشاهده پلن‌ها" onPress={() => router.push("/member/plans")} variant="secondary" />
+        <Button label="تاریخچه خرید" onPress={() => router.push("/member/billing-history")} variant="ghost" />
       </View>
 
       <GroupedList sections={sections} testID="more-groups" />
@@ -281,6 +290,11 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
     justifyContent: "space-between",
     padding: fiticianTokens.spacing[3],
+  },
+  accessActions: {
+    flexDirection: "row",
+    gap: fiticianTokens.spacing[2],
+    justifyContent: "flex-start",
   },
   accessSummaryCopy: {
     alignItems: "stretch",
