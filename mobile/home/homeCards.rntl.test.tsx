@@ -120,6 +120,27 @@ test("shows target calories and estimated expenditure without tracked calories",
   expect(findAncestorStyle(screen.getByText("تغذیه روزانه"), "flexDirection")).toMatchObject({ flexDirection: "row" });
 });
 
+test("shows the nutrition program start state from the timeline", () => {
+  render(
+    <NutritionSummaryCard
+      loading={false}
+      summary={{
+        carbohydrate: null,
+        consumedCalories: null,
+        estimatedDailyExpenditureCalories: null,
+        fat: null,
+        progress: 0,
+        protein: null,
+        status: "ready",
+        targetCalories: null,
+      }}
+      timeline={{ state: "ready_to_start" } as never}
+    />,
+  );
+
+  expect(screen.getByText("برنامه تغذیه آماده شروع است")).toBeTruthy();
+});
+
 test("omits estimated daily expenditure when the estimate has no TDEE", () => {
   render(
     <NutritionSummaryCard

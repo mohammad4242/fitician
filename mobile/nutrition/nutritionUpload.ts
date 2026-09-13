@@ -183,7 +183,7 @@ export function createFoodPhotoUploadJob(input: FoodPhotoUploadInput): UploadJob
   const mimeType = asset.mimeType as NutritionImageMimeType;
   const headers: Record<string, string> = {
     "Accept-Language": language,
-    "X-Fitsho-Food-Photo-Consent": "true",
+    "X-Fitician-Food-Photo-Consent": "true",
   };
   if (idempotencyKey !== undefined) headers["Idempotency-Key"] = idempotencyKey;
   return {

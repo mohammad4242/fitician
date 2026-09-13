@@ -209,7 +209,7 @@ const authenticatedModeCopy = {
     nutrition: "برنامه غذایی متناسب با هدف، نیاز بدن، مواد در دسترس و بودجه",
     training: "برنامه شخصی براساس بدن، هدف، سطح، زمان و تجهیزات",
   },
-  eyebrow: "شروع با مربی فیتشو",
+  eyebrow: "شروع با مربی فیتیشن",
   labels: {
     both: "تمرین و تغذیه",
     nutrition: "تغذیه",
@@ -530,7 +530,7 @@ export function ModeStage({
             style={({ pressed }) => [styles.modeCard, option.mode === "both" && styles.recommendedCard, pressed && styles.pressed]}
           >
             <View style={styles.modeContent}>
-              {option.mode === "both" ? <Text style={styles.recommended}>پیشنهاد فیتشو</Text> : null}
+              {option.mode === "both" ? <Text style={styles.recommended}>پیشنهاد فیتیشن</Text> : null}
               <Text style={styles.modeTitle}>{copy?.labels?.[option.mode] ?? option.label}</Text>
               {copy?.showDescriptions === false ? null : (
                 <Text style={styles.modeDescription}>{copy?.descriptions?.[option.mode] ?? option.description}</Text>
@@ -798,7 +798,7 @@ export function SafetyStage({
     >
       {blocked ? (
         <Notice
-          message="برای حفظ ایمنی، ادامه این مسیر به بررسی پزشک فیتشو نیاز دارد. پاسخ‌های مجاز ذخیره شده‌اند."
+          message="برای حفظ ایمنی، ادامه این مسیر به بررسی پزشک فیتیشن نیاز دارد. پاسخ‌های مجاز ذخیره شده‌اند."
           variant="warning"
         />
       ) : null}
@@ -862,11 +862,11 @@ export function ExerciseStage({
   const trains = useWatch({ control, name: "trains" });
   return (
     <StageFrame
-      description="برای برآورد بهتر نیازهای تغذیه، فعالیت خارج از فیتشو را هم در نظر می‌گیریم."
+      description="برای برآورد بهتر نیازهای تغذیه، فعالیت خارج از فیتیشن را هم در نظر می‌گیریم."
       eyebrow="فعالیت روزمره"
       onBack={onBack}
       progress="۲ از ۴"
-      title="خارج از فیتشو هم تمرین می‌کنی؟"
+      title="خارج از فیتیشن هم تمرین می‌کنی؟"
     >
       <GuidedQuestionFlow
         busy={busy}
@@ -1103,7 +1103,7 @@ export function ReviewStage({
 }) {
   return (
     <StageFrame
-      description="پاسخ‌ها ثبت شده‌اند. بعد از تأیید، فیتشو مسیرت را بر اساس اطلاعات بک‌اند ادامه می‌دهد."
+      description="پاسخ‌ها ثبت شده‌اند. بعد از تأیید، فیتیشن مسیرت را بر اساس اطلاعات بک‌اند ادامه می‌دهد."
       eyebrow="یک نگاه آخر"
       title="آماده‌ای شروع کنیم؟"
     >

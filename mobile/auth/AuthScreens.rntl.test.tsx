@@ -116,7 +116,7 @@ test("presents the Web auth hierarchy with native fields and method selection", 
   expect(screen.getByTestId("segmented-control")).toBeTruthy();
   expect(screen.getByRole("radio", { name: "ایمیل" })).toBeTruthy();
   expect(screen.getAllByLabelText("ایمیل")).toHaveLength(2);
-  expect(screen.getByRole("button", { name: "ورود به فیتشو" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "ورود به فیتیشن" })).toBeTruthy();
   expect(screen.getByText("یا")).toBeTruthy();
   expect(screen.getByText("هنوز حساب نداری؟")).toBeTruthy();
 });
@@ -154,7 +154,7 @@ test("submits the Web email login path to the public onboarding destination", as
 
   fireEvent.changeText(screen.getAllByLabelText("ایمیل")[1], "person@example.com");
   fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
-  fireEvent.press(screen.getByRole("button", { name: "ورود به فیتشو" }));
+  fireEvent.press(screen.getByRole("button", { name: "ورود به فیتیشن" }));
 
   await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: "person@example.com", password: "abcdefgh" }));
   expect(mockReplace).toHaveBeenCalledWith({

@@ -69,8 +69,8 @@ test("CI provisions backend test dependencies and dedicated benchmark databases"
 
   assert.ok(backendJob, "backend job must be present");
   assert.match(backendJob, /apt-get install -y ffmpeg/u);
-  assert.match(backendJob, /fitsho_nutrition_audit/u);
-  assert.match(backendJob, /DATABASE_URL: postgresql\+psycopg:\/\/fitsho:fitsho@localhost:5432\/fitsho\s*\n\s*TEST_DATABASE_URL:/u);
+  assert.match(backendJob, /fitician_nutrition_audit/u);
+  assert.match(backendJob, /DATABASE_URL: postgresql\+psycopg:\/\/fitician:fitician@localhost:5432\/fitician\s*\n\s*TEST_DATABASE_URL:/u);
   assert.match(backendJob, /uv run python -m scripts\.seed_nutrition_benchmark/u);
   assert.match(backendJob, /uv run python -m app\.exercises\.seed/u);
   assert.match(backendJob, /uv run python -m scripts\.seed_benchmark_catalog/u);

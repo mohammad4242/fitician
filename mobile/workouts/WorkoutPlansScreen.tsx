@@ -661,7 +661,7 @@ function CoachReviewBanner({
     );
   }
   if (review?.state === "coach_approved") {
-    const coach = review.coach_display_name ?? "مربی فیتشو";
+    const coach = review.coach_display_name ?? "مربی فیتیشن";
     return (
       <View accessibilityRole="text" style={[styles.reviewBanner, styles.reviewBannerApproved]}>
         <Text style={[styles.reviewIndicator, styles.reviewIndicatorApproved]}>✓</Text>
@@ -821,7 +821,7 @@ function PlanView({
 
       {plan.ai_coach_program_explanation_fa ? (
         <Card style={styles.aiCard}>
-          <Text style={styles.aiLabel}>توضیح فیتشو کوچ</Text>
+          <Text style={styles.aiLabel}>توضیح فیتیشن کوچ</Text>
           <Text style={styles.bodyText}>{plan.ai_coach_program_explanation_fa}</Text>
         </Card>
       ) : null}

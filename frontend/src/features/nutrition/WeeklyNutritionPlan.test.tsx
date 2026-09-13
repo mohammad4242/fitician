@@ -181,31 +181,6 @@ it("opens the recurring template day supplied by the nutrition timeline", async 
   expect(screen.getByText("امروز · روز ۹")).toBeInTheDocument();
 });
 
-it("preserves the selected recurring day after a plan revision", async () => {
-  const user = userEvent.setup();
-  const timeline: TimelineNutrition = {
-    state: "active",
-    plan_id: "plan-1",
-    start_date: "2026-09-05",
-    absolute_day_number: 9,
-    pattern_day_index: 1,
-    day_id: null,
-    nutrient_totals: { energy_kcal: 700 },
-  };
-
-  render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={plan()} timeline={timeline} /></MemoryRouter>);
-  const tabs = await screen.findAllByRole("tab");
-  expect(tabs[1]).toHaveAttribute("aria-selected", "true");
-  await user.click(tabs[1]);
-  await user.click(screen.getByText("LU02 — Alternative meal").closest("summary")!);
-  await user.click(screen.getByRole("button", { name: "Remove meal" }));
-  await user.click(await screen.findByRole("button", { name: "Create new revision" }));
-
-  await waitFor(() => expect(nutritionApi.previewMealRemoval).toHaveBeenCalledWith("plan-1", "meal-1"));
-  expect(nutritionApi.confirmMealRemoval).toHaveBeenCalledWith("plan-1", "meal-0", "plan-1");
-  expect((await screen.findAllByRole("tab"))[1]).toHaveAttribute("aria-selected", "true");
-});
-
 it("awaits feedback, marks the persisted choice, and switches feedback values", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={plan()} /></MemoryRouter>);

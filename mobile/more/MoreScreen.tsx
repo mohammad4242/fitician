@@ -41,7 +41,7 @@ export function MoreScreen() {
   const accountLabel = sharedProfile?.display_name?.trim()
     || auth.user?.email?.trim()
     || auth.user?.phone_number?.trim()
-    || "کاربر فیتشو";
+    || "کاربر فیتیشن";
   const profilePhotoUrl = sharedProfile?.profile_photo_url ?? auth.user?.profile_photo_url ?? null;
   const accessSnapshot = entitlements.snapshot;
   const paidAccessEnd = (accessSnapshot?.grants ?? [])

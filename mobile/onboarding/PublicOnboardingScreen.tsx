@@ -38,9 +38,9 @@ const copy = {
   header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
   mode: {
     both: "تمرین و تغذیه",
-    eyebrow: "شروع با مربی فیتشو",
+    eyebrow: "شروع با مربی فیتیشن",
     nutrition: "برنامه تغذیه",
-    recommended: "پیشنهاد فیتشو",
+    recommended: "پیشنهاد فیتیشن",
     title: "تو چه زمینه‌ای به کمک نیاز داری؟",
     training: "برنامه تمرینی",
   },
@@ -220,8 +220,8 @@ export function PublicOnboardingScreen() {
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
       <View style={styles.header}>
         <BrandMark
-          accessibilityLabel="فیتشو"
-          label="فیتشو"
+          accessibilityLabel="فیتیشن"
+          label="فیتیشن"
           onPress={() => router.replace("/")}
           testID="public-onboarding-brand-mark"
         />

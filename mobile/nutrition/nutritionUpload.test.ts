@@ -40,7 +40,7 @@ it("builds a consented, bounded, idempotent food-photo job", () => {
   expect(job.headers).toEqual({
     "Accept-Language": "fa",
     "Idempotency-Key": "photo-key-1",
-    "X-Fitsho-Food-Photo-Consent": "true",
+    "X-Fitician-Food-Photo-Consent": "true",
   });
   expect(job.parts).toEqual([
     expect.objectContaining({

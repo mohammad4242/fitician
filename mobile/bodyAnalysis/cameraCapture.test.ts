@@ -18,11 +18,11 @@ it("uses the five-second capture timer and cancels it safely", () => {
 });
 
 it("normalizes camera file paths without changing picker URIs", () => {
-  expect(filePathToUri("/data/user/0/fitsho/cache/body.jpg")).toBe(
-    "file:///data/user/0/fitsho/cache/body.jpg",
+  expect(filePathToUri("/data/user/0/com.fitician.app/cache/body.jpg")).toBe(
+    "file:///data/user/0/com.fitician.app/cache/body.jpg",
   );
-  expect(filePathToUri("file:///data/user/0/fitsho/cache/body.jpg")).toBe(
-    "file:///data/user/0/fitsho/cache/body.jpg",
+  expect(filePathToUri("file:///data/user/0/com.fitician.app/cache/body.jpg")).toBe(
+    "file:///data/user/0/com.fitician.app/cache/body.jpg",
   );
 });
 

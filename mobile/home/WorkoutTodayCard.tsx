@@ -7,6 +7,7 @@ import { Button, CinematicSurface, StateSkeleton } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
 import { RTL_ROW } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
+import type { HomeWorkoutSummary } from "./homeModel";
 import { getHomeHeroLayout } from "./homePresentation";
 
 export type WorkoutHomeState = "empty" | "error" | "loading" | "locked" | "offline" | "pending" | "ready" | "stale";
@@ -14,17 +15,23 @@ export type WorkoutHomeState = "empty" | "error" | "loading" | "locked" | "offli
 export interface WorkoutTodayCardProps {
   readonly day: WorkoutDay | null;
   readonly state: WorkoutHomeState;
+  readonly summary?: HomeWorkoutSummary | null;
 }
 
-export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
+export function WorkoutTodayCard({ day, state, summary }: WorkoutTodayCardProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const stacked = getHomeHeroLayout(width) === "stacked";
+  const timelineState = summary?.state;
+  const focusedSession = summary?.focusedSession ?? null;
+  const nextSession = summary?.nextSession ?? null;
   const firstExercise = day?.exercises[0];
-  const title = day?.title_fa || day?.title_en || "تمرین امروز";
-  const canStart = day !== null && state === "ready";
+  const title = timelineState === undefined
+    ? day?.title_fa || day?.title_en || "تمرین امروز"
+    : focusedSession?.title_fa || focusedSession?.title_en || timelineTitle(timelineState);
+  const canStart = timelineState === undefined && day !== null && state === "ready";
 
-  if (state === "loading" && day === null) return <StateSkeleton variant="hero" />;
+  if (timelineState === undefined && state === "loading" && day === null) return <StateSkeleton variant="hero" />;
 
   return (
     <CinematicSurface accent style={styles.card} variant="hero">
@@ -41,7 +48,7 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
             />
           ) : (
             <View style={styles.emptyMedia}>
-              <Text style={styles.emptyMediaText}>{state === "locked" ? "برای ساخت برنامه تمرینی، دسترسی فعال لازم است." : "جلسه بعدی پس از آماده‌شدن برنامه اینجا دیده می‌شود."}</Text>
+              <Text style={styles.emptyMediaText}>{emptyMediaMessage(timelineState, state)}</Text>
             </View>
           )}
           <View pointerEvents="none" style={styles.mediaScrim} />
@@ -51,27 +58,61 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
           <View style={styles.topLine}>
             <View style={styles.statusPill}>
               <View style={styles.statusDot} />
-              <Text style={styles.statusText}>{stateLabel(state, Boolean(day))}</Text>
+              <Text style={styles.statusText}>{timelineState === undefined ? stateLabel(state, Boolean(day)) : timelineStateLabel(timelineState)}</Text>
             </View>
             <Text style={styles.eyebrow}>تمرین امروز</Text>
           </View>
           <Text numberOfLines={3} style={styles.title}>{title}</Text>
           <View style={styles.dayLine}>
             <View style={styles.dayBadge}>
-              <Text style={styles.dayNumber}>{day ? formatPersianNumber(day.day_number, { maximumFractionDigits: 0, useGrouping: false }).padStart(2, "۰") : "—"}</Text>
+              <Text style={styles.dayNumber}>{focusedSession
+                ? formatPersianNumber(focusedSession.session_number, { maximumFractionDigits: 0, useGrouping: false }).padStart(2, "۰")
+                : day
+                  ? formatPersianNumber(day.day_number, { maximumFractionDigits: 0, useGrouping: false }).padStart(2, "۰")
+                  : "—"}</Text>
             </View>
             <View style={styles.sessionFacts}>
-              <Text style={styles.factValue}>{day ? `${formatPersianNumber(day.estimated_duration_minutes, { maximumFractionDigits: 0 })} دقیقه` : "—"}</Text>
+              <Text style={styles.factValue}>{focusedSession
+                ? `جلسه ${formatPersianNumber(focusedSession.session_number)} · هفته ${formatPersianNumber(focusedSession.week_number)}`
+                : day
+                  ? `${formatPersianNumber(day.estimated_duration_minutes, { maximumFractionDigits: 0 })} دقیقه`
+                  : nextSession
+                    ? `تمرین بعدی: ${nextSession.scheduled_date}`
+                    : "—"}</Text>
             </View>
           </View>
-          {state === "error" ? (
+          {timelineState === "overdue" && focusedSession ? (
+            <Text style={styles.stateText}>
+              جلسه {formatPersianNumber(focusedSession.session_number)} عقب افتاده است · برنامه‌ریزی‌شده برای {focusedSession.scheduled_date}
+            </Text>
+          ) : null}
+          {timelineState === "rest" && nextSession ? (
+            <Text style={styles.stateText}>
+              تمرین بعدی: {nextSession.scheduled_date} · جلسه {formatPersianNumber(nextSession.session_number)}
+            </Text>
+          ) : null}
+          {timelineState === "completed" ? (
+            <Text style={styles.stateText}>
+              تمرین امروز کامل شد{nextSession ? ` · بعدی: ${nextSession.scheduled_date}` : ""}
+            </Text>
+          ) : null}
+          {timelineState === "legacy" ? (
+            <Text style={styles.stateText}>اطلاعات دقیق جلسه‌های روزانه برای این برنامه قدیمی در دسترس نیست.</Text>
+          ) : null}
+          {timelineState === "ready" ? (
+            <Text style={styles.stateText}>تاریخ شروع را از بخش تمرین انتخاب کن.</Text>
+          ) : null}
+          {timelineState === "scheduled" ? (
+            <Text style={styles.stateText}>با رسیدن تاریخ شروع، جلسه‌های برنامه نمایش داده می‌شوند.</Text>
+          ) : null}
+          {timelineState === undefined && state === "error" ? (
             <Text style={styles.stateText}>دریافت برنامه انجام نشد؛ از بخش تمرین دوباره تلاش کن.</Text>
           ) : null}
-          {state === "locked" ? (
+          {timelineState === undefined && state === "locked" ? (
             <Text style={styles.stateText}>برنامه‌ای وجود ندارد؛ ساخت برنامه با دسترسی فعلی ممکن نیست.</Text>
           ) : null}
           <Button
-            label={canStart ? "شروع تمرین" : state === "locked" ? "مشاهده وضعیت دسترسی" : "مشاهده برنامه"}
+            label={timelineState === "ready" ? "شروع برنامه" : canStart ? "شروع تمرین" : state === "locked" ? "مشاهده وضعیت دسترسی" : "مشاهده برنامه"}
             onPress={() => router.push("/member/workouts")}
             style={styles.action}
           />
@@ -79,6 +120,34 @@ export function WorkoutTodayCard({ day, state }: WorkoutTodayCardProps) {
       </View>
     </CinematicSurface>
   );
+}
+
+function emptyMediaMessage(timelineState: HomeWorkoutSummary["state"] | undefined, state: WorkoutHomeState): string {
+  if (timelineState === "ready") return "برنامه آماده است؛ تاریخ شروع را انتخاب کن.";
+  if (timelineState === "rest") return "امروز روز استراحت است.";
+  if (timelineState === "legacy") return "جزئیات دقیق جلسه‌های این برنامه قدیمی در دسترس نیست.";
+  if (state === "locked") return "برای ساخت برنامه تمرینی، دسترسی فعال لازم است.";
+  return "جلسه بعدی پس از آماده‌شدن برنامه اینجا دیده می‌شود.";
+}
+
+function timelineStateLabel(state: HomeWorkoutSummary["state"]): string {
+  if (state === "ready") return "آماده شروع";
+  if (state === "scheduled") return "شروع زمان‌بندی‌شده";
+  if (state === "today") return "تمرین امروز";
+  if (state === "overdue") return "جلسه عقب‌افتاده";
+  if (state === "rest") return "روز استراحت";
+  if (state === "completed") return "کامل‌شده امروز";
+  if (state === "legacy") return "برنامه فعال";
+  return "بدون برنامه";
+}
+
+function timelineTitle(state: HomeWorkoutSummary["state"]): string {
+  if (state === "ready") return "برنامه آماده شروع است";
+  if (state === "scheduled") return "شروع برنامه زمان‌بندی شده است";
+  if (state === "rest") return "روز استراحت";
+  if (state === "legacy") return "برنامه تمرینی";
+  if (state === "completed") return "تمرین امروز کامل شد";
+  return "تمرین امروز";
 }
 
 function stateLabel(state: WorkoutHomeState, hasDay: boolean): string {

@@ -47,7 +47,7 @@ it("advances local capture order without treating local files as uploaded", () =
   expect(firstMissingBodyPhotoViewFromViews(["front", "side", "back"])).toBeNull();
 });
 
-it("creates a resumable draft without persisting photo bytes or paths", () => {
+it("creates an upload-first resumable draft without persisting photo bytes or paths", () => {
   const draft = createBodyPhotoFlowDraft("initial_plan", "session-1");
 
   expect(draft).toEqual({
@@ -87,6 +87,22 @@ it("reconciles a persisted draft with the server session after process death", (
     side_profile: "left",
     stage: "capture",
   });
+});
+
+it("normalizes legacy camera drafts to the web upload-first mode", () => {
+  const draft: BodyPhotoFlowDraft = {
+    capture_mode: "camera",
+    current_view: "front",
+    ghost_scale: 1,
+    purpose: "initial_plan",
+    schema_version: BODY_PHOTO_FLOW_SCHEMA_VERSION,
+    session_id: "session-1",
+    side_profile: "right",
+    stage: "capture",
+    updated_at: 100,
+  };
+
+  expect(reconcileBodyPhotoFlowDraft(draft, session([])).capture_mode).toBe("library");
 });
 
 it("rejects malformed or cross-session drafts at the storage boundary", () => {

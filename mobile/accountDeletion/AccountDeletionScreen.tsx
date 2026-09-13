@@ -137,9 +137,9 @@ export function AccountDeletionScreen() {
       <PageHeading
         compact={false}
         eyebrow="حساب / Account"
-        supportingText="درخواست حذف حساب را از همین صفحه ثبت کن. این مسیر برای اعضای فیتشو، خارج از اپلیکیشن هم در دسترس است."
+        supportingText="درخواست حذف حساب را از همین صفحه ثبت کن. این مسیر برای اعضای فیتیشن، خارج از اپلیکیشن هم در دسترس است."
         testID="account-deletion-heading"
-        title="حذف حساب فیتشو"
+        title="حذف حساب فیتیشن"
       />
 
       {error !== null ? <Notice actionLabel="تلاش دوباره" message={error} onAction={() => void loadStatus()} variant="danger" /> : null}

@@ -72,7 +72,7 @@ test("keeps the Web hero hierarchy in a concise native entry", () => {
   expect(screen.getByRole("header", { name: "برنامه تغذیه، تحت نظر پزشک" })).toBeTruthy();
   expect(screen.getByText("MEAL PHOTO ANALYSIS")).toBeTruthy();
   expect(screen.getByTestId("public-entry-process")).toBeTruthy();
-  expect(screen.getByText("فیتشو چگونه برنامه تو را می‌سازد")).toBeTruthy();
+  expect(screen.getByText("فیتیشن چگونه برنامه تو را می‌سازد")).toBeTruthy();
   expect(screen.getByText("تو را می‌شناسیم")).toBeTruthy();
   expect(screen.getByText("همراه پیشرفتت تنظیم می‌کنیم")).toBeTruthy();
   expect(findAncestorStyle(screen.getByText("تو را می‌شناسیم"), "flexDirection")).toMatchObject({ flexDirection: "row" });

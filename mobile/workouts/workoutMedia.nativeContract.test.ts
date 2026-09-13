@@ -7,7 +7,7 @@ it("keeps only the first day media-first and preserves media in expanded exercis
 
   expect(source).toContain('from "../exercises/ExerciseMedia"');
   expect(source).toContain("leadExercise");
-  expect(source).toContain("dayIndex === 0");
+  expect(source).toContain("day.id === focusedDayId");
   expect(source).toContain("focusDayCard");
   expect(source).toContain("secondaryDayCard");
   expect(source).toContain("mediaType={exercise.exercise.media_type}");

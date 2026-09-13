@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 
 import { fiticianTokens } from "./tokens";
 
-it("preserves the Fitsho dark petrol palette for native Fitician", () => {
+it("preserves the dark petrol palette for native Fitician", () => {
   expect(fiticianTokens.colors).toMatchObject({
     amber: "#f2b85b",
     aqua: "#50dfce",

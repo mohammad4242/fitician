@@ -70,6 +70,7 @@ export function reconcileBodyPhotoFlowDraft(
     : createBodyPhotoFlowDraft(session.purpose, session.id, session);
   return {
     ...base,
+    capture_mode: "library",
     current_view: firstMissingBodyPhotoView(session),
     session_id: session.id,
     stage: "capture",
