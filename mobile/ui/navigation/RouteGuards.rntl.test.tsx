@@ -125,3 +125,104 @@ test("shows a specialist retry state and resumes the protected route after retry
   await waitFor(() => expect(screen.getByText("coach-content")).toBeTruthy());
   expect(coachAttempts).toBe(2);
 });
+
+test("persists the device timezone once for each signed-in user", async () => {
+  const timezoneUpdates: Array<{ timezone: string; userId: string }> = [];
+  const request = jest.fn(async (input: { body?: { timezone?: string }; path: string }) => {
+    if (input.path === "/api/v1/profile/status") {
+      return {
+        completion_state: "both_ready",
+        product_mode: "both",
+        user_id: "member-1",
+      };
+    }
+    if (input.path === "/api/v1/profile/timezone") {
+      timezoneUpdates.push({ timezone: input.body?.timezone ?? "", userId: "member-1" });
+      return { timezone: input.body?.timezone };
+    }
+    return { authorized: false };
+  });
+  mockUseMobileAuth.mockReturnValue({
+    request,
+    status: "signed_in",
+    user,
+  } as never);
+
+  const view = render(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member">
+        <Text>member-content</Text>
+      </RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+
+  await waitFor(() => expect(timezoneUpdates).toHaveLength(1));
+  expect(timezoneUpdates[0]?.timezone).toBeTruthy();
+
+  view.rerender(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member">
+        <Text>member-content</Text>
+      </RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+  await waitFor(() => expect(timezoneUpdates).toHaveLength(1));
+});
+
+test("retries timezone persistence when the authenticated identity changes", async () => {
+  const firstRequest = jest.fn(async (input: { path: string }) => {
+    if (input.path === "/api/v1/profile/status") {
+      return {
+        completion_state: "both_ready",
+        product_mode: "both",
+        user_id: "member-1",
+      };
+    }
+    if (input.path === "/api/v1/profile/timezone") return { timezone: "UTC" };
+    return { authorized: false };
+  });
+  const secondRequest = jest.fn(async (input: { path: string }) => {
+    if (input.path === "/api/v1/profile/status") {
+      return {
+        completion_state: "both_ready",
+        product_mode: "both",
+        user_id: "member-2",
+      };
+    }
+    if (input.path === "/api/v1/profile/timezone") return { timezone: "UTC" };
+    return { authorized: false };
+  });
+  mockUseMobileAuth.mockReturnValue({
+    request: firstRequest,
+    status: "signed_in",
+    user,
+  } as never);
+
+  const view = render(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member">
+        <Text>member-content</Text>
+      </RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+  await waitFor(() => expect(firstRequest).toHaveBeenCalledWith(expect.objectContaining({
+    path: "/api/v1/profile/timezone",
+  })));
+
+  mockUseMobileAuth.mockReturnValue({
+    request: secondRequest,
+    status: "signed_in",
+    user: { ...user, id: "member-2" },
+  } as never);
+  view.rerender(
+    <MobileRouteStateProviderFromAuth>
+      <RouteGuard kind="member">
+        <Text>member-content</Text>
+      </RouteGuard>
+    </MobileRouteStateProviderFromAuth>,
+  );
+
+  await waitFor(() => expect(secondRequest).toHaveBeenCalledWith(expect.objectContaining({
+    path: "/api/v1/profile/timezone",
+  })));
+});

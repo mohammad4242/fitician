@@ -15,6 +15,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
 import { mobileRouteSnapshotFromAuth } from "../../auth/authContext";
 import { loadSpecialistAccess, type SpecialistAccessSnapshot } from "../../auth/specialistAccess";
+import { resolvedIanaTimeZone } from "@fitician/core";
+import { createProfileApi } from "../../profile/profileApi";
 import { Notice } from "../components";
 import { RTL_LAYOUT } from "../rtl";
 import { fiticianTokens } from "../tokens";
@@ -69,7 +71,10 @@ export function MobileRouteStateProviderFromAuth({ children }: { readonly childr
   });
   const requestGeneration = useRef(0);
   const specialistRequestGeneration = useRef(0);
+  const timezoneSyncKey = useRef<string | null>(null);
   const userId = auth.user?.id ?? null;
+  const deviceTimezone = resolvedIanaTimeZone();
+  const profileApi = useMemo(() => createProfileApi(auth.request), [auth.request]);
   const refreshProfileStatus = useCallback(async () => {
     const generation = ++requestGeneration.current;
     if (auth.status !== "signed_in" || userId === null) {
@@ -103,6 +108,17 @@ export function MobileRouteStateProviderFromAuth({ children }: { readonly childr
   useEffect(() => {
     void refreshSpecialistAccess();
   }, [refreshSpecialistAccess]);
+
+  useEffect(() => {
+    if (auth.status !== "signed_in" || userId === null) {
+      timezoneSyncKey.current = null;
+      return;
+    }
+    const key = `${userId}:${deviceTimezone}`;
+    if (timezoneSyncKey.current === key) return;
+    timezoneSyncKey.current = key;
+    void profileApi.updateTimezone(deviceTimezone).catch(() => undefined);
+  }, [auth.status, deviceTimezone, profileApi, userId]);
 
   const profileSnapshot = profile ?? {
     ...mobileProfileLoadingState,

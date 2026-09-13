@@ -41,6 +41,18 @@ it("uses the shared profile endpoints for native reads and writes", async () => 
   });
 });
 
+it("persists the device timezone through the dedicated profile endpoint", async () => {
+  const request = vi.fn().mockResolvedValue({ timezone: "Asia/Tehran" });
+  const api = createProfileApi(request);
+
+  await expect(api.updateTimezone("Asia/Tehran")).resolves.toEqual({ timezone: "Asia/Tehran" });
+  expect(request).toHaveBeenCalledWith({
+    body: { timezone: "Asia/Tehran" },
+    method: "PUT",
+    path: "/api/v1/profile/timezone",
+  });
+});
+
 it("treats only 404 profile reads as absent", async () => {
   const request = vi.fn().mockRejectedValue(new ApiError(404, "Not found"));
   const api = createProfileApi(request);

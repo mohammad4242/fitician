@@ -6,6 +6,7 @@ import type {
   SharedProfile,
   SharedProfileInput,
 } from "@fitician/core/profile";
+import type { TimezoneResponse, TimezoneUpdateRequest } from "@fitician/core/program-timeline";
 
 export type AuthenticatedProfileRequest = <TResponse>(request: TransportRequest) => Promise<TResponse>;
 
@@ -16,6 +17,7 @@ export interface ProfileApi {
   saveNutritionProfile(input: NutritionProfileInput): Promise<NutritionProfile>;
   saveSharedProfile(input: SharedProfileInput): Promise<SharedProfile>;
   updateProfile(patch: ProfilePatch): Promise<Profile>;
+  updateTimezone(timezone: string): Promise<TimezoneResponse>;
 }
 
 const profilePath = "/api/v1/profile";
@@ -56,6 +58,11 @@ export function createProfileApi(request: AuthenticatedProfileRequest): ProfileA
       body: jsonBody(patch),
       method: "PATCH",
       path: profilePath,
+    }),
+    updateTimezone: (timezone) => request<TimezoneResponse>({
+      body: jsonBody({ timezone } satisfies TimezoneUpdateRequest),
+      method: "PUT",
+      path: `${profilePath}/timezone`,
     }),
   };
 }
