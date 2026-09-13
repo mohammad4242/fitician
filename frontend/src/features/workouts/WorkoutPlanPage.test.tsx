@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import { ApiError } from "../../shared/apiClient";
+import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { WorkoutPlan } from "./types";
 
 const api = vi.hoisted(() => ({
@@ -18,6 +19,11 @@ const api = vi.hoisted(() => ({
   getCurrentWeeklyCheckIn: vi.fn(),
   getCurrentCompletionFeedback: vi.fn(),
   getCurrentWorkoutCycle: vi.fn(),
+  getProgramTimelineToday: vi.fn(),
+  startWorkoutCycle: vi.fn(),
+  completeWorkoutSession: vi.fn(),
+  skipWorkoutSession: vi.fn(),
+  rescheduleWorkoutSession: vi.fn(),
   saveCurrentWeeklyCheckIn: vi.fn(),
 }));
 const profileApi = vi.hoisted(() => ({
@@ -36,6 +42,9 @@ const entitlements = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
+vi.mock("../programTimeline/api", () => ({
+  getProgramTimelineToday: api.getProgramTimelineToday,
+}));
 vi.mock("../profile/api", () => profileApi);
 vi.mock("../entitlements/EntitlementContext", () => ({
   useEntitlements: () => entitlements.value,
@@ -56,6 +65,7 @@ const plan: WorkoutPlan = {
   is_stale: false,
   days: [
     {
+      id: "day-1",
       day_number: 1,
       title_en: "Full body",
       title_fa: "تمام بدن",
@@ -167,6 +177,11 @@ beforeEach(() => {
   api.getCurrentWeeklyCheckIn.mockReset();
   api.getCurrentCompletionFeedback.mockReset();
   api.getCurrentWorkoutCycle.mockReset();
+  api.getProgramTimelineToday.mockReset();
+  api.startWorkoutCycle.mockReset();
+  api.completeWorkoutSession.mockReset();
+  api.skipWorkoutSession.mockReset();
+  api.rescheduleWorkoutSession.mockReset();
   api.saveCurrentWeeklyCheckIn.mockReset();
   profileApi.getProfile.mockReset();
   profileApi.updateProfile.mockReset();
@@ -200,12 +215,40 @@ beforeEach(() => {
     status: "active",
     current_week: 1,
   });
+  api.getProgramTimelineToday.mockResolvedValue(undefined);
+  api.startWorkoutCycle.mockResolvedValue({});
+  api.completeWorkoutSession.mockResolvedValue({});
+  api.skipWorkoutSession.mockResolvedValue({});
+  api.rescheduleWorkoutSession.mockResolvedValue({});
   api.saveCurrentWeeklyCheckIn.mockResolvedValue(null);
-  profileApi.getProfile.mockResolvedValue({ workout_generation_method: "fitsho_coach" });
+  profileApi.getProfile.mockResolvedValue({ workout_generation_method: "fitician_coach" });
   profileApi.updateProfile.mockResolvedValue({ workout_generation_method: "ai" });
 });
 
 afterEach(() => vi.restoreAllMocks());
+
+const timelineSession = (overrides: Record<string, unknown> = {}) => ({
+  id: "session-1",
+  workout_day_id: "day-1",
+  week_number: 1,
+  session_number: 1,
+  scheduled_date: "2026-09-13",
+  status: "scheduled",
+  day_number: 1,
+  title_fa: "روز اول",
+  title_en: "Day one",
+  estimated_duration_minutes: 45,
+  ...overrides,
+});
+
+function workoutTimeline(workout: Record<string, unknown>) {
+  return {
+    local_date: "2026-09-13",
+    timezone: resolvedIanaTimeZone(),
+    workout: workout,
+    nutrition: { state: "no_plan" },
+  };
+}
 
 function mockBrowserDownload() {
   const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:plan");
@@ -213,6 +256,116 @@ function mockBrowserDownload() {
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
   return { click, createObjectURL, revokeObjectURL };
 }
+
+it("does not label the first plan day as the next session without timeline evidence", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  await screen.findByRole("list", { name: "روزهای تمرین تو" });
+  expect(screen.queryByText("جلسه بعد")).not.toBeInTheDocument();
+});
+
+it("shows an explicit start card for an active plan without a cycle", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "ready_to_start",
+    workout_plan_id: plan.id,
+  }));
+  api.startWorkoutCycle.mockResolvedValue({ cycle_id: "cycle-1" });
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByText("برنامه‌ات آماده شروع است")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "شروع برنامه" }));
+  await waitFor(() => expect(api.startWorkoutCycle).toHaveBeenCalledWith({
+    workout_plan_id: plan.id,
+    start_date: "2026-09-13",
+    timezone: resolvedIanaTimeZone(),
+  }));
+});
+
+it("focuses the actual rest-day next session rather than the first array item", async () => {
+  const twoDayPlan: WorkoutPlan = {
+    ...plan,
+    days: [
+      { ...plan.days[0]!, id: "day-1" },
+      { ...plan.days[0]!, id: "day-2", day_number: 2, title_fa: "روز دوم", title_en: "Day two" },
+    ],
+  };
+  api.getActiveWorkoutPlan.mockResolvedValue(twoDayPlan);
+  api.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "rest_day",
+    workout_plan_id: plan.id,
+    cycle_id: "cycle-1",
+    today_session: null,
+    next_session: timelineSession({
+      id: "session-2",
+      workout_day_id: "day-2",
+      session_number: 2,
+      scheduled_date: "2026-09-15",
+      day_number: 2,
+      title_fa: "روز دوم",
+    }),
+  }));
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByText("روز استراحت")).toBeInTheDocument();
+  expect(screen.getAllByText("جلسه بعد").length).toBeGreaterThan(0);
+  expect(screen.getByText("روز استراحت").closest(".workout-timeline-card")).toHaveTextContent("روز دوم");
+  expect(document.querySelector('[data-workout-day-id="day-2"]')).toHaveClass("workout-day--next");
+  expect(document.querySelector('[data-workout-day-id="day-1"]')).not.toHaveClass("workout-day--next");
+});
+
+it("focuses today's actual session and refreshes timeline after completion", async () => {
+  const twoDayPlan: WorkoutPlan = {
+    ...plan,
+    days: [
+      { ...plan.days[0]!, id: "day-1" },
+      { ...plan.days[0]!, id: "day-2", day_number: 2, title_fa: "روز دوم", title_en: "Day two" },
+    ],
+  };
+  api.getActiveWorkoutPlan.mockResolvedValue(twoDayPlan);
+  api.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "workout_today",
+    workout_plan_id: plan.id,
+    cycle_id: "cycle-1",
+    today_session: timelineSession({ workout_day_id: "day-2", day_number: 2, title_fa: "روز دوم" }),
+  }));
+  api.completeWorkoutSession.mockResolvedValue({ status: "completed" });
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: "تمرین امروز" })).toBeInTheDocument();
+  expect(document.querySelector('[data-workout-day-id="day-2"]')).toHaveClass("workout-day--focus");
+  expect(document.querySelector('[data-workout-day-id="day-1"]')).not.toHaveClass("workout-day--focus");
+  await user.click(screen.getByRole("button", { name: "ثبت تکمیل تمرین" }));
+  await waitFor(() => expect(api.completeWorkoutSession).toHaveBeenCalledWith("session-1"));
+  expect(api.getProgramTimelineToday).toHaveBeenCalledTimes(2);
+});
+
+it("focuses an overdue session and sends Do today to reschedule", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getProgramTimelineToday.mockResolvedValue(workoutTimeline({
+    state: "overdue",
+    workout_plan_id: plan.id,
+    cycle_id: "cycle-1",
+    overdue_session: timelineSession({ scheduled_date: "2026-09-10" }),
+  }));
+  api.rescheduleWorkoutSession.mockResolvedValue({ status: "scheduled" });
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByText("این جلسه عقب افتاده است")).toBeInTheDocument();
+  expect(document.querySelector('[data-workout-day-id="day-1"]')).toHaveClass("workout-day--focus");
+  await user.click(screen.getByRole("button", { name: "انجام امروز" }));
+  await waitFor(() => expect(api.rescheduleWorkoutSession).toHaveBeenCalledWith("session-1", "2026-09-13"));
+});
 
 it("places generation controls before the current workout program and persists both choices", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue({
@@ -254,7 +407,7 @@ it("places generation controls before the current workout program and persists b
   await user.click(ai);
   expect(profileApi.updateProfile).toHaveBeenCalledWith({ workout_generation_method: "ai" });
   await user.click(internalEngine);
-  expect(profileApi.updateProfile).toHaveBeenLastCalledWith({ workout_generation_method: "fitsho_coach" });
+  expect(profileApi.updateProfile).toHaveBeenLastCalledWith({ workout_generation_method: "fitician_coach" });
 });
 
 it("uses the compact English generation labels", async () => {

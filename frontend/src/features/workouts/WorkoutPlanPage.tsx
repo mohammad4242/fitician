@@ -2,20 +2,29 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+
 import { ApiError } from "../../shared/apiClient";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getProfile, updateProfile } from "../profile/api";
 import type { WorkoutGenerationMethod } from "../profile/types";
 import { ExerciseMedia } from "../exercises/ExerciseMedia";
+import { getProgramTimelineToday } from "../programTimeline/api";
+import type { ProgramTimelineToday, TimelineWorkoutSession, WorkoutTimelineState } from "../programTimeline/types";
 import {
+  completeWorkoutSession,
   downloadWorkoutPlanPdf,
   deleteWorkoutPlan,
   generateWorkoutPlan,
   getActiveWorkoutPlan,
+  getCurrentWorkoutCycle,
   getWorkoutPlan,
   getWorkoutPlanHistory,
   recordExerciseReplacement,
+  rescheduleWorkoutSession,
+  skipWorkoutSession,
+  startWorkoutCycle,
 } from "./api";
 import { WeeklyCheckInCard } from "./WeeklyCheckInCard";
 import { EndCycleFeedbackCard } from "./EndCycleFeedbackCard";
@@ -41,6 +50,13 @@ type GenerationError =
   | "bodyweight_exercise";
 
 type DeleteVersionError = { versionId: string; message: string };
+type TimelineAction = "start" | "complete" | "skip" | "reschedule";
+
+type WorkoutDaysPresentation = {
+  focusedWorkoutDayId?: string | null;
+  nextWorkoutDayId?: string | null;
+  state?: WorkoutTimelineState;
+};
 
 const bodyweightGenerationErrors: Record<string, GenerationError> = {
   BODYWEIGHT_ONLY_LEVEL_NOT_SUPPORTED: "bodyweight_level",
@@ -107,10 +123,15 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [reused, setReused] = useState(false);
   const [generationError, setGenerationError] = useState<GenerationError | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitsho_coach");
+  const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [savingGenerationMethod, setSavingGenerationMethod] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
+  const [startDate, setStartDate] = useState(() => localIsoDate());
+  const [timelineAction, setTimelineAction] = useState<TimelineAction | null>(null);
+  const [timelineActionError, setTimelineActionError] = useState(false);
+  const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const canGenerate = hasEntitlement("training.plan.generate");
   const isEnglish = i18n.resolvedLanguage === "en";
@@ -129,6 +150,18 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const memberHistory = history.filter(
     (version) => version.status !== "pending_review" && version.id !== currentPlan?.id,
   );
+  const liveTimeline = !isViewingHistorical
+    && currentPlan?.status === "active"
+    && timeline?.workout.workout_plan_id === currentPlan.id
+    ? timeline
+    : null;
+  const liveWorkout = liveTimeline?.workout ?? null;
+  const focusedWorkoutDayId = liveWorkout?.state === "overdue"
+    ? liveWorkout.overdue_session?.workout_day_id
+    : liveWorkout?.state === "workout_today" || liveWorkout?.state === "completed_today"
+      ? liveWorkout.today_session?.workout_day_id
+      : null;
+  const nextWorkoutDayId = liveWorkout?.next_session?.workout_day_id ?? null;
 
   useEffect(() => {
     let active = true;
@@ -151,9 +184,67 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
 
   useEffect(() => {
     void getProfile().then((profile) => {
-      if (profile !== null) setGenerationMethod(profile.workout_generation_method ?? "fitsho_coach");
+      if (profile !== null) setGenerationMethod(profile.workout_generation_method ?? "fitician_coach");
     }).catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void getProgramTimelineToday(deviceTimezone)
+      .then((loadedTimeline) => {
+        if (!active || loadedTimeline === undefined) return;
+        setTimeline(loadedTimeline);
+        setStartDate(loadedTimeline.local_date);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [deviceTimezone]);
+
+  async function refreshTimeline() {
+    const loadedTimeline = await getProgramTimelineToday(deviceTimezone);
+    if (loadedTimeline !== undefined) setTimeline(loadedTimeline);
+  }
+
+  function startProgram() {
+    if (currentPlan === null || currentPlan.status !== "active" || timelineAction !== null) return;
+    setTimelineAction("start");
+    setTimelineActionError(false);
+    void startWorkoutCycle({
+      workout_plan_id: currentPlan.id,
+      start_date: startDate,
+      timezone: deviceTimezone,
+    })
+      .then(async () => {
+        await refreshTimeline();
+        await getCurrentWorkoutCycle().catch(() => null);
+      })
+      .catch(() => setTimelineActionError(true))
+      .finally(() => setTimelineAction(null));
+  }
+
+  function runSessionAction(action: Exclude<TimelineAction, "start">, request: () => Promise<unknown>) {
+    if (timelineAction !== null) return;
+    setTimelineAction(action);
+    setTimelineActionError(false);
+    void request()
+      .then(() => refreshTimeline().catch(() => undefined))
+      .catch(() => setTimelineActionError(true))
+      .finally(() => setTimelineAction(null));
+  }
+
+  function completeSession(sessionId: string) {
+    runSessionAction("complete", () => completeWorkoutSession(sessionId));
+  }
+
+  function skipSession(sessionId: string) {
+    runSessionAction("skip", () => skipWorkoutSession(sessionId));
+  }
+
+  function rescheduleSession(sessionId: string, scheduledDate: string) {
+    runSessionAction("reschedule", () => rescheduleWorkoutSession(sessionId, scheduledDate));
+  }
 
   function changeGenerationMethod(method: WorkoutGenerationMethod) {
     const previous = generationMethod;
@@ -285,8 +376,8 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             <h2 id="workout-generation-method-title">{t("workoutPlan.generationMethodTitle")}</h2>
             <div className="workout-generation-method__choices" role="group" aria-labelledby="workout-generation-method-title">
               <label>
-                <input type="radio" name="workout-generation-method" checked={generationMethod === "fitsho_coach"} disabled={savingGenerationMethod} onChange={() => changeGenerationMethod("fitsho_coach")} />
-                <span>{t("workoutPlan.fitshoCoach")}</span>
+                <input type="radio" name="workout-generation-method" checked={generationMethod === "fitician_coach"} disabled={savingGenerationMethod} onChange={() => changeGenerationMethod("fitician_coach")} />
+                <span>{t("workoutPlan.fiticianCoach")}</span>
               </label>
               <label>
                 <input type="radio" name="workout-generation-method" checked={generationMethod === "ai"} disabled={savingGenerationMethod} onChange={() => changeGenerationMethod("ai")} />
@@ -322,6 +413,21 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               </div>
             </header>
           )}
+
+        {state === "ready" && liveTimeline !== null && currentPlan !== null && (
+          <WorkoutTimelineCard
+            timeline={liveTimeline}
+            isEnglish={isEnglish}
+            startDate={startDate}
+            action={timelineAction}
+            actionError={timelineActionError}
+            onStartDateChange={setStartDate}
+            onStart={startProgram}
+            onComplete={completeSession}
+            onSkip={skipSession}
+            onReschedule={rescheduleSession}
+          />
+        )}
 
         {state === "loading" && <StatusPanel role="status" message={t("workoutPlan.loading")} />}
         {state === "error" && currentPlan === null && (
@@ -368,7 +474,17 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
                 </div>
               </div>
               {generating && <p className="workout-generating" role="status">{t("workoutPlan.generating")}</p>}
-              <WorkoutDays plan={displayedPlan} isEnglish={isEnglish} titleId="workout-schedule-title" interactive={!isViewingHistorical && displayedPlan.status === "active"} />
+              <WorkoutDays
+                plan={displayedPlan}
+                isEnglish={isEnglish}
+                titleId="workout-schedule-title"
+                interactive={!isViewingHistorical && displayedPlan.status === "active"}
+                presentation={liveWorkout === null ? undefined : {
+                  focusedWorkoutDayId,
+                  nextWorkoutDayId,
+                  state: liveWorkout.state,
+                }}
+              />
             </section>
             <div className="workout-plan-statuses">
               {reused && <p className="workout-reused" role="status">{t("workoutPlan.reused")}</p>}
@@ -608,15 +724,197 @@ function CoachReviewBanner({ plan, isEnglish, historical }: { plan: WorkoutPlan;
   );
 }
 
-function WorkoutDays({ plan, isEnglish, titleId, interactive }: { plan: WorkoutPlan; isEnglish: boolean; titleId: string; interactive: boolean }) {
+function formatTimelineDate(value: string, isEnglish: boolean): string {
+  return new Intl.DateTimeFormat(isEnglish ? "en-US" : "fa-IR", { dateStyle: "medium" }).format(
+    new Date(value + "T12:00:00"),
+  );
+}
+
+function WorkoutTimelineCard({
+  timeline,
+  isEnglish,
+  startDate,
+  action,
+  actionError,
+  onStartDateChange,
+  onStart,
+  onComplete,
+  onSkip,
+  onReschedule,
+}: {
+  timeline: ProgramTimelineToday;
+  isEnglish: boolean;
+  startDate: string;
+  action: TimelineAction | null;
+  actionError: boolean;
+  onStartDateChange: (value: string) => void;
+  onStart: () => void;
+  onComplete: (sessionId: string) => void;
+  onSkip: (sessionId: string) => void;
+  onReschedule: (sessionId: string, scheduledDate: string) => void;
+}) {
+  const { t } = useTranslation();
+  const l = (fa: string, en: string) => isEnglish ? en : fa;
+  const workout = timeline.workout;
+  const focusSession = workout.state === "overdue"
+    ? workout.overdue_session
+    : workout.today_session;
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState(timeline.local_date);
+  const nextSession = workout.next_session;
+  const formatDate = (value: string) => formatTimelineDate(value, isEnglish);
+
+  function sessionDescription(session: TimelineWorkoutSession): string {
+    return t("workoutPlan.nextSessionDetails", {
+      date: formatDate(session.scheduled_date),
+      session: session.session_number,
+      title: isEnglish ? session.title_en : session.title_fa,
+    });
+  }
+
+  function renderNextSession() {
+    if (nextSession === null || nextSession === undefined) return null;
+    return (
+      <p className="workout-timeline-card__next">
+        <strong>{t("workoutPlan.nextSession")}</strong> {sessionDescription(nextSession)}
+      </p>
+    );
+  }
+
+  function renderSessionMeta(session: TimelineWorkoutSession) {
+    return (
+      <p className="workout-timeline-card__meta">
+        {t("workoutPlan.sessionWeek", {
+          session: session.session_number,
+          week: session.week_number,
+          total: workout.duration_weeks ?? "—",
+        })}
+        {" · "}
+        {isEnglish ? session.title_en : session.title_fa}
+      </p>
+    );
+  }
+
+  return (
+    <section className={"workout-timeline-card workout-timeline-card--" + workout.state} aria-live="polite">
+      <div className="workout-timeline-card__heading">
+        <div>
+          <p className="eyebrow eyebrow--accent">{t("workoutPlan.programTimelineEyebrow")}</p>
+          <h2 className="fitsho-display">
+            {workout.state === "ready_to_start" && t("workoutPlan.programReady")}
+            {workout.state === "scheduled_start" && t("workoutPlan.programScheduled")}
+            {workout.state === "workout_today" && t("workoutPlan.todayWorkout")}
+            {workout.state === "rest_day" && t("workoutPlan.restDay")}
+            {workout.state === "overdue" && t("workoutPlan.overdueSession")}
+            {workout.state === "completed_today" && t("workoutPlan.sessionCompletedToday")}
+            {workout.state === "legacy_cycle" && t("workoutPlan.legacyTrackingUnavailable")}
+            {workout.state === "cycle_completed" && t("workoutPlan.cycleCompleted")}
+          </h2>
+        </div>
+        {workout.current_week !== null && workout.current_week !== undefined && workout.duration_weeks !== null && workout.duration_weeks !== undefined && (
+          <span className="workout-timeline-card__week">
+            {t("workoutPlan.weekProgress", { current: workout.current_week, total: workout.duration_weeks })}
+          </span>
+        )}
+      </div>
+
+      {workout.state === "ready_to_start" && (
+        <div className="workout-timeline-card__start">
+          <label>
+            {t("workoutPlan.startDate")}
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => onStartDateChange(event.target.value)}
+            />
+          </label>
+          <button className="workout-timeline-card__primary" type="button" disabled={action !== null || startDate === ""} onClick={onStart}>
+            {action === "start" ? t("workoutPlan.starting") : t("workoutPlan.startProgram")}
+          </button>
+        </div>
+      )}
+
+      {workout.state === "scheduled_start" && workout.start_date !== null && workout.start_date !== undefined && (
+        <p>{t("workoutPlan.programStartsOn", { date: formatDate(workout.start_date) })}</p>
+      )}
+
+      {workout.state === "workout_today" && focusSession !== null && focusSession !== undefined && (
+        <>
+          {renderSessionMeta(focusSession)}
+          <button className="workout-timeline-card__primary" type="button" disabled={action !== null} onClick={() => onComplete(focusSession.id)}>
+            {action === "complete" ? t("workoutPlan.savingSession") : t("workoutPlan.completeWorkout")}
+          </button>
+        </>
+      )}
+
+      {workout.state === "overdue" && focusSession !== null && focusSession !== undefined && (
+        <>
+          <p>{t("workoutPlan.originallyScheduled", { date: formatDate(focusSession.scheduled_date) })}</p>
+          {renderSessionMeta(focusSession)}
+          <div className="workout-timeline-card__actions">
+            <button className="workout-timeline-card__primary" type="button" disabled={action !== null} onClick={() => onReschedule(focusSession.id, timeline.local_date)}>
+              {action === "reschedule" ? t("workoutPlan.savingSession") : t("workoutPlan.doToday")}
+            </button>
+            <button type="button" disabled={action !== null} onClick={() => setRescheduleOpen((open) => !open)}>
+              {t("workoutPlan.reschedule")}
+            </button>
+            <button type="button" disabled={action !== null} onClick={() => onSkip(focusSession.id)}>
+              {action === "skip" ? t("workoutPlan.savingSession") : t("workoutPlan.skipSession")}
+            </button>
+          </div>
+          {rescheduleOpen && (
+            <div className="workout-timeline-card__reschedule">
+              <label>
+                {t("workoutPlan.rescheduleDate")}
+                <input
+                  type="date"
+                  min={workout.start_date ?? undefined}
+                  value={rescheduleDate}
+                  onChange={(event) => setRescheduleDate(event.target.value)}
+                />
+              </label>
+              <button className="workout-timeline-card__primary" type="button" disabled={action !== null || rescheduleDate === ""} onClick={() => onReschedule(focusSession.id, rescheduleDate)}>
+                {t("workoutPlan.applyReschedule")}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {workout.state === "rest_day" && <p>{l("امروز تمرین نداری؛ برای ریکاوری وقت بگذار.", "No workout is scheduled today; use the day to recover.")}</p>}
+      {(workout.state === "rest_day" || workout.state === "completed_today" || workout.state === "overdue") && renderNextSession()}
+      {workout.state === "legacy_cycle" && <p>{l("اطلاعات دوره و چک‌این هفتگی همچنان در دسترس است.", "Your cycle summary and weekly check-in are still available.")}</p>}
+      {workout.state === "cycle_completed" && <p>{l("برای ادامه، برنامه بعدی‌ات را انتخاب یا آماده کن.", "Choose or prepare your next plan to continue.")}</p>}
+      {actionError && <p className="workout-timeline-card__error" role="alert">{t("workoutPlan.sessionActionError")}</p>}
+    </section>
+  );
+}
+
+function WorkoutDays({ plan, isEnglish, titleId, interactive, presentation }: { plan: WorkoutPlan; isEnglish: boolean; titleId: string; interactive: boolean; presentation?: WorkoutDaysPresentation }) {
   const { t } = useTranslation();
   const l = (fa: string, en: string) => isEnglish ? en : fa;
   return (
     <div className="workout-days" role="list" aria-labelledby={titleId}>
-      {plan.days.map((day, dayIndex) => {
+      {plan.days.map((day) => {
         const mainExercises = day.exercises.filter((item) => item.section !== "core");
         const coreExercises = day.exercises.filter((item) => item.section === "core");
         const leadExercise = mainExercises[0] ?? day.exercises[0];
+        const isFocused = presentation?.focusedWorkoutDayId !== null
+          && presentation?.focusedWorkoutDayId !== undefined
+          && presentation.focusedWorkoutDayId === day.id;
+        const isNext = !isFocused
+          && presentation?.nextWorkoutDayId !== null
+          && presentation?.nextWorkoutDayId !== undefined
+          && presentation.nextWorkoutDayId === day.id;
+        const focusLabel = isFocused && presentation?.state === "overdue"
+          ? l("جلسه عقب‌افتاده", "Overdue session")
+          : isFocused && presentation?.state === "completed_today"
+            ? l("تکمیل‌شده امروز", "Completed today")
+            : isFocused
+              ? t("workoutPlan.todayWorkout")
+              : isNext
+                ? t("workoutPlan.nextSession")
+                : null;
         const renderExercises = (exercises: WorkoutPlanExercise[]) => (
           <ol>
             {exercises.map((item, itemIndex) => {
@@ -670,14 +968,23 @@ function WorkoutDays({ plan, isEnglish, titleId, interactive }: { plan: WorkoutP
           </ol>
         );
         return (
-        <details className={`workout-day${dayIndex === 0 ? " workout-day--focus" : ""}`} key={day.day_number} role="listitem">
+        <details
+          className={
+            "workout-day"
+            + (isFocused ? " workout-day--focus" : "")
+            + (isNext ? " workout-day--next" : "")
+          }
+          data-workout-day-id={day.id}
+          key={day.id ?? day.day_number}
+          role="listitem"
+        >
           <summary>
-            {dayIndex === 0 && leadExercise?.exercise.media_path && <span className="workout-day__media"><ExerciseMedia ambient path={leadExercise.exercise.media_path} name={isEnglish ? leadExercise.exercise.name_en : leadExercise.exercise.name_fa} mediaType={leadExercise.exercise.media_type} /></span>}
+            {isFocused && leadExercise?.exercise.media_path && <span className="workout-day__media"><ExerciseMedia ambient path={leadExercise.exercise.media_path} name={isEnglish ? leadExercise.exercise.name_en : leadExercise.exercise.name_fa} mediaType={leadExercise.exercise.media_type} /></span>}
             <span>{String(day.day_number).padStart(2, "0")}</span>
             <div>
-              {dayIndex === 0 && <small>{l("جلسه بعد", "Next session")}</small>}
+              {focusLabel !== null && <small>{focusLabel}</small>}
               <h3>{isEnglish ? day.title_en : day.title_fa}</h3>
-              <p>{dayIndex === 0 && leadExercise ? `${isEnglish ? leadExercise.exercise.name_en : leadExercise.exercise.name_fa} · ` : ""}{t("workoutPlan.sessionMinutes", { count: day.estimated_duration_minutes })}</p>
+              <p>{isFocused && leadExercise ? (isEnglish ? leadExercise.exercise.name_en : leadExercise.exercise.name_fa) + " · " : ""}{t("workoutPlan.sessionMinutes", { count: day.estimated_duration_minutes })}</p>
             </div>
           </summary>
           {day.ai_coach_explanation_fa && (

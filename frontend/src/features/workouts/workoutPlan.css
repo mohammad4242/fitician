@@ -41,9 +41,29 @@
 .workout-schedule__heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
 .workout-schedule__heading .eyebrow { margin: 0; color: var(--fitsho-aqua); font-size: .68rem; font-weight: 850; }
 .workout-schedule__heading h2 { margin: .15rem 0 0; font-size: 1.25rem; }
+.workout-timeline-card { display: grid; gap: .65rem; margin: .8rem 0 .95rem; padding: .85rem; border: 1px solid var(--fitsho-line-strong); border-radius: var(--fitsho-radius-lg); background: linear-gradient(135deg, rgb(80 223 206 / 8%), var(--fitsho-surface)); box-shadow: var(--fitsho-shadow-card); }
+.workout-timeline-card__heading { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.workout-timeline-card__heading h2 { margin: .15rem 0 0; font-size: 1.05rem; }
+.workout-timeline-card__heading .eyebrow { margin: 0; color: var(--fitsho-aqua); font-size: .62rem; font-weight: 850; }
+.workout-timeline-card__week { flex: 0 0 auto; padding: .35rem .5rem; border: 1px solid var(--fitsho-line); border-radius: 99rem; color: var(--fitsho-muted); font-size: .65rem; }
+.workout-timeline-card > p { margin: 0; color: var(--fitsho-muted); font-size: .76rem; line-height: 1.55; }
+.workout-timeline-card__meta { color: var(--fitsho-ink) !important; font-weight: 750; }
+.workout-timeline-card__next { padding-top: .55rem; border-top: 1px solid var(--fitsho-line); }
+.workout-timeline-card__next strong { color: var(--fitsho-aqua); }
+.workout-timeline-card__start { display: flex; align-items: end; flex-wrap: wrap; gap: .55rem; }
+.workout-timeline-card label { display: grid; gap: .25rem; color: var(--fitsho-muted); font-size: .68rem; font-weight: 750; }
+.workout-timeline-card input { min-height: 2.45rem; padding: .45rem .55rem; border: 1px solid var(--fitsho-line-strong); border-radius: .55rem; color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; font-size: .75rem; }
+.workout-timeline-card button { min-height: 2.45rem; padding: .45rem .75rem; border: 1px solid var(--fitsho-line-strong); border-radius: 99rem; color: var(--fitsho-ink); background: var(--fitsho-surface); font: inherit; font-size: .72rem; font-weight: 850; cursor: pointer; }
+.workout-timeline-card button:hover, .workout-timeline-card button:focus-visible { border-color: var(--fitsho-aqua); }
+.workout-timeline-card button:disabled { cursor: wait; opacity: .6; }
+.workout-timeline-card__primary { border-color: transparent !important; color: var(--fitsho-canvas) !important; background: var(--fitsho-aqua) !important; }
+.workout-timeline-card__actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.workout-timeline-card__reschedule { display: flex; align-items: end; flex-wrap: wrap; gap: .45rem; padding-top: .55rem; border-top: 1px solid var(--fitsho-line); }
+.workout-timeline-card__error { color: var(--fitsho-coral) !important; font-weight: 750; }
 .workout-days { display: grid; gap: .55rem; }
 .workout-day { overflow: hidden; border: 1px solid var(--fitsho-line); border-radius: var(--fitsho-radius-lg); background: var(--fitsho-surface); box-shadow: var(--fitsho-shadow-card); }
 .workout-day--focus { border-color: var(--fitsho-line-strong); box-shadow: var(--fitsho-shadow-focus); }
+.workout-day--next { border-color: rgb(80 223 206 / 45%); }
 .workout-day > summary { min-height: 3.75rem; display: flex; align-items: center; gap: .65rem; padding: .65rem .85rem; cursor: pointer; list-style: none; transition: background var(--fitsho-duration-fast) var(--fitsho-ease); }
 @media (hover: hover) and (pointer: fine) {
   .workout-day > summary:hover { background: var(--fitsho-surface-interactive); }
@@ -160,6 +180,8 @@
   .workout-day--focus > summary { min-height: 6.7rem; grid-template-columns: 5.35rem minmax(0, 1fr) auto; }
   .workout-day--focus > summary > span:not(.workout-day__media) { display: none; }
   .workout-day__media { width: 5.35rem; height: 5.55rem; }
+  .workout-timeline-card__start, .workout-timeline-card__reschedule { align-items: stretch; flex-direction: column; }
+  .workout-timeline-card__start > *, .workout-timeline-card__reschedule > * { width: 100%; }
   .workout-exercise { grid-template-columns: 4rem minmax(0, 1fr); gap: .6rem; padding: .65rem; }
   .workout-exercise > img, .workout-exercise > video { width: 4rem; height: 3.75rem; }
 }
