@@ -147,10 +147,23 @@ export type MealFeedbackType =
   | "too_large"
   | "too_small";
 
+export type NutritionPlanLifecycleStatus =
+  | "draft"
+  | "generated"
+  | "pending_physician_review"
+  | "physician_review_in_progress"
+  | "awaiting_lab_information"
+  | "changes_requested"
+  | "physician_approved"
+  | "ready_to_start"
+  | "active"
+  | "archived"
+  | "rejected";
+
 export type WeeklyPlan = {
   id: string;
   revision: number;
-  lifecycle_status: string;
+  lifecycle_status: NutritionPlanLifecycleStatus;
   is_user_visible: boolean;
   plan_role?: "budget" | "ideal" | string | null;
   physician_approved: boolean;
@@ -200,6 +213,7 @@ export type WeeklyPlan = {
     }>;
   }>;
   created_at: string;
+  started_at: string | null;
 };
 
 export type WeeklyPlanHistoryItem = Pick<

@@ -1,4 +1,5 @@
 import type { ExerciseSummary, PrescriptionMode } from "./exercises.js";
+import type { components } from "./generated/api.js";
 
 export type WorkoutPlanStatus = "generating" | "pending_review" | "active" | "superseded" | "failed";
 
@@ -48,7 +49,17 @@ export type WorkoutCycleCurrent = {
   duration_weeks: 4 | 6 | 8;
   status: "active" | "completed";
   current_week: number;
+  has_exact_session_tracking?: boolean;
+  completed_sessions?: number;
+  total_sessions?: number;
+  sessions?: WorkoutCycleSession[];
 };
+
+export type WorkoutCycleSession = components["schemas"]["WorkoutCycleSessionResponse"];
+export type WorkoutCycleSessionStatus = components["schemas"]["WorkoutCycleSessionStatus"];
+export type WorkoutCycleStartRequest = components["schemas"]["WorkoutCycleStartRequest"];
+export type WorkoutCycleSessionRescheduleRequest =
+  components["schemas"]["WorkoutCycleSessionRescheduleRequest"];
 
 export type WorkoutCycleWeeklyCheckInPainFollowUp = {
   id: string;
@@ -133,6 +144,7 @@ export type WorkoutDay = {
   title_en: string;
   title_fa: string;
   estimated_duration_minutes: number;
+  weekday?: number | null;
   exercises: WorkoutPlanExercise[];
   ai_coach_explanation_fa?: string | null;
 };

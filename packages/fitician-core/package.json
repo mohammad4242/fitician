@@ -81,6 +81,14 @@
     "./workouts": {
       "types": "./dist/workouts.d.ts",
       "import": "./dist/workouts.js"
+    },
+    "./local-date": {
+      "types": "./dist/local-date.d.ts",
+      "import": "./dist/local-date.js"
+    },
+    "./program-timeline": {
+      "types": "./dist/program-timeline.d.ts",
+      "import": "./dist/program-timeline.js"
     }
   },
   "scripts": {
