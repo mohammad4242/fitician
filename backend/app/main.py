@@ -34,7 +34,11 @@ from app.body_analysis.router import router as body_analysis_router
 from app.body_photos.router import router as body_photo_router
 from app.config import Settings, get_settings
 from app.database.session import get_engine
-from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
+from app.entitlements.exceptions import (
+    AccessTermTooShortError,
+    EntitlementQuotaExceededError,
+    EntitlementRequiredError,
+)
 from app.entitlements.router import router as entitlements_router
 from app.exercises.router import router as exercises_router
 from app.notifications.router import router as notifications_router
@@ -219,6 +223,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     "entitlement": error.entitlement.value,
                     "reset_at": error.reset_at.isoformat(),
                     "retry_after_seconds": error.retry_after_seconds,
+                }
+            },
+        )
+
+    @app.exception_handler(AccessTermTooShortError)
+    async def access_term_too_short_error_handler(
+        _request: Request,
+        error: AccessTermTooShortError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "detail": {
+                    "code": "ACCESS_TERM_TOO_SHORT",
+                    "requested_weeks": error.requested_weeks,
+                    "maximum_weeks": error.maximum_weeks,
                 }
             },
         )

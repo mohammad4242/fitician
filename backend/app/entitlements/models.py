@@ -4,7 +4,17 @@ from datetime import datetime
 from enum import Enum as PyEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.auth.models import User  # noqa: F401
@@ -21,6 +31,10 @@ class UserAccessGrant(Base):
 
     __tablename__ = "user_access_grants"
     __table_args__ = (
+        CheckConstraint(
+            "term_weeks IS NULL OR term_weeks IN (4, 6, 8)",
+            name="ck_user_access_grants_term_weeks_values",
+        ),
         UniqueConstraint(
             "user_id",
             "idempotency_key",
@@ -60,6 +74,7 @@ class UserAccessGrant(Base):
         ),
         nullable=False,
     )
+    term_weeks: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

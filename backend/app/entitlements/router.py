@@ -73,6 +73,7 @@ def my_entitlements(
                 id=grant.id,
                 package_code=grant.package_code,
                 source=grant.source,
+                term_weeks=grant.term_weeks,
                 starts_at=grant.starts_at,
                 ends_at=grant.ends_at,
                 revoked_at=grant.revoked_at,

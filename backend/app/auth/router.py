@@ -180,6 +180,7 @@ def register(
             settings.email_verification_ttl_seconds,
             settings.frontend_origin,
             email_provider,
+            settings=settings,
         )
     except EmailAlreadyRegisteredError:
         raise HTTPException(
@@ -289,7 +290,7 @@ def google_auth(
             detail="Google authentication failed",
         ) from None
     try:
-        result = authenticate_google(db, identity, settings.session_ttl_seconds)
+        result = authenticate_google(db, identity, settings.session_ttl_seconds, settings=settings)
     except GoogleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -335,6 +336,7 @@ def mobile_google_auth(
             device_name=payload.device_name,
             access_ttl_seconds=settings.mobile_access_token_ttl_seconds,
             refresh_ttl_seconds=settings.mobile_refresh_token_ttl_seconds,
+            settings=settings,
         )
     except GoogleAccountConflictError:
         raise HTTPException(
@@ -372,7 +374,7 @@ def apple_auth(
             detail="Apple authentication failed",
         ) from None
     try:
-        result = authenticate_apple(db, identity, settings.session_ttl_seconds)
+        result = authenticate_apple(db, identity, settings.session_ttl_seconds, settings=settings)
     except AppleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -423,6 +425,7 @@ def mobile_apple_auth(
             device_name=payload.device_name,
             access_ttl_seconds=settings.mobile_access_token_ttl_seconds,
             refresh_ttl_seconds=settings.mobile_refresh_token_ttl_seconds,
+            settings=settings,
         )
     except AppleAccountConflictError:
         raise HTTPException(
@@ -493,6 +496,7 @@ def mobile_phone_verify_otp(
         device_name=payload.device_name,
         access_ttl_seconds=settings.mobile_access_token_ttl_seconds,
         refresh_ttl_seconds=settings.mobile_refresh_token_ttl_seconds,
+        settings=settings,
     )
     if result is None:
         raise HTTPException(
@@ -723,6 +727,7 @@ def phone_verify_otp(
         payload.code,
         settings.phone_otp_hmac_secret.get_secret_value(),
         settings.session_ttl_seconds,
+        settings=settings,
     )
     if result is None:
         raise HTTPException(

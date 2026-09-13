@@ -50,6 +50,7 @@ from app.auth.security import (
     normalize_iranian_phone,
     verify_password,
 )
+from app.config import Settings
 from app.entitlements.service import ensure_launch_trial_grant
 
 logger = logging.getLogger(__name__)
@@ -215,6 +216,8 @@ def register_user(
     email_verification_ttl_seconds: int,
     frontend_origin: str,
     provider: EmailProvider,
+    *,
+    settings: Settings | None = None,
 ) -> AuthResult:
     now = datetime.now(UTC)
     verification_raw_token, verification_hash = make_email_verification_token()
@@ -226,7 +229,7 @@ def register_user(
     db.add(user)
     try:
         db.flush()
-        ensure_launch_trial_grant(db, user.id, now=now)
+        ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
         auth_session, raw_token = _new_session(user, ttl_seconds, now)
         db.add(auth_session)
         db.add(
@@ -273,6 +276,7 @@ def _authenticate_google_user(
     db: Session,
     identity: GoogleIdentity,
     now: datetime,
+    settings: Settings | None = None,
 ) -> User:
     normalized_google_email = (
         normalize_email(identity.email) if identity.email is not None else None
@@ -299,14 +303,14 @@ def _authenticate_google_user(
                 )
                 db.add(user)
                 db.flush()
-                ensure_launch_trial_grant(db, user.id, now=now)
+                ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
         else:
             if email_user is not None:
                 raise GoogleAccountConflictError
             user = User(google_sub=identity.sub)
             db.add(user)
             db.flush()
-            ensure_launch_trial_grant(db, user.id, now=now)
+            ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
     elif identity.email_verified and normalized_google_email is not None:
         if user.email == normalized_google_email:
             user.email_verified_at = user.email_verified_at or now
@@ -325,10 +329,12 @@ def authenticate_google(
     db: Session,
     identity: GoogleIdentity,
     session_ttl_seconds: int,
+    *,
+    settings: Settings | None = None,
 ) -> AuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_google_user(db, identity, now)
+        user = _authenticate_google_user(db, identity, now, settings)
         auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
         db.add(auth_session)
         db.commit()
@@ -355,10 +361,11 @@ def authenticate_mobile_google(
     device_name: str | None,
     access_ttl_seconds: int,
     refresh_ttl_seconds: int,
+    settings: Settings | None = None,
 ) -> MobileAuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_google_user(db, identity, now)
+        user = _authenticate_google_user(db, identity, now, settings)
         return issue_mobile_tokens(
             db,
             user,
@@ -385,6 +392,7 @@ def _authenticate_apple_user(
     db: Session,
     identity: AppleIdentity,
     now: datetime,
+    settings: Settings | None = None,
 ) -> User:
     normalized_apple_email = (
         normalize_email(identity.email) if identity.email is not None else None
@@ -411,14 +419,14 @@ def _authenticate_apple_user(
                 )
                 db.add(user)
                 db.flush()
-                ensure_launch_trial_grant(db, user.id, now=now)
+                ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
         else:
             if email_user is not None:
                 raise AppleAccountConflictError
             user = User(apple_sub=identity.sub)
             db.add(user)
             db.flush()
-            ensure_launch_trial_grant(db, user.id, now=now)
+            ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
     elif identity.email_verified and normalized_apple_email is not None:
         if user.email == normalized_apple_email:
             user.email_verified_at = user.email_verified_at or now
@@ -437,10 +445,12 @@ def authenticate_apple(
     db: Session,
     identity: AppleIdentity,
     session_ttl_seconds: int,
+    *,
+    settings: Settings | None = None,
 ) -> AuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_apple_user(db, identity, now)
+        user = _authenticate_apple_user(db, identity, now, settings)
         auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
         db.add(auth_session)
         db.commit()
@@ -467,10 +477,11 @@ def authenticate_mobile_apple(
     device_name: str | None,
     access_ttl_seconds: int,
     refresh_ttl_seconds: int,
+    settings: Settings | None = None,
 ) -> MobileAuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_apple_user(db, identity, now)
+        user = _authenticate_apple_user(db, identity, now, settings)
         return issue_mobile_tokens(
             db,
             user,
@@ -915,6 +926,7 @@ def _verify_phone_otp_user(
     raw_phone_number: str,
     code: str,
     hmac_secret: str,
+    settings: Settings | None = None,
 ) -> User | None:
     phone_number = normalize_iranian_phone(raw_phone_number)
     now = datetime.now(UTC)
@@ -957,7 +969,7 @@ def _verify_phone_otp_user(
         user = User(phone_number=phone_number)
         db.add(user)
         db.flush()
-        ensure_launch_trial_grant(db, user.id, now=now)
+        ensure_launch_trial_grant(db, user.id, now=now, settings=settings)
     return user
 
 
@@ -967,9 +979,11 @@ def verify_phone_otp(
     code: str,
     hmac_secret: str,
     session_ttl_seconds: int,
+    *,
+    settings: Settings | None = None,
 ) -> AuthResult | None:
     now = datetime.now(UTC)
-    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret)
+    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
     if user is None:
         return None
     auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
@@ -995,9 +1009,10 @@ def authenticate_mobile_phone_otp(
     device_name: str | None,
     access_ttl_seconds: int,
     refresh_ttl_seconds: int,
+    settings: Settings | None = None,
 ) -> MobileAuthResult | None:
     now = datetime.now(UTC)
-    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret)
+    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
     if user is None:
         return None
     return issue_mobile_tokens(

@@ -8,6 +8,7 @@ from sqlalchemy import asc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.config import Settings, get_settings
 from app.entitlements.catalog import (
     QUOTA_POLICIES,
     QuotaPolicy,
@@ -17,10 +18,13 @@ from app.entitlements.catalog import (
 )
 from app.entitlements.enums import AccessPackageCode, EntitlementCode, GrantSource
 from app.entitlements.exceptions import (
+    AccessTermTooShortError,
     EntitlementQuotaExceededError,
     EntitlementRequiredError,
 )
 from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
+
+VALID_ACCESS_TERM_WEEKS = frozenset({4, 6, 8})
 
 
 @dataclass(frozen=True, slots=True)
@@ -283,10 +287,15 @@ def grant_package(
     ends_at: datetime | None = None,
     revoked_at: datetime | None = None,
     idempotency_key: str | None = None,
+    term_weeks: int | None = None,
 ) -> UserAccessGrant:
     code = AccessPackageCode(package_code)
     grant_source = GrantSource(source)
     package_definition(code)
+    if code is AccessPackageCode.LAUNCH_TRIAL and term_weeks is None:
+        term_weeks = 4
+    if term_weeks is not None and term_weeks not in VALID_ACCESS_TERM_WEEKS:
+        raise ValueError("term_weeks must be one of 4, 6, or 8")
     reference = _utc_now(starts_at)
     lock = db.scalar(select(User).where(User.id == user_id).with_for_update())
     if lock is None:
@@ -306,6 +315,7 @@ def grant_package(
         user_id=user_id,
         package_code=code,
         source=grant_source,
+        term_weeks=term_weeks,
         starts_at=reference,
         ends_at=_optional_utc(ends_at),
         revoked_at=_optional_utc(revoked_at),
@@ -321,14 +331,73 @@ def ensure_launch_trial_grant(
     user_id: UUID,
     *,
     now: datetime | None = None,
-) -> UserAccessGrant:
+    settings: Settings | None = None,
+) -> UserAccessGrant | None:
     reference = _utc_now(now)
+    user = db.scalar(select(User).where(User.id == user_id).with_for_update())
+    if user is None:
+        raise ValueError(f"User not found: {user_id}")
+    existing = db.scalar(
+        select(UserAccessGrant).where(
+            UserAccessGrant.user_id == user_id,
+            UserAccessGrant.idempotency_key == "launch_trial:v1",
+        )
+    )
+    if existing is not None:
+        return existing
+    active_settings = settings or get_settings()
+    if not active_settings.launch_trial_enabled:
+        return None
+    signup_at = _optional_utc(user.created_at) or reference
+    deadline = _optional_utc(active_settings.launch_trial_signup_deadline)
+    if deadline is not None and signup_at > deadline:
+        return None
     return grant_package(
         db,
         user_id,
         AccessPackageCode.LAUNCH_TRIAL,
         source=GrantSource.LAUNCH_TRIAL,
         starts_at=reference,
-        ends_at=reference + timedelta(days=30),
+        ends_at=reference + timedelta(days=active_settings.launch_trial_duration_days),
         idempotency_key="launch_trial:v1",
+        term_weeks=4,
     )
+
+
+def max_active_term_weeks_for_entitlement(
+    db: Session,
+    user_id: UUID,
+    entitlement: EntitlementCode | str,
+    *,
+    now: datetime | None = None,
+) -> int | None:
+    code = EntitlementCode(entitlement)
+    snapshot = resolve_access_snapshot(db, user_id, now=now)
+    terms = [
+        grant.term_weeks
+        for grant in snapshot.grants
+        if grant.term_weeks in VALID_ACCESS_TERM_WEEKS
+        and code in package_definition(AccessPackageCode(grant.package_code)).entitlements
+    ]
+    return max(terms) if terms else None
+
+
+def ensure_requested_term_weeks(
+    db: Session,
+    user_id: UUID,
+    entitlement: EntitlementCode | str,
+    *,
+    requested_weeks: int,
+    now: datetime | None = None,
+) -> None:
+    if requested_weeks not in VALID_ACCESS_TERM_WEEKS:
+        raise ValueError("requested_weeks must be one of 4, 6, or 8")
+    require_entitlement(db, user_id, entitlement, now=now)
+    maximum_weeks = max_active_term_weeks_for_entitlement(
+        db,
+        user_id,
+        entitlement,
+        now=now,
+    )
+    if maximum_weeks is not None and requested_weeks > maximum_weeks:
+        raise AccessTermTooShortError(requested_weeks, maximum_weeks)

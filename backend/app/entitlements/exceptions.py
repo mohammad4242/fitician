@@ -6,6 +6,15 @@ from app.entitlements.catalog import eligible_upgrade_packages
 from app.entitlements.enums import AccessPackageCode, EntitlementCode
 
 
+class AccessTermTooShortError(Exception):
+    def __init__(self, requested_weeks: int, maximum_weeks: int) -> None:
+        self.requested_weeks = requested_weeks
+        self.maximum_weeks = maximum_weeks
+        super().__init__(
+            f"Requested access term {requested_weeks} weeks exceeds maximum {maximum_weeks} weeks"
+        )
+
+
 class EntitlementRequiredError(Exception):
     def __init__(
         self,

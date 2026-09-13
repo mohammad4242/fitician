@@ -21,6 +21,7 @@ def test_entitlement_tables_have_expected_columns_and_constraints() -> None:
         "user_id",
         "package_code",
         "source",
+        "term_weeks",
         "starts_at",
         "ends_at",
         "revoked_at",

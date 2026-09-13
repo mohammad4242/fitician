@@ -68,6 +68,7 @@ export type AccessGrantSummary = {
   readonly id: string;
   readonly package_code: AccessPackageCode;
   readonly source: GrantSource;
+  readonly term_weeks: 4 | 6 | 8 | null;
   readonly starts_at: string;
   readonly ends_at: string | null;
   readonly revoked_at: string | null;

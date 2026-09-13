@@ -35,6 +35,7 @@ class AccessGrantSummaryResponse(BaseModel):
     id: UUID
     package_code: AccessPackageCode
     source: GrantSource
+    term_weeks: int | None
     starts_at: datetime
     ends_at: datetime | None
     revoked_at: datetime | None

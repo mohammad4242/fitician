@@ -12,7 +12,11 @@ from app.auth.cookies import require_trusted_origin
 from app.auth.models import User
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
-from app.entitlements.service import has_entitlement, require_entitlement
+from app.entitlements.service import (
+    ensure_requested_term_weeks,
+    has_entitlement,
+    require_entitlement,
+)
 from app.exercises.dependencies import require_completed_profile
 from app.exercises.media_resolver import resolve_primary_media
 from app.exercises.models import Exercise
@@ -106,6 +110,14 @@ async def generate_plan(
     payload: ProgramGenerationOverrides | None = None,
 ) -> WorkoutPlanGenerateResponse:
     access = require_entitlement(db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE)
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
+    if profile is not None and profile.plan_duration_weeks is not None:
+        ensure_requested_term_weeks(
+            db,
+            user.id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            requested_weeks=profile.plan_duration_weeks,
+        )
     review_required = access.has(EntitlementCode.TRAINING_COACH_REVIEW)
     try:
         result = (
