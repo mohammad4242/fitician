@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.profile.models import UserProfile
+from app.time_context import member_timezone_or_default
 from app.workout_cycles.enums import WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleFeedback, WorkoutCycleWeeklyCheckIn
 from app.workout_cycles.service import (
@@ -93,7 +94,8 @@ def enqueue_due_cycle_reminders(db: Session, *, now: datetime | None = None) -> 
     for cycle in cycles:
         timezone_name = db.scalar(
             select(UserProfile.timezone).where(UserProfile.user_id == cycle.user_id)
-        ) or cycle.start_timezone or "UTC"
+        )
+        timezone_name = member_timezone_or_default(timezone_name, cycle.start_timezone)
         if not workout_cycle_has_started(cycle, timezone_name=timezone_name, now=current):
             continue
         current_week = calculate_cycle_current_week(

@@ -58,7 +58,7 @@ def test_timezone_update_persists_only_for_the_authenticated_profile(
     second_profile = db.get(UserProfile, second_user_id)
     assert first_profile is not None
     assert second_profile is not None
-    assert first_profile.timezone == "UTC"
+    assert first_profile.timezone == "Asia/Tehran"
     assert second_profile.timezone == "Asia/Tehran"
 
 

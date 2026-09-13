@@ -30,7 +30,11 @@ from app.program_timeline.schemas import (
     TimelineWorkoutSessionResponse,
     WorkoutTimelineState,
 )
-from app.time_context import local_date_for_timezone, validate_timezone_name
+from app.time_context import (
+    local_date_for_timezone,
+    member_timezone_or_default,
+    validate_timezone_name,
+)
 from app.workout_cycles.enums import WorkoutCycleSessionStatus, WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleSession
 from app.workout_cycles.service import (
@@ -344,7 +348,11 @@ def build_program_timeline(
 ) -> ProgramTimelineTodayResponse:
     current_at = _timeline_now(now)
     profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
-    timezone = validate_timezone_name(timezone_name or profile_timezone or "UTC")
+    timezone = (
+        validate_timezone_name(timezone_name)
+        if timezone_name is not None
+        else member_timezone_or_default(profile_timezone)
+    )
     local_date = local_date_for_timezone(timezone, now=current_at)
     return ProgramTimelineTodayResponse(
         local_date=local_date,

@@ -12,7 +12,10 @@ def test_program_timeline_schema_has_required_columns_and_constraints(db: Sessio
 
     profile_columns = {column["name"]: column for column in inspector.get_columns("user_profiles")}
     assert profile_columns["timezone"]["nullable"] is False
-    assert profile_columns["timezone"]["default"] in {"'UTC'::character varying", "'UTC'"}
+    assert profile_columns["timezone"]["default"] in {
+        "'Asia/Tehran'::character varying",
+        "'Asia/Tehran'",
+    }
 
     nutrition_columns = {
         column["name"]: column for column in inspector.get_columns("nutrition_weekly_plans")

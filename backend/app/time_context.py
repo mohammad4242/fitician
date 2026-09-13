@@ -1,6 +1,8 @@
 from datetime import UTC, date, datetime, time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+DEFAULT_MEMBER_TIMEZONE = "Asia/Tehran"
+
 
 def validate_timezone_name(value: str) -> str:
     if not isinstance(value, str):
@@ -13,6 +15,17 @@ def validate_timezone_name(value: str) -> str:
     except (ValueError, ZoneInfoNotFoundError) as error:
         raise ValueError("Timezone must be a valid IANA timezone name") from error
     return timezone_name
+
+
+def member_timezone_or_default(*values: str | None) -> str:
+    for value in values:
+        if value is None:
+            continue
+        try:
+            return validate_timezone_name(value)
+        except ValueError:
+            continue
+    return DEFAULT_MEMBER_TIMEZONE
 
 
 def local_date_for_timezone(

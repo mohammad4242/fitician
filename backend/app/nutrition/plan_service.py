@@ -1349,10 +1349,10 @@ def active_weekly_plan(
     db: Session, user_id: UUID, *, now: datetime | None = None
 ) -> WeeklyPlanResponse:
     from app.nutrition.calendar import effective_nutrition_plan_for_date
-    from app.time_context import local_date_for_timezone
+    from app.time_context import local_date_for_timezone, member_timezone_or_default
 
     timezone_name = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
-    local_date = local_date_for_timezone(timezone_name or "UTC", now=now)
+    local_date = local_date_for_timezone(member_timezone_or_default(timezone_name), now=now)
     plan = effective_nutrition_plan_for_date(db, user_id, local_date)
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError

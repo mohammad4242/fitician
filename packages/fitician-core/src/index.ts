@@ -38,6 +38,16 @@ export type {
 
 export type { components, paths, webhooks } from "./generated/api";
 export { localIsoDate, resolvedIanaTimeZone } from "./local-date";
+export {
+  FITICIAN_WEEKDAY_LABELS_FA,
+  IRAN_TIME_ZONE,
+  PERSIAN_CALENDAR_LOCALE,
+  fiticianWeekdayFromIsoDate,
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatPersianWeekday,
+  formatTehranDateTime,
+} from "./iran-calendar";
 export type {
   NutritionPlanStartRequest,
   NutritionTimelineState,

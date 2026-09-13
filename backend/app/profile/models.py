@@ -91,7 +91,7 @@ class UserProfile(Base):
         nullable=False,
     )
     timezone: Mapped[str] = mapped_column(
-        String(64), nullable=False, default="UTC", server_default="UTC"
+        String(64), nullable=False, default="Asia/Tehran", server_default="Asia/Tehran"
     )
     display_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)

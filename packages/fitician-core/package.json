@@ -86,6 +86,10 @@
       "types": "./dist/local-date.d.ts",
       "import": "./dist/local-date.js"
     },
+    "./iran-calendar": {
+      "types": "./dist/iran-calendar.d.ts",
+      "import": "./dist/iran-calendar.js"
+    },
     "./program-timeline": {
       "types": "./dist/program-timeline.d.ts",
       "import": "./dist/program-timeline.js"

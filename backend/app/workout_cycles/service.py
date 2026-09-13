@@ -13,9 +13,11 @@ from app.profile.models import UserProfile
 from app.profile.schemas import ProfileUpdate
 from app.profile.service import apply_profile_update_without_commit
 from app.time_context import (
+    DEFAULT_MEMBER_TIMEZONE,
     fitician_weekday,
     local_date_for_timezone,
     local_midnight_utc,
+    member_timezone_or_default,
     validate_timezone_name,
 )
 from app.workout_cycles.body_progress_schemas import (
@@ -179,7 +181,9 @@ def calculate_current_week(
     return min(duration_weeks, elapsed_days // 7 + 1)
 
 
-def workout_cycle_start_date(cycle: WorkoutCycle, *, timezone_name: str = "UTC") -> date:
+def workout_cycle_start_date(
+    cycle: WorkoutCycle, *, timezone_name: str = DEFAULT_MEMBER_TIMEZONE
+) -> date:
     """Return the immutable logical start, with a legacy in-memory fallback."""
     stored = getattr(cycle, "start_date", None)
     if isinstance(stored, date):
@@ -203,7 +207,7 @@ def workout_cycle_timezone(db: Session, *, user_id: UUID, cycle: WorkoutCycle) -
     profile_timezone = db.scalar(
         select(UserProfile.timezone).where(UserProfile.user_id == user_id)
     )
-    return validate_timezone_name(profile_timezone or cycle.start_timezone or "UTC")
+    return member_timezone_or_default(profile_timezone, cycle.start_timezone)
 
 
 def _cycle_local_date(
@@ -242,7 +246,7 @@ def cycle_has_reached_nominal_end(
     cycle: WorkoutCycle,
     *,
     now: datetime | None = None,
-    timezone_name: str = "UTC",
+    timezone_name: str = DEFAULT_MEMBER_TIMEZONE,
 ) -> bool:
     current_at = _as_utc(datetime.now(UTC) if now is None else now)
     if cycle.sessions:
@@ -262,7 +266,7 @@ def cycle_has_reached_nominal_end(
 def calculate_cycle_current_week(
     cycle: WorkoutCycle,
     *,
-    timezone_name: str = "UTC",
+    timezone_name: str = DEFAULT_MEMBER_TIMEZONE,
     now: datetime | None = None,
 ) -> int:
     current_date = local_date_for_timezone(
@@ -279,7 +283,7 @@ def calculate_cycle_current_week(
 def workout_cycle_has_started(
     cycle: WorkoutCycle,
     *,
-    timezone_name: str = "UTC",
+    timezone_name: str = DEFAULT_MEMBER_TIMEZONE,
     now: datetime | None = None,
 ) -> bool:
     current_date = local_date_for_timezone(
@@ -1055,7 +1059,7 @@ def _current_executable_cycle(
     cycles = _current_plan_cycles(db, user_id=user_id, lock=lock)
     timezone_name = db.scalar(
         select(UserProfile.timezone).where(UserProfile.user_id == user_id)
-    ) or "UTC"
+    ) or DEFAULT_MEMBER_TIMEZONE
     return next(
         (
             cycle
@@ -1176,7 +1180,7 @@ def reschedule_current_cycle_session(
     )
 
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
-    timezone_name = profile.timezone if profile is not None else "UTC"
+    timezone_name = member_timezone_or_default(profile.timezone if profile is not None else None)
     cycle_start_date = workout_cycle_start_date(session.cycle, timezone_name=timezone_name)
     if scheduled_date < cycle_start_date:
         raise WorkoutCycleSessionBeforeStartError
