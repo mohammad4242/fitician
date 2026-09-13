@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
@@ -68,7 +69,13 @@ def test_current_cycle_returns_the_authenticated_users_active_cycle(
 ) -> None:
     user_id = _register_and_complete_profile(client, f"current-cycle-{uuid4()}@example.com")
     plan = _plan(db, user_id, duration_weeks=6)
-    cycle = start_cycle(db, user_id=user_id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user_id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     response = client.get("/api/v1/workout-cycles/current")
 
@@ -80,6 +87,10 @@ def test_current_cycle_returns_the_authenticated_users_active_cycle(
         "duration_weeks": 6,
         "status": WorkoutCycleStatus.ACTIVE.value,
         "current_week": 1,
+        "has_exact_session_tracking": False,
+        "completed_sessions": 0,
+        "total_sessions": 0,
+        "sessions": [],
     }
 
 
@@ -98,7 +109,13 @@ def test_current_cycle_never_returns_another_users_cycle(
 ) -> None:
     owner_id = _register_and_complete_profile(client, f"cycle-owner-{uuid4()}@example.com")
     plan = _plan(db, owner_id)
-    owner_cycle = start_cycle(db, user_id=owner_id, workout_plan_id=plan.id)
+    owner_cycle = start_cycle(
+        db,
+        user_id=owner_id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     client.post("/api/v1/auth/logout", headers=ORIGIN)
     _register_and_complete_profile(client, f"cycle-other-{uuid4()}@example.com")

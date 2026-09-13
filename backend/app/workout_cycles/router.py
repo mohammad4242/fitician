@@ -23,6 +23,9 @@ from app.workout_cycles.schemas import (
     WorkoutCycleCompletionFeedbackResponse,
     WorkoutCycleCurrentResponse,
     WorkoutCycleExerciseFeedbackSuggestionsResponse,
+    WorkoutCycleSessionRescheduleRequest,
+    WorkoutCycleSessionResponse,
+    WorkoutCycleStartRequest,
     WorkoutCycleWeeklyCheckInPainFollowUpResponse,
     WorkoutCycleWeeklyCheckInResponse,
     WorkoutCycleWeeklyCheckInUpsertRequest,
@@ -30,9 +33,15 @@ from app.workout_cycles.schemas import (
     WorkoutExerciseReplacementResponse,
 )
 from app.workout_cycles.service import (
+    WorkoutCycleAlreadyStartedError,
     WorkoutCycleCompletionFeedbackNotDueError,
     WorkoutCycleCompletionFeedbackNotFoundError,
     WorkoutCycleNotFoundError,
+    WorkoutCyclePlanInactiveError,
+    WorkoutCycleSessionAlreadyFinishedError,
+    WorkoutCycleSessionBeforeStartError,
+    WorkoutCycleSessionDateConflictError,
+    WorkoutCycleSessionNotFoundError,
     WorkoutCycleWeeklyCheckInNoActiveCycleError,
     WorkoutCycleWeeklyCheckInNotFoundError,
     WorkoutCycleWeeklyCheckInPainExerciseNotFoundError,
@@ -44,6 +53,7 @@ from app.workout_cycles.service import (
     WorkoutExerciseReplacementPlanExerciseNotFoundError,
     WorkoutExerciseReplacementSelfError,
     calculate_current_week,
+    complete_current_cycle_session,
     completion_feedback_input,
     cycle_has_reached_nominal_end,
     get_current_active_cycle_for_user,
@@ -52,6 +62,9 @@ from app.workout_cycles.service import (
     get_cycle_exercise_feedback_suggestions,
     get_cycle_feedback_body_progress_context,
     record_exercise_replacement,
+    reschedule_current_cycle_session,
+    skip_current_cycle_session,
+    start_cycle,
     submit_current_completion_feedback,
     upsert_current_weekly_check_in,
 )
@@ -59,6 +72,69 @@ from app.workout_cycles.service import (
 router = APIRouter(prefix="/api/v1/workout-cycles", tags=["workout-cycles"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def _cycle_response(cycle: WorkoutCycle) -> WorkoutCycleCurrentResponse:
+    sessions = sorted(
+        cycle.sessions,
+        key=lambda session: (session.scheduled_date, session.session_number),
+    )
+    return WorkoutCycleCurrentResponse(
+        cycle_id=cycle.id,
+        workout_plan_id=cycle.workout_plan_id,
+        started_at=cycle.started_at,
+        duration_weeks=cycle.duration_weeks,
+        status=cycle.status,
+        current_week=calculate_current_week(cycle.started_at, cycle.duration_weeks),
+        has_exact_session_tracking=bool(sessions),
+        completed_sessions=sum(session.status.value == "completed" for session in sessions),
+        total_sessions=len(sessions),
+        sessions=[WorkoutCycleSessionResponse.model_validate(session) for session in sessions],
+    )
+
+
+@router.post(
+    "/start",
+    response_model=WorkoutCycleCurrentResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def start_current_cycle(
+    payload: WorkoutCycleStartRequest,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> WorkoutCycleCurrentResponse:
+    try:
+        cycle = start_cycle(
+            db,
+            user_id=user.id,
+            workout_plan_id=payload.workout_plan_id,
+            start_date=payload.start_date,
+            timezone_name=payload.timezone,
+        )
+        db.commit()
+        db.refresh(cycle)
+    except WorkoutCycleNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout plan not found",
+        ) from None
+    except WorkoutCycleAlreadyStartedError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workout plan has already been started with another date",
+        ) from None
+    except WorkoutCyclePlanInactiveError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workout plan is not executable",
+        ) from None
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(error),
+        ) from None
+    return _cycle_response(cycle)
 
 
 @router.get("/current", response_model=WorkoutCycleCurrentResponse)
@@ -72,14 +148,110 @@ def read_current_cycle(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No active workout cycle",
         )
-    return WorkoutCycleCurrentResponse(
-        cycle_id=cycle.id,
-        workout_plan_id=cycle.workout_plan_id,
-        started_at=cycle.started_at,
-        duration_weeks=cycle.duration_weeks,
-        status=cycle.status,
-        current_week=calculate_current_week(cycle.started_at, cycle.duration_weeks),
+    return _cycle_response(cycle)
+
+
+def _session_mutation_error(error: Exception) -> HTTPException:
+    if isinstance(error, WorkoutCycleSessionNotFoundError):
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workout cycle session not found",
+        )
+    if isinstance(error, WorkoutCycleSessionAlreadyFinishedError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workout cycle session is already finished",
+        )
+    if isinstance(error, WorkoutCycleSessionDateConflictError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Another workout session is already scheduled for that date",
+        )
+    if isinstance(error, WorkoutCycleSessionBeforeStartError):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Workout session cannot be scheduled before the cycle start date",
+        )
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=str(error),
     )
+
+
+@router.post(
+    "/current/sessions/{session_id}/complete",
+    response_model=WorkoutCycleSessionResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def complete_current_session(
+    session_id: UUID,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> WorkoutCycleSessionResponse:
+    try:
+        session = complete_current_cycle_session(
+            db,
+            user_id=user.id,
+            session_id=session_id,
+        )
+    except (
+        WorkoutCycleSessionNotFoundError,
+        WorkoutCycleSessionAlreadyFinishedError,
+    ) as error:
+        raise _session_mutation_error(error) from None
+    return WorkoutCycleSessionResponse.model_validate(session)
+
+
+@router.post(
+    "/current/sessions/{session_id}/skip",
+    response_model=WorkoutCycleSessionResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def skip_current_session(
+    session_id: UUID,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> WorkoutCycleSessionResponse:
+    try:
+        session = skip_current_cycle_session(
+            db,
+            user_id=user.id,
+            session_id=session_id,
+        )
+    except (
+        WorkoutCycleSessionNotFoundError,
+        WorkoutCycleSessionAlreadyFinishedError,
+    ) as error:
+        raise _session_mutation_error(error) from None
+    return WorkoutCycleSessionResponse.model_validate(session)
+
+
+@router.post(
+    "/current/sessions/{session_id}/reschedule",
+    response_model=WorkoutCycleSessionResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def reschedule_current_session(
+    session_id: UUID,
+    payload: WorkoutCycleSessionRescheduleRequest,
+    db: DatabaseSession,
+    user: CurrentUser,
+) -> WorkoutCycleSessionResponse:
+    try:
+        session = reschedule_current_cycle_session(
+            db,
+            user_id=user.id,
+            session_id=session_id,
+            scheduled_date=payload.scheduled_date,
+        )
+    except (
+        WorkoutCycleSessionNotFoundError,
+        WorkoutCycleSessionAlreadyFinishedError,
+        WorkoutCycleSessionDateConflictError,
+        WorkoutCycleSessionBeforeStartError,
+    ) as error:
+        raise _session_mutation_error(error) from None
+    return WorkoutCycleSessionResponse.model_validate(session)
 
 
 def _completion_feedback_response(

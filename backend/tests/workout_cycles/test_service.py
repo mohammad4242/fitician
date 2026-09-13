@@ -91,7 +91,13 @@ def test_start_cycle_accepts_supported_plan_durations(db: Session, duration_week
     user = make_user(db, f"duration-{duration_weeks}@example.com")
     plan = make_plan(db, user.id, duration_weeks=duration_weeks)
 
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     assert cycle.status is WorkoutCycleStatus.ACTIVE
     assert cycle.duration_weeks == duration_weeks
@@ -140,8 +146,20 @@ def test_start_cycle_is_idempotent_for_one_plan(db: Session) -> None:
     user = make_user(db, "idempotent-cycle@example.com")
     plan = make_plan(db, user.id)
 
-    first = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
-    second = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    first = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
+    second = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     assert second.id == first.id
     assert db.query(WorkoutCycle).filter_by(workout_plan_id=plan.id).count() == 1
@@ -152,7 +170,13 @@ def test_start_cycle_rejects_unsupported_plan_duration(db: Session) -> None:
     plan = make_plan(db, user.id, duration_weeks=5)
 
     with pytest.raises(ValueError, match="4, 6, or 8"):
-        start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+        start_cycle(
+            db,
+            user_id=user.id,
+            workout_plan_id=plan.id,
+            start_date=date(2026, 9, 12),
+            timezone_name="UTC",
+        )
 
 
 @pytest.mark.parametrize(
@@ -168,7 +192,13 @@ def test_start_cycle_requires_an_active_workout_plan(
     db.flush()
 
     with pytest.raises(WorkoutCyclePlanInactiveError):
-        start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+        start_cycle(
+            db,
+            user_id=user.id,
+            workout_plan_id=plan.id,
+            start_date=date(2026, 9, 12),
+            timezone_name="UTC",
+        )
 
 
 def test_cycle_cannot_be_created_twice_at_database_level(db: Session) -> None:
@@ -189,7 +219,13 @@ def test_other_user_cannot_read_or_complete_cycle(db: Session) -> None:
     owner = make_user(db, "cycle-owner@example.com")
     other = make_user(db, "cycle-other@example.com")
     plan = make_plan(db, owner.id)
-    cycle = start_cycle(db, user_id=owner.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=owner.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     assert get_cycle_for_user(db, cycle_id=cycle.id, user_id=other.id) is None
     with pytest.raises(WorkoutCycleNotFoundError):
@@ -199,7 +235,13 @@ def test_other_user_cannot_read_or_complete_cycle(db: Session) -> None:
 def test_complete_cycle_allows_feedback_to_be_omitted(db: Session) -> None:
     user = make_user(db, "optional-feedback@example.com")
     plan = make_plan(db, user.id, duration_weeks=6)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     completed = complete_cycle(db, cycle_id=cycle.id, user_id=user.id)
 
@@ -211,7 +253,13 @@ def test_complete_cycle_allows_feedback_to_be_omitted(db: Session) -> None:
 def test_complete_cycle_stores_structured_optional_feedback(db: Session) -> None:
     user = make_user(db, "cycle-feedback@example.com")
     plan = make_plan(db, user.id, duration_weeks=8)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
     feedback = CompletionFeedbackInput(
         adherence_percent=82,
         performance_changes="Added reps on pressing movements.",
@@ -238,7 +286,13 @@ def test_complete_cycle_stores_structured_optional_feedback(db: Session) -> None
 def test_complete_cycle_stores_structured_coaching_feedback(db: Session) -> None:
     user = make_user(db, "structured-cycle-feedback@example.com")
     plan = make_plan(db, user.id, duration_weeks=8)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
     feedback = CompletionFeedbackInput(
         overall_difficulty=WorkoutCycleWeeklyCheckInDifficulty.HARD,
         overall_recovery=WorkoutCycleWeeklyCheckInRecovery.GOOD,
@@ -285,7 +339,13 @@ def test_confirmed_end_cycle_changes_update_only_confirmed_profile_fields(db: Se
     user = make_user(db, "confirmed-profile-changes@example.com")
     profile = make_profile(db, user.id)
     plan = make_plan(db, user.id)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     complete_cycle(
         db,
@@ -326,7 +386,13 @@ def test_unconfirmed_end_cycle_values_do_not_change_profile(db: Session) -> None
     user = make_user(db, "unconfirmed-profile-changes@example.com")
     profile = make_profile(db, user.id)
     plan = make_plan(db, user.id)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     complete_cycle(
         db,
@@ -358,7 +424,13 @@ def test_absent_end_cycle_changes_preserve_profile(db: Session) -> None:
     user = make_user(db, "absent-profile-changes@example.com")
     profile = make_profile(db, user.id)
     plan = make_plan(db, user.id)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     complete_cycle(
         db,
@@ -382,7 +454,13 @@ def test_other_user_cannot_apply_confirmed_end_cycle_changes(db: Session) -> Non
     other = make_user(db, "other-confirmed-profile@example.com")
     other_profile = make_profile(db, other.id)
     plan = make_plan(db, owner.id)
-    cycle = start_cycle(db, user_id=owner.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=owner.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     with pytest.raises(WorkoutCycleNotFoundError):
         complete_cycle(
@@ -455,7 +533,13 @@ def test_completion_feedback_allows_legacy_fields_without_new_structured_values(
 def test_completed_cycle_cannot_be_completed_again(db: Session) -> None:
     user = make_user(db, "complete-once@example.com")
     plan = make_plan(db, user.id)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
     complete_cycle(db, cycle_id=cycle.id, user_id=user.id)
 
     with pytest.raises(WorkoutCycleAlreadyCompletedError):
@@ -489,7 +573,13 @@ def test_start_cycle_is_concurrency_idempotent_with_two_database_sessions() -> N
 
         def start_in_session() -> UUID:
             with Session(engine) as worker_db:
-                cycle = start_cycle(worker_db, user_id=user_id, workout_plan_id=plan_id)
+                cycle = start_cycle(
+                    worker_db,
+                    user_id=user_id,
+                    workout_plan_id=plan_id,
+                    start_date=date(2026, 9, 12),
+                    timezone_name="UTC",
+                )
                 worker_db.commit()
                 return cycle.id
 
@@ -541,7 +631,13 @@ def test_cycle_completion_is_concurrency_safe_with_optional_feedback() -> None:
         with Session(engine) as setup_db:
             user = make_user(setup_db, email)
             plan = make_plan(setup_db, user.id)
-            cycle = start_cycle(setup_db, user_id=user.id, workout_plan_id=plan.id)
+            cycle = start_cycle(
+                setup_db,
+                user_id=user.id,
+                workout_plan_id=plan.id,
+                start_date=date(2026, 9, 12),
+                timezone_name="UTC",
+            )
             user_id = user.id
             cycle_id = cycle.id
             setup_db.commit()

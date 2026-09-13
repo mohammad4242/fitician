@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -6,11 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.exercises.enums import MuscleGroup
 from app.profile.enums import HomeTrainingSetup, TrainingLocation
 from app.profile.schemas import SessionDurationMinutes
+from app.time_context import validate_timezone_name
 from app.workout_cycles.enums import (
     WorkoutCycleExerciseFeedbackSuggestionKind,
     WorkoutCycleExerciseFeedbackType,
     WorkoutCycleFeedbackProgress,
     WorkoutCycleFeedbackSatisfaction,
+    WorkoutCycleSessionStatus,
     WorkoutCycleStatus,
     WorkoutCycleWeeklyCheckInDifficulty,
     WorkoutCycleWeeklyCheckInRecovery,
@@ -160,6 +162,42 @@ class WorkoutCycleCurrentResponse(BaseModel):
     duration_weeks: int
     status: WorkoutCycleStatus
     current_week: int
+    has_exact_session_tracking: bool = False
+    completed_sessions: int = 0
+    total_sessions: int = 0
+    sessions: list["WorkoutCycleSessionResponse"] = Field(default_factory=list)
+
+
+class WorkoutCycleStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    workout_plan_id: UUID
+    start_date: date
+    timezone: str
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str) -> str:
+        return validate_timezone_name(value)
+
+
+class WorkoutCycleSessionRescheduleRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    scheduled_date: date
+
+
+class WorkoutCycleSessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    id: UUID
+    workout_day_id: UUID
+    week_number: int
+    session_number: int
+    scheduled_date: date
+    status: WorkoutCycleSessionStatus
+    completed_at: datetime | None
+    skipped_at: datetime | None
 
 
 class CompletionFeedbackInput(BaseModel):

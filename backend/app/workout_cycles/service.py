@@ -1,10 +1,10 @@
 from collections.abc import Iterable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.exercises.enums import MuscleGroup
 from app.exercises.models import ExerciseAlternative
@@ -12,6 +12,12 @@ from app.profile.enums import FitnessGoal, TrainingLocation
 from app.profile.models import UserProfile
 from app.profile.schemas import ProfileUpdate
 from app.profile.service import apply_profile_update_without_commit
+from app.time_context import (
+    fitician_weekday,
+    local_date_for_timezone,
+    local_midnight_utc,
+    validate_timezone_name,
+)
 from app.workout_cycles.body_progress_schemas import (
     WorkoutCycleBodyProgressComparisonResponse,
     WorkoutCycleFeedbackBodyProgressContext,
@@ -19,6 +25,7 @@ from app.workout_cycles.body_progress_schemas import (
 from app.workout_cycles.enums import (
     WorkoutCycleExerciseFeedbackSuggestionKind,
     WorkoutCycleExerciseFeedbackType,
+    WorkoutCycleSessionStatus,
     WorkoutCycleStatus,
     WorkoutCycleWeeklyCheckInDifficulty,
     WorkoutCycleWeeklyCheckInRecovery,
@@ -31,6 +38,7 @@ from app.workout_cycles.models import (
     WorkoutCycle,
     WorkoutCycleExerciseFeedback,
     WorkoutCycleFeedback,
+    WorkoutCycleSession,
     WorkoutCycleWeeklyCheckIn,
     WorkoutCycleWeeklyCheckInPainLimitation,
     WorkoutExercisePreference,
@@ -52,6 +60,26 @@ SUPPORTED_CYCLE_DURATIONS = frozenset({4, 6, 8})
 
 
 class WorkoutCycleNotFoundError(Exception):
+    pass
+
+
+class WorkoutCycleAlreadyStartedError(Exception):
+    pass
+
+
+class WorkoutCycleSessionNotFoundError(Exception):
+    pass
+
+
+class WorkoutCycleSessionAlreadyFinishedError(Exception):
+    pass
+
+
+class WorkoutCycleSessionDateConflictError(Exception):
+    pass
+
+
+class WorkoutCycleSessionBeforeStartError(ValueError):
     pass
 
 
@@ -722,7 +750,20 @@ def start_cycle(
     *,
     user_id: UUID,
     workout_plan_id: UUID,
+    start_date: date,
+    timezone_name: str,
 ) -> WorkoutCycle:
+    validated_timezone = validate_timezone_name(timezone_name)
+    plan = db.scalar(
+        select(WorkoutPlan)
+        .where(WorkoutPlan.id == workout_plan_id, WorkoutPlan.user_id == user_id)
+        .options(selectinload(WorkoutPlan.days))
+    )
+    if plan is None:
+        raise WorkoutCycleNotFoundError
+    if plan.status is not WorkoutPlanStatus.ACTIVE or plan.deleted_at is not None:
+        raise WorkoutCyclePlanInactiveError
+
     existing = db.scalar(
         select(WorkoutCycle).where(
             WorkoutCycle.workout_plan_id == workout_plan_id,
@@ -730,37 +771,248 @@ def start_cycle(
         )
     )
     if existing is not None:
-        return existing
-
-    plan = db.scalar(
-        select(WorkoutPlan).where(
-            WorkoutPlan.id == workout_plan_id,
-            WorkoutPlan.user_id == user_id,
+        existing_start_date = local_date_for_timezone(
+            validated_timezone,
+            now=existing.started_at,
         )
-    )
-    if plan is None:
-        raise WorkoutCycleNotFoundError
-    if plan.status is not WorkoutPlanStatus.ACTIVE:
-        raise WorkoutCyclePlanInactiveError
+        if existing_start_date == start_date:
+            _persist_cycle_timezone(db, user_id=user_id, timezone_name=validated_timezone)
+            db.flush()
+            return existing
+        raise WorkoutCycleAlreadyStartedError
 
     duration_weeks = _plan_duration_weeks(plan)
     cycle = WorkoutCycle(
         user_id=user_id,
         workout_plan_id=plan.id,
         duration_weeks=duration_weeks,
+        started_at=local_midnight_utc(start_date, validated_timezone),
     )
     try:
         with db.begin_nested():
             db.add(cycle)
             db.flush()
-    except IntegrityError:
+    except IntegrityError as error:
         concurrent_cycle = db.scalar(
             select(WorkoutCycle).where(WorkoutCycle.workout_plan_id == workout_plan_id)
         )
         if concurrent_cycle is not None:
-            return concurrent_cycle
+            concurrent_start_date = local_date_for_timezone(
+                validated_timezone,
+                now=concurrent_cycle.started_at,
+            )
+            if concurrent_start_date == start_date:
+                return concurrent_cycle
+            raise WorkoutCycleAlreadyStartedError from error
         raise
+    _persist_cycle_timezone(db, user_id=user_id, timezone_name=validated_timezone)
+    sessions = build_cycle_sessions(
+        cycle_id=cycle.id,
+        plan=plan,
+        start_date=start_date,
+        duration_weeks=duration_weeks,
+    )
+    db.add_all(sessions)
+    db.flush()
     return cycle
+
+
+def build_cycle_sessions(
+    *,
+    cycle_id: UUID,
+    plan: WorkoutPlan,
+    start_date: date,
+    duration_weeks: int,
+) -> list[WorkoutCycleSession]:
+    days = list(plan.days)
+    if not days:
+        return []
+
+    stored_weekdays = tuple(day.weekday for day in days)
+    if all(weekday is not None for weekday in stored_weekdays):
+        weekdays = tuple(int(weekday) for weekday in stored_weekdays if weekday is not None)
+    else:
+        weekdays = _fallback_weekdays(plan, len(days))
+
+    scheduled: list[tuple[date, int, int, WorkoutDay]] = []
+    start_weekday = fitician_weekday(start_date)
+    for week_number in range(1, duration_weeks + 1):
+        for day_order, (day, weekday) in enumerate(zip(days, weekdays, strict=True)):
+            offset = (weekday - start_weekday) % 7
+            scheduled.append(
+                (
+                    start_date + timedelta(days=offset + (week_number - 1) * 7),
+                    day_order,
+                    week_number,
+                    day,
+                )
+            )
+
+    scheduled.sort(key=lambda item: (item[0], item[1]))
+    return [
+        WorkoutCycleSession(
+            cycle_id=cycle_id,
+            workout_day_id=day.id,
+            week_number=week_number,
+            session_number=session_number,
+            scheduled_date=scheduled_date,
+            status=WorkoutCycleSessionStatus.SCHEDULED,
+        )
+        for session_number, (scheduled_date, _, week_number, day) in enumerate(
+            scheduled,
+            start=1,
+        )
+    ]
+
+
+def _fallback_weekdays(plan: WorkoutPlan, day_count: int) -> tuple[int, ...]:
+    snapshot_weekdays = plan.profile_snapshot.get("preferred_weekdays")
+    if isinstance(snapshot_weekdays, (list, tuple)):
+        valid = (
+            len(snapshot_weekdays) == day_count
+            and len(set(snapshot_weekdays)) == day_count
+            and all(
+                isinstance(weekday, int) and not isinstance(weekday, bool) and 0 <= weekday <= 6
+                for weekday in snapshot_weekdays
+            )
+        )
+        if valid:
+            return tuple(int(weekday) for weekday in snapshot_weekdays)
+
+    from app.workouts.program_engine.rulesets.resistance_training_v1 import RULESET
+
+    try:
+        return RULESET.default_weekdays[day_count]
+    except KeyError as error:
+        raise ValueError("Workout plan has no supported weekday fallback") from error
+
+
+def _persist_cycle_timezone(db: Session, *, user_id: UUID, timezone_name: str) -> None:
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id).with_for_update())
+    if profile is not None:
+        profile.timezone = timezone_name
+
+
+def _locked_current_cycle(db: Session, *, user_id: UUID) -> WorkoutCycle | None:
+    return db.scalar(
+        select(WorkoutCycle)
+        .join(WorkoutPlan, WorkoutCycle.workout_plan_id == WorkoutPlan.id)
+        .where(
+            WorkoutCycle.user_id == user_id,
+            WorkoutCycle.status == WorkoutCycleStatus.ACTIVE,
+            WorkoutPlan.user_id == user_id,
+            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
+            WorkoutPlan.deleted_at.is_(None),
+        )
+        .order_by(WorkoutCycle.started_at.desc(), WorkoutCycle.id.desc())
+        .with_for_update()
+    )
+
+
+def _locked_current_session(
+    db: Session,
+    *,
+    user_id: UUID,
+    session_id: UUID,
+) -> WorkoutCycleSession:
+    cycle = _locked_current_cycle(db, user_id=user_id)
+    if cycle is None:
+        raise WorkoutCycleSessionNotFoundError
+    session = db.scalar(
+        select(WorkoutCycleSession)
+        .where(
+            WorkoutCycleSession.id == session_id,
+            WorkoutCycleSession.cycle_id == cycle.id,
+        )
+        .with_for_update()
+    )
+    if session is None:
+        raise WorkoutCycleSessionNotFoundError
+    return session
+
+
+def complete_current_cycle_session(
+    db: Session,
+    *,
+    user_id: UUID,
+    session_id: UUID,
+    now: datetime | None = None,
+) -> WorkoutCycleSession:
+    session = _locked_current_session(db, user_id=user_id, session_id=session_id)
+    if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
+        raise WorkoutCycleSessionAlreadyFinishedError
+    session.status = WorkoutCycleSessionStatus.COMPLETED
+    session.completed_at = _as_utc(now or datetime.now(UTC))
+    session.skipped_at = None
+    try:
+        db.flush()
+        db.commit()
+        db.refresh(session)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    return session
+
+
+def skip_current_cycle_session(
+    db: Session,
+    *,
+    user_id: UUID,
+    session_id: UUID,
+    now: datetime | None = None,
+) -> WorkoutCycleSession:
+    session = _locked_current_session(db, user_id=user_id, session_id=session_id)
+    if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
+        raise WorkoutCycleSessionAlreadyFinishedError
+    session.status = WorkoutCycleSessionStatus.SKIPPED
+    session.skipped_at = _as_utc(now or datetime.now(UTC))
+    session.completed_at = None
+    try:
+        db.flush()
+        db.commit()
+        db.refresh(session)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    return session
+
+
+def reschedule_current_cycle_session(
+    db: Session,
+    *,
+    user_id: UUID,
+    session_id: UUID,
+    scheduled_date: date,
+) -> WorkoutCycleSession:
+    session = _locked_current_session(db, user_id=user_id, session_id=session_id)
+    if session.status is not WorkoutCycleSessionStatus.SCHEDULED:
+        raise WorkoutCycleSessionAlreadyFinishedError
+
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id))
+    timezone_name = profile.timezone if profile is not None else "UTC"
+    cycle_start_date = local_date_for_timezone(timezone_name, now=session.cycle.started_at)
+    if scheduled_date < cycle_start_date:
+        raise WorkoutCycleSessionBeforeStartError
+    collision = db.scalar(
+        select(WorkoutCycleSession.id).where(
+            WorkoutCycleSession.cycle_id == session.cycle_id,
+            WorkoutCycleSession.id != session.id,
+            WorkoutCycleSession.scheduled_date == scheduled_date,
+            WorkoutCycleSession.status == WorkoutCycleSessionStatus.SCHEDULED,
+        )
+    )
+    if collision is not None:
+        raise WorkoutCycleSessionDateConflictError
+
+    session.scheduled_date = scheduled_date
+    try:
+        db.flush()
+        db.commit()
+        db.refresh(session)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+    return session
 
 
 def get_cycle_for_user(
@@ -784,11 +1036,15 @@ def get_current_active_cycle_for_user(
 ) -> WorkoutCycle | None:
     return db.scalar(
         select(WorkoutCycle)
+        .join(WorkoutPlan, WorkoutCycle.workout_plan_id == WorkoutPlan.id)
         .where(
             WorkoutCycle.user_id == user_id,
             WorkoutCycle.status == WorkoutCycleStatus.ACTIVE,
+            WorkoutPlan.user_id == user_id,
+            WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
+            WorkoutPlan.deleted_at.is_(None),
         )
-        .order_by(WorkoutCycle.started_at.desc())
+        .order_by(WorkoutCycle.started_at.desc(), WorkoutCycle.id.desc())
     )
 
 

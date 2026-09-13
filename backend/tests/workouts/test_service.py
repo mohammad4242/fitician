@@ -839,7 +839,13 @@ def test_program_request_uses_legacy_training_age_fallback_when_missing(
 def test_next_generation_reads_confirmed_end_cycle_profile_changes(db: Session) -> None:
     user = _user_with_profile(db)
     plan = _persist_active_plan(db, user)
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
 
     complete_cycle(
         db,
@@ -889,7 +895,13 @@ def test_previous_cycle_volume_history_uses_plan_metrics_and_confirmed_adherence
         ]
     )
     db.flush()
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
     cycle.status = WorkoutCycleStatus.COMPLETED
     cycle.completed_at = datetime.now(UTC)
     cycle.completion_feedback = WorkoutCycleFeedback(
@@ -934,7 +946,13 @@ def test_previous_cycle_volume_history_scales_from_weekly_check_ins(
         ]
     )
     db.flush()
-    cycle = start_cycle(db, user_id=user.id, workout_plan_id=plan.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
     cycle.status = WorkoutCycleStatus.COMPLETED
     cycle.completed_at = datetime.now(UTC)
     db.add_all(

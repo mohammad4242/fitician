@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
@@ -28,6 +28,7 @@ from app.workout_cycles.enums import (
     WorkoutCycleExerciseFeedbackType,
     WorkoutCycleFeedbackProgress,
     WorkoutCycleFeedbackSatisfaction,
+    WorkoutCycleSessionStatus,
     WorkoutCycleStatus,
     WorkoutCycleWeeklyCheckInDifficulty,
     WorkoutCycleWeeklyCheckInRecovery,
@@ -36,7 +37,7 @@ from app.workout_cycles.enums import (
     WorkoutExerciseReplacementScope,
     WorkoutExerciseSafetySignalType,
 )
-from app.workouts.models import WorkoutPlan, WorkoutPlanExercise
+from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
 from app.workouts.program_engine.enums import Goal
 
 
@@ -95,6 +96,16 @@ class WorkoutCycle(Base):
     )
 
     workout_plan: Mapped[WorkoutPlan] = relationship()
+    sessions: Mapped[list[WorkoutCycleSession]] = relationship(
+        "WorkoutCycleSession",
+        back_populates="cycle",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by=lambda: (
+            WorkoutCycleSession.scheduled_date,
+            WorkoutCycleSession.session_number,
+        ),
+    )
     completion_feedback: Mapped[WorkoutCycleFeedback | None] = relationship(
         back_populates="cycle",
         cascade="all, delete-orphan",
@@ -106,6 +117,77 @@ class WorkoutCycle(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+
+class WorkoutCycleSession(Base):
+    __tablename__ = "workout_cycle_sessions"
+    __table_args__ = (
+        UniqueConstraint(
+            "cycle_id",
+            "session_number",
+            name="uq_workout_cycle_sessions_cycle_session_number",
+        ),
+        UniqueConstraint(
+            "cycle_id",
+            "week_number",
+            "workout_day_id",
+            name="uq_workout_cycle_sessions_cycle_week_day",
+        ),
+        CheckConstraint(
+            "week_number >= 1",
+            name="ck_workout_cycle_sessions_week_number_positive",
+        ),
+        CheckConstraint(
+            "session_number >= 1",
+            name="ck_workout_cycle_sessions_session_number_positive",
+        ),
+        CheckConstraint(
+            "status IN ('scheduled', 'completed', 'skipped')",
+            name="ck_workout_cycle_sessions_status_values",
+        ),
+        CheckConstraint(
+            "(status = 'scheduled' AND completed_at IS NULL AND skipped_at IS NULL) OR "
+            "(status = 'completed' AND completed_at IS NOT NULL AND skipped_at IS NULL) OR "
+            "(status = 'skipped' AND skipped_at IS NOT NULL AND completed_at IS NULL)",
+            name="ck_workout_cycle_sessions_timestamp_integrity",
+        ),
+        Index("ix_workout_cycle_sessions_cycle_id", "cycle_id"),
+        Index("ix_workout_cycle_sessions_scheduled_date", "scheduled_date"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    cycle_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workout_cycles.id", ondelete="CASCADE"), nullable=False
+    )
+    workout_day_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workout_days.id", ondelete="CASCADE"), nullable=False
+    )
+    week_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    session_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    scheduled_date: Mapped[date] = mapped_column(nullable=False)
+    status: Mapped[WorkoutCycleSessionStatus] = mapped_column(
+        Enum(
+            WorkoutCycleSessionStatus,
+            native_enum=False,
+            validate_strings=True,
+            values_callable=enum_values,
+            name="ck_workout_cycle_sessions_status_values",
+        ),
+        default=WorkoutCycleSessionStatus.SCHEDULED,
+        server_default=WorkoutCycleSessionStatus.SCHEDULED.value,
+        nullable=False,
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    skipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    cycle: Mapped[WorkoutCycle] = relationship(back_populates="sessions")
+    workout_day: Mapped[WorkoutDay] = relationship()
 
 
 class WorkoutCycleFeedback(Base):

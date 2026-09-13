@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
-from app.workout_cycles.service import start_cycle
 from app.workout_reviews.diff import build_coach_difference_summary
 from app.workout_reviews.enums import (
     WorkoutReviewErrorCode,
@@ -170,11 +169,6 @@ class WorkoutReviewService:
             previous_active_plan_id=active.id if active is not None else None,
         )
         self._db.flush()
-        start_cycle(
-            self._db,
-            user_id=approved.user_id,
-            workout_plan_id=approved.id,
-        )
         review.status = WorkoutReviewStatus.APPROVED
         review.approved_plan_id = approved.id
         review.approved_at = now

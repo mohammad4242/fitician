@@ -6,6 +6,12 @@ class WorkoutCycleStatus(StrEnum):
     COMPLETED = "completed"
 
 
+class WorkoutCycleSessionStatus(StrEnum):
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+
+
 class WorkoutExerciseReplacementReason(StrEnum):
     EQUIPMENT_UNAVAILABLE = "equipment_unavailable"
     UNCOMFORTABLE = "uncomfortable"

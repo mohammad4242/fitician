@@ -35,7 +35,6 @@ from app.exercises.models import Exercise
 from app.notifications.models import NotificationOutboxEvent
 from app.workout_cycles.enums import WorkoutExerciseReplacementReason
 from app.workout_cycles.models import WorkoutCycle
-from app.workout_cycles.service import start_cycle
 from app.workout_reviews.diff import build_coach_diff
 from app.workout_reviews.enums import WorkoutReviewErrorCode, WorkoutReviewStatus
 from app.workout_reviews.models import WorkoutPlanReview
@@ -691,9 +690,7 @@ def test_approval_activates_pending_plan_without_creating_review_loop(db: Sessio
     assert review.coach_note == "Pending source stays immutable."
     assert approved.activated_at == Clock().now
     cycle = db.scalar(select(WorkoutCycle).where(WorkoutCycle.workout_plan_id == approved.id))
-    assert cycle is not None
-    assert cycle.user_id == member.id
-    assert cycle.duration_weeks == approved.profile_snapshot["plan_duration_weeks"] == 4
+    assert cycle is None
     assert review.status is WorkoutReviewStatus.APPROVED
     assert review.approved_plan_id == approved.id
     approval_event = db.scalar(
@@ -709,16 +706,6 @@ def test_approval_activates_pending_plan_without_creating_review_loop(db: Sessio
         == 0
     )
 
-    repeated = start_cycle(
-        db,
-        user_id=member.id,
-        workout_plan_id=approved.id,
-    )
-    assert repeated.id == cycle.id
-    assert db.scalars(
-        select(WorkoutCycle).where(WorkoutCycle.workout_plan_id == approved.id)
-    ).all() == [cycle]
-
     repeated = service.approve(
         review.id,
         coach.id,
@@ -729,7 +716,7 @@ def test_approval_activates_pending_plan_without_creating_review_loop(db: Sessio
     plans = db.scalars(select(WorkoutPlan)).all()
     assert len(plans) == 2
     assert {plan.id for plan in plans} == {source.id, approved.id}
-    assert db.scalars(select(WorkoutCycle)).all() == [cycle]
+    assert db.scalars(select(WorkoutCycle)).all() == []
 
 
 def test_approval_without_coach_changes_persists_empty_structured_diff(db: Session) -> None:
@@ -893,8 +880,7 @@ def test_approval_supersedes_previous_active_plan_only_at_approval(db: Session) 
         == 1
     )
     cycles = db.scalars(select(WorkoutCycle).where(WorkoutCycle.user_id == member.id)).all()
-    assert len(cycles) == 1
-    assert cycles[0].workout_plan_id == approved.id
+    assert cycles == []
 
 
 def test_approval_cannot_replace_a_newer_active_plan(db: Session) -> None:
