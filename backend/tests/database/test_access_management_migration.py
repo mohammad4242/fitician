@@ -82,7 +82,7 @@ def test_access_management_migration_downgrades_and_upgrades_cleanly(db: Session
 def test_campaign_semantic_migration_round_trips_constraints(db: Session) -> None:
     migration = _load_semantic_migration()
     assert migration.revision == "20260913_148"
-    assert migration.down_revision == "20260913_147"
+    assert migration.down_revision == "20260913_146"
 
     migration.op = Operations(MigrationContext.configure(db.connection()))
     migration.downgrade()
