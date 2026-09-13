@@ -20,8 +20,14 @@ import { AppShell } from "./shared/AppShell";
 import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const AdminAiSettingsPage = lazy(() => import("./features/admin/AdminAiSettingsPage").then(({ AdminAiSettingsPage }) => ({ default: AdminAiSettingsPage })));
+const AdminAccessAuditPage = lazy(() => import("./features/accessManagement/AdminAccessAuditPage").then(({ AdminAccessAuditPage }) => ({ default: AdminAccessAuditPage })));
+const AdminAccessCampaignsPage = lazy(() => import("./features/accessManagement/AdminAccessCampaignsPage").then(({ AdminAccessCampaignsPage }) => ({ default: AdminAccessCampaignsPage })));
 const AdminSubscriptionCenterPage = lazy(() => import("./features/accessManagement/AdminSubscriptionCenterPage").then(({ AdminSubscriptionCenterPage }) => ({ default: AdminSubscriptionCenterPage })));
+const AdminUserAccessDetailPage = lazy(() => import("./features/accessManagement/AdminUserAccessDetailPage").then(({ AdminUserAccessDetailPage }) => ({ default: AdminUserAccessDetailPage })));
+const AdminUserAccessPage = lazy(() => import("./features/accessManagement/AdminUserAccessPage").then(({ AdminUserAccessPage }) => ({ default: AdminUserAccessPage })));
+const AdminBillingOrderDetailPage = lazy(() => import("./features/billing/AdminBillingOrderDetailPage").then(({ AdminBillingOrderDetailPage }) => ({ default: AdminBillingOrderDetailPage })));
 const AdminBillingOffersPage = lazy(() => import("./features/billing/AdminBillingOffersPage").then(({ AdminBillingOffersPage }) => ({ default: AdminBillingOffersPage })));
+const AdminBillingOrdersPage = lazy(() => import("./features/billing/AdminBillingOrdersPage").then(({ AdminBillingOrdersPage }) => ({ default: AdminBillingOrdersPage })));
 const AdminExerciseEditPage = lazy(() => import("./features/admin/AdminExerciseEditPage").then(({ AdminExerciseEditPage }) => ({ default: AdminExerciseEditPage })));
 const AdminExerciseNewPage = lazy(() => import("./features/admin/AdminExerciseNewPage").then(({ AdminExerciseNewPage }) => ({ default: AdminExerciseNewPage })));
 const AdminNutritionMonitoringPage = lazy(() => import("./features/admin/AdminNutritionMonitoringPage").then(({ AdminNutritionMonitoringPage }) => ({ default: AdminNutritionMonitoringPage })));
@@ -96,6 +102,12 @@ export function AppRoutes() {
           <Route path="/admin/billing" element={deferred(<AdminSubscriptionCenterPage />)}>
             <Route index element={<Navigate to="offers" replace />} />
             <Route path="offers" element={deferred(<AdminBillingOffersPage />)} />
+            <Route path="campaigns" element={deferred(<AdminAccessCampaignsPage />)} />
+            <Route path="users" element={deferred(<AdminUserAccessPage />)} />
+            <Route path="users/:userId" element={deferred(<AdminUserAccessDetailPage />)} />
+            <Route path="orders" element={deferred(<AdminBillingOrdersPage />)} />
+            <Route path="orders/:orderId" element={deferred(<AdminBillingOrderDetailPage />)} />
+            <Route path="audit" element={deferred(<AdminAccessAuditPage />)} />
           </Route>
           <Route path="/admin/training-program-templates" element={deferred(<AdminTrainingTemplatesPage />)} />
           <Route path="/admin/training-program-templates/new" element={deferred(<AdminTrainingTemplateEditorPage />)} />
