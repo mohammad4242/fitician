@@ -161,6 +161,10 @@ test.describe("real specialist multi-role flows", () => {
       expect(memberPhysicianAccess.status()).toBe(403);
       const adminPhysicianAccess = await apiResponse(admin.context, "/api/v1/nutrition/physician/access");
       expect(adminPhysicianAccess.status()).toBe(403);
+      await member.page.goto("/coach/workouts", { waitUntil: "networkidle" });
+      await expect(member.page).toHaveURL(/\/dashboard$/);
+      await member.page.goto("/physician/nutrition", { waitUntil: "networkidle" });
+      await expect(member.page).toHaveURL(/\/dashboard$/);
 
       const pendingReviews = await apiJson<WorkoutReview[]>(
         coach.context,
