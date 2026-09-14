@@ -134,6 +134,35 @@ describe("resolveAppError", () => {
   });
 
   it.each([
+    ["NO_PENDING_DELETION", "درخواست حذف حسابی در انتظار نیست"],
+    ["GRACE_PERIOD_EXPIRED", "مهلت لغو حذف حساب تمام شده است"],
+  ])("resolves account deletion code %s from the shared catalog", (code, expected) => {
+    const result = resolveAppError(
+      new ApiError(409, "raw account deletion detail", null, code),
+      { audience: "member", context: "access", locale: "fa" },
+    );
+
+    expect(result.message).toContain(expected);
+    expect(result.message).not.toContain("raw account deletion detail");
+  });
+
+  it.each([
+    ["AUTH_PASSWORD_RESET_INVALID", "لینک بازنشانی"],
+    ["AUTH_EMAIL_VERIFICATION_INVALID", "لینک تأیید"],
+    ["FOOD_PRICE_RESEARCH_NOT_CONFIGURED", "قیمت‌یابی"],
+    ["PROGRAM_NOT_FOUND", "برنامه تغذیه‌ای"],
+    ["provider_unavailable", "سرویس هوش مصنوعی"],
+  ])("resolves backend code %s from the shared catalog", (code, expected) => {
+    const result = resolveAppError(
+      new ApiError(503, "raw backend detail", null, code),
+      { audience: "member", context: "generic", locale: "fa" },
+    );
+
+    expect(result.message).toContain(expected);
+    expect(result.message).not.toContain("raw backend detail");
+  });
+
+  it.each([
     ["WORKOUT_GENERATION_IN_PROGRESS", "ساخت برنامه تمرینی در حال انجام است"],
     ["BODYWEIGHT_PULL_UP_BAR_REQUIRED", "میله بارفیکس"],
     ["WORKOUT_REPLACEMENT_NOT_ALLOWED", "حرکت جایگزین"],

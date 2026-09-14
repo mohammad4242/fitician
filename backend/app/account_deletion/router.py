@@ -54,15 +54,27 @@ def _raise_account_error(error: AccountDeletionError) -> None:
     if error.code == "ACCOUNT_DELETION_NOT_ENABLED":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Account deletion is temporarily unavailable",
+            detail={"code": error.code},
         ) from None
     if error.code in {"INVALID_REAUTHENTICATION", "RECENT_AUTHENTICATION_REQUIRED"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=error.code) from None
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": error.code},
+        ) from None
     if error.code == "NO_PENDING_DELETION":
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=error.code) from None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": error.code},
+        ) from None
     if error.code == "GRACE_PERIOD_EXPIRED":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.code) from None
-    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=error.code) from None
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code},
+        ) from None
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": error.code},
+    ) from None
 
 
 def _require_mutation_origin(

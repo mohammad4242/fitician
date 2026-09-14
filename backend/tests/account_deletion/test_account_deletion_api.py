@@ -496,4 +496,4 @@ def test_old_passwordless_web_session_requires_reauthentication(
     )
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "RECENT_AUTHENTICATION_REQUIRED"}
+    assert response.json()["detail"]["code"] == "RECENT_AUTHENTICATION_REQUIRED"

@@ -54,6 +54,14 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("ورود با اپل در دسترس نیست", "Apple sign-in is unavailable"),
     text("ورود با اپل فقط در iOS در دسترس است.", "Apple sign-in is available only on iOS."),
   ),
+  AUTH_PASSWORD_RESET_INVALID: entry(
+    text("لینک بازنشانی معتبر نیست", "Password reset link is invalid"),
+    text("لینک بازنشانی رمز عبور معتبر نیست یا منقضی شده است.", "The password reset link is invalid or has expired."),
+  ),
+  AUTH_EMAIL_VERIFICATION_INVALID: entry(
+    text("لینک تأیید معتبر نیست", "Verification link is invalid"),
+    text("لینک تأیید ایمیل معتبر نیست یا منقضی شده است.", "The email verification link is invalid or has expired."),
+  ),
   RECENT_AUTHENTICATION_REQUIRED: entry(
     text("تأیید دوباره هویت لازم است", "Recent sign-in required"),
     text("برای ادامه، دوباره وارد حساب شوید.", "Sign in again to continue."),
@@ -345,6 +353,10 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("الگوی تغذیه پشتیبانی نمی‌شود", "Dietary pattern is not supported"),
     text("الگوی تغذیه‌ای انتخاب‌شده در نسخه فعلی پشتیبانی نمی‌شود.", "The selected dietary pattern is not supported in the current version."),
   ),
+  PROGRAM_NOT_FOUND: entry(
+    text("برنامه پیدا نشد", "Program not found"),
+    text("برنامه تغذیه‌ای پیدا نشد.", "The nutrition program was not found."),
+  ),
   NUTRITION_PLAN_NOT_FOUND: entry(
     text("برنامه غذایی پیدا نشد", "Nutrition plan not found"),
     text("هنوز برنامه غذایی هفتگی ساخته نشده است.", "A weekly nutrition plan has not been created yet."),
@@ -412,6 +424,10 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   FOOD_PHOTO_ITEM_NOT_FOUND: entry(
     text("مورد عکس پیدا نشد", "Photo item not found"),
     text("مورد انتخاب‌شده در برآورد عکس پیدا نشد.", "The selected item was not found in this photo estimate."),
+  ),
+  FOOD_PRICE_RESEARCH_NOT_CONFIGURED: entry(
+    text("قیمت‌یابی پیکربندی نشده است", "Price research is not configured"),
+    text("سرویس قیمت‌یابی برای این قابلیت پیکربندی نشده است.", "Price research is not configured for this feature."),
   ),
   FOOD_PHOTO_STORAGE_UNAVAILABLE: entry(
     text("ذخیره‌سازی عکس در دسترس نیست", "Photo storage unavailable"),
@@ -888,6 +904,14 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("حذف حساب فعلاً در دسترس نیست", "Account deletion is unavailable"),
     text("حذف حساب هنوز برای این محیط فعال نشده است.", "Account deletion is not enabled for this environment yet."),
   ),
+  NO_PENDING_DELETION: entry(
+    text("درخواست حذف حساب وجود ندارد", "No pending account deletion"),
+    text("درخواست حذف حسابی در انتظار نیست.", "There is no pending account deletion request."),
+  ),
+  GRACE_PERIOD_EXPIRED: entry(
+    text("مهلت لغو حذف حساب تمام شده است", "Account deletion grace period expired"),
+    text("مهلت لغو حذف حساب تمام شده است.", "The account deletion grace period has expired."),
+  ),
   AI_CONFIGURATION_INVALID: entry(
     text("تنظیمات هوش مصنوعی معتبر نیست", "AI configuration is invalid"),
     text("تنظیمات هوش مصنوعی را بررسی کنید.", "Check the AI configuration."),
@@ -903,6 +927,54 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   AGENT_SERVICE_UNAVAILABLE: entry(
     text("سرویس Agent در دسترس نیست", "Agent Service unavailable"),
     text("سرویس Agent موقتاً در دسترس نیست.", "The Agent Service is temporarily unavailable."),
+  ),
+  not_configured: entry(
+    text("سرویس هوش مصنوعی پیکربندی نشده است", "AI service is not configured"),
+    text("سرویس هوش مصنوعی برای این قابلیت پیکربندی نشده است.", "The AI service is not configured for this feature."),
+  ),
+  timeout: entry(
+    text("پاسخ سرویس هوش مصنوعی طول کشید", "AI service timed out"),
+    text("پاسخ سرویس هوش مصنوعی بیش از حد طول کشید. دوباره تلاش کنید.", "The AI service took too long to respond. Try again."),
+  ),
+  connection_failure: entry(
+    text("ارتباط با سرویس هوش مصنوعی برقرار نشد", "AI service connection failed"),
+    text("ارتباط با سرویس هوش مصنوعی برقرار نشد. دوباره تلاش کنید.", "The AI service could not be reached. Try again."),
+  ),
+  unauthorized: entry(
+    text("اعتبار سرویس هوش مصنوعی پذیرفته نشد", "AI service authorization failed"),
+    text("اعتبار سرویس هوش مصنوعی پذیرفته نشد. تنظیمات سرویس را بررسی کنید.", "The AI service authorization was rejected. Check the service configuration."),
+  ),
+  rate_limited: entry(
+    text("درخواست‌های سرویس هوش مصنوعی زیاد است", "AI service rate limited"),
+    text("درخواست‌های سرویس هوش مصنوعی زیاد است. کمی بعد دوباره تلاش کنید.", "The AI service is receiving too many requests. Try again later."),
+  ),
+  provider_unavailable: entry(
+    text("سرویس هوش مصنوعی در دسترس نیست", "AI service unavailable"),
+    text("سرویس هوش مصنوعی موقتاً در دسترس نیست. دوباره تلاش کنید.", "The AI service is temporarily unavailable. Try again."),
+  ),
+  invalid_request: entry(
+    text("درخواست سرویس هوش مصنوعی معتبر نیست", "AI service request is invalid"),
+    text("درخواست سرویس هوش مصنوعی معتبر نیست. دوباره تلاش کنید.", "The AI service rejected the request. Try again."),
+  ),
+  malformed_response: entry(
+    text("پاسخ سرویس هوش مصنوعی معتبر نیست", "AI service response is invalid"),
+    text("پاسخ سرویس هوش مصنوعی معتبر نبود. دوباره تلاش کنید.", "The AI service returned an invalid response. Try again."),
+  ),
+  invalid_output: entry(
+    text("خروجی سرویس هوش مصنوعی معتبر نیست", "AI service output is invalid"),
+    text("خروجی سرویس هوش مصنوعی قابل استفاده نیست. دوباره تلاش کنید.", "The AI service returned unusable output. Try again."),
+  ),
+  refusal: entry(
+    text("سرویس هوش مصنوعی درخواست را نپذیرفت", "AI service refused the request"),
+    text("سرویس هوش مصنوعی نتوانست این درخواست را انجام دهد.", "The AI service could not complete this request."),
+  ),
+  model_not_found: entry(
+    text("مدل هوش مصنوعی پیدا نشد", "AI model not found"),
+    text("مدل انتخاب‌شدهٔ هوش مصنوعی در دسترس نیست.", "The selected AI model is not available."),
+  ),
+  location_unsupported: entry(
+    text("موقعیت سرویس پشتیبانی نمی‌شود", "Service location is unsupported"),
+    text("این سرویس در موقعیت فعلی پشتیبانی نمی‌شود.", "This service is not supported in the current location."),
   ),
   ADMIN_ROLE_REQUIRED: entry(
     text("دسترسی مدیر لازم است", "Administrator access required"),
