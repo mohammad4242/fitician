@@ -115,6 +115,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 
@@ -187,6 +188,40 @@ it("shows price and price controls only to an admin", async () => {
   expect(screen.getByRole("button", { name: "جایگزینی تصویر سینه مرغ" })).toBeVisible();
   expect(screen.getByRole("button", { name: "حذف سینه مرغ" })).toBeVisible();
   expect(screen.getByText("یافت نشد")).toBeVisible();
+});
+
+it("uses the Tehran calendar date when an admin adds a food", async () => {
+  auth.isAdmin = true;
+  vi.mocked(api.saveCatalogueFood).mockResolvedValue({});
+  render(<MemoryRouter><FoodCataloguePage /></MemoryRouter>);
+
+  await screen.findByRole("heading", { name: "کاتالوگ مواد غذایی" });
+  fireEvent.click(screen.getByRole("button", { name: "افزودن ماده غذایی" }));
+  const dialog = screen.getByRole("dialog", { name: "افزودن ماده غذایی" });
+  const inputs = within(dialog).getAllByRole("textbox");
+  [
+    "fresh-chicken",
+    "مرغ تازه",
+    "Fresh chicken",
+    "poultry",
+    "USDA",
+    "https://example.com/fresh-chicken",
+    "120",
+    "22",
+    "0",
+    "3",
+    "0",
+  ].forEach((value, index) => {
+    fireEvent.change(inputs[index]!, { target: { value } });
+  });
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-13T20:45:00Z"));
+
+  fireEvent.submit(dialog.querySelector("form")!);
+
+  expect(api.saveCatalogueFood).toHaveBeenCalledWith(
+    expect.objectContaining({ source_access_date: "2026-09-14" }),
+  );
 });
 
 it("never shows the delete action to a member", async () => {
