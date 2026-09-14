@@ -53,6 +53,7 @@ type GenerationError =
 
 type DeleteVersionError = { versionId: string; message: string };
 type TimelineAction = "start" | "complete" | "skip" | "reschedule";
+type VersionDetailErrors = Record<string, string>;
 
 type WorkoutDaysPresentation = {
   focusedWorkoutDayId?: string | null;
@@ -118,8 +119,13 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [selectedHistoricalPlan, setSelectedHistoricalPlan] = useState<WorkoutPlan | null>(null);
   const [history, setHistory] = useState<WorkoutPlanVersionSummary[]>([]);
   const [selectingVersionId, setSelectingVersionId] = useState<string | null>(null);
+  const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
+  const [versionDetails, setVersionDetails] = useState<Record<string, WorkoutPlan>>({});
+  const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
+  const [versionDetailErrors, setVersionDetailErrors] = useState<VersionDetailErrors>({});
   const [deletingVersionId, setDeletingVersionId] = useState<string | null>(null);
   const [deleteVersionError, setDeleteVersionError] = useState<DeleteVersionError | null>(null);
+  const [deleteDialogVersion, setDeleteDialogVersion] = useState<WorkoutPlanVersionSummary | null>(null);
   const [state, setState] = useState<PlanState>("loading");
   const [generating, setGenerating] = useState(false);
   const [reused, setReused] = useState(false);
@@ -298,14 +304,50 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
       .finally(() => setGenerating(false));
   }
 
+  function loadVersionDetail(versionId: string) {
+    if (versionDetails[versionId] !== undefined || loadingVersionId === versionId) return;
+    setVersionDetailErrors((current) => {
+      const next = { ...current };
+      delete next[versionId];
+      return next;
+    });
+    setLoadingVersionId(versionId);
+    void getWorkoutPlan(versionId)
+      .then((loadedPlan) => setVersionDetails((current) => ({ ...current, [versionId]: loadedPlan })))
+      .catch(() => setVersionDetailErrors((current) => ({
+        ...current,
+        [versionId]: l(
+          "اطلاعات این نسخه دریافت نشد. دوباره تلاش کن.",
+          "This version could not be loaded. Try again.",
+        ),
+      })))
+      .finally(() => setLoadingVersionId(null));
+  }
+
+  function toggleVersion(versionId: string) {
+    if (expandedVersionId === versionId) {
+      setExpandedVersionId(null);
+      return;
+    }
+    setExpandedVersionId(versionId);
+    loadVersionDetail(versionId);
+  }
+
   function selectVersion(version: WorkoutPlanVersionSummary) {
     if (version.id === currentPlan?.id) {
       setSelectedHistoricalPlan(null);
       return;
     }
+    const cachedPlan = versionDetails[version.id];
+    if (cachedPlan !== undefined) {
+      setSelectedHistoricalPlan(cachedPlan);
+      setGenerationError(null);
+      return;
+    }
     setSelectingVersionId(version.id);
     void getWorkoutPlan(version.id)
       .then((loadedPlan) => {
+        setVersionDetails((current) => ({ ...current, [version.id]: loadedPlan }));
         setSelectedHistoricalPlan(loadedPlan);
         setGenerationError(null);
       })
@@ -313,12 +355,14 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
       .finally(() => setSelectingVersionId(null));
   }
 
+  function openDeleteDialog(version: WorkoutPlanVersionSummary) {
+    if (!isDeletableVersion(version) || versionDetails[version.id] === undefined) return;
+    setDeleteVersionError(null);
+    setDeleteDialogVersion(version);
+  }
+
   function deleteVersion(version: WorkoutPlanVersionSummary) {
     if (!isDeletableVersion(version) || deletingVersionId === version.id) return;
-    const confirmed = window.confirm(
-      `${l("این نسخه قدیمی برنامه تمرینی حذف شود؟", "Delete this old workout plan version?")}\n\n${l("این نسخه از تاریخچه برنامه‌های شما حذف می‌شود.", "This version will be removed from your workout plan history.")}`,
-    );
-    if (!confirmed) return;
 
     const wasViewingDeletedVersion = selectedHistoricalPlan?.id === version.id;
     setDeletingVersionId(version.id);
@@ -335,6 +379,13 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         setHistory(versions);
         if (wasViewingDeletedVersion) setSelectedHistoricalPlan(null);
         setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
+        setDeleteDialogVersion(null);
+        setExpandedVersionId((current) => current === version.id ? null : current);
+        setVersionDetails((current) => {
+          const next = { ...current };
+          delete next[version.id];
+          return next;
+        });
       })
       .catch(() => {
         setDeleteVersionError({
@@ -553,58 +604,200 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
                 <div><p className="eyebrow eyebrow--accent">{l("نسخه‌های برنامه", "Plan versions")}</p><h2 id="workout-version-history-title">{l("تاریخچه برنامه", "Plan history")}</h2></div>
                 {isViewingHistorical && <button type="button" onClick={() => setSelectedHistoricalPlan(null)}>{l("بازگشت به برنامه فعلی", "Return to current plan")}</button>}
                 <div className="workout-version-history__list">
-                  {memberHistory.map((version) => {
+                  {memberHistory.map((version, index) => {
                     const label = version.coach_review.state === "coach_approved"
                       ? l("نسخه تأیید مربی", "Coach-approved version")
                       : version.coach_review.state === "coach_rejected"
                         ? l("نسخه برگشت‌داده‌شده برای اصلاح", "Returned for correction")
                         : l("نسخه اولیه", "Initial version");
                     const canDelete = isDeletableVersion(version);
+                    const planNumber = new Intl.NumberFormat(isEnglish ? "en-US" : "fa-IR").format(index + 1);
+                    const planNumberLabel = l(`برنامه شماره ${planNumber}`, `Plan ${planNumber}`);
+                    const timestamp = formatMemberTimestamp(version.created_at, isEnglish);
+                    const isExpanded = expandedVersionId === version.id;
+                    const detailsId = `workout-version-details-${version.id}`;
+                    const detail = versionDetails[version.id];
+                    const detailError = versionDetailErrors[version.id];
                     return (
-                      <div className="workout-version-history__item" key={version.id}>
+                      <article className={`workout-version-history__item${isExpanded ? " workout-version-history__item--expanded" : ""}`} key={version.id}>
                         <button
                           type="button"
-                          className={`workout-version-history__select${version.id === selectedHistoricalPlan?.id ? " workout-version-history__active" : ""}`}
-                          disabled={selectingVersionId !== null}
-                          aria-label={`${label} — ${formatMemberTimestamp(version.created_at, isEnglish)}`}
-                          onClick={() => selectVersion(version)}
+                          className="workout-version-history__toggle"
+                          aria-expanded={isExpanded}
+                          aria-controls={detailsId}
+                          aria-busy={loadingVersionId === version.id}
+                          aria-label={`${planNumberLabel} — ${label} — ${timestamp}`}
+                          onClick={() => toggleVersion(version.id)}
                         >
-                          <strong>{label}</strong>
-                          <span>{version.is_active ? l("فعال", "Active") : l("آرشیو", "Archived")}</span>
+                          <span className="workout-version-history__number">{planNumberLabel}</span>
+                          <strong>{timestamp}</strong>
+                          <span className="workout-version-history__status">{version.is_active ? l("فعال", "Active") : l("آرشیو", "Archived")}</span>
+                          <span className="workout-version-history__chevron" aria-hidden="true">{isExpanded ? "−" : "+"}</span>
                         </button>
-                        {canDelete && (
-                          <button
-                            type="button"
-                            className="workout-version-history__delete"
-                            aria-label={l("حذف نسخه قدیمی برنامه", "Delete old plan version")}
-                            disabled={deletingVersionId === version.id}
-                            aria-busy={deletingVersionId === version.id}
-                            onClick={() => deleteVersion(version)}
-                          >
-                            <span aria-hidden="true">{l("حذف", "Delete")}</span>
-                          </button>
+                        {isExpanded && (
+                          <div className="workout-version-history__details" id={detailsId}>
+                            {loadingVersionId === version.id && <p className="workout-version-history__loading" role="status">{l("در حال دریافت اطلاعات برنامه…", "Loading plan overview…")}</p>}
+                            {detailError !== undefined && (
+                              <div className="workout-version-history__error">
+                                <p role="alert">{detailError}</p>
+                                <button type="button" onClick={() => loadVersionDetail(version.id)}>{l("تلاش دوباره", "Try again")}</button>
+                              </div>
+                            )}
+                            {detail !== undefined && (
+                              <>
+                                <WorkoutPlanHistoryOverview plan={detail} isEnglish={isEnglish} />
+                                <div className="workout-version-history__actions">
+                                  <button
+                                    type="button"
+                                    className="workout-version-history__inspect"
+                                    disabled={selectingVersionId !== null}
+                                    onClick={() => selectVersion(version)}
+                                  >
+                                    {l("مشاهده نسخه کامل", "View full version")}
+                                  </button>
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      className="workout-version-history__delete"
+                                      aria-label={l("حذف نسخه قدیمی برنامه", "Delete old plan version")}
+                                      disabled={deletingVersionId === version.id}
+                                      aria-busy={deletingVersionId === version.id}
+                                      onClick={() => openDeleteDialog(version)}
+                                    >
+                                      {l("حذف نسخه", "Delete version")}
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         )}
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
-                {deleteVersionError !== null && (
-                  <StatusPanel
-                    role="alert"
-                    message={deleteVersionError.message}
-                    action={l("تلاش دوباره", "Retry")}
-                    onAction={() => {
-                      const version = memberHistory.find((item) => item.id === deleteVersionError.versionId);
-                      if (version !== undefined) deleteVersion(version);
-                    }}
-                  />
-                )}
               </section>
             )}
           </div>
         </details>
 
       </main>
+      {deleteDialogVersion !== null && versionDetails[deleteDialogVersion.id] !== undefined && (
+        <WorkoutPlanDeleteDialog
+          plan={versionDetails[deleteDialogVersion.id]}
+          isEnglish={isEnglish}
+          deleting={deletingVersionId === deleteDialogVersion.id}
+          error={deleteVersionError?.versionId === deleteDialogVersion.id ? deleteVersionError.message : null}
+          onCancel={() => {
+            if (deletingVersionId === null) setDeleteDialogVersion(null);
+          }}
+          onConfirm={() => deleteVersion(deleteDialogVersion)}
+        />
+      )}
+    </div>
+  );
+}
+
+function WorkoutPlanHistoryOverview({ plan, isEnglish }: { plan: WorkoutPlan; isEnglish: boolean }) {
+  const number = new Intl.NumberFormat(isEnglish ? "en-US" : "fa-IR");
+  const l = (fa: string, en: string) => isEnglish ? en : fa;
+  const source = plan.generation_source === "ai"
+    ? l("هوش مصنوعی", "AI")
+    : l("مربی فیتیشن", "Fitician Coach");
+
+  return (
+    <div className="workout-version-overview">
+      <dl className="workout-version-overview__meta">
+        <div>
+          <dt>{l("تاریخ ساخت", "Created")}</dt>
+          <dd><time dateTime={plan.created_at}>{formatMemberTimestamp(plan.created_at, isEnglish)}</time></dd>
+        </div>
+        <div>
+          <dt>{l("روش ساخت", "Created by")}</dt>
+          <dd>{source}</dd>
+        </div>
+        <div>
+          <dt>{l("مدت برنامه", "Duration")}</dt>
+          <dd>{number.format(plan.plan_duration_weeks)} {l("هفته", "weeks")}</dd>
+        </div>
+        <div>
+          <dt>{l("فرم کلی", "Format")}</dt>
+          <dd>{l(`${number.format(plan.days.length)} روز تمرین`, `${number.format(plan.days.length)} training days`)}</dd>
+        </div>
+      </dl>
+      <div className="workout-version-overview__days">
+        <p>{l("روزهای برنامه", "Training days")}</p>
+        <ul>
+          {plan.days.map((day) => <li key={day.id}>{isEnglish ? day.title_en : day.title_fa}</li>)}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function WorkoutPlanDeleteDialog({
+  plan,
+  isEnglish,
+  deleting,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  plan: WorkoutPlan;
+  isEnglish: boolean;
+  deleting: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const l = (fa: string, en: string) => isEnglish ? en : fa;
+  const dialogTitle = l("حذف نسخه قدیمی برنامه", "Delete old workout plan version");
+
+  return (
+    <div className="workout-delete-dialog-backdrop">
+      <section
+        className="workout-delete-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="workout-delete-dialog-title"
+      >
+        <header className="workout-delete-dialog__header">
+          <div>
+            <p className="eyebrow eyebrow--accent">{l("عملیات حساس", "Sensitive action")}</p>
+            <h2 id="workout-delete-dialog-title">{dialogTitle}</h2>
+          </div>
+          <button
+            type="button"
+            className="workout-delete-dialog__close"
+            aria-label={l("بستن", "Close")}
+            disabled={deleting}
+            onClick={onCancel}
+          >
+            ×
+          </button>
+        </header>
+        <p className="workout-delete-dialog__body">
+          {l("این نسخه و اطلاعات کلی آن از تاریخچه برنامه‌ها حذف می‌شود و قابل بازگشت نیست.", "This version and its overview will be removed from your plan history and cannot be restored.")}
+        </p>
+        <WorkoutPlanHistoryOverview plan={plan} isEnglish={isEnglish} />
+        {error !== null && (
+          <StatusPanel role="alert" message={error} action={l("تلاش دوباره", "Retry")} onAction={onConfirm} />
+        )}
+        <footer className="workout-delete-dialog__actions">
+          <button type="button" className="workout-delete-dialog__cancel" disabled={deleting} onClick={onCancel}>
+            {l("انصراف", "Cancel")}
+          </button>
+          <button
+            type="button"
+            className="workout-delete-dialog__confirm"
+            disabled={deleting}
+            aria-busy={deleting}
+            onClick={onConfirm}
+          >
+            {deleting ? l("در حال حذف…", "Deleting…") : l("حذف دائمی", "Delete permanently")}
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }

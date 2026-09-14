@@ -33,6 +33,8 @@ Opening a row requests `getWorkoutPlan(version.id)` if the plan is not cached. T
 
 The delete control appears inside the expanded panel. Clicking it opens a modal with the same compact overview, a clear irreversible-action message, `Cancel`, and `Delete permanently`. The delete request keeps the existing API call and refresh behavior. On success, the dialog closes, the archive disappears, and a deleted selected archive returns the member to the current plan. On failure, the dialog stays open, the confirmation becomes available again, and the existing retryable page error remains visible.
 
+The compact overview is the default archive experience. A secondary `View full version` action preserves the existing ability to inspect an immutable historical plan without adding exercise details to the archive summary or delete dialog.
+
 ## Data flow and state
 
 `WorkoutPlanPage` keeps the existing `history` summary state and adds page-local detail cache/loading state keyed by plan ID. Expanding an archive reads the cache first, otherwise calls the existing `getWorkoutPlan` endpoint. Detail-load failures are rendered inside that archive entry and do not mutate the rest of the page.
@@ -70,4 +72,4 @@ Run the focused workout-page tests, frontend lint, typecheck, and production bui
 - Changing workout-plan lifecycle rules or deletion authorization.
 - Adding persisted version numbers.
 - Changing the workout detail presentation or the backend history payload.
-- Adding exercise-level history browsing to the archive UI.
+- Adding new exercise-level information to the archive summary or delete dialog.

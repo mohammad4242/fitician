@@ -571,6 +571,7 @@ it("displays one pending foreground plan and replaces it with the selected archi
   expect(screen.getByRole("button", { name: /نسخه اولیه/ })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: /نسخه اولیه/ }));
+  await user.click(await screen.findByRole("button", { name: "مشاهده نسخه کامل" }));
 
   expect(await screen.findByText("پرس سینه دمبل")).toBeInTheDocument();
   expect(screen.getAllByRole("heading", { name: "برنامه تمرینی من" })).toHaveLength(1);
@@ -711,6 +712,7 @@ it("lets the member inspect old and coach-approved immutable versions", async ()
   expect(approvedStatus.closest("aside")?.querySelector(".workout-review-indicator")).toHaveTextContent("✓");
   expect(screen.getByText("فشار جلسه دوم کمتر شد.")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: /نسخه اولیه/ }));
+  await user.click(await screen.findByRole("button", { name: "مشاهده نسخه کامل" }));
 
   expect(api.getWorkoutPlan).toHaveBeenCalledWith(plan.id);
   expect(await screen.findByText("در حال مشاهده نسخه قبلی")).toBeInTheDocument();
@@ -745,6 +747,7 @@ it("shows archived plans as collapsed rows and loads only their overview on expa
     ...plan,
     id: archivedVersion.id,
     status: "superseded",
+    created_at: archivedVersion.created_at,
     generation_source: "ai",
     plan_duration_weeks: 6,
     days: [
@@ -789,7 +792,7 @@ it("shows archived plans as collapsed rows and loads only their overview on expa
 
   expect(archiveToggle).toHaveAttribute("aria-expanded", "true");
   expect(api.getWorkoutPlan).toHaveBeenCalledWith(archivedPlan.id);
-  expect(await screen.findByText("هوش مصنوعی")).toBeInTheDocument();
+  expect(await screen.findByText("هوش مصنوعی", { selector: "dd" })).toBeInTheDocument();
   expect(screen.getByText("۶ هفته")).toBeInTheDocument();
   expect(screen.getByText("۲ روز تمرین")).toBeInTheDocument();
   expect(screen.getByText("روز قدرت")).toBeInTheDocument();
@@ -1118,6 +1121,7 @@ it("shows inactive when an archived version is selected", async () => {
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   await user.click(await screen.findByRole("button", { name: /نسخه اولیه/ }));
+  await user.click(await screen.findByRole("button", { name: "مشاهده نسخه کامل" }));
   const status = await screen.findByText("غیرفعال");
   expect(status.closest("strong")).toHaveClass("workout-plan-context__status--inactive");
 });
@@ -1391,6 +1395,7 @@ it("downloads the historical plan currently displayed", async () => {
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   await user.click(await screen.findByRole("button", { name: /نسخه اولیه.*۱۰ تیر ۱۴۰۵/ }));
+  await user.click(await screen.findByRole("button", { name: "مشاهده نسخه کامل" }));
   await screen.findByText("در حال مشاهده نسخه قبلی");
   await user.click(screen.getByRole("button", { name: "دانلود PDF" }));
 
