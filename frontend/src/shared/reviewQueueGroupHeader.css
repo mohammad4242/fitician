@@ -9,7 +9,7 @@
   margin-block: 0.8rem 0.2rem;
   padding: 0.9rem 1rem;
   border: 1px solid rgb(125 224 210 / 28%);
-  border-inline-start: 0.3rem solid #7de0d2;
+  border-inline-start: 0.3rem solid var(--fitician-aqua);
   border-radius: 1rem;
   color: #e8f8f4;
   background: rgb(13 50 47 / 78%);

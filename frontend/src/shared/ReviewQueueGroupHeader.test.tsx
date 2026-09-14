@@ -1,9 +1,17 @@
+import { readFileSync } from "node:fs";
+
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { formatPersianDate, formatPersianDateWithWeekday } from "@fitician/core";
 
 import { ReviewQueueGroupHeader } from "./ReviewQueueGroupHeader";
+
+const reviewQueueGroupHeaderStyles = readFileSync("src/shared/reviewQueueGroupHeader.css", "utf8");
+
+it("uses the vivid project aqua for the week accent", () => {
+  expect(reviewQueueGroupHeaderStyles).toContain("border-inline-start: 0.3rem solid var(--fitician-aqua);");
+});
 
 it("renders a week title and date range as separate RTL-safe rows", () => {
   render(
