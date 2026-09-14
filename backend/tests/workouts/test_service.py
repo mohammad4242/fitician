@@ -1166,6 +1166,77 @@ def test_direct_training_generation_is_active_without_a_review(db: Session) -> N
     assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 0
 
 
+def test_deterministic_generation_persists_exact_profile_weekdays_and_invalidates_cache(
+    db: Session,
+) -> None:
+    user = _user_with_profile(db)
+    profile = get_profile(db, user.id).profile
+    profile.training_days_per_week = 4
+    profile.preferred_weekdays = [1, 2, 4, 5]
+    _seed_candidates(db)
+    service = _service(db)
+
+    first = asyncio.run(service.generate(user.id))
+
+    assert [day.weekday for day in first.plan.days] == [1, 2, 4, 5]
+    assert first.plan.profile_snapshot["preferred_weekdays"] == [1, 2, 4, 5]
+
+    profile.preferred_weekdays = [0, 1, 3, 4]
+    db.flush()
+    second = asyncio.run(service.generate(user.id))
+
+    assert not second.reused
+    assert second.plan.id != first.plan.id
+    assert [day.weekday for day in second.plan.days] == [0, 1, 3, 4]
+
+
+def test_ai_generation_assigns_exact_profile_weekdays_before_persistence(
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user = _user_with_profile(db)
+    profile = get_profile(db, user.id).profile
+    profile.preferred_weekdays = [1, 4]
+    exercises = _seed_candidates(db)
+    templates = (
+        AiCoachProgramCandidate(
+            template=_ai_template("candidate-a", (exercises[0].id, exercises[1].id)),
+            score=100,
+        ),
+        AiCoachProgramCandidate(
+            template=_ai_template("candidate-b", (exercises[1].id, exercises[0].id)),
+            score=90,
+        ),
+    )
+    monkeypatch.setattr(
+        "app.workouts.service.select_ai_coach_candidates",
+        lambda **_kwargs: templates,
+    )
+    provider = _FailingAiCoachProvider(
+        AiCoachRecommendation(
+            selected_candidate_id="candidate-a",
+            program_explanation_fa="برنامه متعادل برای شروع.",
+            day_explanations=(),
+            model_id="test-model",
+            provider_request_id=None,
+            input_tokens=None,
+            output_tokens=None,
+        )
+    )
+
+    result = asyncio.run(
+        _service(
+            db,
+            ai_coach_provider=provider,
+            generation_method="ai",
+            deterministic_fallback_enabled=False,
+        ).generate(user.id)
+    )
+
+    assert [day.weekday for day in result.plan.days] == [1, 4]
+    assert result.plan.profile_snapshot["preferred_weekdays"] == [1, 4]
+
+
 def test_coach_generation_has_one_review_and_one_quota_event(db: Session) -> None:
     user = _user_with_profile(db)
     _seed_candidates(db)

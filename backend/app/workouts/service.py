@@ -732,6 +732,7 @@ class WorkoutGenerationService:
             raise WorkoutGenerationFailedError(error_code="no_enabled_ai_model")
         source_profile = get_profile(self._db, user_id)
         profile = self._to_generation_profile(source_profile)
+        preferred_weekdays = tuple(source_profile.profile.preferred_weekdays or ())
         eligible_exercises = WorkoutCandidateSelector(self._db, maximum_candidates=None).select(
             profile
         )
@@ -768,6 +769,7 @@ class WorkoutGenerationService:
             profile,
             library_candidates,
             eligible_exercises,
+            preferred_weekdays=preferred_weekdays,
             review_required=review_required,
         )
         current_plan = get_current_foreground_plan(self._db, user_id)
@@ -792,7 +794,11 @@ class WorkoutGenerationService:
             )
             for candidate in library_candidates
         )
-        profile_payload = self._ai_coach_profile_payload(profile, body_analysis)
+        profile_payload = self._ai_coach_profile_payload(
+            profile,
+            body_analysis,
+            preferred_weekdays=preferred_weekdays,
+        )
         request_size = len(
             json.dumps(
                 {"profile": profile_payload, "candidate_programs": payloads},
@@ -866,6 +872,7 @@ class WorkoutGenerationService:
                 catalog=catalog,
                 recommendation=recommendation,
                 body_analysis=body_analysis,
+                preferred_weekdays=preferred_weekdays,
             )
             generation.provider = self._settings.provider_name
             generation.model_id = recommendation.model_id
@@ -929,11 +936,17 @@ class WorkoutGenerationService:
         catalog: dict[UUID, ExerciseCandidate],
         recommendation: AiCoachRecommendation,
         body_analysis: BodyAnalysisInfluence | None,
+        preferred_weekdays: tuple[int, ...],
     ) -> WorkoutPlan:
         snapshots = {str(item.id): self._candidate_snapshot(item) for item in catalog.values()}
         day_notes = {
             item.day_number: item.explanation_fa for item in recommendation.day_explanations
         }
+        calendar_weekdays = (
+            tuple(sorted(preferred_weekdays))
+            if len(preferred_weekdays) == profile.training_days_per_week
+            else ()
+        )
         plan = WorkoutPlan(
             user_id=user_id,
             status=WorkoutPlanStatus.GENERATING,
@@ -942,6 +955,11 @@ class WorkoutGenerationService:
                 "goal": str(profile.fitness_goal),
                 "experience_level": profile.experience_level.value,
                 "training_days_per_week": profile.training_days_per_week,
+                "preferred_weekdays": (
+                    list(calendar_weekdays)
+                    if calendar_weekdays
+                    else list(preferred_weekdays) if preferred_weekdays else None
+                ),
                 "session_duration_minutes": profile.session_duration_minutes,
                 "plan_duration_weeks": profile.plan_duration_weeks,
             },
@@ -967,6 +985,11 @@ class WorkoutGenerationService:
             timings = [ExerciseTiming(slot.sets, slot.rest_seconds) for slot in template_day.slots]
             day = WorkoutDay(
                 day_number=template_day.day_number,
+                weekday=(
+                    calendar_weekdays[template_day.day_number - 1]
+                    if 1 <= template_day.day_number <= len(calendar_weekdays)
+                    else None
+                ),
                 title_en=template_day.title,
                 title_fa=template_day.title_fa or template_day.title,
                 focus=", ".join(muscle.value for muscle in template_day.focus),
@@ -1005,10 +1028,15 @@ class WorkoutGenerationService:
         candidates: tuple[AiCoachProgramCandidate, ...],
         eligible_exercises: CandidateSet,
         *,
+        preferred_weekdays: tuple[int, ...] = (),
         review_required: bool = False,
     ) -> str:
         payload = {
-            "profile": self._ai_coach_profile_payload(profile, None),
+            "profile": self._ai_coach_profile_payload(
+                profile,
+                None,
+                preferred_weekdays=preferred_weekdays,
+            ),
             "candidate_set_hash": eligible_exercises.candidate_set_hash,
             "templates": [item.template.slug for item in candidates],
             "model": self._settings.model_id,
@@ -1021,11 +1049,14 @@ class WorkoutGenerationService:
     def _ai_coach_profile_payload(
         profile: WorkoutGenerationProfile,
         body_analysis: BodyAnalysisInfluence | None,
+        *,
+        preferred_weekdays: tuple[int, ...] = (),
     ) -> dict[str, object]:
         return {
             "fitness_goal": str(profile.fitness_goal),
             "experience_level": profile.experience_level.value,
             "training_days_per_week": profile.training_days_per_week,
+            "preferred_weekdays": list(sorted(preferred_weekdays)),
             "session_duration_minutes": profile.session_duration_minutes,
             "training_location": profile.training_location.value,
             "available_equipment": [

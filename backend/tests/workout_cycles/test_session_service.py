@@ -155,6 +155,21 @@ def test_four_day_plan_repeats_for_each_program_week(db: Session) -> None:
     assert sessions[8].scheduled_date == sessions[0].scheduled_date + timedelta(days=14)
 
 
+def test_four_day_plan_uses_persisted_sunday_through_thursday_calendar(db: Session) -> None:
+    user = make_user(db, "session-preset-two@example.com")
+    plan = make_plan(db, user.id, weekdays=(1, 2, 4, 5), duration_weeks=4)
+
+    cycle = begin_cycle(db, user.id, plan)
+    sessions = sorted(cycle.sessions, key=lambda item: item.session_number)
+
+    assert [session.scheduled_date for session in sessions[:4]] == [
+        date(2026, 9, 13),
+        date(2026, 9, 14),
+        date(2026, 9, 16),
+        date(2026, 9, 17),
+    ]
+
+
 def test_fitician_weekday_zero_is_saturday(db: Session) -> None:
     user = make_user(db, "session-saturday@example.com")
     plan = make_plan(db, user.id, weekdays=(0,))

@@ -145,6 +145,7 @@ def _request(
     *,
     experience: TrainingExperience = TrainingExperience.FIRST_MONTH,
     days: int = 2,
+    preferred_weekdays: tuple[int, ...] = (),
     equipment: frozenset[Equipment] = frozenset({Equipment.BODYWEIGHT, Equipment.PULL_UP_BAR}),
     blocked_caution_tags: frozenset[ExerciseCautionTag] = frozenset(),
     red_flags: tuple[RedFlag, ...] = (),
@@ -158,6 +159,7 @@ def _request(
         training_experience=experience,
         training_age_months=0,
         available_training_days=days,
+        preferred_weekdays=preferred_weekdays,
         session_duration_minutes=120,
         available_equipment=equipment,
         training_location=TrainingLocation.HOME,
@@ -182,6 +184,22 @@ def test_builds_fixed_first_month_program_without_dynamic_construction() -> None
     assert len(program.weekly_schedule) == 2
     assert program.validation_report.errors == ()
     assert program.validation_report.metrics["template_slug"] == template.slug
+
+
+def test_exact_custom_weekdays_are_preserved_by_bodyweight_template() -> None:
+    template = get_bodyweight_template(ExperienceLevel.FIRST_MONTH, 2)
+    assert template is not None
+
+    program = build_bodyweight_template_program(
+        request=_request(preferred_weekdays=(0, 6)),
+        experience_level=ExperienceLevel.FIRST_MONTH,
+        template=template,
+        exercise_catalog=_catalog(),
+        ruleset=RULESET,
+    )
+
+    assert tuple(day.weekday for day in program.weekly_schedule) == (0, 6)
+    assert program.split.weekdays == (0, 6)
 
 
 def test_builds_fixed_beginner_program_with_exact_order_and_no_substitutions() -> None:
