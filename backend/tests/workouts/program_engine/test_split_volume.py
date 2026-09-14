@@ -1,9 +1,12 @@
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
 
 from app.exercises.enums import Equipment, MuscleGroup
 from app.profile.enums import TrainingLocation
+from app.workouts.program_engine import engine as engine_module
+from app.workouts.program_engine.engine import generate_program
 from app.workouts.program_engine.enums import (
     Goal,
     PhysicalJobDemand,
@@ -35,6 +38,8 @@ from app.workouts.program_engine.volume_policy import (
     session_hard_volume_cap,
     weekly_direct_volume_range,
 )
+from tests.workouts.program_engine.golden_fixtures import full_catalog
+from tests.workouts.program_engine.golden_fixtures import request as fixture_request
 
 
 def normalized(**overrides: object) -> NormalizedProgramRequest:
@@ -71,13 +76,79 @@ def test_two_days_use_coherent_full_body_ab_with_spacing() -> None:
     assert split.weekdays[1] - split.weekdays[0] >= 3
 
 
-def test_consecutive_preferred_full_body_days_are_adjusted_for_recovery() -> None:
+@pytest.mark.parametrize(
+    ("training_days", "preferred_weekdays"),
+    [
+        (2, (0, 3)),
+        (2, (1, 4)),
+        (2, (2, 5)),
+        (3, (0, 2, 4)),
+        (3, (1, 3, 5)),
+        (4, (0, 1, 3, 4)),
+        (4, (1, 2, 4, 5)),
+        (5, (0, 1, 2, 4, 5)),
+        (5, (0, 1, 3, 4, 5)),
+    ],
+)
+def test_exact_preferred_weekdays_are_preserved(
+    training_days: int,
+    preferred_weekdays: tuple[int, ...],
+) -> None:
+    split = select_split(
+        normalized(
+            available_training_days=training_days,
+            preferred_weekdays=preferred_weekdays,
+        ),
+        RULESET,
+    )
+
+    assert split.weekdays == preferred_weekdays
+    assert "SPLIT_PREFERRED_DAYS_ADJUSTED_FOR_RECOVERY" not in split.reason_codes
+
+
+def test_consecutive_preferred_full_body_days_are_not_replaced_by_the_default() -> None:
     split = select_split(
         normalized(available_training_days=3, preferred_weekdays=(0, 1, 2)), RULESET
     )
 
-    assert split.weekdays == RULESET.default_weekdays[3]
-    assert "SPLIT_PREFERRED_DAYS_ADJUSTED_FOR_RECOVERY" in split.reason_codes
+    assert split.weekdays == (0, 1, 2)
+    assert "SPLIT_PREFERRED_DAYS_ADJUSTED_FOR_RECOVERY" not in split.reason_codes
+
+
+def test_custom_friday_calendar_stays_intact_when_recovery_compatible() -> None:
+    result = generate_program(
+        fixture_request(available_training_days=4, preferred_weekdays=(0, 2, 4, 6)),
+        full_catalog(),
+        RULESET,
+        reference_templates=(),
+    )
+
+    assert result.program is not None, result.errors
+    assert tuple(day.weekday for day in result.program.weekly_schedule) == (0, 2, 4, 6)
+
+
+def test_locked_calendar_rejects_recovery_repair_that_changes_weekdays(monkeypatch) -> None:
+    def mutate_weekdays(split, days, ruleset):
+        weekdays = tuple(range(len(days)))
+        return (
+            replace(split, weekdays=weekdays),
+            tuple(
+                replace(day, weekday=weekday)
+                for day, weekday in zip(days, weekdays, strict=True)
+            ),
+            ("TEST_RECOVERY_REPAIR_CHANGED_CALENDAR",),
+        )
+
+    monkeypatch.setattr(engine_module, "repair_recovery_weekdays", mutate_weekdays)
+    result = generate_program(
+        fixture_request(available_training_days=3, preferred_weekdays=(0, 2, 4)),
+        full_catalog(),
+        RULESET,
+        reference_templates=(),
+    )
+
+    assert result.program is None
+    assert "PREFERRED_WEEKDAYS_RECOVERY_CONFLICT" in result.errors
 
 
 def test_four_days_generate_multiple_valid_split_candidates() -> None:

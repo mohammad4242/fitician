@@ -818,6 +818,8 @@ def _select_weekdays(
     focuses: tuple[str, ...],
     ruleset: ProgramRuleset,
 ) -> tuple[int, ...]:
+    if len(preferred) == days:
+        return tuple(sorted(preferred))
     if len(preferred) >= days:
         selected = tuple(sorted(preferred[:days]))
         if _spacing_is_acceptable(selected, focuses, ruleset):

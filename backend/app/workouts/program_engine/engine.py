@@ -122,6 +122,7 @@ MAX_TEMPLATE_CANDIDATES = 6
 MAX_CANONICAL_CANDIDATES = 6
 MAX_DYNAMIC_CANDIDATES = 12
 DYNAMIC_BATCH_SIZE = 6
+PREFERRED_WEEKDAYS_RECOVERY_CONFLICT = "PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"
 
 
 def generate_program(
@@ -146,6 +147,7 @@ def generate_program(
         }
     )
     normalized = normalize_request(request, ruleset)
+    calendar_weekdays = _locked_preferred_weekdays(request, normalized)
     safety = screen_safety(normalized)
     if safety.status not in {SafetyStatus.CLEAR, SafetyStatus.CLEAR_WITH_MODIFICATIONS}:
         return ProgramGenerationResult(
@@ -211,6 +213,10 @@ def generate_program(
                 session_capacity=session_capacity,
                 exercise_catalog=exercise_catalog,
             )
+            reference_build = _apply_calendar_weekdays_to_template_build(
+                reference_build,
+                calendar_weekdays,
+            )
             reference_result = _reference_program(
                 request,
                 normalized,
@@ -226,6 +232,7 @@ def generate_program(
                 session_capacity=session_capacity,
                 template_selection_trace=template_rejection_trace,
                 coverage_availability_evidence=coverage_availability_evidence,
+                calendar_weekdays=calendar_weekdays,
             )
             if reference_result.is_success:
                 repair_events = _post_construction_repair_events(reference_result)
@@ -354,6 +361,7 @@ def generate_program(
             template_rejection_trace=template_rejection_trace,
             rejected_slot_candidates=rejected_slot_candidates,
             coverage_availability_evidence=coverage_availability_evidence,
+            calendar_weekdays=calendar_weekdays,
         )
         if result.is_success:
             program_candidate = _canonical_program_candidate(
@@ -402,6 +410,8 @@ def generate_program(
     weekdays_fallback = (
         exact_day_splits[0].weekdays if exact_day_splits else tuple(range(requested_days))
     )
+    if calendar_weekdays is not None:
+        weekdays_fallback = calendar_weekdays
     dynamic_splits = rank_availability_aware_fallbacks(
         normalized,
         eligibility.eligible,
@@ -436,6 +446,7 @@ def generate_program(
                 template_rejection_trace=template_rejection_trace,
                 rejected_slot_candidates=rejected_slot_candidates,
                 coverage_availability_evidence=coverage_availability_evidence,
+                calendar_weekdays=calendar_weekdays,
             )
             dynamic_candidates.append(
                 _dynamic_program_candidate(
@@ -820,6 +831,7 @@ def _program_for_split(
     template_rejection_trace: tuple[dict[str, object], ...],
     rejected_slot_candidates: tuple[tuple[ExerciseCandidate, tuple[str, ...]], ...],
     coverage_availability_evidence: dict[str, object],
+    calendar_weekdays: tuple[int, ...] | None,
 ) -> ProgramGenerationResult:
     volume = plan_weekly_volume(
         normalized,
@@ -893,6 +905,15 @@ def _program_for_split(
     duration_repair_reasons = duration_repair.reasons
     days_before_recovery_repair = days
     split, days, recovery_repair_reasons = repair_recovery_weekdays(split, days, ruleset)
+    if _calendar_repair_changed(split, days, calendar_weekdays):
+        return _preferred_calendar_conflict_result(
+            split,
+            days,
+            calendar_weekdays,
+            safety_status=safety_status,
+            rejected=rejected,
+            decision_trace=template_rejection_trace,
+        )
     days, accessory_recovery_reasons = repair_recovery_accessory_distribution(
         days, normalized, ruleset
     )
@@ -913,6 +934,15 @@ def _program_for_split(
     days = duration_repair.days
     if days != days_before_duration_certification:
         split, days, late_recovery_reasons = repair_recovery_weekdays(split, days, ruleset)
+        if _calendar_repair_changed(split, days, calendar_weekdays):
+            return _preferred_calendar_conflict_result(
+                split,
+                days,
+                calendar_weekdays,
+                safety_status=safety_status,
+                rejected=rejected,
+                decision_trace=template_rejection_trace,
+            )
         days, late_accessory_recovery_reasons = repair_recovery_accessory_distribution(
             days, normalized, ruleset
         )
@@ -1178,6 +1208,7 @@ def _reference_program(
     session_capacity: SessionCapacity,
     template_selection_trace: tuple[dict[str, object], ...],
     coverage_availability_evidence: dict[str, object],
+    calendar_weekdays: tuple[int, ...] | None,
 ) -> ProgramGenerationResult:
     reference_focuses = tuple(_reference_split_focus(draft) for draft in build.drafts)
     split = SplitPlan(
@@ -1232,6 +1263,15 @@ def _reference_program(
     duration_repair_reasons = duration_repair.reasons
     days_before_recovery_repair = days
     split, days, recovery_repair_reasons = repair_recovery_weekdays(split, days, ruleset)
+    if _calendar_repair_changed(split, days, calendar_weekdays):
+        return _preferred_calendar_conflict_result(
+            split,
+            days,
+            calendar_weekdays,
+            safety_status=safety_status,
+            rejected=rejected,
+            decision_trace=template_selection_trace,
+        )
     days, accessory_recovery_reasons = repair_recovery_accessory_distribution(
         days, normalized, ruleset
     )
@@ -1253,6 +1293,15 @@ def _reference_program(
     days = duration_repair.days
     if days != days_before_duration_certification:
         split, days, late_recovery_reasons = repair_recovery_weekdays(split, days, ruleset)
+        if _calendar_repair_changed(split, days, calendar_weekdays):
+            return _preferred_calendar_conflict_result(
+                split,
+                days,
+                calendar_weekdays,
+                safety_status=safety_status,
+                rejected=rejected,
+                decision_trace=template_selection_trace,
+            )
         days, late_accessory_recovery_reasons = repair_recovery_accessory_distribution(
             days, normalized, ruleset
         )
@@ -1482,6 +1531,78 @@ def _reference_split_focus(draft: SessionDraft) -> str:
     if region is not None:
         return region
     return draft.focus
+
+
+def _locked_preferred_weekdays(
+    request: ProgramGenerationRequest,
+    normalized: NormalizedProgramRequest,
+) -> tuple[int, ...] | None:
+    if (
+        len(request.preferred_weekdays) != request.available_training_days
+        or normalized.resistance_training_days != request.available_training_days
+    ):
+        return None
+    return tuple(sorted(request.preferred_weekdays))
+
+
+def _apply_calendar_weekdays_to_template_build(
+    build: TemplateSessionBuild,
+    calendar_weekdays: tuple[int, ...] | None,
+) -> TemplateSessionBuild:
+    if calendar_weekdays is None or len(build.drafts) != len(calendar_weekdays):
+        return build
+    return replace(
+        build,
+        drafts=tuple(
+            replace(draft, weekday=weekday)
+            for draft, weekday in zip(build.drafts, calendar_weekdays, strict=True)
+        ),
+    )
+
+
+def _calendar_repair_changed(
+    split: SplitPlan,
+    days: tuple[WorkoutDay, ...],
+    calendar_weekdays: tuple[int, ...] | None,
+) -> bool:
+    if calendar_weekdays is None:
+        return False
+    return (
+        split.weekdays != calendar_weekdays
+        or tuple(day.weekday for day in days) != calendar_weekdays
+    )
+
+
+def _preferred_calendar_conflict_result(
+    split: SplitPlan,
+    days: tuple[WorkoutDay, ...],
+    calendar_weekdays: tuple[int, ...] | None,
+    *,
+    safety_status: SafetyStatus,
+    rejected: tuple[RejectedCandidate, ...],
+    decision_trace: tuple[dict[str, object], ...],
+) -> ProgramGenerationResult:
+    assert calendar_weekdays is not None
+    reason_codes = (PREFERRED_WEEKDAYS_RECOVERY_CONFLICT,)
+    return ProgramGenerationResult(
+        program=None,
+        error_code=GenerationErrorCode.UNSATISFIED_CONSTRAINT,
+        errors=reason_codes,
+        safety_status=safety_status,
+        rejected_candidates=rejected,
+        decision_trace=decision_trace
+        + (
+            {
+                "stage": "calendar_contract",
+                "status": "rejected",
+                "split": split.split_type.value,
+                "expected_weekdays": calendar_weekdays,
+                "actual_split_weekdays": split.weekdays,
+                "actual_schedule_weekdays": tuple(day.weekday for day in days),
+                "reason_codes": reason_codes,
+            },
+        ),
+    )
 
 
 def _structured_relaxed_pattern_groups(
