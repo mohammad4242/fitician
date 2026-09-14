@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import heroStrengthFallback from "../../assets/landing/hero-strength-fallback.jpg";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { deleteAdminExercise, getAdminExercises } from "../admin/api";
 import { useAuth } from "../auth/AuthContext";
@@ -57,12 +58,14 @@ export function ExerciseCatalogPage() {
   const [categories, setCategories] = useState<ExerciseCategories | null>(null);
   const [categoryState, setCategoryState] = useState<LoadState>("loading");
   const [categoryRetry, setCategoryRetry] = useState(0);
+  const [categoryError, setCategoryError] = useState<unknown | null>(null);
   const [exercisePage, setExercisePage] = useState<PaginatedExercises | null>(null);
   const [exerciseState, setExerciseState] = useState<LoadState>("idle");
   const [exerciseRetry, setExerciseRetry] = useState(0);
+  const [exerciseError, setExerciseError] = useState<unknown | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CatalogExercise | null>(null);
   const [deletingExerciseId, setDeletingExerciseId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<unknown | null>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const query = useMemo(() => parseCatalogQuery(searchParams), [searchParams]);
@@ -94,14 +97,17 @@ export function ExerciseCatalogPage() {
   useEffect(() => {
     let active = true;
     setCategoryState("loading");
+    setCategoryError(null);
     void getExerciseCategories()
       .then((response) => {
         if (!active) return;
         setCategories(response);
+        setCategoryError(null);
         setCategoryState("ready");
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) return;
+        setCategoryError(error);
         setCategoryState("error");
       });
     return () => {
@@ -112,12 +118,14 @@ export function ExerciseCatalogPage() {
   useEffect(() => {
     if (!canLoadExercises) {
       setExercisePage(null);
+      setExerciseError(null);
       setExerciseState("idle");
       return;
     }
 
     let active = true;
     setExerciseState("loading");
+    setExerciseError(null);
     const filters: ExerciseFilters = {
       body_region: query.body_region,
       content_type: query.content_type,
@@ -141,10 +149,12 @@ export function ExerciseCatalogPage() {
       .then((response) => {
         if (!active) return;
         setExercisePage(response);
+        setExerciseError(null);
         setExerciseState("ready");
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) return;
+        setExerciseError(error);
         setExerciseState("error");
       });
     return () => {
@@ -268,8 +278,8 @@ export function ExerciseCatalogPage() {
             total: Math.max(0, current.total - 1),
           });
       setDeleteTarget(null);
-    } catch {
-      setDeleteError(t("catalog.deleteExerciseError"));
+    } catch (error: unknown) {
+      setDeleteError(error);
     } finally {
       setDeletingExerciseId(null);
     }
@@ -362,12 +372,15 @@ export function ExerciseCatalogPage() {
           <StatusPanel role="status" message={t("catalog.loadingCategories")} />
         )}
         {categoryState === "error" && (
-          <StatusPanel
-            role="alert"
-            message={t("catalog.categoryError")}
-            action={t("common.retry")}
-            onAction={() => setCategoryRetry((value) => value + 1)}
-          />
+          categoryError !== null && (
+            <AppErrorNotice
+              audience={isAdmin ? "admin" : "member"}
+              context="workout"
+              error={categoryError}
+              locale={isEnglish ? "en" : "fa"}
+              onRetry={() => setCategoryRetry((value) => value + 1)}
+            />
+          )
         )}
 
         {categories !== null && categoryState === "ready" && (
@@ -521,13 +534,15 @@ export function ExerciseCatalogPage() {
               <StatusPanel role="status" message={t("catalog.loadingExercises")} compact />
             )}
             {exerciseState === "error" && (
-              <StatusPanel
-                role="alert"
-                message={t("catalog.exerciseError")}
-                action={t("common.retry")}
-                onAction={() => setExerciseRetry((value) => value + 1)}
-                compact
-              />
+              exerciseError !== null && (
+                <AppErrorNotice
+                  audience={isAdmin ? "admin" : "member"}
+                  context="workout"
+                  error={exerciseError}
+                  locale={isEnglish ? "en" : "fa"}
+                  onRetry={() => setExerciseRetry((value) => value + 1)}
+                />
+              )
             )}
             {exerciseState === "ready" && exercisePage?.items.length === 0 && (
               <StatusPanel
@@ -612,7 +627,13 @@ export function ExerciseCatalogPage() {
               })}
             </p>
             {deleteError !== null && (
-              <p className="exercise-delete-dialog__error" role="alert">{deleteError}</p>
+              <AppErrorNotice
+                audience="admin"
+                context="workout"
+                error={deleteError}
+                locale={isEnglish ? "en" : "fa"}
+                onRetry={() => void handleDelete()}
+              />
             )}
             <footer>
               <button

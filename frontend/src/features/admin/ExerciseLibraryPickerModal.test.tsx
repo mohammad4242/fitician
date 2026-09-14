@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 const exercisesApi = vi.hoisted(() => ({
   getExerciseCategories: vi.fn(),
 }));
@@ -229,6 +231,55 @@ describe("ExerciseLibraryPickerModal", () => {
     expect(exerciseItem).toBeInTheDocument();
     await user.click(exerciseItem);
     expect(onSelect).toHaveBeenCalledWith(mockBenchPress);
+  });
+
+  it("shows safe admin diagnostics when categories fail", async () => {
+    exercisesApi.getExerciseCategories.mockRejectedValueOnce(
+      new ApiError(503, "private category detail", null, "SERVICE_UNAVAILABLE", {
+        requestId: "picker-category-request-1",
+      }),
+    );
+
+    render(
+      <ExerciseLibraryPickerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+    expect(alert).toHaveTextContent("SERVICE_UNAVAILABLE");
+    expect(alert).toHaveTextContent("503");
+    expect(alert).toHaveTextContent("picker-category-request-1");
+    expect(alert).not.toHaveTextContent("private category detail");
+  });
+
+  it("shows safe admin diagnostics when the exercise list fails", async () => {
+    const user = userEvent.setup();
+    adminApi.getAdminExercises.mockRejectedValue(
+      new ApiError(503, "private exercise detail", null, "SERVICE_UNAVAILABLE", {
+        requestId: "picker-exercise-request-1",
+      }),
+    );
+
+    render(
+      <ExerciseLibraryPickerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /بالاتنه/ }));
+    await user.click(await screen.findByRole("button", { name: /سینه/ }));
+    await user.click(await screen.findByRole("button", { name: /بالاسینه/ }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("SERVICE_UNAVAILABLE");
+    expect(alert).toHaveTextContent("picker-exercise-request-1");
+    expect(alert).not.toHaveTextContent("private exercise detail");
   });
 
   it("supports a slot-only filter for exercises with incomplete metadata", async () => {

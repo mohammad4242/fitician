@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import heroStrengthFallback from "../../assets/landing/hero-strength-fallback.jpg";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { getExercise } from "./api";
 import { ExerciseMediaCarousel } from "./ExerciseMediaCarousel";
@@ -21,7 +22,9 @@ export function ExerciseDetailPage() {
   const [retry, setRetry] = useState(0);
   const [mediaPresentation, setMediaPresentation] = useState<"male" | "female">("male");
   const [mediaSwitching, setMediaSwitching] = useState(false);
-  const [mediaSwitchError, setMediaSwitchError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [mediaSwitchError, setMediaSwitchError] = useState<unknown | null>(null);
+  const [mediaSwitchUnavailable, setMediaSwitchUnavailable] = useState(false);
   const isEnglish = i18n.resolvedLanguage === "en";
   const catalogPath = `/exercises${location.search}`;
 
@@ -33,6 +36,7 @@ export function ExerciseDetailPage() {
 
     let active = true;
     setState("loading");
+    setLoadError(null);
     void getExercise(slug)
       .then((response) => {
         if (!active) return;
@@ -43,11 +47,13 @@ export function ExerciseDetailPage() {
         }
         setExercise(response);
         setMediaPresentation(resolveMediaPresentation(response));
-        setMediaSwitchError(false);
+        setMediaSwitchError(null);
+        setMediaSwitchUnavailable(false);
         setState("ready");
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) return;
+        setLoadError(error);
         setState("error");
       });
     return () => {
@@ -58,17 +64,18 @@ export function ExerciseDetailPage() {
   async function changeMediaPresentation(presentation: "male" | "female") {
     if (slug === undefined || mediaSwitching || presentation === mediaPresentation) return;
     setMediaSwitching(true);
-    setMediaSwitchError(false);
+    setMediaSwitchError(null);
+    setMediaSwitchUnavailable(false);
     try {
       const response = await getExercise(slug, presentation);
       if (response === null) {
-        setMediaSwitchError(true);
+        setMediaSwitchUnavailable(true);
         return;
       }
       setExercise(response);
       setMediaPresentation(resolveMediaPresentation(response));
-    } catch {
-      setMediaSwitchError(true);
+    } catch (error: unknown) {
+      setMediaSwitchError(error);
     } finally {
       setMediaSwitching(false);
     }
@@ -82,12 +89,15 @@ export function ExerciseDetailPage() {
           <DetailMessage role="status" message={t("exerciseDetail.loading")} />
         )}
         {state === "error" && (
-          <DetailMessage
-            role="alert"
-            message={t("exerciseDetail.loadError")}
-            action={t("common.retry")}
-            onAction={() => setRetry((value) => value + 1)}
-          />
+          loadError !== null && (
+            <AppErrorNotice
+              audience="member"
+              context="workout"
+              error={loadError}
+              locale={isEnglish ? "en" : "fa"}
+              onRetry={() => setRetry((value) => value + 1)}
+            />
+          )
         )}
         {state === "not-found" && (
           <section className="exercise-detail-message" aria-labelledby="unknown-exercise">
@@ -107,6 +117,7 @@ export function ExerciseDetailPage() {
             mediaPresentation={mediaPresentation}
             mediaSwitching={mediaSwitching}
             mediaSwitchError={mediaSwitchError}
+            mediaSwitchUnavailable={mediaSwitchUnavailable}
             onMediaPresentationChange={changeMediaPresentation}
           />
         )}
@@ -129,6 +140,7 @@ function ReadyExerciseDetail({
   mediaPresentation,
   mediaSwitching,
   mediaSwitchError,
+  mediaSwitchUnavailable,
   onMediaPresentationChange,
 }: {
   exercise: ExerciseDetail;
@@ -136,7 +148,8 @@ function ReadyExerciseDetail({
   isEnglish: boolean;
   mediaPresentation: "male" | "female";
   mediaSwitching: boolean;
-  mediaSwitchError: boolean;
+  mediaSwitchError: unknown | null;
+  mediaSwitchUnavailable: boolean;
   onMediaPresentationChange: (presentation: "male" | "female") => void;
 }) {
   const { t } = useTranslation();
@@ -201,7 +214,15 @@ function ReadyExerciseDetail({
               onClick={() => onMediaPresentationChange("female")}
             >♀️</button>
           </div>
-          {mediaSwitchError && (
+          {mediaSwitchError !== null && (
+            <AppErrorNotice
+              audience="member"
+              context="workout"
+              error={mediaSwitchError}
+              locale={isEnglish ? "en" : "fa"}
+            />
+          )}
+          {mediaSwitchUnavailable && (
             <p className="exercise-media-presentation-error" role="alert">
               {t("exerciseDetail.mediaSwitchError")}
             </p>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { getExerciseCategories } from "../exercises/api";
 import { ExerciseMedia } from "../exercises/ExerciseMedia";
 import "../exercises/exercises.css";
@@ -35,6 +36,8 @@ export function ExerciseLibraryPickerModal({
 
   const [categories, setCategories] = useState<ExerciseCategories | null>(null);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesRetry, setCategoriesRetry] = useState(0);
+  const [categoriesError, setCategoriesError] = useState<unknown | null>(null);
 
   const [selectedRegion, setSelectedRegion] = useState<BodyRegion | null>(null);
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
@@ -46,6 +49,8 @@ export function ExerciseLibraryPickerModal({
 
   const [exercises, setExercises] = useState<AdminExercise[]>([]);
   const [exercisesLoading, setExercisesLoading] = useState(false);
+  const [exercisesRetry, setExercisesRetry] = useState(0);
+  const [exercisesError, setExercisesError] = useState<unknown | null>(null);
 
   const modalRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -63,20 +68,25 @@ export function ExerciseLibraryPickerModal({
     if (!isOpen) return;
     let active = true;
     setCategoriesLoading(true);
+    setCategoriesError(null);
     void getExerciseCategories()
       .then((data) => {
         if (active) {
           setCategories(data);
+          setCategoriesError(null);
           setCategoriesLoading(false);
         }
       })
-      .catch(() => {
-        if (active) setCategoriesLoading(false);
+      .catch((error: unknown) => {
+        if (active) {
+          setCategoriesError(error);
+          setCategoriesLoading(false);
+        }
       });
     return () => {
       active = false;
     };
-  }, [isOpen]);
+  }, [categoriesRetry, isOpen]);
 
   // Reset state when opening
   useEffect(() => {
@@ -88,6 +98,7 @@ export function ExerciseLibraryPickerModal({
       setSearchQuery("");
       setDebouncedSearch("");
       setExercises([]);
+      setExercisesError(null);
     }
   }, [isOpen]);
 
@@ -113,11 +124,13 @@ export function ExerciseLibraryPickerModal({
 
     if (!isSearching && !hasCategorySelection) {
       setExercises([]);
+      setExercisesError(null);
       return;
     }
 
     let active = true;
     setExercisesLoading(true);
+    setExercisesError(null);
 
     const filters = isSearching
       ? {
@@ -141,12 +154,14 @@ export function ExerciseLibraryPickerModal({
       .then((res) => {
         if (active) {
           setExercises(res.items);
+          setExercisesError(null);
           setExercisesLoading(false);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (active) {
           setExercises([]);
+          setExercisesError(error);
           setExercisesLoading(false);
         }
       });
@@ -154,7 +169,7 @@ export function ExerciseLibraryPickerModal({
     return () => {
       active = false;
     };
-  }, [debouncedSearch, isOpen, selectedFocus, selectedMuscle, selectedRegion]);
+  }, [debouncedSearch, exercisesRetry, isOpen, selectedFocus, selectedMuscle, selectedRegion]);
 
   const visibleExercises = filterExercise
     ? exercises.filter(filterExercise)
@@ -341,6 +356,15 @@ export function ExerciseLibraryPickerModal({
               {t("catalog.loadingCategories", "در حال دریافت دسته‌بندی‌ها…")}
             </p>
           )}
+          {!categoriesLoading && categoriesError !== null && (
+            <AppErrorNotice
+              audience="admin"
+              context="workout"
+              error={categoriesError}
+              locale={isEn ? "en" : "fa"}
+              onRetry={() => setCategoriesRetry((value) => value + 1)}
+            />
+          )}
 
           {/* SEARCH RESULTS VIEW */}
           {isSearching && (
@@ -353,7 +377,16 @@ export function ExerciseLibraryPickerModal({
                   {t("catalog.loadingExercises", "در حال دریافت حرکت‌ها…")}
                 </p>
               )}
-              {!exercisesLoading && visibleExercises.length === 0 && (
+              {!exercisesLoading && exercisesError !== null && (
+                <AppErrorNotice
+                  audience="admin"
+                  context="workout"
+                  error={exercisesError}
+                  locale={isEn ? "en" : "fa"}
+                  onRetry={() => setExercisesRetry((value) => value + 1)}
+                />
+              )}
+              {!exercisesLoading && exercisesError === null && visibleExercises.length === 0 && (
                 <p className="admin-status">
                   {t("catalog.noMatches", "حرکتی با این مشخصات یافت نشد.")}
                 </p>
@@ -477,7 +510,16 @@ export function ExerciseLibraryPickerModal({
                       {t("catalog.loadingExercises", "در حال دریافت حرکت‌ها…")}
                     </p>
                   )}
-                  {!exercisesLoading && visibleExercises.length === 0 && (
+                  {!exercisesLoading && exercisesError !== null && (
+                    <AppErrorNotice
+                      audience="admin"
+                      context="workout"
+                      error={exercisesError}
+                      locale={isEn ? "en" : "fa"}
+                      onRetry={() => setExercisesRetry((value) => value + 1)}
+                    />
+                  )}
+                  {!exercisesLoading && exercisesError === null && visibleExercises.length === 0 && (
                     <p className="admin-status">
                       {t("catalog.emptyGroup", "حرکتی در این دسته ثبت نشده است.")}
                     </p>

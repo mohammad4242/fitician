@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError, TransportError } from "@fitician/core";
+
 import i18n from "../../i18n";
 import type {
   ExerciseCategories,
@@ -346,19 +348,33 @@ describe("catalog filters and states", () => {
     expect(await screen.findByRole("article", { name: "پرس سینه دمبل" })).toBeVisible();
   });
 
+  it("uses the shared safe presentation for an API error", async () => {
+    api.getExercises.mockRejectedValueOnce(
+      new ApiError(503, "private provider detail", null, "SERVICE_UNAVAILABLE", {
+        requestId: "exercise-request-1",
+      }),
+    );
+    renderCatalog("/exercises?body_region=upper_body&primary_muscle=chest");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+    expect(alert).not.toHaveTextContent("private provider detail");
+    expect(alert).not.toHaveTextContent("exercise-request-1");
+  });
+
   it("retries a failed exercise request without changing filters", async () => {
     const user = userEvent.setup();
     api.getExercises
-      .mockRejectedValueOnce(new Error("offline"))
+      .mockRejectedValueOnce(new TransportError("offline"))
       .mockResolvedValueOnce(populatedPage);
     renderCatalog(
       "/exercises?body_region=upper_body&primary_muscle=chest&equipment=dumbbell",
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "حرکات دریافت نشدند",
+      "اتصال اینترنت در دسترس نیست",
     );
-    await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
+    await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
 
     expect(await screen.findByRole("article", { name: "پرس سینه دمبل" })).toBeVisible();
     expect(locationValue()).toBe(
@@ -437,7 +453,11 @@ describe("administrator controls", () => {
   it("shows a safe error when the exercise cannot be deleted", async () => {
     auth.isAdmin = true;
     const user = userEvent.setup();
-    adminApi.deleteAdminExercise.mockRejectedValue(new Error("Request failed"));
+    adminApi.deleteAdminExercise.mockRejectedValue(
+      new ApiError(404, "private delete detail", null, "NOT_FOUND", {
+        requestId: "delete-request-1",
+      }),
+    );
     renderCatalog("/exercises?body_region=upper_body&primary_muscle=chest");
 
     const card = await screen.findByRole("article", { name: "پرس سینه دمبل" });
@@ -448,9 +468,12 @@ describe("administrator controls", () => {
       }),
     );
 
-    expect(await within(screen.getByRole("dialog", { name: "حذف حرکت" })).findByRole("alert")).toHaveTextContent(
-      "حرکت حذف نشد. دوباره تلاش کنید.",
-    );
+    const alert = await within(screen.getByRole("dialog", { name: "حذف حرکت" })).findByRole("alert");
+    expect(alert).toHaveTextContent("پیدا نشد");
+    expect(alert).toHaveTextContent("NOT_FOUND");
+    expect(alert).toHaveTextContent("404");
+    expect(alert).toHaveTextContent("delete-request-1");
+    expect(alert).not.toHaveTextContent("private delete detail");
     expect(screen.getByRole("article", { name: "پرس سینه دمبل" })).toBeInTheDocument();
   });
 

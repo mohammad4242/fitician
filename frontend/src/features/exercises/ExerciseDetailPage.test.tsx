@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError, TransportError } from "@fitician/core";
+
 import i18n from "../../i18n";
 import type { ExerciseDetail } from "./types";
 
@@ -96,17 +98,31 @@ describe("exercise detail states", () => {
   it("retries a failed request", async () => {
     const user = userEvent.setup();
     api.getExercise
-      .mockRejectedValueOnce(new Error("offline"))
+      .mockRejectedValueOnce(new TransportError("offline"))
       .mockResolvedValueOnce(detail);
     renderDetail();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "جزئیات حرکت دریافت نشد",
+      "اتصال اینترنت در دسترس نیست",
     );
-    await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
+    await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
 
     await user.click(await screen.findByText("راهنمای حرکت", { exact: true }));
     expect(await screen.findByRole("heading", { name: "پرس سینه دمبل" })).toBeVisible();
+  });
+
+  it("uses a safe shared presentation for a backend failure", async () => {
+    api.getExercise.mockRejectedValueOnce(
+      new ApiError(503, "private provider detail", null, "SERVICE_UNAVAILABLE", {
+        requestId: "detail-request-1",
+      }),
+    );
+    renderDetail();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+    expect(alert).not.toHaveTextContent("private provider detail");
+    expect(alert).not.toHaveTextContent("detail-request-1");
   });
 
   it("shows an unknown exercise state with a catalog return link", async () => {
