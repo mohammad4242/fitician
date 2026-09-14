@@ -209,7 +209,7 @@ def read_exercise(
     if exercise is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Exercise not found",
+            detail={"code": "EXERCISE_NOT_FOUND"},
         )
     profile = db.get(UserProfile, user.id)
     profile_presentation = None

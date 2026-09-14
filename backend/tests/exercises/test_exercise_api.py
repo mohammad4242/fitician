@@ -97,7 +97,7 @@ def test_catalog_routes_require_authentication(client: TestClient, path: str) ->
     response = client.get(path)
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Authentication required"}
+    assert response.json()["detail"]["code"] == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.parametrize(
@@ -114,7 +114,7 @@ def test_catalog_routes_require_completed_profile(client: TestClient, path: str)
     response = client.get(path)
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Completed fitness profile required"}
+    assert response.json()["detail"]["code"] == "PROFILE_INCOMPLETE"
 
 
 def test_categories_return_ordered_bilingual_taxonomy_even_when_core_is_empty(
@@ -432,7 +432,7 @@ def test_inactive_exercises_are_hidden_from_list_and_detail(
     assert listing.json()["total"] == 17
     assert "dumbbell-bench-press" not in {item["slug"] for item in listing.json()["items"]}
     assert detail.status_code == 404
-    assert detail.json() == {"detail": "Exercise not found"}
+    assert detail.json()["detail"]["code"] == "EXERCISE_NOT_FOUND"
 
 
 def test_unknown_slug_returns_not_found(client: TestClient, db: Session) -> None:
@@ -441,7 +441,7 @@ def test_unknown_slug_returns_not_found(client: TestClient, db: Session) -> None
     response = client.get("/api/v1/exercises/not-an-exercise")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Exercise not found"}
+    assert response.json()["detail"]["code"] == "EXERCISE_NOT_FOUND"
 
 
 @pytest.mark.parametrize(

@@ -128,7 +128,7 @@ def test_admin_exercise_routes_require_authentication(
         response = client.delete(f"/api/v1/admin/exercises/{uuid4()}")
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Authentication required"}
+    assert response.json()["detail"]["code"] == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.parametrize("method", ["get", "post", "delete"])
@@ -146,7 +146,7 @@ def test_admin_exercise_routes_reject_non_admin(
         response = client.delete(f"/api/v1/admin/exercises/{uuid4()}")
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Administrator access required"}
+    assert response.json()["detail"]["code"] == "ADMIN_ROLE_REQUIRED"
 
 
 def test_admin_access_does_not_require_completed_profile(
@@ -193,7 +193,7 @@ def test_delete_requires_trusted_origin(
     response = client.delete(f"/api/v1/admin/exercises/{uuid4()}", headers=headers)
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Untrusted request origin"}
+    assert response.json()["detail"]["code"] == "TRUSTED_ORIGIN_REQUIRED"
 
 
 def test_admin_deletes_an_exercise_used_in_a_workout_plan(client: TestClient, db: Session) -> None:
@@ -711,7 +711,7 @@ def test_invalid_upload_returns_field_error_and_leaves_no_file(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "media"]
+    assert response.json()["detail"]["fields"][0]["field"] == "media"
     assert not any(path.is_file() for path in test_settings.media_root.rglob("*"))
 
 
@@ -832,7 +832,7 @@ def test_create_rejects_browser_supplied_media_path(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "media_path"]
+    assert response.json()["detail"]["fields"][0]["field"] == "media_path"
 
 
 @pytest.mark.parametrize(
@@ -860,7 +860,7 @@ def test_create_rejects_invalid_fields(
     response = post_exercise(client, exercise_payload(**{field: value}))
 
     assert response.status_code == 422
-    assert field in response.json()["detail"][0]["loc"]
+    assert response.json()["detail"]["fields"][0]["field"].startswith(field)
 
 
 @pytest.mark.parametrize(
@@ -890,7 +890,7 @@ def test_create_rejects_primary_muscle_outside_body_region(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"][-1] == "primary_muscle"
+    assert response.json()["detail"]["fields"][0]["field"] == "primary_muscle"
 
 
 def test_create_rejects_primary_muscle_as_secondary(
@@ -905,7 +905,7 @@ def test_create_rejects_primary_muscle_as_secondary(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"][-1] == "secondary_muscles"
+    assert response.json()["detail"]["fields"][0]["field"] == "secondary_muscles"
 
 
 def test_create_rejects_focus_outside_primary_muscle(
@@ -920,7 +920,7 @@ def test_create_rejects_focus_outside_primary_muscle(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"][-1] == "muscle_focus"
+    assert response.json()["detail"]["fields"][0]["field"] == "muscle_focus"
 
 
 def test_create_allows_cross_region_secondary_muscles(
@@ -960,7 +960,7 @@ def test_create_requires_trusted_origin(
     response = post_exercise(client, exercise_payload(), headers=headers)
 
     assert response.status_code == 403
-    assert response.json() == {"detail": "Untrusted request origin"}
+    assert response.json()["detail"]["code"] == "TRUSTED_ORIGIN_REQUIRED"
 
 
 def test_admin_can_update_programming_metadata(

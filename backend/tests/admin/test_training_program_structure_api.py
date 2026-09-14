@@ -209,6 +209,21 @@ def test_structure_write_rejects_invalid_family_combinations(
     )
 
     assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
+
+
+def test_missing_structure_returns_a_stable_domain_error(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _register_admin(client, db, "missing-structure@example.com")
+
+    response = client.get(
+        "/api/v1/admin/training-program-structures/00000000-0000-0000-0000-000000000000"
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "TRAINING_STRUCTURE_NOT_FOUND"
 
 
 def test_admin_cannot_change_days_for_referenced_structure(
@@ -240,3 +255,4 @@ def test_admin_cannot_change_days_for_referenced_structure(
     )
 
     assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "TRAINING_STRUCTURE_REFERENCED"

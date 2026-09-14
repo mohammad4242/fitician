@@ -173,6 +173,10 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("شناسه حرکت تکراری است", "Exercise slug already exists"),
     text("این شناسه قبلاً استفاده شده است.", "This exercise slug is already in use."),
   ),
+  EXERCISE_NOT_FOUND: entry(
+    text("حرکت پیدا نشد", "Exercise not found"),
+    text("حرکت موردنظر پیدا نشد.", "The requested exercise was not found."),
+  ),
   PRODUCT_MODE_REQUIRED: entry(
     text("مسیر محصول انتخاب نشده است", "Product path required"),
     text("ابتدا مسیر فیتیشن را انتخاب کنید.", "Choose a Fitician path first."),
@@ -919,6 +923,30 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   TRAINING_STRUCTURE_NOT_FOUND: entry(
     text("ساختار تمرینی پیدا نشد", "Training structure not found"),
     text("ساختار تمرینی پیدا نشد.", "The training structure was not found."),
+  ),
+  TRAINING_STRUCTURE_INVALID: entry(
+    text("اطلاعات ساختار تمرینی معتبر نیست", "Training structure is invalid"),
+    text("اطلاعات ساختار تمرینی معتبر نیست. موارد مشخص‌شده را بررسی کنید.", "The training structure information is invalid. Check the highlighted fields."),
+  ),
+  TRAINING_STRUCTURE_REFERENCED: entry(
+    text("ساختار تمرینی قابل تغییر نیست", "Training structure is in use"),
+    text("این ساختار به قالب‌های تمرینی متصل است و قابل تغییر یا حذف نیست.", "This training structure is used by templates and cannot be changed or deleted."),
+  ),
+  TRAINING_TEMPLATE_NOT_FOUND: entry(
+    text("قالب برنامه تمرینی پیدا نشد", "Training template not found"),
+    text("قالب برنامه تمرینی پیدا نشد.", "The training-program template was not found."),
+  ),
+  TRAINING_TEMPLATE_INVALID: entry(
+    text("اطلاعات قالب برنامه معتبر نیست", "Training template is invalid"),
+    text("اطلاعات قالب برنامه تمرینی معتبر نیست. موارد مشخص‌شده را بررسی کنید.", "The training-program template information is invalid. Check the highlighted fields."),
+  ),
+  TRAINING_TEMPLATE_SAVE_FAILED: entry(
+    text("ذخیره قالب برنامه انجام نشد", "Training template could not be saved"),
+    text("ذخیره قالب برنامه تمرینی انجام نشد. دوباره تلاش کنید.", "The training-program template could not be saved. Try again."),
+  ),
+  TRAINING_TEMPLATE_SLOT_NOT_FOUND: entry(
+    text("جایگاه قالب پیدا نشد", "Training template slot not found"),
+    text("جایگاه قالب برنامه تمرینی پیدا نشد.", "The training-template slot was not found."),
   ),
   WORKOUT_ACTIVE_CYCLE_NOT_FOUND: entry(
     text("چرخه تمرینی فعال نیست", "Active workout cycle not found"),

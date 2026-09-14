@@ -118,6 +118,21 @@ describe("resolveAppError", () => {
     expect(result.message).not.toContain("private clinical note");
   });
 
+  it("keeps admin training-catalogue diagnostics code-first", () => {
+    const result = resolveAppError(
+      new ApiError(422, "raw template implementation detail", null, "TRAINING_TEMPLATE_INVALID", {
+        requestId: "admin-template-1",
+      }),
+      { audience: "admin", context: "workout", locale: "fa" },
+    );
+
+    expect(result.code).toBe("TRAINING_TEMPLATE_INVALID");
+    expect(result.message).toContain("قالب");
+    expect(result.requestId).toBe("admin-template-1");
+    expect(result.showTechnicalDetails).toBe(true);
+    expect(result.message).not.toContain("raw template implementation detail");
+  });
+
   it.each([
     ["WORKOUT_GENERATION_IN_PROGRESS", "ساخت برنامه تمرینی در حال انجام است"],
     ["BODYWEIGHT_PULL_UP_BAR_REQUIRED", "میله بارفیکس"],

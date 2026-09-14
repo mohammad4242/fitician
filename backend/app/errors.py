@@ -226,6 +226,15 @@ _MESSAGES = {
     "NOTIFICATION_PROVIDER_MISMATCH": "ارائه‌دهنده اعلان با پلتفرم دستگاه سازگار نیست.",
     "NOTIFICATION_DEVICE_NOT_FOUND": "دستگاه اعلان پیدا نشد.",
     "TRAINING_STRUCTURE_NOT_FOUND": "ساختار تمرینی پیدا نشد.",
+    "TRAINING_STRUCTURE_INVALID": "اطلاعات ساختار تمرینی معتبر نیست.",
+    "TRAINING_STRUCTURE_REFERENCED": (
+        "این ساختار به قالب‌های تمرینی متصل است و قابل تغییر یا حذف نیست."
+    ),
+    "TRAINING_TEMPLATE_NOT_FOUND": "قالب برنامه تمرینی پیدا نشد.",
+    "TRAINING_TEMPLATE_INVALID": "اطلاعات قالب برنامه تمرینی معتبر نیست.",
+    "TRAINING_TEMPLATE_SAVE_FAILED": "ذخیره قالب برنامه تمرینی انجام نشد. دوباره تلاش کنید.",
+    "TRAINING_TEMPLATE_SLOT_NOT_FOUND": "جایگاه قالب برنامه تمرینی پیدا نشد.",
+    "EXERCISE_NOT_FOUND": "حرکت پیدا نشد.",
     "WORKOUT_ACTIVE_CYCLE_NOT_FOUND": "چرخه تمرینی فعالی وجود ندارد.",
     "WORKOUT_CYCLE_NOT_FOUND": "چرخه تمرینی پیدا نشد.",
     "WORKOUT_CYCLE_NOT_COMPLETE": "چرخه تمرینی هنوز به پایان نرسیده است.",

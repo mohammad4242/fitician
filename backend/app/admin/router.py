@@ -85,6 +85,42 @@ router = APIRouter(
 )
 
 
+def _not_found(code: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": code})
+
+
+def _validation_error(
+    field: str,
+    *,
+    code: str = "VALIDATION_ERROR",
+) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={
+            "code": code,
+            "fields": [{"field": field, "code": "invalid"}],
+        },
+    )
+
+
+def _structure_write_error(error: StructureWriteError) -> HTTPException:
+    code = (
+        "TRAINING_STRUCTURE_REFERENCED"
+        if "referenced" in str(error).casefold()
+        else "TRAINING_STRUCTURE_INVALID"
+    )
+    return _validation_error("structure", code=code)
+
+
+def _template_write_error(field: str, error: TemplateWriteError) -> HTTPException:
+    code = (
+        "TRAINING_TEMPLATE_SAVE_FAILED"
+        if "after saving" in str(error).casefold()
+        else "TRAINING_TEMPLATE_INVALID"
+    )
+    return _validation_error(field, code=code)
+
+
 def _training_template_detail(template: TrainingProgramTemplate) -> AdminTrainingProgramTemplate:
     return AdminTrainingProgramTemplate(
         id=template.id,
@@ -224,7 +260,7 @@ def read_training_program_structure(
 ) -> AdminTrainingProgramStructure:
     structure = get_training_program_structure(db, structure_id)
     if structure is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Structure not found")
+        raise _not_found("TRAINING_STRUCTURE_NOT_FOUND")
     return _structure_detail(structure)
 
 
@@ -241,9 +277,7 @@ def create_structure(
     try:
         structure = create_training_program_structure(db, payload)
     except StructureWriteError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        ) from exc
+        raise _structure_write_error(exc) from None
     return _structure_detail(structure)
 
 
@@ -260,11 +294,9 @@ def update_structure(
     try:
         structure = update_training_program_structure(db, structure_id, payload)
     except StructureWriteError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
-        ) from exc
+        raise _structure_write_error(exc) from None
     if structure is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Structure not found")
+        raise _not_found("TRAINING_STRUCTURE_NOT_FOUND")
     return _structure_detail(structure)
 
 
@@ -279,7 +311,7 @@ def activate_structure(
 ) -> AdminTrainingProgramStructure:
     structure = set_structure_active(db, structure_id, is_active=True)
     if structure is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Structure not found")
+        raise _not_found("TRAINING_STRUCTURE_NOT_FOUND")
     return _structure_detail(structure)
 
 
@@ -294,7 +326,7 @@ def deactivate_structure(
 ) -> AdminTrainingProgramStructure:
     structure = set_structure_active(db, structure_id, is_active=False)
     if structure is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Structure not found")
+        raise _not_found("TRAINING_STRUCTURE_NOT_FOUND")
     return _structure_detail(structure)
 
 
@@ -309,10 +341,13 @@ def delete_structure(
 ) -> Response:
     try:
         found = delete_training_program_structure(db, structure_id)
-    except StructureWriteError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except StructureWriteError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "TRAINING_STRUCTURE_REFERENCED"},
+        ) from None
     if not found:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Structure not found")
+        raise _not_found("TRAINING_STRUCTURE_NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -349,10 +384,7 @@ def read_training_program_template(
 ) -> AdminTrainingProgramTemplate:
     template = get_training_program_template(db, template_id)
     if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program template not found",
-        )
+        raise _not_found("TRAINING_TEMPLATE_NOT_FOUND")
     return _training_template_detail(template)
 
 
@@ -369,7 +401,7 @@ def create_training_template(
     try:
         return _training_template_detail(create_training_program_template(db, payload))
     except TemplateWriteError as error:
-        raise _validation_error("days", str(error)) from None
+        raise _template_write_error("days", error) from None
 
 
 @router.put(
@@ -385,12 +417,9 @@ def update_training_template(
     try:
         template = update_training_program_template(db, template_id, payload)
     except TemplateWriteError as error:
-        raise _validation_error("days", str(error)) from None
+        raise _template_write_error("days", error) from None
     if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program template not found",
-        )
+        raise _not_found("TRAINING_TEMPLATE_NOT_FOUND")
     return _training_template_detail(template)
 
 
@@ -409,12 +438,9 @@ def update_training_template_slot(
     try:
         template = update_training_program_template_slot(db, template_id, day_id, slot_id, payload)
     except TemplateWriteError as error:
-        raise _validation_error("slot", str(error)) from None
+        raise _template_write_error("slot", error) from None
     if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training template slot not found",
-        )
+        raise _not_found("TRAINING_TEMPLATE_SLOT_NOT_FOUND")
     return _training_template_detail(template)
 
 
@@ -432,12 +458,9 @@ def delete_training_template_slot(
     try:
         template = delete_training_program_template_slot(db, template_id, day_id, slot_id)
     except TemplateWriteError as error:
-        raise _validation_error("slot", str(error)) from None
+        raise _template_write_error("slot", error) from None
     if template is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training template slot not found",
-        )
+        raise _not_found("TRAINING_TEMPLATE_SLOT_NOT_FOUND")
     return _training_template_detail(template)
 
 
@@ -448,10 +471,7 @@ def delete_training_template_slot(
 )
 def delete_training_template(template_id: UUID, db: DatabaseSession) -> Response:
     if not delete_training_program_template(db, template_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Program template not found",
-        )
+        raise _not_found("TRAINING_TEMPLATE_NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -535,19 +555,6 @@ def _detail(exercise: Exercise) -> AdminExerciseDetail:
     )
 
 
-def _validation_error(field: str, message: str) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        detail=[
-            {
-                "type": "value_error",
-                "loc": ["body", field],
-                "msg": message,
-            }
-        ],
-    )
-
-
 def _parse_payload(raw_payload: str) -> AdminExerciseCreate:
     try:
         payload = AdminExerciseCreate.model_validate_json(raw_payload)
@@ -556,42 +563,33 @@ def _parse_payload(raw_payload: str) -> AdminExerciseCreate:
             {
                 "type": item["type"],
                 "loc": ["body", *item["loc"]],
-                "msg": item["msg"],
             }
             for item in error.errors()
         ]
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=detail,
+            detail={"code": "VALIDATION_ERROR", "fields": detail},
         ) from None
 
     if payload.body_region is None or payload.primary_muscle is None:
         if payload.body_region is not None or payload.primary_muscle is not None:
             raise _validation_error(
                 "anatomy",
-                "Body region and primary muscle must be provided together",
             )
         if not payload.needs_review:
-            raise _validation_error("anatomy", "Unknown anatomy requires review")
+            raise _validation_error("anatomy")
         if payload.muscle_focus is not None:
-            raise _validation_error("muscle_focus", "Unknown anatomy cannot have muscle focus")
+            raise _validation_error("muscle_focus")
         return payload
     allowed_muscles = MUSCLES_BY_REGION[payload.body_region]
     if payload.primary_muscle not in allowed_muscles:
         raise _validation_error(
             "primary_muscle",
-            "Primary muscle must belong to the selected body region",
         )
     if payload.primary_muscle in payload.secondary_muscles:
-        raise _validation_error(
-            "secondary_muscles",
-            "Primary muscle cannot also be a secondary muscle",
-        )
+        raise _validation_error("secondary_muscles")
     if not is_compatible_muscle_focus(payload.primary_muscle, payload.muscle_focus):
-        raise _validation_error(
-            "muscle_focus",
-            "Muscle focus must belong to the selected primary muscle",
-        )
+        raise _validation_error("muscle_focus")
     return payload
 
 
@@ -674,7 +672,7 @@ def read_admin_exercise(
 ) -> AdminExerciseDetail:
     exercise = get_admin_exercise(db, exercise_id)
     if exercise is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise _not_found("EXERCISE_NOT_FOUND")
     return _detail(exercise)
 
 
@@ -724,18 +722,18 @@ def update_exercise(
             _discard_media_assets(stored_media_assets)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Exercise not found",
+                detail={"code": "EXERCISE_NOT_FOUND"},
             )
-    except MediaValidationError as error:
+    except MediaValidationError:
         if stored_media is not None:
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
-        raise _validation_error("media", str(error)) from None
-    except ValueError as error:
+        raise _validation_error("media") from None
+    except ValueError:
         if stored_media is not None:
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
-        raise _validation_error("media_assets", str(error)) from None
+        raise _validation_error("media_assets") from None
     except DuplicateExerciseSlugError:
         if stored_media is not None:
             discard_media(stored_media)
@@ -766,7 +764,7 @@ def delete_exercise(
 ) -> None:
     media_paths = delete_admin_exercise(db, exercise_id)
     if media_paths is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise _not_found("EXERCISE_NOT_FOUND")
     for media_path in media_paths:
         discard_managed_media_file(media_path, settings)
 
@@ -810,16 +808,16 @@ def create_exercise(
             stored_media,
             stored_media_assets,
         )
-    except MediaValidationError as error:
+    except MediaValidationError:
         if stored_media is not None:
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
-        raise _validation_error("media", str(error)) from None
-    except ValueError as error:
+        raise _validation_error("media") from None
+    except ValueError:
         if stored_media is not None:
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
-        raise _validation_error("media_assets", str(error)) from None
+        raise _validation_error("media_assets") from None
     except DuplicateExerciseSlugError:
         if stored_media is not None:
             discard_media(stored_media)

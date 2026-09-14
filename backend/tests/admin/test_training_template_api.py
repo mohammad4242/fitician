@@ -118,6 +118,20 @@ def test_training_template_library_has_no_public_endpoint(client: TestClient) ->
     assert response.status_code == 404
 
 
+def test_missing_training_template_returns_a_stable_domain_error(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _make_current_user_admin(client, db)
+
+    response = client.get(
+        "/api/v1/admin/training-program-templates/00000000-0000-0000-0000-000000000000"
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_NOT_FOUND"
+
+
 def test_admin_level_filters_return_level_specific_template_ids(
     client: TestClient,
     db: Session,
@@ -212,7 +226,8 @@ def test_admin_rejects_empty_or_duplicate_supported_levels(
         )
 
         assert response.status_code == 422
-        assert response.json()["detail"][0]["loc"] == ["body", "supported_levels"]
+        assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
+        assert response.json()["detail"]["fields"][0]["field"] == "supported_levels"
 
 
 def test_admin_update_replaces_removed_slots_and_keeps_catalog_exercise_link(
@@ -389,7 +404,7 @@ def test_admin_slot_update_rejects_incomplete_superset(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body"]
+    assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
 
 
 def test_admin_deletes_only_the_requested_training_template_slot(
@@ -477,7 +492,8 @@ def test_admin_rejects_template_slot_with_unknown_exercise(client: TestClient, d
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "days"]
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_INVALID"
+    assert response.json()["detail"]["fields"][0]["field"] == "days"
 
 
 @pytest.mark.parametrize("mutation", ["inactive", "non_programmable", "placeholder"])
@@ -507,7 +523,8 @@ def test_admin_rejects_non_executable_template_exercises(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "days"]
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_INVALID"
+    assert response.json()["detail"]["fields"][0]["field"] == "days"
 
 
 def test_admin_rejects_semantically_incompatible_template_exercise(
@@ -529,7 +546,8 @@ def test_admin_rejects_semantically_incompatible_template_exercise(
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "days"]
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_INVALID"
+    assert response.json()["detail"]["fields"][0]["field"] == "days"
 
 
 def test_admin_accepts_compatible_template_exercises(client: TestClient, db: Session) -> None:
@@ -560,7 +578,7 @@ def test_admin_rejects_drop_set_on_compound_exercise(client: TestClient, db: Ses
     )
 
     assert response.status_code == 422
-    assert "Drop-set slots require" in response.json()["detail"][0]["msg"]
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_INVALID"
 
 
 def test_admin_rejects_identical_superset_pair(client: TestClient, db: Session) -> None:
@@ -582,7 +600,7 @@ def test_admin_rejects_identical_superset_pair(client: TestClient, db: Session) 
     )
 
     assert response.status_code == 422
-    assert "Superset exercises must be different" in response.json()["detail"][0]["msg"]
+    assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
 
 
 def test_admin_accepts_safe_advanced_methods(client: TestClient, db: Session) -> None:
@@ -663,7 +681,7 @@ def test_admin_rejects_conflicting_canonical_template_tags(
     )
 
     assert response.status_code == 422
-    assert "Balanced templates cannot declare priority tags" in response.text
+    assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
 
 
 def test_admin_rejects_guide_from_training_template_slots(client: TestClient, db: Session) -> None:
@@ -694,7 +712,8 @@ def test_admin_rejects_guide_from_training_template_slots(client: TestClient, db
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "days"]
+    assert response.json()["detail"]["code"] == "TRAINING_TEMPLATE_INVALID"
+    assert response.json()["detail"]["fields"][0]["field"] == "days"
 
 
 def _rationale_payload() -> list[dict[str, str]]:
