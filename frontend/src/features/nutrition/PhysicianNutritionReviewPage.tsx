@@ -196,7 +196,7 @@ export function PhysicianNutritionReviewPage() {
         <aside className="physician-review-summary"><strong>{queues.pending.length}</strong><small>{l("پرونده در انتظار", "pending cases")}</small></aside>
       </header>
       {error && <p className="physician-review-error" role="alert">{l("عملیات پزشک انجام نشد.", "The physician operation failed.")}</p>}
-      <div className="physician-review-workspace">
+      <div className={`physician-review-workspace${selectedPlan ? " has-selected" : ""}`}>
         <aside className="physician-review-queue">
           <div className="physician-queue-tabs" role="tablist" aria-label={l("صف‌های پزشک", "Physician queues")}>
             {(["pending", "claimed", "approved"] as QueueView[]).map((view) => <button key={view} type="button" role="tab" aria-selected={activeView === view} onClick={() => { setActiveView(view); setReviews(queues[view]); setSelectedPlan(null); setSelectedReview(null); setReadOnly(view === "approved"); }}>{view === "pending" ? l("در انتظار", "Pending") : view === "claimed" ? l("در بررسی", "Claimed") : l("تأییدشده", "Approved")} ({queues[view].length})</button>)}
@@ -208,6 +208,7 @@ export function PhysicianNutritionReviewPage() {
         <section className="physician-review-canvas" aria-live="polite">
           {!selectedPlan && <div className="physician-review-placeholder"><span aria-hidden="true">✦</span><h2>{l("یک پرونده را انتخاب کن", "Choose a case from the queue")}</h2><p>{l("نسخه، آزمایش‌ها، مکمل‌ها و یادداشت‌های بالینی اینجا نمایش داده می‌شوند.", "The plan, lab documents, supplements, and clinical notes will appear here.")}</p></div>}
           {selectedPlan && <>
+            <button className="physician-review-mobile-back" type="button" onClick={() => { setSelectedPlan(null); setSelectedReview(null); setClinicalTab("plan"); setReadOnly(false); }}>{l("بازگشت به صف", "Back to queue")}</button>
             <header className="physician-review-case-header"><div><small>{l("پرونده تغذیه", "Nutrition case")}</small><div className="physician-review-case-member"><ProfilePhotoAvatar url={selectedReview?.member_profile_photo_url} label={selectedReview?.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="md" /><h2>{l("نسخه در حال بررسی", "Revision under review")} {selectedPlan.revision}</h2></div></div><span data-status={readOnly ? "approved" : "claimed"}>{readOnly ? l("تأییدشده", "Approved") : l("در حال بررسی", "In review")}</span></header>
             <div className="physician-review-profile-strip"><span>{l("هزینه هفتگی", "Weekly cost")}<strong>{irrToToman(selectedPlan.weekly_cost_irr)} {l("تومان", "Toman")}</strong></span><span>{l("مدت", "Duration")}<strong>{selectedPlan.days.length} {l("روز", "days")}</strong></span><span>{l("حالت", "Mode")}<strong>{readOnly ? l("فقط‌خواندنی", "Read only") : l("قابل ویرایش", "Editable")}</strong></span></div>
             <ReviewProfileSummaryCard summary={selectedPlan.profile_summary} fa={fa} />

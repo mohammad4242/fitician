@@ -429,6 +429,25 @@ it("keeps physician plan days and meals closed until opened", async () => {
   expect(screen.getByText("Chicken breast", { selector: ".physician-plan-foods span" })).toBeVisible();
 });
 
+it("switches from the physician queue into the selected case", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  const workspace = document.querySelector(".physician-review-workspace");
+  expect(workspace).not.toHaveClass("has-selected");
+  await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
+
+  expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
+  expect(workspace).toHaveClass("has-selected");
+  await user.click(screen.getByRole("button", { name: "Back to queue" }));
+  expect(workspace).not.toHaveClass("has-selected");
+});
+
 it("separates physician queue views and keeps approved revisions read-only", async () => {
   const user = userEvent.setup();
   vi.mocked(api.listPhysicianReviews).mockImplementation(async (view = "pending") => view === "approved"

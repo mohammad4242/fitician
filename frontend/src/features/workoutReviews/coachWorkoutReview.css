@@ -470,6 +470,9 @@
   .coach-review-queue { max-height: none; }
   .coach-review-hero { grid-template-columns: auto 1fr; }
   .coach-review-lease { grid-column: 1 / -1; }
+  .coach-review-workspace:not(.has-selected) .coach-review-canvas { display: none; }
+  .coach-review-workspace.has-selected .coach-review-queue { display: none; }
+  .coach-review-workspace.has-selected .coach-review-mobile-back { display: inline-flex; }
 }
 
 @media (max-width: 640px) {
@@ -487,8 +490,6 @@
 }
 
 @media (max-width: 760px) {
-  .coach-review-workspace:not(.has-selected) .coach-review-canvas { display: none; }
-  .coach-review-workspace.has-selected .coach-review-queue { display: none; }
   .coach-review-mobile-back { display: inline-flex; }
 }
 
