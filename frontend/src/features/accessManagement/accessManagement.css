@@ -164,7 +164,10 @@
 }
 
 .access-admin-button:disabled { cursor: wait; opacity: .55; }
-.access-admin-button--primary { color: var(--fitician-canvas); background: var(--fitician-petrol); }
+.access-admin-button--primary { color: var(--fitician-ink); background: var(--fitician-petrol); }
+.access-admin-button--primary:hover,
+.access-admin-button--primary:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-ink); background: var(--fitician-teal); }
+.access-admin-button--primary:disabled { border-color: var(--fitician-line); color: var(--fitician-muted); background: var(--fitician-teal); opacity: 1; }
 .access-admin-button--create { gap: .5rem; border-color: var(--fitician-aqua); color: var(--fitician-petrol); background: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 18%), 0 .45rem 1.2rem rgb(80 223 206 / 18%); }
 .access-admin-button--create:hover, .access-admin-button--create:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: var(--fitician-teal); box-shadow: 0 0 0 3px rgb(80 223 206 / 22%), 0 .55rem 1.35rem rgb(0 0 0 / 28%); }
 .access-admin-button__icon { display: inline-grid; width: 1.25rem; height: 1.25rem; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-size: 1rem; font-weight: 900; line-height: 1; }
@@ -333,6 +336,9 @@
 .access-admin-form-card textarea { width: 100%; min-height: 2.65rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); font: inherit; }
 .access-admin-form-card textarea { min-height: 5rem; resize: vertical; }
 .access-admin-form-grid input:focus, .access-admin-form-grid select:focus, .access-admin-form-card textarea:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
+.access-admin-form-grid input[aria-invalid="true"], .access-admin-form-grid select[aria-invalid="true"] { border-color: #c45b4a; }
+.access-admin-field-error { color: #c45b4a; font-size: .7rem; font-weight: 750; }
+.access-admin-form-card > .access-admin-field-error { margin-block-start: -.25rem; }
 .access-admin-checkbox { display: flex !important; align-items: center; gap: .45rem; align-self: end; min-height: 2.65rem; }
 .access-admin-checkbox input { width: auto; min-height: auto; }
 

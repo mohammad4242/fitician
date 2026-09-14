@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+import { ApiError } from "../../shared/apiClient";
 
 import {
   activateCampaign,
@@ -34,6 +35,36 @@ type CampaignFormState = {
   max_total_redemptions: string;
 };
 
+type CampaignFormField =
+  | "code"
+  | "name"
+  | "duration_days"
+  | "term_weeks"
+  | "max_total_redemptions"
+  | "availability";
+
+type CampaignFormErrorCode =
+  | "codeRequired"
+  | "codeFormat"
+  | "nameRequired"
+  | "durationRequired"
+  | "durationRange"
+  | "maxRedemptionsPositive"
+  | "trainingTermRequired"
+  | "termInvalid"
+  | "availabilityOrder";
+
+type CampaignFormErrors = Partial<Record<CampaignFormField, CampaignFormErrorCode>>;
+
+const campaignCodePattern = /^[a-z0-9][a-z0-9_.-]*$/;
+const validTermValues = new Set(["4", "6", "8"]);
+const trainingTermPackageCodes = new Set<AdminAccessCampaign["package_code"]>([
+  "training",
+  "training_coach",
+  "complete",
+  "complete_care",
+]);
+
 const initialForm: CampaignFormState = {
   code: "",
   name: "",
@@ -57,6 +88,8 @@ export function AdminAccessCampaignsPage() {
   const [form, setForm] = useState<CampaignFormState>(initialForm);
   const [saving, setSaving] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<CampaignFormErrors>({});
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +115,8 @@ export function AdminAccessCampaignsPage() {
   function openCreate() {
     setEditing(null);
     setForm(initialForm);
+    setFormErrors({});
+    setActionError(null);
     setShowForm(true);
   }
 
@@ -102,10 +137,17 @@ export function AdminAccessCampaignsPage() {
         ? ""
         : String(campaign.max_total_redemptions),
     });
+    setFormErrors({});
+    setActionError(null);
     setShowForm(true);
   }
 
   async function save() {
+    const nextErrors = validateCampaignForm(form);
+    setFormErrors(nextErrors);
+    setActionError(null);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setSaving(true);
     try {
       if (editing === null) {
@@ -116,22 +158,24 @@ export function AdminAccessCampaignsPage() {
         setCampaigns((current) => current.map((item) => item.id === updated.id ? updated : item));
       }
       setShowForm(false);
-    } catch {
-      setState("error");
+    } catch (error) {
+      setFormErrors(apiCampaignFormErrors(error));
+      setActionError(campaignErrorMessage(error, t, "save"));
     } finally {
       setSaving(false);
     }
   }
 
   async function toggle(campaign: AdminAccessCampaign) {
+    setActionError(null);
     setWorking(campaign.id);
     try {
       const result = campaign.is_active
         ? await deactivateCampaign(campaign.id)
         : await activateCampaign(campaign.id);
       setCampaigns((current) => current.map((item) => item.id === result.id ? result : item));
-    } catch {
-      setState("error");
+    } catch (error) {
+      setActionError(campaignErrorMessage(error, t, "toggle"));
     } finally {
       setWorking(null);
     }
@@ -154,6 +198,7 @@ export function AdminAccessCampaignsPage() {
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
         {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
+        {actionError !== null && <p className="access-admin-status access-admin-status--error" role="alert">{actionError}</p>}
 
         {state === "ready" && campaigns.length === 0 && <p className="access-admin-status">{t("adminAccess.noCampaigns")}</p>}
         {state === "ready" && campaigns.length > 0 && (
@@ -212,11 +257,24 @@ export function AdminAccessCampaignsPage() {
             <div className="access-admin-form-grid">
               <label>
                 {t("adminAccess.code")}
-                <input disabled={editing !== null} onChange={(event) => setField("code", event.currentTarget.value)} value={form.code} />
+                <input
+                  aria-describedby={hasFieldError("code") ? fieldErrorId("code") : undefined}
+                  aria-invalid={hasFieldError("code")}
+                  disabled={editing !== null}
+                  onChange={(event) => setField("code", event.currentTarget.value)}
+                  value={form.code}
+                />
+                {renderFieldError("code")}
               </label>
               <label>
                 {t("adminAccess.campaignName")}
-                <input onChange={(event) => setField("name", event.currentTarget.value)} value={form.name} />
+                <input
+                  aria-describedby={hasFieldError("name") ? fieldErrorId("name") : undefined}
+                  aria-invalid={hasFieldError("name")}
+                  onChange={(event) => setField("name", event.currentTarget.value)}
+                  value={form.name}
+                />
+                {renderFieldError("name")}
               </label>
               <label>
                 {t("adminAccess.kind")}
@@ -233,11 +291,26 @@ export function AdminAccessCampaignsPage() {
               </label>
               <label>
                 {t("adminAccess.benefitDuration")}
-                <input disabled={editingSemanticsLocked} min="1" onChange={(event) => setField("duration_days", event.currentTarget.value)} type="number" value={form.duration_days} />
+                <input
+                  aria-describedby={hasFieldError("duration_days") ? fieldErrorId("duration_days") : undefined}
+                  aria-invalid={hasFieldError("duration_days")}
+                  disabled={editingSemanticsLocked}
+                  min="1"
+                  onChange={(event) => setField("duration_days", event.currentTarget.value)}
+                  type="number"
+                  value={form.duration_days}
+                />
+                {renderFieldError("duration_days")}
               </label>
               <label>
                 {t("adminAccess.trainingTerm")}
-                <select disabled={editingSemanticsLocked || form.kind === "signup_trial"} onChange={(event) => setField("term_weeks", event.currentTarget.value)} value={form.term_weeks}>
+                <select
+                  aria-describedby={hasFieldError("term_weeks") ? fieldErrorId("term_weeks") : undefined}
+                  aria-invalid={hasFieldError("term_weeks")}
+                  disabled={editingSemanticsLocked || form.kind === "signup_trial"}
+                  onChange={(event) => setField("term_weeks", event.currentTarget.value)}
+                  value={form.term_weeks}
+                >
                   {form.kind !== "signup_trial" && <option value="">—</option>}
                   <option value="4">{t("billing.fourWeeks")}</option>
                   {form.kind !== "signup_trial" && <>
@@ -245,6 +318,7 @@ export function AdminAccessCampaignsPage() {
                     <option value="8">{t("billing.eightWeeks")}</option>
                   </>}
                 </select>
+                {renderFieldError("term_weeks")}
               </label>
               <div>
                 <PersianDateTimePicker
@@ -264,7 +338,15 @@ export function AdminAccessCampaignsPage() {
               </div>
               <label>
                 {t("adminAccess.maximumRedemptions")}
-                <input min="1" onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)} type="number" value={form.max_total_redemptions} />
+                <input
+                  aria-describedby={hasFieldError("max_total_redemptions") ? fieldErrorId("max_total_redemptions") : undefined}
+                  aria-invalid={hasFieldError("max_total_redemptions")}
+                  min="1"
+                  onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)}
+                  type="number"
+                  value={form.max_total_redemptions}
+                />
+                {renderFieldError("max_total_redemptions")}
               </label>
               {editing === null && (
                 <label className="access-admin-checkbox">
@@ -280,6 +362,7 @@ export function AdminAccessCampaignsPage() {
             <p className="access-campaign-card__help">
               {form.kind === "signup_trial" ? t("adminAccess.signupHelp") : t("adminAccess.manualHelp")}
             </p>
+            {renderFieldError("availability")}
             <button className="access-admin-button access-admin-button--primary" disabled={saving} onClick={() => void save()} type="button">
               {saving ? t("billing.saving") : t("adminAccess.saveChanges")}
             </button>
@@ -291,6 +374,16 @@ export function AdminAccessCampaignsPage() {
 
     function setField<K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) {
       setForm((current) => ({ ...current, [key]: value }));
+      const errorField: CampaignFormField = key === "available_from" || key === "available_until"
+        ? "availability"
+        : key as CampaignFormField;
+      setFormErrors((current) => {
+        if (!(errorField in current)) return current;
+        const next = { ...current };
+        delete next[errorField];
+        return next;
+      });
+      setActionError(null);
     }
 
     function setCampaignKind(kind: AccessCampaignKind) {
@@ -304,6 +397,26 @@ export function AdminAccessCampaignsPage() {
             : current.package_code,
         term_weeks: kind === "signup_trial" ? "4" : current.term_weeks,
       }));
+      setFormErrors({});
+      setActionError(null);
+    }
+
+    function hasFieldError(field: CampaignFormField): boolean {
+      return formErrors[field] !== undefined;
+    }
+
+    function fieldErrorId(field: CampaignFormField): string {
+      return `access-campaign-${field}-error`;
+    }
+
+    function renderFieldError(field: CampaignFormField) {
+      const errorCode = formErrors[field];
+      if (errorCode === undefined) return null;
+      return (
+        <span className="access-admin-field-error" id={fieldErrorId(field)}>
+          {t(`adminAccess.validation.${errorCode}`)}
+        </span>
+      );
     }
   }
 
@@ -350,4 +463,80 @@ function toTermWeeks(value: string): AccessTermWeeks | null {
 
 function formatDate(value: string, english: boolean): string {
   return formatTehranDateTimeForLocale(value, english ? "en" : "fa-IR");
+}
+
+function validateCampaignForm(form: CampaignFormState): CampaignFormErrors {
+  const errors: CampaignFormErrors = {};
+  const code = form.code.trim();
+  const name = form.name.trim();
+  const duration = Number(form.duration_days);
+  const maxRedemptions = form.max_total_redemptions === ""
+    ? null
+    : Number(form.max_total_redemptions);
+
+  if (code === "") errors.code = "codeRequired";
+  else if (!campaignCodePattern.test(code)) errors.code = "codeFormat";
+  if (name === "") errors.name = "nameRequired";
+  if (form.duration_days.trim() === "" || !Number.isInteger(duration)) {
+    errors.duration_days = "durationRequired";
+  } else if (duration < 1 || duration > 3650) {
+    errors.duration_days = "durationRange";
+  }
+  if (
+    maxRedemptions !== null
+    && (!Number.isInteger(maxRedemptions) || maxRedemptions < 1)
+  ) {
+    errors.max_total_redemptions = "maxRedemptionsPositive";
+  }
+  if (trainingTermPackageCodes.has(form.package_code) && !validTermValues.has(form.term_weeks)) {
+    errors.term_weeks = "trainingTermRequired";
+  } else if (form.kind === "signup_trial" && form.term_weeks !== "4") {
+    errors.term_weeks = "termInvalid";
+  }
+  if (
+    form.available_from !== null
+    && form.available_until !== null
+    && new Date(form.available_until).getTime() < new Date(form.available_from).getTime()
+  ) {
+    errors.availability = "availabilityOrder";
+  }
+  return errors;
+}
+
+function apiCampaignFormErrors(error: unknown): CampaignFormErrors {
+  if (!(error instanceof ApiError) || error.details === null) return {};
+  const errors: CampaignFormErrors = {};
+  for (const detail of error.details) {
+    const field = detail.loc?.at(-1);
+    if (field === "code") errors.code = "codeFormat";
+    else if (field === "name") errors.name = "nameRequired";
+    else if (field === "duration_days") errors.duration_days = "durationRange";
+    else if (field === "term_weeks") errors.term_weeks = "termInvalid";
+    else if (field === "max_total_redemptions") errors.max_total_redemptions = "maxRedemptionsPositive";
+    else if (field === "available_until" || field === "available_from") errors.availability = "availabilityOrder";
+  }
+  return errors;
+}
+
+function campaignErrorMessage(
+  error: unknown,
+  t: (key: string) => string,
+  action: "save" | "toggle",
+): string {
+  if (error instanceof ApiError) {
+    if (error.code === "ACCESS_CAMPAIGN_WINDOW_OVERLAPS") {
+      return t("adminAccess.campaignOverlapError");
+    }
+    if (error.code === "ACCESS_CAMPAIGN_SEMANTICS_IMMUTABLE") {
+      return t("adminAccess.campaignImmutableError");
+    }
+    if (error.code === "ACCESS_CAMPAIGN_CONFLICT") {
+      return t("adminAccess.campaignConflictError");
+    }
+    if (error.code === "ACCESS_CAMPAIGN_INVALID" || error.status === 422) {
+      return t("adminAccess.validationError");
+    }
+    if (error.status === 403) return t("adminAccess.permissionError");
+  }
+  return action === "save" ? t("adminAccess.saveError") : t("adminAccess.actionError");
 }

@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import "../../i18n";
 
 const accessApi = vi.hoisted(() => ({
@@ -81,7 +83,7 @@ it("lists campaign semantics and activates or deactivates without entitlement to
   expect(accessApi.deactivateCampaign).toHaveBeenCalledWith("launch-1");
 });
 
-it("creates a package campaign from the admin form", async () => {
+it.each([4, 6, 8])("creates a package campaign with a %i-week term", async (term) => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
 
@@ -89,7 +91,7 @@ it("creates a package campaign from the admin form", async () => {
   await user.type(screen.getByLabelText("کد"), "spring-2027");
   await user.type(screen.getByLabelText("نام کمپین"), "Spring 2027");
   await user.selectOptions(screen.getByLabelText("بسته"), "training_coach");
-  await user.selectOptions(screen.getByLabelText("مدت تمرین"), "4");
+  await user.selectOptions(screen.getByLabelText("مدت تمرین"), String(term));
   await user.clear(screen.getByLabelText("مدت مزیت (روز)"));
   await user.type(screen.getByLabelText("مدت مزیت (روز)"), "21");
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
@@ -100,8 +102,87 @@ it("creates a package campaign from the admin form", async () => {
     kind: "manual_promotion",
     package_code: "training_coach",
     duration_days: 21,
-    term_weeks: 4,
+    term_weeks: term,
   }));
+});
+
+it("validates required campaign fields before sending a request", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت کمپین" }));
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(await screen.findByText("کد کمپین الزامی است.")).toBeInTheDocument();
+  expect(screen.getByText("نام کمپین الزامی است.")).toBeInTheDocument();
+  expect(accessApi.createCampaign).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "ذخیره تغییرات" })).toBeInTheDocument();
+});
+
+it("requires a training term when the selected package includes training", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت کمپین" }));
+  await user.type(screen.getByLabelText("کد"), "spring-2027");
+  await user.type(screen.getByLabelText("نام کمپین"), "Spring 2027");
+  await user.selectOptions(screen.getByLabelText("بسته"), "training_coach");
+  await user.selectOptions(screen.getByLabelText("مدت تمرین"), "");
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(await screen.findByText("برای این بسته، مدت تمرین را انتخاب کنید.")).toBeInTheDocument();
+  expect(accessApi.createCampaign).not.toHaveBeenCalled();
+});
+
+it("rejects invalid benefit duration and redemption limits before sending", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت کمپین" }));
+  await user.type(screen.getByLabelText("کد"), "spring-2027");
+  await user.type(screen.getByLabelText("نام کمپین"), "Spring 2027");
+  await user.clear(screen.getByLabelText("مدت مزیت (روز)"));
+  await user.type(screen.getByLabelText("مدت مزیت (روز)"), "0");
+  await user.type(screen.getByLabelText("حداکثر ردیم"), "0");
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(await screen.findByText("مدت مزیت باید بین ۱ تا ۳۶۵۰ روز باشد.")).toBeInTheDocument();
+  expect(screen.getByText("حداکثر ردیم باید عددی بزرگ‌تر از صفر باشد.")).toBeInTheDocument();
+  expect(accessApi.createCampaign).not.toHaveBeenCalled();
+});
+
+it("keeps the form open and explains a validation response from the API", async () => {
+  const user = userEvent.setup();
+  accessApi.createCampaign.mockRejectedValueOnce(new ApiError(422, "Request failed", [
+    { loc: ["body", "code"], msg: "String should match pattern" },
+  ]));
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت کمپین" }));
+  await user.type(screen.getByLabelText("کد"), "spring-2027");
+  await user.type(screen.getByLabelText("نام کمپین"), "Spring 2027");
+  await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(await screen.findByText("کد کمپین معتبر نیست.")).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("اطلاعات فرم را اصلاح کنید.");
+  expect(screen.getByRole("heading", { name: "ساخت کمپین" })).toBeInTheDocument();
+});
+
+it("shows the activation conflict instead of a generic load error", async () => {
+  const user = userEvent.setup();
+  accessApi.activateCampaign.mockRejectedValueOnce(new ApiError(
+    409,
+    "Signup campaign window overlaps active campaign",
+    null,
+    "ACCESS_CAMPAIGN_WINDOW_OVERLAPS",
+  ));
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  const manualCard = await screen.findByTestId("access-campaign-beta-promotion");
+  await user.click(within(manualCard).getByRole("button", { name: "فعال‌سازی" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("این بازه با یک Signup Trial فعال دیگر تداخل دارد.");
+  expect(screen.queryByText("اطلاعات دسترسی دریافت نشد.")).not.toBeInTheDocument();
 });
 
 it("makes the create campaign action visually prominent", async () => {
