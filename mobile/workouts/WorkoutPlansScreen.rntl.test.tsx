@@ -407,7 +407,11 @@ test("starts the active workout plan with the selected local date and timezone",
   executeMutation = true;
 
   renderWorkoutPlans();
-  fireEvent.changeText(screen.getByLabelText("تاریخ شروع برنامه"), "2026-09-15");
+  fireEvent.press(screen.getByTestId("workout-start-date-trigger"));
+  fireEvent.press(screen.getByTestId("workout-start-date-option-day-24"));
+  fireEvent.press(screen.getByTestId("workout-start-date-option-month-6"));
+  fireEvent.press(screen.getByTestId("workout-start-date-option-year-1405"));
+  fireEvent.press(screen.getByRole("button", { name: "انتخاب" }));
   fireEvent.press(screen.getByRole("button", { name: "شروع برنامه" }));
 
   await waitFor(() => expect(mockRequest).toHaveBeenCalledWith({

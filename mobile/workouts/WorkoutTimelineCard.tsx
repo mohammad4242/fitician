@@ -2,7 +2,7 @@ import { formatPersianDateWithWeekday } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Button, Card, Notice, TextField } from "../ui/components";
+import { Button, Card, Notice, PersianDatePicker } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
 import { fiticianTokens } from "../ui/tokens";
 import { workoutTimelinePresentation } from "./workoutCycleModel";
@@ -55,11 +55,11 @@ export function WorkoutTimelineCard({
         <>
           <Text style={styles.eyebrow}>برنامه تمرینی</Text>
           <Text style={styles.title}>برنامه آماده شروع است</Text>
-          <TextField
+          <PersianDatePicker
             accessibilityLabel="تاریخ شروع برنامه"
             label="تاریخ شروع"
-            onChangeText={onChangeStartDate}
-            textDirection="ltr"
+            onChange={onChangeStartDate}
+            testID="workout-start-date"
             value={startDate}
           />
           {startDateLabel !== null ? <Text style={styles.body}>تاریخ شروع: {startDateLabel}</Text> : null}
@@ -198,11 +198,11 @@ function SessionContent({
             onPress={() => onCompleteSession(session.id)}
           />
         )}
-        <TextField
+        <PersianDatePicker
           accessibilityLabel="تاریخ جدید جلسه"
           label="تاریخ جدید"
-          onChangeText={onChangeRescheduleDate}
-          textDirection="ltr"
+          onChange={onChangeRescheduleDate}
+          testID="workout-reschedule-date"
           value={rescheduleDate}
         />
         {formatWorkoutDate(rescheduleDate) !== null ? (

@@ -64,16 +64,8 @@ test("shows exactly one shared question at a time and keeps the Web five-step or
   expect(screen.getByRole("header", { name: "چه تاریخی به دنیا آمدی؟" })).toBeTruthy();
   expect(screen.queryByRole("header", { name: "دوست داری چه صدایت کنیم؟" })).toBeNull();
 
-  fireEvent.press(screen.getByTestId("birth-day"));
-  fireEvent.press(screen.getByTestId("birth-day-option-12"));
-  fireEvent.press(screen.getByTestId("birth-month"));
-  fireEvent.press(screen.getByTestId("birth-month-option-5"));
-  fireEvent.press(screen.getByTestId("birth-year"));
-  fireEvent.press(screen.getByTestId("birth-year-option-1992"));
-
-  expect(
-    StyleSheet.flatten(screen.getByTestId("public-birth-date-grid").props.style),
-  ).toMatchObject({ flexDirection: "column" });
+  chooseBirthDate();
+  expect(screen.getByText("۲۲ اردیبهشت ۱۳۷۱")).toBeTruthy();
 
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
   expect(screen.getByRole("header", { name: "جنسیتت چیست؟" })).toBeTruthy();
@@ -103,12 +95,7 @@ test("requires Web unusual-value confirmation before leaving the body question",
 
   fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
-  fireEvent.press(screen.getByTestId("birth-day"));
-  fireEvent.press(screen.getByTestId("birth-day-option-12"));
-  fireEvent.press(screen.getByTestId("birth-month"));
-  fireEvent.press(screen.getByTestId("birth-month-option-5"));
-  fireEvent.press(screen.getByTestId("birth-year"));
-  fireEvent.press(screen.getByTestId("birth-year-option-1992"));
+  chooseBirthDate();
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
   fireEvent.press(screen.getByRole("radio", { name: "زن" }));
   advance();
@@ -141,12 +128,7 @@ test("uses the Web gender card scale, body range hints, and goal labels", () => 
 
   fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
-  fireEvent.press(screen.getByTestId("birth-day"));
-  fireEvent.press(screen.getByTestId("birth-day-option-12"));
-  fireEvent.press(screen.getByTestId("birth-month"));
-  fireEvent.press(screen.getByTestId("birth-month-option-5"));
-  fireEvent.press(screen.getByTestId("birth-year"));
-  fireEvent.press(screen.getByTestId("birth-year-option-1992"));
+  chooseBirthDate();
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
 
   const female = screen.getByRole("radio", { name: "زن" });
@@ -169,6 +151,14 @@ test("uses the Web gender card scale, body range hints, and goal labels", () => 
   expect(screen.getByRole("radio", { name: "عضله‌سازی 💪" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "چربی‌سوزی + عضله‌سازی 🔥💪" })).toBeTruthy();
 });
+
+function chooseBirthDate() {
+  fireEvent.press(screen.getByTestId("public-birth-date-trigger"));
+  fireEvent.press(screen.getByTestId("public-birth-date-option-day-22"));
+  fireEvent.press(screen.getByTestId("public-birth-date-option-month-2"));
+  fireEvent.press(screen.getByTestId("public-birth-date-option-year-1371"));
+  fireEvent.press(screen.getByRole("button", { name: "انتخاب" }));
+}
 
 function TrainingHarness({
   initialValues,

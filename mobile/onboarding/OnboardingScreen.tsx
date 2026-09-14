@@ -31,7 +31,7 @@ import {
 } from "../data/encryptedUserDatabase";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
-import { AppIcon, Button, Card, Notice, ProgressBar, TextField } from "../ui/components";
+import { AppIcon, Button, Card, Notice, PersianDatePicker, ProgressBar, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
@@ -598,15 +598,7 @@ export function SharedProfileStage({
         {[
           <View key="identity" style={styles.formStack}>
             <ControlledTextField control={control} label="نام نمایشی" name="display_name" />
-            <ControlledTextField
-              control={control}
-              keyboardType="numbers-and-punctuation"
-              label="تاریخ تولد"
-              name="birth_date"
-              placeholder="۱۳۷۵/۰۱/۰۱"
-              textDirection="ltr"
-              normalizeInput
-            />
+            <ControlledPersianDatePicker control={control} label="تاریخ تولد" name="birth_date" />
             <ControlledChoice control={control} label="جنسیت" name="sex" options={sexOptions} />
           </View>,
           <View key="body" style={styles.formStack}>
@@ -1285,6 +1277,33 @@ function ControlledTextField<TFieldValues extends FieldValues>({
           onChangeText={(value) => field.onChange(normalizeInput ? normalizeOnboardingDigits(value) : value)}
           placeholder={placeholder}
           textDirection={textDirection}
+          value={String(field.value ?? "")}
+        />
+      )}
+    />
+  );
+}
+
+function ControlledPersianDatePicker<TFieldValues extends FieldValues>({
+  control,
+  label,
+  name,
+}: {
+  readonly control: Control<TFieldValues>;
+  readonly label: string;
+  readonly name: FieldPath<TFieldValues>;
+}) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <PersianDatePicker
+          accessibilityLabel={label}
+          error={fieldState.error?.message}
+          label={label}
+          onChange={field.onChange}
+          testID={`onboarding-${String(name)}`}
           value={String(field.value ?? "")}
         />
       )}

@@ -15,7 +15,7 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys, programTimelineKeys } from "../data/queryKeys";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
-import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, Sheet, Skeleton, TextField } from "../ui/components";
+import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, PersianDatePicker, Sheet, Skeleton } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { RTL_ROW } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
@@ -547,11 +547,11 @@ function NutritionPlanExecutionCard({
       <Card style={styles.executionCard} testID="nutrition-plan-start-card">
         <Text style={styles.eyebrow}>برنامه تغذیه</Text>
         <Text style={styles.executionTitle}>برنامه تغذیه آماده شروع است</Text>
-        <TextField
+        <PersianDatePicker
           accessibilityLabel="تاریخ شروع برنامه غذایی"
           label="تاریخ شروع"
-          onChangeText={onChangeNutritionStartDate}
-          textDirection="ltr"
+          onChange={onChangeNutritionStartDate}
+          testID="nutrition-start-date"
           value={nutritionStartDate}
         />
         {formatPlanDateWithWeekday(nutritionStartDate) !== null ? (

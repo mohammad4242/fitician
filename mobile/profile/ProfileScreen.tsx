@@ -38,6 +38,7 @@ import {
   FormField,
   Notice,
   PageHeading,
+  PersianDatePicker,
   TextField,
 } from "../ui/components";
 import { Screen } from "../ui/layout";
@@ -588,13 +589,12 @@ function PersonalSection({
           onChangeText={(value) => onChange("display_name", value)}
           value={values.display_name}
         />
-        <TextField
+        <PersianDatePicker
+          accessibilityLabel="تاریخ تولد"
           error={errors.birth_date}
-          keyboardType="numbers-and-punctuation"
           label="تاریخ تولد"
-          onChangeText={(value) => onChange("birth_date", value)}
-          placeholder="۱۳۷۰-۰۲-۲۲"
-          textDirection="ltr"
+          onChange={(value) => onChange("birth_date", value)}
+          testID="profile-birth-date"
           value={values.birth_date}
         />
         <ChoiceField

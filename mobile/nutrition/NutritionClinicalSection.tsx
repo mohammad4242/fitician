@@ -21,6 +21,7 @@ import {
   EmptyState,
   Notice,
   PageHeading,
+  PersianDatePicker,
   SegmentedControl,
   Skeleton,
   TextField,
@@ -438,12 +439,12 @@ function LabUploadCard({
       <Text style={styles.cardTitle}>افزودن نتیجه آزمایش</Text>
       <Text style={styles.bodyText}>PDF یا تصویر JPG/PNG با حجم و محتوای معتبر انتخاب کن. فایل فقط در پرونده خصوصی خودت ذخیره می‌شود.</Text>
       <View style={styles.formStack}>
-        <TextField
+        <PersianDatePicker
           accessibilityLabel="تاریخ آزمایش"
+          allowClear
           label="تاریخ آزمایش"
-          onChangeText={onTestDateChange}
-          placeholder="YYYY-MM-DD"
-          textDirection="ltr"
+          onChange={onTestDateChange}
+          testID="nutrition-lab-test-date"
           value={testDate}
         />
         <TextField

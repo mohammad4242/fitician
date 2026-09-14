@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatPersianDate } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
-import { Card, DisclosureCard, EmptyState, Notice, Skeleton, TextField } from "../ui/components";
+import { Card, DisclosureCard, EmptyState, Notice, PersianDatePicker, Skeleton } from "../ui/components";
 import { RTL_LAYOUT, RTL_TEXT } from "../ui/rtl";
 import { getMobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
@@ -63,7 +64,7 @@ export function NutritionAdherenceSection({
 
   const body = !validRange ? (
     <View style={styles.invalidBody}>
-      <Text style={styles.bodyText}>تاریخ شروع باید به شکل میلادی YYYY-MM-DD و پیش از امروز باشد.</Text>
+      <Text style={styles.bodyText}>تاریخ شروع باید معتبر باشد و پیش از امروز یا امروز انتخاب شود.</Text>
     </View>
   ) : adherenceState.status === "loading" ? (
     <Skeleton height={500} />
@@ -93,10 +94,13 @@ export function NutritionAdherenceSection({
         style={styles.embeddedCard}
         title="روند پایبندی"
         trailing={
-          <AdherenceDateInput
+          <PersianDatePicker
             accessibilityLabel="شروع بازه پایبندی"
+            label="از تاریخ"
+            max={today}
+            onChange={setRangeStart}
+            testID="nutrition-adherence-range-start"
             value={rangeStart}
-            onChangeText={setRangeStart}
           />
         }
       >
@@ -109,12 +113,13 @@ export function NutritionAdherenceSection({
     return (
       <Card style={styles.card}>
         <Text style={styles.title}>روند پایبندی</Text>
-        <TextField
+        <PersianDatePicker
           accessibilityLabel="شروع بازه پایبندی"
-          error="تاریخ شروع باید به شکل میلادی YYYY-MM-DD و پیش از امروز باشد."
+          error="تاریخ شروع باید معتبر باشد و پیش از امروز یا امروز انتخاب شود."
           label="از تاریخ"
-          onChangeText={setRangeStart}
-          textDirection="ltr"
+          max={today}
+          onChange={setRangeStart}
+          testID="nutrition-adherence-range-start"
           value={rangeStart}
         />
       </Card>
@@ -143,11 +148,12 @@ export function NutritionAdherenceSection({
           <Text style={styles.title}>روند پایبندی</Text>
           <Text style={styles.bodyText}>دقت ثبت، وضعیت وعده‌ها و فاصله مصرف واقعی از برنامه را در یک بازه ببین.</Text>
         </View>
-        <TextField
+        <PersianDatePicker
           accessibilityLabel="شروع بازه پایبندی"
           label="از تاریخ"
-          onChangeText={setRangeStart}
-          textDirection="ltr"
+          max={today}
+          onChange={setRangeStart}
+          testID="nutrition-adherence-range-start"
           value={rangeStart}
         />
       </View>
@@ -215,28 +221,6 @@ function AdherenceBody({
   );
 }
 
-function AdherenceDateInput({
-  accessibilityLabel,
-  onChangeText,
-  value,
-}: {
-  readonly accessibilityLabel: string;
-  readonly onChangeText: (value: string) => void;
-  readonly value: string;
-}) {
-  return (
-    <View style={styles.embeddedDateField}>
-      <Text style={styles.embeddedDateLabel}>از تاریخ</Text>
-      <TextInput
-        accessibilityLabel={accessibilityLabel}
-        onChangeText={onChangeText}
-        style={styles.embeddedDateInput}
-        value={value}
-      />
-    </View>
-  );
-}
-
 function AdherenceDayCard({
   day,
 }: {
@@ -249,7 +233,7 @@ function AdherenceDayCard({
           <Text style={styles.entryTitle}>{checkInStatusLabel(day.check_in_status)}</Text>
           <Text style={styles.mutedText}>{trackingDataStatusLabel(day.status)}</Text>
         </View>
-        <Text style={styles.dayDate}>{day.date}</Text>
+        <Text style={styles.dayDate}>{formatAdherenceDate(day.date)}</Text>
       </View>
       {day.status === "insufficient_data" ? (
         <Notice message="برای این روز داده کافی برای محاسبه پایبندی وجود ندارد." variant="warning" />
@@ -284,7 +268,7 @@ function HistoryRow({ day }: { readonly day: NutritionDailyTracking }) {
   return (
     <View style={styles.historyRow}>
       <View style={styles.headingCopy}>
-        <Text style={styles.entryTitle}>{day.entry_date}</Text>
+        <Text style={styles.entryTitle}>{formatAdherenceDate(day.entry_date)}</Text>
         <Text style={styles.mutedText}>{checkInStatusLabel(day.check_in_status)}</Text>
       </View>
       <Text style={styles.historyCount}>{formatNutritionNumber(day.entries.length)} مورد</Text>
@@ -299,6 +283,14 @@ function stateData<TData>(state: ReturnType<typeof getMobileViewState<TData>>): 
 
 function isIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/u.test(value);
+}
+
+function formatAdherenceDate(value: string): string {
+  try {
+    return formatPersianDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function daysAgoIsoDate(days: number): string {
