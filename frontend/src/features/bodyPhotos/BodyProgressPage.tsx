@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { formatTehranDateForLocale, formatTehranDateTimeForLocale } from "@fitician/core";
 import { AppIcon } from "../../shared/AppIcon";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import bodyAnalysisHeroImg from "../../assets/bodyPhotos/bodyanalysis.jpg";
@@ -56,7 +57,7 @@ export function BodyProgressPage() {
     }
     if (startBlocked) {
       const resetAt = bodyAnalysisQuota?.reset_at
-        ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(bodyAnalysisQuota.reset_at))
+        ? formatTehranDateTimeForLocale(bodyAnalysisQuota.reset_at, locale)
         : null;
       return <div className="body-analysis-home__start-locked" role="status">
         <button className={className} disabled type="button">{label}</button>
@@ -269,7 +270,7 @@ export function BodyProgressPage() {
             <dl>
               <div>
                 <dt>{t("bodyPhotos.deleteDialog.dateLabel")}</dt>
-                <dd>{new Intl.DateTimeFormat(locale).format(new Date(deleteTarget.created_at))}</dd>
+                <dd>{formatTehranDateForLocale(deleteTarget.created_at, locale)}</dd>
               </div>
               <div>
                 <dt>{t("bodyPhotos.deleteDialog.statusLabel")}</dt>

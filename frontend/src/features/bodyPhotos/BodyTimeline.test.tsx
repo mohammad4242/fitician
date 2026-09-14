@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
 import i18n from "../../i18n";
@@ -126,6 +126,10 @@ beforeEach(async () => {
   await i18n.changeLanguage("en");
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 it("renders the longitudinal scan timeline and deterministic comparison entry", () => {
   render(<MemoryRouter><BodyTimeline items={items} onDelete={vi.fn()} /></MemoryRouter>);
 
@@ -151,4 +155,16 @@ it("keeps incomplete sessions resumable and deletable", async () => {
   );
   screen.getByRole("button", { name: "Delete upload" }).click();
   expect(onDelete).toHaveBeenCalledWith(items[1]?.session, expect.any(HTMLButtonElement));
+});
+
+it("renders session timestamps in Tehran time", () => {
+  vi.stubEnv("TZ", "UTC");
+  const boundaryItems = [{
+    ...items[0],
+    session: { ...items[0].session, created_at: "2026-09-13T20:45:00Z" },
+  }];
+
+  render(<MemoryRouter><BodyTimeline items={boundaryItems} onDelete={vi.fn()} /></MemoryRouter>);
+
+  expect(screen.getByText("Sep 14, 2026")).toBeInTheDocument();
 });

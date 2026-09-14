@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import type {
   BodyArea,
   BodyProgressComparison,
@@ -181,7 +182,7 @@ function selectBiggestChange(
 }
 
 function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateForLocale(value, locale);
 }
 
 function formatNumber(value: number, locale: string) {

@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { ApiError } from "../../shared/apiClient";
 import {
   normalizeImageForUpload,
@@ -350,7 +351,7 @@ export function BodyPhotoWizard({
 
   if (!loadingExistingSession && (!canRunBodyAnalysis || bodyAnalysisQuota?.remaining === 0)) {
     const resetAt = bodyAnalysisQuota?.reset_at
-      ? new Intl.DateTimeFormat(i18n.resolvedLanguage === "en" ? "en" : "fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(bodyAnalysisQuota.reset_at))
+      ? formatTehranDateTimeForLocale(bodyAnalysisQuota.reset_at, i18n.resolvedLanguage === "en" ? "en" : "fa-IR")
       : null;
     return <section className="body-photo-wizard body-photo-wizard--status" aria-labelledby="body-photo-title">
       <h1 id="body-photo-title">{t("bodyPhotos.title")}</h1>

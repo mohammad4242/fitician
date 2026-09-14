@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
 import { ProgressComparison } from "./ProgressComparison";
 import { SpecialistReviewStatus } from "./SpecialistReviewStatus";
@@ -141,7 +142,7 @@ function TimelineItem({
 }
 
 function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateForLocale(value, locale);
 }
 
 function formatValue(value: number, locale: string) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
+import { formatTehranDateTimeForLocale } from "@fitician/core";
 import {
   getBodyPhotoComparison,
   getBodyPhotoAnalysis,
@@ -121,10 +122,7 @@ export function BodyAnalysisResultPage() {
   }
 
   const locale = i18n.resolvedLanguage === "en" ? "en" : "fa-IR";
-  const sessionDate = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(session.created_at));
+  const sessionDate = formatTehranDateTimeForLocale(session.created_at, locale);
   const failedAnalysisMessage = analysis?.error_code === null || analysis?.error_code === undefined
     ? analysis?.safe_error_message ?? t("bodyPhotos.results.failedSafe")
     : t(`bodyPhotos.results.providerErrors.${analysis.error_code}`, {

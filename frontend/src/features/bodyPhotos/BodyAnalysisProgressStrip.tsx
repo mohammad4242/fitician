@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import { getBodyProgressTimeline } from "./api";
 import type { BodyProgressTimelineItem } from "./types";
 
@@ -54,10 +55,10 @@ export function BodyAnalysisProgressStrip({
 
   const scanPoints: ScanPoint[] = recentItems.map((item) => {
     const rawDate = item.session.submitted_at ?? item.session.created_at;
-    const dateStr = new Intl.DateTimeFormat(locale, {
+    const dateStr = formatTehranDateForLocale(rawDate, locale, {
       month: "short",
       day: "numeric",
-    }).format(new Date(rawDate));
+    });
 
     // Try experience body_composition first, else compute RFM
     let bf: number | null = item.analysis?.experience_result?.body_composition?.estimated_body_fat_percent ?? null;
