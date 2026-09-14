@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { createAdminExercise } from "./api";
@@ -37,6 +38,7 @@ export function AdminExerciseNewPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [requestError, setRequestError] = useState<"duplicate" | "api" | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
 
   useEffect(() => {
     if (media === null) {
@@ -57,6 +59,7 @@ export function AdminExerciseNewPage() {
     const nextErrors = validateAdminExercise(form);
     setErrors(nextErrors);
     setRequestError(null);
+    setSaveError(null);
     if (Object.keys(nextErrors).length > 0) return;
     setBusy(true);
     try {
@@ -73,6 +76,7 @@ export function AdminExerciseNewPage() {
         { replace: true, state: { createdId: created.id } },
       );
     } catch (error) {
+      setSaveError(error);
       if (error instanceof ApiError && error.status === 409) {
         setRequestError("duplicate");
         setErrors((current) => ({ ...current, slug: "required" }));
@@ -111,18 +115,18 @@ export function AdminExerciseNewPage() {
           <Link to={returnTo}>{t("admin.new.back")}</Link>
         </header>
         <form className="admin-form" noValidate onSubmit={handleSubmit}>
-          {(Object.keys(errors).length > 0 || requestError) && (
+          {saveError ? (
+            <AppErrorNotice
+              audience="admin"
+              context="workout"
+              error={saveError}
+              onRetry={() => void submitForm()}
+            />
+          ) : Object.keys(errors).length > 0 ? (
             <div className="admin-form-alert" role="alert">
-              {requestError === "duplicate"
-                ? t("admin.errors.duplicate")
-                : requestError === "api"
-                  ? t("admin.errors.api")
-                  : t("admin.errors.validation")}
-              {requestError === "api" && (
-                <button type="button" onClick={() => void submitForm()}>{t("common.retry")}</button>
-              )}
+              {requestError === "duplicate" ? t("admin.errors.duplicate") : t("admin.errors.validation")}
             </div>
-          )}
+          ) : null}
           <AdminExerciseFields
             value={form}
             errors={errors}

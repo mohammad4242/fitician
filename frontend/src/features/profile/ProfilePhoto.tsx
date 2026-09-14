@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   normalizeImageForUpload,
   UserImageNormalizationError,
@@ -56,7 +56,8 @@ export function ProfilePhotoControl({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState<"upload" | "delete" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<unknown | null>(null);
 
   useEffect(() => {
     setUrl(initialUrl ?? null);
@@ -73,7 +74,8 @@ export function ProfilePhotoControl({
   async function chooseFile(file: File | undefined) {
     if (file === undefined) return;
     if (file.size > MAX_FILE_BYTES) {
-      setError(l("حجم عکس باید کمتر از ۵ مگابایت باشد", "The image must be smaller than 5 MB"));
+      setApiError(null);
+      setClientError(l("حجم عکس باید کمتر از ۵ مگابایت باشد", "The image must be smaller than 5 MB"));
       return;
     }
     try {
@@ -82,11 +84,13 @@ export function ProfilePhotoControl({
         maximumOutputBytes: MAX_FILE_BYTES,
         maximumPixelCount: 16_000_000,
       });
-      setError(null);
+      setApiError(null);
+      setClientError(null);
       setSelectedFile(normalized);
       setPreviewUrl(typeof URL.createObjectURL === "function" ? URL.createObjectURL(normalized) : null);
     } catch (normalizationError) {
-      setError(imageNormalizationError(normalizationError, l));
+      setApiError(null);
+      setClientError(imageNormalizationError(normalizationError, l));
     }
   }
 
@@ -98,7 +102,8 @@ export function ProfilePhotoControl({
   async function upload() {
     if (selectedFile === null || busy !== null) return;
     setBusy("upload");
-    setError(null);
+    setApiError(null);
+    setClientError(null);
     try {
       const cropped = await cropToSquare(selectedFile);
       const uploaded = await api.uploadProfilePhoto(cropped);
@@ -106,7 +111,7 @@ export function ProfilePhotoControl({
       onChanged?.(uploaded.profile_photo_url);
       clearSelection();
     } catch (cause) {
-      setError(photoError(cause, l));
+      setApiError(cause);
     } finally {
       setBusy(null);
     }
@@ -115,13 +120,14 @@ export function ProfilePhotoControl({
   async function remove() {
     if (busy !== null || !url || !window.confirm(l("عکس پروفایل حذف شود؟", "Remove this profile photo?"))) return;
     setBusy("delete");
-    setError(null);
+    setApiError(null);
+    setClientError(null);
     try {
       await api.deleteProfilePhoto();
       setUrl(null);
       onChanged?.(null);
     } catch (cause) {
-      setError(photoError(cause, l));
+      setApiError(cause);
     } finally {
       setBusy(null);
     }
@@ -158,7 +164,8 @@ export function ProfilePhotoControl({
           </button>
         )}
       </div>
-      {error && <p className="profile-photo-control__error" role="alert">{error}</p>}
+      <AppErrorNotice audience="member" context="profile" error={apiError} />
+      {clientError && <p className="profile-photo-control__error" role="alert">{clientError}</p>}
       {selectedFile && (
         <div className="profile-photo-dialog-backdrop">
           <section className="profile-photo-dialog" role="dialog" aria-modal="true" aria-labelledby={`${inputId}-title`}>
@@ -184,18 +191,6 @@ export function ProfilePhotoControl({
       )}
     </section>
   );
-}
-
-function photoError(
-  cause: unknown,
-  l: (persian: string, english: string) => string,
-): string {
-  if (cause instanceof ApiError) {
-    if (cause.code === "invalid_file_size") return l("حجم عکس مجاز نیست.", "The image size is not allowed.");
-    if (cause.code === "invalid_geometry") return l("عکس باید مربعی باشد.", "The image must be square.");
-    if (cause.code === "unsupported_format") return l("فرمت عکس پشتیبانی نمی‌شود.", "This image format is not supported.");
-  }
-  return l("ذخیره عکس انجام نشد. دوباره تلاش کن.", "The photo could not be saved. Try again.");
 }
 
 function imageNormalizationError(

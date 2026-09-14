@@ -129,6 +129,30 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("پروفایل قبلاً ساخته شده است", "Profile already exists"),
     text("پروفایل فیتنس قبلاً ساخته شده است.", "The fitness profile already exists."),
   ),
+  invalid_file_size: entry(
+    text("حجم عکس مجاز نیست", "Image size is not allowed"),
+    text("حجم عکس بیشتر از حد مجاز است. عکس کوچک‌تری انتخاب کنید.", "The image is larger than the allowed limit. Choose a smaller image."),
+  ),
+  invalid_geometry: entry(
+    text("اندازه عکس معتبر نیست", "Image dimensions are invalid"),
+    text("عکس باید مربعی و در اندازه مجاز باشد.", "The image must be square and within the allowed dimensions."),
+  ),
+  unsupported_format: entry(
+    text("فرمت عکس پشتیبانی نمی‌شود", "Image format is not supported"),
+    text("فرمت این عکس پشتیبانی نمی‌شود.", "This image format is not supported."),
+  ),
+  invalid_image: entry(
+    text("عکس معتبر نیست", "Image is invalid"),
+    text("فایل عکس معتبر نیست. عکس دیگری انتخاب کنید.", "The image file is invalid. Choose another image."),
+  ),
+  image_too_large: entry(
+    text("عکس خیلی بزرگ است", "Image is too large"),
+    text("ابعاد عکس بیشتر از حد مجاز است. عکس کوچک‌تری انتخاب کنید.", "The image dimensions exceed the allowed limit. Choose a smaller image."),
+  ),
+  EXERCISE_SLUG_ALREADY_EXISTS: entry(
+    text("شناسه حرکت تکراری است", "Exercise slug already exists"),
+    text("این شناسه قبلاً استفاده شده است.", "This exercise slug is already in use."),
+  ),
   PRODUCT_MODE_REQUIRED: entry(
     text("مسیر محصول انتخاب نشده است", "Product path required"),
     text("ابتدا مسیر فیتیشن را انتخاب کنید.", "Choose a Fitician path first."),

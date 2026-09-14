@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "../../shared/apiClient";
+
 const api = vi.hoisted(() => ({
   deleteProfilePhoto: vi.fn(),
   uploadProfilePhoto: vi.fn(),
@@ -65,4 +67,22 @@ it("deletes an existing photo after explicit confirmation", async () => {
 
   expect(api.deleteProfilePhoto).toHaveBeenCalledOnce();
   expect(onChanged).toHaveBeenCalledWith(null);
+});
+
+it("uses the shared member resolver for backend photo failures", async () => {
+  const user = userEvent.setup();
+  api.deleteProfilePhoto.mockRejectedValue(
+    new ApiError(500, "private database detail", null, "INTERNAL_SERVER_ERROR", {
+      requestId: "corr-profile-photo-1",
+    }),
+  );
+  render(<ProfilePhotoControl initialUrl="/private/photo?v=1" label="محمد رضایی" />);
+
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  await user.click(screen.getByRole("button", { name: "حذف عکس" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد");
+  expect(alert).not.toHaveTextContent("private database detail");
+  expect(alert).not.toHaveTextContent("corr-profile-photo-1");
 });

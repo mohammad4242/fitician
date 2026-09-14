@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "../../shared/apiClient";
+
 const adminApi = vi.hoisted(() => ({
   getAdminExercise: vi.fn(),
   updateAdminExercise: vi.fn(),
@@ -99,6 +101,30 @@ it("opens one edit section at a time from a collapsed default", async () => {
   expect(target).toHaveAttribute("aria-expanded", "true");
   expect(screen.queryByLabelText("نام انگلیسی")).not.toBeInTheDocument();
   expect(screen.getByLabelText("ناحیه بدن")).toBeInTheDocument();
+});
+
+it("shows safe admin diagnostics when loading the exercise fails", async () => {
+  adminApi.getAdminExercise.mockRejectedValueOnce(
+    new ApiError(500, "raw SQL details", null, "INTERNAL_SERVER_ERROR", {
+      requestId: "corr-admin-exercise-load-1",
+    }),
+  );
+  render(
+    <MemoryRouter initialEntries={["/admin/exercises/exercise-id/edit"]}>
+      <Routes>
+        <Route path="/admin/exercises/:exerciseId/edit" element={<AdminExerciseEditPage />} />
+        <Route path="/exercises" element={<p>LIST PAGE</p>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد");
+  expect(alert).toHaveTextContent("کد خطا");
+  expect(alert).toHaveTextContent("INTERNAL_SERVER_ERROR");
+  expect(alert).toHaveTextContent("500");
+  expect(alert).toHaveTextContent("corr-admin-exercise-load-1");
+  expect(alert).not.toHaveTextContent("raw SQL details");
 });
 
 it("loads structured programming metadata and saves an edited exercise", async () => {

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { getAdminExercise, updateAdminExercise } from "./api";
@@ -31,9 +32,11 @@ export function AdminExerciseEditPage() {
   const [exercise, setExercise] = useState<AdminExercise | null>(null);
   const [form, setForm] = useState<AdminExerciseForm | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<AdminValidationErrors>({});
   const [requestError, setRequestError] = useState<"duplicate" | "api" | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
   const [reload, setReload] = useState(0);
   const [media, setMedia] = useState<File | null>(null);
   const [mediaAssets, setMediaAssets] = useState<AdminExerciseMediaFiles>([]);
@@ -46,6 +49,7 @@ export function AdminExerciseEditPage() {
     }
     let active = true;
     setState("loading");
+    setLoadError(null);
     void getAdminExercise(exerciseId)
       .then((result) => {
         if (!active) return;
@@ -53,10 +57,13 @@ export function AdminExerciseEditPage() {
         setForm(adminExerciseToForm(result));
         setErrors({});
         setRequestError(null);
+        setLoadError(null);
+        setSaveError(null);
         setState("ready");
       })
       .catch((error: unknown) => {
         if (!active) return;
+        setLoadError(error);
         setState(error instanceof ApiError && error.status === 404 ? "missing" : "error");
       });
     return () => { active = false; };
@@ -82,6 +89,7 @@ export function AdminExerciseEditPage() {
     const nextErrors = validateAdminExercise(form);
     setErrors(nextErrors);
     setRequestError(null);
+    setSaveError(null);
     if (Object.keys(nextErrors).length > 0) return;
     setBusy(true);
     try {
@@ -103,6 +111,7 @@ export function AdminExerciseEditPage() {
         { replace: true, state: { editedId: updated.id } },
       );
     } catch (error) {
+      setSaveError(error);
       if (error instanceof ApiError && error.status === 409) {
         setRequestError("duplicate");
         setErrors((current) => ({ ...current, slug: "required" }));
@@ -142,12 +151,12 @@ export function AdminExerciseEditPage() {
         {state === "loading" && <p className="admin-status" role="status">{t("admin.edit.loading")}</p>}
         {state === "missing" && <p className="admin-status" role="alert">{t("admin.edit.missing")}</p>}
         {state === "error" && (
-          <div className="admin-status" role="alert">
-            <p>{t("admin.edit.loadError")}</p>
-            <button type="button" onClick={() => setReload((value) => value + 1)}>
-              {t("common.retry")}
-            </button>
-          </div>
+          <AppErrorNotice
+            audience="admin"
+            context="workout"
+            error={loadError}
+            onRetry={() => setReload((value) => value + 1)}
+          />
         )}
         {state === "ready" && form !== null && exercise !== null && (
           <form
@@ -158,18 +167,18 @@ export function AdminExerciseEditPage() {
               void save();
             }}
           >
-            {(Object.keys(errors).length > 0 || requestError) && (
+            {saveError ? (
+              <AppErrorNotice
+                audience="admin"
+                context="workout"
+                error={saveError}
+                onRetry={() => void save()}
+              />
+            ) : Object.keys(errors).length > 0 ? (
               <div className="admin-form-alert" role="alert">
-                {requestError === "duplicate"
-                  ? t("admin.errors.duplicate")
-                  : requestError === "api"
-                    ? t("admin.errors.api")
-                    : t("admin.errors.validation")}
-                {requestError === "api" && (
-                  <button type="button" onClick={() => void save()}>{t("common.retry")}</button>
-                )}
+                {requestError === "duplicate" ? t("admin.errors.duplicate") : t("admin.errors.validation")}
               </div>
-            )}
+            ) : null}
             <AdminExerciseFields
               value={form}
               errors={errors}

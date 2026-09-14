@@ -181,7 +181,7 @@ it("shows loading then navigates after successful submission", async () => {
 
 it("shows duplicate slug and retryable API failures", async () => {
   adminApi.createAdminExercise
-    .mockRejectedValueOnce(new ApiError(409, "Exercise slug already exists"))
+    .mockRejectedValueOnce(new ApiError(409, "Exercise slug already exists", null, "EXERCISE_SLUG_ALREADY_EXISTS"))
     .mockRejectedValueOnce(new Error("offline"))
     .mockResolvedValueOnce({ id: "created-id" });
   const user = userEvent.setup();
@@ -195,9 +195,31 @@ it("shows duplicate slug and retryable API failures", async () => {
   await user.clear(screen.getByLabelText("شناسه پایدار"));
   await user.type(screen.getByLabelText("شناسه پایدار"), "incline-push-up-2");
   await user.click(screen.getByRole("button", { name: "ذخیره حرکت" }));
-  expect(await screen.findByRole("button", { name: "تلاش دوباره" })).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
+  expect(await screen.findByRole("button", { name: "دوباره تلاش کنید" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
   expect(await screen.findByText("LIST PAGE")).toBeInTheDocument();
+});
+
+it("shows safe admin diagnostics for a structured API failure", async () => {
+  adminApi.createAdminExercise.mockRejectedValueOnce(
+    new ApiError(503, "raw provider secret", null, "BODY_ANALYSIS_PROVIDER_UNAVAILABLE", {
+      requestId: "corr-admin-exercise-1",
+      meta: { retry_after_seconds: 30 },
+    }),
+  );
+  const user = userEvent.setup();
+  renderPage();
+  await fillMinimumForm(user);
+
+  await user.click(screen.getByRole("button", { name: "ذخیره حرکت" }));
+  const alert = await screen.findByRole("alert");
+
+  expect(alert).toHaveTextContent("سرویس ارائه‌دهنده تحلیل بدن در دسترس نیست");
+  expect(alert).toHaveTextContent("کد خطا");
+  expect(alert).toHaveTextContent("BODY_ANALYSIS_PROVIDER_UNAVAILABLE");
+  expect(alert).toHaveTextContent("503");
+  expect(alert).toHaveTextContent("corr-admin-exercise-1");
+  expect(alert).not.toHaveTextContent("raw provider secret");
 });
 
 async function fillMinimumForm(user: ReturnType<typeof userEvent.setup>) {
