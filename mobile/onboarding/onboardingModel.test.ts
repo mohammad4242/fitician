@@ -3,12 +3,19 @@ import { expect, it } from "vitest";
 import {
   exerciseInputFromForm,
   nutritionInputFromForms,
+  profileValidationMessage,
   safetyInputFromForm,
   type ExerciseFormValues,
   type NutritionBasicsFormValues,
   type NutritionPreferencesFormValues,
   type SafetyFormValues,
 } from "./onboardingModel";
+
+it("uses the exact preferred weekday validation message", () => {
+  expect(profileValidationMessage("preferredWeekdaysInvalid")).toBe(
+    "تعداد روزهای انتخابی باید دقیقاً برابر تعداد روزهای تمرین در هفته باشد.",
+  );
+});
 
 it("normalizes safety text fields and preserves every safety flag", () => {
   const values: SafetyFormValues = {

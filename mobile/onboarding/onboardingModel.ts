@@ -239,7 +239,7 @@ export function profileValidationMessage(code: string): string {
     circumferencePrecision: "اندازه را با حداکثر دو رقم اعشار وارد کنید.",
     trainingDaysRange: "تعداد روزهای تمرین باید بین ۲ تا ۶ باشد.",
     trainingAgeRange: "سابقه تمرین باید حداکثر ۹۰۰ ماه باشد.",
-    preferredWeekdaysInvalid: "تعداد روزهای انتخابی بیشتر از روزهای تمرین است.",
+    preferredWeekdaysInvalid: "تعداد روزهای انتخابی باید دقیقاً برابر تعداد روزهای تمرین در هفته باشد.",
     sessionDurationInvalid: "زمان جلسه را از گزینه‌های موجود انتخاب کنید.",
     planDurationInvalid: "مدت برنامه را از گزینه‌های موجود انتخاب کنید.",
   };
