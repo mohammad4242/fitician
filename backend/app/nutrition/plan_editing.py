@@ -36,6 +36,7 @@ from app.nutrition.models import (
 )
 from app.nutrition.plan_service import weekly_plan_response
 from app.nutrition.schemas import WeeklyPlanResponse
+from app.profile.review_summary import build_review_profile_summary
 
 
 class PlanEditError(Exception):
@@ -482,7 +483,14 @@ def _create_revision(
             )
     db.commit()
     db.refresh(new_plan)
-    return weekly_plan_response(owned_plan(db, user_id, new_plan.id), db=db)
+    revised_plan = owned_plan(db, user_id, new_plan.id)
+    return weekly_plan_response(
+        revised_plan,
+        db=db,
+        profile_summary=(
+            build_review_profile_summary(db, user_id) if physician_id is not None else None
+        ),
+    )
 
 
 def _budget_status(cost: int, budget: int, mode: str) -> NutritionPlanBudgetStatus:
@@ -1033,7 +1041,7 @@ def physician_plan(db: Session, physician_id: UUID, plan_id: UUID) -> WeeklyPlan
         raise PlanEditError("NUTRITION_PLAN_NOT_FOUND")
     if plan.review.physician_user_id != physician_id:
         raise PlanEditError("REVIEW_ASSIGNED_TO_ANOTHER_PHYSICIAN")
-    return weekly_plan_response(plan, db=db)
+    return _physician_plan_response(db, plan)
 
 
 def physician_action(
@@ -1143,4 +1151,15 @@ def physician_action(
         )
     )
     db.commit()
-    return weekly_plan_response(owned_plan(db, plan.user_id, plan.id), db=db)
+    return _physician_plan_response(db, owned_plan(db, plan.user_id, plan.id))
+
+
+def _physician_plan_response(
+    db: Session,
+    plan: NutritionWeeklyPlan,
+) -> WeeklyPlanResponse:
+    return weekly_plan_response(
+        plan,
+        db=db,
+        profile_summary=build_review_profile_summary(db, plan.user_id),
+    )

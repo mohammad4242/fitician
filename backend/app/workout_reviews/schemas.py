@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.athlete_state.schemas import AthleteState
 from app.exercises.enums import PrescriptionMode
+from app.profile.review_summary import ReviewProfileSummary
 from app.workout_reviews.enums import WorkoutReviewStatus
 from app.workouts.program_engine.adaptation_policy import CycleAdaptationDecision
 from app.workouts.program_engine.enums import ValidationStatus
@@ -180,6 +181,7 @@ class WorkoutReviewDetailResponse(WorkoutReviewQueueItemResponse):
     fitician_recommendation: CycleAdaptationDecision
     template_selection: CoachTemplateSelectionResponse | None = None
     coach_quality_metrics: CoachQualityMetricsResponse | None = None
+    profile_summary: ReviewProfileSummary | None = None
 
 
 class WorkoutReviewAccessResponse(BaseModel):

@@ -141,6 +141,7 @@ from app.nutrition.schemas import (
 )
 from app.nutrition.service import current_safety_decision
 from app.profile.models import UserProfile
+from app.profile.review_summary import ReviewProfileSummary
 from app.time_context import local_date_for_timezone, member_timezone_or_default
 
 _HARD_EXCLUSION_KINDS = {
@@ -2443,6 +2444,7 @@ def weekly_plan_response(
     plan: NutritionWeeklyPlan,
     *,
     db: Session | None = None,
+    profile_summary: ReviewProfileSummary | None = None,
 ) -> WeeklyPlanResponse:
     review_status = plan.review.status.value if plan.review else "missing"
     plan_role = plan.generation.plan_role if plan.generation else None
@@ -2553,6 +2555,7 @@ def weekly_plan_response(
         ],
         created_at=plan.created_at,
         started_at=plan.started_at,
+        profile_summary=profile_summary,
     )
 
 

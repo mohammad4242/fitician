@@ -11,6 +11,7 @@ from app.auth.cookies import require_trusted_origin
 from app.exercises.enums import ExerciseContentType
 from app.profile.models import UserProfile
 from app.profile.photo import authorized_profile_photo_url
+from app.profile.review_summary import build_review_profile_summary
 from app.workout_reviews.coach_quality import build_coach_quality_projection
 from app.workout_reviews.dependencies import (
     CoachUser,
@@ -263,6 +264,7 @@ def _detail_response(
         fitician_recommendation=build_fitician_recommendation(db, review),
         template_selection=build_coach_template_selection(review.source_plan.decision_trace),
         coach_quality_metrics=build_coach_quality_projection(review.source_plan.decision_trace),
+        profile_summary=build_review_profile_summary(db, review.user_id),
     )
 
 

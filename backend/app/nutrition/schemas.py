@@ -47,6 +47,7 @@ from app.nutrition.enums import (
     snack_effective_slots,
 )
 from app.profile.enums import FitnessGoal, TrainingIntensity
+from app.profile.review_summary import ReviewProfileSummary
 from app.time_context import validate_timezone_name
 
 
@@ -1240,6 +1241,7 @@ class WeeklyPlanResponse(BaseModel):
     days: list[WeeklyPlanDayResponse]
     created_at: datetime
     started_at: datetime | None = None
+    profile_summary: ReviewProfileSummary | None = None
 
 
 class NutritionPlanStartRequest(BaseModel):
