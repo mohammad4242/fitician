@@ -269,9 +269,9 @@ describe("catalog filters and states", () => {
     renderCatalog("/exercises?body_region=upper_body&primary_muscle=chest");
 
     await screen.findByRole("button", { name: "همه حرکات سینه" });
-    expect(api.getExercises).toHaveBeenLastCalledWith(
+    await waitFor(() => expect(api.getExercises).toHaveBeenLastCalledWith(
       expect.objectContaining({ content_type: "exercise" }),
-    );
+    ));
     await user.click(await screen.findByRole("button", { name: "راهنما" }));
 
     expect(locationValue()).toBe(
