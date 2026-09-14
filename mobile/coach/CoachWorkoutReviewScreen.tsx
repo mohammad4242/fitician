@@ -9,6 +9,8 @@ import {
   formatTehranDateTime,
   formatTehranTime,
   groupWorkoutReviewQueue,
+  reviewDisclosureDefaultExpanded,
+  reviewDisclosureKeys,
 } from "@fitician/core";
 import type { components } from "@fitician/core";
 import type { WorkoutReviewQueueGroup } from "@fitician/core";
@@ -434,11 +436,14 @@ function CoachReviewDetail({
       <Text style={styles.sectionTitle}>پیش‌نویس مربی · نسخه {faNumber(detail.draft_revision)}</Text>
       {draft.days.length === 0 ? <Notice message="پیش‌نویس برنامه در دسترس نیست." variant="warning" /> : null}
       {draft.days.map((day, dayIndex) => (
-        <Card key={day.day_number} style={styles.dayCard}>
-          <View style={styles.dayHeader}>
-            <Text style={styles.dayTitle}>روز {faNumber(day.day_number)}</Text>
-            <Text style={styles.dayNumber}>{faNumber(day.day_number).padStart(2, "۰")}</Text>
-          </View>
+        <DisclosureCard
+          defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.coachWorkoutDay)}
+          icon="training"
+          key={day.day_number}
+          style={styles.dayCard}
+          summary={`${faNumber(day.exercises.length)} حرکت`}
+          title={`روز ${faNumber(day.day_number)}`}
+        >
           {day.exercises.map((exercise, exerciseIndex) => (
             <ReviewExerciseEditor
               disabled={readOnly || busy}
@@ -449,7 +454,7 @@ function CoachReviewDetail({
               onSelect={(exerciseId) => onExerciseSelection(dayIndex, exerciseIndex, exerciseId)}
             />
           ))}
-        </Card>
+        </DisclosureCard>
       ))}
 
       <TextField

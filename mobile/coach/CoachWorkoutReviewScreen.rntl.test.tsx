@@ -152,6 +152,7 @@ test("claims a case, edits the exercise selection, and saves the current revisio
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
   expect(await screen.findByText("علت انتخاب برنامه")).toBeTruthy();
 
+  fireEvent.press(screen.getByRole("button", { name: "روز ۱" }));
   fireEvent.press(screen.getByRole("button", { name: "انتخاب حرکت" }));
   fireEvent.press(await screen.findByRole("button", { name: "شنا سوئدی" }));
   fireEvent.changeText(screen.getByLabelText("ست"), "4");
@@ -210,7 +211,7 @@ test("groups approved cases by approval date and shows the approval timestamp", 
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeTruthy();
 });
 
-test("shows important profile highlights and the complete current profile", async () => {
+test("keeps detailed profile sections closed until the coach opens one", async () => {
   renderScreen();
 
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
@@ -220,9 +221,33 @@ test("shows important profile highlights and the complete current profile", asyn
   expect(screen.getByText("۷۶٫۵ کیلوگرم")).toBeTruthy();
   expect(screen.getByText(/زانو درد خفیف/)).toBeTruthy();
 
-  fireEvent.press(screen.getByRole("button", { name: "پروفایل کامل" }));
+  const bodySection = screen.getByRole("button", { name: "مشخصات بدنی و تمرین" });
+  expect(bodySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(bodySection);
+  expect(bodySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: true }));
+
+  const nutritionSection = screen.getByRole("button", { name: "تغذیه و ترجیحات غذایی" });
+  expect(nutritionSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(nutritionSection);
   expect(screen.getByText(/مرغ/)).toBeTruthy();
+
+  const medicalSection = screen.getByRole("button", { name: "اطلاعات پزشکی و ایمنی" });
+  expect(medicalSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(medicalSection);
   expect(screen.getByText(/داروی فشار خون/)).toBeTruthy();
+});
+
+test("keeps each workout day collapsed until the coach opens it", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  expect((await screen.findAllByText(/پیش‌نویس مربی/)).length).toBeGreaterThan(0);
+
+  const daySection = screen.getByRole("button", { name: "روز ۱" });
+  expect(daySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(daySection);
+  expect(daySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: true }));
+  expect(screen.getByLabelText("انتخاب حرکت")).toBeTruthy();
 });
 
 test("returns from the selected case before leaving the coach route", async () => {

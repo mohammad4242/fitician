@@ -1,6 +1,11 @@
-import { formatPersianDate, formatTehranDateTime, type components } from "@fitician/core";
+import {
+  formatPersianDate,
+  formatTehranDateTime,
+  reviewDisclosureDefaultExpanded,
+  reviewDisclosureKeys,
+  type components,
+} from "@fitician/core";
 import { StyleSheet, Text, View } from "react-native";
-import type { ReactNode } from "react";
 
 import { Card, DisclosureCard, MetricStrip } from "./components";
 import { formatPersianNumber } from "./locale";
@@ -74,11 +79,12 @@ export function ReviewProfileSummaryCard({
       </Card>
 
       <DisclosureCard
+        defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.profileBodyTraining)}
         icon="profile"
-        summary="قد، وزن، تمرین، تغذیه و اطلاعات پزشکی فعلی کاربر"
-        title="پروفایل کامل"
+        summary="مشخصات، هدف و سابقه تمرین"
+        title="مشخصات بدنی و تمرین"
       >
-        <SummarySection title="مشخصات بدنی و تمرین">
+        <View style={styles.section}>
           <SummaryGrid entries={[
             ["نام", summary.display_name],
             ["سن", summary.age === null ? null : number(summary.age)],
@@ -111,18 +117,35 @@ export function ReviewProfileSummaryCard({
           ]} />
           {limitation ? <Text style={styles.bodyText}>محدودیت‌های جسمی: {limitation}</Text> : null}
           {cautions.length > 0 ? <Text style={styles.bodyText}>احتیاط‌های تمرینی: {cautions.map(humanize).join("، ")}</Text> : null}
-        </SummarySection>
-
-        {summary.nutrition ? <NutritionSection nutrition={summary.nutrition} /> : null}
-        {summary.medical ? <MedicalSection medical={summary.medical} /> : null}
+        </View>
       </DisclosureCard>
+      {summary.nutrition ? (
+        <DisclosureCard
+          defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.profileNutrition)}
+          icon="nutrition"
+          summary="الگوی غذایی، غذاهای ترجیحی و آشپزی"
+          title="تغذیه و ترجیحات غذایی"
+        >
+          <NutritionSection nutrition={summary.nutrition} />
+        </DisclosureCard>
+      ) : null}
+      {summary.medical ? (
+        <DisclosureCard
+          defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.profileMedical)}
+          icon="shield"
+          summary="شرایط، داروها و هشدارهای ایمنی"
+          title="اطلاعات پزشکی و ایمنی"
+        >
+          <MedicalSection medical={summary.medical} />
+        </DisclosureCard>
+      ) : null}
     </View>
   );
 }
 
 function NutritionSection({ nutrition }: { readonly nutrition: ReviewProfileNutrition }) {
   return (
-    <SummarySection title="تغذیه و ترجیحات غذایی">
+    <View style={styles.section}>
       <SummaryGrid entries={[
         ["وضعیت تکمیل", humanize(nutrition.onboarding_status)],
         ["فعالیت روزانه", humanize(nutrition.daily_activity_level)],
@@ -179,14 +202,14 @@ function NutritionSection({ nutrition }: { readonly nutrition: ReviewProfileNutr
           ]} />
         </View>
       ) : null}
-    </SummarySection>
+    </View>
   );
 }
 
 function MedicalSection({ medical }: { readonly medical: ReviewProfileMedical }) {
   const activeFlags = Object.entries(medical.flags ?? {}).filter(([, active]) => active);
   return (
-    <SummarySection title="اطلاعات پزشکی و ایمنی">
+    <View style={styles.section}>
       <SummaryGrid entries={[
         ["نتیجه ایمنی", humanize(medical.safety_outcome)],
         ["محدودیت غذایی پزشک", medical.physician_dietary_restrictions],
@@ -215,15 +238,6 @@ function MedicalSection({ medical }: { readonly medical: ReviewProfileMedical })
         </View>
       ) : null}
       {(medical.safety_reason_codes ?? []).length > 0 ? <Text style={styles.warningText}>کدهای ایمنی: {medical.safety_reason_codes.join("، ")}</Text> : null}
-    </SummarySection>
-  );
-}
-
-function SummarySection({ children, title }: { readonly children: ReactNode; readonly title: string }) {
-  return (
-    <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
-      {children}
     </View>
   );
 }

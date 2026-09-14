@@ -9,6 +9,8 @@ import {
   formatTehranDateTime,
   groupReviewQueueByRecency,
   irrToToman,
+  reviewDisclosureDefaultExpanded,
+  reviewDisclosureKeys,
   type components,
   type RecencyQueueGroup,
 } from "@fitician/core";
@@ -815,7 +817,7 @@ function PhysicianReviewDetail({
       {clinicalTab === "plan" ? (
         <View style={styles.detailContent}>
           <DisclosureCard
-            defaultExpanded={false}
+            defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.physicianEvidence)}
             icon="shield"
             summary="داده‌های مبنا و وضعیت کنترل‌های نسخه"
             title="پروفایل، ایمنی، بودجه و منشأ داده"
@@ -832,23 +834,38 @@ function PhysicianReviewDetail({
             <Notice message="در حالت آفلاین گزینه‌های جایگزینی بارگذاری نمی‌شوند." variant="offline" />
           ) : null}
           {plan.days.map((day) => (
-            <Card key={day.plan_date} style={styles.dayCard}>
-              <Text style={styles.dayTitle}>روز {formatPersianNumber(day.day_index + 1, { maximumFractionDigits: 0 })} · {formatPhysicianPlanDate(day.plan_date)}</Text>
-              {day.meals.map((meal) => (
-                <MealEditor
-                  busy={busy}
-                  foods={viewData(foodsState) ?? []}
+            <DisclosureCard
+              defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.physicianPlanDay)}
+              icon="training"
+              key={day.plan_date}
+              style={styles.dayCard}
+              summary={`${formatPersianNumber(day.meals.length, { maximumFractionDigits: 0 })} وعده`}
+              title={`روز ${formatPersianNumber(day.day_index + 1, { maximumFractionDigits: 0 })} · ${formatPhysicianPlanDate(day.plan_date)}`}
+            >
+              {day.meals.map((meal, mealIndex) => (
+                <DisclosureCard
+                  defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.physicianPlanMeal)}
+                  icon="nutrition"
                   key={meal.id}
-                  meal={meal}
-                  onQuantityDraftChange={onQuantityDraftChange}
-                  onRemove={() => onRemoveMeal(meal)}
-                  onReplaceFood={onReplaceFood}
-                  onSaveQuantity={onSaveQuantity}
-                  quantityDrafts={quantityDrafts}
-                  readOnly={readOnly}
-                />
+                  style={styles.mealDisclosure}
+                  summary={`${formatPersianNumber(meal.foods.length, { maximumFractionDigits: 0 })} ماده غذایی`}
+                  title={meal.name_fa ?? meal.name_en ?? `وعده ${formatPersianNumber(mealIndex + 1, { maximumFractionDigits: 0 })}`}
+                >
+                  <MealEditor
+                    busy={busy}
+                    foods={viewData(foodsState) ?? []}
+                    meal={meal}
+                    onQuantityDraftChange={onQuantityDraftChange}
+                    onRemove={() => onRemoveMeal(meal)}
+                    onReplaceFood={onReplaceFood}
+                    onSaveQuantity={onSaveQuantity}
+                    quantityDrafts={quantityDrafts}
+                    readOnly={readOnly}
+                    showHeading={false}
+                  />
+                </DisclosureCard>
               ))}
-            </Card>
+            </DisclosureCard>
           ))}
           <DecisionBar
             busy={busy}
@@ -919,8 +936,13 @@ function PlanEvidence({ plan }: { readonly plan: PhysicianNutritionPlan }) {
 function NutrientValidation({ plan }: { readonly plan: PhysicianNutritionPlan }) {
   const nutrients = Object.values(plan.nutrients);
   return (
-    <Card style={styles.contextCard}>
-      <Text style={styles.sectionTitle}>وضعیت مواد مغذی</Text>
+    <DisclosureCard
+      defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.physicianNutrients)}
+      icon="nutrition"
+      style={styles.contextCard}
+      summary={`${formatNumber(nutrients.length)} شاخص ثبت‌شده`}
+      title="وضعیت مواد مغذی"
+    >
       {nutrients.length === 0 ? <Text style={styles.muted}>دادهٔ اعتبارسنجی مواد مغذی ثبت نشده است.</Text> : nutrients.map((nutrient) => (
         <View key={nutrient.nutrient_code} style={styles.nutrientRow}>
           <View style={styles.headerCopy}>
@@ -932,7 +954,7 @@ function NutrientValidation({ plan }: { readonly plan: PhysicianNutritionPlan })
           </Text>
         </View>
       ))}
-    </Card>
+    </DisclosureCard>
   );
 }
 
@@ -1305,6 +1327,7 @@ function MealEditor({
   onSaveQuantity,
   quantityDrafts,
   readOnly,
+  showHeading = true,
 }: {
   readonly busy: boolean;
   readonly foods: PhysicianCatalogueFood[];
@@ -1315,14 +1338,15 @@ function MealEditor({
   readonly onSaveQuantity: (mealId: string, foodId: string, currentGrams: number) => Promise<void>;
   readonly quantityDrafts: Record<string, string>;
   readonly readOnly: boolean;
+  readonly showHeading?: boolean;
 }) {
   return (
     <View style={styles.mealEditor}>
       <View style={styles.mealHeader}>
-        <View style={styles.headerCopy}>
+        {showHeading ? <View style={styles.headerCopy}>
           <Text style={styles.mealTitle}>{meal.name_fa ?? meal.name_en ?? "وعده غذایی"}</Text>
           {meal.name_en && meal.name_en !== meal.name_fa ? <Text style={styles.muted}>{meal.name_en}</Text> : null}
-        </View>
+        </View> : <View style={styles.headerCopy} />}
         <Button disabled={readOnly || busy} label="حذف وعده" onPress={onRemove} variant="ghost" />
       </View>
       {meal.foods.map((food) => {
@@ -1566,6 +1590,7 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1, gap: fiticianTokens.spacing[2] },
   labRow: { borderTopColor: fiticianTokens.colors.line, borderTopWidth: 1, gap: fiticianTokens.spacing[1], paddingTop: fiticianTokens.spacing[2] },
   mealEditor: { gap: fiticianTokens.spacing[3] },
+  mealDisclosure: { gap: fiticianTokens.spacing[2] },
   mealHeader: { alignItems: "center", flexDirection: "row", gap: fiticianTokens.spacing[2], justifyContent: "space-between" },
   mealTitle: {
     color: fiticianTokens.colors.ink,

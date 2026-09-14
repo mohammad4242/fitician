@@ -246,7 +246,7 @@ test("moves from queue to a native case with segmented clinical sections", async
   expect(screen.getByLabelText("یادداشت قابل مشاهده برای کاربر")).toBeTruthy();
 });
 
-test("shows important profile highlights and the complete current profile", async () => {
+test("keeps detailed profile sections closed until the physician opens one", async () => {
   renderScreen();
 
   fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
@@ -255,9 +255,27 @@ test("shows important profile highlights and the complete current profile", asyn
   expect(screen.getByText("۱۶۵ سانتی‌متر")).toBeTruthy();
   expect(screen.getByText("۶۸٫۲ کیلوگرم")).toBeTruthy();
 
-  fireEvent.press(screen.getByRole("button", { name: "پروفایل کامل" }));
+  fireEvent.press(screen.getByRole("button", { name: "مشخصات بدنی و تمرین" }));
+  fireEvent.press(screen.getByRole("button", { name: "تغذیه و ترجیحات غذایی" }));
   expect(screen.getByText(/ماست/)).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "اطلاعات پزشکی و ایمنی" }));
   expect(screen.getByText(/ویتامین دی/)).toBeTruthy();
+});
+
+test("keeps physician nutrition days and meals collapsed until opened", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
+  expect(await screen.findByText("وضعیت مواد مغذی")).toBeTruthy();
+
+  const daySection = screen.getByRole("button", { name: /روز ۱/ });
+  expect(daySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(daySection);
+
+  const mealSection = screen.getByRole("button", { name: "ناهار" });
+  expect(mealSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(mealSection);
+  expect(screen.getByText("سینه مرغ")).toBeTruthy();
 });
 
 test("returns from the selected physician case to the queue before leaving the route", async () => {
