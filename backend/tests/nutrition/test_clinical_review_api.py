@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -9,6 +9,7 @@ from app.auth.models import User
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
 from app.notifications.models import NotificationOutboxEvent
+from app.nutrition.enums import NutritionPlanReviewStatus
 from app.nutrition.models import (
     NutritionLabDocument,
     NutritionLabRequest,
@@ -24,9 +25,16 @@ from tests.nutrition.test_weekly_plan_api import (
 )
 
 
-def _member_plan(client: TestClient, db: Session) -> dict[str, object]:
-    _register_and_estimate(client, "clinical-member@example.com")
-    _seed_foods_and_prices(db)
+def _member_plan(
+    client: TestClient,
+    db: Session,
+    email: str = "clinical-member@example.com",
+    *,
+    seed_catalogue: bool = True,
+) -> dict[str, object]:
+    _register_and_estimate(client, email)
+    if seed_catalogue:
+        _seed_foods_and_prices(db)
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert response.status_code == 201
     return response.json()["plan"]
@@ -504,6 +512,53 @@ def test_physician_queue_views_move_a_case_from_pending_to_claimed_to_approved(
         item["plan_id"] == plan["id"]
         for item in client.get("/api/v1/nutrition/physician/reviews?view=approved").json()
     )
+
+
+def test_physician_queue_orders_each_view_by_requested_at(
+    client: TestClient,
+    db: Session,
+) -> None:
+    older_plan = _member_plan(client, db, "queue-order-older@example.com")
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    newer_plan = _member_plan(
+        client,
+        db,
+        "queue-order-newer@example.com",
+        seed_catalogue=False,
+    )
+    older_review = db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == older_plan["id"]
+        )
+    )
+    newer_review = db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == newer_plan["id"]
+        )
+    )
+    assert older_review is not None and newer_review is not None
+    older_review.requested_at = datetime(2026, 9, 10, 8, tzinfo=UTC)
+    newer_review.requested_at = datetime(2026, 9, 14, 8, tzinfo=UTC)
+
+    physician = _login_physician(client, db, "queue-order-physician@example.com")
+    for view, status in (
+        ("pending", NutritionPlanReviewStatus.PENDING),
+        ("claimed", NutritionPlanReviewStatus.IN_REVIEW),
+        ("approved", NutritionPlanReviewStatus.APPROVED),
+    ):
+        older_review.status = status
+        newer_review.status = status
+        older_review.physician_user_id = physician.id if view != "pending" else None
+        newer_review.physician_user_id = physician.id if view != "pending" else None
+        db.commit()
+
+        response = client.get(f"/api/v1/nutrition/physician/reviews?view={view}")
+
+        assert response.status_code == 200
+        assert [item["plan_id"] for item in response.json()] == [
+            newer_plan["id"],
+            older_plan["id"],
+        ]
 
 
 def test_assigned_physician_can_list_and_review_member_labs(

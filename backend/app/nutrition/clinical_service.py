@@ -480,8 +480,8 @@ def review_queue(
         .outerjoin(UserProfile, UserProfile.user_id == NutritionWeeklyPlan.user_id)
         .where(status_filter, owner_filter)
         .order_by(
-            NutritionPlanPhysicianReview.priority.desc(),
-            NutritionPlanPhysicianReview.requested_at,
+            NutritionPlanPhysicianReview.requested_at.desc(),
+            NutritionPlanPhysicianReview.id.desc(),
         )
     ).all()
     return [
