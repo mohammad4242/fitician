@@ -45,7 +45,8 @@ it("feeds the local recurring nutrition day from the program timeline", async ()
   expect(source).toContain("createProgramTimelineApi");
   expect(source).toContain("programTimelineKeys.today");
   expect(source).toContain("patternDayIndex={timeline?.nutrition.pattern_day_index}");
-  expect(source).toContain("absoluteDayNumber={timeline?.nutrition.absolute_day_number}");
+  expect(source).toContain("absoluteDayNumber={timeline?.nutrition.effective_today?.absolute_day_number ?? timeline?.nutrition.absolute_day_number}");
+  expect(source).toContain("effectivePlan={activePlan}");
   expect(source).toContain("timeline={timeline?.nutrition}");
 });
 
