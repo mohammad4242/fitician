@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
 import {
+  ApiError,
   formatPersianDate,
   formatTehranDateTime,
   groupReviewQueueByRecency,
@@ -152,26 +153,48 @@ export function PhysicianNutritionReviewScreen() {
     queryKey: ["physician", "supplement-catalogue"],
   });
 
-  const accessState = getMobileViewState(accessQuery, { connectivityStatus });
+  const accessState = getMobileViewState(accessQuery, {
+    audience: "physician",
+    context: "specialist_review",
+    connectivityStatus,
+  });
   const queueState = getMobileViewState(queueQuery, {
+    audience: "physician",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
-  const detailState = getMobileViewState(detailQuery, { connectivityStatus });
-  const contextState = getMobileViewState(contextQuery, { connectivityStatus });
+  const detailState = getMobileViewState(detailQuery, {
+    audience: "physician",
+    context: "specialist_review",
+    connectivityStatus,
+  });
+  const contextState = getMobileViewState(contextQuery, {
+    audience: "physician",
+    context: "specialist_review",
+    connectivityStatus,
+  });
   const labsState = getMobileViewState(labsQuery, {
+    audience: "physician",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
   const foodsState = getMobileViewState(foodsQuery, {
+    audience: "physician",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
   const supplementOrdersState = getMobileViewState(supplementOrdersQuery, {
+    audience: "physician",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
   const supplementCatalogueState = getMobileViewState(supplementCatalogueQuery, {
+    audience: "physician",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
@@ -522,7 +545,7 @@ export function PhysicianNutritionReviewScreen() {
   if (accessState.status === "error" && accessState.data === undefined) {
     return (
       <Screen contentWidth="reading">
-        <Notice message="این حساب دسترسی پزشک به پرونده‌های تغذیه ندارد." variant="danger" />
+        <Notice message={accessState.error.message} variant="danger" />
       </Screen>
     );
   }
@@ -581,7 +604,7 @@ export function PhysicianNutritionReviewScreen() {
             <Notice message="جزئیات این پرونده در حافظهٔ فعلی نیست." variant="offline" />
           ) : null}
           {selected === undefined && detailState.status === "error" ? (
-            <Notice actionLabel="تلاش دوباره" message="جزئیات پرونده دریافت نشد." onAction={() => void detailQuery.refetch()} variant="danger" />
+            <Notice actionLabel="تلاش دوباره" message={detailState.error.message} onAction={() => void detailQuery.refetch()} variant="danger" />
           ) : null}
           {selected !== undefined ? (
             <PhysicianReviewDetail
@@ -656,7 +679,7 @@ function QueueState({
 }) {
   if (state.status === "loading") return <Skeleton height={180} />;
   if (state.status === "error" && state.data === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message="صف پرونده‌ها دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && state.data === undefined) {
     return <Notice message="صف پرونده‌ها در حالت آفلاین در دسترس نیست." variant="offline" />;
@@ -990,7 +1013,7 @@ function DecisionBar({
 function MedicalContextCard({ state }: { readonly state: MobileViewState<PhysicianMedicalContextResponse> }) {
   if (state.status === "loading") return <Skeleton height={200} />;
   if ((state.status === "offline" || state.status === "error") && state.data === undefined) {
-    return <Notice message="زمینهٔ پزشکی این پرونده فعلاً در دسترس نیست؛ تصمیم‌گیری را متوقف کن." variant={state.status === "offline" ? "offline" : "warning"} />;
+    return <Notice message={state.status === "error" ? state.error.message : "زمینهٔ پزشکی این پرونده فعلاً در دسترس نیست؛ تصمیم‌گیری را متوقف کن."} variant={state.status === "offline" ? "offline" : "warning"} />;
   }
   const context = state.data;
   if (context === undefined) return null;
@@ -1050,7 +1073,7 @@ function LabsCard({
         <Notice message="پرونده‌های آزمایش در حالت آفلاین در دسترس نیستند." variant="offline" />
       ) : null}
       {state.status === "error" && state.data === undefined ? (
-        <Notice message="فهرست آزمایش‌های این پرونده دریافت نشد." variant="warning" />
+          <Notice message={state.error.message} variant="warning" />
       ) : null}
       {labs.length === 0 && state.status !== "offline" && state.status !== "error" ? (
         <Text style={styles.muted}>آزمایشی ثبت نشده است.</Text>
@@ -1136,7 +1159,7 @@ function SupplementsCard({
           <Notice message="دستورهای مکمل در حالت آفلاین در دسترس نیستند." variant="offline" />
         ) : null}
         {ordersState.status === "error" && ordersState.data === undefined ? (
-          <Notice message="دستورهای مکمل این پرونده دریافت نشد." variant="warning" />
+          <Notice message={ordersState.error.message} variant="warning" />
         ) : null}
         {orders.length === 0 && ordersState.status !== "offline" && ordersState.status !== "error" ? (
           <Text style={styles.muted}>دستوری ثبت نشده است.</Text>
@@ -1259,7 +1282,7 @@ function SupplementCataloguePicker({
     return <Notice message="کاتالوگ مکمل در حالت آفلاین در دسترس نیست." variant="offline" />;
   }
   if (state.status === "error" && state.data === undefined) {
-    return <Notice message="کاتالوگ مکمل دریافت نشد." variant="warning" />;
+    return <Notice message={state.error.message} variant="warning" />;
   }
   const catalogue = state.data ?? [];
   if (catalogue.length === 0) return <EmptyState title="مکمل تأییدشده‌ای در کاتالوگ نیست" />;
@@ -1495,13 +1518,22 @@ function formatPhysicianPlanDate(value: string): string {
 }
 
 function physicianErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(error, "عملیات پزشک انجام نشد؛ اتصال و وضعیت پرونده را بررسی کن.", {
+      audience: "physician",
+      context: "specialist_review",
+    });
+  }
   const code = error instanceof Error && "code" in error
     ? (error as { readonly code?: unknown }).code
     : null;
   if (code === "STALE_PLAN_REVISION") return "نسخهٔ پرونده تغییر کرده است؛ نسخهٔ تازه را بررسی کن.";
   if (code === "REVIEW_ASSIGNED_TO_ANOTHER_PHYSICIAN") return "این پرونده در اختیار پزشک دیگری است.";
   if (code === "REVIEW_NOT_IN_PROGRESS") return "این پرونده دیگر در وضعیت بررسی نیست.";
-  return mobileRequestErrorMessage(error, "عملیات پزشک انجام نشد؛ اتصال و وضعیت پرونده را بررسی کن.");
+  return mobileRequestErrorMessage(error, "عملیات پزشک انجام نشد؛ اتصال و وضعیت پرونده را بررسی کن.", {
+    audience: "physician",
+    context: "specialist_review",
+  });
 }
 
 function useConnectivityStatus(): ConnectivityStatus {

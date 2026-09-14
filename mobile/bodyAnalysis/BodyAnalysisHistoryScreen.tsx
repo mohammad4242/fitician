@@ -9,6 +9,7 @@ import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Notice, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { fiticianTokens } from "../ui/tokens";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { BodyAnalysisDeleteDialog } from "./BodyAnalysisDeleteDialog";
 import { BodyAnalysisAccessNotice } from "./BodyAnalysisAccessNotice";
 import { BodyAnalysisEmptyState } from "./BodyAnalysisEmptyState";
@@ -32,6 +33,7 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
   );
   const [timeline, setTimeline] = useState<BodyProgressTimelineResponse | null>(null);
   const [failed, setFailed] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BodyProgressTimelineItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,10 +46,12 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
 
   const loadTimeline = useCallback(async () => {
     setFailed(false);
+    setLoadError(null);
     try {
       setTimeline(await api.getTimeline());
-    } catch {
+    } catch (error) {
       setFailed(true);
+      setLoadError(error);
     }
   }, [api]);
 
@@ -76,8 +80,12 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
         ? current
         : { ...current, items: current.items.filter((item) => item.session.id !== deleteTarget.session.id) });
       setDeleteTarget(null);
-    } catch {
-      setDeleteError("جلسه حذف نشد. دوباره تلاش کن.");
+    } catch (error) {
+      setDeleteError(mobileRequestErrorMessage(
+        error,
+        "جلسه حذف نشد. دوباره تلاش کن.",
+        { audience: "member", context: "body_analysis" },
+      ));
     } finally {
       setBusy(false);
     }
@@ -105,7 +113,14 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
       {failed ? (
         <View style={styles.statusState}>
           <Text accessibilityRole="header" style={styles.statusTitle}>تاریخچه تحلیل بدن در دسترس نیست</Text>
-          <Notice message="دریافت نشست‌های تحلیل انجام نشد." variant="danger" />
+          <Notice
+            message={mobileRequestErrorMessage(
+              loadError,
+              "دریافت نشست‌های تحلیل انجام نشد.",
+              { audience: "member", context: "body_analysis" },
+            )}
+            variant="danger"
+          />
           <Button label="تلاش دوباره" onPress={() => void loadTimeline()} />
         </View>
       ) : null}

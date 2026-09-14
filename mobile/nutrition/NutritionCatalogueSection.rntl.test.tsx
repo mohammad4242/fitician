@@ -4,6 +4,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native";
 import type { ReactTestInstance } from "react-test-renderer";
 
+import { ApiError } from "@fitician/core";
+
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn(), useQueryClient: jest.fn() }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
@@ -535,7 +537,13 @@ test("price override sheet validates and saves price, unit, and reason", async (
 test("delete requires confirmation, keeps errors open, and refreshes after success", async () => {
   isAdmin = true;
   mockUseMobileAuth.mockReturnValue({ request: jest.fn(), upload: jest.fn(), user: { is_admin: true } } as never);
-  catalogueApi.deleteCatalogueFood.mockRejectedValueOnce(new Error("delete failed"));
+  catalogueApi.deleteCatalogueFood.mockRejectedValueOnce(new ApiError(
+    409,
+    "private catalogue detail",
+    null,
+    "FOOD_NOT_FOUND",
+    { requestId: "catalogue-admin-1" },
+  ));
   renderCatalogue();
 
   fireEvent.press(screen.getByRole("button", { name: "حذف" }));
@@ -547,7 +555,9 @@ test("delete requires confirmation, keeps errors open, and refreshes after succe
 
   fireEvent.press(screen.getByRole("button", { name: "حذف" }));
   fireEvent.press(screen.getByRole("button", { name: "حذف ماده غذایی" }));
-  await waitFor(() => expect(screen.getByText("حذف ماده غذایی انجام نشد.")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("ماده غذایی پیدا نشد.")).toBeTruthy());
+  expect(screen.queryByText("private catalogue detail")).toBeNull();
+  expect(screen.queryByText("catalogue-admin-1")).toBeNull();
   expect(screen.getByRole("header", { name: "حذف ماده غذایی؟" })).toBeTruthy();
 
   catalogueApi.deleteCatalogueFood.mockResolvedValueOnce(undefined);

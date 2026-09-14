@@ -121,11 +121,11 @@ export function NutritionFoundationScreen() {
     mutationFn: api.generateEstimate,
     onSuccess: (result) => queryClient.setQueryData(nutritionKeys.estimate(), result),
   });
-  const safetyState = getMobileViewState(safetyQuery, { connectivityStatus });
-  const estimateState = getMobileViewState(estimateQuery, { connectivityStatus });
-  const latestPlanState = getMobileViewState(latestPlanQuery, { connectivityStatus });
-  const activePlanState = getMobileViewState(activePlanQuery, { connectivityStatus });
-  const latestBundleState = getMobileViewState(latestBundleQuery, { connectivityStatus });
+  const safetyState = getMobileViewState(safetyQuery, { context: "nutrition", connectivityStatus });
+  const estimateState = getMobileViewState(estimateQuery, { context: "nutrition", connectivityStatus });
+  const latestPlanState = getMobileViewState(latestPlanQuery, { context: "nutrition", connectivityStatus });
+  const activePlanState = getMobileViewState(activePlanQuery, { context: "nutrition", connectivityStatus });
+  const latestBundleState = getMobileViewState(latestBundleQuery, { context: "nutrition", connectivityStatus });
   const safety = viewData(safetyState);
   const estimate = viewData(estimateState);
   const latestPlan = viewData(latestPlanState) ?? null;
@@ -272,7 +272,7 @@ function NutritionEstimateState({
     return <Notice message="برای دریافت برآورد تغذیه به اینترنت وصل شو." variant="offline" />;
   }
   if (state.status === "error") {
-    return <Notice actionLabel="تلاش دوباره" message="برآورد تغذیه دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status !== "empty") return null;
 
@@ -304,7 +304,7 @@ export function NutritionProfileSection({
   const profile = viewData(state);
   if (state.status === "loading") return <Skeleton height={190} />;
   if (state.status === "error" && profile === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message="پروفایل تغذیه دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && profile === undefined) {
     return <Notice message="برای دریافت پروفایل تغذیه به اینترنت وصل شو." variant="offline" />;
@@ -379,7 +379,7 @@ export function SafetySection({
 
   if (state.status === "loading") return <Skeleton height={220} />;
   if (state.status === "error" && decision === undefined) {
-    return <Notice message="وضعیت ایمنی دریافت نشد." variant="danger" />;
+    return <Notice message={state.error.message} variant="danger" />;
   }
   if (state.status === "offline" && decision === undefined) {
     return <Notice message="برای دریافت وضعیت ایمنی به اینترنت وصل شو." variant="offline" />;
@@ -548,7 +548,7 @@ export function StructuredExerciseSection({ state }: { readonly state: MobileVie
   const exercise = viewData(state);
   if (state.status === "loading") return <Skeleton height={105} />;
   if (state.status === "error" && exercise === undefined) {
-    return <Notice message="اطلاعات فعالیت برای برآورد دریافت نشد." variant="warning" />;
+    return <Notice message={state.error.message} variant="warning" />;
   }
   if (state.status === "offline" && exercise === undefined) {
     return <Notice message="برای دریافت اطلاعات فعالیت به اینترنت وصل شو." variant="offline" />;
@@ -572,7 +572,7 @@ export function ReviewRequirementSection({ state }: { readonly state: MobileView
   const review = viewData(state);
   if (state.status === "loading") return <Skeleton height={100} />;
   if (state.status === "error" && review === undefined) {
-    return <Notice message="وضعیت بررسی پزشک دریافت نشد." variant="warning" />;
+    return <Notice message={state.error.message} variant="warning" />;
   }
   if (review === undefined || review === null || !review.required) return null;
 
@@ -616,7 +616,7 @@ export function NutritionEstimateSection({
 
   if (state.status === "loading") return <Skeleton height={240} />;
   if (state.status === "error" && estimate === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message="برآورد تغذیه دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && estimate === undefined) {
     return <Notice message="برای دریافت برآورد تغذیه به اینترنت وصل شو." variant="offline" />;

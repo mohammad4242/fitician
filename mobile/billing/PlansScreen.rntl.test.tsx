@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ApiError } from "@fitician/core";
+
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
@@ -137,4 +139,20 @@ test("loads API prices, shows 4/6/8 durations, and starts verified fake checkout
   expect(mockCreateOrder.mock.calls[0]?.[0]).not.toHaveProperty("amount_irr");
   expect(mockCreateCheckout).toHaveBeenCalledWith("order-1", { provider: "fake" });
   await waitFor(() => expect(mockRefresh).toHaveBeenCalled());
+});
+
+test("shows the shared member billing error instead of a generic load message", async () => {
+  mockGetOffers.mockImplementationOnce(() => Promise.reject(new ApiError(
+    503,
+    "provider secret",
+    null,
+    "BILLING_PROVIDER_UNAVAILABLE",
+    { requestId: "billing-member-1" },
+  )));
+
+  renderPlans();
+
+  expect(await screen.findByText("درگاه پرداخت فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.")).toBeTruthy();
+  expect(screen.queryByText("provider secret")).toBeNull();
+  expect(screen.queryByText("billing-member-1")).toBeNull();
 });

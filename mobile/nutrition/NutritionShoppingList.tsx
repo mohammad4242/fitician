@@ -40,7 +40,7 @@ export function NutritionShoppingList({
     queryFn: () => api.getShoppingList(planId),
     queryKey: nutritionKeys.shoppingList(planId),
   });
-  const state = getMobileViewState(query, { connectivityStatus });
+  const state = getMobileViewState(query, { context: "nutrition", connectivityStatus });
   const list = stateData(state);
 
   if (historical) return null;
@@ -54,7 +54,7 @@ export function NutritionShoppingList({
       {state.status === "error" && list === undefined ? (
         <Notice
           actionLabel="تلاش دوباره"
-          message="لیست خرید برنامه دریافت نشد."
+          message={state.error.message}
           onAction={() => void query.refetch()}
           variant="danger"
         />

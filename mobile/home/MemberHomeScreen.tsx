@@ -18,7 +18,7 @@ import { createNutritionTrackingApi } from "../nutrition/nutritionTrackingApi";
 import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { createWorkoutPlanApi } from "../workouts/workoutApi";
 import { findPendingWorkoutPlanId } from "../workouts/workoutModel";
-import { getMobileViewState, type MobileViewState } from "../ui/requestState";
+import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { Notice, PageHeading } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { fiticianTokens } from "../ui/tokens";
@@ -110,19 +110,35 @@ export function MemberHomeScreen() {
     queryKey: nutritionKeys.tracking(today),
   });
 
-  const activeWorkoutState = getMobileViewState(activeWorkoutQuery, {
+  const sharedProfileState = getMobileViewState(sharedProfileQuery, {
+    audience: "member",
     connectivityStatus,
+    context: "profile",
+    isEmpty: (data) => data === null,
+  });
+  const activeWorkoutState = getMobileViewState(activeWorkoutQuery, {
+    audience: "member",
+    connectivityStatus,
+    context: "workout",
     isEmpty: (data) => data === null,
   });
   const nutritionPlanState = getMobileViewState(nutritionPlanQuery, {
+    audience: "member",
     connectivityStatus,
+    context: "nutrition",
     isEmpty: (data) => data === null,
   });
   const nutritionEstimateState = getMobileViewState(nutritionEstimateQuery, {
+    audience: "member",
     connectivityStatus,
+    context: "nutrition",
     isEmpty: (data) => data === null,
   });
-  const trackingState = getMobileViewState(trackingQuery, { connectivityStatus });
+  const trackingState = getMobileViewState(trackingQuery, {
+    audience: "member",
+    connectivityStatus,
+    context: "nutrition",
+  });
   const activeWorkoutPlan = viewData(activeWorkoutState);
   const pendingWorkoutPlan = shouldLoadPendingWorkout
     && pendingWorkoutQuery.data?.status === "pending_review"
@@ -150,6 +166,8 @@ export function MemberHomeScreen() {
   );
   const nutritionHasError = [nutritionPlanState, nutritionEstimateState, trackingState]
     .some((state) => state.status === "error");
+  const nutritionErrorMessage = [nutritionPlanState, nutritionEstimateState, trackingState]
+    .find((state) => state.status === "error");
   const summary = nutritionSummary(nutritionPlan, nutritionEstimate, tracking, today, timeline?.nutrition);
   const waitingForPendingWorkout = activeWorkoutState.status === "empty" && (
     workoutHistoryQuery.isPending
@@ -161,6 +179,21 @@ export function MemberHomeScreen() {
       workoutHistoryQuery.isError
       || (pendingWorkoutPlanId !== null && pendingWorkoutQuery.isError)
     );
+  const workoutErrorMessage = activeWorkoutState.status === "error"
+    ? activeWorkoutState.error.message
+    : pendingWorkoutQuery.isError
+      ? mobileRequestErrorMessage(
+        pendingWorkoutQuery.error,
+        "دریافت برنامه تمرینی انجام نشد.",
+        { audience: "member", context: "workout" },
+      )
+      : workoutHistoryQuery.isError
+        ? mobileRequestErrorMessage(
+          workoutHistoryQuery.error,
+          "دریافت برنامه تمرینی انجام نشد.",
+          { audience: "member", context: "workout" },
+        )
+        : null;
   const resolvedWorkoutState: WorkoutHomeState = pendingWorkoutPlan !== undefined
     ? "pending"
     : waitingForPendingWorkout
@@ -193,13 +226,18 @@ export function MemberHomeScreen() {
         title={`سلام، ${displayName}`}
       />
 
-      {sharedProfileQuery.isError ? (
-        <Notice message="نام پروفایل خوانده نشد؛ اطلاعاتت همچنان در دسترس است." variant="info" />
+      {sharedProfileState.status === "error" ? (
+        <Notice message={sharedProfileState.error.message} variant="info" />
       ) : null}
 
       {hasTraining ? (
         <View style={styles.section}>
-          <WorkoutTodayCard day={focusedWorkoutDay} state={workoutState} summary={liveWorkoutSummary} />
+          <WorkoutTodayCard
+            day={focusedWorkoutDay}
+            errorMessage={workoutErrorMessage ?? undefined}
+            state={workoutState}
+            summary={liveWorkoutSummary}
+          />
         </View>
       ) : null}
 
@@ -207,6 +245,7 @@ export function MemberHomeScreen() {
         <View style={styles.section}>
           <NutritionSummaryCard
             error={nutritionHasError}
+            errorMessage={nutritionErrorMessage?.status === "error" ? nutritionErrorMessage.error.message : undefined}
             loading={nutritionDataLoading}
             summary={summary}
             timeline={timeline?.nutrition}

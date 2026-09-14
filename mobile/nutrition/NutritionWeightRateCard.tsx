@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { AppIcon, Card, Notice } from "../ui/components";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import type { NutritionEstimate } from "./nutritionApi";
 import { createNutritionApi } from "./nutritionApi";
@@ -85,8 +86,12 @@ function RateModeControls({
         await api.generateEstimate();
         onRefresh?.();
       }
-    } catch {
-      setError("تغییر حالت نرخ وزن انجام نشد؛ دوباره تلاش کن.");
+    } catch (requestError) {
+      setError(mobileRequestErrorMessage(
+        requestError,
+        "تغییر حالت نرخ وزن انجام نشد؛ دوباره تلاش کن.",
+        { audience: "member", context: "nutrition" },
+      ));
     } finally {
       setSwitching(false);
     }

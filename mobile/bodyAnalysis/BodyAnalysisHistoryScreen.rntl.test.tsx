@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ApiError } from "@fitician/core";
 import type { BodyProgressTimelineResponse } from "@fitician/core/body-photos";
 
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
@@ -200,7 +201,13 @@ test("keeps the hero visible and offers retry after a timeline error", async () 
   mockCreateBodyPhotoApi.mockReturnValue({
     deleteSession: mockDeleteSession,
     getTimeline: jest.fn(async () => {
-      throw new Error("timeline unavailable");
+      throw new ApiError(
+        503,
+        "private provider detail",
+        null,
+        "BODY_ANALYSIS_PROVIDER_UNAVAILABLE",
+        { requestId: "body-member-1" },
+      );
     }),
   } as never);
 
@@ -208,7 +215,10 @@ test("keeps the hero visible and offers retry after a timeline error", async () 
 
   expect(await screen.findByText("Body Analysis")).toBeTruthy();
   expect(await screen.findByText("تاریخچه تحلیل بدن در دسترس نیست")).toBeTruthy();
+  expect(screen.getByText("تحلیل بدن فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "تلاش دوباره" })).toBeTruthy();
+  expect(screen.queryByText("private provider detail")).toBeNull();
+  expect(screen.queryByText("body-member-1")).toBeNull();
 });
 
 test("preserves start, resume, and result navigation", async () => {

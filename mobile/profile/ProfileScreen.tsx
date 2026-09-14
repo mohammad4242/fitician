@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { FITICIAN_WEEKDAY_LABELS_FA, formatTehranDateTime } from "@fitician/core";
+import { ApiError, FITICIAN_WEEKDAY_LABELS_FA, formatTehranDateTime } from "@fitician/core";
 import type { NutritionProfile } from "@fitician/core/nutrition";
 import {
   equipmentForHomeTrainingSetup,
@@ -1255,10 +1255,19 @@ function formatProfileDate(value: string): string {
 }
 
 function profileErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(error, "ذخیره یا دریافت پروفایل انجام نشد.", {
+      audience: "member",
+      context: "profile",
+    });
+  }
   if (error instanceof Error && error.message !== "") {
     if (error.message.includes("profile")) return "اطلاعات پروفایل در دسترس نیست.";
   }
-  return mobileRequestErrorMessage(error, "ذخیره یا دریافت پروفایل انجام نشد. اتصال را بررسی کن و دوباره تلاش کن.");
+  return mobileRequestErrorMessage(error, "ذخیره یا دریافت پروفایل انجام نشد. اتصال را بررسی کن و دوباره تلاش کن.", {
+    audience: "member",
+    context: "profile",
+  });
 }
 
 const styles = StyleSheet.create({

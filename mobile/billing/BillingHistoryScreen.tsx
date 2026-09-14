@@ -8,6 +8,7 @@ import type { BillingOrder } from "@fitician/core/billing";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { Card, Notice, PageHeading, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { RTL_TEXT } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
 import { createBillingApi } from "./billingApi";
@@ -19,6 +20,7 @@ export function BillingHistoryScreen() {
   const api = useMemo(() => createBillingApi(auth.request), [auth.request]);
   const [orders, setOrders] = useState<BillingOrder[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -26,10 +28,14 @@ export function BillingHistoryScreen() {
       .then((result) => {
         if (!active) return;
         setOrders(result);
+        setError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((loadError: unknown) => {
+        if (active) {
+          setError(loadError);
+          setState("error");
+        }
       });
     return () => { active = false; };
   }, [api]);
@@ -38,7 +44,12 @@ export function BillingHistoryScreen() {
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
       <PageHeading eyebrow={billing.manageAccess} title={billing.purchaseHistory} />
       {state === "loading" ? <Skeleton accessibilityLabel={billing.loading} height={150} /> : null}
-      {state === "error" ? <Notice message={billing.historyError} variant="danger" /> : null}
+      {state === "error" ? (
+        <Notice
+          message={mobileRequestErrorMessage(error, billing.historyError, { audience: "member", context: "billing" })}
+          variant="danger"
+        />
+      ) : null}
       {state === "ready" && orders.length === 0 ? <Notice message={billing.noOffers} variant="info" /> : null}
       {state === "ready" && orders.length > 0 ? (
         <View style={styles.list}>

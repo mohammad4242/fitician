@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { ApiError, formatTehranDateTime, resolveAppError } from "@fitician/core";
+import { formatTehranDateTime, resolveAppError } from "@fitician/core";
 import type {
   BodyAnalysis,
   BodyPhoto,
@@ -81,8 +81,8 @@ export function BodyAnalysisResultScreen() {
       if (effectiveAnalysis === null && loadedSession.state === "queued") {
         try {
           effectiveAnalysis = await api.startAnalysis(sessionId, true);
-        } catch {
-          setActionError("تحلیل هنوز شروع نشده است. دوباره تلاش کن.");
+        } catch (startError) {
+          setActionError(bodyAnalysisLoadErrorMessage(startError));
         }
       }
       setSession(loadedSession);
@@ -366,14 +366,11 @@ function ResultDetailsDisclosure({ analysis }: { readonly analysis: BodyAnalysis
 }
 
 function bodyAnalysisLoadErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return resolveAppError(error, {
-      audience: "member",
-      context: "body_analysis",
-      locale: "fa",
-    }).message;
-  }
-  return "دریافت نتیجه تحلیل انجام نشد. دوباره تلاش کن.";
+  return resolveAppError(error, {
+    audience: "member",
+    context: "body_analysis",
+    locale: "fa",
+  }).message;
 }
 
 function firstParam(value: string | string[] | undefined): string | undefined {

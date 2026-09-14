@@ -5,8 +5,7 @@ import { File } from "expo-file-system";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 
-import type { MultipartUploadRequest } from "@fitician/core";
-import { formatPersianDate } from "@fitician/core";
+import { ApiError, formatPersianDate, type MultipartUploadRequest } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
@@ -94,10 +93,10 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
     queryFn: api.getSupplementCatalogue,
     queryKey: nutritionKeys.supplementCatalogue(),
   });
-  const labsState = getMobileViewState(labsQuery, { connectivityStatus });
-  const requestsState = getMobileViewState(requestsQuery, { connectivityStatus });
-  const ordersState = getMobileViewState(ordersQuery, { connectivityStatus });
-  const catalogueState = getMobileViewState(catalogueQuery, { connectivityStatus });
+  const labsState = getMobileViewState(labsQuery, { context: "nutrition", connectivityStatus });
+  const requestsState = getMobileViewState(requestsQuery, { context: "nutrition", connectivityStatus });
+  const ordersState = getMobileViewState(ordersQuery, { context: "nutrition", connectivityStatus });
+  const catalogueState = getMobileViewState(catalogueQuery, { context: "nutrition", connectivityStatus });
   const labs = stateData(labsState) ?? [];
   const requests = stateData(requestsState) ?? [];
   const orders = stateData(ordersState) ?? [];
@@ -351,7 +350,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
             disabledMessage={clinicalAccessReady && !canManageLabs ? "برای افزودن پرونده آزمایش، دسترسی مدیریت آزمایش لازم است. سوابق قبلی همچنان قابل مشاهده و حذف هستند." : undefined}
           />
 
-          <LabRequestsCard requests={requests} state={requestsState} />
+          <LabRequestsCard onRetry={() => void requestsQuery.refetch()} requests={requests} state={requestsState} />
           <LabDocumentsCard
             documents={labs}
             error={documentError}
@@ -377,7 +376,13 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
             statusFilter={supplementStatusFilter}
             totalOrders={orders.length}
           />
-          {catalogue.length > 0 ? <VerifiedSupplementCatalogue items={catalogue} state={catalogueState} /> : null}
+          {catalogue.length > 0 || catalogueState.status === "error" ? (
+            <VerifiedSupplementCatalogue
+              items={catalogue}
+              onRetry={() => void catalogueQuery.refetch()}
+              state={catalogueState}
+            />
+          ) : null}
         </>
       ) : null}
 
@@ -484,15 +489,20 @@ function LabUploadCard({
 }
 
 function LabRequestsCard({
+  onRetry,
   requests,
   state,
 }: {
+  readonly onRetry: () => void;
   readonly requests: readonly NutritionLabRequest[];
   readonly state: ReturnType<typeof getMobileViewState<NutritionLabRequest[]>>;
 }) {
   if (state.status === "loading") return <Skeleton height={150} />;
   if (state.status === "offline" && requests.length === 0) {
     return <Notice message="درخواست‌های آزمایش برای مشاهده به اینترنت نیاز دارند." variant="offline" />;
+  }
+  if (state.status === "error" && requests.length === 0) {
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   return (
     <Card style={styles.card}>
@@ -536,7 +546,7 @@ function LabDocumentsCard({
 }) {
   if (state.status === "loading") return <Skeleton height={280} />;
   if (state.status === "error" && documents.length === 0) {
-    return <Notice actionLabel="تلاش دوباره" message="پرونده‌های آزمایش دریافت نشدند." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && documents.length === 0) {
     return <Notice message="برای مشاهده پرونده‌های آزمایش به اینترنت وصل شو." variant="offline" />;
@@ -611,7 +621,7 @@ function SupplementOrdersCard({
 }) {
   if (state.status === "loading") return <Skeleton height={300} />;
   if (state.status === "error" && orders.length === 0) {
-    return <Notice actionLabel="تلاش دوباره" message="دستورهای مکمل دریافت نشدند." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && orders.length === 0) {
     return <Notice message="برای مشاهده دستورهای مکمل به اینترنت وصل شو." variant="offline" />;
@@ -706,12 +716,17 @@ function ContributionRows({ values }: { readonly values: Readonly<Record<string,
 
 function VerifiedSupplementCatalogue({
   items,
+  onRetry,
   state,
 }: {
   readonly items: readonly NutritionSupplementCatalogue[];
+  readonly onRetry: () => void;
   readonly state: ReturnType<typeof getMobileViewState<NutritionSupplementCatalogue[]>>;
 }) {
   const verified = items.filter((item) => item.verification_status === "verified");
+  if (state.status === "error" && verified.length === 0) {
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
+  }
   if (verified.length === 0) return null;
   return (
     <Card style={styles.card}>
@@ -750,13 +765,16 @@ function formatBytes(bytes: number): string {
 }
 
 function clinicalErrorMessage(error: unknown, fallback = "عملیات پرونده سلامت انجام نشد؛ دوباره تلاش کن."): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(error, fallback, { audience: "member", context: "nutrition" });
+  }
   if (error instanceof Error && /offline|connection|network/i.test(error.message)) {
     return "اتصال اینترنت در دسترس نیست؛ بعداً دوباره تلاش کن.";
   }
   if (error instanceof Error && /format|size|pixel|orientation|PDF|document/i.test(error.message)) {
     return "فرمت یا اندازه پرونده آزمایش مجاز نیست.";
   }
-  return mobileRequestErrorMessage(error, fallback);
+  return mobileRequestErrorMessage(error, fallback, { audience: "member", context: "nutrition" });
 }
 
 function useConnectivityStatus(): ConnectivityStatus {

@@ -20,6 +20,8 @@ jest.mock("./physicianNutritionReviewApi", () => ({ createPhysicianNutritionRevi
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
+import { ApiError } from "@fitician/core";
+
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { createPhysicianNutritionReviewApi } from "./physicianNutritionReviewApi";
 import { PhysicianNutritionReviewScreen } from "./PhysicianNutritionReviewScreen";
@@ -296,4 +298,24 @@ test("returns from the selected physician case to the queue before leaving the r
 
   fireEvent.press(screen.getByRole("button", { name: "بازگشت" }));
   expect(routerBack).toHaveBeenCalledTimes(1);
+});
+
+test("shows the physician workflow cause when the case relationship is unavailable", async () => {
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "access") return queryResult({ authorized: true });
+    return {
+      data: undefined,
+      error: new ApiError(403, "private access detail", null, "SPECIALIST_RELATIONSHIP_REQUIRED"),
+      isError: true,
+      isFetching: false,
+      isPending: false,
+      isStale: false,
+    } as never;
+  });
+
+  renderScreen();
+
+  expect(await screen.findByText("این متخصص به پرونده موردنظر دسترسی ندارد.")).toBeTruthy();
+  expect(screen.queryByText("private access detail")).toBeNull();
 });

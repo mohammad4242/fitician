@@ -4,7 +4,7 @@ import { File } from "expo-file-system";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { formatTehranDate } from "@fitician/core";
+import { ApiError, formatTehranDate } from "@fitician/core";
 import type { components, MultipartUploadRequest } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
@@ -98,10 +98,10 @@ export function NutritionTrackingSection() {
     queryFn: nutritionApi.getCurrentEstimate,
     queryKey: nutritionKeys.estimate(),
   });
-  const dailyState = getMobileViewState(dailyQuery, { connectivityStatus });
-  const recentState = getMobileViewState(recentQuery, { connectivityStatus });
-  const catalogueState = getMobileViewState(catalogueQuery, { connectivityStatus });
-  const estimateState = getMobileViewState(estimateQuery, { connectivityStatus });
+  const dailyState = getMobileViewState(dailyQuery, { context: "nutrition", connectivityStatus });
+  const recentState = getMobileViewState(recentQuery, { context: "nutrition", connectivityStatus });
+  const catalogueState = getMobileViewState(catalogueQuery, { context: "nutrition", connectivityStatus });
+  const estimateState = getMobileViewState(estimateQuery, { context: "nutrition", connectivityStatus });
   const daily = stateData(dailyState);
   const recentFoods = stateData(recentState) ?? [];
   const catalogueFoods = stateData(catalogueState)?.items ?? [];
@@ -474,7 +474,7 @@ export function NutritionTrackingSection() {
     return (
       <Notice
         actionLabel="تلاش دوباره"
-        message="ثبت‌های تغذیه امروز دریافت نشد."
+        message={dailyState.error.message}
         onAction={() => void dailyQuery.refetch()}
         variant="danger"
       />
@@ -584,13 +584,13 @@ export function NutritionTrackingSection() {
         || photoSuccess !== null) ? (
         <View style={styles.workflowStatus} testID="nutrition-workflow-status">
           {estimateState.status === "error" && estimate === null ? (
-            <Notice compact message="هدف برنامه دریافت نشد؛ ثبت‌های واقعی امروز همچنان در دسترس هستند." variant="warning" />
+            <Notice compact message={estimateState.error.message} variant="warning" />
           ) : null}
           {entryMode === "manual" && (catalogueState.status === "offline" || catalogueState.status === "stale") ? (
             <Notice compact message="فهرست مواد غذایی تازه‌سازی نشده است." variant="offline" />
           ) : null}
           {entryMode === "manual" && catalogueState.status === "error" ? (
-            <Notice actionLabel="تلاش دوباره" compact message="فهرست مواد غذایی دریافت نشد." onAction={() => void catalogueQuery.refetch()} variant="danger" />
+            <Notice actionLabel="تلاش دوباره" compact message={catalogueState.error.message} onAction={() => void catalogueQuery.refetch()} variant="danger" />
           ) : null}
           {actionError !== null ? <Notice compact message={actionError} variant="danger" /> : null}
           {photoError !== null ? <Notice compact message={photoError} variant="danger" /> : null}
@@ -1334,17 +1334,31 @@ function numericValue(value: string): number {
 }
 
 function nutritionTrackingError(error: unknown): string {
-  return mobileRequestErrorMessage(error, "ثبت تغذیه انجام نشد؛ اتصال و وضعیت برنامه را بررسی کن.");
+  return mobileRequestErrorMessage(
+    error,
+    "ثبت تغذیه انجام نشد؛ اتصال و وضعیت برنامه را بررسی کن.",
+    { audience: "member", context: "nutrition" },
+  );
 }
 
 function photoErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(
+      error,
+      "تخمین عکس انجام نشد؛ ثبت دستی همچنان در دسترس است.",
+      { audience: "member", context: "nutrition" },
+    );
+  }
   if (error instanceof Error && /permission|denied/i.test(error.message)) {
     return "دسترسی دوربین داده نشد یا عکس انتخاب نشد.";
   }
   if (error instanceof Error && /format|size|pixel|orientation|consent/i.test(error.message)) {
     return "فرمت، اندازه یا رضایت عکس برای این عملیات قابل قبول نیست.";
   }
-  return mobileRequestErrorMessage(error, "تخمین عکس انجام نشد؛ ثبت دستی همچنان در دسترس است.");
+  return mobileRequestErrorMessage(error, "تخمین عکس انجام نشد؛ ثبت دستی همچنان در دسترس است.", {
+    audience: "member",
+    context: "nutrition",
+  });
 }
 
 function useConnectivityStatus(): ConnectivityStatus {

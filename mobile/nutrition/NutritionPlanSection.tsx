@@ -144,11 +144,11 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
     queryKey: programTimelineKeys.today(deviceTimezone),
   });
 
-  const activeState = getMobileViewState(activeQuery, { connectivityStatus });
-  const latestState = getMobileViewState(latestQuery, { connectivityStatus });
-  const bundleState = getMobileViewState(bundleQuery, { connectivityStatus });
-  const historyState = getMobileViewState(historyQuery, { connectivityStatus });
-  const selectedState = getMobileViewState(selectedQuery, { connectivityStatus });
+  const activeState = getMobileViewState(activeQuery, { context: "nutrition", connectivityStatus });
+  const latestState = getMobileViewState(latestQuery, { context: "nutrition", connectivityStatus });
+  const bundleState = getMobileViewState(bundleQuery, { context: "nutrition", connectivityStatus });
+  const historyState = getMobileViewState(historyQuery, { context: "nutrition", connectivityStatus });
+  const selectedState = getMobileViewState(selectedQuery, { context: "nutrition", connectivityStatus });
   const activePlan = viewData(activeState);
   const latestPlan = viewData(latestState);
   const bundle = viewData(bundleState);
@@ -280,7 +280,11 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
       {loadError && displayedPlan === undefined ? (
         <Notice
           actionLabel="تلاش دوباره"
-          message="برنامه غذایی دریافت نشد."
+          message={latestState.status === "error"
+            ? latestState.error.message
+            : activeState.status === "error"
+              ? activeState.error.message
+              : "برنامه غذایی دریافت نشد."}
           onAction={retry}
           variant="danger"
         />
@@ -336,7 +340,7 @@ export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecisi
       ) : null}
 
       {latestState.status === "error" && latestPlan !== undefined ? (
-        <Notice message="تازه‌سازی آخرین نسخه انجام نشد؛ نسخه موجود نمایش داده می‌شود." variant="warning" />
+        <Notice message={latestState.error.message} variant="warning" />
       ) : null}
       {generationResult !== null ? <GenerationNotice result={generationResult} /> : null}
       {generationError !== null ? <Notice message={generationError} variant="danger" /> : null}
@@ -1253,11 +1257,13 @@ function NutritionPlanPdf({
 }) {
   const [status, setStatus] = useState<PdfStatus>("checking");
   const [stored, setStored] = useState<StoredNutritionPlanPdf | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setStatus("checking");
     setStored(null);
+    setError(null);
     void pdfStore.get(planId).then((value) => {
       if (!mounted) return;
       setStored(value);
@@ -1272,20 +1278,24 @@ function NutritionPlanPdf({
 
   async function download() {
     setStatus("downloading");
+    setError(null);
     try {
       const result = await api.downloadPdf(planId);
       setStored(await pdfStore.save(planId, result));
       setStatus("ready");
-    } catch {
+    } catch (downloadError) {
+      setError(downloadError);
       setStatus("error");
     }
   }
 
   async function open() {
     if (stored === null) return;
+    setError(null);
     try {
       await Linking.openURL(stored.uri);
-    } catch {
+    } catch (openError) {
+      setError(openError);
       setStatus("error");
     }
   }
@@ -1312,7 +1322,16 @@ function NutritionPlanPdf({
       {connectivityStatus === "offline" && stored === null ? (
         <Text style={styles.pdfOffline}>برای دریافت PDF به اینترنت وصل شو.</Text>
       ) : null}
-      {status === "error" ? <Notice message="دریافت یا باز کردن PDF انجام نشد؛ دوباره تلاش کن." variant="danger" /> : null}
+      {status === "error" ? (
+        <Notice
+          message={mobileRequestErrorMessage(
+            error,
+            "دریافت یا باز کردن PDF انجام نشد؛ دوباره تلاش کن.",
+            { audience: "member", context: "nutrition" },
+          )}
+          variant="danger"
+        />
+      ) : null}
     </View>
   );
 }
@@ -1440,7 +1459,7 @@ function NutritionPlanHistory({
 }) {
   if (state.status === "loading") return <Skeleton height={120} />;
   if (state.status === "error" && history.length === 0) {
-    return <Notice actionLabel="تلاش دوباره" message="تاریخچه برنامه دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && history.length === 0) {
     return <Notice message="تاریخچه برنامه در حالت آفلاین در دسترس نیست." variant="offline" />;

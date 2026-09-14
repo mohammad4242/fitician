@@ -27,6 +27,7 @@ type NutritionSummaryCardProps =
   }
   | {
     readonly error: boolean;
+    readonly errorMessage?: string;
     readonly loading: boolean;
     readonly summary: {
       readonly carbohydrate: number | null;
@@ -69,7 +70,7 @@ function NutritionEstimateSummaryCard({
     queryFn: () => api.getDailyTracking(entryDate),
     queryKey: nutritionKeys.tracking(entryDate),
   });
-  const dailyState = getMobileViewState(dailyQuery, { connectivityStatus });
+  const dailyState = getMobileViewState(dailyQuery, { context: "nutrition", connectivityStatus });
   const daily = dailyState.status === "loading" ? null : "data" in dailyState ? dailyState.data : null;
 
   if (estimate === undefined) return <Skeleton height={252} />;
@@ -186,7 +187,7 @@ function NutritionEstimateSummaryCard({
           <Notice compact message="ثبت‌های امروز آفلاین در دسترس نیست؛ هدف‌های ذخیره‌شده نمایش داده می‌شوند." variant="offline" />
         ) : null}
         {dailyState.status === "error" && daily === null ? (
-          <Notice compact message="دریافت ثبت‌های امروز انجام نشد؛ هدف‌های تغذیه نمایش داده می‌شوند." variant="warning" />
+          <Notice compact message={dailyState.error.message} variant="warning" />
         ) : null}
       </Card>
     </View>
@@ -195,10 +196,12 @@ function NutritionEstimateSummaryCard({
 
 function LegacyNutritionSummaryCard({
   error,
+  errorMessage,
   loading,
   summary,
 }: {
   readonly error: boolean;
+  readonly errorMessage?: string;
   readonly loading: boolean;
   readonly summary: {
     readonly carbohydrate: number | null;
@@ -238,7 +241,7 @@ function LegacyNutritionSummaryCard({
         </View>
         <MetricRing label="پیشرفت کالری امروز" progress={summary.progress} size={84} />
       </View>
-      {error ? <Notice compact message="داده‌های تغذیه کامل دریافت نشدند." variant="warning" /> : null}
+      {error ? <Notice compact message={errorMessage ?? "داده‌های تغذیه کامل دریافت نشدند."} variant="warning" /> : null}
       <View style={styles.legacyMacroRow}>
         <Text style={styles.metricLabel}>پروتئین: {summary.protein === null ? "—" : formatNutritionNumber(summary.protein)}</Text>
         <Text style={styles.metricLabel}>کربوهیدرات: {summary.carbohydrate === null ? "—" : formatNutritionNumber(summary.carbohydrate)}</Text>

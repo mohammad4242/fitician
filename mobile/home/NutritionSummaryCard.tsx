@@ -9,6 +9,7 @@ import type { HomeNutritionSummary } from "./homeModel";
 
 export interface NutritionSummaryCardProps {
   readonly error?: boolean;
+  readonly errorMessage?: string;
   readonly loading: boolean;
   readonly summary: HomeNutritionSummary;
   readonly timeline?: TimelineNutrition | null;
@@ -20,7 +21,7 @@ const nutritionRingColors: Record<NutritionProgressTone, string> = {
   red: fiticianTokens.colors.danger,
 };
 
-export function NutritionSummaryCard({ error = false, loading, summary, timeline }: NutritionSummaryCardProps) {
+export function NutritionSummaryCard({ error = false, errorMessage, loading, summary, timeline }: NutritionSummaryCardProps) {
   const router = useRouter();
   const hasTarget = summary.targetCalories !== null;
   const aboveExpenditureCalories = summary.targetCalories !== null
@@ -94,7 +95,7 @@ export function NutritionSummaryCard({ error = false, loading, summary, timeline
                 { accent: fiticianTokens.colors.amber, label: "چربی", value: formatMetric(summary.fat) },
               ]}
             />
-            {error ? <Text style={styles.errorText}>بخشی از اطلاعات تغذیه به‌روز نشد.</Text> : null}
+            {error ? <Text style={styles.errorText}>{errorMessage ?? "بخشی از اطلاعات تغذیه به‌روز نشد."}</Text> : null}
           </>
         ) : (
           <View style={styles.emptyBlock}>

@@ -15,11 +15,12 @@ export type WorkoutHomeState = "empty" | "error" | "loading" | "locked" | "offli
 
 export interface WorkoutTodayCardProps {
   readonly day: WorkoutDay | null;
+  readonly errorMessage?: string;
   readonly state: WorkoutHomeState;
   readonly summary?: HomeWorkoutSummary | null;
 }
 
-export function WorkoutTodayCard({ day, state, summary }: WorkoutTodayCardProps) {
+export function WorkoutTodayCard({ day, errorMessage, state, summary }: WorkoutTodayCardProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const stacked = getHomeHeroLayout(width) === "stacked";
@@ -107,7 +108,7 @@ export function WorkoutTodayCard({ day, state, summary }: WorkoutTodayCardProps)
             <Text style={styles.stateText}>با رسیدن تاریخ شروع، جلسه‌های برنامه نمایش داده می‌شوند.</Text>
           ) : null}
           {timelineState === undefined && state === "error" ? (
-            <Text style={styles.stateText}>دریافت برنامه انجام نشد؛ از بخش تمرین دوباره تلاش کن.</Text>
+            <Text style={styles.stateText}>{errorMessage ?? "دریافت برنامه انجام نشد؛ از بخش تمرین دوباره تلاش کن."}</Text>
           ) : null}
           {timelineState === undefined && state === "locked" ? (
             <Text style={styles.stateText}>برنامه‌ای وجود ندارد؛ ساخت برنامه با دسترسی فعلی ممکن نیست.</Text>

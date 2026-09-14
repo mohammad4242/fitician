@@ -79,10 +79,16 @@ export function CoachWorkoutReviewScreen() {
     queryKey: coachKeys.detail(selectedId ?? "selected"),
   });
   const queueState = getMobileViewState(queueQuery, {
+    audience: "coach",
+    context: "specialist_review",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
-  const detailState = getMobileViewState(detailQuery, { connectivityStatus });
+  const detailState = getMobileViewState(detailQuery, {
+    audience: "coach",
+    context: "specialist_review",
+    connectivityStatus,
+  });
   const selected = viewData(detailState);
   const offline = connectivityStatus === "offline";
   const readOnly = selected === undefined
@@ -119,7 +125,7 @@ export function CoachWorkoutReviewScreen() {
     const timer = setInterval(() => {
       void api.renew(selected.id)
         .then((updated) => queryClient.setQueryData(coachKeys.detail(selected.id), updated))
-        .catch(() => setError("زمان بازبینی منقضی شد؛ پرونده را دوباره باز کن."));
+        .catch((requestError) => setError(coachReviewErrorMessage(requestError)));
     }, 8 * 60 * 1000);
     return () => clearInterval(timer);
   }, [api, offline, queryClient, selected?.id, selected?.status]);
@@ -282,7 +288,7 @@ export function CoachWorkoutReviewScreen() {
               <Notice message="جزئیات این پرونده در حافظهٔ فعلی نیست." variant="offline" />
             ) : null}
             {selected === undefined && detailState.status === "error" ? (
-              <Notice actionLabel="تلاش دوباره" message="جزئیات پرونده دریافت نشد." onAction={() => void detailQuery.refetch()} variant="danger" />
+              <Notice actionLabel="تلاش دوباره" message={detailState.error.message} onAction={() => void detailQuery.refetch()} variant="danger" />
             ) : null}
             {selected !== undefined && draft !== null ? (
               <CoachReviewDetail
@@ -323,7 +329,7 @@ function QueueState({
 }) {
   if (state.status === "loading") return <Skeleton height={180} />;
   if (state.status === "error" && state.data === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message="صف بازبینی دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && state.data === undefined) {
     return <Notice message="صف بازبینی در این حالت آفلاین در دسترس نیست." variant="offline" />;

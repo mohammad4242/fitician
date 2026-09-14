@@ -9,6 +9,7 @@ import {
   type OnboardingEvent,
   type OnboardingState,
 } from "@fitician/core/onboarding";
+import { ApiError } from "@fitician/core";
 import type { ProductMode, ProfileFormValues } from "@fitician/core/profile";
 import { validateStep } from "@fitician/core/profile-validation";
 
@@ -331,10 +332,19 @@ function ModeSelection({
 }
 
 function publicOnboardingErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(error, "ذخیره پاسخ‌ها انجام نشد.", {
+      audience: "member",
+      context: "profile",
+    });
+  }
   if (error instanceof Error && error.message.includes("incomplete")) {
     return "پاسخ‌ها را کامل کن و دوباره تلاش کن.";
   }
-  return mobileRequestErrorMessage(error, "ذخیره پاسخ‌ها انجام نشد. دوباره تلاش کن.");
+  return mobileRequestErrorMessage(error, "ذخیره پاسخ‌ها انجام نشد. دوباره تلاش کن.", {
+    audience: "member",
+    context: "profile",
+  });
 }
 
 const styles = StyleSheet.create({

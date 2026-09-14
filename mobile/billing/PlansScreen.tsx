@@ -10,6 +10,7 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Card, Notice, PageHeading, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { RTL_TEXT } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
 import { createBillingApi } from "./billingApi";
@@ -28,7 +29,7 @@ export function PlansScreen() {
   );
   const [offers, setOffers] = useState<BillingOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
   const [message, setMessage] = useState<"success" | "pending" | null>(null);
   const snapshot = entitlements.snapshot;
@@ -40,10 +41,10 @@ export function PlansScreen() {
       .then((result) => {
         if (!active) return;
         setOffers(result);
-        setError(false);
+        setError(null);
       })
-      .catch(() => {
-        if (active) setError(true);
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -55,7 +56,7 @@ export function PlansScreen() {
     if (!offer.is_available || busyOffer !== null) return;
     setBusyOffer(offer.offer_code);
     setMessage(null);
-    setError(false);
+    setError(null);
     try {
       const order = await api.createOrder({
         client_idempotency_key: `mobile-${offer.offer_code}-${Date.now()}`,
@@ -70,8 +71,8 @@ export function PlansScreen() {
       } else {
         setMessage("pending");
       }
-    } catch {
-      setError(true);
+    } catch (purchaseError) {
+      setError(purchaseError);
     } finally {
       setBusyOffer(null);
     }
@@ -95,7 +96,12 @@ export function PlansScreen() {
       ) : null}
       {message === "success" ? <Notice message={billing.accessActive} variant="success" /> : null}
       {message === "pending" ? <Notice message={billing.paymentPending} variant="info" /> : null}
-      {error ? <Notice message={billing.loadError} variant="danger" /> : null}
+      {error !== null ? (
+        <Notice
+          message={mobileRequestErrorMessage(error, billing.loadError, { audience: "member", context: "billing" })}
+          variant="danger"
+        />
+      ) : null}
       {loading ? <Skeleton accessibilityLabel={billing.loading} height={180} /> : null}
       {!loading && !error && offers.length === 0 ? <Notice message={billing.noOffers} variant="info" /> : null}
       {!loading && offers.length > 0 ? (

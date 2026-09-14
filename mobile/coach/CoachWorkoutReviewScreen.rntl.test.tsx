@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { formatTehranDateTime } from "@fitician/core";
+import { ApiError, formatTehranDateTime } from "@fitician/core";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn(), useQueryClient: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
@@ -270,4 +270,24 @@ test("returns from the selected case before leaving the coach route", async () =
 
   fireEvent.press(screen.getByRole("button", { name: "بازگشت" }));
   expect(routerBack).toHaveBeenCalledTimes(1);
+});
+
+test("shows the coach workflow cause when the review relationship is unavailable", async () => {
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "detail") return queryResult(undefined);
+    return {
+      data: undefined,
+      error: new ApiError(403, "private access detail", null, "SPECIALIST_RELATIONSHIP_REQUIRED"),
+      isError: true,
+      isFetching: false,
+      isPending: false,
+      isStale: false,
+    } as never;
+  });
+
+  renderScreen();
+
+  expect(await screen.findByText("این متخصص به پرونده موردنظر دسترسی ندارد.")).toBeTruthy();
+  expect(screen.queryByText("private access detail")).toBeNull();
 });

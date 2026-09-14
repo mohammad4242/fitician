@@ -52,8 +52,8 @@ export function NutritionAdherenceSection({
     queryFn: () => api.getTrackingHistory(rangeStart, today),
     queryKey: nutritionKeys.trackingHistory(rangeStart, today),
   });
-  const adherenceState = getMobileViewState(adherenceQuery, { connectivityStatus });
-  const historyState = getMobileViewState(historyQuery, { connectivityStatus });
+  const adherenceState = getMobileViewState(adherenceQuery, { context: "nutrition", connectivityStatus });
+  const historyState = getMobileViewState(historyQuery, { context: "nutrition", connectivityStatus });
   const adherence = stateData(adherenceState);
   const history = stateData(historyState) ?? [];
   const todayPlannedCalories = adherence?.days.find((day) => day.date === today)?.planned.energy_kcal ?? null;
@@ -71,7 +71,7 @@ export function NutritionAdherenceSection({
   ) : adherenceState.status === "error" && adherence === undefined ? (
     <Notice
       actionLabel="تلاش دوباره"
-      message="روند پایبندی دریافت نشد."
+      message={adherenceState.error.message}
       onAction={() => void adherenceQuery.refetch()}
       variant="danger"
     />
@@ -82,6 +82,7 @@ export function NutritionAdherenceSection({
       adherence={adherence}
       adherenceState={adherenceState.status}
       history={history}
+      historyError={historyState.status === "error" ? historyState.error.message : null}
       historyQuery={historyQuery}
       historyState={historyState.status}
     />
@@ -130,7 +131,7 @@ export function NutritionAdherenceSection({
     return (
       <Notice
         actionLabel="تلاش دوباره"
-        message="روند پایبندی دریافت نشد."
+        message={adherenceState.error.message}
         onAction={() => void adherenceQuery.refetch()}
         variant="danger"
       />
@@ -161,6 +162,7 @@ export function NutritionAdherenceSection({
         adherence={adherence}
         adherenceState={adherenceState.status}
         history={history}
+        historyError={historyState.status === "error" ? historyState.error.message : null}
         historyQuery={historyQuery}
         historyState={historyState.status}
       />
@@ -172,12 +174,14 @@ function AdherenceBody({
   adherence,
   adherenceState,
   history,
+  historyError,
   historyQuery,
   historyState,
 }: {
   readonly adherence: NutritionAdherence;
   readonly adherenceState: string;
   readonly history: NutritionDailyTracking[];
+  readonly historyError: string | null;
   readonly historyQuery: { refetch: () => Promise<unknown> };
   readonly historyState: string;
 }) {
@@ -208,7 +212,7 @@ function AdherenceBody({
       <View style={styles.historyBlock}>
         <Text style={styles.cardSubtitle}>تاریخچه ثبت‌ها</Text>
         {historyState === "error" && history.length === 0 ? (
-          <Notice actionLabel="تلاش دوباره" message="تاریخچه ثبت‌ها دریافت نشد." onAction={() => void historyQuery.refetch()} variant="danger" />
+          <Notice actionLabel="تلاش دوباره" message={historyError ?? "تاریخچه ثبت‌ها دریافت نشد."} onAction={() => void historyQuery.refetch()} variant="danger" />
         ) : history.length === 0 ? (
           <Text style={styles.bodyText}>در این بازه ثبتی وجود ندارد.</Text>
         ) : (

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
+import { ApiError, FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
 import type { NutritionProfileInput, SafetyProfileInput, StructuredExerciseInput } from "@fitician/core/nutrition";
 import { getOnboardingSteps } from "@fitician/core/onboarding";
 import type { NutritionBasicsDraft, OnboardingState } from "@fitician/core/onboarding";
@@ -1546,11 +1546,20 @@ function isOnboardingFormValidationError(error: unknown): error is OnboardingFor
 }
 
 function onboardingErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return mobileRequestErrorMessage(error, "ارتباط با سرور برقرار نشد.", {
+      audience: "member",
+      context: "profile",
+    });
+  }
   if (error instanceof Error && error.message !== "") {
     if (error.message.includes("Structured exercise")) return "اطلاعات فعالیت را کامل کن.";
     if (error.message.includes("incomplete")) return "پاسخ‌ها را کامل کن و دوباره تلاش کن.";
   }
-  return mobileRequestErrorMessage(error, "ارتباط با سرور برقرار نشد. اتصال را بررسی کن و دوباره تلاش کن.");
+  return mobileRequestErrorMessage(error, "ارتباط با سرور برقرار نشد. اتصال را بررسی کن و دوباره تلاش کن.", {
+    audience: "member",
+    context: "profile",
+  });
 }
 
 export function safetyFormValuesForState(safety: SafetyProfileInput | null): SafetyFormValues {

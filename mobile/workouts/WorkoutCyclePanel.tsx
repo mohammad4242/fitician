@@ -15,7 +15,7 @@ import {
   TextField,
 } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
-import { getMobileViewState, type MobileViewState } from "../ui/requestState";
+import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import type { WorkoutPlan } from "./workoutApi";
 import {
@@ -116,7 +116,7 @@ export function WorkoutCyclePanel({
     queryFn: api.getCurrent,
     queryKey: workoutKeys.currentCycle(),
   });
-  const cycleState = getMobileViewState(cycleQuery, { connectivityStatus });
+  const cycleState = getMobileViewState(cycleQuery, { context: "workout", connectivityStatus });
   const cycle = viewData(cycleState);
 
   if (cycleState.status === "loading") return <Skeleton height={140} />;
@@ -218,14 +218,18 @@ function WeeklyCheckInPanel({
   const queryClient = useQueryClient();
   const queryKey = workoutKeys.weeklyCheckIn(cycle.cycle_id);
   const query = useQuery({ queryFn: api.getWeeklyCheckIn, queryKey });
-  const state = getMobileViewState(query, { connectivityStatus });
+  const state = getMobileViewState(query, { context: "workout", connectivityStatus });
   const checkIn = viewData(state);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<WeeklyCheckInForm>(emptyWeeklyCheckInForm);
   const [formError, setFormError] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: api.saveWeeklyCheckIn,
-    onError: () => setFormError("ثبت چک‌این انجام نشد؛ دوباره تلاش کن."),
+    onError: (error: unknown) => setFormError(mobileRequestErrorMessage(
+      error,
+      "ثبت چک‌این انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: (saved) => {
       queryClient.setQueryData(queryKey, saved);
       setForm(weeklyCheckInFormFromResponse(saved));
@@ -246,7 +250,7 @@ function WeeklyCheckInPanel({
     return (
       <Notice
         actionLabel="تلاش دوباره"
-        message="چک‌این هفتگی دریافت نشد."
+        message={state.error.message}
         onAction={() => void query.refetch()}
         variant="danger"
       />
@@ -382,7 +386,11 @@ function ReplacementPanel({
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: api.recordReplacement,
-    onError: () => setError("ثبت جایگزین انجام نشد؛ دوباره تلاش کن."),
+    onError: (requestError: unknown) => setError(mobileRequestErrorMessage(
+      requestError,
+      "ثبت جایگزین انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: () => {
       setSuccess("جایگزین با موفقیت ثبت شد.");
       setError(null);
@@ -532,7 +540,7 @@ export function useCompletionFeedbackController({
     queryFn: api.getCurrent,
     queryKey: workoutKeys.currentCycle(),
   });
-  const cycleState = getMobileViewState(cycleQuery, { connectivityStatus });
+  const cycleState = getMobileViewState(cycleQuery, { context: "workout", connectivityStatus });
   const queriedCycle = viewData(cycleState);
   const cycle = queriedCycle !== undefined
     && queriedCycle !== null
@@ -546,7 +554,7 @@ export function useCompletionFeedbackController({
     queryFn: api.getCompletionFeedback,
     queryKey: feedbackKey,
   });
-  const feedbackState = getMobileViewState(feedbackQuery, { connectivityStatus });
+  const feedbackState = getMobileViewState(feedbackQuery, { context: "workout", connectivityStatus });
   const queriedContext = cycle === null ? undefined : viewData(feedbackState);
   const context = queriedContext ?? null;
   const [form, setForm] = useState<CompletionFeedbackForm>(emptyCompletionFeedbackForm);
@@ -554,7 +562,11 @@ export function useCompletionFeedbackController({
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   const save = useMutation({
     mutationFn: api.saveCompletionFeedback,
-    onError: () => setError("بازخورد پایان چرخه ثبت نشد؛ دوباره تلاش کن."),
+    onError: (requestError: unknown) => setError(mobileRequestErrorMessage(
+      requestError,
+      "بازخورد پایان چرخه ثبت نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: (saved) => {
       queryClient.setQueryData(feedbackKey, saved);
       setError(null);
@@ -607,12 +619,18 @@ export function useCompletionFeedbackController({
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  const queryError = cycleState.status === "error"
+    ? cycleState.error.message
+    : feedbackState.status === "error"
+      ? feedbackState.error.message
+      : null;
+
   return {
     awaitingCoachApproval,
     context,
     currentWeek,
     durationWeeks,
-    error,
+    error: error ?? queryError,
     form,
     lockedInfoOpen,
     offline,
@@ -684,7 +702,7 @@ export function CompletionFeedbackDetails({
       <View style={styles.feedbackDetails}>
         <Notice
           actionLabel="تلاش دوباره"
-          message="وضعیت بازخورد پایان چرخه دریافت نشد."
+          message={controller.error ?? "وضعیت بازخورد پایان چرخه دریافت نشد."}
           onAction={controller.retry}
           variant="danger"
         />

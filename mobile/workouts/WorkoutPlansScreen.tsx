@@ -23,7 +23,7 @@ import {
 } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { formatPersianNumber } from "../ui/locale";
-import { getMobileViewState, type MobileViewState } from "../ui/requestState";
+import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import { languageForDirection, type MobileLanguage } from "../ui/rtl";
 import {
@@ -59,6 +59,10 @@ import type { WorkoutGenerationErrorKind } from "./workoutModel";
 import { ExerciseMedia } from "../exercises/ExerciseMedia";
 
 type PdfStatus = "downloading" | "error" | "idle" | "ready";
+type WorkoutGenerationFailure = {
+  readonly kind: WorkoutGenerationErrorKind;
+  readonly message: string;
+};
 
 type WorkoutSessionAction =
   | { readonly action: "complete"; readonly sessionId: string }
@@ -93,7 +97,7 @@ export function WorkoutPlansScreen() {
   const planTargetId = firstParam(params.planId);
   const cycleTargetId = firstParam(params.cycleId);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planTargetId ?? null);
-  const [generationError, setGenerationError] = useState<WorkoutGenerationErrorKind | null>(null);
+  const [generationError, setGenerationError] = useState<WorkoutGenerationFailure | null>(null);
   const [replacementRequest, setReplacementRequest] = useState<WorkoutReplacementRequest | null>(null);
   const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [generationMethodError, setGenerationMethodError] = useState<string | null>(null);
@@ -147,15 +151,17 @@ export function WorkoutPlansScreen() {
     queryKey: programTimelineKeys.today(deviceTimezone),
   });
   const activeState = getMobileViewState(activeQuery, {
+    context: "workout",
     connectivityStatus,
     isEmpty: (data) => data === null,
   });
   const historyState = getMobileViewState(historyQuery, {
+    context: "workout",
     connectivityStatus,
     isEmpty: (data) => data.length === 0,
   });
-  const pendingState = getMobileViewState(pendingQuery, { connectivityStatus });
-  const selectedState = getMobileViewState(selectedQuery, { connectivityStatus });
+  const pendingState = getMobileViewState(pendingQuery, { context: "workout", connectivityStatus });
+  const selectedState = getMobileViewState(selectedQuery, { context: "workout", connectivityStatus });
   const activePlan = viewData(activeState);
   const pendingPlan = pendingPlanId === null ? undefined : viewData(pendingState);
   const selectedPlan = selectedPlanId === null ? undefined : viewData(selectedState);
@@ -181,7 +187,14 @@ export function WorkoutPlansScreen() {
   });
   const generation = useMutation({
     mutationFn: () => api.generate(),
-    onError: (error: unknown) => setGenerationError(classifyWorkoutGenerationError(error)),
+    onError: (error: unknown) => setGenerationError({
+      kind: classifyWorkoutGenerationError(error),
+      message: mobileRequestErrorMessage(
+        error,
+        generationErrorMessages.failed,
+        { audience: "member", context: "workout_generation" },
+      ),
+    }),
     onSuccess: async (result) => {
       setGenerationError(null);
       setSelectedPlanId(null);
@@ -204,7 +217,11 @@ export function WorkoutPlansScreen() {
   });
   const startCycle = useMutation({
     mutationFn: (input: WorkoutCycleStartInput) => cycleApi.start(input),
-    onError: () => setCycleStartError("شروع برنامه انجام نشد؛ دوباره تلاش کن."),
+    onError: (error: unknown) => setCycleStartError(mobileRequestErrorMessage(
+      error,
+      "شروع برنامه انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: async (cycle) => {
       setCycleStartError(null);
       queryClient.setQueryData(workoutKeys.currentCycle(), cycle);
@@ -218,7 +235,11 @@ export function WorkoutPlansScreen() {
       if (input.action === "skip") return cycleApi.skipSession(input.sessionId);
       return cycleApi.rescheduleSession(input.sessionId, { scheduled_date: input.scheduledDate });
     },
-    onError: () => setSessionActionError("تغییر وضعیت جلسه انجام نشد؛ دوباره تلاش کن."),
+    onError: (error: unknown) => setSessionActionError(mobileRequestErrorMessage(
+      error,
+      "تغییر وضعیت جلسه انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: async () => {
       setSessionActionError(null);
       await timelineQuery.refetch();
@@ -228,9 +249,11 @@ export function WorkoutPlansScreen() {
   const deletion = useMutation({
     mutationFn: (planId: string) => api.deletePlan(planId),
     mutationKey: ["workout-plan-deletion"],
-    onError: () => {
-      setDeletionError("حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.");
-    },
+    onError: (error: unknown) => setDeletionError(mobileRequestErrorMessage(
+      error,
+      "حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
     onSuccess: async (_result, planId) => {
       setDeletionError(null);
       setHiddenDeletedPlanIds((current) => new Set(current).add(planId));
@@ -384,9 +407,13 @@ export function WorkoutPlansScreen() {
     setGenerationMethod(method);
     setGenerationMethodError(null);
     generationMethodMutation.mutate(method, {
-      onError: () => {
+      onError: (error: unknown) => {
         setGenerationMethod(previousMethod);
-        setGenerationMethodError("ذخیره روش ساخت برنامه انجام نشد؛ دوباره تلاش کن.");
+        setGenerationMethodError(mobileRequestErrorMessage(
+          error,
+          "ذخیره روش ساخت برنامه انجام نشد؛ دوباره تلاش کن.",
+          { audience: "member", context: "profile" },
+        ));
       },
       onSuccess: (profile) => {
         setGenerationMethod(profile.workout_generation_method ?? method);
@@ -450,7 +477,7 @@ export function WorkoutPlansScreen() {
       {activeLoadError ? (
         <Notice
           actionLabel="تلاش دوباره"
-          message="دریافت برنامه تمرینی انجام نشد."
+          message={activeState.status === "error" ? activeState.error.message : "دریافت برنامه تمرینی انجام نشد."}
           onAction={retry}
           variant="danger"
         />
@@ -496,7 +523,9 @@ export function WorkoutPlansScreen() {
       {pendingPlanId !== null && pendingPlan === undefined && !pendingLoading && selectedPlanId === null ? (
         <Notice
           actionLabel="تلاش دوباره"
-          message="یک برنامه در انتظار تأیید مربی است؛ جزئیات آن فعلاً در دسترس نیست."
+          message={pendingState.status === "error"
+            ? pendingState.error.message
+            : "یک برنامه در انتظار تأیید مربی است؛ جزئیات آن فعلاً در دسترس نیست."}
           onAction={() => void pendingQuery.refetch()}
           variant={pendingState.status === "offline" ? "offline" : "warning"}
         />
@@ -514,14 +543,12 @@ export function WorkoutPlansScreen() {
 
       {generationError !== null ? (
         <Notice
-          actionLabel={generationError === "cooldown" || generationError === "quota" ? undefined : "تلاش دوباره"}
-          message={generationError === "quota"
-            ? coachQuotaMessage(coachReviewQuota?.reset_at ?? null)
-            : generationErrorMessages[generationError]}
-          onAction={generationError === "cooldown" || generationError === "in_progress" || generationError === "quota"
+          actionLabel={generationError.kind === "cooldown" || generationError.kind === "quota" ? undefined : "تلاش دوباره"}
+          message={generationError.message}
+          onAction={generationError.kind === "cooldown" || generationError.kind === "in_progress" || generationError.kind === "quota"
             ? undefined
             : startGeneration}
-          variant={generationError === "unsupported" || generationError === "quota" ? "warning" : "danger"}
+          variant={generationError.kind === "unsupported" || generationError.kind === "quota" ? "warning" : "danger"}
         />
       ) : null}
 
@@ -529,7 +556,7 @@ export function WorkoutPlansScreen() {
       {selectedPlanId !== null && selectedState.status === "error" && selectedPlan === undefined ? (
         <Notice
           actionLabel="تلاش دوباره"
-          message="نسخهٔ انتخاب‌شده دریافت نشد."
+          message={selectedState.error.message}
           onAction={() => void selectedQuery.refetch()}
           variant="danger"
         />
@@ -855,7 +882,7 @@ function WorkoutPlanTools({
   readonly plan: WorkoutPlan | null;
 }) {
   const router = useRouter();
-  const [pdfError, setPdfError] = useState(false);
+  const [pdfError, setPdfError] = useState<unknown | null>(null);
   const feedbackController = useCompletionFeedbackController({
     api: cycleApi,
     awaitingCoachApproval,
@@ -894,8 +921,16 @@ function WorkoutPlanTools({
         </View>
         <CompletionFeedbackDetails controller={feedbackController} />
       </View>
-      {pdfError ? (
-        <Notice compact message="دانلود PDF انجام نشد. دوباره تلاش کن." variant="danger" />
+      {pdfError !== null ? (
+        <Notice
+          compact
+          message={mobileRequestErrorMessage(
+            pdfError,
+            "دانلود PDF انجام نشد. دوباره تلاش کن.",
+            { audience: "member", context: "workout" },
+          )}
+          variant="danger"
+        />
       ) : null}
     </View>
   );
@@ -908,7 +943,7 @@ function WorkoutPdfTool({
   plan,
 }: {
   readonly api: ReturnType<typeof createWorkoutPlanApi>;
-  readonly onErrorChange: (hasError: boolean) => void;
+  readonly onErrorChange: (error: unknown | null) => void;
   readonly pdfStore: ExpoWorkoutPlanPdfStore;
   readonly plan: WorkoutPlan | null;
 }) {
@@ -922,7 +957,7 @@ function WorkoutPdfTool({
     const version = requestVersion.current + 1;
     requestVersion.current = version;
     setStoredPdf(null);
-    onErrorChange(false);
+    onErrorChange(null);
     if (planId === null) {
       storageCheck.current = null;
       setPdfStatus("idle");
@@ -935,7 +970,7 @@ function WorkoutPdfTool({
   async function openPdf(uri: string, version: number) {
     if (requestVersion.current !== version) return;
     await Linking.openURL(uri);
-    onErrorChange(false);
+    onErrorChange(null);
     setPdfStatus("ready");
   }
 
@@ -958,10 +993,10 @@ function WorkoutPdfTool({
       if (requestVersion.current !== version || planId !== plan?.id) return;
       setStoredPdf(stored);
       await openPdf(stored.uri, version);
-    } catch {
+    } catch (error) {
       if (requestVersion.current !== version) return;
       setPdfStatus("error");
-      onErrorChange(true);
+      onErrorChange(error);
     }
   }
 
@@ -1364,7 +1399,7 @@ function WorkoutHistory({
   );
   if (historyState.status === "loading") return <Skeleton height={120} />;
   if (historyState.status === "error" && history.length === 0) {
-    return <Notice actionLabel="تلاش دوباره" message="تاریخچهٔ برنامه دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={historyState.error.message} onAction={onRetry} variant="danger" />;
   }
   if (historyState.status === "offline" && history.length === 0) {
     return <Notice message="تاریخچهٔ برنامه در حالت آفلاین در دسترس نیست." variant="offline" />;

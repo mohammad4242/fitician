@@ -136,10 +136,14 @@ export function NutritionCatalogueSection({ initialMode }: { readonly initialMod
     queryKey: nutritionKeys.mealCatalogue(mealCategory),
   });
   const foodState = getMobileViewState(foodQuery, {
+    audience: isAdmin ? "admin" : "member",
+    context: "nutrition",
     connectivityStatus,
     isEmpty: (data) => data.items.length === 0,
   });
   const mealState = getMobileViewState(mealQuery, {
+    audience: isAdmin ? "admin" : "member",
+    context: "nutrition",
     connectivityStatus,
     isEmpty: (data) => data.items.length === 0,
   });
@@ -213,8 +217,8 @@ export function NutritionCatalogueSection({ initialMode }: { readonly initialMod
       setFoodToDelete(null);
       await invalidateFoodCatalogue();
       if (foodPage?.items.length === 1 && foodPage.page > 1) setFoodPageNumber((current) => current - 1);
-    } catch {
-      throw new Error("حذف ماده غذایی انجام نشد.");
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -423,7 +427,7 @@ function FoodCatalogueView({
           onSearchSubmit={onSearchSubmit}
           searchInput={searchInput}
         />
-        <Notice actionLabel="تلاش دوباره" message="کاتالوگ مواد غذایی دریافت نشد." onAction={onRetry} variant="danger" />
+        <Notice actionLabel="تلاش دوباره" message={state.status === "error" ? state.error.message : "کاتالوگ مواد غذایی دریافت نشد."} onAction={onRetry} variant="danger" />
       </View>
     );
   }
@@ -509,7 +513,7 @@ function MealCatalogueView({
 }) {
   if (state.status === "loading") return <Skeleton height={420} />;
   if (state.status === "error" && page === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message="کاتالوگ وعده‌ها دریافت نشد." onAction={onRetry} variant="danger" />;
+    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
   }
   if (state.status === "offline" && page === undefined) {
     return <Notice message="برای مرور کاتالوگ وعده‌ها به اینترنت وصل شو." variant="offline" />;
@@ -1447,7 +1451,11 @@ function DeleteFoodSheet({
     try {
       await onDelete(food);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "حذف ماده غذایی انجام نشد.");
+      setError(mobileRequestErrorMessage(
+        requestError,
+        "حذف ماده غذایی انجام نشد.",
+        { audience: "admin", context: "nutrition" },
+      ));
     } finally {
       setDeleting(false);
     }
