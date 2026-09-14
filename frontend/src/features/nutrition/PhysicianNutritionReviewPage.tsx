@@ -77,6 +77,16 @@ export function PhysicianNutritionReviewPage() {
   async function claimAndOpen(review: Review) {
     setError(false);
     setSelectedReview(review);
+    setSelectedPlan(null);
+    setLabs([]);
+    setOrders([]);
+    setClinicalTab("plan");
+    setNotes("");
+    setInternalNotes("");
+    setTests("CBC");
+    setOrderForm(emptyOrder);
+    setEditingOrderId(null);
+    setReadOnly(activeView === "approved");
     try {
       if (activeView === "pending") await api.claimPhysicianReview(review.review_id);
       const [plan, documents, planOrders] = await Promise.all([
@@ -87,7 +97,6 @@ export function PhysicianNutritionReviewPage() {
       setSelectedPlan(plan);
       setLabs(documents);
       setOrders(planOrders);
-      setReadOnly(activeView === "approved");
       await load(activeView);
     } catch { setError(true); }
   }

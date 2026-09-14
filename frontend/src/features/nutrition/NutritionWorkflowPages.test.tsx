@@ -412,6 +412,44 @@ it("lays out physician cases in a desk sidebar with clinical workspace tabs", as
   expect(screen.getByRole("tab", { name: "Notes" })).toBeInTheDocument();
 });
 
+it("resets case-scoped physician notes before requesting labs for another member", async () => {
+  const user = userEvent.setup();
+  const secondPlan = { ...physicianPlan, id: "plan-2", revision: 2 } as unknown as WeeklyPlan;
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([
+    { review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
+    { review_id: "review-2", plan_id: "plan-2", user_id: "user-2", member_display_name: "Member Two", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
+  ]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockImplementation(async (planId) => planId === "plan-2" ? secondPlan : physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  vi.mocked(api.requestPhysicianLabs).mockResolvedValue({});
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  const firstCase = (await screen.findByText("Member One")).closest("article");
+  expect(firstCase).not.toBeNull();
+  if (!firstCase) throw new Error("Member One queue case was not rendered");
+  await user.click(within(firstCase).getByRole("button", { name: "Claim and view revision" }));
+  await user.click(await screen.findByRole("tab", { name: "Notes" }));
+  await user.type(screen.getByLabelText("User-visible note"), "First member note");
+
+  const secondCase = (await screen.findByText("Member Two")).closest("article");
+  expect(secondCase).not.toBeNull();
+  if (!secondCase) throw new Error("Member Two queue case was not rendered");
+  await user.click(within(secondCase).getByRole("button", { name: "Claim and view revision" }));
+  expect(await screen.findByText("Revision under review 2")).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: "Notes" }));
+  expect(screen.getByLabelText("User-visible note")).toHaveValue("");
+  await user.click(screen.getByRole("tab", { name: "Laboratory review" }));
+  await user.click(screen.getByRole("button", { name: "Request labs" }));
+
+  await waitFor(() => expect(api.requestPhysicianLabs).toHaveBeenCalledWith(
+    "plan-2",
+    ["CBC"],
+    "For a safer plan review",
+  ));
+});
+
 describe("Food photo nutrition estimation redesigned flow", () => {
   const completeEstimate: api.FoodPhotoEstimate = {
     id: "estimate-1",
