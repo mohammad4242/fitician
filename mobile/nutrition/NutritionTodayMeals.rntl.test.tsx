@@ -106,7 +106,7 @@ test("uses the effective plan for today during a future handoff", () => {
       ...plan.days[0],
       day_index: 6,
       meals: [{
-        ...plan.days[0]?.meals[0],
+        ...((plan.days[0]?.meals[0] ?? {}) as object),
         id: "effective-breakfast",
         nutrient_totals: { energy_kcal: 555 },
       }],
@@ -117,13 +117,11 @@ test("uses the effective plan for today during a future handoff", () => {
 
   render(
     <NutritionTodayMeals
-      {...({
-        absoluteDayNumber: 14,
-        effectivePatternDayIndex: 6,
-        effectivePlan,
-        patternDayIndex: null,
-        plan: futurePlan,
-      } as never)}
+      absoluteDayNumber={14}
+      effectivePatternDayIndex={6}
+      effectivePlan={effectivePlan}
+      patternDayIndex={null}
+      plan={futurePlan}
     />,
   );
 
