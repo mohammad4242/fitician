@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+import { formatPersianDateWithWeekday } from "@fitician/core";
 
 import i18n from "../../i18n";
 import * as nutritionApi from "./api";
@@ -136,6 +137,7 @@ beforeEach(() => {
   entitlementAccess.allowed = true;
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
   vi.mocked(nutritionApi.getCurrentNutritionEstimate).mockResolvedValue(estimate);
+  vi.mocked(nutritionApi.getActiveWeeklyNutritionPlan).mockResolvedValue(null);
   vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue(null);
   vi.mocked(nutritionApi.getLatestPlanBundle).mockResolvedValue(null);
   vi.mocked(programTimelineApi.getProgramTimelineToday).mockRejectedValue(new Error("timeline not configured"));
@@ -382,12 +384,66 @@ it("shows an explicit nutrition start action and sends the local date and timezo
   render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
   const user = userEvent.setup();
 
+  expect(await screen.findByText(formatPersianDateWithWeekday(localIsoDate()))).toBeInTheDocument();
   await user.click(await screen.findByRole("button", { name: "شروع برنامه تغذیه" }));
 
   await waitFor(() => expect(nutritionApi.startNutritionPlan).toHaveBeenCalledWith("plan-1", {
     start_date: localIsoDate(),
     timezone: resolvedIanaTimeZone(),
   }));
+});
+
+it("uses the effective active plan for today's meals during a future handoff", async () => {
+  await i18n.changeLanguage("fa");
+  const oldPlan: WeeklyPlan = {
+    ...readyNutritionPlan,
+    id: "old-plan",
+    start_date: "2026-09-01",
+    days: readyNutritionPlan.days.map((day, index) => index === 0 ? {
+      ...day,
+      plan_date: "2026-09-01",
+      nutrient_totals: { energy_kcal: 1800 },
+      meals: day.meals.map((meal) => ({ ...meal, nutrient_totals: { energy_kcal: 555 } })),
+    } : day),
+  };
+  const futurePlan: WeeklyPlan = {
+    ...readyNutritionPlan,
+    id: "future-plan",
+    start_date: "2026-09-17",
+    days: readyNutritionPlan.days.map((day) => ({
+      ...day,
+      nutrient_totals: { energy_kcal: 3000 },
+      meals: day.meals.map((meal) => ({ ...meal, nutrient_totals: { energy_kcal: 999 } })),
+    })),
+  };
+  vi.mocked(nutritionApi.getLatestWeeklyNutritionPlan).mockResolvedValue(futurePlan);
+  vi.mocked(nutritionApi.getActiveWeeklyNutritionPlan).mockResolvedValue(oldPlan);
+  vi.mocked(programTimelineApi.getProgramTimelineToday).mockResolvedValue({
+    local_date: localIsoDate(),
+    timezone: "Asia/Tehran",
+    workout: { state: "no_plan", completed_sessions: 0, total_sessions: 0 },
+    nutrition: {
+      state: "scheduled_start",
+      plan_id: futurePlan.id,
+      start_date: futurePlan.start_date,
+      effective_today: {
+        plan_id: oldPlan.id,
+        start_date: oldPlan.start_date,
+        absolute_day_number: 14,
+        pattern_day_index: 0,
+        day_id: "old-day",
+        nutrient_totals: { energy_kcal: 1800 },
+      },
+    },
+  });
+
+  render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: "وعده‌های امروز" })).toBeInTheDocument();
+  expect(screen.getByText(`برنامه بعدی از ${formatPersianDateWithWeekday(futurePlan.start_date)} اجرا می‌شود.`)).toBeInTheDocument();
+  expect(screen.getByText("۵۵۵ کیلوکالری")).toBeInTheDocument();
+  expect(screen.getByText("۱٬۸۰۰")).toBeInTheDocument();
+  expect(screen.queryByText("۹۹۹ کیلوکالری")).not.toBeInTheDocument();
 });
 
 it("keeps the red pending status for a plan awaiting physician approval", async () => {

@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import {
+  FITICIAN_WEEKDAY_LABELS_FA,
+  formatIsoDate,
+  formatPersianDate,
+  formatTehranDateTime,
+} from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
 import { ApiError } from "../../shared/apiClient";
@@ -20,7 +26,6 @@ type Props = {
   onPlanUpdated?: (plan: WeeklyPlan) => void;
 };
 
-const weekdayFa = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 const weekdayEn = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 type PlanMeal = WeeklyPlan["days"][number]["meals"][number];
 type ActionKind = "lock" | "feedback" | "remove-preview" | "meal-replacement-preview" | "food-replacement-preview" | "confirm" | "regenerate";
@@ -276,7 +281,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
                   </span>
                 )}
                 {reviewApproved && currentPlan.physician_approved_at && (
-                  <span>{l("تاریخ تأیید:", "Approved:")} {new Intl.DateTimeFormat(language === "en" ? "en-US" : "fa-IR").format(new Date(currentPlan.physician_approved_at))}</span>
+                  <span>{l("تاریخ تأیید:", "Approved:")} {language === "en" ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(currentPlan.physician_approved_at)) : formatTehranDateTime(currentPlan.physician_approved_at)}</span>
                 )}
               </div>
             </div>
@@ -297,6 +302,10 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
         <div className="weekly-plan__meta-chip">
           <span className="weekly-plan__meta-icon" aria-hidden="true">🍽️</span>
           <span>{l("چیدمان:", "Structure:")} {String(currentPlan.input_snapshot.main_meals_per_day ?? "—")} {l("وعده اصلی", "main meals")} + {String(currentPlan.input_snapshot.snacks_per_day ?? "—")} {l("میان‌وعده", "snacks")}</span>
+        </div>
+        <div className="weekly-plan__meta-chip">
+          <span className="weekly-plan__meta-icon" aria-hidden="true">🗓️</span>
+          <span>{l("شروع:", "Starts:")} {language === "en" ? formatIsoDate(currentPlan.start_date, "en-US") : formatPersianDate(currentPlan.start_date)}</span>
         </div>
       </div>
       {currentPlan.physician_user_visible_notes && <aside className="weekly-plan__notice"><strong>{l("یادداشت پزشک", "Physician note")}</strong><p>{currentPlan.physician_user_visible_notes}</p></aside>}
@@ -346,8 +355,8 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
             role="tab"
             type="button"
           >
-            <span>{language === "en" ? weekdayEn[item.day_index] : weekdayFa[item.day_index]}</span>
-            <small>{new Intl.DateTimeFormat(language === "en" ? "en-US" : "fa-IR", { day: "numeric", month: "short" }).format(new Date(`${item.plan_date}T12:00:00`))}</small>
+            <span>{language === "en" ? weekdayEn[item.day_index] : FITICIAN_WEEKDAY_LABELS_FA[item.day_index]}</span>
+            <small>{language === "en" ? formatIsoDate(item.plan_date, "en-US", { day: "numeric", month: "short" }) : formatPersianDate(item.plan_date)}</small>
           </button>
         ))}
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { formatIsoDate, formatPersianDateWithWeekday } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { ProgramTimelineToday, TimelineNutrition } from "@fitician/core/program-timeline";
 
@@ -35,6 +36,7 @@ export function NutritionEstimatePage() {
   const [state, setState] = useState<ViewState>("loading");
   const [estimate, setEstimate] = useState<NutritionEstimate | null>(null);
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
+  const [effectivePlan, setEffectivePlan] = useState<WeeklyPlan | null>(null);
   const [budgetPlan, setBudgetPlan] = useState<WeeklyPlan | null>(null);
   const [idealPlan, setIdealPlan] = useState<WeeklyPlan | null>(null);
   const [bundleId, setBundleId] = useState<string | null>(null);
@@ -57,13 +59,15 @@ export function NutritionEstimatePage() {
     void Promise.all([
       nutritionApi.getCurrentNutritionEstimate(),
       nutritionApi.getLatestWeeklyNutritionPlan(),
+      Promise.resolve(nutritionApi.getActiveWeeklyNutritionPlan()).catch(() => null),
       nutritionApi.getDailyTracking(localIsoDate()).catch(() => null),
       nutritionApi.getLatestPlanBundle().catch(() => null),
       getProgramTimelineToday(deviceTimezone).catch(() => null),
     ])
-      .then(([result, latestPlan, dailyTracking, latestBundle, currentTimeline]) => {
+      .then(([result, latestPlan, activePlan, dailyTracking, latestBundle, currentTimeline]) => {
         if (!active) return;
         setEstimate(result);
+        setEffectivePlan(activePlan);
         setTracking(dailyTracking);
         setTimeline(currentTimeline ?? null);
 
@@ -108,6 +112,11 @@ export function NutritionEstimatePage() {
       setTimeline(await getProgramTimelineToday(deviceTimezone));
     } catch {
       // Timeline is a read-model enhancement; existing nutrition content remains usable.
+    }
+    try {
+      setEffectivePlan(await nutritionApi.getActiveWeeklyNutritionPlan());
+    } catch {
+      // The selected plan remains usable when the effective-plan read is unavailable.
     }
   }
 
@@ -221,7 +230,7 @@ export function NutritionEstimatePage() {
       {state === "error" && <section className="nutrition-estimate-state" role="alert"><h2>{l("محاسبه انجام نشد", "Estimate unavailable")}</h2><p>{l("اطلاعات ضروری یا وضعیت ایمنی را در پروفایل بررسی کن.", "Review required profile details and your safety status.")}</p><Link className="secondary-button" to="/profile">{l("رفتن به پروفایل", "Open profile")}</Link></section>}
       {state === "ready" && estimate !== null && (
         <>
-          <EstimateContent estimate={estimate} language={language} onRefresh={calculate} plan={plan} timeline={timeline} tracking={tracking} />
+          <EstimateContent effectivePlan={effectivePlan} estimate={estimate} language={language} onRefresh={calculate} plan={plan} timeline={timeline} tracking={tracking} />
           <DoctorSupervision language={language} plan={plan} />
           <PlanArea
             bundleId={bundleId}
@@ -319,6 +328,14 @@ function PlanArea({
     const activeBudgetPlan = budgetPlan ?? plan;
     return (
       <div className="weekly-plan-area-container">
+        {timeline?.plan_id === plan.id && timeline.state === "scheduled_start" && timeline.start_date && (
+          <p className="weekly-plan-scheduled-start" role="status">
+            {l(
+              `برنامه بعدی از ${formatPersianDateWithWeekday(timeline.start_date)} اجرا می‌شود.`,
+              `Next plan starts ${formatIsoDate(timeline.start_date, "en-US")}.`,
+            )}
+          </p>
+        )}
         {isNutritionPlanStartable(plan, timeline) && (
           <NutritionPlanStartCard
             language={language}
@@ -479,6 +496,7 @@ function NutritionPlanStartCard({
       <label>
         <span>{l("تاریخ شروع", "Start date")}</span>
         <input aria-label={l("تاریخ شروع برنامه تغذیه", "Nutrition plan start date")} type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+        {language === "fa" && startDate !== "" && <small>{formatPersianDateWithWeekday(startDate)}</small>}
       </label>
       <button className="primary-button" disabled={starting || startDate === ""} onClick={() => onStart(startDate)} type="button" aria-busy={starting}>
         {starting ? l("در حال شروع…", "Starting…") : l("شروع برنامه تغذیه", "Start nutrition plan")}
@@ -1453,7 +1471,7 @@ function generationOutcomeMessage(outcome: WeeklyPlanGeneration["outcome"], lang
   return values[outcome][language === "en" ? 1 : 0];
 }
 
-function EstimateContent({ estimate, language, onRefresh, plan, timeline, tracking }: { estimate: NutritionEstimate; language: "fa" | "en"; onRefresh: () => void; plan: WeeklyPlan | null; timeline: ProgramTimelineToday | null; tracking: DailyTrackingSummary | null }) {
+function EstimateContent({ effectivePlan, estimate, language, onRefresh, plan, timeline, tracking }: { effectivePlan: WeeklyPlan | null; estimate: NutritionEstimate; language: "fa" | "en"; onRefresh: () => void; plan: WeeklyPlan | null; timeline: ProgramTimelineToday | null; tracking: DailyTrackingSummary | null }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
   const number = new Intl.NumberFormat(language === "en" ? "en-US" : "fa-IR", { maximumFractionDigits: 1 });
   const target = (metric: string) => estimate.targets[metric];
@@ -1462,16 +1480,21 @@ function EstimateContent({ estimate, language, onRefresh, plan, timeline, tracki
   const maximum = (metric: string) => formatValue(target(metric)?.maximum, target(metric)?.unit, number, language);
   const confidence = { high: l("اطمینان بالا", "High confidence"), medium: l("اطمینان متوسط", "Medium confidence"), low: l("اطمینان پایین", "Low confidence") }[estimate.confidence];
   const currentDate = timeline?.local_date ?? localIsoDate();
-  const nutritionTimeline = timeline !== null
-    && plan !== null
-    && timeline.nutrition.plan_id === plan.id
-    ? timeline.nutrition
-    : null;
-  const todayPlan = nutritionTimeline?.pattern_day_index !== null && nutritionTimeline?.pattern_day_index !== undefined
-    ? plan?.days.find((day) => day.day_index === nutritionTimeline.pattern_day_index)
-    : plan?.days.find((day) => day.plan_date === currentDate);
-  const energyTarget = nutritionTimeline?.nutrient_totals?.energy_kcal
-    ?? todayPlan?.nutrient_totals.energy_kcal
+  const effectiveToday = timeline?.nutrition.effective_today ?? null;
+  const todaySourcePlan = effectiveToday === null
+    ? effectivePlan ?? plan
+    : effectiveToday.plan_id === plan?.id
+      ? plan
+      : effectivePlan?.id === effectiveToday.plan_id
+        ? effectivePlan
+        : null;
+  const todayPlan = todaySourcePlan === null || todaySourcePlan === undefined
+    ? undefined
+    : effectiveToday?.pattern_day_index !== null && effectiveToday?.pattern_day_index !== undefined
+      ? todaySourcePlan.days.find((day) => day.day_index === effectiveToday.pattern_day_index)
+      : todaySourcePlan.days.find((day) => day.plan_date === currentDate);
+  const plannedTotals = effectiveToday?.nutrient_totals ?? todayPlan?.nutrient_totals;
+  const energyTarget = plannedTotals?.energy_kcal
     ?? target("goal_calories")?.preferred
     ?? null;
   const tdeeTarget = target("tdee")?.preferred ?? target("tdee")?.minimum ?? null;
@@ -1490,6 +1513,8 @@ function EstimateContent({ estimate, language, onRefresh, plan, timeline, tracki
   );
   const macro = (key: string, estimateMetric: string) => hasTrackedData && tracked[key] !== undefined
     ? formatValue(tracked[key], "g/day", number, language)
+    : plannedTotals?.[key] !== undefined
+      ? formatValue(plannedTotals[key], "g/day", number, language)
     : preferred(estimateMetric) !== (language === "en" ? "Not set" : "تعیین نشده")
       ? preferred(estimateMetric)
       : range(estimateMetric);
