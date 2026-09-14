@@ -45,11 +45,69 @@ beforeEach(() => {
   });
 });
 
+function offerHeader(code: string) {
+  return screen.getByRole("button", { name: new RegExp(code) });
+}
+
+it("keeps every offer collapsed until its header is activated", async () => {
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  const firstCard = await screen.findByTestId("admin-offer-training_4w");
+  const secondCard = screen.getByTestId("admin-offer-training_6w");
+
+  expect(offerHeader("training_4w")).toHaveAttribute("aria-expanded", "false");
+  expect(offerHeader("training_6w")).toHaveAttribute("aria-expanded", "false");
+  expect(within(firstCard).queryByRole("spinbutton", { name: "قیمت" })).not.toBeInTheDocument();
+  expect(within(secondCard).queryByRole("spinbutton", { name: "قیمت" })).not.toBeInTheDocument();
+});
+
+it("opens training_4w and exposes its form", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  const card = await screen.findByTestId("admin-offer-training_4w");
+  const header = offerHeader("training_4w");
+  await user.click(header);
+
+  expect(header).toHaveAttribute("aria-expanded", "true");
+  expect(header).toHaveAttribute("aria-controls", "admin-offer-panel-training_4w");
+  expect(document.getElementById("admin-offer-panel-training_4w")).toHaveAttribute("aria-hidden", "false");
+  expect(within(card).getByLabelText("قیمت")).toBeInTheDocument();
+});
+
+it("closes the previous offer when another offer opens", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  const firstCard = await screen.findByTestId("admin-offer-training_4w");
+  const secondCard = screen.getByTestId("admin-offer-training_6w");
+  await user.click(offerHeader("training_4w"));
+  await user.click(offerHeader("training_6w"));
+
+  expect(offerHeader("training_4w")).toHaveAttribute("aria-expanded", "false");
+  expect(offerHeader("training_6w")).toHaveAttribute("aria-expanded", "true");
+  expect(within(firstCard).queryByRole("spinbutton", { name: "قیمت" })).not.toBeInTheDocument();
+  expect(within(secondCard).getByLabelText("قیمت")).toBeInTheDocument();
+});
+
+it("closes an open offer when its header is clicked again", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  const card = await screen.findByTestId("admin-offer-training_4w");
+  await user.click(offerHeader("training_4w"));
+  await user.click(offerHeader("training_4w"));
+
+  expect(offerHeader("training_4w")).toHaveAttribute("aria-expanded", "false");
+  expect(within(card).queryByRole("spinbutton", { name: "قیمت" })).not.toBeInTheDocument();
+});
+
 it("shows code-defined package and duration while updating database price", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
   const card = await screen.findByTestId("admin-offer-training_4w");
+  await user.click(offerHeader("training_4w"));
   expect(within(card).getByText("۴ هفته")).toBeInTheDocument();
   const price = within(card).getByLabelText("قیمت");
   await user.clear(price);
@@ -67,6 +125,7 @@ it("disables an offer without exposing immutable package or duration controls", 
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
   const card = await screen.findByTestId("admin-offer-training_4w");
+  await user.click(offerHeader("training_4w"));
   await user.click(within(card).getByRole("checkbox", { name: "فعال" }));
   await user.click(within(card).getByRole("button", { name: "ذخیره" }));
 
@@ -81,6 +140,7 @@ it("updates the offer availability window", async () => {
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
   const card = await screen.findByTestId("admin-offer-training_4w");
+  await user.click(offerHeader("training_4w"));
   const availableFrom = within(card).getByLabelText("شروع دسترسی");
   const availableUntil = within(card).getByLabelText("پایان دسترسی");
   fireEvent.change(availableFrom, { target: { value: "2026-09-20T10:30" } });

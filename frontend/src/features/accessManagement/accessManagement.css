@@ -11,6 +11,30 @@
   padding-block: clamp(1.2rem, 4vw, 3rem) 4rem;
 }
 
+.admin-subscription-center__back-link {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  gap: .4rem;
+  margin-block-end: .85rem;
+  padding: .5rem .8rem;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-aqua);
+  background: var(--fitician-surface-subtle);
+  font-size: .8rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: border-color .16s ease, color .16s ease, background-color .16s ease;
+}
+
+.admin-subscription-center__back-link:hover,
+.admin-subscription-center__back-link:focus-visible {
+  border-color: var(--fitician-aqua);
+  color: var(--fitician-ink);
+  background: var(--fitician-surface-raised);
+}
+
 .admin-subscription-center__hero {
   display: flex;
   align-items: center;
@@ -55,17 +79,18 @@
   padding: .4rem;
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-lg);
-  background: rgb(255 255 255 / 62%);
+  background: var(--fitician-surface-subtle);
 }
 
 .admin-subscription-center__nav a {
   display: grid;
+  min-width: 0;
   gap: .3rem;
   min-height: 3.8rem;
   align-content: center;
   padding: .55rem .7rem;
   border-radius: var(--fitician-radius-md);
-  color: var(--fitician-muted);
+  color: var(--fitician-ink);
   font-size: .78rem;
   font-weight: 800;
   text-decoration: none;
@@ -87,7 +112,7 @@
 }
 
 .admin-subscription-center__nav a.is-active {
-  color: var(--fitician-canvas);
+  color: var(--fitician-ink);
   background: var(--fitician-petrol);
   box-shadow: 0 .35rem .8rem rgb(10 31 30 / 13%);
 }
@@ -163,7 +188,7 @@
   padding: .85rem;
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-lg);
-  background: rgb(255 255 255 / 55%);
+  background: var(--fitician-surface-subtle);
 }
 
 .access-admin-search label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 800; }
@@ -344,5 +369,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .admin-subscription-center__back-link,
   .admin-subscription-center__nav a { transition: none; }
 }

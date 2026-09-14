@@ -17,6 +17,7 @@ export function AdminBillingOffersPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [saving, setSaving] = useState<string | null>(null);
   const [updated, setUpdated] = useState<string | null>(null);
+  const [openOfferCode, setOpenOfferCode] = useState<string | null>(null);
   const savedOffers = useRef(new Map<string, AdminBillingOffer>());
 
   useEffect(() => {
@@ -65,65 +66,93 @@ export function AdminBillingOffersPage() {
         {state === "ready" && (
           <div className="billing-admin-list">
             {offers.map((offer) => (
-              <article className="billing-admin-card" data-testid={`admin-offer-${offer.offer_code}`} key={offer.offer_code}>
-                <header>
-                  <div>
-                    <span className="billing-admin-card__code">{offer.offer_code}</span>
-                    <h2>{t(`entitlements.packageLabels.${offer.package_code}`, { defaultValue: offer.package_code })}</h2>
-                    <p>{durationLabel(offer.duration_weeks, t)}</p>
-                  </div>
-                  <span className="billing-admin-card__availability">{offer.is_available ? t("billing.active") : t("billing.offerUnavailable")}</span>
-                </header>
-                <div className="billing-admin-card__fields">
-                  <label>
-                    {t("billing.price")}
-                    <input
-                      aria-label={t("billing.price")}
-                      min="0"
-                      onChange={(event) => updateOffer(offer.offer_code, { price_irr: event.currentTarget.value === "" ? null : Number(event.currentTarget.value) })}
-                      type="number"
-                      value={offer.price_irr ?? ""}
-                    />
-                  </label>
-                  <label>
-                    {t("billing.availableFrom")}
-                    <input
-                      aria-label={t("billing.availableFrom")}
-                      onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
-                      type="datetime-local"
-                      value={toDateTimeLocal(offer.available_from)}
-                    />
-                  </label>
-                  <label>
-                    {t("billing.availableUntil")}
-                    <input
-                      aria-label={t("billing.availableUntil")}
-                      onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
-                      type="datetime-local"
-                      value={toDateTimeLocal(offer.available_until)}
-                    />
-                  </label>
-                  <label className="billing-admin-card__check">
-                    <input
-                      aria-label={t("billing.active")}
-                      checked={offer.is_active}
-                      onChange={(event) => updateOffer(offer.offer_code, { is_active: event.currentTarget.checked })}
-                      type="checkbox"
-                    />
-                    {t("billing.active")}
-                  </label>
-                </div>
-                <footer>
+              <article
+                className={`billing-admin-card${openOfferCode === offer.offer_code ? " is-open" : ""}`}
+                data-testid={`admin-offer-${offer.offer_code}`}
+                key={offer.offer_code}
+              >
+                <header className="billing-admin-card__header">
                   <button
-                    className="billing-button billing-button--primary"
-                    disabled={saving === offer.offer_code}
-                    onClick={() => void saveOffer(offer)}
+                    aria-controls={`admin-offer-panel-${offer.offer_code}`}
+                    aria-expanded={openOfferCode === offer.offer_code}
+                    className="billing-admin-card__toggle"
+                    onClick={() => setOpenOfferCode((current) => current === offer.offer_code ? null : offer.offer_code)}
                     type="button"
                   >
-                    {saving === offer.offer_code ? t("billing.saving") : t("billing.save")}
+                    <span className="billing-admin-card__summary">
+                      <span className="billing-admin-card__code">{offer.offer_code}</span>
+                      <span className="billing-admin-card__name" role="heading" aria-level={2}>
+                        {t(`entitlements.packageLabels.${offer.package_code}`, { defaultValue: offer.package_code })}
+                      </span>
+                      <span className="billing-admin-card__duration">{durationLabel(offer.duration_weeks, t)}</span>
+                    </span>
+                    <span className="billing-admin-card__summary-end">
+                      <span className="billing-admin-card__availability">
+                        {offer.is_active ? t("billing.active") : t("adminAccess.inactive")}
+                      </span>
+                      <span aria-hidden="true" className="billing-admin-card__chevron" />
+                    </span>
                   </button>
-                  {updated === offer.offer_code && <span className="billing-admin-card__success" role="status">{t("billing.updateSuccess")}</span>}
-                </footer>
+                </header>
+                <div
+                  aria-hidden={openOfferCode !== offer.offer_code}
+                  className={`billing-admin-card__panel${openOfferCode === offer.offer_code ? " is-open" : ""}`}
+                  id={`admin-offer-panel-${offer.offer_code}`}
+                  inert={openOfferCode !== offer.offer_code}
+                >
+                  <div className="billing-admin-card__panel-inner">
+                    <div className="billing-admin-card__fields">
+                      <label>
+                        {t("billing.price")}
+                        <input
+                          aria-label={t("billing.price")}
+                          min="0"
+                          onChange={(event) => updateOffer(offer.offer_code, { price_irr: event.currentTarget.value === "" ? null : Number(event.currentTarget.value) })}
+                          type="number"
+                          value={offer.price_irr ?? ""}
+                        />
+                      </label>
+                      <label>
+                        {t("billing.availableFrom")}
+                        <input
+                          aria-label={t("billing.availableFrom")}
+                          onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
+                          type="datetime-local"
+                          value={toDateTimeLocal(offer.available_from)}
+                        />
+                      </label>
+                      <label>
+                        {t("billing.availableUntil")}
+                        <input
+                          aria-label={t("billing.availableUntil")}
+                          onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
+                          type="datetime-local"
+                          value={toDateTimeLocal(offer.available_until)}
+                        />
+                      </label>
+                      <label className="billing-admin-card__check">
+                        <input
+                          aria-label={t("billing.active")}
+                          checked={offer.is_active}
+                          onChange={(event) => updateOffer(offer.offer_code, { is_active: event.currentTarget.checked })}
+                          type="checkbox"
+                        />
+                        {t("billing.active")}
+                      </label>
+                    </div>
+                    <footer>
+                      <button
+                        className="billing-button billing-button--primary"
+                        disabled={saving === offer.offer_code}
+                        onClick={() => void saveOffer(offer)}
+                        type="button"
+                      >
+                        {saving === offer.offer_code ? t("billing.saving") : t("billing.save")}
+                      </button>
+                      {updated === offer.offer_code && <span className="billing-admin-card__success" role="status">{t("billing.updateSuccess")}</span>}
+                    </footer>
+                  </div>
+                </div>
               </article>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 import "./accessManagement.css";
 
@@ -17,6 +17,11 @@ export function AdminSubscriptionCenterPage() {
   return (
     <div className="admin-subscription-center fitician-page">
       <div className="admin-subscription-center__container">
+        <Link className="admin-subscription-center__back-link" to="/dashboard">
+          <span aria-hidden="true">←</span>
+          {t("onboarding.actions.back")}
+        </Link>
+
         <header className="admin-subscription-center__hero">
           <div>
             <p className="eyebrow eyebrow--accent">{t("adminAccess.controlPlane")}</p>
