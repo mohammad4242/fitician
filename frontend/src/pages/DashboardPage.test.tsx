@@ -226,6 +226,42 @@ it("shows the target calories while retaining tracked macro totals", async () =>
   expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuemax", "2800");
 });
 
+it("uses the effective nutrition plan for today during a future handoff", async () => {
+  profile.productMode = "both";
+  workoutApi.getActiveWorkoutPlan.mockResolvedValue(null);
+  nutritionApi.getLatestWeeklyNutritionPlan.mockResolvedValue({
+    id: "future-plan",
+    physician_approved: true,
+    days: [{ plan_date: "2026-09-17", nutrient_totals: { energy_kcal: 3000 }, meals: [] }],
+  });
+  nutritionApi.getCurrentNutritionEstimate.mockResolvedValue({
+    confidence: "high",
+    targets: { tdee: { preferred: 2800 } },
+  });
+  workoutApi.getProgramTimelineToday.mockResolvedValue(workoutTimeline(
+    { state: "no_plan" },
+    {
+      state: "scheduled_start",
+      plan_id: "future-plan",
+      start_date: "2026-09-17",
+      nutrient_totals: { energy_kcal: 3000 },
+      effective_today: {
+        plan_id: "old-plan",
+        start_date: "2026-09-01",
+        absolute_day_number: 14,
+        pattern_day_index: 6,
+        day_id: "old-day",
+        nutrient_totals: { energy_kcal: 2200 },
+      },
+    },
+  ));
+
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+  expect(await screen.findByText("۲٬۲۰۰")).toBeInTheDocument();
+  expect(screen.queryByText("۳٬۰۰۰")).not.toBeInTheDocument();
+});
+
 it("shows nutrition targets and skips workout loading for nutrition-only members", async () => {
   profile.productMode = "nutrition";
   render(<MemoryRouter><DashboardPage /></MemoryRouter>);

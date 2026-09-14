@@ -1,4 +1,6 @@
 import {
+  formatIsoDate,
+  formatPersianDateWithWeekday,
   nutritionProgressTone,
   nutritionTargetToExpenditureRatio,
   type NutritionProgressTone,
@@ -142,12 +144,10 @@ export function DashboardPage() {
   const workoutDay = workoutSession === undefined || workoutSession === null
     ? undefined
     : plan?.days.find((day) => day.id === workoutSession.workout_day_id);
-  const planned = timeline !== null
-    && (timeline.nutrition.state === "active" || timeline.nutrition.state === "scheduled_start")
-    ? timeline.nutrition.nutrient_totals
-    : timeline === null
+  const planned = timeline?.nutrition.effective_today?.nutrient_totals
+    ?? (timeline === null
       ? nutritionPlan?.days?.find((day) => day.plan_date === currentDate)?.nutrient_totals
-      : undefined;
+      : undefined);
   const estimated = nutritionEstimate?.targets;
   const tdeeTarget = estimated?.tdee?.preferred ?? estimated?.tdee?.minimum ?? null;
   const nutritionTarget = {
@@ -323,9 +323,7 @@ function DashboardQuickAction({ image, title, to }: { image: string; title: stri
 }
 
 function formatTimelineDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en-US" : "fa-IR", { dateStyle: "medium" }).format(
-    new Date(value + "T12:00:00"),
-  );
+  return english ? formatIsoDate(value, "en-US") : formatPersianDateWithWeekday(value);
 }
 
 function nextSessionCopy(session: TimelineWorkoutSession, english: boolean): string {
