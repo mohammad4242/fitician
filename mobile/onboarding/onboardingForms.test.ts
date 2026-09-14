@@ -61,7 +61,8 @@ it("uses the shared profile validator mapping for a completed training form", ()
     current_weight_kg: "64",
     fitness_goal: "build_muscle" as const,
     experience_level: "beginner" as const,
-    training_days_per_week: "3",
+    preferred_weekdays: [0, 2, 4, 6],
+    training_days_per_week: "4",
     training_location: "gym" as const,
     session_duration_minutes: "45",
     training_intensity: "moderate" as const,
@@ -72,7 +73,8 @@ it("uses the shared profile validator mapping for a completed training form", ()
   expect(profileInputForOnboarding(values, new Date("2026-09-07T00:00:00Z"))).toMatchObject({
     display_name: "Sara",
     experience_level: "beginner",
-    training_days_per_week: 3,
+    preferred_weekdays: [0, 2, 4, 6],
+    training_days_per_week: 4,
     training_location: "gym",
   });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen, within } from "@testing-library/react-native";
 import { expect, jest, test } from "@jest/globals";
 import { Animated, StyleSheet, Text } from "react-native";
 import { Circle } from "react-native-svg";
@@ -13,6 +13,7 @@ import { TextField } from "./components/Input";
 import { MetricRing } from "./components/MetricRing";
 import { Dialog, Sheet } from "./components/Overlay";
 import { Notice } from "./components/Feedback";
+import { TrainingWeekdaySelector } from "./components/TrainingWeekdaySelector";
 import { calculateRingGeometry } from "./visualMetrics";
 
 test("renders the shared button with native accessibility and press behavior", () => {
@@ -119,4 +120,59 @@ test("announces errors and exposes native modal boundaries", () => {
   expect(alert.props.accessibilityLiveRegion).toBe("assertive");
   expect(view.getByLabelText("جزئیات").props.accessibilityViewIsModal).toBe(true);
   expect(view.getByLabelText("تأیید").props.accessibilityViewIsModal).toBe(true);
+});
+
+test("keeps official weekday presets and exact custom selection accessible", () => {
+  const onChange = jest.fn();
+  const view = render(
+    <TrainingWeekdaySelector
+      onChange={onChange}
+      selectedWeekdays={[0, 1, 3, 4]}
+      trainingDays={4}
+    />,
+  );
+
+  expect(screen.getByRole("radio", { name: "شنبه · یکشنبه · سه‌شنبه · چهارشنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+  expect(screen.getByRole("radio", { name: "یکشنبه · دوشنبه · چهارشنبه · پنجشنبه" })).toBeTruthy();
+
+  fireEvent.press(screen.getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
+  const custom = screen.getByLabelText("روزهای دلخواه");
+  expect(within(custom).getAllByRole("checkbox")).toHaveLength(7);
+  expect(within(custom).getAllByRole("checkbox").filter((item) => item.props.accessibilityState?.disabled))
+    .toHaveLength(3);
+
+  fireEvent.press(within(custom).getByRole("checkbox", { name: "شنبه" }));
+  expect(onChange).toHaveBeenLastCalledWith([1, 3, 4]);
+  view.rerender(
+    <TrainingWeekdaySelector
+      onChange={onChange}
+      selectedWeekdays={[1, 3, 4]}
+      trainingDays={4}
+    />,
+  );
+  const updatedCustom = screen.getByLabelText("روزهای دلخواه");
+  expect(within(updatedCustom).getByRole("checkbox", { name: "جمعه" }).props.accessibilityState)
+    .toMatchObject({ disabled: false });
+  fireEvent.press(within(updatedCustom).getByRole("checkbox", { name: "جمعه" }));
+  expect(onChange).toHaveBeenLastCalledWith([1, 3, 4, 6]);
+});
+
+test("renders every shared two-day preset", () => {
+  const view = render(
+    <TrainingWeekdaySelector onChange={jest.fn()} selectedWeekdays={[0, 3]} trainingDays={2} />,
+  );
+
+  expect(screen.getByRole("radio", { name: "شنبه · سه‌شنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+  view.rerender(
+    <TrainingWeekdaySelector onChange={jest.fn()} selectedWeekdays={[1, 4]} trainingDays={2} />,
+  );
+  expect(screen.getByRole("radio", { name: "یکشنبه · چهارشنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+  view.rerender(
+    <TrainingWeekdaySelector onChange={jest.fn()} selectedWeekdays={[2, 5]} trainingDays={2} />,
+  );
+  expect(screen.getByRole("radio", { name: "دوشنبه · پنجشنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
 });

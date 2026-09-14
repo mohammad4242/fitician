@@ -242,6 +242,58 @@ test("edits home training through four canonical presets", async () => {
   }));
 });
 
+test("uses the shared weekday presets and saves the selected calendar", async () => {
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  fireEvent.press(screen.getByRole("radio", { name: "تمرینی" }));
+
+  expect(screen.getByRole("radio", { name: "شنبه · دوشنبه · چهارشنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+  fireEvent.press(screen.getByRole("radio", { name: "یکشنبه · سه‌شنبه · پنجشنبه" }));
+  expect(screen.getByRole("radio", { name: "یکشنبه · سه‌شنبه · پنجشنبه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+
+  fireEvent.press(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+  const api = mockCreateProfileApi.mock.results[mockCreateProfileApi.mock.results.length - 1]?.value as {
+    readonly updateProfile: jest.Mock;
+  };
+  await waitFor(() => expect(api.updateProfile).toHaveBeenCalledWith(
+    expect.objectContaining({ preferred_weekdays: [1, 3, 5] }),
+  ));
+});
+
+test("keeps an existing custom Friday calendar unchanged on profile load", async () => {
+  const customProfile = {
+    ...profile,
+    preferred_weekdays: [0, 2, 4, 6],
+    training_days_per_week: 4,
+  } as Profile;
+  mockCreateProfileApi.mockReturnValue({
+    getNutritionProfile: resolved(nutrition),
+    getProfile: resolved(customProfile),
+    getSharedProfile: resolved(shared),
+    saveNutritionProfile: resolved(nutrition),
+    saveSharedProfile: resolved(shared),
+    updateProfile: resolved(customProfile),
+  } as never);
+
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  fireEvent.press(screen.getByRole("radio", { name: "تمرینی" }));
+
+  expect(screen.getByLabelText("روزهای دلخواه")).toBeTruthy();
+  expect(screen.getByRole("checkbox", { name: "شنبه" }).props.accessibilityState)
+    .toMatchObject({ checked: true });
+  expect(screen.getByRole("checkbox", { name: "جمعه" }).props.accessibilityState)
+    .toMatchObject({ checked: true });
+  const api = mockCreateProfileApi.mock.results[mockCreateProfileApi.mock.results.length - 1]?.value as {
+    readonly updateProfile: jest.Mock;
+  };
+  expect(api.updateProfile).not.toHaveBeenCalled();
+});
+
 test("saves personal edits through the existing updateProfile API", async () => {
   renderProfile();
 

@@ -16,6 +16,7 @@ import { getOnboardingSteps } from "@fitician/core/onboarding";
 import type { NutritionBasicsDraft, OnboardingState } from "@fitician/core/onboarding";
 import {
   equipmentForHomeTrainingSetup,
+  getPrimaryTrainingWeekdayPreset,
   homeTrainingSetups,
   type HomeTrainingSetup,
   type ProfileFormValues,
@@ -31,7 +32,16 @@ import {
 } from "../data/encryptedUserDatabase";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
-import { AppIcon, Button, Card, Notice, PersianDatePicker, ProgressBar, TextField } from "../ui/components";
+import {
+  AppIcon,
+  Button,
+  Card,
+  Notice,
+  PersianDatePicker,
+  ProgressBar,
+  TextField,
+  TrainingWeekdaySelector,
+} from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
@@ -674,6 +684,8 @@ export function TrainingProfileStage({
 }) {
   const { control, getValues, setError, setValue } = useForm<ProfileFormValues>({ defaultValues: initialValues });
   const location = useWatch({ control, name: "training_location" });
+  const trainingDays = useWatch({ control, name: "training_days_per_week" });
+  const selectedWeekdays = useWatch({ control, name: "preferred_weekdays" });
   const submit = () => {
     try {
       onSubmit(profileInputForOnboarding(getValues(), new Date()));
@@ -712,9 +724,29 @@ export function TrainingProfileStage({
               keyboardType="number-pad"
               label="روزهای تمرین در هفته"
               name="training_days_per_week"
+              onChangeValue={(value) => {
+                const primaryPreset = getPrimaryTrainingWeekdayPreset(Number(value));
+                setValue("preferred_weekdays", primaryPreset === null ? [] : [...primaryPreset]);
+              }}
               textDirection="ltr"
               normalizeInput
             />
+            {Number(trainingDays) >= 2 && Number(trainingDays) <= 5 ? (
+              <TrainingWeekdaySelector
+                error={undefined}
+                onChange={(weekdays) => setValue("preferred_weekdays", weekdays)}
+                selectedWeekdays={selectedWeekdays ?? []}
+                trainingDays={Number(trainingDays)}
+              />
+            ) : Number(trainingDays) === 6 ? (
+              <ControlledMultiChoice
+                control={control}
+                label="روزهای ترجیحی (اختیاری)"
+                name="preferred_weekdays"
+                options={weekdayOptions}
+                numericValues
+              />
+            ) : null}
             <ControlledChoice
               control={control}
               label="محل تمرین"
@@ -759,13 +791,6 @@ export function TrainingProfileStage({
               name="training_cautions"
               options={cautionOptions}
               emptyLabel="موردی ندارم"
-            />
-            <ControlledMultiChoice
-              control={control}
-              label="روزهای ترجیحی (اختیاری)"
-              name="preferred_weekdays"
-              options={weekdayOptions}
-              numericValues
             />
             <ControlledChoice control={control} label="مدت برنامه" name="plan_duration_weeks" options={planDurationOptions} />
           </View>,
@@ -1247,6 +1272,7 @@ function ControlledTextField<TFieldValues extends FieldValues>({
   multiline = false,
   name,
   normalizeInput = false,
+  onChangeValue,
   placeholder,
   textDirection = "rtl",
 }: {
@@ -1257,6 +1283,7 @@ function ControlledTextField<TFieldValues extends FieldValues>({
   readonly multiline?: boolean;
   readonly name: FieldPath<TFieldValues>;
   readonly normalizeInput?: boolean;
+  readonly onChangeValue?: (value: string) => void;
   readonly placeholder?: string;
   readonly textDirection?: "ltr" | "rtl";
 }) {
@@ -1274,7 +1301,11 @@ function ControlledTextField<TFieldValues extends FieldValues>({
           multiline={multiline}
           numberOfLines={multiline ? 3 : 1}
           onBlur={field.onBlur}
-          onChangeText={(value) => field.onChange(normalizeInput ? normalizeOnboardingDigits(value) : value)}
+          onChangeText={(value) => {
+            const nextValue = normalizeInput ? normalizeOnboardingDigits(value) : value;
+            field.onChange(nextValue);
+            onChangeValue?.(nextValue);
+          }}
           placeholder={placeholder}
           textDirection={textDirection}
           value={String(field.value ?? "")}

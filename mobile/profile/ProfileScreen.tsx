@@ -14,6 +14,7 @@ import { FITICIAN_WEEKDAY_LABELS_FA, formatTehranDateTime } from "@fitician/core
 import type { NutritionProfile } from "@fitician/core/nutrition";
 import {
   equipmentForHomeTrainingSetup,
+  getPrimaryTrainingWeekdayPreset,
   homeTrainingSetups,
 } from "@fitician/core/profile";
 import type {
@@ -40,6 +41,7 @@ import {
   PageHeading,
   PersianDatePicker,
   TextField,
+  TrainingWeekdaySelector,
 } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
@@ -692,6 +694,7 @@ function TrainingSection({
   readonly values: ProfileFormValues;
   readonly onChange: (field: keyof ProfileFormValues, value: ProfileFormValues[keyof ProfileFormValues]) => void;
 }) {
+  const trainingDays = Number(values.training_days_per_week);
   return (
     <ProfileFormGroup icon="training" title="تنظیمات تمرین">
       <ChoiceField
@@ -701,28 +704,48 @@ function TrainingSection({
         selected={values.experience_level}
         onSelect={(value) => onChange("experience_level", value)}
       />
-      <View style={styles.twoColumns}>
-        <View style={styles.column}>
-          <TextField
-            error={errors.training_days_per_week}
-            keyboardType="numeric"
-            label="روز تمرین در هفته"
-            onChangeText={(value) => onChange("training_days_per_week", value)}
-            textDirection="ltr"
-            value={values.training_days_per_week}
-          />
-        </View>
-        <View style={styles.column}>
-          <TextField
-            error={errors.training_age_months}
-            keyboardType="numeric"
-            label="سابقه تمرین (ماه)"
-            onChangeText={(value) => onChange("training_age_months", value)}
-            textDirection="ltr"
-            value={values.training_age_months}
-          />
-        </View>
-      </View>
+      <TextField
+        error={errors.training_days_per_week}
+        keyboardType="numeric"
+        label="روز تمرین در هفته"
+        onChangeText={(value) => {
+          onChange("training_days_per_week", value);
+          const primaryPreset = getPrimaryTrainingWeekdayPreset(Number(value));
+          onChange("preferred_weekdays", primaryPreset === null ? [] : [...primaryPreset]);
+        }}
+        textDirection="ltr"
+        value={values.training_days_per_week}
+      />
+      {trainingDays >= 2 && trainingDays <= 5 ? (
+        <TrainingWeekdaySelector
+          error={errors.preferred_weekdays}
+          onChange={(weekdays) => onChange("preferred_weekdays", weekdays)}
+          selectedWeekdays={values.preferred_weekdays}
+          trainingDays={trainingDays}
+        />
+      ) : trainingDays === 6 ? (
+        <MultiChoiceField
+          error={errors.preferred_weekdays}
+          label="روزهای ترجیحی (اختیاری)"
+          options={weekdayOptions}
+          selected={(values.preferred_weekdays ?? []).map(String)}
+          onToggle={(value) => {
+            const day = Number(value);
+            const current = new Set(values.preferred_weekdays);
+            if (current.has(day)) current.delete(day);
+            else current.add(day);
+            onChange("preferred_weekdays", [...current].sort((a, b) => a - b));
+          }}
+        />
+      ) : null}
+      <TextField
+        error={errors.training_age_months}
+        keyboardType="numeric"
+        label="سابقه تمرین (ماه)"
+        onChangeText={(value) => onChange("training_age_months", value)}
+        textDirection="ltr"
+        value={values.training_age_months}
+      />
       <ChoiceField
         error={errors.training_location}
         label="محل تمرین"
@@ -771,19 +794,6 @@ function TrainingSection({
         options={planDurationOptions}
         selected={values.plan_duration_weeks}
         onSelect={(value) => onChange("plan_duration_weeks", value)}
-      />
-      <MultiChoiceField
-        error={errors.preferred_weekdays}
-        label="روزهای ترجیحی"
-        options={weekdayOptions}
-        selected={(values.preferred_weekdays ?? []).map(String)}
-        onToggle={(value) => {
-          const day = Number(value);
-          const current = new Set(values.preferred_weekdays);
-          if (current.has(day)) current.delete(day);
-          else current.add(day);
-          onChange("preferred_weekdays", [...current].sort((a, b) => a - b));
-        }}
       />
       <MultiChoiceField
         error={errors.training_cautions}

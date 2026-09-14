@@ -43,6 +43,8 @@ export { EmptyState, Notice, Skeleton } from "./Feedback";
 export type { EmptyStateProps, NoticeProps, NoticeVariant, SkeletonProps } from "./Feedback";
 export { FormField, TextField } from "./Input";
 export type { FormFieldProps, TextFieldProps } from "./Input";
+export { TrainingWeekdaySelector } from "./TrainingWeekdaySelector";
+export type { TrainingWeekdaySelectorProps } from "./TrainingWeekdaySelector";
 export { PersianDatePicker } from "./PersianDatePicker";
 export type { PersianDatePickerProps } from "./PersianDatePicker";
 export { PersianDateTimePicker } from "./PersianDateTimePicker";
