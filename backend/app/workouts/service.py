@@ -958,7 +958,9 @@ class WorkoutGenerationService:
                 "preferred_weekdays": (
                     list(calendar_weekdays)
                     if calendar_weekdays
-                    else list(preferred_weekdays) if preferred_weekdays else None
+                    else list(preferred_weekdays)
+                    if preferred_weekdays
+                    else None
                 ),
                 "session_duration_minutes": profile.session_duration_minutes,
                 "plan_duration_weeks": profile.plan_duration_weeks,

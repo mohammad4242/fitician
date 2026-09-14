@@ -133,8 +133,7 @@ def test_locked_calendar_rejects_recovery_repair_that_changes_weekdays(monkeypat
         return (
             replace(split, weekdays=weekdays),
             tuple(
-                replace(day, weekday=weekday)
-                for day, weekday in zip(days, weekdays, strict=True)
+                replace(day, weekday=weekday) for day, weekday in zip(days, weekdays, strict=True)
             ),
             ("TEST_RECOVERY_REPAIR_CHANGED_CALENDAR",),
         )
