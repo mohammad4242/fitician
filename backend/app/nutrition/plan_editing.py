@@ -482,7 +482,7 @@ def _create_revision(
             )
     db.commit()
     db.refresh(new_plan)
-    return weekly_plan_response(owned_plan(db, user_id, new_plan.id))
+    return weekly_plan_response(owned_plan(db, user_id, new_plan.id), db=db)
 
 
 def _budget_status(cost: int, budget: int, mode: str) -> NutritionPlanBudgetStatus:
@@ -1033,7 +1033,7 @@ def physician_plan(db: Session, physician_id: UUID, plan_id: UUID) -> WeeklyPlan
         raise PlanEditError("NUTRITION_PLAN_NOT_FOUND")
     if plan.review.physician_user_id != physician_id:
         raise PlanEditError("REVIEW_ASSIGNED_TO_ANOTHER_PHYSICIAN")
-    return weekly_plan_response(plan)
+    return weekly_plan_response(plan, db=db)
 
 
 def physician_action(
@@ -1143,4 +1143,4 @@ def physician_action(
         )
     )
     db.commit()
-    return weekly_plan_response(owned_plan(db, plan.user_id, plan.id))
+    return weekly_plan_response(owned_plan(db, plan.user_id, plan.id), db=db)

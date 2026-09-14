@@ -985,8 +985,10 @@ def generate_weekly_plan(
         policy_version=comparison_report.policy_version,
     )
 
-    budget_plan_resp = weekly_plan_response(loaded_budget_plan) if loaded_budget_plan else None
-    ideal_plan_resp = weekly_plan_response(loaded_ideal_plan) if loaded_ideal_plan else None
+    budget_plan_resp = (
+        weekly_plan_response(loaded_budget_plan, db=db) if loaded_budget_plan else None
+    )
+    ideal_plan_resp = weekly_plan_response(loaded_ideal_plan, db=db) if loaded_ideal_plan else None
     comparison_response = _backfill_comparison_metrics(
         comparison_response, budget_plan_resp, ideal_plan_resp
     )
@@ -1335,7 +1337,7 @@ def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
             )
         )
         if selected_plan is not None:
-            return weekly_plan_response(selected_plan)
+            return weekly_plan_response(selected_plan, db=db)
 
     plan = db.scalar(
         _plan_query()
@@ -1351,7 +1353,7 @@ def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
     )
     if plan is None:
         raise WeeklyPlanNotFoundError
-    return weekly_plan_response(plan)
+    return weekly_plan_response(plan, db=db)
 
 
 def _member_local_today(db: Session, user_id: UUID, *, now: datetime | None = None) -> date:
@@ -1370,7 +1372,7 @@ def active_weekly_plan(
     plan = effective_nutrition_plan_for_date(db, user_id, local_date)
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError
-    return weekly_plan_response(plan)
+    return weekly_plan_response(plan, db=db)
 
 
 def select_bundle_plan(
@@ -1466,7 +1468,7 @@ def select_bundle_plan(
         selected_plan_id=target_plan.id,
         selected_plan_role=target_role,
         selected_at=reference,
-        plan=weekly_plan_response(loaded_plan),
+        plan=weekly_plan_response(loaded_plan, db=db),
     )
 
 
@@ -1601,9 +1603,9 @@ def latest_plan_bundle(db: Session, user_id: UUID) -> WeeklyPlanGenerationRespon
         plan_model = db.scalar(_plan_query().where(NutritionWeeklyPlan.generation_id == gen.id))
         if plan_model is not None:
             if gen.plan_role == NutritionPlanRole.BUDGET.value:
-                budget_plan_resp = weekly_plan_response(plan_model)
+                budget_plan_resp = weekly_plan_response(plan_model, db=db)
             elif gen.plan_role == NutritionPlanRole.IDEAL_REFERENCE.value:
-                ideal_plan_resp = weekly_plan_response(plan_model)
+                ideal_plan_resp = weekly_plan_response(plan_model, db=db)
 
     if generation_id is None:
         return None
@@ -1653,7 +1655,7 @@ def weekly_plan_by_id(db: Session, user_id: UUID, plan_id: UUID) -> WeeklyPlanRe
     )
     if plan is None:
         raise WeeklyPlanNotFoundError
-    return weekly_plan_response(plan)
+    return weekly_plan_response(plan, db=db)
 
 
 def weekly_plan_history(db: Session, user_id: UUID) -> list[WeeklyPlanHistoryItemResponse]:
@@ -2437,7 +2439,11 @@ def _load_plan(db: Session, plan_id: UUID) -> NutritionWeeklyPlan:
     return plan
 
 
-def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
+def weekly_plan_response(
+    plan: NutritionWeeklyPlan,
+    *,
+    db: Session | None = None,
+) -> WeeklyPlanResponse:
     review_status = plan.review.status.value if plan.review else "missing"
     plan_role = plan.generation.plan_role if plan.generation else None
     return WeeklyPlanResponse(
@@ -2464,7 +2470,7 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
             else None
         ),
         physician_display_name=(
-            "Fitician physician"
+            _physician_display_name(db, plan.review.physician_user_id)
             if plan.review and plan.review.status == NutritionPlanReviewStatus.APPROVED
             else None
         ),
@@ -2550,6 +2556,15 @@ def weekly_plan_response(plan: NutritionWeeklyPlan) -> WeeklyPlanResponse:
     )
 
 
+def _physician_display_name(db: Session | None, physician_id: UUID | None) -> str:
+    if db is None or physician_id is None:
+        return "Fitician physician"
+    return (
+        db.scalar(select(UserProfile.display_name).where(UserProfile.user_id == physician_id))
+        or "Fitician physician"
+    )
+
+
 def _public_prepared_recipe_summary(
     snapshot: dict[str, object] | None,
 ) -> WeeklyPlanPreparedRecipeSummary | None:
@@ -2583,13 +2598,14 @@ def _generation_response(
     generation: NutritionPlanGeneration,
     plan: NutritionWeeklyPlan | None,
     *,
+    db: Session | None = None,
     budget_plan: NutritionWeeklyPlan | None = None,
     ideal_plan: NutritionWeeklyPlan | None = None,
     comparison: PlanComparisonResponse | None = None,
 ) -> WeeklyPlanGenerationResponse:
-    plan_resp = weekly_plan_response(plan) if plan else None
-    budget_resp = weekly_plan_response(budget_plan) if budget_plan else plan_resp
-    ideal_resp = weekly_plan_response(ideal_plan) if ideal_plan else None
+    plan_resp = weekly_plan_response(plan, db=db) if plan else None
+    budget_resp = weekly_plan_response(budget_plan, db=db) if budget_plan else plan_resp
+    ideal_resp = weekly_plan_response(ideal_plan, db=db) if ideal_plan else None
     return WeeklyPlanGenerationResponse(
         generation_id=generation.id,
         outcome=generation.outcome.value,

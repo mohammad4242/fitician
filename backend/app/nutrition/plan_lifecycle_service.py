@@ -157,4 +157,4 @@ def start_nutrition_plan(
     )
 
     db.commit()
-    return weekly_plan_response(_reload_plan(db, user_id=user_id, plan_id=plan.id))
+    return weekly_plan_response(_reload_plan(db, user_id=user_id, plan_id=plan.id), db=db)

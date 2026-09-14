@@ -16,6 +16,7 @@ from app.nutrition.models import (
     NutritionReviewAuditEvent,
     NutritionWeeklyPlan,
 )
+from app.profile.models import UserProfile
 from tests.nutrition.test_weekly_plan_api import (
     ORIGIN,
     _register_and_estimate,
@@ -382,7 +383,9 @@ def test_approval_requires_claim_and_activates_exact_due_revision(
     db: Session,
 ) -> None:
     plan = _member_plan(client, db)
-    _login_physician(client, db, "approval-physician@example.com")
+    physician = _login_physician(client, db, "approval-physician@example.com")
+    db.add(UserProfile(user_id=physician.id, display_name="دکتر نادری"))
+    db.flush()
     payload = {
         "expected_plan_revision_id": plan["id"],
         "action": "approve",
@@ -423,6 +426,7 @@ def test_approval_requires_claim_and_activates_exact_due_revision(
     assert approved.status_code == 200, approved.text
     assert approved.json()["lifecycle_status"] == "ready_to_start"
     assert approved.json()["physician_approved"] is True
+    assert approved.json()["physician_display_name"] == "دکتر نادری"
     assert "internal_notes" not in approved.json()
     persisted = db.get(NutritionWeeklyPlan, plan["id"])
     assert persisted is not None and persisted.review is not None
