@@ -219,6 +219,26 @@ def test_patch_training_days_alone_clears_stale_preferred_weekdays(
     assert profile.preferred_weekdays is None
 
 
+def test_patch_unrelated_field_keeps_legacy_empty_calendar_usable(
+    client: TestClient, db: Session
+) -> None:
+    user_id = register(client, "profile-legacy-empty-calendar@example.com")
+    create_profile(client)
+    profile = db.get(UserProfile, user_id)
+    assert profile is not None
+    profile.preferred_weekdays = []
+    db.flush()
+
+    response = client.patch(
+        "/api/v1/profile",
+        headers=ORIGIN,
+        json={"display_name": "Legacy Calendar"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["preferred_weekdays"] == []
+
+
 def test_patch_updates_optional_circumferences_as_a_new_measurement(
     client: TestClient, db: Session
 ) -> None:
