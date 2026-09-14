@@ -178,6 +178,12 @@ export type {
   WorkoutReviewQueueView,
   WorkoutReviewStatus,
 } from "./workout-reviews";
+export {
+  reviewDisclosureDefaultExpanded,
+  reviewDisclosureDefaults,
+  reviewDisclosureKeys,
+} from "./review-disclosures";
+export type { ReviewDisclosureKey } from "./review-disclosures";
 export type {
   MobileAuthTokens,
   RefreshTokenStorage,

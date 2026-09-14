@@ -5,6 +5,7 @@ import {
   formatTehranDateTimeForLocale,
 } from "@fitician/core";
 
+import { ReviewDisclosure } from "./ReviewDisclosure";
 import "./reviewProfileSummary.css";
 
 type NutritionSummary = NonNullable<ReviewProfileSummary["nutrition"]>;
@@ -72,10 +73,12 @@ export function ReviewProfileSummaryCard({
           {trainingCautions.length > 0 && <p><strong>{l("احتیاط‌های تمرینی", "Training cautions")}</strong>{trainingCautions.map((item) => humanize(item, fa)).join("، ")}</p>}
         </div>
       )}
-      <details className="review-profile-details">
-        <summary>{l("پروفایل کامل", "Complete profile")}</summary>
-        <section>
-          <h4>{l("مشخصات بدنی و تمرین", "Body and training")}</h4>
+      <div className="review-profile-details">
+        <ReviewDisclosure
+          section="profile-body-training"
+          summary={l("مشخصات بدنی، هدف و سابقه تمرین", "Body, goals, and training history")}
+          title={l("مشخصات بدنی و تمرین", "Body and training")}
+        >
           <InfoGrid entries={[
             [l("نام", "Name"), summary.display_name],
             [l("سن", "Age"), summary.age === null ? null : formatNumber(summary.age, fa)],
@@ -96,10 +99,26 @@ export function ReviewProfileSummaryCard({
             [l("تجهیزات", "Equipment"), summary.available_equipment?.map((item) => humanize(item, fa)).join("، ")],
             [l("روش ساخت برنامه", "Plan generation method"), humanize(summary.workout_generation_method, fa)],
           ]} />
-        </section>
-        {summary.nutrition && <NutritionSection nutrition={summary.nutrition} fa={fa} l={l} />}
-        {summary.medical && <MedicalSection medical={summary.medical} fa={fa} l={l} />}
-      </details>
+        </ReviewDisclosure>
+        {summary.nutrition && (
+          <ReviewDisclosure
+            section="profile-nutrition"
+            summary={l("الگوی غذایی، غذاهای ترجیحی و آشپزی", "Diet pattern, food preferences, and cooking")}
+            title={l("تغذیه و ترجیحات غذایی", "Nutrition and food preferences")}
+          >
+            <NutritionSection nutrition={summary.nutrition} fa={fa} l={l} />
+          </ReviewDisclosure>
+        )}
+        {summary.medical && (
+          <ReviewDisclosure
+            section="profile-medical"
+            summary={l("شرایط، داروها و هشدارهای ایمنی", "Conditions, medications, and safety flags")}
+            title={l("اطلاعات پزشکی و ایمنی", "Medical and safety information")}
+          >
+            <MedicalSection medical={summary.medical} fa={fa} l={l} />
+          </ReviewDisclosure>
+        )}
+      </div>
     </section>
   );
 }
@@ -115,7 +134,6 @@ function NutritionSection({
 }) {
   return (
     <section>
-      <h4>{l("تغذیه و ترجیحات غذایی", "Nutrition and food preferences")}</h4>
       <InfoGrid entries={[
         [l("وضعیت تکمیل", "Onboarding status"), humanize(nutrition.onboarding_status, fa)],
         [l("فعالیت روزانه", "Daily activity"), humanize(nutrition.daily_activity_level, fa)],
@@ -157,7 +175,6 @@ function MedicalSection({
 }) {
   return (
     <section>
-      <h4>{l("اطلاعات پزشکی و ایمنی", "Medical and safety information")}</h4>
       <InfoGrid entries={[
         [l("نتیجه ایمنی", "Safety outcome"), humanize(medical.safety_outcome, fa)],
         [l("محدودیت غذایی پزشک", "Physician dietary restrictions"), medical.physician_dietary_restrictions],

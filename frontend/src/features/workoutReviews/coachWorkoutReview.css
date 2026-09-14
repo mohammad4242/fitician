@@ -252,10 +252,7 @@
 
 .coach-template-selection {
   position: relative;
-  display: grid;
-  gap: 0.85rem;
   margin: 0 0 1.25rem;
-  padding: 1.1rem 1.2rem;
   overflow: hidden;
   border: 1px solid rgb(239 186 98 / 24%);
   border-inline-start: 0.28rem solid #efba62;
@@ -265,51 +262,51 @@
     rgb(5 27 26 / 72%);
 }
 
-.coach-template-selection > header {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
+.coach-template-disclosure {
+  border: 0;
+  background: transparent;
 }
 
-.coach-template-selection > header > span {
-  display: grid;
-  width: 2.35rem;
-  aspect-ratio: 1;
-  place-items: center;
-  border-radius: 50%;
-  color: #06201e;
-  background: #efba62;
-  font: 800 1.35rem "Sora Variable", sans-serif;
+.coach-template-disclosure > summary {
+  min-height: 4.2rem;
+  padding: 1rem 1.2rem;
 }
 
-.coach-template-selection small { color: #c6a66e; }
-
-.coach-template-selection h3 {
-  margin: 0.15rem 0 0;
+.coach-template-disclosure .review-disclosure__title {
   color: #f2fffb;
   font-size: 1.15rem;
 }
 
-.coach-template-selection > p {
+.coach-template-disclosure .review-disclosure__summary {
   max-width: 78ch;
-  margin: 0;
   color: #b8d4cf;
   line-height: 1.9;
 }
 
-.coach-template-selection details {
+.coach-template-disclosure > .review-disclosure__body {
+  padding: 0 1.2rem 1.1rem;
+}
+
+.coach-template-disclosure > .review-disclosure__body > p {
+  max-width: 78ch;
+  margin: 0 0 0.85rem;
+  color: #b8d4cf;
+  line-height: 1.9;
+}
+
+.coach-template-disclosure > .review-disclosure__body > details {
   padding-top: 0.75rem;
   border-top: 1px solid rgb(239 186 98 / 16%);
 }
 
-.coach-template-selection summary {
+.coach-template-disclosure > .review-disclosure__body > details > summary {
   width: fit-content;
   color: #efc47c;
   cursor: pointer;
   user-select: none;
 }
 
-.coach-template-selection summary:focus-visible {
+.coach-template-disclosure > .review-disclosure__body > details > summary:focus-visible {
   border-radius: 0.35rem;
   outline: 2px solid #7de0d2;
   outline-offset: 0.25rem;
@@ -374,14 +371,26 @@
 .coach-review-days { display: grid; gap: 1rem; margin-top: 0.75rem; }
 
 .coach-review-day {
-  padding: 1rem;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgb(125 224 210 / 14%);
   border-radius: 1.25rem;
   background: #071f1e;
 }
 
-.coach-review-day > header { display: flex; align-items: center; gap: 0.75rem; }
-.coach-review-day > header span { color: #efba62; font: 700 1.5rem "Sora Variable", sans-serif; }
-.coach-review-day > header h3 { margin: 0; }
+.coach-review-day > summary {
+  min-height: 4rem;
+  padding: 0.85rem 1rem;
+  background: #071f1e;
+}
+
+.coach-review-day > summary .review-disclosure__title {
+  color: #f2fffb;
+  font-size: 1.05rem;
+}
+
+.coach-review-day > summary .review-disclosure__summary { color: #86aaa4; }
+.coach-review-day > .review-disclosure__body { padding: 0 1rem 1rem; }
 
 .coach-review-day fieldset {
   display: grid;

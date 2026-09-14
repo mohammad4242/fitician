@@ -13,6 +13,7 @@ import {
 } from "@fitician/core";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
+import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
 import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
 import {
   approveWorkoutReview,
@@ -349,11 +350,13 @@ export function CoachWorkoutReviewPage() {
 
                 <div className="coach-review-days">
                   {draft.map((day, dayIndex) => (
-                    <article key={day.day_number} className="coach-review-day">
-                      <header>
-                        <span>{String(day.day_number).padStart(2, "0")}</span>
-                        <h3>{l(`روز ${faNumber(day.day_number)}`, `Day ${day.day_number}`)}</h3>
-                      </header>
+                    <ReviewDisclosure
+                      className="coach-review-day"
+                      key={day.day_number}
+                      section="coach-workout-day"
+                      summary={l(`${faNumber(day.exercises.length)} حرکت`, `${day.exercises.length} exercises`)}
+                      title={l(`روز ${faNumber(day.day_number)}`, `Day ${day.day_number}`)}
+                    >
                       {day.exercises.map((exercise, exerciseIndex) => {
                         const labelSuffix = l(
                           `روز ${faNumber(day.day_number)} حرکت ${faNumber(exercise.order_index)}`,
@@ -397,7 +400,7 @@ export function CoachWorkoutReviewPage() {
                           </fieldset>
                         );
                       })}
-                    </article>
+                    </ReviewDisclosure>
                   ))}
                 </div>
 
@@ -440,32 +443,31 @@ function TemplateSelectionAudit({
   const number = new Intl.NumberFormat(fa ? "fa-IR" : "en");
 
   return (
-    <section className="coach-template-selection" aria-labelledby="template-selection-title">
-      <header>
-        <span aria-hidden="true">⌁</span>
-        <div>
-          <small>{fa ? "منطق ساختاری" : "Structural rationale"}</small>
-          <h3 id="template-selection-title">{fa ? "علت انتخاب برنامه" : "Why this program was selected"}</h3>
-        </div>
-      </header>
-      <p>{fa ? selection.explanation_fa : selection.explanation_en}</p>
-      <details>
-        <summary>{fa ? "جزئیات امتیازدهی" : "Scoring details"}</summary>
-        <div className="coach-template-selection-details">
-          <div className="coach-template-slug">
-            <span>{fa ? "قالب منتخب" : "Selected template"}</span>
-            <code dir="ltr">{selection.selected_template}</code>
+    <section className="coach-template-selection">
+      <ReviewDisclosure
+        className="coach-template-disclosure"
+        section="coach-rationale"
+        summary={fa ? selection.explanation_fa : selection.explanation_en}
+        title={fa ? "علت انتخاب برنامه" : "Why this program was selected"}
+      >
+        <details>
+          <summary>{fa ? "جزئیات امتیازدهی" : "Scoring details"}</summary>
+          <div className="coach-template-selection-details">
+            <div className="coach-template-slug">
+              <span>{fa ? "قالب منتخب" : "Selected template"}</span>
+              <code dir="ltr">{selection.selected_template}</code>
+            </div>
+            <dl>
+              {scores.map(([label, value]) => (
+                <div key={label} className={label === (fa ? "مجموع" : "Total") ? "is-total" : undefined}>
+                  <dt>{label}</dt>
+                  <dd>{number.format(value)}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-          <dl>
-            {scores.map(([label, value]) => (
-              <div key={label} className={label === (fa ? "مجموع" : "Total") ? "is-total" : undefined}>
-                <dt>{label}</dt>
-                <dd>{number.format(value)}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </details>
+        </details>
+      </ReviewDisclosure>
     </section>
   );
 }

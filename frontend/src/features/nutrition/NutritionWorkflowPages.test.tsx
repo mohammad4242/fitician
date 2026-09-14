@@ -80,13 +80,28 @@ const physicianPlan = {
   input_snapshot: { safety_reason_codes: [] },
   price_snapshot: { status: "fresh" },
   food_data_manifest: { catalogue_version: "v1" },
+  profile_summary: {
+    display_name: "Member One",
+    height_cm: 165,
+    weight_kg: "68.20",
+    fitness_goal: "lose_weight",
+    training_location: "gym",
+    training_days_per_week: 3,
+    physical_limitations: null,
+    training_cautions: [],
+    nutrition: { food_items: [{ kind: "favourite", name: "ماست", details: null }] },
+    medical: { flags: {}, conditions: [], medications: [{ name: "ویتامین دی", dosage: "روزانه", notes: null }] },
+  },
   nutrients: {
     protein: { nutrient_code: "protein", planned: 100, unit: "g/day", status: "adequate" },
   },
   days: [{
+    day_index: 0,
     plan_date: today,
     meals: [{
       id: "meal-1",
+      name_fa: "ناهار",
+      name_en: "Lunch",
       foods: [{ food_id: "food-1", name_fa: "سینه مرغ", name_en: "Chicken breast", grams: 100 }],
     }],
   }],
@@ -378,8 +393,40 @@ it("lets a physician claim an exact revision and choose replacements from the ca
   await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
   expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
   expect(screen.getByText("Nutrient validation")).toBeInTheDocument();
+  await user.click(screen.getByText(/Day 1/));
+  await user.click(screen.getByText("Lunch"));
   await user.selectOptions(screen.getByRole("combobox", { name: "Replace Chicken breast" }), "food-2");
   await waitFor(() => expect(api.replacePhysicianFood).toHaveBeenCalledWith("plan-1", "meal-1", "food-1", "food-2"));
+});
+
+it("keeps physician plan days and meals closed until opened", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
+
+  const profileSummary = screen.getByText("Body and training");
+  expect(profileSummary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByText("Gym")).not.toBeVisible();
+  await user.click(profileSummary);
+  expect(screen.getByText("Gym")).toBeVisible();
+
+  const daySummary = screen.getByText(/Day 1/);
+  expect(daySummary.closest("details")).not.toBeNull();
+  expect(daySummary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByText("Chicken breast", { selector: ".physician-plan-foods span" })).not.toBeVisible();
+
+  await user.click(daySummary);
+
+  const mealSummary = screen.getByText("Lunch");
+  expect(mealSummary.closest("details")).not.toHaveAttribute("open");
+  await user.click(mealSummary);
+  expect(screen.getByText("Chicken breast", { selector: ".physician-plan-foods span" })).toBeVisible();
 });
 
 it("separates physician queue views and keeps approved revisions read-only", async () => {
@@ -397,6 +444,8 @@ it("separates physician queue views and keeps approved revisions read-only", asy
   await user.click(screen.getByRole("button", { name: "View revision" }));
   expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Approve this revision" })).not.toBeInTheDocument();
+  await user.click(screen.getByText(/Day 1/));
+  await user.click(screen.getByText("Lunch"));
   expect(screen.getByRole("spinbutton", { name: "Chicken breast quantity" })).toBeDisabled();
 });
 

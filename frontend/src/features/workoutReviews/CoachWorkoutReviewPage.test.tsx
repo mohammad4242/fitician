@@ -252,7 +252,7 @@ it("groups approved cases by approval date and shows the approval timestamp", as
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
 });
 
-it("shows important profile highlights and the complete current profile in the detail view", async () => {
+it("keeps detailed profile sections closed until the coach opens one", async () => {
   const user = userEvent.setup();
   renderPage();
 
@@ -263,11 +263,37 @@ it("shows important profile highlights and the complete current profile in the d
   expect(screen.getByText("۷۶٫۵ کیلوگرم")).toBeVisible();
   expect(screen.getByText("زانو درد خفیف")).toBeVisible();
 
-  const details = screen.getByText("پروفایل کامل");
-  expect(details).toBeVisible();
-  await user.click(details);
+  const bodySummary = screen.getByText("مشخصات بدنی و تمرین");
+  expect(bodySummary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByText("باشگاه")).not.toBeVisible();
+  await user.click(bodySummary);
+  expect(screen.getByText("باشگاه")).toBeVisible();
+
+  const nutritionSummary = screen.getByText("تغذیه و ترجیحات غذایی");
+  expect(nutritionSummary.closest("details")).not.toHaveAttribute("open");
+  await user.click(nutritionSummary);
   expect(screen.getByText("مرغ")).toBeVisible();
+
+  const medicalSummary = screen.getByText("اطلاعات پزشکی و ایمنی");
+  expect(medicalSummary.closest("details")).not.toHaveAttribute("open");
+  await user.click(medicalSummary);
   expect(screen.getByText(/داروی فشار خون/)).toBeVisible();
+});
+
+it("keeps each workout day closed until the coach opens it", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+
+  const daySummary = screen.getByText("روز ۱");
+  expect(daySummary.closest("details")).not.toBeNull();
+  expect(daySummary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.getByLabelText("تعداد ست روز ۱ حرکت ۱")).not.toBeVisible();
+
+  await user.click(daySummary);
+
+  expect(screen.getByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeVisible();
 });
 
 it("switches to review detail mode on narrow layouts and returns to the queue", async () => {
@@ -290,10 +316,13 @@ it("shows the coach explanation and keeps score details collapsed", async () => 
 
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
 
-  expect(await screen.findByRole("heading", { name: "علت انتخاب برنامه" })).toBeVisible();
+  const rationaleSummary = await screen.findByText("علت انتخاب برنامه");
+  expect(rationaleSummary).toBeVisible();
+  expect(rationaleSummary.closest("details")).not.toHaveAttribute("open");
   expect(screen.getByText(detail.template_selection!.explanation_fa)).toBeVisible();
   expect(screen.getByText("four-day-chest-priority")).not.toBeVisible();
 
+  await user.click(rationaleSummary);
   await user.click(screen.getByText("جزئیات امتیازدهی"));
 
   expect(screen.getByText("four-day-chest-priority")).toBeVisible();
@@ -305,6 +334,7 @@ it("saves permitted edits with the current revision", async () => {
   const user = userEvent.setup();
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await user.click(screen.getByText("روز ۱"));
   const sets = await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱");
   await user.clear(sets);
   await user.type(sets, "4");
@@ -330,6 +360,7 @@ it("allows the coach to edit RIR and sends it with the draft", async () => {
   const user = userEvent.setup();
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await user.click(screen.getByText("روز ۱"));
   const rir = await screen.findByLabelText("RIR روز ۱ حرکت ۱");
 
   await user.clear(rir);
