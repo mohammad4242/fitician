@@ -1161,6 +1161,35 @@ def test_generate_returns_construction_exhaustion_as_a_specific_422(client: Test
     }
 
 
+def test_generate_exposes_preferred_calendar_conflict_reason(client: TestClient) -> None:
+    _register_and_complete_profile(client, "preferred-calendar-conflict@example.com")
+
+    class FakeService:
+        async def generate(
+            self,
+            current_user_id: UUID,
+            *,
+            review_required: bool,
+        ) -> WorkoutPlanGenerationResult:
+            raise WorkoutConstructionUnsatisfiedError(
+                reason_codes=("PREFERRED_WEEKDAYS_RECOVERY_CONFLICT",),
+            )
+
+    from app.workouts.dependencies import get_workout_generation_service
+
+    app = cast(FastAPI, client.app)
+    app.dependency_overrides[get_workout_generation_service] = lambda: FakeService()
+    response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
+    app.dependency_overrides.pop(get_workout_generation_service)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "code": "UNSATISFIED_CONSTRAINT",
+        "reason_codes": ["PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"],
+        "message": "No safe workout layout satisfies all required session constraints",
+    }
+
+
 def test_generate_returns_retry_after_during_a_generation_cooldown(
     client: TestClient,
 ) -> None:

@@ -203,8 +203,14 @@ class NoEligibleExercisesError(Exception):
 
 
 class WorkoutConstructionUnsatisfiedError(Exception):
-    def __init__(self, error_code: str = "UNSATISFIED_CONSTRAINT") -> None:
+    def __init__(
+        self,
+        error_code: str = "UNSATISFIED_CONSTRAINT",
+        *,
+        reason_codes: tuple[str, ...] = (),
+    ) -> None:
         self.error_code = error_code
+        self.reason_codes = reason_codes
 
 
 class ProgramGenerationRejectedError(Exception):
@@ -540,7 +546,10 @@ class WorkoutGenerationService:
                 ],
             )
             if result.error_code is GenerationErrorCode.UNSATISFIED_CONSTRAINT:
-                raise WorkoutConstructionUnsatisfiedError(error_code)
+                raise WorkoutConstructionUnsatisfiedError(
+                    error_code,
+                    reason_codes=result.errors,
+                )
             if result.error_code in {
                 GenerationErrorCode.NO_SAFE_EXERCISE_FOR_PATTERN,
                 GenerationErrorCode.NO_AVAILABLE_EQUIPMENT_MATCH,

@@ -145,12 +145,15 @@ async def generate_plan(
             },
         ) from None
     except WorkoutConstructionUnsatisfiedError as error:
+        detail: dict[str, object] = {
+            "code": error.error_code,
+            "message": "No safe workout layout satisfies all required session constraints",
+        }
+        if error.reason_codes:
+            detail["reason_codes"] = list(error.reason_codes)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "code": error.error_code,
-                "message": "No safe workout layout satisfies all required session constraints",
-            },
+            detail=detail,
         ) from None
     except ProgramGenerationRejectedError as error:
         raise HTTPException(
