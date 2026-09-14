@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
+import { formatPersianDateWithWeekday } from "@fitician/core";
 import { Linking, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { ReactTestInstance } from "react-test-renderer";
@@ -416,6 +417,24 @@ test("shows an explicit start control for a ready nutrition plan", async () => {
   expect(screen.getByText("برنامه تغذیه آماده شروع است")).toBeTruthy();
   expect(screen.getByRole("button", { name: "شروع برنامه غذایی" })).toBeTruthy();
   expect(screen.getByLabelText("تاریخ شروع برنامه غذایی")).toBeTruthy();
+  expect(screen.getByText(`تاریخ شروع: ${formatPersianDateWithWeekday("2026-09-13")}`)).toBeTruthy();
+});
+
+test("shows the Persian weekday and date for a scheduled nutrition start", async () => {
+  mockDisplayedPlan = { ...activePlan, start_date: "2026-09-17" };
+  mockTimeline = {
+    local_date: "2026-09-14",
+    nutrition: {
+      plan_id: "plan-1",
+      start_date: "2026-09-17",
+      state: "scheduled_start",
+    },
+  };
+
+  renderPlan();
+  await settlePdf();
+
+  expect(screen.getByText(`تاریخ شروع: ${formatPersianDateWithWeekday("2026-09-17")}`)).toBeTruthy();
 });
 
 test("opens the recurring nutrition template on the timeline pattern day", async () => {

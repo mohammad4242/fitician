@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import {
+  FITICIAN_WEEKDAY_LABELS_FA,
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTime,
+  localIsoDate,
+  resolvedIanaTimeZone,
+} from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -57,7 +64,6 @@ import { NutritionShoppingList } from "./NutritionShoppingList";
 type PdfStatus = "checking" | "downloading" | "error" | "idle" | "ready";
 type BundleRole = "budget" | "ideal";
 
-const weekdayLabels = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 const generationMessages: Record<ReturnType<typeof classifyNutritionGenerationOutcome>, string> = {
   failed: "ساخت برنامه غذایی انجام نشد؛ وضعیت پروفایل و اتصال را بررسی کن.",
   infeasible: "با تنظیمات فعلی، برنامه‌ای که همه محدودیت‌ها را رعایت کند پیدا نشد.",
@@ -548,6 +554,11 @@ function NutritionPlanExecutionCard({
           textDirection="ltr"
           value={nutritionStartDate}
         />
+        {formatPlanDateWithWeekday(nutritionStartDate) !== null ? (
+          <Text style={styles.executionBody}>
+            تاریخ شروع: {formatPlanDateWithWeekday(nutritionStartDate)}
+          </Text>
+        ) : null}
         {nutritionStartError !== null ? <Notice message={nutritionStartError} variant="danger" /> : null}
         <Button
           disabled={nutritionStartPending}
@@ -564,7 +575,7 @@ function NutritionPlanExecutionCard({
       <Card style={styles.executionCard} testID="nutrition-plan-scheduled-card">
         <Text style={styles.eyebrow}>برنامه تغذیه</Text>
         <Text style={styles.executionTitle}>شروع برنامه زمان‌بندی شده است</Text>
-        {plan.start_date ? <Text style={styles.executionBody}>تاریخ شروع: {formatPlanDate(plan.start_date)}</Text> : null}
+        {plan.start_date ? <Text style={styles.executionBody}>تاریخ شروع: {formatPlanDateWithWeekday(plan.start_date)}</Text> : null}
       </Card>
     );
   }
@@ -1485,7 +1496,7 @@ function DaySelector({
           style={[styles.dayTab, day.day_index === selectedDayIndex && styles.dayTabSelected]}
         >
           <Text style={[styles.dayTabLabel, day.day_index === selectedDayIndex && styles.dayTabLabelSelected]}>
-            {weekdayLabels[day.day_index] ?? `روز ${day.day_index + 1}`}
+            {FITICIAN_WEEKDAY_LABELS_FA[day.day_index] ?? `روز ${day.day_index + 1}`}
           </Text>
           <Text style={[styles.dayTabDate, day.day_index === selectedDayIndex && styles.dayTabDateSelected]}>{formatPlanDate(day.plan_date)}</Text>
         </Pressable>
@@ -1565,13 +1576,19 @@ function budgetStatusLabel(value: string): string {
 }
 
 function formatPlanDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { day: "numeric", month: "short" }).format(
-    new Date(`${value}T00:00:00Z`),
-  );
+  return formatPersianDate(value);
+}
+
+function formatPlanDateWithWeekday(value: string): string | null {
+  try {
+    return formatPersianDateWithWeekday(value);
+  } catch {
+    return null;
+  }
 }
 
 function formatPlanDateTime(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateTime(value);
 }
 
 function historyTitle(version: WeeklyPlanHistoryItem): string {
