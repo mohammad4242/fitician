@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import i18n from "../../i18n";
 import * as api from "./api";
 import { FoodCataloguePage } from "./FoodCataloguePage";
@@ -190,6 +192,22 @@ it("shows price and price controls only to an admin", async () => {
   expect(screen.getByText("یافت نشد")).toBeVisible();
 });
 
+it("renders member catalogue failures through the shared resolver", async () => {
+  vi.mocked(api.getFoodCatalogue).mockRejectedValueOnce(
+    new ApiError(503, "private provider detail", null, "SERVICE_UNAVAILABLE", {
+      requestId: "food-load-1",
+    }),
+  );
+
+  render(<MemoryRouter><FoodCataloguePage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("private provider detail");
+  expect(alert).not.toHaveTextContent("food-load-1");
+  expect(screen.getByRole("button", { name: "تلاش دوباره" })).toBeInTheDocument();
+});
+
 it("uses the Tehran calendar date when an admin adds a food", async () => {
   auth.isAdmin = true;
   vi.mocked(api.saveCatalogueFood).mockResolvedValue({});
@@ -277,13 +295,22 @@ it("deletes the food after confirmation and refetches the catalogue", async () =
 it("keeps the dialog and food visible when deletion fails", async () => {
   const user = userEvent.setup();
   auth.isAdmin = true;
-  vi.mocked(api.deleteCatalogueFood).mockRejectedValueOnce(new Error("delete failed"));
+  vi.mocked(api.deleteCatalogueFood).mockRejectedValueOnce(
+    new ApiError(422, "private delete detail", null, "FOOD_CATALOGUE_INVALID", {
+      requestId: "food-delete-1",
+    }),
+  );
   render(<MemoryRouter><FoodCataloguePage /></MemoryRouter>);
 
   await user.click(await screen.findByRole("button", { name: "حذف سینه مرغ" }));
   await user.click(screen.getByRole("button", { name: "حذف ماده غذایی" }));
 
-  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("حذف ماده غذایی انجام نشد."));
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("اطلاعات ماده غذایی معتبر نیست");
+  expect(alert).toHaveTextContent("FOOD_CATALOGUE_INVALID");
+  expect(alert).toHaveTextContent("422");
+  expect(alert).toHaveTextContent("food-delete-1");
+  expect(alert).not.toHaveTextContent("private delete detail");
   expect(screen.getByRole("dialog", { name: "حذف ماده غذایی؟" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "سینه مرغ" })).toBeVisible();
 });
@@ -523,13 +550,15 @@ it("shows a connection error when background price inquiry rejects", async () =>
     ...response,
     items: [{ ...response.items[0], price: { status: "not_found" } }],
   });
-  vi.mocked(api.researchFoodPrice).mockRejectedValueOnce(new Error("اتصال به سرویس برقرار نشد"));
+  vi.mocked(api.researchFoodPrice).mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
   render(<MemoryRouter><FoodCataloguePage /></MemoryRouter>);
 
   await user.click(await screen.findByRole("button", { name: "استعلام قیمت سینه مرغ" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("اتصال به سرویس برقرار نشد");
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("ارتباط با سرویس برقرار نشد");
+  expect(alert).not.toHaveTextContent("Failed to fetch");
   expect(screen.getByText("یافت نشد")).toBeVisible();
   expect(screen.getByRole("button", { name: "استعلام قیمت سینه مرغ" })).toBeEnabled();
 });

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { IRAN_TIME_ZONE, formatTehranDateForLocale, localIsoDate } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { resolveWebAppError } from "../../shared/appError";
 import { useAuth } from "../auth/AuthContext";
 import * as api from "./api";
 import type { AdminFoodCatalogueItem, AdminFoodCatalogueResponse, FoodCatalogueItem, FoodCatalogueResponse } from "./api";
@@ -11,7 +13,7 @@ import "./foodCatalogue.css";
 type LoadState = "loading" | "ready" | "error";
 type PriceResearchState =
   | { status: "researching" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; cause?: unknown };
 type CataloguePriceReferenceUnit = NonNullable<AdminFoodCatalogueItem["price"]["reference_unit"]>;
 
 const primaryNutrientDefinitions = [
@@ -31,6 +33,7 @@ export function FoodCataloguePage() {
   const fa = language === "fa";
   const l = (persian: string, english: string) => fa ? persian : english;
   const [state, setState] = useState<LoadState>("loading");
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [data, setData] = useState<FoodCatalogueResponse | AdminFoodCatalogueResponse | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
@@ -52,10 +55,14 @@ export function FoodCataloguePage() {
       .then((result) => {
         if (!active) return;
         setData(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (active) {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => { active = false; };
   }, [category, page, query, reload, user?.is_admin]);
@@ -92,9 +99,15 @@ export function FoodCataloguePage() {
         }));
       })
       .catch((error: unknown) => {
-        const fallback = l("خطا در برقراری ارتباط با سرویس استعلام قیمت.", "Failed to connect to the price inquiry service.");
-        const message = error instanceof Error && error.message.trim() ? error.message : fallback;
-        setPriceResearchStates((current) => ({ ...current, [food.slug]: { status: "error", message } }));
+        const resolved = resolveWebAppError(error, {
+          audience: "admin",
+          context: "nutrition",
+          locale: language,
+        });
+        setPriceResearchStates((current) => ({
+          ...current,
+          [food.slug]: { status: "error", message: resolved.message, cause: error },
+        }));
       });
   }
 
@@ -140,7 +153,7 @@ export function FoodCataloguePage() {
       </section>
 
       {state === "loading" && <p className="food-catalogue-state" role="status">{l("در حال چیدن قفسه…", "Stocking the shelf…")}</p>}
-      {state === "error" && <section className="food-catalogue-state" role="alert"><strong>{l("کاتالوگ دریافت نشد", "Catalogue unavailable")}</strong><button type="button" onClick={() => setReload((value) => value + 1)}>{l("تلاش دوباره", "Try again")}</button></section>}
+      {state === "error" && <div className="food-catalogue-state"><AppErrorNotice audience={user?.is_admin ? "admin" : "member"} context="nutrition" error={loadError} locale={language} /><button type="button" onClick={() => setReload((value) => value + 1)}>{l("تلاش دوباره", "Try again")}</button></div>}
       {state === "ready" && data?.items.length === 0 && <p className="food-catalogue-state">{l("ماده‌ای با این مشخصات پیدا نشد.", "No food matched these filters.")}</p>}
       {state === "ready" && data && data.items.length > 0 && (
         <section className="food-catalogue-grid" aria-label={l("مواد غذایی", "Foods")} role="list">
@@ -205,16 +218,16 @@ function DeleteFoodDialog({ food, language, onClose, onDeleted }: { food: AdminF
   const fa = language === "fa";
   const l = (persian: string, english: string) => fa ? persian : english;
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (deleting) return;
     setDeleting(true);
-    setError(false);
+    setError(null);
     void api.deleteCatalogueFood(food.slug)
       .then(onDeleted)
-      .catch(() => setError(true))
+      .catch((cause: unknown) => setError(cause))
       .finally(() => setDeleting(false));
   }
 
@@ -225,7 +238,7 @@ function DeleteFoodDialog({ food, language, onClose, onDeleted }: { food: AdminF
       <p>{l(`«${food.name_fa}» از کاتالوگ فعال حذف شود؟`, `Remove “${food.name_en}” from the active catalogue?`)}</p>
       <p>{l("این ماده دیگر در کاتالوگ و برنامه‌های غذایی جدید استفاده نمی‌شود، اما اطلاعات و سوابق تاریخی آن حذف نخواهند شد.", "It will no longer be available for new nutrition plans. Historical records will be preserved.")}</p>
       <form className="food-delete-dialog" onSubmit={submit}>
-        {error && <p className="food-delete-dialog__error" role="alert">{l("حذف ماده غذایی انجام نشد.", "Food deletion failed.")}</p>}
+        <AppErrorNotice audience="admin" context="nutrition" error={error} locale={language} />
         <footer className="food-dialog__actions">
           <button disabled={deleting} type="button" onClick={onClose}>{l("انصراف", "Cancel")}</button>
           <button className="food-dialog-delete" disabled={deleting} type="submit">{deleting ? l("در حال حذف…", "Deleting…") : l("حذف ماده غذایی", "Delete food")}</button>
@@ -280,7 +293,9 @@ function PriceTicket({ food, language, researchState }: { food: AdminFoodCatalog
         : <strong>{hasPrice ? `${formatNumber(priceInToman, language)} ${l("تومان", "Toman")}` : l("یافت نشد", "Not found")}</strong>}
       {!researching && food.price.reference_unit && hasPrice && <small>{priceUnit(food.price.reference_unit, language)}</small>}
       {!researching && hasPrice && <small>{food.price.source === "manual_override" ? l("جایگزین موقت ادمین", "Temporary admin override") : l("به‌روزرسانی خودکار بازار", "Automatic market update")}{food.price.observed_at ? ` · ${formatDate(food.price.observed_at, language)}` : ""}</small>}
-      {researchState?.status === "error" && <small className="food-price-ticket__error" role="alert">{researchState.message}</small>}
+      {researchState?.status === "error" && (researchState.cause !== undefined && researchState.cause !== null
+        ? <AppErrorNotice audience="admin" context="nutrition" error={researchState.cause} locale={language} />
+        : <small className="food-price-ticket__error" role="alert">{researchState.message}</small>)}
     </div>
   );
 }
@@ -302,11 +317,11 @@ function PriceOverrideDialog({
   const [unit, setUnit] = useState(food.price.canonical_unit ?? "TOMAN_PER_KG");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
   const [researching, setResearching] = useState(false);
   const [researchResult, setResearchResult] = useState<api.SingleFoodPriceResearchResponse | null>(null);
-  const [researchError, setResearchError] = useState<string | null>(null);
+  const [researchError, setResearchError] = useState<{ message: string; cause?: unknown } | null>(null);
 
   const runResearch = useCallback(async () => {
     setResearching(true);
@@ -321,23 +336,28 @@ function PriceOverrideDialog({
         }
         setReason((prev) => prev || (fa ? "استعلام خودکار از فروشگاه‌های آنلاین توسط ایجنت" : "Automated AI online market inquiry"));
       } else if (res.status === "failed" || res.status === "no_quotes") {
-        setResearchError(res.message || (fa ? "قیمتی در فروشگاه‌ها یافت نشد." : "No prices found in online stores."));
+        setResearchError({ message: res.message || (fa ? "قیمتی در فروشگاه‌ها یافت نشد." : "No prices found in online stores.") });
       }
-    } catch {
-      setResearchError(fa ? "خطا در برقراری ارتباط با سرویس استعلام قیمت." : "Failed to connect to price inquiry service.");
+    } catch (cause: unknown) {
+      const resolved = resolveWebAppError(cause, {
+        audience: "admin",
+        context: "nutrition",
+        locale: language,
+      });
+      setResearchError({ message: resolved.message, cause });
     } finally {
       setResearching(false);
     }
-  }, [fa, food.slug]);
+  }, [fa, food.slug, language]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     setSaving(true);
-    setError(false);
+    setError(null);
     void api
       .saveFoodPriceOverride(food.slug, { reference_price_toman: price, canonical_unit: unit, reason })
       .then(onSaved)
-      .catch(() => setError(true))
+      .catch((cause: unknown) => setError(cause))
       .finally(() => setSaving(false));
   }
 
@@ -358,7 +378,9 @@ function PriceOverrideDialog({
             : l("⚡ استعلام هوشمند قیمت با ایجنت", "⚡ AI Price Inquiry with Agent")}
         </button>
 
-        {researchError && <p className="food-ai-research-error" role="alert">{researchError}</p>}
+        {researchError?.cause !== undefined && researchError.cause !== null
+          ? <AppErrorNotice audience="admin" context="nutrition" error={researchError.cause} locale={language} />
+          : researchError && <p className="food-ai-research-error" role="alert">{researchError.message}</p>}
 
         {researchResult && researchResult.quotes.length > 0 && (
           <div className="food-ai-quotes">
@@ -417,7 +439,7 @@ function PriceOverrideDialog({
             onChange={(event) => setReason(event.target.value)}
           />
         </label>
-        {error && <p role="alert">{l("قیمت ذخیره نشد.", "Price was not saved.")}</p>}
+        <AppErrorNotice audience="admin" context="nutrition" error={error} locale={language} />
         <button disabled={saving || researching} type="submit">
           {saving ? l("در حال ذخیره…", "Saving…") : l("ذخیره قیمت", "Save price")}
         </button>
@@ -431,15 +453,15 @@ function FoodImageDialog({ food, language, onClose, onSaved }: { food: AdminFood
   const l = (persian: string, english: string) => fa ? persian : english;
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!file) return;
     setSaving(true);
-    setError(false);
-    void api.uploadCatalogueFoodImage(food.slug, file).then(onSaved).catch(() => setError(true)).finally(() => setSaving(false));
+    setError(null);
+    void api.uploadCatalogueFoodImage(food.slug, file).then(onSaved).catch((cause: unknown) => setError(cause)).finally(() => setSaving(false));
   }
-  return <DialogFrame label={l(`تصویر ${food.name_fa}`, `Image for ${food.name_en}`)} onClose={onClose}><h2>{l(food.image_url ? "جایگزینی تصویر غذا" : "بارگذاری تصویر غذا", food.image_url ? "Replace food image" : "Upload food image")}</h2><p>{l("فایل JPEG، PNG، WebP یا GIF انتخاب کنید.", "Choose a JPEG, PNG, WebP, or GIF file.")}</p><form className="food-admin-form" onSubmit={submit}><label>{l("تصویر غذا", "Food image")}<input accept="image/gif,image/jpeg,image/png,image/webp" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>{file && <p className="food-image-file">{file.name}</p>}{error && <p role="alert">{l("تصویر ذخیره نشد.", "Image was not saved.")}</p>}<button disabled={saving || !file} type="submit">{saving ? l("در حال ذخیره…", "Saving…") : l("ذخیره تصویر", "Save image")}</button></form></DialogFrame>;
+  return <DialogFrame label={l(`تصویر ${food.name_fa}`, `Image for ${food.name_en}`)} onClose={onClose}><h2>{l(food.image_url ? "جایگزینی تصویر غذا" : "بارگذاری تصویر غذا", food.image_url ? "Replace food image" : "Upload food image")}</h2><p>{l("فایل JPEG، PNG، WebP یا GIF انتخاب کنید.", "Choose a JPEG, PNG, WebP, or GIF file.")}</p><form className="food-admin-form" onSubmit={submit}><label>{l("تصویر غذا", "Food image")}<input accept="image/gif,image/jpeg,image/png,image/webp" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>{file && <p className="food-image-file">{file.name}</p>}<AppErrorNotice audience="admin" context="nutrition" error={error} locale={language} /><button disabled={saving || !file} type="submit">{saving ? l("در حال ذخیره…", "Saving…") : l("ذخیره تصویر", "Save image")}</button></form></DialogFrame>;
 }
 
 function AddFoodDialog({ language, onClose, onSaved }: { language: "fa" | "en"; onClose: () => void; onSaved: () => void }) {
@@ -448,9 +470,9 @@ function AddFoodDialog({ language, onClose, onSaved }: { language: "fa" | "en"; 
   const [identity, setIdentity] = useState({ slug: "", name_fa: "", name_en: "", category: "", source_name: "", source_reference: "" });
   const [macros, setMacros] = useState<Record<string, string>>({ energy_kcal: "", protein_g: "", carbohydrate_g: "", total_fat_g: "", fibre_g: "" });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
-  function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(false); const nutrientUnits: Record<string, string> = { energy_kcal: "kcal", protein_g: "g", carbohydrate_g: "g", total_fat_g: "g", fibre_g: "g" }; void api.saveCatalogueFood({ ...identity, verification_status: "verified", measurement_basis: "as_purchased", canonical_quantity: 100, canonical_unit: "g", edible_portion: 1, data_version: "admin-verified-v1", source_food_id: null, source_access_date: localIsoDate(new Date(), IRAN_TIME_ZONE), aliases: [], dietary_patterns: ["omnivore", "vegetarian", "vegan"], roles: ["flexible"], nutrients: Object.entries(macros).map(([nutrient_code, value_per_100g]) => ({ nutrient_code, value_per_100g: Number(value_per_100g), unit: nutrientUnits[nutrient_code], unit_form: "nutrient_mass", source_name: identity.source_name, source_reference: identity.source_reference, confidence: "high" })) }).then(onSaved).catch(() => setError(true)).finally(() => setSaving(false)); }
-  return <DialogFrame label={l("افزودن ماده غذایی", "Add food")} onClose={onClose}><h2>{l("ماده غذایی تأییدشده", "Verified food")}</h2><p>{l("برای انتشار، مشخصات و پنج مقدار اصلی باید کامل باشند.", "Identity, provenance, and all five primary values are required.")}</p><form className="food-admin-form food-admin-form--wide" onSubmit={submit}>{(["slug", "name_fa", "name_en", "category", "source_name", "source_reference"] as const).map((field) => <label key={field}>{fieldLabel(field, language)}<input required type={field === "source_reference" ? "url" : "text"} value={identity[field]} onChange={(event) => setIdentity((value) => ({ ...value, [field]: event.target.value }))} /></label>)}{primaryNutrientDefinitions.map(([code, faLabel, enLabel, unit]) => <label key={code}>{fa ? faLabel : enLabel} ({unit})<input inputMode="decimal" min="0" required value={macros[code]} onChange={(event) => setMacros((value) => ({ ...value, [code]: event.target.value }))} /></label>)}{error && <p role="alert">{l("ماده غذایی ذخیره نشد.", "Food was not saved.")}</p>}<button disabled={saving} type="submit">{saving ? l("در حال ذخیره…", "Saving…") : l("افزودن به کاتالوگ", "Add to catalogue")}</button></form></DialogFrame>;
+  const [error, setError] = useState<unknown>(null);
+  function submit(event: FormEvent) { event.preventDefault(); setSaving(true); setError(null); const nutrientUnits: Record<string, string> = { energy_kcal: "kcal", protein_g: "g", carbohydrate_g: "g", total_fat_g: "g", fibre_g: "g" }; void api.saveCatalogueFood({ ...identity, verification_status: "verified", measurement_basis: "as_purchased", canonical_quantity: 100, canonical_unit: "g", edible_portion: 1, data_version: "admin-verified-v1", source_food_id: null, source_access_date: localIsoDate(new Date(), IRAN_TIME_ZONE), aliases: [], dietary_patterns: ["omnivore", "vegetarian", "vegan"], roles: ["flexible"], nutrients: Object.entries(macros).map(([nutrient_code, value_per_100g]) => ({ nutrient_code, value_per_100g: Number(value_per_100g), unit: nutrientUnits[nutrient_code], unit_form: "nutrient_mass", source_name: identity.source_name, source_reference: identity.source_reference, confidence: "high" })) }).then(onSaved).catch((cause: unknown) => setError(cause)).finally(() => setSaving(false)); }
+  return <DialogFrame label={l("افزودن ماده غذایی", "Add food")} onClose={onClose}><h2>{l("ماده غذایی تأییدشده", "Verified food")}</h2><p>{l("برای انتشار، مشخصات و پنج مقدار اصلی باید کامل باشند.", "Identity, provenance, and all five primary values are required.")}</p><form className="food-admin-form food-admin-form--wide" onSubmit={submit}>{(["slug", "name_fa", "name_en", "category", "source_name", "source_reference"] as const).map((field) => <label key={field}>{fieldLabel(field, language)}<input required type={field === "source_reference" ? "url" : "text"} value={identity[field]} onChange={(event) => setIdentity((value) => ({ ...value, [field]: event.target.value }))} /></label>)}{primaryNutrientDefinitions.map(([code, faLabel, enLabel, unit]) => <label key={code}>{fa ? faLabel : enLabel} ({unit})<input inputMode="decimal" min="0" required value={macros[code]} onChange={(event) => setMacros((value) => ({ ...value, [code]: event.target.value }))} /></label>)}<AppErrorNotice audience="admin" context="nutrition" error={error} locale={language} /><button disabled={saving} type="submit">{saving ? l("در حال ذخیره…", "Saving…") : l("افزودن به کاتالوگ", "Add to catalogue")}</button></form></DialogFrame>;
 }
 
 function DialogFrame({ children, label, onClose }: { children: ReactNode; label: string; onClose: () => void }) { return <div className="food-dialog-backdrop"><section aria-label={label} aria-modal="true" className="food-dialog" role="dialog"><button className="food-dialog__close" type="button" onClick={onClose} aria-label="Close">×</button>{children}</section></div>; }

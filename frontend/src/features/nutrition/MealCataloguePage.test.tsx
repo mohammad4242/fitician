@@ -309,7 +309,7 @@ it("displays conflict error when deleting a referenced meal (409 Conflict)", asy
   expect(adminApi.deleteAdminMeal).toHaveBeenCalledWith("meal-1");
   // Displays domain conflict message
   expect(
-    screen.getByText("این وعده در برنامه‌ها یا پلن‌های هفتگی استفاده شده و قابل حذف نیست."),
+    screen.getByText("این وعده در برنامه‌های موجود استفاده شده و قابل حذف نیست."),
   ).toBeInTheDocument();
   // Meal 1 is NOT removed
   expect(screen.getByText("املت گوجه‌فرنگی با نان")).toBeInTheDocument();
@@ -333,7 +333,7 @@ it("renders empty state when category has no items", async () => {
 it("renders error state and retries successfully", async () => {
   const user = userEvent.setup();
   vi.mocked(api.getMealCatalogue)
-    .mockRejectedValueOnce(new Error("Network failure"))
+    .mockRejectedValueOnce(new TypeError("Failed to fetch"))
     .mockResolvedValueOnce(mockData);
 
   render(
@@ -343,7 +343,9 @@ it("renders error state and retries successfully", async () => {
   );
 
   const retryButton = await screen.findByRole("button", { name: "تلاش دوباره" });
-  expect(screen.getByText("کاتالوگ وعده‌ها دریافت نشد.")).toBeInTheDocument();
+  const alert = screen.getByRole("alert");
+  expect(alert).toHaveTextContent("ارتباط با سرویس برقرار نشد");
+  expect(alert).not.toHaveTextContent("Failed to fetch");
 
   await user.click(retryButton);
 

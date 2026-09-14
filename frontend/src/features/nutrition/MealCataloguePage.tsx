@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import foodAccent from "../../assets/landing/food.webp";
-import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { MealThumbnail } from "../../shared/MealThumbnail";
 import { deleteAdminMeal, uploadAdminMealImage } from "../admin/api";
@@ -33,12 +33,13 @@ export function MealCataloguePage() {
   const [statusFilter, setStatusFilter] = useState<"published" | "draft" | "all">("published");
   const [data, setData] = useState<MealCatalogueResponse | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [retry, setRetry] = useState(0);
 
   const [imageMeal, setImageMeal] = useState<MealCatalogueItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MealCatalogueItem | null>(null);
   const [deletingMealId, setDeletingMealId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<unknown>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const english = i18n.resolvedLanguage === "en";
@@ -51,10 +52,14 @@ export function MealCataloguePage() {
       .then((response) => {
         if (!active) return;
         setData(response);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (active) {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => {
       active = false;
@@ -90,12 +95,8 @@ export function MealCataloguePage() {
             },
       );
       setDeleteTarget(null);
-    } catch (err: unknown) {
-      if (err instanceof ApiError && (err.status === 409 || err.code === "meal_referenced")) {
-        setDeleteError(t("mealCatalogue.deleteConflictError"));
-      } else {
-        setDeleteError(t("mealCatalogue.deleteError"));
-      }
+    } catch (cause: unknown) {
+      setDeleteError(cause);
     } finally {
       setDeletingMealId(null);
     }
@@ -186,12 +187,12 @@ export function MealCataloguePage() {
         )}
 
         {state === "error" && (
-          <section className="meal-catalogue-state meal-catalogue-state--error" role="alert">
-            <p>{t("mealCatalogue.loadError")}</p>
+          <div className="meal-catalogue-state meal-catalogue-state--error">
+            <AppErrorNotice audience={isAdmin ? "admin" : "member"} context="nutrition" error={loadError} locale={english ? "en" : "fa"} />
             <button type="button" onClick={() => setRetry((value) => value + 1)}>
               {t("mealCatalogue.retry")}
             </button>
-          </section>
+          </div>
         )}
 
         {state === "ready" && data?.items.length === 0 && (
@@ -348,11 +349,7 @@ export function MealCataloguePage() {
                 name: english ? deleteTarget.name_en : deleteTarget.name_fa,
               })}
             </p>
-            {deleteError !== null && (
-              <p className="meal-delete-dialog__error" role="alert">
-                {deleteError}
-              </p>
-            )}
+            <AppErrorNotice audience="admin" context="nutrition" error={deleteError} locale={english ? "en" : "fa"} />
             <footer>
               <button
                 autoFocus
@@ -391,19 +388,19 @@ function MealImageDialog({
   const { i18n, t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const name = i18n.resolvedLanguage === "en" ? meal.name_en : meal.name_fa;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!file) return;
     setSaving(true);
-    setError(false);
+    setError(null);
     try {
       const saved = await uploadAdminMealImage(meal.id, file);
       onSaved(saved.image_url);
-    } catch {
-      setError(true);
+    } catch (cause: unknown) {
+      setError(cause);
       setSaving(false);
     }
   }
@@ -434,7 +431,7 @@ function MealImageDialog({
             />
           </label>
           {file && <small>{file.name}</small>}
-          {error && <p role="alert">{t("mealCatalogue.imageError")}</p>}
+          <AppErrorNotice audience="admin" context="nutrition" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />
           <button disabled={saving || !file} type="submit">
             {saving ? t("mealCatalogue.savingImage") : t("mealCatalogue.saveImage")}
           </button>
