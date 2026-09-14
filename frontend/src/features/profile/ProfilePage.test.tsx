@@ -247,6 +247,24 @@ it("keeps an existing custom weekday selection on profile load", async () => {
   expect(context.updateProfile).not.toHaveBeenCalled();
 });
 
+it("shows the actual count when a legacy empty calendar opens custom selection", async () => {
+  context.profile = {
+    ...savedProfile,
+    training_days_per_week: 4,
+    preferred_weekdays: [],
+  };
+  const user = userEvent.setup();
+  renderProfilePage();
+
+  await openTrainingPage(user);
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  await user.click(within(weekdayGroup).getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
+
+  expect(screen.getByText("۰ از ۴ روز انتخاب شده")).toBeInTheDocument();
+  const grid = screen.getByRole("group", { name: "روزهای دلخواه" });
+  expect(within(grid).queryAllByRole("checkbox", { checked: true })).toHaveLength(0);
+});
+
 it("marks an existing second weekday preset as selected on profile load", async () => {
   context.profile = {
     ...savedProfile,

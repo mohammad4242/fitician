@@ -743,6 +743,7 @@ function TrainingWeekdaySelector({
   const displaySelection = selectedWeekdays.length > 0
     ? selectedWeekdays
     : getPrimaryTrainingWeekdayPreset(trainingDays) ?? [];
+  const countSelection = customMode ? selectedWeekdays : displaySelection;
   const sortedDisplaySelection = [...displaySelection].sort((a, b) => a - b);
   const selectedPresetIndex = customMode
     ? -1
@@ -831,7 +832,7 @@ function TrainingWeekdaySelector({
       ) : null}
       <p className="profile-field__hint training-weekday-count" aria-live="polite">
         {t("onboarding.trainingWeekdays.selectedCount", {
-          selected: numberFormat.format(displaySelection.length),
+          selected: numberFormat.format(countSelection.length),
           total: numberFormat.format(trainingDays),
         })}
       </p>
