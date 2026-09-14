@@ -323,6 +323,15 @@ export async function getLatestWeeklyNutritionPlan(): Promise<WeeklyPlan | null>
   }
 }
 
+export async function getActiveWeeklyNutritionPlan(): Promise<WeeklyPlan | null> {
+  try {
+    return await request<WeeklyPlan>(`${nutritionPath}/plans/active`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
 export function getWeeklyNutritionPlan(planId: string): Promise<WeeklyPlan> {
   return request(`${nutritionPath}/plans/${planId}`);
 }

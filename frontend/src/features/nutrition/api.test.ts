@@ -6,6 +6,7 @@ import {
   deleteCatalogueFood,
   downloadNutritionPlanPdf,
   getCurrentNutritionEstimate,
+  getActiveWeeklyNutritionPlan,
   getLatestWeeklyNutritionPlan,
   startNutritionPlan,
   getMealFeedback,
@@ -62,6 +63,17 @@ it("starts a nutrition plan with an explicit local date and timezone", async () 
       method: "POST",
       body: JSON.stringify({ start_date: plan.start_date, timezone: "Asia/Tehran" }),
     }),
+  );
+});
+
+it("reads the effective active nutrition plan separately from the latest plan", async () => {
+  const plan = { id: "active-plan", lifecycle_status: "active", start_date: "2026-09-01" };
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(plan));
+
+  await expect(getActiveWeeklyNutritionPlan()).resolves.toEqual(plan);
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/v1/nutrition/plans/active",
+    expect.objectContaining({ credentials: "include" }),
   );
 });
 
