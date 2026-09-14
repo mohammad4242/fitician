@@ -20,7 +20,7 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ),
   AUTH_OTP_INVALID_OR_EXPIRED: entry(
     text("کد ورود معتبر نیست", "Invalid sign-in code"),
-    text("کد واردشده معتبر نیست یا منقضی شده است.", "The code is invalid or has expired."),
+    text("کد ورود معتبر نیست یا منقضی شده است.", "The code is invalid or has expired."),
   ),
   AUTH_EMAIL_ALREADY_REGISTERED: entry(
     text("حساب موجود است", "Account already exists"),
@@ -41,6 +41,14 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   AUTH_APPLE_FAILED: entry(
     text("ورود با اپل انجام نشد", "Apple sign-in failed"),
     text("ورود با اپل انجام نشد. دوباره تلاش کنید.", "Apple sign-in could not be completed. Try again."),
+  ),
+  AUTH_GOOGLE_ACCOUNT_CONFLICT: entry(
+    text("ورود با گوگل انجام نشد", "Google sign-in conflict"),
+    text("این حساب گوگل به حساب دیگری متصل است.", "This Google account is linked to another account."),
+  ),
+  AUTH_APPLE_ACCOUNT_CONFLICT: entry(
+    text("ورود با اپل انجام نشد", "Apple sign-in conflict"),
+    text("این حساب اپل به حساب دیگری متصل است.", "This Apple account is linked to another account."),
   ),
   AUTHENTICATION_REQUIRED: entry(
     text("ورود لازم است", "Sign-in required"),

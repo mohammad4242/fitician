@@ -1,4 +1,12 @@
-import { ApiError } from "@fitician/core";
+import {
+  ApiError,
+  TransportError,
+  resolveAppError,
+  type ErrorAudienceInput,
+  type ErrorContext,
+  type ErrorLocale,
+  type ResolvedAppError,
+} from "@fitician/core";
 import type { QueryObserverResult } from "@tanstack/react-query";
 
 import type { ConnectivityStatus } from "../platform/connectivity";
@@ -16,6 +24,7 @@ export type MobileStateError = {
   readonly status: number | null;
   readonly code: string | null;
   readonly retryable: boolean;
+  readonly presentation: ResolvedAppError;
 };
 
 export type MobileViewState<TData> =
@@ -32,63 +41,76 @@ export type MobileViewState<TData> =
     };
 
 export interface MobileViewStateOptions<TData> {
+  readonly audience?: ErrorAudienceInput;
+  readonly context?: ErrorContext;
   readonly connectivityStatus?: ConnectivityStatus;
   readonly isEmpty?: (data: TData) => boolean;
+  readonly locale?: ErrorLocale;
 }
 
 function isNetworkFailure(error: unknown): boolean {
-  if (error instanceof ApiError || error === null || typeof error !== "object") {
-    return false;
-  }
+  if (error instanceof TransportError) return error.kind === "offline";
+  if (error instanceof ApiError || error === null || typeof error !== "object") return false;
   const candidate = error as { readonly name?: unknown; readonly message?: unknown };
-  if (candidate.name === "AbortError") {
-    return false;
-  }
-  return (
-    error instanceof TypeError ||
-    (typeof candidate.message === "string" &&
-      /network|offline|timeout|timed out|connection|fetch failed/i.test(candidate.message))
-  );
+  return candidate.name !== "AbortError" && typeof candidate.message === "string"
+    && /offline/i.test(candidate.message);
+}
+
+function isAborted(error: unknown): boolean {
+  return error instanceof TransportError
+    ? error.kind === "aborted"
+    : typeof error === "object"
+      && error !== null
+      && (error as { readonly name?: unknown }).name === "AbortError";
 }
 
 function isDefaultEmpty<TData>(data: TData): boolean {
   return data === null || (Array.isArray(data) && data.length === 0);
 }
 
-export function classifyMobileStateError(error: unknown): MobileStateError {
-  if (error instanceof ApiError) {
-    const kind: MobileStateErrorKind =
-      error.status === 400 || error.status === 409 || error.status === 422
-        ? "validation"
-        : error.status === 401 || error.status === 403
-          ? "permission"
-          : "server";
-    return {
-      code: error.code,
-      kind,
-      message: error.message,
-      retryable: error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500,
-      status: error.status,
-    };
-  }
+export interface MobileErrorPresentationOptions {
+  readonly audience?: ErrorAudienceInput;
+  readonly context?: ErrorContext;
+  readonly connectivityStatus?: ConnectivityStatus;
+  readonly locale?: ErrorLocale;
+}
+
+export function classifyMobileStateError(
+  error: unknown,
+  options: MobileErrorPresentationOptions = {},
+): MobileStateError {
+  const presentation = resolveAppError(error, {
+    audience: options.audience ?? "member",
+    context: options.context ?? "generic",
+    locale: options.locale ?? "fa",
+    networkState: options.connectivityStatus ?? "unknown",
+  });
+  const kind: MobileStateErrorKind =
+    presentation.status === 400
+    || presentation.status === 409
+    || presentation.status === 422
+    || presentation.fieldErrors.length > 0
+      ? "validation"
+      : presentation.status === 401 || presentation.status === 403
+        ? "permission"
+        : "server";
   return {
-    code: null,
-    kind: "server",
-    message: "Request failed",
-    retryable: true,
-    status: null,
+    code: presentation.code,
+    kind,
+    message: presentation.message,
+    presentation,
+    retryable: presentation.retryable,
+    status: presentation.status,
   };
 }
 
-export function mobileRequestErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiError) {
-    if (error.status === 401 || error.status === 403) return "برای این عملیات دسترسی لازم وجود ندارد.";
-    if (error.status === 408 || error.status === 425 || error.status === 429) {
-      return "سرویس موقتاً شلوغ است؛ کمی بعد دوباره تلاش کن.";
-    }
-    if (error.status >= 500) return "سرویس موقتاً در دسترس نیست؛ دوباره تلاش کن.";
-  }
-  return fallback;
+export function mobileRequestErrorMessage(
+  error: unknown,
+  fallback: string,
+  options: MobileErrorPresentationOptions = {},
+): string {
+  if (error === null || error === undefined) return fallback;
+  return classifyMobileStateError(error, options).message;
 }
 
 export function getMobileViewState<TData>(
@@ -104,13 +126,18 @@ export function getMobileViewState<TData>(
       ? { data: result.data, isStale: result.isStale, status: "offline" }
       : { status: "offline" };
   }
+  if (result.isError && isAborted(result.error)) {
+    return hasData
+      ? { data: result.data as TData, status: "stale" }
+      : { status: "loading" };
+  }
   if (result.isPending && !hasData) {
     return { status: "loading" };
   }
   if (result.isError) {
     return {
       ...(hasData ? { data: result.data, isStale: true } : {}),
-      error: classifyMobileStateError(result.error),
+      error: classifyMobileStateError(result.error, options),
       status: "error",
     };
   }

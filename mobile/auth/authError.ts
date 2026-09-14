@@ -1,9 +1,35 @@
-import { ApiError } from "@fitician/core";
+import { ApiError, resolveAppError } from "@fitician/core";
 
 import { AppleSignInFlowError } from "./appleCredential";
 import { GoogleSignInFlowError } from "./googleCredential";
 
 export type AuthErrorContext = "apple" | "credentials" | "google" | "otp" | "recovery";
+
+const GENERIC_API_CODES = new Set([
+  "BAD_REQUEST",
+  "CONFLICT",
+  "RATE_LIMITED",
+  "UNAUTHORIZED",
+  "VALIDATION_ERROR",
+]);
+
+function legacyAuthCode(error: ApiError, context: AuthErrorContext): string | null {
+  if (error.code !== null && !GENERIC_API_CODES.has(error.code)) return null;
+  if (error.status === 401) {
+    if (context === "otp") return "AUTH_OTP_INVALID_OR_EXPIRED";
+    if (context === "google") return "AUTH_GOOGLE_FAILED";
+    if (context === "apple") return "AUTH_APPLE_FAILED";
+    if (context === "recovery") return "AUTH_SESSION_EXPIRED";
+    return "AUTH_INVALID_CREDENTIALS";
+  }
+  if (error.status === 409) {
+    if (context === "apple") return "AUTH_APPLE_ACCOUNT_CONFLICT";
+    if (context === "google") return "AUTH_GOOGLE_ACCOUNT_CONFLICT";
+    return "AUTH_EMAIL_ALREADY_REGISTERED";
+  }
+  if (error.status === 429) return "AUTH_RATE_LIMITED";
+  return null;
+}
 
 export function authErrorMessage(
   error: unknown,
@@ -12,22 +38,23 @@ export function authErrorMessage(
   if (error instanceof GoogleSignInFlowError) return error.message;
   if (error instanceof AppleSignInFlowError) return error.message;
   if (error instanceof ApiError) {
-    if (error.status === 401) {
-      if (context === "otp") return "کد ورود معتبر نیست یا منقضی شده است.";
-      if (context === "google") return "ورود با گوگل انجام نشد. دوباره تلاش کنید.";
-      if (context === "apple") return "ورود با اپل انجام نشد. دوباره تلاش کنید.";
-      return "ایمیل یا رمز عبور درست نیست.";
-    }
-    if (error.status === 409) {
-      if (context === "apple") return "این حساب اپل به حساب دیگری متصل است.";
-      if (context === "google") return "این حساب گوگل به حساب دیگری متصل است.";
-      return "این ایمیل قبلاً ثبت شده است.";
-    }
-    if (error.status === 429) return "تعداد درخواست‌ها زیاد است. کمی بعد دوباره تلاش کنید.";
-    if (error.status === 400) return "این درخواست معتبر نیست یا منقضی شده است.";
-    if (error.status === 422) return "اطلاعات واردشده را بررسی کنید.";
-    if (error.status >= 500) return "فیتیشن موقتاً در دسترس نیست. دوباره تلاش کنید.";
-    return "احراز هویت انجام نشد. دوباره تلاش کنید.";
+    const code = legacyAuthCode(error, context);
+    const resolvedError = code === null
+      ? error
+      : new ApiError(error.status, error.message, error.validationDetails, code, {
+          meta: error.meta,
+          requestId: error.requestId,
+          retryable: error.retryable,
+        });
+    return resolveAppError(resolvedError, {
+      audience: "member",
+      context: "auth",
+      locale: "fa",
+    }).message;
   }
-  return "ارتباط با فیتیشن برقرار نشد. اتصال اینترنت را بررسی کنید.";
+  return resolveAppError(error, {
+    audience: "member",
+    context: "auth",
+    locale: "fa",
+  }).message;
 }

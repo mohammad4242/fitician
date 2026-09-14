@@ -1,8 +1,13 @@
 import { expect, it } from "vitest";
 
-import { ApiError } from "@fitician/core";
+import { ApiError, TransportError } from "@fitician/core";
 
-import { getMobileViewState, mobileRequestErrorMessage, type MobileQueryResult } from "./requestState";
+import {
+  classifyMobileStateError,
+  getMobileViewState,
+  mobileRequestErrorMessage,
+  type MobileQueryResult,
+} from "./requestState";
 
 function result<TData>(overrides: Partial<MobileQueryResult<TData>> = {}): MobileQueryResult<TData> {
   return {
@@ -62,19 +67,64 @@ it("classifies validation, permission, and server failures", () => {
 
 it("maps transport failures to offline state without leaking raw errors", () => {
   const state = getMobileViewState(
-    result({ error: new TypeError("Network request failed"), isError: true, isPending: false }),
+    result({ error: new TransportError("offline"), isError: true, isPending: false }),
   );
 
   expect(state).toEqual({ status: "offline" });
 });
 
+it("keeps network and timeout failures separate from offline", () => {
+  expect(
+    getMobileViewState(
+      result({ error: new TransportError("network"), isError: true, isPending: false }),
+    ),
+  ).toMatchObject({
+    error: { code: "NETWORK_ERROR", message: "ارتباط با سرویس برقرار نشد. دوباره تلاش کنید." },
+    status: "error",
+  });
+  expect(
+    classifyMobileStateError(new TransportError("timeout")),
+  ).toMatchObject({
+    code: "REQUEST_TIMEOUT",
+    message: "پاسخ سرویس بیش از حد طول کشید. دوباره تلاش کنید.",
+  });
+});
+
+it("does not turn an aborted request into a visible error state", () => {
+  expect(
+    getMobileViewState(
+      result({ error: new TransportError("aborted"), isError: true, isPending: false }),
+    ),
+  ).toEqual({ status: "loading" });
+});
+
+it("uses audience and context for API presentation", () => {
+  const state = getMobileViewState(
+    result({
+      error: new ApiError(403, "raw permission detail", null, "SPECIALIST_RELATIONSHIP_REQUIRED"),
+      isError: true,
+      isPending: false,
+    }),
+    { audience: "physician", context: "specialist_review" },
+  );
+
+  expect(state).toMatchObject({
+    error: {
+      message: "این متخصص به پرونده موردنظر دسترسی ندارد.",
+      code: "SPECIALIST_RELATIONSHIP_REQUIRED",
+    },
+  });
+});
+
 it("presents API failures without exposing server or provider messages", () => {
   const fallback = "عملیات انجام نشد.";
-  expect(mobileRequestErrorMessage(new ApiError(422, "internal provider detail"), fallback)).toBe(fallback);
+  expect(mobileRequestErrorMessage(new ApiError(422, "internal provider detail"), fallback)).toBe(
+    "اطلاعات واردشده را بررسی و موارد مشخص‌شده را اصلاح کنید.",
+  );
   expect(mobileRequestErrorMessage(new ApiError(403, "secret permission detail"), fallback)).toBe(
     "برای این عملیات دسترسی لازم وجود ندارد.",
   );
   expect(mobileRequestErrorMessage(new ApiError(503, "upstream failure"), fallback)).toBe(
-    "سرویس موقتاً در دسترس نیست؛ دوباره تلاش کن.",
+    "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
   );
 });
