@@ -199,7 +199,7 @@ def test_admin_rejects_invalid_week_shape_draft_meals_and_category_mismatch(
     wrong_category = client.post(PROGRAMS_PATH, headers=ORIGIN, json=payload)
 
     assert wrong_category.status_code == 422
-    assert "match" in str(wrong_category.json()["detail"]).lower()
+    assert wrong_category.json()["detail"]["code"] == "NUTRITION_PROGRAM_STRUCTURE_INVALID"
 
     draft_meal = db.get(NutritionCatalogueMeal, meals["breakfast"])
     assert draft_meal is not None
@@ -213,7 +213,7 @@ def test_admin_rejects_invalid_week_shape_draft_meals_and_category_mismatch(
     )
 
     assert draft_reference.status_code == 422
-    assert "verified" in str(draft_reference.json()["detail"]).lower()
+    assert draft_reference.json()["detail"]["code"] == "NUTRITION_PROGRAM_MEALS_UNVERIFIED"
 
 
 def test_admin_enforces_global_and_per_day_post_workout_controls(

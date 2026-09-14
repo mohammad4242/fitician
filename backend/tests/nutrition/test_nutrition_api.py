@@ -136,12 +136,12 @@ def test_under_18_shared_profile_is_rejected_with_stable_domain_error(
     )
 
     assert response.status_code == 422
-    assert response.json() == {
-        "detail": {
-            "code": "AGE_NOT_SUPPORTED",
-            "message": "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
-        }
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "AGE_NOT_SUPPORTED"
+    assert detail["message"] == "فیتیشن در حال حاضر برای افراد ۱۸ سال و بالاتر ارائه می‌شود."
+    assert detail["retryable"] is False
+    assert detail["meta"] == {}
+    assert detail["request_id"]
     profile = db.get(UserProfile, user_id)
     assert profile is not None
     assert profile.birth_date is None

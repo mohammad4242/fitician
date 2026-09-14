@@ -584,7 +584,7 @@ def test_recipe_data_gap_is_visible_and_prevents_verification(
     )
 
     assert rejected.status_code == 422
-    assert "data gaps" in rejected.json()["detail"]
+    assert rejected.json()["detail"]["code"] == "PREPARED_RECIPE_INVALID"
 
 
 def _register_member(

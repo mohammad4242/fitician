@@ -47,6 +47,7 @@ def test_training_member_cannot_read_food_catalogue(client: TestClient, db: Sess
     response = client.get("/api/v1/nutrition/food-catalogue")
 
     assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "NUTRITION_PRODUCT_MODE_REQUIRED"
 
 
 def test_nutrition_member_sees_macros_search_and_no_price_data(
@@ -429,7 +430,7 @@ def test_catalogue_retirement_returns_not_found_for_unknown_slug(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Food not found"
+    assert response.json()["detail"]["code"] == "FOOD_NOT_FOUND"
 
 
 def test_catalogue_retirement_preserves_children_price_history_and_meal_reference(

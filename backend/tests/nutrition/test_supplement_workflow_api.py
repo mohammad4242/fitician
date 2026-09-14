@@ -112,7 +112,10 @@ def test_combined_exposure_over_upper_limit_is_hard_blocked(
         json=_payload(str(supplement.id)),
     )
     assert response.status_code == 409
-    assert response.json()["detail"]["code"] == "SUPPLEMENT_UPPER_LIMIT_HARD_BLOCK"
+    detail = response.json()["detail"]
+    assert detail["code"] == "SUPPLEMENT_UPPER_LIMIT_HARD_BLOCK"
+    assert detail["meta"] == {}
+    assert "upper_limit" not in response.text
 
 
 def test_assigned_physician_lists_and_modifies_plan_supplement_orders(

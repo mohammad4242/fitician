@@ -93,6 +93,32 @@ describe("resolveAppError", () => {
   });
 
   it.each([
+    ["NUTRITION_PRODUCT_MODE_REQUIRED", "مسیر تغذیه"],
+    ["FOOD_CATALOGUE_PRIMARY_NUTRIENTS_REQUIRED", "مواد مغذی اصلی"],
+    ["PREPARED_RECIPE_INVALID", "دستور تهیه"],
+    ["NUTRITION_PROGRAM_UNAVAILABLE", "برنامه غذایی"],
+    ["SUPPLEMENT_SAFETY_HARD_BLOCK", "ایمنی"],
+  ])("resolves nutrition catalogue code %s from the shared catalog", (code, expected) => {
+    const result = resolveAppError(
+      new ApiError(422, "raw nutrition catalogue detail", null, code),
+      { audience: "member", context: "nutrition", locale: "fa" },
+    );
+
+    expect(result.message).toContain(expected);
+    expect(result.message).not.toContain("raw nutrition catalogue detail");
+  });
+
+  it("keeps nutrition review errors useful for physician workflow", () => {
+    const result = resolveAppError(
+      new ApiError(409, "private clinical note", null, "REVIEW_NOT_IN_PROGRESS"),
+      { audience: "physician", context: "specialist_review", locale: "fa" },
+    );
+
+    expect(result.message).toContain("بررسی");
+    expect(result.message).not.toContain("private clinical note");
+  });
+
+  it.each([
     ["WORKOUT_GENERATION_IN_PROGRESS", "ساخت برنامه تمرینی در حال انجام است"],
     ["BODYWEIGHT_PULL_UP_BAR_REQUIRED", "میله بارفیکس"],
     ["WORKOUT_REPLACEMENT_NOT_ALLOWED", "حرکت جایگزین"],

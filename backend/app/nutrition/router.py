@@ -341,6 +341,51 @@ def _domain_error(code: str, message: str) -> HTTPException:
     )
 
 
+_VALUE_ERROR_CODES: tuple[tuple[str, str], ...] = (
+    (
+        "Verified food requires complete primary nutrients:",
+        "FOOD_CATALOGUE_PRIMARY_NUTRIENTS_REQUIRED",
+    ),
+    ("Meal code already exists", "MEAL_CODE_ALREADY_EXISTS"),
+    ("Meal code cannot be changed", "MEAL_CODE_IMMUTABLE"),
+    ("Every meal food must exist", "MEAL_FOOD_NOT_FOUND"),
+    ("Verified meals may only use verified foods", "MEAL_FOOD_NOT_VERIFIED"),
+    ("Verified Prepared Recipes", "PREPARED_RECIPE_INVALID"),
+    ("Prepared Recipe", "PREPARED_RECIPE_INVALID"),
+    ("Selected meals do not exist:", "NUTRITION_PROGRAM_MEALS_INVALID"),
+    ("Selected meals must be verified:", "NUTRITION_PROGRAM_MEALS_UNVERIFIED"),
+    ("Selected meal category must match", "NUTRITION_PROGRAM_STRUCTURE_INVALID"),
+    ("Nutrition program was not found after saving", "NUTRITION_PROGRAM_SAVE_FAILED"),
+    ("No active Nutrition Program is available", "NUTRITION_PROGRAM_UNAVAILABLE"),
+)
+
+
+def _nutrition_value_error(error: ValueError, fallback_code: str) -> HTTPException:
+    message = " ".join(str(error).split())
+    code = next(
+        (mapped_code for marker, mapped_code in _VALUE_ERROR_CODES if message.startswith(marker)),
+        fallback_code,
+    )
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={"code": code},
+    )
+
+
+def _nutrition_media_error(error: MediaValidationError) -> HTTPException:
+    message = " ".join(str(error).split()).lower()
+    if any(marker in message for marker in ("size", "bytes", "large", "exceeds")):
+        code = "invalid_file_size"
+    elif any(marker in message for marker in ("format", "mime", "signature", "supported")):
+        code = "unsupported_format"
+    else:
+        code = "invalid_image"
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={"code": code},
+    )
+
+
 @router.get("/foods", response_model=list[CatalogueFoodResponse])
 def read_verified_foods(db: DatabaseSession, user: CurrentUser) -> list[CatalogueFoodResponse]:
     return list_verified_foods(db)
@@ -360,7 +405,10 @@ def read_member_food_catalogue(
 ) -> FoodCataloguePageResponse:
     profile = db.get(UserProfile, user.id)
     if profile is None or profile.product_mode not in {ProductMode.NUTRITION, ProductMode.BOTH}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nutrition mode required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "NUTRITION_PRODUCT_MODE_REQUIRED"},
+        )
     return member_food_catalogue(
         db,
         query=q,
@@ -400,9 +448,7 @@ def create_or_update_catalogue_food(
     try:
         return save_catalogue_food(db, payload)
     except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "FOOD_CATALOGUE_INVALID") from None
 
 
 @router.post(
@@ -420,14 +466,14 @@ def upload_catalogue_food_image(
     del admin
     food = db.scalar(select(NutritionCatalogueFood).where(NutritionCatalogueFood.slug == slug))
     if food is None or food.verification_status == FoodVerificationStatus.RETIRED:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "FOOD_NOT_FOUND"},
+        )
     try:
         stored = store_image_upload(file, settings, "food-catalogue")
     except MediaValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
-        ) from None
+        raise _nutrition_media_error(error) from None
     previous_path = food.image_path
     try:
         food.image_path = stored.public_path
@@ -459,7 +505,10 @@ def create_food_price_override(
         )
     )
     if food is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "FOOD_NOT_FOUND"},
+        )
     override = create_price_override(
         db,
         food=food,
@@ -498,18 +547,27 @@ async def research_single_food_price(
         )
     )
     if food is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Food not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "FOOD_NOT_FOUND"},
+        )
 
-    researcher = resolve_single_food_price_researcher(
-        db,
-        settings=settings,
-        agent_http_client=getattr(request.app.state, "agent_http_client", None),
-        timeout_seconds=420.0,
-    )
+    try:
+        researcher = resolve_single_food_price_researcher(
+            db,
+            settings=settings,
+            agent_http_client=getattr(request.app.state, "agent_http_client", None),
+            timeout_seconds=420.0,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "AI_CONFIGURATION_INVALID"},
+        ) from None
     if researcher is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Agent Service is not configured or enabled for food price search",
+            detail={"code": "FOOD_PRICE_RESEARCH_NOT_CONFIGURED"},
         )
 
     aliases = tuple(alias.alias for alias in food.aliases if alias.language == "fa")
@@ -543,9 +601,9 @@ async def research_single_food_price(
                 for e in error.evidence
             ],
             status="failed",
-            message=str(error),
+            message="قیمت‌یابی خودکار انجام نشد. دوباره تلاش کنید.",
         )
-    except Exception as error:
+    except Exception:
         return SingleFoodPriceResearchResponse(
             food_slug=food.slug,
             food_name_fa=food.name_fa,
@@ -553,7 +611,7 @@ async def research_single_food_price(
             canonical_unit=None,
             quotes=[],
             status="failed",
-            message=str(error),
+            message="قیمت‌یابی خودکار انجام نشد. دوباره تلاش کنید.",
         )
 
     quotes = [
@@ -672,9 +730,7 @@ def preview_catalogue_prepared_recipe(
     try:
         return preview_prepared_recipe(db, payload)
     except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "PREPARED_RECIPE_INVALID") from None
 
 
 @router.get(
@@ -689,7 +745,10 @@ def read_catalogue_meal(
     del admin
     meal = get_catalogue_meal(db, meal_id)
     if meal is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "MEAL_NOT_FOUND"},
+        )
     return meal_response(meal, db)
 
 
@@ -708,9 +767,7 @@ def create_catalogue_meal(
     try:
         return meal_response(create_meal(db, payload), db)
     except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "MEAL_CATALOGUE_INVALID") from None
 
 
 @router.put(
@@ -728,11 +785,12 @@ def replace_catalogue_meal(
     try:
         meal = update_catalogue_meal(db, meal_id, payload)
     except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "MEAL_CATALOGUE_INVALID") from None
     if meal is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "MEAL_NOT_FOUND"},
+        )
     return meal_response(meal, db)
 
 
@@ -751,14 +809,14 @@ def upload_catalogue_meal_image(
     del admin
     meal = db.get(NutritionCatalogueMeal, meal_id)
     if meal is None or meal.verification_status == FoodVerificationStatus.RETIRED:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "MEAL_NOT_FOUND"},
+        )
     try:
         stored = store_image_upload(file, settings, "meal-catalogue")
     except MediaValidationError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
-        ) from None
+        raise _nutrition_media_error(error) from None
     previous_path = meal.image_path
     try:
         meal.image_path = stored.public_path
@@ -785,13 +843,16 @@ def remove_catalogue_meal(
     del admin
     meal = db.get(NutritionCatalogueMeal, meal_id)
     if meal is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "MEAL_NOT_FOUND"},
+        )
     try:
         image_path = delete_catalogue_meal(db, meal_id)
     except MealReferencedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "meal_referenced", "message": str(exc)},
+            detail={"code": "meal_referenced"},
         ) from exc
     if image_path:
         discard_managed_media_path(image_path, settings, "meal-catalogue")
@@ -829,7 +890,10 @@ def read_nutrition_program(
     del admin
     program = get_program(db, program_id)
     if program is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Program not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PROGRAM_NOT_FOUND"},
+        )
     return program_response(program)
 
 
@@ -848,9 +912,7 @@ def create_nutrition_program(
     try:
         return program_response(create_program(db, payload))
     except ProgramWriteError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "NUTRITION_PROGRAM_INVALID") from None
 
 
 @router.put(
@@ -868,11 +930,12 @@ def replace_nutrition_program(
     try:
         program = update_program(db, program_id, payload)
     except ProgramWriteError as error:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
-        ) from None
+        raise _nutrition_value_error(error, "NUTRITION_PROGRAM_INVALID") from None
     if program is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Program not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PROGRAM_NOT_FOUND"},
+        )
     return program_response(program)
 
 
@@ -888,7 +951,10 @@ def archive_nutrition_program(
 ) -> None:
     del admin
     if not archive_program(db, program_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Program not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PROGRAM_NOT_FOUND"},
+        )
 
 
 @router.post(
@@ -904,7 +970,10 @@ def restore_nutrition_program(
     del admin
     program = restore_program(db, program_id)
     if program is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Program not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PROGRAM_NOT_FOUND"},
+        )
     return program_response(program)
 
 
@@ -922,7 +991,10 @@ def retire_food(
     try:
         retire_catalogue_food(db, slug)
     except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "FOOD_NOT_FOUND"},
+        ) from error
 
 
 def _monitoring_toman(value: Decimal | None) -> str | None:
@@ -1135,7 +1207,7 @@ async def trigger_manual_price_refresh(
             ),
         )
     except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from None
+        raise _nutrition_value_error(error, "FOOD_PRICE_REFRESH_INVALID") from None
     run = await run_price_update_async(
         db,
         providers=execution.providers,
@@ -1432,10 +1504,10 @@ def select_plan_in_bundle(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "PLAN_BUNDLE_NOT_FOUND", "message": "بسته برنامه غذایی پیدا نشد."},
         ) from None
-    except PlanSelectionInvalidError as err:
+    except PlanSelectionInvalidError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"code": "PLAN_SELECTION_INVALID", "message": str(err)},
+            detail={"code": "PLAN_SELECTION_INVALID"},
         ) from None
 
 
@@ -2635,7 +2707,7 @@ def _supplement_error(error: SupplementError) -> HTTPException:
     )
     if error.code.endswith("NOT_FOUND"):
         error_status = status.HTTP_404_NOT_FOUND
-    return HTTPException(status_code=error_status, detail={"code": error.code, **error.details})
+    return HTTPException(status_code=error_status, detail={"code": error.code})
 
 
 @router.get(

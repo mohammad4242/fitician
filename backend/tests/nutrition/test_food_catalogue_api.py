@@ -144,4 +144,4 @@ def test_admin_cannot_publish_food_with_incomplete_primary_nutrients(
     )
 
     assert response.status_code == 422
-    assert "primary nutrients" in response.json()["detail"]
+    assert response.json()["detail"]["code"] == "FOOD_CATALOGUE_PRIMARY_NUTRIENTS_REQUIRED"

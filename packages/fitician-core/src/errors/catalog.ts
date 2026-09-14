@@ -293,6 +293,54 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("پروفایل تغذیه پیدا نشد", "Nutrition profile not found"),
     text("پروفایل تغذیه ثبت نشده است.", "The nutrition profile was not found."),
   ),
+  NUTRITION_PROFILE_REQUIRED: entry(
+    text("پروفایل تغذیه لازم است", "Nutrition profile required"),
+    text("ابتدا اطلاعات تغذیه را کامل کنید.", "Complete your nutrition profile first."),
+  ),
+  NUTRITION_PRODUCT_MODE_REQUIRED: entry(
+    text("مسیر تغذیه لازم است", "Nutrition path required"),
+    text("این قابلیت فقط در مسیر تغذیه در دسترس است.", "This feature is available only in the nutrition path."),
+  ),
+  SHARED_PROFILE_REQUIRED: entry(
+    text("اطلاعات پایه لازم است", "Basic profile information required"),
+    text("ابتدا اطلاعات پایه پروفایل را کامل کنید.", "Complete your basic profile information first."),
+  ),
+  STRUCTURED_EXERCISE_NOT_FOUND: entry(
+    text("اطلاعات تمرین پیدا نشد", "Exercise information not found"),
+    text("اطلاعات تمرین ساختاریافته ثبت نشده است.", "Your structured exercise information has not been recorded."),
+  ),
+  NUTRITION_PLAN_NOT_SELECTED: entry(
+    text("برنامه انتخاب نشده است", "Plan not selected"),
+    text("ابتدا همین برنامه غذایی را انتخاب کنید.", "Select this nutrition plan first."),
+  ),
+  NUTRITION_PLAN_NOT_READY: entry(
+    text("برنامه آماده نیست", "Plan is not ready"),
+    text("این برنامه غذایی هنوز آماده شروع نیست.", "This nutrition plan is not ready to start yet."),
+  ),
+  NUTRITION_PLAN_ALREADY_STARTED: entry(
+    text("برنامه قبلاً شروع شده است", "Plan already started"),
+    text("این برنامه غذایی قبلاً با تاریخ دیگری شروع شده است.", "This nutrition plan has already been started on another date."),
+  ),
+  NUTRITION_REFERENCE_PLAN_NOT_STARTABLE: entry(
+    text("برنامه مقایسه‌ای قابل شروع نیست", "Reference plan cannot start"),
+    text("برنامه مقایسه‌ای قابل شروع نیست.", "The reference plan cannot be started."),
+  ),
+  TARGET_INFEASIBLE: entry(
+    text("هدف‌های تغذیه‌ای شدنی نیستند", "Nutrition targets are infeasible"),
+    text("حداقل‌های علمی در بازه کالری انتخاب‌شده قابل جمع نیستند.", "The scientific minimums cannot fit within the selected calorie range."),
+  ),
+  NUTRITION_ESTIMATE_NOT_FOUND: entry(
+    text("برآورد تغذیه‌ای پیدا نشد", "Nutrition estimate not found"),
+    text("هنوز برآورد تغذیه‌ای ثبت نشده است.", "A nutrition estimate has not been recorded yet."),
+  ),
+  NUTRITION_ONBOARDING_BLOCKED: entry(
+    text("بررسی پزشک لازم است", "Physician review required"),
+    text("برای حفظ ایمنی، ادامه این مسیر فقط با بررسی پزشک ممکن است.", "For safety, this path can continue only after physician review."),
+  ),
+  DIETARY_PATTERN_NOT_SUPPORTED_V1: entry(
+    text("الگوی تغذیه پشتیبانی نمی‌شود", "Dietary pattern is not supported"),
+    text("الگوی تغذیه‌ای انتخاب‌شده در نسخه فعلی پشتیبانی نمی‌شود.", "The selected dietary pattern is not supported in the current version."),
+  ),
   NUTRITION_PLAN_NOT_FOUND: entry(
     text("برنامه غذایی پیدا نشد", "Nutrition plan not found"),
     text("هنوز برنامه غذایی هفتگی ساخته نشده است.", "A weekly nutrition plan has not been created yet."),
@@ -304,6 +352,38 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ACTIVE_PLAN_REQUIRED: entry(
     text("برنامه فعال لازم است", "Active plan required"),
     text("برای انجام این کار باید یک برنامه تأییدشده و فعال داشته باشید.", "An approved active plan is required for this action."),
+  ),
+  ACTIVE_PLAN_DAY_NOT_FOUND: entry(
+    text("روز برنامه پیدا نشد", "Plan day not found"),
+    text("روز برنامه غذایی فعال پیدا نشد.", "The requested day was not found in the active nutrition plan."),
+  ),
+  ACTIVE_PLAN_MEAL_NOT_FOUND: entry(
+    text("وعده برنامه پیدا نشد", "Plan meal not found"),
+    text("وعده برنامه غذایی فعال پیدا نشد.", "The requested meal was not found in the active nutrition plan."),
+  ),
+  ACTIVE_FREE_MEAL_NOT_FOUND: entry(
+    text("وعده آزاد پیدا نشد", "Free meal not found"),
+    text("وعده آزاد فعال برای این تاریخ پیدا نشد.", "No active free meal was found for this date."),
+  ),
+  CONSUMPTION_ENTRY_NOT_FOUND: entry(
+    text("رکورد مصرف پیدا نشد", "Consumption entry not found"),
+    text("رکورد مصرف غذایی پیدا نشد.", "The food consumption entry was not found."),
+  ),
+  USE_PLANNED_MEAL_ADJUSTMENT: entry(
+    text("تنظیم وعده برنامه‌ریزی‌شده لازم است", "Use the planned-meal adjustment"),
+    text("برای تغییر این وعده از گزینه تنظیم وعده برنامه‌ریزی‌شده استفاده کنید.", "Use the planned-meal adjustment to change this meal."),
+  ),
+  PORTION_RATIO_REQUIRED: entry(
+    text("نسبت مصرف لازم است", "Portion ratio required"),
+    text("نسبت مصرف وعده را وارد کنید.", "Enter the consumed portion ratio."),
+  ),
+  INVALID_DATE_RANGE: entry(
+    text("بازه تاریخ معتبر نیست", "Date range is invalid"),
+    text("بازه تاریخ انتخاب‌شده معتبر نیست.", "The selected date range is invalid."),
+  ),
+  INVALID_IDEMPOTENCY_KEY: entry(
+    text("کلید درخواست معتبر نیست", "Request key is invalid"),
+    text("کلید درخواست معتبر نیست. دوباره تلاش کنید.", "The request key is invalid. Try again."),
   ),
   ENTRY_GRAMS_REQUIRED: entry(
     text("مقدار غذا لازم است", "Food amount is required"),
@@ -332,6 +412,30 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   FOOD_PHOTO_STORAGE_UNAVAILABLE: entry(
     text("ذخیره‌سازی عکس در دسترس نیست", "Photo storage unavailable"),
     text("ذخیره‌سازی عکس غذا فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Food photo storage is temporarily unavailable. Try again later."),
+  ),
+  INVALID_FOOD_PHOTO: entry(
+    text("عکس غذا معتبر نیست", "Food photo is invalid"),
+    text("عکس غذا معتبر نیست. عکس دیگری انتخاب کنید.", "The food photo is invalid. Choose another photo."),
+  ),
+  UNRESOLVED_ITEMS_REQUIRE_EDIT: entry(
+    text("اصلاح موارد شناسایی‌شده لازم است", "Items need correction"),
+    text("پیش از ثبت، موارد شناسایی‌شده را اصلاح و تأیید کنید.", "Correct and confirm the identified items before saving."),
+  ),
+  INVALID_STORAGE_KEY: entry(
+    text("فایل قابل دسترسی نیست", "File is not accessible"),
+    text("فایل موردنظر قابل دسترسی نیست. دوباره تلاش کنید.", "The requested file is not accessible. Try again."),
+  ),
+  PRIVATE_ACCESS_TOKEN_REQUIRED: entry(
+    text("دسترسی فایل معتبر نیست", "File access is invalid"),
+    text("دسترسی خصوصی به فایل معتبر نیست. دوباره تلاش کنید.", "Private file access is invalid. Try again."),
+  ),
+  THIRD_PARTY_PROCESSING_CONSENT_REQUIRED: entry(
+    text("رضایت پردازش لازم است", "Processing consent required"),
+    text("برای تحلیل عکس غذا باید رضایت پردازش را تأیید کنید.", "Confirm processing consent before analyzing the food photo."),
+  ),
+  RATE_LIMIT_EXCEEDED: entry(
+    text("درخواست‌های زیادی ارسال شده است", "Too many requests"),
+    text("درخواست‌های زیادی ارسال شده است. کمی بعد دوباره تلاش کنید.", "Too many requests were sent. Try again later."),
   ),
   NUTRITION_GENERATION_CONSTRAINT_UNMET: entry(
     text("ساخت برنامه کامل نشد", "Plan generation constraints"),
@@ -389,6 +493,82 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("برنامه سازگار با بودجه پیدا نشد", "No budget-feasible plan found"),
     text("با قیمت‌ها و کاتالوگ فعلی، برنامه سازگار در این بودجه پیدا نشد.", "With current prices and catalogue, no compatible plan was found in this budget."),
   ),
+  PLAN_BUNDLE_NOT_FOUND: entry(
+    text("بسته برنامه غذایی پیدا نشد", "Plan bundle not found"),
+    text("بسته برنامه غذایی پیدا نشد.", "The nutrition plan bundle was not found."),
+  ),
+  PLAN_SELECTION_INVALID: entry(
+    text("انتخاب برنامه معتبر نیست", "Plan selection is invalid"),
+    text("انتخاب برنامه غذایی معتبر نیست.", "The selected nutrition plan is not valid."),
+  ),
+  NUTRITION_INPUT_INVALID: entry(
+    text("اطلاعات تغذیه معتبر نیست", "Nutrition information is invalid"),
+    text("اطلاعات تغذیه‌ای معتبر نیست. موارد واردشده را بررسی کنید.", "The nutrition information is invalid. Check the entered values."),
+  ),
+  FOOD_NOT_FOUND: entry(
+    text("ماده غذایی پیدا نشد", "Food not found"),
+    text("ماده غذایی پیدا نشد.", "The food was not found."),
+  ),
+  FOOD_CATALOGUE_INVALID: entry(
+    text("اطلاعات ماده غذایی معتبر نیست", "Food catalogue entry is invalid"),
+    text("اطلاعات ماده غذایی معتبر نیست. موارد مشخص‌شده را بررسی کنید.", "The food catalogue entry is invalid. Check the highlighted information."),
+  ),
+  FOOD_CATALOGUE_PRIMARY_NUTRIENTS_REQUIRED: entry(
+    text("اطلاعات غذایی کامل نیست", "Primary nutrients are required"),
+    text("برای تأیید ماده غذایی، مواد مغذی اصلی باید کامل باشند.", "The primary nutrients must be complete before this food can be verified."),
+  ),
+  MEAL_CATALOGUE_INVALID: entry(
+    text("اطلاعات وعده معتبر نیست", "Meal catalogue entry is invalid"),
+    text("اطلاعات وعده غذایی معتبر نیست. موارد مشخص‌شده را بررسی کنید.", "The meal catalogue entry is invalid. Check the highlighted information."),
+  ),
+  MEAL_CODE_ALREADY_EXISTS: entry(
+    text("کد وعده تکراری است", "Meal code already exists"),
+    text("این کد وعده قبلاً استفاده شده است.", "This meal code is already in use."),
+  ),
+  MEAL_CODE_IMMUTABLE: entry(
+    text("کد وعده قابل تغییر نیست", "Meal code cannot be changed"),
+    text("کد وعده پس از ایجاد قابل تغییر نیست.", "A meal code cannot be changed after creation."),
+  ),
+  MEAL_FOOD_NOT_FOUND: entry(
+    text("ماده غذایی وعده پیدا نشد", "Meal food not found"),
+    text("یکی از مواد غذایی انتخاب‌شده برای وعده پیدا نشد.", "One of the foods selected for this meal was not found."),
+  ),
+  MEAL_FOOD_NOT_VERIFIED: entry(
+    text("ماده غذایی تأیید نشده است", "Meal food is not verified"),
+    text("وعده تأییدشده فقط می‌تواند از مواد غذایی تأییدشده استفاده کند.", "A verified meal can use only verified foods."),
+  ),
+  PREPARED_RECIPE_INVALID: entry(
+    text("دستور تهیه وعده معتبر نیست", "Prepared recipe is invalid"),
+    text("دستور تهیه وعده کامل نیست یا داده‌های لازم آن وجود ندارد.", "The prepared recipe is incomplete or missing required data."),
+  ),
+  NUTRITION_PROGRAM_MEALS_INVALID: entry(
+    text("وعده‌های برنامه معتبر نیستند", "Program meals are invalid"),
+    text("یکی از وعده‌های انتخاب‌شده برای برنامه پیدا نشد.", "One of the meals selected for the program was not found."),
+  ),
+  NUTRITION_PROGRAM_MEALS_UNVERIFIED: entry(
+    text("وعده برنامه تأیید نشده است", "Program meals are not verified"),
+    text("برنامه فعال فقط می‌تواند از وعده‌های تأییدشده استفاده کند.", "An active program can use only verified meals."),
+  ),
+  NUTRITION_PROGRAM_STRUCTURE_INVALID: entry(
+    text("ساختار برنامه معتبر نیست", "Program structure is invalid"),
+    text("دسته‌بندی وعده‌های برنامه با ساختار انتخاب‌شده سازگار نیست.", "The program meal categories do not match the selected structure."),
+  ),
+  NUTRITION_PROGRAM_SAVE_FAILED: entry(
+    text("ذخیره برنامه انجام نشد", "Program could not be saved"),
+    text("برنامه تغذیه‌ای ذخیره نشد. دوباره تلاش کنید.", "The nutrition program could not be saved. Try again."),
+  ),
+  NUTRITION_PROGRAM_INVALID: entry(
+    text("اطلاعات برنامه معتبر نیست", "Nutrition program is invalid"),
+    text("اطلاعات برنامه تغذیه‌ای معتبر نیست. موارد واردشده را بررسی کنید.", "The nutrition program information is invalid. Check the entered values."),
+  ),
+  NUTRITION_PROGRAM_UNAVAILABLE: entry(
+    text("برنامه غذایی در دسترس نیست", "Nutrition program is unavailable"),
+    text("برنامه غذایی فعالی برای این انتخاب وجود ندارد.", "No active nutrition program is available for this selection."),
+  ),
+  meal_referenced: entry(
+    text("وعده قابل حذف نیست", "Meal cannot be deleted"),
+    text("این وعده در برنامه‌های موجود استفاده شده و قابل حذف نیست.", "This meal is used by existing programs and cannot be deleted."),
+  ),
   REQUEST_FAILED: entry(
     text("درخواست ساخت برنامه انجام نشد", "Plan request failed"),
     text("درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.", "The plan request failed. Check the connection or service and try again."),
@@ -440,6 +620,110 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   FOOD_REPLACEMENT_NOT_FOUND: entry(
     text("جایگزین غذا پیدا نشد", "Food replacement not found"),
     text("ماده غذایی انتخاب‌شده دیگر برای این جایگزینی در دسترس نیست.", "That ingredient replacement is no longer available."),
+  ),
+  PLAN_GENERATION_NOT_FOUND: entry(
+    text("داده ساخت برنامه پیدا نشد", "Plan generation not found"),
+    text("داده ساخت برنامه پیدا نشد. دوباره صفحه را بارگذاری کنید.", "The plan-generation record was not found. Reload the page."),
+  ),
+  NUTRITION_REVIEW_NOT_CREATED: entry(
+    text("بررسی برنامه ایجاد نشد", "Nutrition review was not created"),
+    text("بررسی برنامه غذایی ایجاد نشد. دوباره تلاش کنید.", "The nutrition-plan review was not created. Try again."),
+  ),
+  REVIEW_ASSIGNED_TO_ANOTHER_PHYSICIAN: entry(
+    text("بررسی به پزشک دیگری اختصاص دارد", "Review is assigned to another physician"),
+    text("این پرونده به پزشک دیگری اختصاص داده شده است و اکنون قابل اقدام نیست.", "This case is assigned to another physician and cannot be acted on now."),
+  ),
+  REVIEW_NOT_IN_PROGRESS: entry(
+    text("بررسی در وضعیت قابل انجام نیست", "Review is not in progress"),
+    text("این بررسی در وضعیت قابل انجام نیست. وضعیت پرونده را دوباره بررسی کنید.", "This review is not in an actionable state. Check the case status again."),
+  ),
+  REVIEW_ALREADY_ASSIGNED: entry(
+    text("بررسی قبلاً اختصاص داده شده است", "Review is already assigned"),
+    text("این بررسی قبلاً به پزشک دیگری اختصاص داده شده است.", "This review has already been assigned to another physician."),
+  ),
+  REVIEW_NOTES_REQUIRED: entry(
+    text("یادداشت بررسی لازم است", "Review notes are required"),
+    text("برای این اقدام، یادداشت بررسی لازم است.", "Review notes are required for this action."),
+  ),
+  INVALID_REVIEW_ACTION: entry(
+    text("اقدام بررسی معتبر نیست", "Review action is invalid"),
+    text("اقدام انتخاب‌شده برای این بررسی معتبر نیست.", "The selected action is not valid for this review."),
+  ),
+  INVALID_REVIEW_TRANSITION: entry(
+    text("تغییر وضعیت بررسی معتبر نیست", "Review transition is invalid"),
+    text("تغییر وضعیت بررسی با وضعیت فعلی سازگار نیست.", "This review cannot move to the selected status."),
+  ),
+  PLAN_HARD_INVARIANTS_FAILED: entry(
+    text("برنامه با محدودیت‌های ایمنی سازگار نیست", "Plan safety constraints failed"),
+    text("برنامه با محدودیت‌های ایمنی سازگار نیست و قابل ثبت نیست.", "The plan does not satisfy its safety constraints and cannot be saved."),
+  ),
+  INVALID_DAY_SELECTION: entry(
+    text("انتخاب روز معتبر نیست", "Day selection is invalid"),
+    text("انتخاب روزهای برنامه معتبر نیست.", "The selected plan days are invalid."),
+  ),
+  IDEAL_REFERENCE_PLAN_CANNOT_BE_EDITED: entry(
+    text("برنامه مقایسه‌ای قابل ویرایش نیست", "Reference plan cannot be edited"),
+    text("برنامه مقایسه‌ای قابل ویرایش نیست.", "The reference plan cannot be edited."),
+  ),
+  INVALID_LAB_STORAGE_KEY: entry(
+    text("سند آزمایش قابل دسترسی نیست", "Lab document is not accessible"),
+    text("سند آزمایش قابل دسترسی نیست. دوباره تلاش کنید.", "The lab document is not accessible. Try again."),
+  ),
+  INVALID_LAB_DOCUMENT: entry(
+    text("سند آزمایش معتبر نیست", "Lab document is invalid"),
+    text("سند آزمایش معتبر نیست. فایل دیگری انتخاب کنید.", "The lab document is invalid. Choose another file."),
+  ),
+  LAB_STORAGE_UNAVAILABLE: entry(
+    text("ذخیره‌سازی آزمایش در دسترس نیست", "Lab storage unavailable"),
+    text("ذخیره‌سازی اسناد آزمایش فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Lab-document storage is temporarily unavailable. Try again later."),
+  ),
+  LAB_DOCUMENT_TOO_LARGE: entry(
+    text("حجم سند آزمایش زیاد است", "Lab document is too large"),
+    text("حجم سند آزمایش بیشتر از حد مجاز است. فایل کوچک‌تری انتخاب کنید.", "The lab document is larger than the allowed limit. Choose a smaller file."),
+  ),
+  LAB_REQUEST_NOT_FOUND: entry(
+    text("درخواست آزمایش پیدا نشد", "Lab request not found"),
+    text("درخواست آزمایش پیدا نشد.", "The lab request was not found."),
+  ),
+  MEDICAL_CONTEXT_NOT_FOUND: entry(
+    text("اطلاعات پزشکی پیدا نشد", "Medical context not found"),
+    text("اطلاعات پزشکی لازم برای بررسی پیدا نشد.", "The medical context required for review was not found."),
+  ),
+  LAB_DOCUMENT_NOT_FOUND: entry(
+    text("سند آزمایش پیدا نشد", "Lab document not found"),
+    text("سند آزمایش پیدا نشد.", "The lab document was not found."),
+  ),
+  INVALID_LAB_REQUEST_TRANSITION: entry(
+    text("تغییر وضعیت درخواست آزمایش معتبر نیست", "Lab request transition is invalid"),
+    text("تغییر وضعیت درخواست آزمایش با وضعیت فعلی سازگار نیست.", "The lab request cannot move to the selected status."),
+  ),
+  INVALID_SUPPLEMENT_COMPOSITION: entry(
+    text("ترکیب مکمل معتبر نیست", "Supplement composition is invalid"),
+    text("ترکیب مکمل معتبر نیست و قابل ثبت نیست.", "The supplement composition is invalid and cannot be saved."),
+  ),
+  SUPPLEMENT_SAFETY_HARD_BLOCK: entry(
+    text("تجویز مکمل از نظر ایمنی مجاز نیست", "Supplement is blocked for safety"),
+    text("این مکمل با شرایط ایمنی فعلی قابل تجویز نیست.", "This supplement cannot be prescribed under the current safety conditions."),
+  ),
+  SUPPLEMENT_UPPER_LIMIT_HARD_BLOCK: entry(
+    text("سقف ایمن مکمل رعایت نمی‌شود", "Supplement safe limit exceeded"),
+    text("مقدار مکمل از حد ایمن مجاز بیشتر است.", "The supplement amount exceeds the safe upper limit."),
+  ),
+  VERIFIED_SUPPLEMENT_OR_PLAN_NOT_FOUND: entry(
+    text("مکمل یا برنامه پیدا نشد", "Verified supplement or plan not found"),
+    text("مکمل یا برنامه تأییدشده پیدا نشد.", "The verified supplement or nutrition plan was not found."),
+  ),
+  ASSIGNED_REVIEW_REQUIRED: entry(
+    text("اختصاص بررسی لازم است", "Assigned review required"),
+    text("ابتدا بررسی برنامه را به نام خود ثبت کنید.", "Claim the plan review before continuing."),
+  ),
+  SUPPLEMENT_ORDER_NOT_FOUND: entry(
+    text("سفارش مکمل پیدا نشد", "Supplement order not found"),
+    text("سفارش مکمل پیدا نشد.", "The supplement order was not found."),
+  ),
+  INVALID_SUPPLEMENT_ORDER_TRANSITION: entry(
+    text("تغییر وضعیت سفارش مکمل معتبر نیست", "Supplement order transition is invalid"),
+    text("تغییر وضعیت سفارش مکمل با وضعیت فعلی سازگار نیست.", "The supplement order cannot move to the selected status."),
   ),
   SAFETY_DECISION_NOT_FOUND: entry(
     text("ارزیابی ایمنی ثبت نشده است", "Safety assessment is missing"),
