@@ -31,6 +31,7 @@ def _candidate(
     exercise_type: ExerciseType = ExerciseType.COMPOUND,
     muscle: MuscleGroup = MuscleGroup.CHEST,
     labels: tuple[ExerciseLabel, ...] = (),
+    substitution_group: str | None = None,
 ) -> WorkoutExerciseCandidate:
     return WorkoutExerciseCandidate(
         id=exercise_id,
@@ -42,6 +43,7 @@ def _candidate(
         difficulty=Difficulty.BEGINNER,
         caution_tags=(),
         labels=labels,
+        substitution_group=substitution_group,
     )
 
 
@@ -266,6 +268,44 @@ def test_validator_rejects_isolation_before_a_suitable_compound() -> None:
         validator.validate(plan)
 
     assert "compound_order" in {problem.code for problem in exc_info.value.problems}
+
+
+def test_validator_accepts_a_safe_leg_extension_primer_before_a_squat() -> None:
+    primer_id, squat_id = FIRST_ID, THIRD_ID
+    candidates = CandidateSet(
+        exercises=(
+            _candidate(
+                primer_id,
+                pattern=MovementPattern.KNEE_EXTENSION,
+                exercise_type=ExerciseType.ISOLATION,
+                muscle=MuscleGroup.QUADRICEPS,
+                substitution_group="knee_extension",
+            ),
+            _candidate(squat_id, pattern=MovementPattern.SQUAT, muscle=MuscleGroup.QUADRICEPS),
+        ),
+        candidate_set_hash="a" * 64,
+        soft_cautions=(),
+        minimum_candidate_count=1,
+    )
+    validator = WorkoutPlanValidator(
+        candidates=candidates,
+        policy=WorkoutGenerationPolicy.for_session_duration(45),
+        required_day_count=1,
+    )
+
+    validator.validate(
+        _plan(
+            [
+                WorkoutPlanDayOutput(
+                    day_number=1,
+                    title_en="Primer and squat",
+                    title_fa="پریمِر و اسکوات",
+                    estimated_duration_minutes=16,
+                    exercises=[_exercise(primer_id), _exercise(squat_id)],
+                )
+            ]
+        )
+    )
 
 
 def test_cardio_cannot_fill_required_strength_slot() -> None:

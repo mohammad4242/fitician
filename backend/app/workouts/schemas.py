@@ -77,6 +77,7 @@ class WorkoutExerciseCandidate:
     prescription_mode: PrescriptionMode = PrescriptionMode.REPS
     duration_min_seconds: int | None = None
     duration_max_seconds: int | None = None
+    substitution_group: str | None = None
 
 
 @dataclass(frozen=True)

@@ -11,12 +11,20 @@ from app.exercises.enums import (
     MuscleGroup,
     PrescriptionMode,
 )
+from app.workouts.program_engine.exercise_semantics import LEG_EXTENSION_PRIMER_FAMILY
 from app.workouts.schemas import CandidateSet, WorkoutExerciseCandidate
 from app.workouts.time_budget import (
     ExerciseTiming,
     WorkoutGenerationPolicy,
     fits_session_duration,
 )
+
+
+def _is_leg_extension_primer(candidate: WorkoutExerciseCandidate) -> bool:
+    return (
+        candidate.movement_pattern is MovementPattern.KNEE_EXTENSION
+        and candidate.substitution_group == LEG_EXTENSION_PRIMER_FAMILY
+    )
 
 
 @dataclass(frozen=True)
@@ -177,6 +185,10 @@ class WorkoutPlanValidator:
             )
 
         seen_smaller_movement = False
+        squat_seen = False
+        has_squat = any(
+            candidate.movement_pattern is MovementPattern.SQUAT for candidate in selected
+        )
         for candidate in selected:
             if candidate.exercise_type is ExerciseType.COMPOUND and seen_smaller_movement:
                 problems.append(
@@ -187,7 +199,15 @@ class WorkoutPlanValidator:
                     )
                 )
                 break
-            if candidate.exercise_type in {ExerciseType.ISOLATION, ExerciseType.CORE}:
+            is_safe_leg_extension_primer = (
+                has_squat and not squat_seen and _is_leg_extension_primer(candidate)
+            )
+            if candidate.movement_pattern is MovementPattern.SQUAT:
+                squat_seen = True
+            if (
+                candidate.exercise_type in {ExerciseType.ISOLATION, ExerciseType.CORE}
+                and not is_safe_leg_extension_primer
+            ):
                 seen_smaller_movement = True
 
     @staticmethod

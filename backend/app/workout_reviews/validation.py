@@ -222,6 +222,7 @@ class WorkoutReviewDraftValidator:
             prescription_mode=exercise.prescription_mode,
             duration_min_seconds=exercise.duration_min_seconds,
             duration_max_seconds=exercise.duration_max_seconds,
+            substitution_group=exercise.substitution_group,
         )
 
 
