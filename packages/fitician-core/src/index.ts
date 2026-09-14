@@ -173,6 +173,7 @@ export type {
   WorkoutReviewExerciseDraft,
   WorkoutReviewQueueGroup,
   WorkoutReviewQueueItem,
+  WorkoutReviewQueueTimestamp,
   WorkoutReviewQueueView,
   WorkoutReviewStatus,
 } from "./workout-reviews";

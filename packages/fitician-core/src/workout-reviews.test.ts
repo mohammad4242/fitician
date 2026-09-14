@@ -79,6 +79,19 @@ describe("groupWorkoutReviewQueue", () => {
 
     expect(groups.map((group) => group.key)).toEqual(["2026-09-15", "2026-09-14"]);
   });
+
+  it("groups approved reviews by approval date when requested", () => {
+    const approved = {
+      ...item("approved", daysAgo(28)),
+      status: "approved" as const,
+      approved_at: daysAgo(1),
+    };
+
+    const groups = groupWorkoutReviewQueue([approved], NOW, "approved_at");
+
+    expect(groups[0]?.key).toBe("2026-09-13");
+    expect(groups[0]?.items[0]).toBe(approved);
+  });
 });
 
 describe("groupReviewQueueByRecency", () => {

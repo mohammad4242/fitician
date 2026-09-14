@@ -4,6 +4,7 @@ import type { WorkoutPlan } from "./workouts.js";
 
 export type WorkoutReviewStatus = "pending" | "claimed" | "approved" | "rejected" | "superseded";
 export type WorkoutReviewQueueView = "pending" | "mine" | "approved";
+export type WorkoutReviewQueueTimestamp = "created_at" | "approved_at";
 
 export type WorkoutReviewExerciseDraft = {
   order_index: number;
@@ -177,8 +178,14 @@ export function groupReviewQueueByRecency<T>(
 export function groupWorkoutReviewQueue(
   items: readonly WorkoutReviewQueueItem[],
   now: string = new Date().toISOString(),
+  timestamp: WorkoutReviewQueueTimestamp = "created_at",
 ): WorkoutReviewQueueGroup[] {
-  return groupReviewQueueByRecency(items, (item) => item.created_at, now, (item) => item.id);
+  return groupReviewQueueByRecency(
+    items,
+    (item) => timestamp === "approved_at" ? item.approved_at ?? item.created_at : item.created_at,
+    now,
+    (item) => item.id,
+  );
 }
 
 export type CoachTemplateSelection = {
