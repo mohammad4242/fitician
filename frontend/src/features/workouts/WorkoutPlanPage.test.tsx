@@ -167,7 +167,8 @@ const pendingPlan: WorkoutPlan = {
   },
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage("fa");
   api.deleteWorkoutPlan.mockReset();
   api.getActiveWorkoutPlan.mockReset();
   api.getWorkoutPlanHistory.mockReset();
@@ -226,7 +227,10 @@ beforeEach(() => {
   profileApi.updateProfile.mockResolvedValue({ workout_generation_method: "ai" });
 });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
 
 const timelineSession = (overrides: Record<string, unknown> = {}) => ({
   id: "session-1",
@@ -707,6 +711,24 @@ it("lets the member inspect old and coach-approved immutable versions", async ()
   expect(api.getWorkoutPlan).toHaveBeenCalledWith(plan.id);
   expect(await screen.findByText("در حال مشاهده نسخه قبلی")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "به‌روزرسانی برنامه" })).not.toBeInTheDocument();
+});
+
+it("renders English coach timestamps in Tehran time", async () => {
+  vi.stubEnv("TZ", "UTC");
+  await i18n.changeLanguage("en");
+  api.getActiveWorkoutPlan.mockResolvedValue({
+    ...plan,
+    coach_review: {
+      state: "coach_approved",
+      coach_display_name: "Coach Sara",
+      coach_note: null,
+      approved_at: "2026-09-13T20:45:00Z",
+    },
+  });
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByText("Sep 14, 2026, 12:15 AM")).toBeInTheDocument();
 });
 
 it("shows deletion only for an archived version, never for the active version", async () => {

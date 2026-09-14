@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
+import { formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
@@ -732,9 +732,7 @@ function formatTimelineDate(value: string, isEnglish: boolean): string {
 }
 
 function formatMemberTimestamp(value: string, isEnglish: boolean): string {
-  return isEnglish
-    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value))
-    : formatTehranDateTime(value);
+  return formatTehranDateTimeForLocale(value, isEnglish ? "en-US" : "fa-IR");
 }
 
 function WorkoutTimelineCard({

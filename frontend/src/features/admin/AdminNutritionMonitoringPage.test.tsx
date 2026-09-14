@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 
 const nutritionApi = vi.hoisted(() => ({
@@ -78,6 +78,10 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 it("shows source health, coverage exceptions, and triggers a manual refresh", async () => {
   nutritionApi.triggerNutritionPriceRefresh.mockResolvedValue({
     status: "completed_with_errors",
@@ -121,4 +125,32 @@ it("renders the confidence warning and every stored price source as a safe link"
   expect(sourceLink).toHaveAttribute("href", "https://digikala.com/product/rice");
   expect(sourceLink).toHaveAttribute("target", "_blank");
   expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+});
+
+it("renders recent nutrition runs in Tehran time", async () => {
+  vi.stubEnv("TZ", "UTC");
+  await i18n.changeLanguage("en");
+  nutritionApi.getNutritionMonitoring.mockResolvedValueOnce({
+    counts: { foods: 0, meals: 0, accepted_price_references: 0, price_reviews: 0, supplements: 0 },
+    coverage_warning: null,
+    provider_health: [],
+    price_reviews: [],
+    broken_mappings: [],
+    recent_price_runs: [{
+      id: "run-boundary",
+      status: "completed",
+      started_at: "2026-09-13T20:45:00Z",
+      foods_updated: 1,
+      foods_needing_review: 0,
+      provider_failures: 0,
+    }],
+  });
+
+  render(
+    <MemoryRouter>
+      <AdminNutritionMonitoringPage />
+    </MemoryRouter>,
+  );
+
+  expect(await screen.findByText("Sep 14, 2026, 12:15 AM")).toBeInTheDocument();
 });

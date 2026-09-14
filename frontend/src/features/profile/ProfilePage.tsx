@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import authTrainingAccent from "../../assets/landing/auth-training-accent.jpg";
+import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
@@ -285,10 +286,10 @@ function ReadyProfilePage({
   const locale = language === "en" ? "en" : "fa-IR";
   const measuredWeight = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
     .format(baselineShared.current_weight_kg);
-  const measuredAt = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(baselineShared.weight_measured_at));
+  const measuredAt = formatTehranDateTimeForLocale(
+    baselineShared.weight_measured_at,
+    locale,
+  );
 
   return (
     <div className="profile-page-shell" dir={language === "fa" ? "rtl" : "ltr"}>

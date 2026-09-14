@@ -6,7 +6,7 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import type { ProductMode, Profile, SharedProfile } from "./types";
@@ -120,6 +120,10 @@ beforeEach(async () => {
   profileApi.getSharedProfile.mockResolvedValue(savedSharedProfile);
   profileApi.saveSharedProfile.mockResolvedValue(savedSharedProfile);
   await i18n.changeLanguage("fa");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 it("shows signed-in profile information as three ordered full pages", async () => {
@@ -250,18 +254,18 @@ it("uses the supplied training still in the profile header", () => {
 });
 
 it("shows the latest measured weight and localized measurement time", () => {
+  vi.stubEnv("TZ", "UTC");
+  context.profile = {
+    ...savedProfile,
+    weight_measured_at: "2026-09-13T20:45:00Z",
+  };
   renderProfilePage();
-  const locale = "fa-IR";
-  const expectedWeight = new Intl.NumberFormat(locale, {
+  const expectedWeight = new Intl.NumberFormat("fa-IR", {
     maximumFractionDigits: 2,
-  }).format(savedProfile.current_weight_kg);
-  const expectedDate = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(savedProfile.weight_measured_at));
+  }).format(context.profile.current_weight_kg);
 
   expect(screen.getAllByText(`${expectedWeight} کیلوگرم`)).toHaveLength(2);
-  expect(screen.getByText(`ثبت‌شده در ${expectedDate}`)).toBeInTheDocument();
+  expect(screen.getByText("ثبت‌شده در ۲۳ شهریور ۱۴۰۵، ۰:۱۵")).toBeInTheDocument();
 });
 
 it("offers optional body-photo progress from the profile without blocking edits", () => {
