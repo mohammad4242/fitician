@@ -9,6 +9,7 @@ export type MobileRouteErrorResource = "profile" | "coach" | "physician";
 export interface MobileRouteSnapshot {
   readonly profile: {
     readonly completionState: ProfileCompletionState | null;
+    readonly error?: unknown;
     readonly productMode: ProductMode | null;
     readonly status: "loading" | "resolved" | "error";
   };
@@ -19,6 +20,7 @@ export interface MobileRouteSnapshot {
   };
   readonly specialistAccess: {
     readonly coach: MobileSpecialistAccess;
+    readonly errors?: Partial<Record<"coach" | "physician", unknown>>;
     readonly physician: MobileSpecialistAccess;
   };
 }

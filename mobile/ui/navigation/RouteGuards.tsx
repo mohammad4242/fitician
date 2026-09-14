@@ -11,6 +11,7 @@ import {
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Redirect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { resolveAppError } from "@fitician/core";
 
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
 import { mobileRouteSnapshotFromAuth } from "../../auth/authContext";
@@ -187,6 +188,9 @@ export function RouteGuard({ children, kind, requiredCapability }: RouteGuardPro
   if (decision.status === "error") {
     return (
       <RouteGuardError
+        error={decision.resource === "profile"
+          ? snapshot.profile.error
+          : snapshot.specialistAccess.errors?.[decision.resource]}
         onRetry={() => void retryForResource(decision.resource, refreshProfileStatus, refreshSpecialistAccess)}
         resource={decision.resource}
       />
@@ -214,21 +218,31 @@ function RouteGuardLoading() {
 }
 
 function RouteGuardError({
+  error,
   onRetry,
   resource,
 }: {
+  readonly error?: unknown;
   readonly onRetry: () => void;
   readonly resource: MobileRouteErrorResource;
 }) {
   const profile = resource === "profile";
+  const resolved = error === undefined
+    ? null
+    : resolveAppError(error, {
+      audience: "member",
+      context: profile ? "profile" : "specialist_review",
+      locale: "fa",
+    });
+  if (resolved?.severity === "silent") return null;
   return (
     <SafeAreaView edges={["top", "bottom"]} style={[styles.loading, RTL_LAYOUT]}>
       <View style={[styles.error, RTL_LAYOUT]}>
         <Notice
           actionLabel="دوباره تلاش کن"
-          message={profile ? "اطلاعات پروفایل دریافت نشد." : "دسترسی این بخش بررسی نشد."}
+          message={resolved?.message ?? (profile ? "اطلاعات پروفایل دریافت نشد." : "دسترسی این بخش بررسی نشد.")}
           onAction={onRetry}
-          title={profile ? "اتصال به پروفایل برقرار نشد" : "بررسی دسترسی انجام نشد"}
+          title={resolved?.title ?? (profile ? "اتصال به پروفایل برقرار نشد" : "بررسی دسترسی انجام نشد")}
           variant="warning"
         />
       </View>

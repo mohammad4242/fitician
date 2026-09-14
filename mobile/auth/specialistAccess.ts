@@ -9,10 +9,15 @@ export type SpecialistAccessRequest = <TResponse>(
 
 export type SpecialistAccessSnapshot = {
   readonly coach: MobileSpecialistAccess;
+  readonly errors?: Partial<Record<"coach" | "physician", unknown>>;
   readonly physician: MobileSpecialistAccess;
 };
 
 type AccessResponse = { readonly authorized?: unknown };
+type SpecialistAccessResult = {
+  readonly error: unknown | null;
+  readonly status: MobileSpecialistAccess;
+};
 
 function isForbiddenResponse(error: unknown): boolean {
   return typeof error === "object"
@@ -30,19 +35,20 @@ async function isAuthorized(
   request: SpecialistAccessRequest,
   path: string,
   role: "coach" | "physician",
-): Promise<MobileSpecialistAccess> {
+): Promise<SpecialistAccessResult> {
   try {
     const response = await request<AccessResponse>({ method: "GET", path });
-    if (response.authorized === true) return "granted";
-    if (response.authorized === false) return "denied";
+    if (response.authorized === true) return { error: null, status: "granted" };
+    if (response.authorized === false) return { error: null, status: "denied" };
+    const error = new Error("Invalid specialist access response");
     logDevelopmentDiagnostic("specialist_access_failed", "error", {
       error_type: "InvalidAccessResponse",
       operation: "specialist_access",
       role,
     });
-    return "error";
+    return { error, status: "error" };
   } catch (error) {
-    if (isForbiddenResponse(error)) return "denied";
+    if (isForbiddenResponse(error)) return { error: null, status: "denied" };
     logDevelopmentDiagnostic("specialist_access_failed", "error", {
       error_type: error instanceof Error && error.name.length > 0 ? error.name : typeof error,
       http_status: typeof error === "object" && error !== null && "status" in error
@@ -51,7 +57,7 @@ async function isAuthorized(
       operation: "specialist_access",
       role,
     });
-    return "error";
+    return { error, status: "error" };
   }
 }
 
@@ -62,5 +68,12 @@ export async function loadSpecialistAccess(
     isAuthorized(request, accessPaths.coach, "coach"),
     isAuthorized(request, accessPaths.physician, "physician"),
   ]);
-  return { coach, physician };
+  const errors: Partial<Record<"coach" | "physician", unknown>> = {};
+  if (coach.error !== null) errors.coach = coach.error;
+  if (physician.error !== null) errors.physician = physician.error;
+  return {
+    coach: coach.status,
+    ...(Object.keys(errors).length > 0 ? { errors } : {}),
+    physician: physician.status,
+  };
 }

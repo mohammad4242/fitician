@@ -6,11 +6,13 @@ import { logDevelopmentDiagnostic } from "../../platform/logging";
 export type MobileProfileRouteState =
   | {
       readonly completionState: null;
+      readonly error?: unknown;
       readonly productMode: null;
       readonly status: "loading" | "error";
     }
   | {
       readonly completionState: ProfileStatusResponse["completion_state"];
+      readonly error?: unknown;
       readonly productMode: ProfileStatusResponse["product_mode"];
       readonly status: "resolved";
     };
@@ -64,11 +66,11 @@ export async function loadMobileProfileStatus(
       path: "/api/v1/profile/status",
     });
     return mobileProfileStateFromStatus(status);
-  } catch (error) {
+    } catch (error) {
     logDevelopmentDiagnostic("profile_bootstrap_failed", "error", {
       operation: "profile_status",
       ...diagnosticErrorContext(error),
     });
-    return mobileProfileErrorState;
+    return { ...mobileProfileErrorState, error };
   }
 }

@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import type { ResolvedAppError } from "@fitician/core";
 
 import { fiticianTokens } from "../tokens";
 import { RTL_LAYOUT, RTL_TEXT } from "../rtl";
@@ -45,6 +46,7 @@ export interface NoticeProps {
   readonly message: string;
   readonly onAction?: () => void;
   readonly title?: string;
+  readonly technicalDetails?: ResolvedAppError | null;
   readonly variant?: NoticeVariant;
 }
 
@@ -77,6 +79,7 @@ export function Notice({
   message,
   onAction,
   title,
+  technicalDetails,
   variant = "info",
 }: NoticeProps) {
   return (
@@ -87,11 +90,26 @@ export function Notice({
     >
       {title ? <Text style={[styles.noticeTitle, compact && styles.compactTitle]}>{title}</Text> : null}
       <Text style={[styles.noticeMessage, compact && styles.compactMessage]}>{message}</Text>
+      {technicalDetails?.showTechnicalDetails ? (
+        <View style={styles.technicalDetails} testID="mobile-error-technical-details">
+          <Text style={styles.technicalText}>کد خطا: {technicalValue(technicalDetails.code)}</Text>
+          <Text style={styles.technicalText}>HTTP: {technicalValue(technicalDetails.status)}</Text>
+          <Text style={styles.technicalText}>شناسه پیگیری: {technicalValue(technicalDetails.requestId)}</Text>
+          <Text style={styles.technicalText}>قابل تلاش مجدد: {technicalDetails.retryable ? "بله" : "خیر"}</Text>
+          {Object.entries(technicalDetails.meta).map(([key, value]) => (
+            <Text key={key} style={styles.technicalText}>{key}: {JSON.stringify(value)}</Text>
+          ))}
+        </View>
+      ) : null}
       {actionLabel && onAction ? (
         <Button label={actionLabel} onPress={onAction} variant="secondary" />
       ) : null}
     </View>
   );
+}
+
+function technicalValue(value: string | number | null): string {
+  return value === null ? "—" : String(value);
 }
 
 export interface EmptyStateProps {
@@ -152,6 +170,19 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     lineHeight: 24,
+  },
+  technicalDetails: {
+    borderColor: fiticianTokens.colors.line,
+    borderRadius: fiticianTokens.radii.small,
+    borderWidth: 1,
+    gap: fiticianTokens.spacing[1],
+    padding: fiticianTokens.spacing[2],
+  },
+  technicalText: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    writingDirection: "ltr",
   },
   skeleton: {
     backgroundColor: fiticianTokens.colors.surfaceRaised,

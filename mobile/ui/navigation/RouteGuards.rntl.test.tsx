@@ -29,6 +29,7 @@ jest.mock("../components", () => {
 });
 
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
+import { ApiError } from "@fitician/core";
 import {
   MobileRouteStateProviderFromAuth,
   RouteGuard,
@@ -105,7 +106,9 @@ test("shows a specialist retry state and resumes the protected route after retry
     }
     if (input.path === "/api/v1/coach/workout-reviews/access") {
       coachAttempts += 1;
-      if (coachAttempts === 1) throw new TypeError("Network request failed");
+      if (coachAttempts === 1) {
+        throw new ApiError(503, "private specialist detail", null, "SPECIALIST_RELATIONSHIP_REQUIRED");
+      }
       return { authorized: true };
     }
     return { authorized: false };
@@ -126,6 +129,8 @@ test("shows a specialist retry state and resumes the protected route after retry
 
   const retry = await screen.findByRole("button", { name: "دوباره تلاش کن" });
   expect(screen.queryByText("coach-content")).toBeNull();
+  expect(screen.getByText("این متخصص به پرونده موردنظر دسترسی ندارد.")).toBeTruthy();
+  expect(screen.queryByText("private specialist detail")).toBeNull();
 
   await act(async () => {
     fireEvent.press(retry);

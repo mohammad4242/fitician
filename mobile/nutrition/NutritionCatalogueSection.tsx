@@ -427,7 +427,13 @@ function FoodCatalogueView({
           onSearchSubmit={onSearchSubmit}
           searchInput={searchInput}
         />
-        <Notice actionLabel="تلاش دوباره" message={state.status === "error" ? state.error.message : "کاتالوگ مواد غذایی دریافت نشد."} onAction={onRetry} variant="danger" />
+        <Notice
+          actionLabel="تلاش دوباره"
+          message={state.status === "error" ? state.error.message : "کاتالوگ مواد غذایی دریافت نشد."}
+          onAction={onRetry}
+          technicalDetails={isAdmin && state.status === "error" ? state.error.presentation : null}
+          variant="danger"
+        />
       </View>
     );
   }
