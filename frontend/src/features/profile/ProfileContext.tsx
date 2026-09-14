@@ -26,6 +26,7 @@ export type ProfileStatus = "idle" | "loading" | "missing" | "mode_selected" | "
 type ProfileContextValue = {
   profile: Profile | null;
   status: ProfileStatus;
+  profileError: unknown;
   productMode: ProductMode | null;
   retryProfile: () => void;
   createProfile: (input: ProfileInput) => Promise<Profile>;
@@ -41,6 +42,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [status, setStatus] = useState<ProfileStatus>("idle");
   const [productMode, setProductMode] = useState<ProductMode | null>(null);
+  const [profileError, setProfileError] = useState<unknown>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [timezoneSyncLifecycle, setTimezoneSyncLifecycle] = useState(0);
   const requestGeneration = useRef(0);
@@ -83,11 +85,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem(HYDRATED_ACCOUNT_KEY);
       setProfile(null);
       setProductMode(null);
+      setProfileError(null);
       setStatus("idle");
       return;
     }
 
     let active = true;
+    setProfileError(null);
     setStatus("loading");
     api.getProfileStatus()
       .then(async (profileStatus) => {
@@ -114,15 +118,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             sessionStorage.removeItem(HYDRATED_ACCOUNT_KEY);
           }
           setProfile(currentProfile);
+          setProfileError(null);
           setStatus(profileStatus.completion_state === "product_mode_not_selected"
             ? "missing"
             : readyStates.has(profileStatus.completion_state) ? "ready" : "mode_selected");
           setTimezoneSyncLifecycle((lifecycle) => lifecycle + 1);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (active && generation === requestGeneration.current) {
           setProfile(null);
+          setProfileError(error);
           setStatus("error");
         }
       });
@@ -136,6 +142,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     () => ({
       profile,
       status,
+      profileError,
       productMode,
       retryProfile: () => {
         requestGeneration.current += 1;
@@ -183,7 +190,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [productMode, profile, status],
+    [productMode, profile, profileError, status],
   );
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

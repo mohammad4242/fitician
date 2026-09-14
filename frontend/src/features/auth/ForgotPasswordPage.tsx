@@ -7,7 +7,8 @@ import * as api from "./api";
 import { authErrorMessage } from "./authError";
 
 export function ForgotPasswordPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export function ForgotPasswordPage() {
     void api
       .forgotPassword(String(data.get("email") ?? ""))
       .then(() => setSent(true))
-      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t)))
+      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale)))
       .finally(() => setBusy(false));
   }
 

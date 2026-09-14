@@ -9,6 +9,7 @@ import { verifyCoachAccess } from "../features/workoutReviews/api";
 import { ProfilePhotoAvatar } from "../features/profile/ProfilePhoto";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { AppIcon } from "./AppIcon";
+import { AppErrorNotice } from "./AppErrorNotice";
 import "./authenticatedHeader.css";
 
 export function AuthenticatedHeader() {
@@ -22,7 +23,7 @@ export function AuthenticatedHeader() {
   const hasTraining = productMode === undefined || productMode === null || productMode === "training" || productMode === "both";
   const hasNutrition = productMode === "nutrition" || productMode === "both";
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isCoach, setIsCoach] = useState(false);
   const [isPhysician, setIsPhysician] = useState(false);
@@ -51,10 +52,10 @@ export function AuthenticatedHeader() {
 
   function handleLogout() {
     setBusy(true);
-    setError(false);
+    setError(null);
     void logout()
       .then(() => navigate("/login", { replace: true }))
-      .catch(() => setError(true))
+      .catch((cause) => setError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -211,11 +212,12 @@ export function AuthenticatedHeader() {
           </div>
         </div>
       </header>
-      {error && (
-        <p className="form-error authenticated-header__error" role="alert">
-          {t("errors.generic")}
-        </p>
-      )}
+      <AppErrorNotice
+        audience={user.is_admin ? "admin" : "member"}
+        context="auth"
+        error={error}
+        locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+      />
     </>
   );
 }

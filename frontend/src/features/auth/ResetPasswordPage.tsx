@@ -8,7 +8,8 @@ import * as api from "./api";
 import { authErrorMessage } from "./authError";
 
 export function ResetPasswordPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [busy, setBusy] = useState(false);
@@ -33,7 +34,7 @@ export function ResetPasswordPage() {
         setError(
           requestError instanceof ApiError && requestError.status === 400
             ? t("passwordRecovery.invalidToken")
-            : authErrorMessage(requestError, t),
+            : authErrorMessage(requestError, t, locale),
         );
       })
       .finally(() => setBusy(false));

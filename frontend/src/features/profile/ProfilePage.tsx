@@ -6,6 +6,7 @@ import authTrainingAccent from "../../assets/landing/auth-training-accent.jpg";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
 import { useAuth } from "../auth/AuthContext";
 import * as profileApi from "./api";
@@ -94,17 +95,18 @@ function NutritionOnlyProfileLoader({
 }) {
   const { t } = useTranslation();
   const [shared, setShared] = useState<SharedProfile | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   useEffect(() => {
     let active = true;
     void profileApi.getSharedProfile()
-      .then((value) => { if (active) setShared(value); })
-      .catch(() => { if (active) setShared(null); });
+      .then((value) => { if (active) { setShared(value); setLoadError(null); } })
+      .catch((cause) => { if (active) { setShared(null); setLoadError(cause); } });
     return () => { active = false; };
   }, []);
 
   if (shared === undefined) return <ProfileLoadingShell message={t("common.loading")} />;
-  if (shared === null) return <ProfileLoadingShell message={t("errors.network")} error />;
+  if (shared === null) return <ProfileLoadingShell message={t("errors.network")} error={loadError} />;
 
   return (
     <ReadyProfilePage
@@ -123,12 +125,12 @@ function NutritionOnlyProfileLoader({
   );
 }
 
-function ProfileLoadingShell({ message, error = false }: { message: string; error?: boolean }) {
+function ProfileLoadingShell({ message, error = null }: { message: string; error?: unknown }) {
   return (
     <div className="profile-page-shell">
       <MemberHeaderMedia imageSrc={authTrainingAccent} className="member-page-background" />
       <main className="profile-page-main">
-        <p className={error ? "form-error" : undefined} role={error ? "alert" : "status"}>{message}</p>
+        {error ? <AppErrorNotice audience="member" context="profile" error={error} /> : <p role="status">{message}</p>}
       </main>
     </div>
   );
@@ -163,7 +165,7 @@ function ReadyProfilePage({
     : profileToFormValues(initialProfile));
   const [errors, setErrors] = useState<ProfileValidationErrors>({});
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [section, setSection] = useState<ProfileSection>("personal");
   const [photoUrl, setPhotoUrl] = useState(
@@ -188,7 +190,7 @@ function ReadyProfilePage({
       ...(changesTrainingLocation ? { home_training_setup: "", available_equipment: [] } : {}),
     }));
     setStatus("idle");
-    setSaveError(false);
+    setSaveError(null);
     setErrors((current) => {
       const next = { ...current };
       delete next[field];
@@ -232,7 +234,7 @@ function ReadyProfilePage({
 
     setBusy(true);
     setStatus("idle");
-    setSaveError(false);
+    setSaveError(null);
     try {
       if (baselineProfile === null) {
         const input = toSharedProfileInput(values);
@@ -256,8 +258,8 @@ function ReadyProfilePage({
         }
       }
       if (advanceAfterSave) advance();
-    } catch {
-      setSaveError(true);
+    } catch (cause) {
+      setSaveError(cause);
     } finally {
       setBusy(false);
     }
@@ -270,7 +272,7 @@ function ReadyProfilePage({
 
   function goBack() {
     setErrors({});
-    setSaveError(false);
+    setSaveError(null);
     setStatus("idle");
     if (section === "personal") navigate("/dashboard");
     else setSection(section === "nutrition" ? "training" : "personal");
@@ -408,7 +410,7 @@ function ReadyProfilePage({
                 </div>
               )}
 
-              {saveError && <p className="form-error profile-save-message" role="alert">{t("profile.saveError")}</p>}
+              <AppErrorNotice audience="member" context="profile" error={saveError} />
               {status !== "idle" && (
                 <p className="profile-save-message profile-save-message--success" role="status">
                   {status === "saved" ? t("profile.saved", { name: baselineShared.display_name }) : t("profile.unchanged")}

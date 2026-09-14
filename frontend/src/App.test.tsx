@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { TransportError } from "@fitician/core";
+
 import type { ExerciseCategories, ExerciseDetail, PaginatedExercises } from "./features/exercises/types";
 import { muscleGroups } from "./features/exercises/types";
 import { HYDRATED_ACCOUNT_KEY } from "./features/publicOnboarding/onboardingDraft";
@@ -16,7 +18,7 @@ const auth = vi.hoisted(() => ({
       is_admin: boolean;
     },
     loading: false,
-    startupError: false,
+    startupError: false as unknown,
     retryStartup: vi.fn(),
     login: vi.fn(),
     register: vi.fn(),
@@ -182,7 +184,7 @@ beforeEach(() => {
 });
 
 it("shows a retry action when the initial session check is unavailable", async () => {
-  auth.value.startupError = true;
+  auth.value.startupError = new TransportError("network");
   const user = userEvent.setup();
   render(
     <MemoryRouter initialEntries={["/dashboard"]}>
@@ -191,7 +193,7 @@ it("shows a retry action when the initial session check is unavailable", async (
   );
 
   expect(screen.getByRole("alert")).toHaveTextContent(
-    "ارتباط با سرور برقرار نشد",
+    "ارتباط با سرویس برقرار نشد",
   );
   await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
 

@@ -8,7 +8,8 @@ import { useAuth } from "./AuthContext";
 import { authPath, safeReturnTo } from "./returnTo";
 
 export function RegisterPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { register } = useAuth();
@@ -34,7 +35,7 @@ export function RegisterPage() {
       .then(
         () => navigate(returnTo, { replace: true }),
         (requestError: unknown) => {
-          setError(authErrorMessage(requestError, t));
+          setError(authErrorMessage(requestError, t, locale));
         },
       )
       .finally(() => setBusy(false));

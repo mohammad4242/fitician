@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "../auth/AuthContext";
 import { HYDRATED_ACCOUNT_KEY } from "../publicOnboarding/onboardingDraft";
 import { verifyPhysicianAccess } from "../nutrition/api";
@@ -12,15 +13,20 @@ function StartupState({
   error,
   onRetry,
 }: {
-  error: boolean;
+  error: unknown;
   onRetry: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (error) {
     return (
-      <main className="loading-screen" role="alert">
-        <p>{t("errors.network")}</p>
+      <main className="loading-screen">
+        <AppErrorNotice
+          audience="member"
+          context="profile"
+          error={error}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+        />
         <button className="retry-button" type="button" onClick={onRetry}>
           {t("common.retry")}
         </button>
@@ -36,19 +42,19 @@ function StartupState({
   );
 }
 
-function profileStartupState(status: ProfileStatus, retryProfile: () => void) {
+function profileStartupState(status: ProfileStatus, retryProfile: () => void, profileError: unknown) {
   if (status === "idle" || status === "loading") {
-    return <StartupState error={false} onRetry={retryProfile} />;
+    return <StartupState error={null} onRetry={retryProfile} />;
   }
   if (status === "error") {
-    return <StartupState error onRetry={retryProfile} />;
+    return <StartupState error={profileError} onRetry={retryProfile} />;
   }
   return null;
 }
 
 export function GuestRoute() {
   const { user, loading, startupError, retryStartup } = useAuth();
-  const { status, retryProfile } = useProfile();
+  const { status, profileError, retryProfile } = useProfile();
 
   if (loading || startupError) {
     return <StartupState error={startupError} onRetry={retryStartup} />;
@@ -57,7 +63,7 @@ export function GuestRoute() {
     return <Outlet />;
   }
 
-  const startupState = profileStartupState(status, retryProfile);
+  const startupState = profileStartupState(status, retryProfile, profileError);
   if (startupState !== null) {
     return startupState;
   }
@@ -66,8 +72,8 @@ export function GuestRoute() {
 }
 
 export function OnboardingRoute() {
-  const { status, retryProfile } = useProfile();
-  const startupState = profileStartupState(status, retryProfile);
+  const { status, profileError, retryProfile } = useProfile();
+  const startupState = profileStartupState(status, retryProfile, profileError);
 
   if (startupState !== null) {
     return startupState;
@@ -77,8 +83,8 @@ export function OnboardingRoute() {
 }
 
 export function CompletedProfileRoute() {
-  const { status, retryProfile } = useProfile();
-  const startupState = profileStartupState(status, retryProfile);
+  const { status, profileError, retryProfile } = useProfile();
+  const startupState = profileStartupState(status, retryProfile, profileError);
 
   if (startupState !== null) {
     return startupState;

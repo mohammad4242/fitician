@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TransportError } from "@fitician/core";
+
 import type { ProductMode, Profile } from "./types";
 
 const contexts = vi.hoisted(() => ({
@@ -23,6 +25,7 @@ const contexts = vi.hoisted(() => ({
     profile: null as Profile | null,
     status: "idle" as "idle" | "loading" | "missing" | "ready" | "error",
     productMode: null as ProductMode | null,
+    profileError: null as unknown,
     retryProfile: vi.fn(),
     createProfile: vi.fn(),
     updateProfile: vi.fn(),
@@ -102,6 +105,7 @@ beforeEach(() => {
   contexts.profile.profile = null;
   contexts.profile.status = "idle";
   contexts.profile.productMode = null;
+  contexts.profile.profileError = null;
   contexts.profile.retryProfile.mockReset();
   workoutReviewApi.verifyCoachAccess.mockReset();
   workoutReviewApi.listWorkoutReviews.mockReset();
@@ -218,11 +222,12 @@ describe("profile route matrix", () => {
   it("offers profile retry without redirecting after a startup error", async () => {
     contexts.auth.user = member;
     contexts.profile.status = "error";
+    contexts.profile.profileError = new TransportError("network");
     const user = userEvent.setup();
     renderRoute("/dashboard");
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "ارتباط با سرور برقرار نشد",
+      "ارتباط با سرویس برقرار نشد",
     );
     await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
 

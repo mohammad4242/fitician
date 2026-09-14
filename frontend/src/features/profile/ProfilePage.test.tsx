@@ -8,6 +8,8 @@ import {
 } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { TransportError } from "@fitician/core";
+
 import i18n from "../../i18n";
 import type { ProductMode, Profile, SharedProfile } from "./types";
 
@@ -515,7 +517,7 @@ it("shows success from the returned profile and resets the patch baseline", asyn
 });
 
 it("keeps edited values and shows an alert when profile update fails", async () => {
-  context.updateProfile.mockRejectedValue(new Error("offline"));
+  context.updateProfile.mockRejectedValue(new TransportError("offline"));
   const user = userEvent.setup();
   renderProfilePage();
 
@@ -524,7 +526,7 @@ it("keeps edited values and shows an alert when profile update fails", async () 
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "تغییرات ذخیره نشد",
+    "اتصال اینترنت در دسترس نیست",
   );
   expect(screen.getByLabelText("نام نمایشی")).toHaveValue("Offline Name");
 });

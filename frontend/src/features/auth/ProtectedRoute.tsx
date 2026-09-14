@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "./AuthContext";
 
 export function ProtectedRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, loading, startupError, retryStartup } = useAuth();
   const location = useLocation();
 
@@ -19,8 +20,13 @@ export function ProtectedRoute() {
 
   if (startupError) {
     return (
-      <main className="loading-screen" role="alert">
-        <p>{t("errors.network")}</p>
+      <main className="loading-screen">
+        <AppErrorNotice
+          audience="member"
+          context="auth"
+          error={startupError}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+        />
         <button className="retry-button" type="button" onClick={retryStartup}>
           {t("common.retry")}
         </button>

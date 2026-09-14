@@ -15,7 +15,7 @@ import type { Credentials, User } from "./types";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  startupError: boolean;
+  startupError: unknown;
   retryStartup: () => void;
   register: (credentials: Credentials) => Promise<void>;
   login: (credentials: Credentials) => Promise<void>;
@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [startupError, setStartupError] = useState(false);
+  const [startupError, setStartupError] = useState<unknown>(null);
   const [startupAttempt, setStartupAttempt] = useState(0);
   const requestGeneration = useRef(0);
 
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const generation = ++requestGeneration.current;
     let active = true;
     setLoading(true);
-    setStartupError(false);
+    setStartupError(null);
     api
       .getCurrentUser()
       .then((currentUser) => {
@@ -46,9 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentUser);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (active && generation === requestGeneration.current) {
-          setStartupError(true);
+          setStartupError(error);
         }
       })
       .finally(() => {
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cancelStartupRequest = () => {
     requestGeneration.current += 1;
     setLoading(false);
-    setStartupError(false);
+    setStartupError(null);
   };
 
   const value = useMemo<AuthContextValue>(

@@ -13,7 +13,8 @@ type LoginMode = "email" | "phone";
 type PhoneStep = "request" | "verify";
 
 export function LoginPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, loginWithPhone, loginWithGoogle } = useAuth();
@@ -53,7 +54,7 @@ export function LoginPage() {
       .then(
         () => navigate(returnTo, { replace: true }),
         (requestError: unknown) => {
-          setError(authErrorMessage(requestError, t));
+          setError(authErrorMessage(requestError, t, locale));
         },
       )
       .finally(() => setBusy(false));
@@ -69,7 +70,7 @@ export function LoginPage() {
         setPhoneStep("verify");
         setCountdown(result.retry_after_seconds);
       })
-      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t)))
+      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale)))
       .finally(() => setBusy(false));
   }
 
@@ -97,11 +98,11 @@ export function LoginPage() {
       void loginWithGoogle(credential)
         .then(
           () => navigate(returnTo, { replace: true }),
-          (requestError: unknown) => setError(authErrorMessage(requestError, t)),
+          (requestError: unknown) => setError(authErrorMessage(requestError, t, locale)),
         )
         .finally(() => setBusy(false));
     },
-    [loginWithGoogle, navigate, returnTo, t],
+    [loginWithGoogle, navigate, returnTo, t, locale],
   );
 
   const handleGoogleError = useCallback(() => {
