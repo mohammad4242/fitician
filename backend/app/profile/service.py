@@ -349,9 +349,12 @@ def update_profile(
     final_experience_level = supplied_fields.get("experience_level", profile.experience_level)
     if final_experience_level is not None and final_training_days is not None:
         require_supported_resistance_training_days(final_experience_level, final_training_days)
-    final_weekdays = supplied_fields.get("preferred_weekdays", profile.preferred_weekdays)
+    final_weekdays = cast(
+        list[int] | None,
+        supplied_fields.get("preferred_weekdays", profile.preferred_weekdays),
+    )
     if (
-        final_weekdays not in (None, [])
+        final_weekdays
         and final_training_days is not None
         and len(final_weekdays) != final_training_days
     ):
@@ -476,9 +479,12 @@ def apply_profile_update_without_commit(
     final_experience_level = supplied_fields.get("experience_level", profile.experience_level)
     if final_experience_level is not None and final_training_days is not None:
         require_supported_resistance_training_days(final_experience_level, final_training_days)
-    final_weekdays = supplied_fields.get("preferred_weekdays", profile.preferred_weekdays)
+    final_weekdays = cast(
+        list[int] | None,
+        supplied_fields.get("preferred_weekdays", profile.preferred_weekdays),
+    )
     if (
-        final_weekdays not in (None, [])
+        final_weekdays
         and final_training_days is not None
         and len(final_weekdays) != final_training_days
     ):
