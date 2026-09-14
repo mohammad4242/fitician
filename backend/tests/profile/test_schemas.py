@@ -103,15 +103,28 @@ def test_profile_create_accepts_six_training_days() -> None:
     payload = valid_payload()
     payload["experience_level"] = "intermediate"
     payload["training_days_per_week"] = 6
+    payload["preferred_weekdays"] = None
 
     assert ProfileCreate.model_validate(payload).training_days_per_week == 6
 
 
-def test_profile_create_rejects_more_preferred_weekdays_than_training_days() -> None:
+def test_profile_create_requires_exact_preferred_weekday_count() -> None:
     payload = {**valid_payload(), "training_days_per_week": 2, "preferred_weekdays": [0, 2, 4]}
 
     with pytest.raises(ValidationError, match="Preferred weekdays"):
         ProfileCreate.model_validate(payload)
+
+    payload = {**valid_payload(), "training_days_per_week": 4, "preferred_weekdays": [0, 2, 4]}
+    with pytest.raises(ValidationError, match="Preferred weekdays"):
+        ProfileCreate.model_validate(payload)
+
+    profile = ProfileCreate.model_validate(
+        {**valid_payload(), "training_days_per_week": 4, "preferred_weekdays": [1, 2, 4, 6]}
+    )
+    assert profile.preferred_weekdays == (1, 2, 4, 6)
+
+    legacy = ProfileCreate.model_validate({**valid_payload(), "preferred_weekdays": None})
+    assert legacy.preferred_weekdays is None
 
 
 def test_profile_update_validates_preferred_weekday_count_when_supplied() -> None:
@@ -119,8 +132,16 @@ def test_profile_update_validates_preferred_weekday_count_when_supplied() -> Non
         {"training_days_per_week": 3, "preferred_weekdays": [0, 2, 4]}
     ).preferred_weekdays == (0, 2, 4)
 
+    assert ProfileUpdate.model_validate(
+        {"training_days_per_week": 4, "preferred_weekdays": [1, 2, 4, 6]}
+    ).preferred_weekdays == (1, 2, 4, 6)
+
     with pytest.raises(ValidationError, match="Preferred weekdays"):
         ProfileUpdate.model_validate({"training_days_per_week": 2, "preferred_weekdays": [0, 2, 4]})
+    with pytest.raises(ValidationError, match="Preferred weekdays"):
+        ProfileUpdate.model_validate({"training_days_per_week": 4, "preferred_weekdays": [0, 2, 4]})
+
+    assert ProfileUpdate.model_validate({"preferred_weekdays": None}).preferred_weekdays is None
 
 
 def test_profile_update_accepts_and_bounds_training_age() -> None:

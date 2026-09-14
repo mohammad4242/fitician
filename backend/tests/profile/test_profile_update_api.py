@@ -35,8 +35,8 @@ def register(client: TestClient, email: str = "profile-update@example.com") -> U
     return UUID(response.json()["id"])
 
 
-def create_profile(client: TestClient) -> None:
-    response = client.post("/api/v1/profile", headers=ORIGIN, json=VALID_PROFILE)
+def create_profile(client: TestClient, **overrides: object) -> None:
+    response = client.post("/api/v1/profile", headers=ORIGIN, json={**VALID_PROFILE, **overrides})
     assert response.status_code == 201
 
 
@@ -175,6 +175,48 @@ def test_patch_rejects_unsupported_effective_training_schedule(
     profile = db.get(UserProfile, user_id)
     assert profile is not None
     assert profile.training_days_per_week == 3
+
+
+def test_patch_updates_training_days_with_matching_weekdays(
+    client: TestClient, db: Session
+) -> None:
+    user_id = register(client, "profile-matching-calendar@example.com")
+    create_profile(client)
+
+    response = client.patch(
+        "/api/v1/profile",
+        headers=ORIGIN,
+        json={"training_days_per_week": 4, "preferred_weekdays": [1, 2, 4, 6]},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["training_days_per_week"] == 4
+    assert response.json()["preferred_weekdays"] == [1, 2, 4, 6]
+    profile = db.get(UserProfile, user_id)
+    assert profile is not None
+    assert profile.training_days_per_week == 4
+    assert profile.preferred_weekdays == [1, 2, 4, 6]
+
+
+def test_patch_training_days_alone_clears_stale_preferred_weekdays(
+    client: TestClient, db: Session
+) -> None:
+    user_id = register(client, "profile-clears-stale-calendar@example.com")
+    create_profile(client, preferred_weekdays=[0, 2, 4])
+
+    response = client.patch(
+        "/api/v1/profile",
+        headers=ORIGIN,
+        json={"training_days_per_week": 4},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["training_days_per_week"] == 4
+    assert response.json()["preferred_weekdays"] is None
+    profile = db.get(UserProfile, user_id)
+    assert profile is not None
+    assert profile.training_days_per_week == 4
+    assert profile.preferred_weekdays is None
 
 
 def test_patch_updates_optional_circumferences_as_a_new_measurement(

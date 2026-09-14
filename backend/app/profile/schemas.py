@@ -174,9 +174,9 @@ class ProfileCreate(BaseModel):
             )
         if (
             self.preferred_weekdays is not None
-            and len(self.preferred_weekdays) > self.training_days_per_week
+            and len(self.preferred_weekdays) != self.training_days_per_week
         ):
-            raise ValueError("Preferred weekdays cannot exceed training days per week")
+            raise ValueError("Preferred weekdays must exactly match training days per week")
         require_supported_resistance_training_days(
             self.experience_level, self.training_days_per_week
         )
@@ -325,9 +325,9 @@ class ProfileUpdate(BaseModel):
         if (
             self.training_days_per_week is not None
             and self.preferred_weekdays is not None
-            and len(self.preferred_weekdays) > self.training_days_per_week
+            and len(self.preferred_weekdays) != self.training_days_per_week
         ):
-            raise ValueError("Preferred weekdays cannot exceed training days per week")
+            raise ValueError("Preferred weekdays must exactly match training days per week")
         if self.experience_level is not None and self.training_days_per_week is not None:
             require_supported_resistance_training_days(
                 self.experience_level, self.training_days_per_week

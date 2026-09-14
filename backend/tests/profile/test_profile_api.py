@@ -96,7 +96,7 @@ def test_profile_response_exposes_allowed_training_schedule_status(
     response = client.post(
         "/api/v1/profile",
         headers=ORIGIN,
-        json={**VALID_PROFILE, "training_days_per_week": 4},
+        json={**VALID_PROFILE, "training_days_per_week": 4, "preferred_weekdays": [0, 1, 3, 4]},
     )
 
     assert response.status_code == 201
@@ -377,13 +377,13 @@ def test_profile_preferences_can_be_read_and_updated(client: TestClient) -> None
     updated = client.patch(
         "/api/v1/profile",
         headers=ORIGIN,
-        json={"preferred_weekdays": [1, 3], "priority_muscles": ["chest"]},
+        json={"preferred_weekdays": [1, 3, 5], "priority_muscles": ["chest"]},
     )
 
     assert updated.status_code == 200
-    assert updated.json()["preferred_weekdays"] == [1, 3]
+    assert updated.json()["preferred_weekdays"] == [1, 3, 5]
     assert updated.json()["priority_muscles"] == ["chest"]
-    assert client.get("/api/v1/profile").json()["preferred_weekdays"] == [1, 3]
+    assert client.get("/api/v1/profile").json()["preferred_weekdays"] == [1, 3, 5]
 
 
 @pytest.mark.parametrize("priority_muscles", [["chest", "back"], ["chest", "chest"]])
@@ -401,7 +401,10 @@ def test_profile_create_rejects_more_than_one_priority(
     assert response.status_code == 422
 
 
-def test_profile_preferences_reject_weekday_count_above_training_days(client: TestClient) -> None:
+@pytest.mark.parametrize("preferred_weekdays", [[0, 1], [0, 1, 2, 3, 4]])
+def test_profile_preferences_reject_weekday_count_mismatch(
+    client: TestClient, preferred_weekdays: list[int]
+) -> None:
     register(client, "profile-preferences-count@example.com")
     created = client.post("/api/v1/profile", headers=ORIGIN, json=VALID_PROFILE)
     assert created.status_code == 201
@@ -409,7 +412,19 @@ def test_profile_preferences_reject_weekday_count_above_training_days(client: Te
     response = client.patch(
         "/api/v1/profile",
         headers=ORIGIN,
-        json={"preferred_weekdays": [0, 1, 2, 3]},
+        json={"preferred_weekdays": preferred_weekdays},
     )
 
     assert response.status_code == 422
+
+
+def test_profile_accepts_exact_four_weekdays_including_friday(client: TestClient) -> None:
+    register(client, "profile-preferences-friday@example.com")
+    response = client.post(
+        "/api/v1/profile",
+        headers=ORIGIN,
+        json={**VALID_PROFILE, "training_days_per_week": 4, "preferred_weekdays": [1, 2, 4, 6]},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["preferred_weekdays"] == [1, 2, 4, 6]
