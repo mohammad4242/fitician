@@ -31,6 +31,7 @@ jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelin
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { formatPersianDateWithWeekday } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
@@ -269,7 +270,7 @@ test("shows the next real workout on a rest day instead of the first plan day", 
   renderHome();
 
   expect(screen.getAllByText("روز استراحت").length).toBeGreaterThan(0);
-  expect(screen.getByText("تمرین بعدی: 2026-09-14")).toBeTruthy();
+  expect(screen.getByText(`تمرین بعدی: ${formatPersianDateWithWeekday("2026-09-14")}`)).toBeTruthy();
   expect(screen.queryByText("روز اول برنامه")).toBeNull();
 });
 

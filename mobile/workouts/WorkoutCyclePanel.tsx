@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatTehranDateTime } from "@fitician/core";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -840,7 +841,7 @@ function useConnectivityStatus(): ConnectivityStatus {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateTime(value);
 }
 
 function difficultyLabel(value: "too_easy" | "easy" | "appropriate" | "hard" | "too_hard"): string {

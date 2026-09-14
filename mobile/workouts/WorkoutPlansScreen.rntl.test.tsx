@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import type { BinaryDownload } from "@fitician/core";
+import { formatPersianDateWithWeekday, formatTehranDateTime, type BinaryDownload } from "@fitician/core";
 import { Alert, Linking } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
@@ -312,6 +312,16 @@ test("shows an explicit start control for an active plan without a cycle", () =>
 
   expect(screen.getByText("برنامه آماده شروع است")).toBeTruthy();
   expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeTruthy();
+  expect(screen.getByText(`تاریخ شروع: ${formatPersianDateWithWeekday("2026-09-13")}`)).toBeTruthy();
+});
+
+test("shows the Persian date when workout start is scheduled", () => {
+  mockActivePlan = makePlan("active", []);
+  mockTimeline = makeTimeline({ state: "scheduled_start", start_date: "2026-09-17" });
+
+  renderWorkoutPlans();
+
+  expect(screen.getByText(`تاریخ شروع: ${formatPersianDateWithWeekday("2026-09-17")}`)).toBeTruthy();
 });
 
 test("shows the actual next session on a rest day", () => {
@@ -332,7 +342,7 @@ test("shows the actual next session on a rest day", () => {
   renderWorkoutPlans();
 
   expect(screen.getByText("روز استراحت")).toBeTruthy();
-  expect(screen.getByText(/جلسه ۲/u)).toBeTruthy();
+  expect(screen.getByText(new RegExp(formatPersianDateWithWeekday("2026-09-14")))).toBeTruthy();
 });
 
 test("focuses the workout day referenced by today's timeline session", () => {
@@ -381,6 +391,8 @@ test("focuses the overdue timeline session instead of a later plan day", () => {
   renderWorkoutPlans();
 
   expect(screen.getByText("این جلسه عقب افتاده است")).toBeTruthy();
+  expect(screen.getByText(new RegExp(formatPersianDateWithWeekday("2026-09-14")))).toBeTruthy();
+  expect(screen.getByText(`تاریخ جدید: ${formatPersianDateWithWeekday("2026-09-13")}`)).toBeTruthy();
   expect(screen.getByTestId("workout-day-active-plan-day-1").props.accessibilityState).toMatchObject({
     selected: true,
   });
@@ -451,6 +463,7 @@ test("renders started-session execution inside the cycle panel", () => {
   const panel = screen.getByTestId("workout-cycle-panel");
   expect(within(panel).getByTestId("workout-timeline-card")).toBeTruthy();
   expect(screen.getAllByTestId("workout-timeline-card")).toHaveLength(1);
+  expect(within(panel).getByText(formatTehranDateTime("2026-09-13T00:00:00Z"))).toBeTruthy();
 });
 
 test("keeps workout history readable but locks new generation without access", () => {

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import { formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import type { WorkoutGenerationMethod } from "@fitician/core/profile";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -461,7 +461,7 @@ export function WorkoutPlansScreen() {
       ) : null}
 
       {!loading && !activeLoadError && !activeOffline && displayedPlan !== undefined && displayedPlan !== null ? (
-        timelineWorkout?.state === "ready_to_start"
+        (timelineWorkout?.state === "ready_to_start" || timelineWorkout?.state === "scheduled_start")
           && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical) ? (
           <WorkoutTimelineCard
             timeline={timelineWorkout}
@@ -482,7 +482,8 @@ export function WorkoutPlansScreen() {
 
       {!loading && !activeLoadError && !activeOffline && displayedPlan !== null && displayedPlan !== undefined
         && isWorkoutPlanExecutable(displayedPlan, isViewingHistorical)
-        && timelineWorkout?.state !== "ready_to_start" ? (
+        && timelineWorkout?.state !== "ready_to_start"
+        && timelineWorkout?.state !== "scheduled_start" ? (
         <WorkoutCyclePanel
           expectedCycleId={cycleTargetId}
           plan={displayedPlan}
@@ -570,10 +571,7 @@ function coachQuotaMessage(resetAt: string | null): string {
   if (resetAt === null) return generationErrorMessages.quota;
   const date = new Date(resetAt);
   if (Number.isNaN(date.getTime())) return generationErrorMessages.quota;
-  return `سهم بازبینی مربی در این بازه تمام شده است؛ امکان درخواست بعدی از ${new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)} ممکن است.`;
+  return `سهم بازبینی مربی در این بازه تمام شده است؛ امکان درخواست بعدی از ${formatTehranDateTime(resetAt)} ممکن است.`;
 }
 
 function PlanOverview({
@@ -1446,7 +1444,7 @@ function isDeletableWorkoutPlanVersion(version: WorkoutPlanVersionSummary): bool
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateTime(value);
 }
 
 function useConnectivityStatus(): ConnectivityStatus {

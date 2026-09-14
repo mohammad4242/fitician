@@ -1,3 +1,4 @@
+import { formatPersianDateWithWeekday } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -41,6 +42,10 @@ export function WorkoutTimelineCard({
 }: WorkoutTimelineCardProps) {
   const presentation = workoutTimelinePresentation(timeline);
   const session = presentation.focusedSession;
+  const startDateLabel = formatWorkoutDate(startDate);
+  const scheduledStartDateLabel = timeline.start_date === null || timeline.start_date === undefined
+    ? null
+    : formatWorkoutDate(timeline.start_date);
 
   if (presentation.state === "none") return null;
 
@@ -57,6 +62,7 @@ export function WorkoutTimelineCard({
             textDirection="ltr"
             value={startDate}
           />
+          {startDateLabel !== null ? <Text style={styles.body}>تاریخ شروع: {startDateLabel}</Text> : null}
           {cycleStartError !== null ? <Notice message={cycleStartError} variant="danger" /> : null}
           <Button
             disabled={cycleStartPending}
@@ -71,6 +77,7 @@ export function WorkoutTimelineCard({
         <>
           <Text style={styles.eyebrow}>برنامه تمرینی</Text>
           <Text style={styles.title}>شروع برنامه زمان‌بندی شده است</Text>
+          {scheduledStartDateLabel !== null ? <Text style={styles.body}>تاریخ شروع: {scheduledStartDateLabel}</Text> : null}
           <Text style={styles.body}>با رسیدن تاریخ شروع، وضعیت جلسه‌های برنامه نمایش داده می‌شود.</Text>
         </>
       ) : null}
@@ -112,7 +119,7 @@ export function WorkoutTimelineCard({
           {presentation.nextSession !== null ? (
             <Text style={styles.body}>
               تمرین بعدی · جلسه {formatPersianNumber(presentation.nextSession.session_number, { maximumFractionDigits: 0 })}
-              {" · "}{presentation.nextSession.scheduled_date}
+              {" · "}{formatWorkoutDate(presentation.nextSession.scheduled_date) ?? "تاریخ نامعتبر"}
             </Text>
           ) : <Text style={styles.body}>جلسهٔ دیگری برای این برنامه باقی نمانده است.</Text>}
         </>
@@ -125,7 +132,7 @@ export function WorkoutTimelineCard({
           {presentation.nextSession !== null ? (
             <Text style={styles.body}>
               تمرین بعدی · جلسه {formatPersianNumber(presentation.nextSession.session_number, { maximumFractionDigits: 0 })}
-              {" · "}{presentation.nextSession.scheduled_date}
+              {" · "}{formatWorkoutDate(presentation.nextSession.scheduled_date) ?? "تاریخ نامعتبر"}
             </Text>
           ) : <Text style={styles.body}>همهٔ جلسه‌های این برنامه کامل شده‌اند.</Text>}
         </>
@@ -173,7 +180,7 @@ function SessionContent({
         جلسه {formatPersianNumber(session.session_number, { maximumFractionDigits: 0 })} · {session.title_fa || session.title_en}
       </Text>
       {kind === "overdue" ? (
-        <Text style={styles.warning}>زمان‌بندی اولیه: {session.scheduled_date}</Text>
+        <Text style={styles.warning}>زمان‌بندی اولیه: {formatWorkoutDate(session.scheduled_date) ?? "تاریخ نامعتبر"}</Text>
       ) : null}
       <View style={styles.actions}>
         {kind === "overdue" ? (
@@ -198,6 +205,9 @@ function SessionContent({
           textDirection="ltr"
           value={rescheduleDate}
         />
+        {formatWorkoutDate(rescheduleDate) !== null ? (
+          <Text style={styles.body}>تاریخ جدید: {formatWorkoutDate(rescheduleDate)}</Text>
+        ) : null}
         <Button
           disabled={actionPending}
           label="جابجایی جلسه"
@@ -214,6 +224,14 @@ function SessionContent({
       {actionError !== null ? <Notice message={actionError} variant="danger" /> : null}
     </>
   );
+}
+
+function formatWorkoutDate(value: string): string | null {
+  try {
+    return formatPersianDateWithWeekday(value);
+  } catch {
+    return null;
+  }
 }
 
 const styles = StyleSheet.create({

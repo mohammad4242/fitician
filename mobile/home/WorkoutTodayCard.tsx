@@ -1,3 +1,4 @@
+import { formatPersianDateWithWeekday } from "@fitician/core";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
@@ -75,25 +76,25 @@ export function WorkoutTodayCard({ day, state, summary }: WorkoutTodayCardProps)
               <Text style={styles.factValue}>{focusedSession
                 ? `جلسه ${formatPersianNumber(focusedSession.session_number)} · هفته ${formatPersianNumber(focusedSession.week_number)}`
                 : day
-                  ? `${formatPersianNumber(day.estimated_duration_minutes, { maximumFractionDigits: 0 })} دقیقه`
+                    ? `${formatPersianNumber(day.estimated_duration_minutes, { maximumFractionDigits: 0 })} دقیقه`
                   : nextSession
-                    ? `تمرین بعدی: ${nextSession.scheduled_date}`
+                    ? `تمرین بعدی: ${formatWorkoutDate(nextSession.scheduled_date)}`
                     : "—"}</Text>
             </View>
           </View>
           {timelineState === "overdue" && focusedSession ? (
             <Text style={styles.stateText}>
-              جلسه {formatPersianNumber(focusedSession.session_number)} عقب افتاده است · برنامه‌ریزی‌شده برای {focusedSession.scheduled_date}
+              جلسه {formatPersianNumber(focusedSession.session_number)} عقب افتاده است · برنامه‌ریزی‌شده برای {formatWorkoutDate(focusedSession.scheduled_date)}
             </Text>
           ) : null}
           {timelineState === "rest" && nextSession ? (
             <Text style={styles.stateText}>
-              تمرین بعدی: {nextSession.scheduled_date} · جلسه {formatPersianNumber(nextSession.session_number)}
+              تمرین بعدی: {formatWorkoutDate(nextSession.scheduled_date)} · جلسه {formatPersianNumber(nextSession.session_number)}
             </Text>
           ) : null}
           {timelineState === "completed" ? (
             <Text style={styles.stateText}>
-              تمرین امروز کامل شد{nextSession ? ` · بعدی: ${nextSession.scheduled_date}` : ""}
+              تمرین امروز کامل شد{nextSession ? ` · بعدی: ${formatWorkoutDate(nextSession.scheduled_date)}` : ""}
             </Text>
           ) : null}
           {timelineState === "legacy" ? (
@@ -120,6 +121,14 @@ export function WorkoutTodayCard({ day, state, summary }: WorkoutTodayCardProps)
       </View>
     </CinematicSurface>
   );
+}
+
+function formatWorkoutDate(value: string): string {
+  try {
+    return formatPersianDateWithWeekday(value);
+  } catch {
+    return "تاریخ نامعتبر";
+  }
 }
 
 function emptyMediaMessage(timelineState: HomeWorkoutSummary["state"] | undefined, state: WorkoutHomeState): string {
