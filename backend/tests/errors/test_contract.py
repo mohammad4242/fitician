@@ -107,6 +107,22 @@ def test_response_normalizes_http_exception_and_preserves_retry_header() -> None
     assert response.body
 
 
+def test_known_legacy_string_detail_gets_a_stable_domain_code() -> None:
+    detail = build_error_detail(
+        409,
+        "Workout plan generation is already in progress",
+        request_id="req-contract-domain-1",
+    )
+
+    assert detail == {
+        "code": "WORKOUT_GENERATION_IN_PROGRESS",
+        "message": "ساخت برنامه تمرینی در حال انجام است. بعداً دوباره بررسی کنید.",
+        "retryable": False,
+        "meta": {},
+        "request_id": "req-contract-domain-1",
+    }
+
+
 def test_request_id_accepts_safe_value_and_replaces_invalid_value() -> None:
     assert create_request_id("mobile-123") == "mobile-123"
     generated = create_request_id("not safe/with spaces")

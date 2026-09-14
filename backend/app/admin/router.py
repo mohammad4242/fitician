@@ -742,7 +742,7 @@ def update_exercise(
         _discard_media_assets(stored_media_assets)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Exercise slug already exists",
+            detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
         ) from None
     except HTTPException:
         raise
@@ -826,7 +826,7 @@ def create_exercise(
         _discard_media_assets(stored_media_assets)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Exercise slug already exists",
+            detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
         ) from None
     except Exception:
         if stored_media is not None:

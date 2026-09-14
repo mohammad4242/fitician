@@ -774,7 +774,13 @@ def test_duplicate_slug_returns_conflict(client: TestClient, db: Session) -> Non
     response = post_exercise(client, exercise_payload())
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Exercise slug already exists"}
+    assert response.json()["detail"] == {
+        "code": "EXERCISE_SLUG_ALREADY_EXISTS",
+        "message": "این شناسه قبلاً استفاده شده است.",
+        "retryable": False,
+        "meta": {},
+        "request_id": response.headers["X-Correlation-ID"],
+    }
 
 
 @pytest.mark.parametrize(

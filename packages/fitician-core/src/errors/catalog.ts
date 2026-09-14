@@ -50,6 +50,10 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("ورود با اپل انجام نشد", "Apple sign-in conflict"),
     text("این حساب اپل به حساب دیگری متصل است.", "This Apple account is linked to another account."),
   ),
+  AUTH_APPLE_PLATFORM_UNSUPPORTED: entry(
+    text("ورود با اپل در دسترس نیست", "Apple sign-in is unavailable"),
+    text("ورود با اپل فقط در iOS در دسترس است.", "Apple sign-in is available only on iOS."),
+  ),
   RECENT_AUTHENTICATION_REQUIRED: entry(
     text("تأیید دوباره هویت لازم است", "Recent sign-in required"),
     text("برای ادامه، دوباره وارد حساب شوید.", "Sign in again to continue."),
@@ -491,6 +495,54 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ACCOUNT_DELETION_NOT_ENABLED: entry(
     text("حذف حساب فعلاً در دسترس نیست", "Account deletion is unavailable"),
     text("حذف حساب هنوز برای این محیط فعال نشده است.", "Account deletion is not enabled for this environment yet."),
+  ),
+  ADMIN_ROLE_REQUIRED: entry(
+    text("دسترسی مدیر لازم است", "Administrator access required"),
+    text("این عملیات فقط برای مدیر در دسترس است.", "This operation is available only to an administrator."),
+  ),
+  BODY_PHOTO_SUBMISSION_INCOMPLETE: entry(
+    text("اطلاعات عکس‌ها کامل نیست", "Photo submission is incomplete"),
+    text("سه عکس بدن و رضایت پردازش عملیاتی لازم است.", "Three body photos and operational processing consent are required."),
+  ),
+  NOTIFICATION_PROVIDER_MISMATCH: entry(
+    text("ارائه‌دهنده اعلان معتبر نیست", "Notification provider mismatch"),
+    text("ارائه‌دهنده اعلان با پلتفرم دستگاه سازگار نیست.", "The notification provider does not match the device platform."),
+  ),
+  NOTIFICATION_DEVICE_NOT_FOUND: entry(
+    text("دستگاه اعلان پیدا نشد", "Notification device not found"),
+    text("دستگاه اعلان پیدا نشد.", "The notification device was not found."),
+  ),
+  TRAINING_STRUCTURE_NOT_FOUND: entry(
+    text("ساختار تمرینی پیدا نشد", "Training structure not found"),
+    text("ساختار تمرینی پیدا نشد.", "The training structure was not found."),
+  ),
+  WORKOUT_ACTIVE_CYCLE_NOT_FOUND: entry(
+    text("چرخه تمرینی فعال نیست", "Active workout cycle not found"),
+    text("چرخه تمرینی فعالی وجود ندارد.", "There is no active workout cycle."),
+  ),
+  WORKOUT_CYCLE_NOT_FOUND: entry(
+    text("چرخه تمرینی پیدا نشد", "Workout cycle not found"),
+    text("چرخه تمرینی پیدا نشد.", "The workout cycle was not found."),
+  ),
+  WORKOUT_CYCLE_NOT_COMPLETE: entry(
+    text("چرخه هنوز کامل نشده است", "Workout cycle is not complete"),
+    text("چرخه تمرینی هنوز به پایان نرسیده است.", "The workout cycle has not reached its end."),
+  ),
+  WORKOUT_SESSION_NOT_FOUND: entry(
+    text("جلسه تمرینی پیدا نشد", "Workout session not found"),
+    text("جلسه تمرینی پیدا نشد.", "The workout session was not found."),
+  ),
+  WORKOUT_SESSION_ALREADY_FINISHED: entry(
+    text("جلسه قبلاً پایان یافته است", "Workout session already finished"),
+    text("این جلسه تمرینی قبلاً پایان یافته است.", "This workout session has already finished."),
+  ),
+  WORKOUT_SESSION_NOT_ACTIONABLE: entry(
+    text("جلسه قابل انجام نیست", "Workout session is not actionable"),
+    text("این جلسه تمرینی در وضعیت قابل انجام نیست.", "This workout session is not in an actionable state."),
+  ),
+  WORKOUT_CYCLE_EXERCISE_NOT_FOUND: entry(
+    text("حرکت چرخه پیدا نشد", "Workout cycle exercise not found"),
+    text("حرکت در چرخه تمرینی پیدا نشد.", "The exercise was not found in the workout cycle."),
   ),
   BILLING_PROVIDER_UNAVAILABLE: entry(
     text("درگاه پرداخت موقتاً در دسترس نیست", "Payment provider unavailable"),
