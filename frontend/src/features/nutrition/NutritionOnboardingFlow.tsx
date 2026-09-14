@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import * as profileApi from "../profile/api";
 import {
   toProfileInput,
@@ -134,11 +135,9 @@ const splitNames = (value: string) => value.split(/[،,\n]/).map((item) => item.
 const flowCopy = {
   fa: {
     loading: "در حال آماده‌کردن مسیرت…", eyebrow: "مسیر تغذیه با مربی فیتیشن", progress: "پیشرفت تکمیل پروفایل",
-    error: "درخواست انجام نشد. پاسخ‌ها حفظ شده‌اند؛ دوباره تلاش کن.",
   },
   en: {
     loading: "Preparing your path…", eyebrow: "Nutrition with your Fitician coach", progress: "Profile setup progress",
-    error: "The request could not be completed. Your answers are saved; please try again.",
   },
 } as const;
 
@@ -164,7 +163,7 @@ export function NutritionOnboardingFlow({
   const [values, setValues] = useState<ProfileFormValues>(() => draftValues(initialDraft));
   const [, setErrors] = useState<ProfileValidationErrors>({});
   const [busy, setBusy] = useState(false);
-  const [requestError, setRequestError] = useState(false);
+  const [requestError, setRequestError] = useState<unknown>(null);
   const [detailsSaved, setDetailsSaved] = useState(false);
   const [decision, setDecision] = useState<SafetyDecision | SafetyEvaluation | null>(null);
   const [conditions, setConditions] = useState<MedicalConditionCode[]>(() => initialDraft?.safety?.conditions.map((item) => item.code) ?? []);
@@ -256,9 +255,9 @@ export function NutritionOnboardingFlow({
       } else {
         setStep(shared === null ? "personal" : "safety");
       }
-    }).catch(() => {
+    }).catch((cause) => {
       if (active) {
-        setRequestError(true);
+        setRequestError(cause);
         setStep("personal");
       }
     });
@@ -327,8 +326,8 @@ export function NutritionOnboardingFlow({
       return;
     }
     setBusy(true);
-    setRequestError(false);
-    void profileApi.saveSharedProfile(shared).then(() => setStep("safety")).catch(() => setRequestError(true)).finally(() => setBusy(false));
+    setRequestError(null);
+    void profileApi.saveSharedProfile(shared).then(() => setStep("safety")).catch((cause) => setRequestError(cause)).finally(() => setBusy(false));
   }
 
   function safetyInput(): SafetyProfileInput {
@@ -343,7 +342,7 @@ export function NutritionOnboardingFlow({
 
   function saveSafety() {
     setBusy(true);
-    setRequestError(false);
+    setRequestError(null);
     const input = safetyInput();
     const request = draftMode
       ? nutritionApi.evaluateSafetyProfile(input)
@@ -353,7 +352,7 @@ export function NutritionOnboardingFlow({
       setDecision(result);
       if (!result.can_continue_onboarding) setStep("blocked");
       else setStep((productMode === "nutrition" && structuredExercise === undefined) || !trainingProfileExists ? "training" : "budget");
-    }).catch(() => setRequestError(true)).finally(() => setBusy(false));
+    }).catch((cause) => setRequestError(cause)).finally(() => setBusy(false));
   }
 
   function saveTraining() {
@@ -367,10 +366,10 @@ export function NutritionOnboardingFlow({
       return;
     }
     setBusy(true);
-    setRequestError(false);
+    setRequestError(null);
     void onCreateTrainingProfile(training)
       .then(() => setStep("budget"))
-      .catch(() => setRequestError(true))
+      .catch((cause) => setRequestError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -428,7 +427,7 @@ export function NutritionOnboardingFlow({
       return;
     }
     setBusy(true);
-    setRequestError(false);
+    setRequestError(null);
     void nutritionApi.saveNutritionProfile(nutritionInput)
       .then(() => {
         if (productMode === "nutrition") {
@@ -443,7 +442,7 @@ export function NutritionOnboardingFlow({
         if (productMode === "both") onComplete();
         else setStep("complete");
       })
-      .catch(() => setRequestError(true))
+      .catch((cause) => setRequestError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -511,7 +510,7 @@ export function NutritionOnboardingFlow({
         onBack={onBack}
         onSave={() => {
           setBusy(true);
-          setRequestError(false);
+          setRequestError(null);
           setDetailsSaved(false);
           void nutritionApi.saveNutritionProfile(nutritionInput)
             .then(() => {
@@ -522,7 +521,7 @@ export function NutritionOnboardingFlow({
             })
             .then(() => nutritionApi.createNutritionEstimate())
             .then(() => setDetailsSaved(true))
-            .catch(() => setRequestError(true))
+            .catch((cause) => setRequestError(cause))
             .finally(() => setBusy(false));
         }}
       />
@@ -625,7 +624,12 @@ export function NutritionOnboardingFlow({
           <Actions busy={busy} onBack={() => setStep("budget")} nextLabel={language === "en" ? "Save nutrition profile" : "ثبت پروفایل تغذیه"} />
         </form>
       )}
-      {requestError && <p className="form-error" role="alert">{copy.error}</p>}
+      <AppErrorNotice
+        audience="member"
+        context="nutrition"
+        error={requestError}
+        locale={language}
+      />
     </section>
   );
 }
@@ -727,7 +731,7 @@ function PostAccountNutritionDetails(props: {
   fitnessGoal: string;
   foods: FoodsState;
   saved: boolean;
-  saveError: boolean;
+  saveError: unknown;
   onDailyActivityLevel: (value: NutritionProfileInput["daily_activity_level"]) => void;
   onBudget: (value: string) => void;
   onBudgetStyle: (value: NutritionProfileInput["budget_style"]) => void;
@@ -806,7 +810,13 @@ function PostAccountNutritionDetails(props: {
           <TextArea icon="shield" label={l("غذاهایی که دوست نداری (اختیاری)", "Foods you dislike (optional)")} value={props.foods.disliked} onChange={(disliked) => props.onFoods({ ...props.foods, disliked })} />
           <TextArea icon="document" label={l("محدودیت مذهبی یا فرهنگی (اختیاری)", "Religious or cultural exclusions (optional)")} value={props.foods.cultural} onChange={(cultural) => props.onFoods({ ...props.foods, cultural })} />
         </fieldset>
-        {props.saveError && <p className="form-error" role="alert">{l("تغییرات ذخیره نشد.", "Changes were not saved.")}</p>}
+        <AppErrorNotice
+          audience="member"
+          context="nutrition"
+          error={props.saveError}
+          locale={props.language}
+          onRetry={props.onSave}
+        />
         {props.saved && <p className="profile-save-message profile-save-message--success" role="status">{l("اطلاعات تغذیه‌ای ذخیره شد.", "Nutrition information was saved.")}</p>}
         <div className="profile-actions profile-wizard__actions">
           {props.onBack && <button className="secondary-button" type="button" disabled={props.busy} onClick={props.onBack}>{l("بازگشت", "Back")}</button>}

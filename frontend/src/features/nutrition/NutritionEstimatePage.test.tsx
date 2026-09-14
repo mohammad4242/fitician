@@ -633,7 +633,7 @@ it("explains a request failure separately from an infeasible plan", async () => 
   render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
   await user.click(await screen.findByRole("button", { name: /ساخت برنامه تغذیه هفتگی|Build weekly nutrition plan/ }));
 
-  expect(await screen.findByText("درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.")).toBeInTheDocument();
+  expect(await screen.findByText("ارتباط با سرویس برقرار نشد. دوباره تلاش کنید.")).toBeInTheDocument();
   expect(screen.queryByText("با محدودیت‌های فعلی برنامه ایمن و شدنی پیدا نشد.")).not.toBeInTheDocument();
 });
 
@@ -1411,8 +1411,8 @@ it("preserves old plan and comparison on failure, displays error, and re-enables
   // Old plan still displayed
   expect(await screen.findByText("LU01 — جوجه کباب + برنج + گوجه کبابی")).toBeInTheDocument();
   // Error message displayed
-  expect(screen.getByText("ساخت برنامه جدید کامل نشد؛ برنامه فعلی شما تغییری نکرد.")).toBeInTheDocument();
-  expect(screen.getByText("درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.")).toBeInTheDocument();
+  expect(screen.getByText("ارتباط با سرویس برقرار نشد. دوباره تلاش کنید.")).toBeInTheDocument();
+  expect(screen.queryByText("ساخت برنامه جدید کامل نشد؛ برنامه فعلی شما تغییری نکرد.")).not.toBeInTheDocument();
   // Rebuild button re-enabled
   expect(rebuildBtn).toBeEnabled();
   expect(screen.getByText("ساخت مجدد برنامه")).toBeInTheDocument();

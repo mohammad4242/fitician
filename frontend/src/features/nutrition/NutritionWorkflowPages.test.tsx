@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
+import { ApiError } from "@fitician/core";
 import * as api from "./api";
 import { NutritionLabsPage } from "./NutritionLabsPage";
 import { NutritionSupplementsPage } from "./NutritionSupplementsPage";
@@ -308,6 +309,24 @@ it("keeps exact catalogue and quick estimate submissions unchanged", async () =>
   }));
 });
 
+it("uses the shared resolver for a backend check-in error", async () => {
+  await i18n.changeLanguage("fa");
+  const user = userEvent.setup();
+  vi.mocked(api.saveDailyCheckIn).mockRejectedValueOnce(new ApiError(
+    403,
+    "private backend detail",
+    null,
+    "ACTIVE_PLAN_REQUIRED",
+  ));
+  render(<MemoryRouter><NutritionTrackingPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "طبق برنامه" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("فعال");
+  expect(alert).not.toHaveTextContent("private backend detail");
+});
+
 it("uploads laboratory metadata and can delete an owned document", async () => {
   const user = userEvent.setup();
   const document = { id: "lab-1", original_filename: "cbc.pdf", content_type: "application/pdf", byte_size: 10, test_date: today, laboratory_name: "Lab", user_note: "Annual panel", category: "CBC", review_status: "uploaded", review_notes: null, uploaded_at: `${today}T12:00:00Z` };
@@ -379,6 +398,22 @@ it("keeps supplement history readable while locking member acknowledgement witho
   expect(await screen.findByText("Vitamin D")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Acknowledge" })).toBeDisabled();
   expect(screen.getByText(/Supplement management access is required/)).toBeInTheDocument();
+});
+
+it("uses the shared resolver when lab history cannot be loaded", async () => {
+  await i18n.changeLanguage("fa");
+  vi.mocked(api.listLabDocuments).mockRejectedValueOnce(new ApiError(
+    503,
+    "database password=secret",
+    null,
+    "SERVICE_UNAVAILABLE",
+  ));
+  render(<MemoryRouter><NutritionLabsPage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("database");
+  expect(alert).not.toHaveTextContent("secret");
 });
 
 it("lets a physician claim an exact revision and choose replacements from the canonical catalogue", async () => {

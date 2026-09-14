@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { formatIsoDate, formatPersianDateWithWeekday } from "@fitician/core";
+import { ApiError, ERROR_CATALOG, formatIsoDate, formatPersianDateWithWeekday, resolveAppError } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { ProgramTimelineToday, TimelineNutrition } from "@fitician/core/program-timeline";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { DualProgressRing } from "../../shared/DualProgressRing";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import { ProgressRing } from "../../shared/ProgressRing";
@@ -35,6 +36,10 @@ export function NutritionEstimatePage() {
   const canGeneratePlan = hasEntitlement("nutrition.plan.generate");
   const canManagePlan = hasEntitlement("nutrition.plan.manage");
   const [state, setState] = useState<ViewState>("loading");
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [calculationError, setCalculationError] = useState<unknown>(null);
+  const [selectionError, setSelectionError] = useState<unknown>(null);
+  const [generationRequestError, setGenerationRequestError] = useState<unknown>(null);
   const [estimate, setEstimate] = useState<NutritionEstimate | null>(null);
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [effectivePlan, setEffectivePlan] = useState<WeeklyPlan | null>(null);
@@ -49,7 +54,7 @@ export function NutritionEstimatePage() {
   const [calculating, setCalculating] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [startingPlan, setStartingPlan] = useState(false);
-  const [startError, setStartError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<unknown>(null);
   const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
   const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -100,10 +105,14 @@ export function NutritionEstimatePage() {
         } else {
           setPlan(latestPlan);
         }
+        setLoadError(null);
         setState(result === null ? "empty" : "ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause) => {
+        if (active) {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => { active = false; };
   }, [deviceTimezone]);
@@ -123,13 +132,14 @@ export function NutritionEstimatePage() {
 
   function calculate() {
     setCalculating(true);
+    setCalculationError(null);
     setState("loading");
     void nutritionApi.createNutritionEstimate()
       .then((result) => {
         setEstimate(result);
         setState("ready");
       })
-      .catch(() => setState("error"))
+      .catch((cause) => { setCalculationError(cause); setState("error"); })
       .finally(() => setCalculating(false));
   }
 
@@ -149,8 +159,8 @@ export function NutritionEstimatePage() {
         );
         void refreshTimeline();
       })
-      .catch((err) => {
-        console.error("Failed to select plan:", err);
+      .catch((cause) => {
+        setSelectionError(cause);
       })
       .finally(() => setIsSelectingPlan(false));
   }
@@ -168,8 +178,8 @@ export function NutritionEstimatePage() {
       if (budgetPlan?.id === started.id) setBudgetPlan(started);
       if (idealPlan?.id === started.id) setIdealPlan(started);
       await refreshTimeline();
-    } catch {
-      setStartError(l("شروع برنامه انجام نشد؛ دوباره تلاش کن.", "The nutrition plan could not be started. Try again."));
+    } catch (cause) {
+      setStartError(cause);
     } finally {
       setStartingPlan(false);
     }
@@ -179,6 +189,7 @@ export function NutritionEstimatePage() {
     if (generatingPlan || !canGeneratePlan) return;
     setGeneratingPlan(true);
     setPlanOutcome(null);
+    setGenerationRequestError(null);
     setFeedbackMessage(null);
     void nutritionApi.createWeeklyNutritionPlan()
       .then(async (result) => {
@@ -204,7 +215,8 @@ export function NutritionEstimatePage() {
           await refreshTimeline();
         }
       })
-      .catch(() => {
+      .catch((cause) => {
+        setGenerationRequestError(cause);
         setPlanOutcome({
           generation_id: "",
           outcome: "failed",
@@ -228,7 +240,7 @@ export function NutritionEstimatePage() {
 
       {state === "loading" && <p className="nutrition-estimate-state" role="status">{calculating ? l("در حال محاسبه…", "Calculating…") : l("در حال دریافت برآورد…", "Loading estimate…")}</p>}
       {state === "empty" && <section className="nutrition-estimate-state"><h2>{l("هنوز برآوردی ثبت نشده", "No estimate yet")}</h2><p>{l("اطلاعات پروفایل فعلی را به یک برآورد شفاف تبدیل کن.", "Turn your current profile into a transparent estimate.")}</p><button className="primary-button" type="button" onClick={calculate}>{l("محاسبه هدف‌ها", "Calculate targets")}</button></section>}
-      {state === "error" && <section className="nutrition-estimate-state" role="alert"><h2>{l("محاسبه انجام نشد", "Estimate unavailable")}</h2><p>{l("اطلاعات ضروری یا وضعیت ایمنی را در پروفایل بررسی کن.", "Review required profile details and your safety status.")}</p><Link className="secondary-button" to="/profile">{l("رفتن به پروفایل", "Open profile")}</Link></section>}
+      {state === "error" && <section className="nutrition-estimate-state"><AppErrorNotice audience="member" context="nutrition" error={calculationError ?? loadError} locale={language} onRetry={calculationError ? calculate : undefined} /><p>{l("اطلاعات ضروری یا وضعیت ایمنی را در پروفایل بررسی کن.", "Review required profile details and your safety status.")}</p><Link className="secondary-button" to="/profile">{l("رفتن به پروفایل", "Open profile")}</Link></section>}
       {state === "ready" && estimate !== null && (
         <>
           <EstimateContent effectivePlan={effectivePlan} estimate={estimate} language={language} onRefresh={calculate} plan={plan} timeline={timeline} tracking={tracking} />
@@ -245,6 +257,8 @@ export function NutritionEstimatePage() {
             onGenerate={generatePlan}
             onSelectPlan={handleSelectPlan}
             outcome={planOutcome}
+            generationRequestError={generationRequestError}
+            selectionError={selectionError}
             plan={plan}
             timeline={timeline?.nutrition ?? null}
             localDate={timeline?.local_date ?? localIsoDate()}
@@ -283,6 +297,8 @@ function PlanArea({
   localDate,
   onStart,
   startError,
+  generationRequestError,
+  selectionError,
   starting,
   canGeneratePlan,
   canManagePlan,
@@ -308,7 +324,9 @@ function PlanArea({
   timeline: TimelineNutrition | null;
   localDate: string;
   onStart: (startDate: string) => void;
-  startError: string | null;
+  startError: unknown;
+  generationRequestError: unknown;
+  selectionError: unknown;
   starting: boolean;
   canGeneratePlan: boolean;
   canManagePlan: boolean;
@@ -359,6 +377,7 @@ function PlanArea({
             selectedPlanRole={selectedPlanRole}
           />
         )}
+        <AppErrorNotice audience="member" context="nutrition" error={selectionError} locale={language} />
         {isTwoPlan ? (
           <div className="weekly-plans-dual-container">
             <details className="weekly-plan-accordion" open={selectedPlanRole === "budget" || selectedPlanRole === null}>
@@ -424,7 +443,8 @@ function PlanArea({
           entitlementsLoading={entitlementsLoading}
           language={language}
           onGenerate={onGenerate}
-          outcome={outcome}
+            outcome={outcome}
+            generationRequestError={generationRequestError}
         />
       </div>
     );
@@ -435,8 +455,8 @@ function PlanArea({
     : generationMessage(outcome.outcome, outcome.reason_codes, language);
   return (
     <section className="weekly-plan-empty" aria-label={l("ساخت برنامه تغذیه هفتگی", "Build weekly nutrition plan")}>
-      {generation !== null && <p className="weekly-plan-empty__message" role="status">{generation.message}</p>}
-      {generation !== null && generation.reasons.length > 0 && (
+      {generation !== null && generationRequestError === null && <p className="weekly-plan-empty__message" role="status">{generation.message}</p>}
+      {generation !== null && generationRequestError === null && generation.reasons.length > 0 && (
         <ul>
           {generation.reasons.map((reason) => <li key={reason}>{reason}</li>)}
         </ul>
@@ -454,6 +474,13 @@ function PlanArea({
         </div>
       )}
       {!entitlementsLoading && !canGeneratePlan && <p className="weekly-plan-empty__message" role="status">{l("برای ساخت برنامه جدید، دسترسی تولید برنامه تغذیه لازم است.", "Nutrition plan generation access is required to build a new plan.")}</p>}
+      <AppErrorNotice
+        audience="member"
+        context="nutrition"
+        error={generationRequestError}
+        locale={language}
+        onRetry={onGenerate}
+      />
       <button className="primary-button" disabled={generating || entitlementsLoading || !canGeneratePlan} onClick={onGenerate} type="button">
         {generating ? l("در حال ساخت برنامه…", "Building plan…") : l("ساخت برنامه تغذیه هفتگی", "Build weekly nutrition plan")}
       </button>
@@ -477,7 +504,7 @@ function NutritionPlanStartCard({
   language: "fa" | "en";
   localDate: string;
   onStart: (startDate: string) => void;
-  startError: string | null;
+  startError: unknown;
   starting: boolean;
 }) {
   const l = (fa: string, en: string) => language === "en" ? en : fa;
@@ -503,7 +530,7 @@ function NutritionPlanStartCard({
       <button className="primary-button" disabled={starting || startDate === ""} onClick={() => onStart(startDate)} type="button" aria-busy={starting}>
         {starting ? l("در حال شروع…", "Starting…") : l("شروع برنامه تغذیه", "Start nutrition plan")}
       </button>
-      {startError && <p className="nutrition-plan-start-card__error" role="alert">{startError}</p>}
+      <AppErrorNotice audience="member" context="nutrition" error={startError} locale={language} onRetry={() => onStart(startDate)} />
     </section>
   );
 }
@@ -517,6 +544,7 @@ function PlanRegenerateAction({
   language,
   onGenerate,
   outcome,
+  generationRequestError,
 }: {
   canGeneratePlan: boolean;
   canManagePlan: boolean;
@@ -526,6 +554,7 @@ function PlanRegenerateAction({
   language: "fa" | "en";
   onGenerate: () => void;
   outcome: WeeklyPlanGeneration | null;
+  generationRequestError: unknown;
 }) {
   const l = (fa: string, en: string) => (language === "en" ? en : fa);
   const isFailed = outcome !== null && outcome.outcome !== "success";
@@ -587,7 +616,7 @@ function PlanRegenerateAction({
         </p>
       )}
 
-      {isFailed && (
+      {isFailed && generationRequestError === null && (
         <div className="nutrition-plan-regenerate__error" role="alert">
           <p className="nutrition-plan-regenerate__error-notice">
             {l(
@@ -607,6 +636,13 @@ function PlanRegenerateAction({
           )}
         </div>
       )}
+      <AppErrorNotice
+        audience="member"
+        context="nutrition"
+        error={generationRequestError}
+        locale={language}
+        onRetry={onGenerate}
+      />
     </section>
   );
 }
@@ -1365,92 +1401,34 @@ function DoctorSupervision({ language, plan }: { language: "fa" | "en"; plan: We
   );
 }
 
-type LocalizedGenerationMessage = readonly [string, string];
-
-const generationReasonMessages: Record<string, LocalizedGenerationMessage> = {
-  STRICT_BUDGET_EXCEEDED: [
-    "هزینه برنامه‌ای که با شرایط فعلی ساخته شد از بودجه غذایی تعیین‌شده بیشتر است. بودجه را افزایش بده یا حالت بودجه را از سخت‌گیرانه به انعطاف‌پذیر تغییر بده.",
-    "The generated plan exceeds your current strict food budget. Increase the budget or switch to flexible budget mode.",
-  ],
-  FLEXIBLE_BUDGET_CAP_EXCEEDED: [
-    "حتی با محدوده انعطاف‌پذیر بودجه، هزینه برنامه از سقف مجاز بیشتر شده است. بودجه غذایی را کمی افزایش بده.",
-    "Even the flexible budget limit is not enough for the current plan. Increase your food budget.",
-  ],
-  NUTRIENT_UPPER_LIMIT_EXCEEDED: [
-    "برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتیشن آن را قبول نکرد.",
-    "The generated plan exceeds the safe upper limit for at least one micronutrient, so it was rejected.",
-  ],
-  INSUFFICIENT_PRICE_COVERAGE: [
-    "برای تعداد کافی از مواد غذایی، قیمت معتبر در دسترس نیست و بدون قیمت قابل اعتماد امکان ساخت برنامه وجود ندارد.",
-    "Reliable prices are unavailable for enough foods to build the plan.",
-  ],
-  GOAL_RESELECTION_REQUIRED: [
-    "هدف فعلی با شرایط تمرینی ثبت‌شده قابل برنامه‌ریزی نیست. هدف یا اطلاعات تمرینت را بررسی کن.",
-    "The current goal is not compatible with the recorded training conditions. Review your goal or exercise information.",
-  ],
-  STRUCTURED_EXERCISE_REQUIRED: [
-    "اطلاعات تمرین برای محاسبه و ساخت برنامه تغذیه کامل نیست.",
-    "Exercise information is required before the nutrition plan can be generated.",
-  ],
-  NUTRITION_PROFILE_REQUIRED: [
-    "اطلاعات پروفایل تغذیه کامل نیست. ابتدا پروفایل تغذیه را تکمیل کن.",
-    "Your nutrition profile is incomplete. Complete it before generating a plan.",
-  ],
-  NUTRITION_PRODUCT_MODE_REQUIRED: [
-    "مسیر تغذیه برای این پروفایل فعال نیست.",
-    "Nutrition mode is not enabled for this profile.",
-  ],
-  PROTEIN_MINIMUM_EXCEEDS_CALORIE_BUDGET: [
-    "حداقل پروتئین موردنیاز با کالری هدف فعلی قابل جمع نیست.",
-    "The minimum protein requirement cannot fit within the current calorie target.",
-  ],
-  CARBOHYDRATE_MINIMUM_EXCEEDS_CALORIE_BUDGET: [
-    "حداقل کربوهیدرات موردنیاز با کالری هدف فعلی قابل جمع نیست.",
-    "The minimum carbohydrate requirement cannot fit within the current calorie target.",
-  ],
-  FAT_MINIMUM_EXCEEDS_CALORIE_BUDGET: [
-    "حداقل چربی موردنیاز با کالری هدف فعلی قابل جمع نیست.",
-    "The minimum fat requirement cannot fit within the current calorie target.",
-  ],
-  PHYSICIAN_MANUAL_PLAN_REQUIRED: [
-    "با توجه به شرایط ثبت‌شده، ساخت خودکار برنامه مناسب نیست و برنامه باید توسط پزشک تنظیم یا بررسی شود.",
-    "Based on the recorded conditions, an automatic plan is not appropriate and physician involvement is required.",
-  ],
-  UNSUPPORTED_OR_HARD_BLOCKED: [
-    "با شرایط فعلی، ساخت خودکار برنامه تغذیه مجاز نیست.",
-    "Automatic nutrition planning is unavailable under the current safety conditions.",
-  ],
-  USER_BUDGET_BELOW_MINIMUM_FEASIBLE: [
-    "با بودجه فعلی، ساخت برنامه‌ای که حداقل‌های تعیین‌شده برای هدف شما را رعایت کند ممکن نشد.",
-    "With your current budget, generating a plan that satisfies the required minimums for your goal was not possible.",
-  ],
-  NO_BUDGET_FEASIBLE_PLAN_FOUND: [
-    "با قیمت‌ها و کاتالوگ فعلی، برنامه سازگار در این بودجه پیدا نشد.",
-    "With current prices and catalogue, no compatible plan was found in this budget.",
-  ],
-  REQUEST_FAILED: [
-    "درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.",
-    "The plan request failed. Check the connection or service and try again.",
-  ],
+const generationOutcomeCodes: Record<WeeklyPlanGeneration["outcome"], string> = {
+  success: "NUTRITION_PLAN_GENERATED",
+  failed: "NUTRITION_PLAN_GENERATION_FAILED",
+  safety_blocked: "NUTRITION_PLAN_SAFETY_BLOCKED",
+  infeasible: "NUTRITION_PLAN_INFEASIBLE",
+  target_infeasible: "NUTRITION_TARGET_INFEASIBLE",
+  live_price_unavailable: "NUTRITION_PRICE_COVERAGE_UNAVAILABLE",
 };
 
-const unknownGenerationReason: LocalizedGenerationMessage = [
-  "ساخت برنامه با یکی از محدودیت‌های فعلی کامل نشد.",
-  "The plan could not be generated because of one of the current constraints.",
-];
+function nutritionGenerationMessage(code: string, language: "fa" | "en"): string {
+  const catalogCode = code in ERROR_CATALOG ? code : "NUTRITION_GENERATION_CONSTRAINT_UNMET";
+  return resolveAppError(
+    new ApiError(422, "", null, catalogCode),
+    { audience: "member", context: "nutrition", locale: language },
+  ).message;
+}
 
 function generationMessage(
   outcome: WeeklyPlanGeneration["outcome"],
   reasonCodes: string[],
   language: "fa" | "en",
 ) {
-  const languageIndex = language === "en" ? 1 : 0;
   const reasons = [...new Set(reasonCodes.filter((code) => code.trim() !== ""))]
-    .map((code) => generationReasonMessages[code]?.[languageIndex] ?? unknownGenerationReason[languageIndex])
+    .map((code) => nutritionGenerationMessage(code, language))
     .filter((message, index, allMessages) => allMessages.indexOf(message) === index);
 
   if (reasons.length === 0) {
-    return { message: generationOutcomeMessage(outcome, language), reasons: [] };
+    return { message: nutritionGenerationMessage(generationOutcomeCodes[outcome], language), reasons: [] };
   }
   if (reasons.length === 1) return { message: reasons[0], reasons: [] };
   return {
@@ -1459,18 +1437,6 @@ function generationMessage(
       : "چند محدودیت همزمان مانع ساخت برنامه شدند:",
     reasons,
   };
-}
-
-function generationOutcomeMessage(outcome: WeeklyPlanGeneration["outcome"], language: "fa" | "en") {
-  const values: Record<WeeklyPlanGeneration["outcome"], LocalizedGenerationMessage> = {
-    success: ["برنامه ساخته شد.", "Plan generated."],
-    failed: ["ساخت برنامه انجام نشد. اطلاعات پروفایل را بررسی کن.", "Plan generation failed. Review your profile."],
-    safety_blocked: ["ساخت خودکار این برنامه به‌دلیل وضعیت ایمنی مجاز نیست.", "Automatic planning is unavailable because of the current safety status."],
-    infeasible: ["با محدودیت‌های فعلی برنامه ایمن و شدنی پیدا نشد.", "No safe feasible plan was found under the current constraints."],
-    target_infeasible: ["هدف‌های فعلی با حداقل‌های علمی قابل جمع نیستند.", "The current targets cannot satisfy the scientific minimums."],
-    live_price_unavailable: ["پوشش قیمت معتبر برای ساخت برنامه کافی نیست.", "Reliable price coverage is insufficient to build a plan."],
-  };
-  return values[outcome][language === "en" ? 1 : 0];
 }
 
 function EstimateContent({ effectivePlan, estimate, language, onRefresh, plan, timeline, tracking }: { effectivePlan: WeeklyPlan | null; estimate: NutritionEstimate; language: "fa" | "en"; onRefresh: () => void; plan: WeeklyPlan | null; timeline: ProgramTimelineToday | null; tracking: DailyTrackingSummary | null }) {

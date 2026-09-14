@@ -261,7 +261,7 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
     void authentication
       .then(() => hydrateOnboardingDraft(draft))
       .then(() => navigate(draft.mode === "training" ? "/dashboard" : "/onboarding", { replace: true }))
-      .catch((reason: unknown) => setError(authErrorMessage(reason, t)))
+      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language)))
       .finally(() => setBusy(false));
   }
 
@@ -289,7 +289,7 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
         setPhoneStep("verify");
         setCountdown(result.retry_after_seconds);
       })
-      .catch((reason: unknown) => setError(authErrorMessage(reason, t)))
+      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language)))
       .finally(() => setBusy(false));
   }
 

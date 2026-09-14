@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import type { SupplementOrder } from "./api";
@@ -16,7 +17,7 @@ export function NutritionSupplementsPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<SupplementOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const statusLabels: Record<string, string> = {
@@ -31,9 +32,9 @@ export function NutritionSupplementsPage() {
       .listSupplementOrders()
       .then((items) => {
         setOrders(items);
-        setError(false);
+        setError(null);
       })
-      .catch(() => setError(true))
+      .catch((cause) => setError(cause))
       .finally(() => setLoading(false));
 
   useEffect(() => {
@@ -102,11 +103,7 @@ export function NutritionSupplementsPage() {
           </div>
         )}
 
-        {error && (
-          <div className="supplement-state-card supplement-state-card--error" role="alert">
-            <span>{l("دستورهای مکمل دریافت نشد.", "Supplement orders could not be loaded.")}</span>
-          </div>
-        )}
+        <AppErrorNotice audience="member" context="nutrition" error={error} locale={fa ? "fa" : "en"} onRetry={() => void load()} />
 
         {!entitlementsLoading && !canManageSupplements && (
           <div className="supplement-state-card" role="status">

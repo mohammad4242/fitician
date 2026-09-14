@@ -357,6 +357,6 @@ it("shows an error message when PDF download fails", async () => {
   await user.click(button);
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "دانلود PDF انجام نشد. لطفاً دوباره تلاش کن.",
+    "انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.",
   );
 });

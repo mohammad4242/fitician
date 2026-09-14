@@ -145,6 +145,146 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("برنامه غذایی فعال پیدا نشد", "Active nutrition plan not found"),
     text("هنوز برنامه غذایی تأییدشده و فعالی وجود ندارد.", "There is no approved active nutrition plan yet."),
   ),
+  ACTIVE_PLAN_REQUIRED: entry(
+    text("برنامه فعال لازم است", "Active plan required"),
+    text("برای انجام این کار باید یک برنامه تأییدشده و فعال داشته باشید.", "An approved active plan is required for this action."),
+  ),
+  ENTRY_GRAMS_REQUIRED: entry(
+    text("مقدار غذا لازم است", "Food amount is required"),
+    text("مقدار غذا را به گرم وارد کنید.", "Enter the food amount in grams."),
+  ),
+  FOOD_PHOTO_PROVIDER_UNAVAILABLE: entry(
+    text("تحلیل عکس غذا موقتاً در دسترس نیست", "Food photo provider unavailable"),
+    text("تحلیل عکس غذا فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Food photo analysis is temporarily unavailable. Try again later."),
+  ),
+  FOOD_PHOTO_ESTIMATE_NOT_FOUND: entry(
+    text("برآورد عکس پیدا نشد", "Photo estimate not found"),
+    text("برآورد این عکس پیدا نشد یا دیگر در دسترس نیست.", "This photo estimate was not found or is no longer available."),
+  ),
+  FOOD_PHOTO_ESTIMATION_DISABLED: entry(
+    text("تحلیل عکس فعال نیست", "Photo analysis is disabled"),
+    text("تحلیل عکس غذا در حال حاضر فعال نیست.", "Food photo analysis is not currently enabled."),
+  ),
+  FOOD_PHOTO_TOO_LARGE: entry(
+    text("عکس خیلی بزرگ است", "Photo is too large"),
+    text("حجم عکس بیشتر از حد مجاز است. عکس کوچک‌تری انتخاب کنید.", "The photo is larger than the allowed limit. Choose a smaller photo."),
+  ),
+  FOOD_PHOTO_ITEM_NOT_FOUND: entry(
+    text("مورد عکس پیدا نشد", "Photo item not found"),
+    text("مورد انتخاب‌شده در برآورد عکس پیدا نشد.", "The selected item was not found in this photo estimate."),
+  ),
+  FOOD_PHOTO_STORAGE_UNAVAILABLE: entry(
+    text("ذخیره‌سازی عکس در دسترس نیست", "Photo storage unavailable"),
+    text("ذخیره‌سازی عکس غذا فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Food photo storage is temporarily unavailable. Try again later."),
+  ),
+  NUTRITION_GENERATION_CONSTRAINT_UNMET: entry(
+    text("ساخت برنامه کامل نشد", "Plan generation constraints"),
+    text("ساخت برنامه با یکی از محدودیت‌های فعلی کامل نشد.", "The plan could not be generated because of one of the current constraints."),
+  ),
+  STRICT_BUDGET_EXCEEDED: entry(
+    text("بودجه سخت‌گیرانه کافی نیست", "Strict budget exceeded"),
+    text("هزینه برنامه‌ای که با شرایط فعلی ساخته شد از بودجه غذایی تعیین‌شده بیشتر است. بودجه را افزایش بده یا حالت بودجه را از سخت‌گیرانه به انعطاف‌پذیر تغییر بده.", "The generated plan exceeds your current strict food budget. Increase the budget or switch to flexible budget mode."),
+  ),
+  FLEXIBLE_BUDGET_CAP_EXCEEDED: entry(
+    text("سقف بودجه انعطاف‌پذیر کافی نیست", "Flexible budget cap exceeded"),
+    text("حتی با محدوده انعطاف‌پذیر بودجه، هزینه برنامه از سقف مجاز بیشتر شده است. بودجه غذایی را کمی افزایش بده.", "Even the flexible budget limit is not enough for the current plan. Increase your food budget."),
+  ),
+  NUTRIENT_UPPER_LIMIT_EXCEEDED: entry(
+    text("سقف ایمن ریزمغذی رعایت نشد", "Safe nutrient limit exceeded"),
+    text("برنامه ساخته‌شده از سقف ایمن یکی از ریزمغذی‌ها عبور کرده است، بنابراین فیتیشن آن را قبول نکرد.", "The generated plan exceeds the safe upper limit for at least one micronutrient, so it was rejected."),
+  ),
+  INSUFFICIENT_PRICE_COVERAGE: entry(
+    text("پوشش قیمت کافی نیست", "Insufficient price coverage"),
+    text("برای تعداد کافی از مواد غذایی، قیمت معتبر در دسترس نیست و بدون قیمت قابل اعتماد امکان ساخت برنامه وجود ندارد.", "Reliable prices are unavailable for enough foods to build the plan."),
+  ),
+  GOAL_RESELECTION_REQUIRED: entry(
+    text("هدف نیاز به بازبینی دارد", "Goal review required"),
+    text("هدف فعلی با شرایط تمرینی ثبت‌شده قابل برنامه‌ریزی نیست. هدف یا اطلاعات تمرینت را بررسی کن.", "The current goal is not compatible with the recorded training conditions. Review your goal or exercise information."),
+  ),
+  STRUCTURED_EXERCISE_REQUIRED: entry(
+    text("اطلاعات تمرین لازم است", "Exercise information is required"),
+    text("اطلاعات تمرین برای محاسبه و ساخت برنامه تغذیه کامل نیست.", "Exercise information is required before the nutrition plan can be generated."),
+  ),
+  PROTEIN_MINIMUM_EXCEEDS_CALORIE_BUDGET: entry(
+    text("حداقل پروتئین با کالری سازگار نیست", "Protein minimum exceeds calorie budget"),
+    text("حداقل پروتئین موردنیاز با کالری هدف فعلی قابل جمع نیست.", "The minimum protein requirement cannot fit within the current calorie target."),
+  ),
+  CARBOHYDRATE_MINIMUM_EXCEEDS_CALORIE_BUDGET: entry(
+    text("حداقل کربوهیدرات با کالری سازگار نیست", "Carbohydrate minimum exceeds calorie budget"),
+    text("حداقل کربوهیدرات موردنیاز با کالری هدف فعلی قابل جمع نیست.", "The minimum carbohydrate requirement cannot fit within the current calorie target."),
+  ),
+  FAT_MINIMUM_EXCEEDS_CALORIE_BUDGET: entry(
+    text("حداقل چربی با کالری سازگار نیست", "Fat minimum exceeds calorie budget"),
+    text("حداقل چربی موردنیاز با کالری هدف فعلی قابل جمع نیست.", "The minimum fat requirement cannot fit within the current calorie target."),
+  ),
+  PHYSICIAN_MANUAL_PLAN_REQUIRED: entry(
+    text("بررسی پزشک لازم است", "Physician plan required"),
+    text("با توجه به شرایط ثبت‌شده، ساخت خودکار برنامه مناسب نیست و برنامه باید توسط پزشک تنظیم یا بررسی شود.", "Based on the recorded conditions, an automatic plan is not appropriate and physician involvement is required."),
+  ),
+  UNSUPPORTED_OR_HARD_BLOCKED: entry(
+    text("ساخت خودکار برنامه مجاز نیست", "Automatic planning unavailable"),
+    text("با شرایط فعلی، ساخت خودکار برنامه تغذیه مجاز نیست.", "Automatic nutrition planning is unavailable under the current safety conditions."),
+  ),
+  USER_BUDGET_BELOW_MINIMUM_FEASIBLE: entry(
+    text("بودجه برای حداقل‌های برنامه کافی نیست", "Budget below feasible minimum"),
+    text("با بودجه فعلی، ساخت برنامه‌ای که حداقل‌های تعیین‌شده برای هدف شما را رعایت کند ممکن نشد.", "With your current budget, generating a plan that satisfies the required minimums for your goal was not possible."),
+  ),
+  NO_BUDGET_FEASIBLE_PLAN_FOUND: entry(
+    text("برنامه سازگار با بودجه پیدا نشد", "No budget-feasible plan found"),
+    text("با قیمت‌ها و کاتالوگ فعلی، برنامه سازگار در این بودجه پیدا نشد.", "With current prices and catalogue, no compatible plan was found in this budget."),
+  ),
+  REQUEST_FAILED: entry(
+    text("درخواست ساخت برنامه انجام نشد", "Plan request failed"),
+    text("درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.", "The plan request failed. Check the connection or service and try again."),
+  ),
+  NUTRITION_PLAN_GENERATED: entry(
+    text("برنامه ساخته شد", "Plan generated"),
+    text("برنامه ساخته شد.", "Plan generated."),
+  ),
+  NUTRITION_PLAN_GENERATION_FAILED: entry(
+    text("ساخت برنامه انجام نشد", "Plan generation failed"),
+    text("ساخت برنامه انجام نشد. اطلاعات پروفایل را بررسی کن.", "Plan generation failed. Review your profile."),
+  ),
+  NUTRITION_PLAN_SAFETY_BLOCKED: entry(
+    text("ساخت خودکار برنامه مجاز نیست", "Automatic planning is unavailable"),
+    text("ساخت خودکار این برنامه به‌دلیل وضعیت ایمنی مجاز نیست.", "Automatic planning is unavailable because of the current safety status."),
+  ),
+  NUTRITION_PLAN_INFEASIBLE: entry(
+    text("برنامه شدنی پیدا نشد", "No feasible plan found"),
+    text("با محدودیت‌های فعلی برنامه ایمن و شدنی پیدا نشد.", "No safe feasible plan was found under the current constraints."),
+  ),
+  NUTRITION_TARGET_INFEASIBLE: entry(
+    text("هدف‌های فعلی شدنی نیستند", "Targets are infeasible"),
+    text("هدف‌های فعلی با حداقل‌های علمی قابل جمع نیستند.", "The current targets cannot satisfy the scientific minimums."),
+  ),
+  NUTRITION_PRICE_COVERAGE_UNAVAILABLE: entry(
+    text("پوشش قیمت معتبر کافی نیست", "Reliable price coverage is insufficient"),
+    text("پوشش قیمت معتبر برای ساخت برنامه کافی نیست.", "Reliable price coverage is insufficient to build a plan."),
+  ),
+  PLAN_REVIEW_IN_PROGRESS: entry(
+    text("نسخه در حال بررسی است", "Revision is under review"),
+    text("این نسخه در حال بررسی پزشک است و تا پایان بررسی نمی‌توان وعده‌های آن را تغییر داد.", "This revision is under physician review and cannot be changed until the review is complete."),
+  ),
+  STALE_PLAN_REVISION: entry(
+    text("نسخه برنامه تغییر کرده است", "Plan revision changed"),
+    text("نسخه برنامه تغییر کرده است. صفحه را به‌روزرسانی کنید و دوباره تلاش کنید.", "The plan revision changed. Refresh the page and try again."),
+  ),
+  MEAL_NOT_FOUND: entry(
+    text("وعده پیدا نشد", "Meal not found"),
+    text("وعده موردنظر دیگر در این نسخه وجود ندارد.", "This meal is no longer available in this revision."),
+  ),
+  MEAL_LOCKED: entry(
+    text("وعده قفل است", "Meal is locked"),
+    text("این وعده قفل است و ابتدا باید قفل آن را باز کنید.", "This meal is locked. Unlock it before editing."),
+  ),
+  INCOMPATIBLE_MEAL_REPLACEMENT: entry(
+    text("جایگزین وعده سازگار نیست", "Incompatible meal replacement"),
+    text("این وعده جایگزین با نقش وعده سازگار نیست.", "That meal is not compatible with this meal slot."),
+  ),
+  FOOD_REPLACEMENT_NOT_FOUND: entry(
+    text("جایگزین غذا پیدا نشد", "Food replacement not found"),
+    text("ماده غذایی انتخاب‌شده دیگر برای این جایگزینی در دسترس نیست.", "That ingredient replacement is no longer available."),
+  ),
   SAFETY_DECISION_NOT_FOUND: entry(
     text("ارزیابی ایمنی ثبت نشده است", "Safety assessment is missing"),
     text("ارزیابی ایمنی هنوز ثبت نشده است. ابتدا ارزیابی ایمنی را کامل کنید.", "The safety assessment has not been recorded yet. Complete it first."),

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
 import * as profileApi from "../profile/api";
 import * as nutritionApi from "./api";
 import type { SafetyDecision } from "./types";
@@ -96,7 +97,10 @@ it("asks training status and medical questions before account creation", async (
   expect(await screen.findByRole("heading", { name: "Do you have any medical conditions?" })).toBeInTheDocument();
 });
 
-async function completeSharedQuestions(user: ReturnType<typeof userEvent.setup>) {
+async function completeSharedQuestions(
+  user: ReturnType<typeof userEvent.setup>,
+  expectTransition = true,
+) {
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
   await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
@@ -110,9 +114,11 @@ async function completeSharedQuestions(user: ReturnType<typeof userEvent.setup>)
   await user.type(screen.getByLabelText("وزن فعلی (کیلوگرم)"), "62.5");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
   await user.click(await screen.findByRole("button", { name: "چربی‌سوزی 🔥" }));
-  await waitFor(() => {
-    expect(screen.queryByRole("heading", { name: "هدف اصلی تو چیست؟" })).not.toBeInTheDocument();
-  });
+  if (expectTransition) {
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "هدف اصلی تو چیست؟" })).not.toBeInTheDocument();
+    });
+  }
 }
 
 async function reachSafety() {
@@ -146,6 +152,30 @@ it("saves shared data before showing the early safety screen", async () => {
     display_name: "سارا", birth_date: "2000-05-14", sex: "female",
     height_cm: 165, current_weight_kg: 62.5, fitness_goal: "fat_loss",
   });
+});
+
+it("shows the shared resolver message when saving the shared profile fails", async () => {
+  vi.mocked(profileApi.saveSharedProfile).mockRejectedValueOnce(new ApiError(
+    422,
+    "raw backend detail",
+    null,
+    "PROFILE_WEIGHT_REQUIRED",
+  ));
+  const user = userEvent.setup();
+  render(
+    <NutritionOnboardingFlow
+      productMode="nutrition"
+      onCreateTrainingProfile={vi.fn()}
+      onComplete={vi.fn()}
+    />,
+  );
+
+  await screen.findByRole("heading", { name: "دوست داری چه صدایت کنیم؟" });
+  await completeSharedQuestions(user, false);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("وزن");
+  expect(alert).not.toHaveTextContent("raw backend detail");
 });
 
 it("stops unnecessary questions for a manual-only safety outcome", async () => {

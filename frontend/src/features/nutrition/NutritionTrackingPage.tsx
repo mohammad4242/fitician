@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { formatTehranDateForLocale } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { webErrorMessage } from "../../shared/appError";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import {
   normalizeImageForUpload,
@@ -77,7 +78,7 @@ export function NutritionTrackingPage() {
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const fa = i18n.language === "fa";
   const canAnalyzeFoodPhoto = hasEntitlement("nutrition.food_photo.analyze");
-  const l = (persian: string, english: string) => (fa ? persian : english);
+  const l = useCallback((persian: string, english: string) => (fa ? persian : english), [fa]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const freeMealId = searchParams.get("freeMealId");
@@ -105,22 +106,30 @@ export function NutritionTrackingPage() {
   const [adherenceOpen, setAdherenceOpen] = useState(false);
   const [itemFoodSelections, setItemFoodSelections] = useState<Record<string, string>>({});
   const [itemGramInputs, setItemGramInputs] = useState<Record<string, string>>({});
+  const resolveError = useCallback((cause: unknown, fallback: string) => webErrorMessage(cause, fallback, {
+    audience: "member",
+    context: "nutrition",
+    locale: fa ? "fa" : "en",
+  }), [fa]);
 
-  const load = () => api.getDailyTracking(entryDate).then(setSummary).catch(() => setError(l("دریافت اطلاعات ممکن نشد.", "Could not load tracking."))).finally(() => setLoading(false));
-  useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { void api.getNutritionAdherence(rangeStart, today).then(setAdherence); }, [rangeStart]);
-  useEffect(() => { void api.listCatalogueFoods().then((items) => { setFoods(items); setFoodId(items[0]?.id ?? ""); }); }, []);
-  useEffect(() => { void api.listRecentFoods().then(setRecentFoods); }, []);
-  useEffect(() => { void api.getTrackingHistory(rangeStart, today).then(setHistory); }, [rangeStart]);
+  const load = useCallback(() => api.getDailyTracking(entryDate)
+    .then((nextSummary) => { setSummary(nextSummary); setError(null); })
+    .catch((cause) => setError(resolveError(cause, l("دریافت اطلاعات ممکن نشد.", "Could not load tracking."))))
+    .finally(() => setLoading(false)), [entryDate, l, resolveError]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void api.getNutritionAdherence(rangeStart, today).then(setAdherence).catch((cause) => setError(resolveError(cause, l("روند پایبندی دریافت نشد.", "Could not load adherence trend.")))); }, [l, rangeStart, resolveError]);
+  useEffect(() => { void api.listCatalogueFoods().then((items) => { setFoods(items); setFoodId(items[0]?.id ?? ""); }).catch((cause) => setError(resolveError(cause, l("کاتالوگ مواد غذایی دریافت نشد.", "Could not load the food catalogue.")))); }, [l, resolveError]);
+  useEffect(() => { void api.listRecentFoods().then(setRecentFoods).catch((cause) => setError(resolveError(cause, l("غذاهای اخیر دریافت نشدند.", "Could not load recent foods.")))); }, [l, resolveError]);
+  useEffect(() => { void api.getTrackingHistory(rangeStart, today).then(setHistory).catch((cause) => setError(resolveError(cause, l("سوابق تغذیه دریافت نشد.", "Could not load tracking history.")))); }, [l, rangeStart, resolveError]);
   useEffect(() => {
     let active = true;
     void api.listFoodPhotoEstimates().then((items) => {
       if (!active) return;
       setPhotoHistory(items);
       setPhotoEstimate((current) => current ?? items[0] ?? null);
-    }).catch(() => undefined);
+    }).catch((cause) => setError(resolveError(cause, l("سوابق تحلیل عکس دریافت نشد.", "Could not load photo analysis history."))));
     return () => { active = false; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [l, resolveError]);
   const pendingPhotoEstimateId = photoEstimate?.id;
   const pendingPhotoEstimateStatus = photoEstimate?.status;
   useEffect(() => {
@@ -146,7 +155,7 @@ export function NutritionTrackingPage() {
   async function checkIn(status: DailyTrackingSummary["check_in_status"]) {
     setBusy(true); setError(null);
     try { setSummary(await api.saveDailyCheckIn(today, status)); }
-    catch { setError(l("برای این گزینه باید برنامه تأییدشده و فعال داشته باشی.", "This option requires an approved active plan.")); }
+    catch (cause) { setError(resolveError(cause, l("برای این گزینه باید برنامه تأییدشده و فعال داشته باشی.", "This option requires an approved active plan."))); }
     finally { setBusy(false); }
   }
 
@@ -157,6 +166,8 @@ export function NutritionTrackingPage() {
     try {
       await api.addQuickApproximation({ entry_date: today, display_name: l("وعده تقریبی", "Approximate meal"), calories: value, protein_g: null });
       setCalories(""); await load();
+    } catch (cause) {
+      setError(resolveError(cause, l("ثبت تقریبی انجام نشد.", "The quick estimate could not be saved.")));
     } finally { setBusy(false); }
   }
 
@@ -184,7 +195,7 @@ export function NutritionTrackingPage() {
       if (photoError instanceof UserImageNormalizationError) {
         setError(l("فرمت عکس پشتیبانی نمی‌شود یا قابل تبدیل نیست.", "This image format is not supported or could not be converted."));
       } else {
-        setError(l("برآورد عکس فعلاً در دسترس نیست؛ ثبت دستی همچنان کار می‌کند.", "Photo estimation is unavailable; manual tracking still works."));
+        setError(resolveError(photoError, l("برآورد عکس فعلاً در دسترس نیست؛ ثبت دستی همچنان کار می‌کند.", "Photo estimation is unavailable; manual tracking still works.")));
       }
     }
     finally { setPhotoUploading(false); }
@@ -194,6 +205,7 @@ export function NutritionTrackingPage() {
     if (!foodId || Number(grams) <= 0) return;
     setBusy(true);
     try { await api.addCatalogueFoodEntry({ entry_date: today, food_id: foodId, grams: Number(grams), note: null }); await load(); }
+    catch (cause) { setError(resolveError(cause, l("ثبت ماده غذایی انجام نشد.", "The food could not be added."))); }
     finally { setBusy(false); }
   }
 
@@ -202,6 +214,8 @@ export function NutritionTrackingPage() {
     try {
       await api.addCatalogueFoodEntry({ entry_date: today, food_id: item.food_id, grams: item.last_quantity_grams ?? 100, note: null });
       await load();
+    } catch (cause) {
+      setError(resolveError(cause, l("ثبت غذای اخیر انجام نشد.", "The recent food could not be added.")));
     } finally { setBusy(false); }
   }
 
@@ -220,7 +234,7 @@ export function NutritionTrackingPage() {
         await load();
       }
     }
-    catch { setError(l("موارد نامشخص را اول ویرایش یا حذف کن.", "Review or remove the unresolved items before confirming.")); }
+    catch (cause) { setError(resolveError(cause, l("موارد نامشخص را اول ویرایش یا حذف کن.", "Review or remove the unresolved items before confirming."))); }
     finally { setBusy(false); }
   }
 
@@ -232,7 +246,7 @@ export function NutritionTrackingPage() {
       setPhotoEstimate(updated);
       setPhotoHistory((current) => upsertFoodPhotoHistory(current, updated));
     }
-    catch { setError(l("اصلاح عکس ذخیره نشد.", "Photo correction was not saved.")); }
+    catch (cause) { setError(resolveError(cause, l("اصلاح عکس ذخیره نشد.", "Photo correction was not saved."))); }
     finally { setBusy(false); }
   }
 
@@ -246,7 +260,7 @@ export function NutritionTrackingPage() {
       setItemFoodSelections((prev) => { const n = { ...prev }; delete n[itemId]; return n; });
       setItemGramInputs((prev) => { const n = { ...prev }; delete n[itemId]; return n; });
     }
-    catch { setError(l("حذف مورد انجام نشد.", "The item could not be removed.")); }
+    catch (cause) { setError(resolveError(cause, l("حذف مورد انجام نشد.", "The item could not be removed."))); }
     finally { setBusy(false); }
   }
 
@@ -266,7 +280,7 @@ export function NutritionTrackingPage() {
       setItemFoodSelections((prev) => { const n = { ...prev }; delete n[itemId]; return n; });
       setItemGramInputs((prev) => { const n = { ...prev }; delete n[itemId]; return n; });
     }
-    catch { setError(l("اصلاح مورد ذخیره نشد.", "Item correction was not saved.")); }
+    catch (cause) { setError(resolveError(cause, l("اصلاح مورد ذخیره نشد.", "Item correction was not saved."))); }
     finally { setBusy(false); }
   }
 
@@ -274,7 +288,7 @@ export function NutritionTrackingPage() {
     if (nextGrams <= 0) return;
     setBusy(true);
     try { await api.editTrackingEntry(entry.id, { grams: nextGrams }); await load(); }
-    catch { setError(l("ویرایش ثبت نشد.", "The edit was not saved.")); }
+    catch (cause) { setError(resolveError(cause, l("ویرایش ثبت نشد.", "The edit was not saved."))); }
     finally { setBusy(false); }
   }
 
@@ -282,8 +296,20 @@ export function NutritionTrackingPage() {
     if (!entry.planned_meal_id) return;
     setBusy(true);
     try { setSummary(await api.adjustPlannedMeal(entry.planned_meal_id, { entry_date: today, status, portion_ratio: status === "adjusted" ? 0.5 : null })); }
-    catch { setError(l("وضعیت وعده تغییر نکرد.", "The planned meal was not changed.")); }
+    catch (cause) { setError(resolveError(cause, l("وضعیت وعده تغییر نکرد.", "The planned meal was not changed."))); }
     finally { setBusy(false); }
+  }
+
+  async function deleteEntry(entryId: string) {
+    setBusy(true);
+    try {
+      await api.deleteTrackingEntry(entryId);
+      await load();
+    } catch (cause) {
+      setError(resolveError(cause, l("حذف ثبت انجام نشد.", "The entry could not be deleted.")));
+    } finally {
+      setBusy(false);
+    }
   }
 
   const todayAdherence = adherence?.days.find((day) => day.date === today);
@@ -607,7 +633,7 @@ export function NutritionTrackingPage() {
       </div>
     </section>
 
-    {summary && summary.entries.length > 0 && <section className="nutrition-estimate-notes nutrition-tracking-entries"><h2>{l("ثبت‌های امروز", "Today's entries")}</h2><label>{l("نوع ثبت", "Entry source")} <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">{l("همه", "All")}</option><option value="catalogue_manual">{l("دقیق از کاتالوگ", "Exact catalogue")}</option><option value="quick_approximation">{l("تقریبی", "Approximate")}</option><option value="photo_estimated_confirmed">{l("عکس تأییدشده", "Confirmed photo")}</option><option value="planned_confirmed">{l("طبق برنامه", "Planned")}</option><option value="planned_adjusted">{l("برنامه اصلاح‌شده", "Adjusted plan")}</option></select></label><ul>{visibleEntries.map((entry) => <li key={entry.id}><span>{entry.display_name} · {entry.confidence} · {entry.source}</span>{entry.quantity_grams && !entry.planned_meal_id ? <input aria-label={l(`ویرایش مقدار ${entry.display_name}`, `Edit ${entry.display_name} amount`)} type="number" min="1" defaultValue={entry.quantity_grams} onBlur={(event) => void editEntry(entry, Number(event.target.value))} /> : null}{entry.planned_meal_id && <><button disabled={busy} onClick={() => void adjustPlanned(entry, "adjusted")} type="button">{l("نصف مقدار", "Half portion")}</button><button disabled={busy} onClick={() => void adjustPlanned(entry, "skipped")} type="button">{l("نخوردم", "Skipped")}</button></>}<button disabled={busy} onClick={() => void api.deleteTrackingEntry(entry.id).then(load)} type="button">{l("حذف", "Delete")}</button></li>)}</ul></section>}
+    {summary && summary.entries.length > 0 && <section className="nutrition-estimate-notes nutrition-tracking-entries"><h2>{l("ثبت‌های امروز", "Today's entries")}</h2><label>{l("نوع ثبت", "Entry source")} <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}><option value="all">{l("همه", "All")}</option><option value="catalogue_manual">{l("دقیق از کاتالوگ", "Exact catalogue")}</option><option value="quick_approximation">{l("تقریبی", "Approximate")}</option><option value="photo_estimated_confirmed">{l("عکس تأییدشده", "Confirmed photo")}</option><option value="planned_confirmed">{l("طبق برنامه", "Planned")}</option><option value="planned_adjusted">{l("برنامه اصلاح‌شده", "Adjusted plan")}</option></select></label><ul>{visibleEntries.map((entry) => <li key={entry.id}><span>{entry.display_name} · {entry.confidence} · {entry.source}</span>{entry.quantity_grams && !entry.planned_meal_id ? <input aria-label={l(`ویرایش مقدار ${entry.display_name}`, `Edit ${entry.display_name} amount`)} type="number" min="1" defaultValue={entry.quantity_grams} onBlur={(event) => void editEntry(entry, Number(event.target.value))} /> : null}{entry.planned_meal_id && <><button disabled={busy} onClick={() => void adjustPlanned(entry, "adjusted")} type="button">{l("نصف مقدار", "Half portion")}</button><button disabled={busy} onClick={() => void adjustPlanned(entry, "skipped")} type="button">{l("نخوردم", "Skipped")}</button></>}<button disabled={busy} onClick={() => void deleteEntry(entry.id)} type="button">{l("حذف", "Delete")}</button></li>)}</ul></section>}
     <section className={`nutrition-adherence-card${adherenceOpen ? " is-open" : ""}`}>
       <header className="nutrition-adherence-header">
         <h2><button aria-controls="nutrition-adherence-content" aria-expanded={adherenceOpen} onClick={() => setAdherenceOpen((open) => !open)} type="button"><span>{l("روند پایبندی", "Adherence trend")}</span><i aria-hidden="true" /></button></h2>

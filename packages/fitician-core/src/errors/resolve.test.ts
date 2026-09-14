@@ -68,6 +68,30 @@ describe("resolveAppError", () => {
     expect(physician.message).not.toContain("مربی");
   });
 
+  it("resolves nutrition plan edit codes from the shared catalog", () => {
+    const result = resolveAppError(
+      new ApiError(409, "raw edit detail", null, "MEAL_LOCKED"),
+      { audience: "member", context: "nutrition", locale: "fa" },
+    );
+
+    expect(result.message).toContain("این وعده قفل است");
+    expect(result.message).not.toContain("raw edit detail");
+  });
+
+  it.each([
+    ["ACTIVE_PLAN_REQUIRED", "برنامه تأییدشده و فعال"],
+    ["STRICT_BUDGET_EXCEEDED", "بودجه غذایی تعیین‌شده"],
+    ["PROTEIN_MINIMUM_EXCEEDS_CALORIE_BUDGET", "حداقل پروتئین"],
+  ])("resolves nutrition workflow code %s from the shared catalog", (code, expected) => {
+    const result = resolveAppError(
+      new ApiError(422, "raw nutrition detail", null, code),
+      { audience: "member", context: "nutrition", locale: "fa" },
+    );
+
+    expect(result.message).toContain(expected);
+    expect(result.message).not.toContain("raw nutrition detail");
+  });
+
   it("turns validation details into localized field errors", () => {
     const result = resolveAppError(
       new ApiError(

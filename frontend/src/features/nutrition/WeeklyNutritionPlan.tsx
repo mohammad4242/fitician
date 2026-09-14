@@ -9,9 +9,10 @@ import {
 } from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
-import { ApiError } from "../../shared/apiClient";
 import { AppIcon } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MealThumbnail } from "../../shared/MealThumbnail";
+import { webErrorMessage } from "../../shared/appError";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import { irrToRoundedToman, roundToTenThousandToman } from "./money";
@@ -59,7 +60,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
   const [selector, setSelector] = useState<ReplacementSelector | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
+  const [pdfError, setPdfError] = useState<unknown>(null);
   useEffect(() => { setCurrentPlan(plan); }, [plan]);
   useEffect(() => {
     setSelectedDay(initialDayIndex(plan, timeline));
@@ -225,7 +226,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
   function downloadPdf() {
     if (downloadingPdf) return;
     setDownloadingPdf(true);
-    setPdfError(false);
+    setPdfError(null);
     void api.downloadNutritionPlanPdf(currentPlan.id)
       .then((blob) => {
         const url = URL.createObjectURL(blob);
@@ -240,7 +241,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
           URL.revokeObjectURL(url);
         }
       })
-      .catch(() => setPdfError(true))
+      .catch((cause) => setPdfError(cause))
       .finally(() => setDownloadingPdf(false));
   }
 
@@ -532,11 +533,13 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
             </small>
           </div>
         </button>
-        {pdfError && (
-          <p className="weekly-plan__error" role="alert">
-            {l("دانلود PDF انجام نشد. لطفاً دوباره تلاش کن.", "Could not download PDF. Please try again.")}
-          </p>
-        )}
+        <AppErrorNotice
+          audience="member"
+          context="nutrition"
+          error={pdfError}
+          locale={language}
+          onRetry={downloadPdf}
+        />
       </div>
 
     </section>
@@ -613,16 +616,11 @@ function findMeal(plan: WeeklyPlan, mealId: string): PlanMeal | undefined {
 }
 
 function actionErrorMessage(error: unknown, language: "fa" | "en"): string {
-  const code = error instanceof ApiError ? error.code : null;
-  const messages: Record<string, [string, string]> = {
-    PLAN_REVIEW_IN_PROGRESS: ["این نسخه در حال بررسی پزشک است و تا پایان بررسی نمی‌توان وعده‌های آن را تغییر داد.", "This revision is under physician review and cannot be changed until the review is complete."],
-    STALE_PLAN_REVISION: ["نسخه برنامه تغییر کرده است. صفحه را به‌روزرسانی کن و دوباره تلاش کن.", "The plan revision changed. Refresh the page and try again."],
-    MEAL_NOT_FOUND: ["وعده موردنظر دیگر در این نسخه وجود ندارد.", "This meal is no longer available in this revision."],
-    MEAL_LOCKED: ["این وعده قفل است و ابتدا باید قفل آن را باز کنی.", "This meal is locked. Unlock it before editing."],
-    INCOMPATIBLE_MEAL_REPLACEMENT: ["این وعده جایگزین با نقش وعده سازگار نیست.", "That meal is not compatible with this meal slot."],
-    FOOD_REPLACEMENT_NOT_FOUND: ["ماده غذایی انتخاب‌شده دیگر برای این جایگزینی در دسترس نیست.", "That ingredient replacement is no longer available."],
-  };
-  return code && messages[code] ? messages[code][language === "en" ? 1 : 0] : l10n("عملیات انجام نشد؛ دوباره تلاش کن.", "The action failed. Please try again.", language);
+  return webErrorMessage(
+    error,
+    l10n("عملیات انجام نشد؛ دوباره تلاش کن.", "The action failed. Please try again.", language),
+    { audience: "member", context: "nutrition", locale: language },
+  );
 }
 
 function l10n(fa: string, en: string, language: "fa" | "en") {

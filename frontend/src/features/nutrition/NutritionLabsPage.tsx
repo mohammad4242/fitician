@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import "./nutritionEstimate.css";
@@ -95,7 +96,7 @@ export function NutritionLabsPage() {
   const [requests, setRequests] = useState<Awaited<ReturnType<typeof api.listLabRequests>>>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const [testDate, setTestDate] = useState("");
   const [laboratoryName, setLaboratoryName] = useState("");
   const [category, setCategory] = useState("");
@@ -106,9 +107,9 @@ export function NutritionLabsPage() {
     .then(([documents, requested]) => {
       setLabs(documents);
       setRequests(requested);
-      setError(false);
+      setError(null);
     })
-    .catch(() => setError(true))
+    .catch((cause) => setError(cause))
     .finally(() => setLoading(false));
 
   useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -126,16 +127,20 @@ export function NutritionLabsPage() {
         category: category || undefined,
       });
       await load();
-    } catch {
-      setError(true);
+    } catch (cause) {
+      setError(cause);
     } finally {
       setBusy(false);
     }
   }
 
   async function openLab(lab: Lab) {
-    const grant = await api.grantLabDocumentAccess(lab.id);
-    window.open(grant.access_url, "_blank", "noopener,noreferrer");
+    try {
+      const grant = await api.grantLabDocumentAccess(lab.id);
+      window.open(grant.access_url, "_blank", "noopener,noreferrer");
+    } catch (cause) {
+      setError(cause);
+    }
   }
 
   async function removeLab(documentId: string) {
@@ -143,8 +148,8 @@ export function NutritionLabsPage() {
     try {
       await api.deleteLabDocument(documentId);
       await load();
-    } catch {
-      setError(true);
+    } catch (cause) {
+      setError(cause);
     } finally {
       setBusy(false);
     }
@@ -170,7 +175,7 @@ export function NutritionLabsPage() {
     </section>
 
     {loading && <p role="status" className="nutrition-labs-state">{l("در حال دریافت آزمایش‌ها…", "Loading lab documents…")}</p>}
-    {error && <p role="alert" className="nutrition-labs-alert">{l("عملیات آزمایش انجام نشد.", "The lab operation failed.")}</p>}
+    <AppErrorNotice audience="member" context="nutrition" error={error} locale={fa ? "fa" : "en"} onRetry={() => void load()} />
 
     <div className="nutrition-labs-layout">
       <section className="nutrition-labs-card nutrition-labs-form" aria-labelledby="nutrition-labs-form-title">
