@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 const adminApi = vi.hoisted(() => ({
   archiveAdminNutritionProgram: vi.fn(),
   getAdminNutritionPrograms: vi.fn(),
@@ -119,4 +121,22 @@ it("shows archived programs and restores them", async () => {
   await user.click(await screen.findByRole("button", { name: "بازیابی هفته ایرانی متعادل" }));
 
   expect(adminApi.restoreAdminNutritionProgram).toHaveBeenCalledWith("program-1");
+});
+
+it("shows safe admin diagnostics for a failed catalogue request", async () => {
+  adminApi.getAdminNutritionPrograms.mockRejectedValueOnce(new ApiError(
+    500,
+    "raw SQL and private provider details",
+    null,
+    "INTERNAL_SERVER_ERROR",
+    { requestId: "admin-nutrition-request-1" },
+  ));
+
+  render(<MemoryRouter initialEntries={["/admin/nutrition-programs"]}><AdminNutritionProgramsPage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("INTERNAL_SERVER_ERROR");
+  expect(alert).toHaveTextContent("500");
+  expect(alert).toHaveTextContent("admin-nutrition-request-1");
+  expect(alert).not.toHaveTextContent("raw SQL");
 });

@@ -5,6 +5,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { ApiError } from "../../shared/apiClient";
 import {
   createAdminTrainingProgramStructure,
   getAdminTrainingProgramStructure,
@@ -19,7 +21,7 @@ import type {
 } from "./types";
 import "./admin.css";
 
-type EditorState = "loading" | "ready" | "missing";
+type EditorState = "loading" | "ready" | "missing" | "error";
 
 const trainingDays = [2, 3, 4, 5, 6] as const;
 const structureFamilies: StructureFamily[] = ["upper_lower", "split"];
@@ -77,7 +79,8 @@ export function AdminTrainingProgramStructureEditorPage() {
   ));
   const [state, setState] = useState<EditorState>(structureId === undefined ? "ready" : "loading");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
 
   useEffect(() => {
     if (structureId === undefined) return;
@@ -86,10 +89,17 @@ export function AdminTrainingProgramStructureEditorPage() {
       .then((structure) => {
         if (!active) return;
         setForm(structureToForm(structure));
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("missing");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof ApiError && cause.status === 404) {
+          setState("missing");
+        } else {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => { active = false; };
   }, [structureId]);
@@ -120,14 +130,14 @@ export function AdminTrainingProgramStructureEditorPage() {
 
   async function save() {
     setSaving(true);
-    setError(null);
+    setSaveError(null);
     try {
       const saved = structureId === undefined
         ? await createAdminTrainingProgramStructure(form)
         : await updateAdminTrainingProgramStructure(structureId, form);
       navigate(`/admin/training-program-structures/${saved.id}/edit`, { replace: true });
-    } catch {
-      setError(t("admin.structureEditor.saveError"));
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setSaving(false);
     }
@@ -152,7 +162,8 @@ export function AdminTrainingProgramStructureEditorPage() {
         </header>
 
         {state === "loading" && <p className="admin-status" role="status">{t("admin.structureEditor.loading")}</p>}
-        {state === "missing" && <p className="admin-status admin-status--error">{t("admin.structureEditor.missing")}</p>}
+        {state === "missing" && <p className="admin-status admin-status--error" role="alert">{t("admin.structureEditor.missing")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="workout" error={loadError} locale="fa" />}
         {state === "ready" && (
           <form className="admin-structure-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
             <fieldset className="admin-form-section">
@@ -240,7 +251,7 @@ export function AdminTrainingProgramStructureEditorPage() {
               </div>
             </fieldset>
 
-            {error !== null && <p className="admin-form-alert" role="alert">{error}</p>}
+            {saveError !== null && <AppErrorNotice audience="admin" context="workout" error={saveError} locale="fa" />}
             <div className="admin-form-actions">
               <button className="admin-primary-link" disabled={saving} type="submit">
                 {saving ? t("admin.structureEditor.saving") : t("admin.structureEditor.save")}

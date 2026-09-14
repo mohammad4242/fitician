@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import foodAccent from "../../assets/landing/food.webp";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { MealThumbnail } from "../../shared/MealThumbnail";
 import {
@@ -34,6 +35,8 @@ export function AdminNutritionProgramsPage() {
   const [lifecycle, setLifecycle] = useState<NutritionProgramLifecycle>("active");
   const [page, setPage] = useState<AdminNutritionProgramPage | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [actionError, setActionError] = useState<unknown | null>(null);
   const [retry, setRetry] = useState(0);
   const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(() => new Set());
   const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
@@ -46,19 +49,25 @@ export function AdminNutritionProgramsPage() {
       .then((result) => {
         if (!active) return;
         setPage(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => { if (active) setState("error"); });
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
+      });
     return () => { active = false; };
   }, [dietStyle, lifecycle, retry]);
 
   async function changeLifecycle(programId: string, active: boolean) {
+    setActionError(null);
     try {
       if (active) await archiveAdminNutritionProgram(programId);
       else await restoreAdminNutritionProgram(programId);
       setRetry((value) => value + 1);
-    } catch {
-      setState("error");
+    } catch (cause: unknown) {
+      setActionError(cause);
     }
   }
 
@@ -99,7 +108,8 @@ export function AdminNutritionProgramsPage() {
         </div>
 
         {state === "loading" && <p className="admin-status" role="status">{t("admin.nutritionPrograms.loading")}</p>}
-        {state === "error" && <div className="admin-status" role="alert"><p>{t("admin.nutritionPrograms.loadError")}</p><button type="button" onClick={() => setRetry((value) => value + 1)}>{t("common.retry")}</button></div>}
+        {state === "error" && <AppErrorNotice audience="admin" context="nutrition" error={loadError} locale={english ? "en" : "fa"} onRetry={() => setRetry((value) => value + 1)} />}
+        {actionError !== null && <AppErrorNotice audience="admin" context="nutrition" error={actionError} locale={english ? "en" : "fa"} />}
         {state === "ready" && page?.items.length === 0 && <p className="admin-status">{t("admin.nutritionPrograms.empty")}</p>}
         {state === "ready" && page !== null && page.items.length > 0 && (
           <section className="admin-template-list">

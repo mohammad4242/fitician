@@ -6,6 +6,8 @@ import { muscleGroups, movementPatterns } from "../exercises/types";
 import { type ExperienceLevel } from "../profile/types";
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { ApiError } from "../../shared/apiClient";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import {
   createAdminTrainingProgramTemplate,
@@ -77,7 +79,10 @@ export function AdminTrainingTemplateEditorPage() {
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [structureLoadError, setStructureLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [structures, setStructures] = useState<import("./types").AdminTrainingProgramStructure[]>([]);
 
   useEffect(() => {
@@ -86,7 +91,12 @@ export function AdminTrainingTemplateEditorPage() {
       getAdminTrainingProgramStructures(form.days_per_week).then((res) => {
         if (!active) return;
         setStructures(res.items);
-      }).catch(console.error);
+        setStructureLoadError(null);
+      }).catch((cause: unknown) => {
+        if (!active) return;
+        setStructures([]);
+        setStructureLoadError(cause);
+      });
     });
     return () => { active = false; };
   }, [form.days_per_week]);
@@ -98,10 +108,17 @@ export function AdminTrainingTemplateEditorPage() {
       .then((template) => {
         if (!active) return;
         setForm(templateToForm(template));
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("missing");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof ApiError && cause.status === 404) {
+          setState("missing");
+        } else {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => { active = false; };
   }, [templateId]);
@@ -357,10 +374,11 @@ export function AdminTrainingTemplateEditorPage() {
 
   async function save() {
     if (slotCountProblems) {
-      setSaveError(t("admin.templateEditor.slotCountError"));
+      setValidationError(t("admin.templateEditor.slotCountError"));
       return;
     }
     setSaving(true);
+    setValidationError(null);
     setSaveError(null);
     const payload = formToPayload(form);
     try {
@@ -368,8 +386,8 @@ export function AdminTrainingTemplateEditorPage() {
         ? await createAdminTrainingProgramTemplate(payload)
         : await updateAdminTrainingProgramTemplate(templateId, payload);
       navigate(`/admin/training-program-templates/${saved.id}/edit`, { replace: true });
-    } catch {
-      setSaveError(t("admin.templateEditor.saveError"));
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setSaving(false);
     }
@@ -384,8 +402,8 @@ export function AdminTrainingTemplateEditorPage() {
     try {
       await deleteAdminTrainingProgramTemplate(templateId);
       navigate("/admin/training-program-templates", { replace: true });
-    } catch {
-      setSaveError(t("admin.templateEditor.deleteError"));
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setDeleting(false);
     }
@@ -407,9 +425,12 @@ export function AdminTrainingTemplateEditorPage() {
 
         {state === "loading" && <p className="admin-status" role="status">{t("admin.templateEditor.loading")}</p>}
         {state === "missing" && <p className="admin-status" role="alert">{t("admin.templateEditor.missing")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="workout" error={loadError} locale={english ? "en" : "fa"} />}
         {state === "ready" && (
           <form className="admin-template-editor" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            {saveError !== null && <p className="admin-form-alert" role="alert">{saveError}</p>}
+            {structureLoadError !== null && <AppErrorNotice audience="admin" context="workout" error={structureLoadError} locale={english ? "en" : "fa"} />}
+            {validationError !== null && <p className="admin-form-alert" role="alert">{validationError}</p>}
+            {saveError !== null && <AppErrorNotice audience="admin" context="workout" error={saveError} locale={english ? "en" : "fa"} />}
             <AdminAccordionSection
               id="identity"
               isOpen={openSections.has("identity")}

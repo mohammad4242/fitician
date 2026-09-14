@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import {
   activateAdminTrainingProgramStructure,
@@ -28,7 +29,8 @@ export function AdminTrainingProgramStructuresPage() {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [retry, setRetry] = useState(0);
   const [actionId, setActionId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [actionError, setActionError] = useState<unknown | null>(null);
   const visibleFamilyFilters = daysPerWeek <= 3 ? ["all" as const] : familyFilters;
 
   useEffect(() => {
@@ -38,10 +40,13 @@ export function AdminTrainingProgramStructuresPage() {
       .then((result) => {
         if (!active) return;
         setStructures(result.items);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [daysPerWeek, family, retry]);
@@ -65,8 +70,8 @@ export function AdminTrainingProgramStructuresPage() {
         ? await deactivateAdminTrainingProgramStructure(structure.id)
         : await activateAdminTrainingProgramStructure(structure.id);
       setStructures((current) => current.map((item) => item.id === updated.id ? updated : item));
-    } catch {
-      setActionError(t("admin.structureLibrary.actionError"));
+    } catch (cause: unknown) {
+      setActionError(cause);
     } finally {
       setActionId(null);
     }
@@ -132,13 +137,8 @@ export function AdminTrainingProgramStructuresPage() {
         </section>
 
         {state === "loading" && <p className="admin-status" role="status">{t("admin.structureLibrary.loading")}</p>}
-        {state === "error" && (
-          <div className="admin-status" role="alert">
-            <p>{t("admin.structureLibrary.loadError")}</p>
-            <button type="button" onClick={() => setRetry((value) => value + 1)}>{t("common.retry")}</button>
-          </div>
-        )}
-        {actionError !== null && <p className="admin-status admin-status--error" role="alert">{actionError}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="workout" error={loadError} locale={english ? "en" : "fa"} onRetry={() => setRetry((value) => value + 1)} />}
+        {actionError !== null && <AppErrorNotice audience="admin" context="workout" error={actionError} locale={english ? "en" : "fa"} />}
         {state === "ready" && structures.length === 0 && (
           <p className="admin-status">{t("admin.structureLibrary.empty")}</p>
         )}

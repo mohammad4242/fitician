@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { muscleGroups, movementPatterns, type MuscleGroup } from "../exercises/types";
 import { deleteAdminTrainingTemplateSlot, updateAdminTrainingTemplateSlot } from "./api";
 import { ExerciseLibraryPickerModal } from "./ExerciseLibraryPickerModal";
@@ -49,12 +49,12 @@ export function AdminTrainingTemplateSlotEditModal({
   onClose,
   onSaved,
 }: AdminTrainingTemplateSlotEditModalProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [draft, setDraft] = useState<SlotDraft>(() => slotToDraft(slot));
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
 
   const exercise = draft.exercise ?? slot.exercise;
   const exerciseName = draft.display_name_fa || draft.display_name_en || exercise?.name_fa || exercise?.name_en || slot.exercise_slug_hint;
@@ -102,8 +102,8 @@ export function AdminTrainingTemplateSlotEditModal({
     try {
       const saved = await updateAdminTrainingTemplateSlot(templateId, dayId, slot.id, toPayload(draft));
       onSaved(saved);
-    } catch (caught) {
-      setError(formatSlotError(caught, t("admin.templateEditor.slotSaveError")));
+    } catch (caught: unknown) {
+      setError(caught);
     } finally {
       setSaving(false);
     }
@@ -116,8 +116,8 @@ export function AdminTrainingTemplateSlotEditModal({
     try {
       const saved = await deleteAdminTrainingTemplateSlot(templateId, dayId, slot.id);
       onSaved(saved);
-    } catch (caught) {
-      setError(formatSlotError(caught, t("admin.templateEditor.slotDeleteError")));
+    } catch (caught: unknown) {
+      setError(caught);
     } finally {
       setRemoving(false);
     }
@@ -145,7 +145,7 @@ export function AdminTrainingTemplateSlotEditModal({
         </header>
 
         <form className="admin-template-slot-modal__body" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
-          {error !== null && <p className="admin-form-alert" role="alert">{error}</p>}
+          {error !== null && <AppErrorNotice audience="admin" context="workout" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
           <div className="admin-template-slot-modal__exercise">
             <div>
               <span className="admin-template-slot-modal__label">{t("admin.templateEditor.movement")}</span>
@@ -360,16 +360,6 @@ function NumberInput({ label, value, onChange, min, max }: { label: string; valu
 function normalizeNumber(value: number | "", min: number, max: number): number {
   const integer = typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : min;
   return Math.min(max, Math.max(min, integer));
-}
-
-function formatSlotError(error: unknown, fallback: string): string {
-  if (!(error instanceof ApiError)) return fallback;
-  const messages = error.details
-    ?.map((detail) => detail.msg?.trim())
-    .filter((message): message is string => Boolean(message));
-  if (messages && messages.length > 0) return `HTTP ${error.status}: ${messages.join(" ")}`;
-  if (error.message && error.message !== "Request failed") return `HTTP ${error.status}: ${error.message}`;
-  return `${fallback} (HTTP ${error.status})`;
 }
 
 function SelectInput({ label, value, options, getLabel, onChange }: { label: string; value: string; options: readonly string[]; getLabel: (value: string) => string; onChange: (value: string) => void }) {

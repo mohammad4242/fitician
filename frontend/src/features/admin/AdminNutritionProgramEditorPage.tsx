@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import foodAccent from "../../assets/landing/food.webp";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { ApiError } from "../../shared/apiClient";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import {
@@ -35,9 +37,11 @@ export function AdminNutritionProgramEditorPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<ProgramForm>(emptyProgram());
   const [mealOptions, setMealOptions] = useState<Record<MealCategory, AdminMealCatalogueItem[]>>(emptyMealOptions());
-  const [state, setState] = useState<"loading" | "ready" | "missing">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -51,9 +55,18 @@ export function AdminNutritionProgramEditorPage() {
         if (!active) return;
         setMealOptions(Object.fromEntries(options) as Record<MealCategory, AdminMealCatalogueItem[]>);
         if (program !== null) setForm(formFromProgram(program));
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => { if (active) setState("missing"); });
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof ApiError && cause.status === 404) {
+          setState("missing");
+        } else {
+          setLoadError(cause);
+          setState("error");
+        }
+      });
     return () => { active = false; };
   }, [programId]);
 
@@ -75,7 +88,7 @@ export function AdminNutritionProgramEditorPage() {
 
   async function save() {
     const missingRequired = form.days.some((day) => requiredCategories.some((category) => category !== "lunch" || !day.free_meal ? !day.meals[category] : false) || (day.post_workout_enabled && !day.meals.post_workout));
-    if (missingRequired) { setError(t("admin.nutritionProgramEditor.mealRequired")); return; }
+    if (missingRequired) { setValidationError(t("admin.nutritionProgramEditor.mealRequired")); return; }
     const payload: AdminNutritionProgramWrite = {
       code: form.code,
       name_fa: form.name_fa,
@@ -95,12 +108,13 @@ export function AdminNutritionProgramEditorPage() {
       })),
     };
     setSaving(true);
-    setError(null);
+    setValidationError(null);
+    setSaveError(null);
     try {
       const saved = programId ? await updateAdminNutritionProgram(programId, payload) : await createAdminNutritionProgram(payload);
       navigate(`/admin/nutrition-programs/${saved.id}/edit`, { replace: true });
-    } catch {
-      setError(t("admin.nutritionProgramEditor.saveError"));
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setSaving(false);
     }
@@ -117,9 +131,11 @@ export function AdminNutritionProgramEditorPage() {
         </header>
         {state === "loading" && <p className="admin-status" role="status">{t("admin.nutritionProgramEditor.loading")}</p>}
         {state === "missing" && <p className="admin-status" role="alert">{t("admin.nutritionProgramEditor.missing")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="nutrition" error={loadError} locale="fa" />}
         {state === "ready" && (
           <form className="admin-template-editor admin-program-editor" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            {error && <p className="admin-form-alert" role="alert">{error}</p>}
+            {validationError !== null && <p className="admin-form-alert" role="alert">{validationError}</p>}
+            {saveError !== null && <AppErrorNotice audience="admin" context="nutrition" error={saveError} locale="fa" />}
             <section>
               <h2>{t("admin.nutritionProgramEditor.identity")}</h2>
               <div className="admin-template-editor-grid">

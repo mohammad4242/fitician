@@ -186,7 +186,7 @@ it("keeps numeric inputs editable and normalizes sets to the backend range", asy
   );
 });
 
-it("shows backend validation details when saving the slot fails", async () => {
+it("shows safe backend validation details when saving the slot fails", async () => {
   const user = userEvent.setup();
   adminApi.updateAdminTrainingTemplateSlot.mockRejectedValue(
     new ApiError(422, "Request failed", [
@@ -208,7 +208,8 @@ it("shows backend validation details when saving the slot fails", async () => {
 
   await user.click(screen.getByRole("button", { name: "ذخیره حرکت" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Selected exercise is incompatible with the slot movement or target muscles",
-  );
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("VALIDATION_ERROR");
+  expect(alert).toHaveTextContent("slot معتبر نیست.");
+  expect(alert).not.toHaveTextContent("Selected exercise is incompatible");
 });

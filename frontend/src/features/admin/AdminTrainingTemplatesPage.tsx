@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import { AdminTrainingTemplateSlotEditModal } from "./AdminTrainingTemplateSlotEditModal";
 import {
@@ -48,6 +49,8 @@ export function AdminTrainingTemplatesPage() {
   const [trainingLevel, setTrainingLevel] = useState<(typeof trainingLevels)[number]>("all");
   const [page, setPage] = useState<AdminTrainingProgramTemplatesResponse | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [structureLoadError, setStructureLoadError] = useState<unknown | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(() => new Set());
@@ -75,9 +78,12 @@ export function AdminTrainingTemplatesPage() {
       .then((res) => {
         if (!active) return;
         setStructures(res.items);
+        setStructureLoadError(null);
       })
-      .catch(() => {
-        if (active) setStructures([]);
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setStructures([]);
+        setStructureLoadError(cause);
       });
     return () => { active = false; };
   }, [daysPerWeek]);
@@ -96,10 +102,13 @@ export function AdminTrainingTemplatesPage() {
       .then((result) => {
         if (!active) return;
         setPage(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [daysPerWeek, family, retry, trainingLevel, structureId]);
@@ -239,13 +248,9 @@ export function AdminTrainingTemplatesPage() {
           </div>
         </div>
 
+        {structureLoadError !== null && <AppErrorNotice audience="admin" context="workout" error={structureLoadError} locale={english ? "en" : "fa"} />}
         {state === "loading" && <p className="admin-status" role="status">{t("admin.templates.loading")}</p>}
-        {state === "error" && (
-          <div className="admin-status" role="alert">
-            <p>{t("admin.templates.loadError")}</p>
-            <button type="button" onClick={() => setRetry((value) => value + 1)}>{t("common.retry")}</button>
-          </div>
-        )}
+        {state === "error" && <AppErrorNotice audience="admin" context="workout" error={loadError} locale={english ? "en" : "fa"} onRetry={() => setRetry((value) => value + 1)} />}
         {feedback !== null && <p className="admin-status admin-status--success" role="status">{feedback}</p>}
         {state === "ready" && visibleTemplates.length === 0 && (
           <p className="admin-status">{t("admin.templates.empty")}</p>

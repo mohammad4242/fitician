@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import foodAccent from "../../assets/landing/food.webp";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { ApiError } from "../../shared/apiClient";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
 import type { AdminFoodCatalogueItem } from "../nutrition/api";
 import {
@@ -35,12 +37,16 @@ export function AdminMealCatalogueEditorPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [form, setForm] = useState<MealForm>(() => emptyMeal(searchParams.get("category")));
-  const [state, setState] = useState<"loading" | "ready" | "missing">(mealId ? "loading" : "ready");
+  const [state, setState] = useState<"loading" | "ready" | "missing" | "error">(mealId ? "loading" : "ready");
   const [pickerTarget, setPickerTarget] = useState<"meal" | "recipe" | null>(null);
   const [search, setSearch] = useState("");
   const [foods, setFoods] = useState<AdminFoodCatalogueItem[]>([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [foodLoadError, setFoodLoadError] = useState<unknown | null>(null);
+  const [previewError, setPreviewError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreparedRecipePreview | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
@@ -50,17 +56,34 @@ export function AdminMealCatalogueEditorPage() {
     void getAdminMeal(mealId).then((meal) => {
       if (!active) return;
       setForm({ ...meal, calculation_mode: meal.calculation_mode ?? "simple", items: meal.items.map((item) => ({ ...item })), prepared_recipe: meal.prepared_recipe ? { ...meal.prepared_recipe, ingredients: meal.prepared_recipe.ingredients.map((item) => ({ ...item })) } : null });
+      setLoadError(null);
       setState("ready");
-    }).catch(() => { if (active) setState("missing"); });
+    }).catch((cause: unknown) => {
+      if (!active) return;
+      if (cause instanceof ApiError && cause.status === 404) {
+        setState("missing");
+      } else {
+        setLoadError(cause);
+        setState("error");
+      }
+    });
     return () => { active = false; };
   }, [mealId]);
 
   useEffect(() => {
-    if (!pickerTarget || search.trim().length < 2) { setFoods([]); return; }
+    if (!pickerTarget || search.trim().length < 2) { setFoods([]); setFoodLoadError(null); return; }
     let active = true;
     void getAdminFoodCatalogue({ query: search.trim(), pageSize: 20 })
-      .then((result) => { if (active) setFoods(result.items); })
-      .catch(() => { if (active) setFoods([]); });
+      .then((result) => {
+        if (!active) return;
+        setFoods(result.items);
+        setFoodLoadError(null);
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setFoods([]);
+        setFoodLoadError(cause);
+      });
     return () => { active = false; };
   }, [pickerTarget, search]);
 
@@ -68,7 +91,15 @@ export function AdminMealCatalogueEditorPage() {
     const recipe = form.prepared_recipe;
     if (!recipe || recipe.ingredients.length === 0 || recipe.cooked_yield.final_cooked_yield_grams <= 0 || !recipe.source_name || !recipe.source_reference || !recipe.cooked_yield.source_name || !recipe.cooked_yield.source_reference) { setPreview(null); return; }
     const timer = window.setTimeout(() => {
-      void previewAdminPreparedRecipe(recipePayload(recipe)).then(setPreview).catch(() => setPreview(null));
+      void previewAdminPreparedRecipe(recipePayload(recipe))
+        .then((result) => {
+          setPreview(result);
+          setPreviewError(null);
+        })
+        .catch((cause: unknown) => {
+          setPreview(null);
+          setPreviewError(cause);
+        });
     }, 150);
     return () => window.clearTimeout(timer);
   }, [form.prepared_recipe]);
@@ -111,11 +142,12 @@ export function AdminMealCatalogueEditorPage() {
   async function save() {
     const recipeInvalid = form.calculation_mode === "prepared_recipe" && (!form.prepared_recipe || form.prepared_recipe.ingredients.length === 0 || form.prepared_recipe.cooked_yield.final_cooked_yield_grams <= 0 || form.prepared_recipe.ingredients.some((item) => item.min_grams < 0 || item.min_grams > item.reference_grams || item.reference_grams > item.max_grams || (item.is_required && item.min_grams <= 0)));
     if ((form.calculation_mode === "simple" && form.items.length === 0) || form.items.some((item) => item.min_grams <= 0 || item.min_grams > item.reference_grams || item.reference_grams > item.max_grams) || recipeInvalid) {
-      setError(t("admin.mealEditor.boundsError"));
+      setValidationError(t("admin.mealEditor.boundsError"));
       return;
     }
     setSaving(true);
-    setError(null);
+    setValidationError(null);
+    setSaveError(null);
     const payload: AdminMealWrite = {
       ...form,
       items: form.items.map(({ food_slug: _slug, food_name_fa: _fa, food_name_en: _en, ...item }) => item),
@@ -124,8 +156,8 @@ export function AdminMealCatalogueEditorPage() {
     try {
       const saved = mealId ? await updateAdminMeal(mealId, payload) : await createAdminMeal(payload);
       navigate(`/admin/nutrition-meals/${saved.id}/edit`, { replace: true });
-    } catch {
-      setError(t("admin.mealEditor.saveError"));
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setSaving(false);
     }
@@ -142,9 +174,12 @@ export function AdminMealCatalogueEditorPage() {
         </header>
         {state === "loading" && <p className="admin-status" role="status">{t("admin.mealEditor.loading")}</p>}
         {state === "missing" && <p className="admin-status" role="alert">{t("admin.mealEditor.missing")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="nutrition" error={loadError} locale={english ? "en" : "fa"} />}
         {state === "ready" && (
           <form className="admin-template-editor admin-meal-editor" noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            {error && <p className="admin-form-alert" role="alert">{error}</p>}
+            {validationError !== null && <p className="admin-form-alert" role="alert">{validationError}</p>}
+            {saveError !== null && <AppErrorNotice audience="admin" context="nutrition" error={saveError} locale={english ? "en" : "fa"} />}
+            {previewError !== null && <AppErrorNotice audience="admin" context="nutrition" error={previewError} locale={english ? "en" : "fa"} />}
             <section>
               <h2>{t("admin.mealEditor.identity")}</h2>
               <div className="admin-template-editor-grid">
@@ -165,7 +200,7 @@ export function AdminMealCatalogueEditorPage() {
               })}
               <button className="admin-template-editor-add" onClick={() => setPickerTarget("meal")} type="button">{t("admin.mealEditor.addFood")}</button>
             </section>
-            {pickerTarget && <section className="admin-template-exercise-picker" aria-label={t("admin.mealEditor.foodPicker")}><header><h2>{t("admin.mealEditor.foodPicker")}</h2><button type="button" onClick={() => setPickerTarget(null)}>{t("admin.mealEditor.close")}</button></header><input autoFocus onChange={(event) => setSearch(event.target.value)} placeholder={t("admin.mealEditor.searchPlaceholder")} value={search} /><div>{foods.map((food) => <button key={food.id} onClick={() => selectFood(food)} type="button">{t("admin.mealEditor.selectFood", { name: english ? food.name_en : food.name_fa })}</button>)}</div></section>}
+            {pickerTarget && <section className="admin-template-exercise-picker" aria-label={t("admin.mealEditor.foodPicker")}><header><h2>{t("admin.mealEditor.foodPicker")}</h2><button type="button" onClick={() => setPickerTarget(null)}>{t("admin.mealEditor.close")}</button></header><input autoFocus onChange={(event) => setSearch(event.target.value)} placeholder={t("admin.mealEditor.searchPlaceholder")} value={search} />{foodLoadError !== null && <AppErrorNotice audience="admin" context="nutrition" error={foodLoadError} locale={english ? "en" : "fa"} /> }<div>{foods.map((food) => <button key={food.id} onClick={() => selectFood(food)} type="button">{t("admin.mealEditor.selectFood", { name: english ? food.name_en : food.name_fa })}</button>)}</div></section>}
             <footer className="admin-template-editor-actions"><span>{t("admin.mealEditor.boundsHint")}</span><button className="admin-primary-link" disabled={saving} type="submit">{saving ? t("admin.mealEditor.saving") : t("admin.mealEditor.save")}</button></footer>
           </form>
         )}
