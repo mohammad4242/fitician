@@ -228,6 +228,47 @@ it("renders every saved profile value in its editable profile page", async () =>
   expect(screen.queryByLabelText("محدودیت‌های جسمی (اختیاری)")).not.toBeInTheDocument();
 });
 
+it("keeps an existing custom weekday selection on profile load", async () => {
+  context.profile = {
+    ...savedProfile,
+    training_days_per_week: 4,
+    preferred_weekdays: [0, 2, 4, 6],
+  };
+  const user = userEvent.setup();
+  renderProfilePage();
+
+  await openTrainingPage(user);
+
+  expect(screen.getByRole("group", { name: "روزهای دلخواه" })).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: "شنبه" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "دوشنبه" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "چهارشنبه" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "جمعه" })).toBeChecked();
+  expect(context.updateProfile).not.toHaveBeenCalled();
+});
+
+it("marks an existing second weekday preset as selected on profile load", async () => {
+  context.profile = {
+    ...savedProfile,
+    training_days_per_week: 4,
+    preferred_weekdays: [1, 2, 4, 5],
+  };
+  const user = userEvent.setup();
+  renderProfilePage();
+
+  await openTrainingPage(user);
+
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  expect(within(weekdayGroup).getByRole("radio", { name: "یکشنبه · دوشنبه · چهارشنبه · پنجشنبه" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  expect(within(weekdayGroup).getByRole("radio", { name: "شنبه · یکشنبه · سه‌شنبه · چهارشنبه" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+});
+
 it("keeps profile focus single-select and patches only the replacement focus", async () => {
   const user = userEvent.setup();
   context.updateProfile.mockResolvedValue({ ...savedProfile, priority_muscles: ["biceps"] });

@@ -1,7 +1,11 @@
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { InputHTMLAttributes } from "react";
 import {
   equipmentForHomeTrainingSetup,
+  getPrimaryTrainingWeekdayPreset,
+  getTrainingWeekdayPresets,
+  isTrainingWeekdayPreset,
   homeTrainingSetups,
 } from "@fitician/core/profile";
 
@@ -388,16 +392,6 @@ export function ExperienceFields({
     );
   }
 
-  function toggleWeekday(day: number) {
-    const selected = values.preferred_weekdays;
-    onChange(
-      "preferred_weekdays",
-      selected.includes(day)
-        ? selected.filter((item) => item !== day)
-        : [...selected, day].sort((a, b) => a - b),
-    );
-  }
-
   function selectPriorityMuscle(muscle: UserSelectablePriorityMuscle | "") {
     onChange("priority_muscle", muscle);
   }
@@ -460,13 +454,38 @@ export function ExperienceFields({
             "training_days_per_week",
             errors.training_days_per_week,
           )}
-          onChange={(event) => onChange("training_days_per_week", event.target.value)}
+          onChange={(event) => {
+            const value = event.target.value;
+            onChange("training_days_per_week", value);
+            const primaryPreset = getPrimaryTrainingWeekdayPreset(Number(value));
+            onChange(
+              "preferred_weekdays",
+              primaryPreset === null
+                ? Number(value) === 6 ? [...preferredWeekdays.slice(0, 6)] : []
+                : [...primaryPreset],
+            );
+          }}
         />
         <FieldError
           field="training_days_per_week"
           error={errors.training_days_per_week}
         />
       </div>
+
+      {Number(values.training_days_per_week) >= 2 && Number(values.training_days_per_week) <= 5 ? (
+        <TrainingWeekdaySelector
+          error={errors.preferred_weekdays}
+          selectedWeekdays={values.preferred_weekdays}
+          trainingDays={Number(values.training_days_per_week)}
+          onChange={(weekdays) => onChange("preferred_weekdays", weekdays)}
+        />
+      ) : Number(values.training_days_per_week) === 6 ? (
+        <LegacyWeekdaySelector
+          error={errors.preferred_weekdays}
+          selectedWeekdays={values.preferred_weekdays}
+          onChange={(weekdays) => onChange("preferred_weekdays", weekdays)}
+        />
+      ) : null}
 
       <div className="profile-field">
         <FieldLabel htmlFor="profile-training-age" icon="clock">
@@ -491,26 +510,6 @@ export function ExperienceFields({
         </p>
         <FieldError field="training_age_months" error={errors.training_age_months} />
       </div>
-
-      <fieldset className="profile-field" aria-describedby={describedBy("preferred_weekdays", errors.preferred_weekdays)}>
-        <FieldLegend icon="calendar">{t("onboarding.fields.preferredWeekdays")}</FieldLegend>
-        <p className="profile-field__hint">{t("onboarding.hints.preferredWeekdays")}</p>
-        <div className="profile-checkboxes">
-          {preferredWeekdays.map((day) => (
-            <label key={day}>
-              <input
-                type="checkbox"
-                name="preferred_weekdays"
-                checked={values.preferred_weekdays.includes(day)}
-                disabled={!values.preferred_weekdays.includes(day) && values.preferred_weekdays.length >= Number(values.training_days_per_week)}
-                onChange={() => toggleWeekday(day)}
-              />
-              {t(`onboarding.options.weekday.${day}`)}
-            </label>
-          ))}
-        </div>
-        <FieldError field="preferred_weekdays" error={errors.preferred_weekdays} />
-      </fieldset>
 
       <fieldset className="profile-field">
         <FieldLegend icon="body">{t("onboarding.fields.priorityMuscles")}</FieldLegend>
@@ -706,6 +705,174 @@ export function ExperienceFields({
         <FieldError field="plan_duration_weeks" error={errors.plan_duration_weeks} />
       </div>
 
+    </fieldset>
+  );
+}
+
+function weekdayLabel(
+  weekdays: readonly number[],
+  translate: (key: string) => string,
+): string {
+  return weekdays.map((day) => translate(`onboarding.options.weekday.${day}`)).join(" · ");
+}
+
+function TrainingWeekdaySelector({
+  error,
+  selectedWeekdays,
+  trainingDays,
+  onChange,
+}: {
+  readonly error: ProfileValidationCode | undefined;
+  readonly selectedWeekdays: readonly number[];
+  readonly trainingDays: number;
+  readonly onChange: (weekdays: number[]) => void;
+}) {
+  const { i18n, t } = useTranslation();
+  const presets = getTrainingWeekdayPresets(trainingDays);
+  const [customMode, setCustomMode] = useState(
+    () => selectedWeekdays.length > 0 && !isTrainingWeekdayPreset(trainingDays, selectedWeekdays),
+  );
+  const mountedTrainingDays = useRef(trainingDays);
+  useEffect(() => {
+    if (mountedTrainingDays.current !== trainingDays) {
+      mountedTrainingDays.current = trainingDays;
+      setCustomMode(false);
+    }
+  }, [trainingDays]);
+
+  const displaySelection = selectedWeekdays.length > 0
+    ? selectedWeekdays
+    : getPrimaryTrainingWeekdayPreset(trainingDays) ?? [];
+  const sortedDisplaySelection = [...displaySelection].sort((a, b) => a - b);
+  const selectedPresetIndex = customMode
+    ? -1
+    : presets.findIndex(
+      (preset) =>
+        preset.length === sortedDisplaySelection.length &&
+        preset.every((day, index) => day === sortedDisplaySelection[index]),
+    );
+  const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage === "en" ? "en" : "fa-IR");
+
+  function toggleWeekday(day: number) {
+    if (!selectedWeekdays.includes(day) && selectedWeekdays.length >= trainingDays) return;
+    onChange(
+      selectedWeekdays.includes(day)
+        ? selectedWeekdays.filter((item) => item !== day)
+        : [...selectedWeekdays, day].sort((a, b) => a - b),
+    );
+  }
+
+  return (
+    <fieldset
+      className="profile-field training-weekday-selector"
+      aria-describedby={describedBy("preferred_weekdays", error)}
+    >
+      <legend>{t("onboarding.trainingWeekdays.title")}</legend>
+      <p className="profile-field__hint">{t("onboarding.trainingWeekdays.subtitle")}</p>
+      <div
+        className="training-weekday-options"
+        role="radiogroup"
+        aria-label={t("onboarding.trainingWeekdays.title")}
+      >
+        {presets.map((preset, index) => {
+          const rest = preferredWeekdays.filter((day) => !preset.includes(day));
+          return (
+            <button
+              aria-label={weekdayLabel(preset, t)}
+              aria-checked={selectedPresetIndex === index}
+              className={`training-weekday-card ${selectedPresetIndex === index ? "is-selected" : ""}`}
+              key={preset.join("-")}
+              role="radio"
+              type="button"
+              onClick={() => {
+                setCustomMode(false);
+                onChange([...preset]);
+              }}
+            >
+              {index === 0 ? <span className="training-weekday-card__badge">{t("onboarding.trainingWeekdays.recommended")}</span> : null}
+              <strong>{weekdayLabel(preset, t)}</strong>
+              {trainingDays === 5 ? (
+                <small>{t("onboarding.trainingWeekdays.rest")}: {weekdayLabel(rest, t)}</small>
+              ) : null}
+            </button>
+          );
+        })}
+        <button
+          aria-checked={customMode}
+          className={`training-weekday-card training-weekday-card--custom ${customMode ? "is-selected" : ""}`}
+          role="radio"
+          type="button"
+          onClick={() => setCustomMode(true)}
+        >
+          <strong>{t("onboarding.trainingWeekdays.custom")}</strong>
+        </button>
+      </div>
+      {customMode ? (
+        <fieldset className="training-weekday-custom" aria-label={t("onboarding.trainingWeekdays.customLabel")}>
+          <legend>{t("onboarding.trainingWeekdays.customLabel")}</legend>
+          <div className="training-weekday-grid">
+            {preferredWeekdays.map((day) => {
+              const checked = selectedWeekdays.includes(day);
+              return (
+                <label key={day}>
+                  <input
+                    checked={checked}
+                    disabled={!checked && selectedWeekdays.length >= trainingDays}
+                    name="preferred_weekdays"
+                    type="checkbox"
+                    onChange={() => toggleWeekday(day)}
+                  />
+                  {t(`onboarding.options.weekday.${day}`)}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
+      <p className="profile-field__hint training-weekday-count" aria-live="polite">
+        {t("onboarding.trainingWeekdays.selectedCount", {
+          selected: numberFormat.format(displaySelection.length),
+          total: numberFormat.format(trainingDays),
+        })}
+      </p>
+      <FieldError field="preferred_weekdays" error={error} />
+    </fieldset>
+  );
+}
+
+function LegacyWeekdaySelector({
+  error,
+  selectedWeekdays,
+  onChange,
+}: {
+  readonly error: ProfileValidationCode | undefined;
+  readonly selectedWeekdays: readonly number[];
+  readonly onChange: (weekdays: number[]) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <fieldset className="profile-field" aria-describedby={describedBy("preferred_weekdays", error)}>
+      <FieldLegend icon="calendar">{t("onboarding.fields.preferredWeekdays")}</FieldLegend>
+      <p className="profile-field__hint">{t("onboarding.hints.preferredWeekdays")}</p>
+      <div className="profile-checkboxes">
+        {preferredWeekdays.map((day) => (
+          <label key={day}>
+            <input
+              checked={selectedWeekdays.includes(day)}
+              disabled={!selectedWeekdays.includes(day) && selectedWeekdays.length >= 6}
+              name="preferred_weekdays"
+              type="checkbox"
+              onChange={() => onChange(
+                selectedWeekdays.includes(day)
+                  ? selectedWeekdays.filter((item) => item !== day)
+                  : [...selectedWeekdays, day].sort((a, b) => a - b),
+              )}
+            />
+            {t(`onboarding.options.weekday.${day}`)}
+          </label>
+        ))}
+      </div>
+      <FieldError field="preferred_weekdays" error={error} />
     </fieldset>
   );
 }

@@ -330,6 +330,112 @@ it("shows home setup only for home training and clears it after switching to gym
   );
 });
 
+it("shows the official two-day presets and selects each calendar option", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+  await reachExperienceStep(user);
+  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
+  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "2");
+
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  const primary = within(weekdayGroup).getByRole("radio", { name: "شنبه · سه‌شنبه" });
+  const second = within(weekdayGroup).getByRole("radio", { name: "یکشنبه · چهارشنبه" });
+  const third = within(weekdayGroup).getByRole("radio", { name: "دوشنبه · پنجشنبه" });
+
+  expect(primary).toHaveAttribute("aria-checked", "true");
+  await user.click(second);
+  expect(second).toHaveAttribute("aria-checked", "true");
+  expect(primary).toHaveAttribute("aria-checked", "false");
+  await user.click(third);
+  expect(third).toHaveAttribute("aria-checked", "true");
+});
+
+it("shows the exact three, four, and five-day preset calendars", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+  await reachExperienceStep(user);
+  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
+  const trainingDays = screen.getByLabelText("روزهای تمرین در هفته");
+
+  for (const [count, labels] of [
+    [3, ["شنبه · دوشنبه · چهارشنبه", "یکشنبه · سه‌شنبه · پنجشنبه"]],
+    [4, ["شنبه · یکشنبه · سه‌شنبه · چهارشنبه", "یکشنبه · دوشنبه · چهارشنبه · پنجشنبه"]],
+    [5, ["شنبه · یکشنبه · دوشنبه · چهارشنبه · پنجشنبه", "شنبه · یکشنبه · سه‌شنبه · چهارشنبه · پنجشنبه"]],
+  ] as const) {
+    await user.clear(trainingDays);
+    await user.type(trainingDays, String(count));
+    const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+    for (const label of labels) {
+      expect(within(weekdayGroup).getByRole("radio", { name: label })).toBeInTheDocument();
+    }
+  }
+});
+
+it("opens custom weekdays, keeps the exact count, and allows Friday", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+  await reachExperienceStep(user);
+  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
+  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "4");
+
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  await user.click(within(weekdayGroup).getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
+
+  const grid = screen.getByRole("group", { name: "روزهای دلخواه" });
+  const checkboxes = within(grid).getAllByRole("checkbox");
+  expect(checkboxes).toHaveLength(7);
+  expect(checkboxes.filter((checkbox) => (checkbox as HTMLInputElement).disabled)).toHaveLength(3);
+  await user.click(within(grid).getByRole("checkbox", { name: "شنبه" }));
+  const friday = within(grid).getByRole("checkbox", { name: "جمعه" });
+  expect(friday).not.toBeDisabled();
+  await user.click(friday);
+  expect(within(grid).getAllByRole("checkbox", { checked: true })).toHaveLength(4);
+});
+
+it("resets to the primary preset when the training day count changes", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+  await reachExperienceStep(user);
+  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
+  const trainingDays = screen.getByLabelText("روزهای تمرین در هفته");
+  await user.type(trainingDays, "4");
+  await user.clear(trainingDays);
+  await user.type(trainingDays, "3");
+
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  expect(within(weekdayGroup).getByRole("radio", { name: "شنبه · دوشنبه · چهارشنبه" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
+
+it("submits a custom Friday-inclusive weekday selection unchanged", async () => {
+  profileContext.createProfile.mockResolvedValue(createdProfile);
+  const user = userEvent.setup();
+  renderOnboarding();
+  await reachExperienceStep(user);
+  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
+  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "4");
+
+  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
+  await user.click(within(weekdayGroup).getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
+  const grid = screen.getByRole("group", { name: "روزهای دلخواه" });
+  await user.click(within(grid).getByRole("checkbox", { name: "یکشنبه" }));
+  await user.click(within(grid).getByRole("checkbox", { name: "دوشنبه" }));
+  await user.click(within(grid).getByRole("checkbox", { name: "سه‌شنبه" }));
+  await user.click(within(grid).getByRole("checkbox", { name: "جمعه" }));
+  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "gym");
+  await user.selectOptions(screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"), "60");
+  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
+  await user.click(screen.getByLabelText("ندارم"));
+  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
+
+  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
+  expect(profileContext.createProfile).toHaveBeenCalledWith(
+    expect.objectContaining({ preferred_weekdays: [0, 2, 4, 6] }),
+  );
+});
+
 it("requires at least one home equipment choice before creating a profile", async () => {
   const user = userEvent.setup();
   renderOnboarding();
@@ -396,7 +502,7 @@ it("submits one normalized typed profile payload", async () => {
     experience_level: "beginner",
     training_age_months: null,
     training_days_per_week: 3,
-    preferred_weekdays: null,
+    preferred_weekdays: [0, 2, 4],
     priority_muscles: null,
     training_location: "gym",
     home_training_setup: null,

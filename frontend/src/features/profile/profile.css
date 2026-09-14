@@ -317,6 +317,151 @@ html[dir="rtl"] .profile-field select {
   cursor: pointer;
 }
 
+.training-weekday-selector {
+  gap: 0.7rem;
+}
+
+.training-weekday-selector > legend {
+  padding-inline: 0.45rem;
+  color: var(--fitician-ink);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.training-weekday-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.training-weekday-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  min-height: 4.6rem;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  color: var(--fitician-ink);
+  background: rgb(255 255 255 / 3%);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.training-weekday-card:hover {
+  border-color: rgb(80 223 206 / 55%);
+  background: rgb(80 223 206 / 7%);
+}
+
+.training-weekday-card:focus-visible {
+  outline: 3px solid var(--saffron);
+  outline-offset: 3px;
+}
+
+.training-weekday-card.is-selected {
+  border-color: var(--fitician-aqua);
+  background: linear-gradient(135deg, rgb(80 223 206 / 17%), rgb(80 223 206 / 5%));
+  box-shadow: 0 0 0 2px rgb(80 223 206 / 12%);
+}
+
+.training-weekday-card strong {
+  color: var(--fitician-ink);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.training-weekday-card small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.training-weekday-card__badge {
+  justify-self: start;
+  padding: 0.18rem 0.48rem;
+  border-radius: 999px;
+  color: var(--paper);
+  background: var(--persimmon);
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.training-weekday-card--custom {
+  grid-column: 1 / -1;
+  min-height: 3.4rem;
+}
+
+.training-weekday-custom {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px dashed rgb(80 223 206 / 42%);
+  border-radius: var(--fitician-radius-md);
+  background: rgb(80 223 206 / 5%);
+}
+
+.training-weekday-custom legend {
+  padding-inline: 0.35rem;
+  color: var(--fitician-ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.training-weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.training-weekday-grid label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.7rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  background: rgb(255 255 255 / 3%);
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.training-weekday-grid label:has(input:checked) {
+  border-color: var(--fitician-aqua);
+  background: rgb(80 223 206 / 13%);
+}
+
+.training-weekday-grid label:has(input:disabled:not(:checked)) {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.training-weekday-grid input {
+  width: 1.1rem;
+  height: 1.1rem;
+  min-height: 1.1rem;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--fitician-aqua);
+  cursor: pointer;
+}
+
+.training-weekday-grid input:focus-visible {
+  outline: 3px solid var(--saffron);
+  outline-offset: 2px;
+}
+
+.training-weekday-count {
+  color: var(--fitician-ink);
+  font-weight: 800;
+}
+
 .profile-field textarea {
   min-height: 6rem;
   resize: vertical;
@@ -403,6 +548,15 @@ html[dir="rtl"] .profile-field select {
 
   .profile-checkboxes {
     grid-template-columns: 1fr;
+  }
+
+  .training-weekday-options,
+  .training-weekday-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .training-weekday-card--custom {
+    grid-column: 1 / -1;
   }
 
   .profile-field--paired {
