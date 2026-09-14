@@ -412,18 +412,20 @@
 .coach-review-note { margin-top: 1rem; }
 
 .coach-review-actions {
-  position: sticky;
-  inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1rem;
   padding: 0.75rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   border: 1px solid rgb(154 225 214 / 12%);
   border-radius: 1rem;
   background: rgb(4 24 23 / 88%);
   backdrop-filter: blur(12px);
 }
+
+.coach-review-actions button { margin-top: 0; }
 
 .coach-review-actions button.is-primary {
   color: #03211e;
@@ -460,7 +462,12 @@
   .coach-template-selection dl { grid-template-columns: repeat(2, 1fr); }
   .coach-review-day fieldset { grid-template-columns: 1fr; }
   .coach-review-prescription { grid-template-columns: repeat(2, 1fr); }
-  .coach-review-actions { flex-direction: column; }
+  .coach-review-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coach-review-actions button { width: 100%; }
 }
 
 @media (max-width: 760px) {

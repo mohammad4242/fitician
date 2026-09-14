@@ -441,6 +441,27 @@ it("requires an explanation before returning a plan for correction", async () =>
   expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("mine");
 });
 
+it("hides editing actions for an approved read-only review", async () => {
+  const user = userEvent.setup();
+  const approvedItem = {
+    ...queueItem,
+    status: "approved" as const,
+    approved_at: "2026-09-13T08:00:00Z",
+  };
+  api.listWorkoutReviews.mockResolvedValue([approvedItem]);
+  api.getWorkoutReview.mockResolvedValue({ ...detail, status: "approved", approved_at: approvedItem.approved_at });
+  renderPage();
+
+  await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
+  await user.click(await screen.findByRole("heading", { name: "این هفته" }));
+  await user.click(screen.getByRole("button", { name: "مشاهده پرونده" }));
+
+  expect(await screen.findByText("نسخه تأییدشده")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "ذخیره پیش‌نویس" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "برگشت برای اصلاح" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "تأیید و ارسال برای کاربر" })).not.toBeInTheDocument();
+});
+
 it("shows shared coach workflow language for a specialist access error", async () => {
   api.listWorkoutReviews.mockRejectedValueOnce(new ApiError(
     403,
