@@ -83,3 +83,17 @@ it("falls back to Tehran when the device timezone is unavailable or invalid", ()
 
   expect(resolvedIanaTimeZone()).toBe(IRAN_TIME_ZONE);
 });
+
+it("preserves a valid traveler device timezone", () => {
+  const realDateTimeFormat = Intl.DateTimeFormat;
+  vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+    if (locales === undefined && options === undefined) {
+      return {
+        resolvedOptions: () => ({ timeZone: "America/Los_Angeles" }),
+      } as Intl.DateTimeFormat;
+    }
+    return new realDateTimeFormat(locales, options);
+  });
+
+  expect(resolvedIanaTimeZone()).toBe("America/Los_Angeles");
+});
