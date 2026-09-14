@@ -434,6 +434,31 @@ it("lets a physician claim an exact revision and choose replacements from the ca
   await waitFor(() => expect(api.replacePhysicianFood).toHaveBeenCalledWith("plan-1", "meal-1", "food-1", "food-2"));
 });
 
+it("presents physician lab request failures through the shared resolver", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  vi.mocked(api.requestPhysicianLabs).mockRejectedValueOnce(new ApiError(
+    409,
+    "private workflow detail",
+    null,
+    "REVIEW_INVALID_STATE",
+  ));
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
+  await user.click(await screen.findByRole("tab", { name: "Laboratory review" }));
+  await user.type(screen.getByLabelText("Requested tests"), "CBC");
+  await user.click(screen.getByRole("button", { name: "Request labs" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("This review is no longer in an actionable state");
+  expect(alert).not.toHaveTextContent("private workflow detail");
+});
+
 it("keeps physician plan days and meals closed until opened", async () => {
   const user = userEvent.setup();
   vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
