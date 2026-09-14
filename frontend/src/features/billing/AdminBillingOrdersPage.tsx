@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import {
   billingOrderStatuses,
   paymentProviderCodes,
@@ -103,7 +104,7 @@ export function AdminBillingOrdersPage() {
 }
 
 function formatDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateForLocale(value, english ? "en" : "fa-IR");
 }
 
 function formatAmount(value: number, currency: string, english: boolean): string {

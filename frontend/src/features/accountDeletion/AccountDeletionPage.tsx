@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { ApiError } from "../../shared/apiClient";
 import { useAuth } from "../auth/AuthContext";
 import { authPath } from "../auth/returnTo";
@@ -21,12 +22,11 @@ function isApiError(error: unknown, status: number, message: string): boolean {
 
 function formatDate(value: string | null, english: boolean): string | null {
   if (value === null) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat(english ? "en-US" : "fa-IR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  try {
+    return formatTehranDateTimeForLocale(value, english ? "en-US" : "fa-IR");
+  } catch {
+    return null;
+  }
 }
 
 export function AccountDeletionPage() {

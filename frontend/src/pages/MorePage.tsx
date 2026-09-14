@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import { useAuth } from "../features/auth/AuthContext";
 import { useEntitlements } from "../features/entitlements/EntitlementContext";
 import { verifyPhysicianAccess } from "../features/nutrition/api";
@@ -112,10 +113,10 @@ export function MorePage() {
               <div>
                 <p>{l("بسته فعلی", "Current package")}</p>
                 <strong>{i18n.t(`entitlements.packageLabels.${snapshot.primary_package}`, snapshot.primary_package)}</strong>
-                {paidAccessEnd && <span>{i18n.t("billing.accessEnds", { date: new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(paidAccessEnd)) })}</span>}
+                {paidAccessEnd && <span>{i18n.t("billing.accessEnds", { date: formatTehranDateForLocale(paidAccessEnd, english ? "en" : "fa-IR") })}</span>}
               </div>
               {snapshot.trial.active && snapshot.trial.ends_at && (
-                <span>{l("آزمایشی تا", "Trial ends")} {new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(snapshot.trial.ends_at))}</span>
+                <span>{l("آزمایشی تا", "Trial ends")} {formatTehranDateForLocale(snapshot.trial.ends_at, english ? "en" : "fa-IR")}</span>
               )}
               <div className="more-access-card__actions">
                 <Link to="/plans">{i18n.t("billing.viewPlans")}</Link>

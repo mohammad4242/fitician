@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import type { BillingOffer } from "@fitician/core/billing";
 
 import { useEntitlements } from "../entitlements/EntitlementContext";
@@ -143,5 +144,5 @@ function formatAmount(amount: number, currency: string, english: boolean) {
 }
 
 function formatDate(value: string, english: boolean) {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateForLocale(value, english ? "en" : "fa-IR");
 }

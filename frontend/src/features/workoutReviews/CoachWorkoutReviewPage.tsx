@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { formatTehranTimeForLocale } from "@fitician/core";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import {
@@ -191,10 +192,7 @@ export function CoachWorkoutReviewPage() {
 
   const leaseLabel = useMemo(() => {
     if (!selected?.lease_expires_at) return l("بدون قفل فعال", "No active lease");
-    return new Intl.DateTimeFormat(fa ? "fa-IR" : "en", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(selected.lease_expires_at));
+    return formatTehranTimeForLocale(selected.lease_expires_at, fa ? "fa-IR" : "en");
   }, [fa, l, selected?.lease_expires_at]);
 
   return (

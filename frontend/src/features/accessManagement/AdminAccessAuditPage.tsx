@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
-import { formatTehranDateTime } from "@fitician/core/iran-calendar";
+import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
 
@@ -149,7 +149,5 @@ function formatState(state: Record<string, unknown> | null): string {
 }
 
 function formatDate(value: string, english: boolean): string {
-  return english
-    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(new Date(value))
-    : formatTehranDateTime(value);
+  return formatTehranDateTimeForLocale(value, english ? "en" : "fa-IR");
 }

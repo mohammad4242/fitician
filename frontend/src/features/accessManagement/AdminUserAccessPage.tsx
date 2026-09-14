@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import {
   searchAccessUsers,
   type AdminMemberSummary,
@@ -94,5 +95,5 @@ export function AdminUserAccessPage() {
 }
 
 function formatDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return formatTehranDateForLocale(value, english ? "en" : "fa-IR");
 }

@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import "../i18n";
 
@@ -45,6 +45,10 @@ beforeEach(() => {
   entitlementState.snapshot = null;
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 it("signs out from the separated account action", async () => {
   auth.isAdmin = false;
   const user = userEvent.setup();
@@ -67,15 +71,16 @@ it("shows the training program library in the mobile admin workspace", () => {
 });
 
 it("shows the current launch trial in the access summary", () => {
+  vi.stubEnv("TZ", "UTC");
   entitlementState.snapshot = {
     primary_package: "launch_trial",
-    trial: { active: true, ends_at: "2026-09-30T12:00:00Z" },
+    trial: { active: true, ends_at: "2026-09-13T20:45:00Z" },
   };
 
   render(<MemoryRouter><MorePage /></MemoryRouter>);
 
   expect(screen.getByText("دوره آزمایشی شروع")).toBeInTheDocument();
-  expect(screen.getByText(/آزمایشی تا/)).toBeInTheDocument();
+  expect(screen.getByText("آزمایشی تا ۲۳ شهریور ۱۴۰۵")).toBeInTheDocument();
 });
 
 it("links access management and shows a paid access end date", () => {

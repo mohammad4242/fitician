@@ -3,7 +3,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
-import { formatTehranDateTime } from "@fitician/core/iran-calendar";
+import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
 
@@ -283,9 +283,7 @@ export function AdminUserAccessDetailPage() {
 }
 
 function formatDate(value: string, english: boolean): string {
-  return english
-    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(new Date(value))
-    : formatTehranDateTime(value);
+  return formatTehranDateTimeForLocale(value, english ? "en" : "fa-IR");
 }
 
 function toTermWeeks(value: string): AccessTermWeeks | null {
