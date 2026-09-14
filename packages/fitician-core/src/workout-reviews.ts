@@ -1,10 +1,12 @@
 import type { PrescriptionMode } from "./exercises.js";
+import type { components } from "./generated/api.js";
 import { IRAN_TIME_ZONE } from "./iran-calendar.js";
 import type { WorkoutPlan } from "./workouts.js";
 
 export type WorkoutReviewStatus = "pending" | "claimed" | "approved" | "rejected" | "superseded";
 export type WorkoutReviewQueueView = "pending" | "mine" | "approved";
 export type WorkoutReviewQueueTimestamp = "created_at" | "approved_at";
+export type ReviewProfileSummary = components["schemas"]["ReviewProfileSummary"];
 
 export type WorkoutReviewExerciseDraft = {
   order_index: number;
@@ -215,4 +217,5 @@ export type WorkoutReviewDetail = WorkoutReviewQueueItem & {
     duration_max_seconds?: number | null;
   }>;
   template_selection: CoachTemplateSelection | null;
+  profile_summary?: ReviewProfileSummary | null;
 };

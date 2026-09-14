@@ -1,4 +1,5 @@
 import type { NutritionPlanLifecycleStatus } from "@fitician/core/nutrition";
+import type { ReviewProfileSummary } from "@fitician/core/workout-reviews";
 
 export type MedicalConditionCode =
   | "controlled_hypertension"
@@ -40,6 +41,7 @@ export type SafetyDecision = {
   can_continue_onboarding: boolean;
   message: string;
   created_at: string;
+  profile_summary?: ReviewProfileSummary | null;
 };
 
 export type SafetyEvaluation = Omit<SafetyDecision, "id" | "created_at">;
@@ -162,6 +164,7 @@ export type WeeklyPlan = {
   physician_display_name: string | null;
   physician_user_visible_notes: string | null;
   physician_change_summary: Array<Record<string, unknown>>;
+  profile_summary?: ReviewProfileSummary | null;
   supersedes_plan_id: string | null;
   start_date: string;
   started_at?: string | null;

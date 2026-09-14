@@ -110,6 +110,23 @@ const plan = {
   warning_codes: [],
   weekly_budget_irr: 10_000_000,
   weekly_cost_irr: 7_000_000,
+  profile_summary: {
+    display_name: "مریم احمدی",
+    height_cm: 165,
+    weight_kg: "68.20",
+    fitness_goal: "lose_weight",
+    training_days_per_week: 3,
+    physical_limitations: null,
+    training_cautions: [],
+    nutrition: {
+      food_items: [{ kind: "favourite", name: "ماست", details: null }],
+    },
+    medical: {
+      flags: {},
+      conditions: [],
+      medications: [{ name: "ویتامین دی", dosage: "روزانه", notes: null }],
+    },
+  },
 };
 
 const context = {
@@ -227,6 +244,20 @@ test("moves from queue to a native case with segmented clinical sections", async
 
   fireEvent.press(screen.getByRole("radio", { name: "یادداشت‌ها" }));
   expect(screen.getByLabelText("یادداشت قابل مشاهده برای کاربر")).toBeTruthy();
+});
+
+test("shows important profile highlights and the complete current profile", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
+
+  expect(await screen.findByText("خلاصهٔ کاربر")).toBeTruthy();
+  expect(screen.getByText("۱۶۵ سانتی‌متر")).toBeTruthy();
+  expect(screen.getByText("۶۸٫۲ کیلوگرم")).toBeTruthy();
+
+  fireEvent.press(screen.getByRole("button", { name: "پروفایل کامل" }));
+  expect(screen.getByText(/ماست/)).toBeTruthy();
+  expect(screen.getByText(/ویتامین دی/)).toBeTruthy();
 });
 
 test("returns from the selected physician case to the queue before leaving the route", async () => {

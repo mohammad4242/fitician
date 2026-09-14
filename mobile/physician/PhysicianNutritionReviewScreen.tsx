@@ -3,7 +3,15 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
-import { formatPersianDate, irrToToman, type components } from "@fitician/core";
+import {
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTime,
+  groupReviewQueueByRecency,
+  irrToToman,
+  type components,
+  type RecencyQueueGroup,
+} from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -26,6 +34,7 @@ import {
 } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { formatPersianNumber } from "../ui/locale";
+import { ReviewProfileSummaryCard } from "../ui/ReviewProfileSummaryCard";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import {
@@ -558,6 +567,7 @@ export function PhysicianNutritionReviewScreen() {
             onSelect={openCase}
             selectedPlanId={selectedPlanId}
             state={queueState}
+            view={view}
           />
           <EmptyState title="یک پرونده را از صف انتخاب کن">
             <Text style={styles.body}>نسخه، آزمایش‌ها، مکمل‌ها و یادداشت‌های بالینی بعد از انتخاب پرونده اینجا نمایش داده می‌شوند.</Text>
@@ -635,11 +645,13 @@ function QueueState({
   onSelect,
   selectedPlanId,
   state,
+  view,
 }: {
   readonly onRetry: () => void;
   readonly onSelect: (item: PhysicianReviewQueueItem) => void;
   readonly selectedPlanId: string | null;
   readonly state: MobileViewState<PhysicianReviewQueueItem[]>;
+  readonly view: PhysicianReviewQueueView;
 }) {
   if (state.status === "loading") return <Skeleton height={180} />;
   if (state.status === "error" && state.data === undefined) {
@@ -650,25 +662,40 @@ function QueueState({
   }
   const items = state.data ?? [];
   if (items.length === 0) return <EmptyState title="این صف خالی است" />;
+  const groups = groupReviewQueueByRecency(
+    items,
+    (item) => view === "approved" ? item.reviewed_at ?? item.requested_at : item.requested_at,
+    new Date().toISOString(),
+    (item) => item.review_id,
+  );
   return (
     <View style={styles.queueItems}>
       {state.status === "offline" ? <Notice message="این فهرست آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
-      {items.map((item) => (
-        <Card
-          key={item.review_id}
-          style={selectedPlanId === item.plan_id ? styles.selectedCard : undefined}
-          variant={selectedPlanId === item.plan_id ? "raised" : "interactive"}
-        >
-          <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
-          <Text style={styles.queueMeta}>{item.overdue ? "گذشته از موعد · " : ""}نسخهٔ تغذیه</Text>
-          <Text style={styles.status}>{physicianReviewStatusLabel(item.status)}</Text>
-          <Button
-            disabled={state.status === "offline"}
-            label={item.status === "pending" || item.status === "changes_requested" ? "شروع بررسی" : "باز کردن پرونده"}
-            onPress={() => onSelect(item)}
-            variant="secondary"
-          />
-        </Card>
+      {groups.map((group) => (
+        <View key={group.key} style={styles.queueGroup}>
+          <Text accessibilityRole="header" style={styles.queueGroupTitle}>{physicianQueueGroupTitle(group)}</Text>
+          <View style={styles.queueGroupItems}>
+            {group.items.map((item) => (
+              <Card
+                key={item.review_id}
+                style={selectedPlanId === item.plan_id ? styles.selectedCard : undefined}
+                variant={selectedPlanId === item.plan_id ? "raised" : "interactive"}
+              >
+                <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
+                <Text style={styles.queueMeta}>{item.overdue ? "گذشته از موعد · " : ""}نسخهٔ تغذیه</Text>
+                <Text style={styles.sentAt}>درخواست‌شده: {formatTehranDateTime(item.requested_at)}</Text>
+                {item.reviewed_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.reviewed_at)}</Text> : null}
+                <Text style={styles.status}>{physicianReviewStatusLabel(item.status)}</Text>
+                <Button
+                  disabled={state.status === "offline"}
+                  label={item.status === "pending" || item.status === "changes_requested" ? "شروع بررسی" : "باز کردن پرونده"}
+                  onPress={() => onSelect(item)}
+                  variant="secondary"
+                />
+              </Card>
+            ))}
+          </View>
+        </View>
       ))}
     </View>
   );
@@ -777,6 +804,7 @@ function PhysicianReviewDetail({
           { label: "حالت", value: readOnly ? "فقط‌خواندنی" : "قابل ویرایش" },
         ]}
       />
+      <ReviewProfileSummaryCard summary={plan.profile_summary} />
       <SegmentedControl
         accessibilityLabel="بخش‌های پرونده"
         onChange={onClinicalTabChange}
@@ -1357,6 +1385,13 @@ function queueLabel(view: PhysicianReviewQueueView): string {
   return "تأییدشده";
 }
 
+function physicianQueueGroupTitle(group: RecencyQueueGroup<PhysicianReviewQueueItem>): string {
+  if (group.kind === "day") return formatPersianDateWithWeekday(group.date);
+  if (group.kind === "month") return "ماه قبل";
+  const weekNumber = group.key.slice(-1);
+  return `هفتهٔ ${weekNumber} · ${formatPersianDate(group.startDate)} تا ${formatPersianDate(group.endDate)}`;
+}
+
 function clinicalTabLabel(tab: ClinicalTab): string {
   if (tab === "plan") return "بررسی برنامه";
   if (tab === "labs") return "آزمایش‌ها";
@@ -1579,7 +1614,17 @@ const styles = StyleSheet.create({
   orderHeader: { alignItems: "flex-start", flexDirection: "row", gap: fiticianTokens.spacing[2], justifyContent: "space-between" },
   quantityRow: { alignItems: "center", flexDirection: "row", gap: fiticianTokens.spacing[2] },
   queue: { gap: fiticianTokens.spacing[3] },
-  queueItems: { gap: fiticianTokens.spacing[3] },
+  queueGroup: { gap: fiticianTokens.spacing[2] },
+  queueGroupItems: { gap: fiticianTokens.spacing[2] },
+  queueGroupTitle: {
+    color: fiticianTokens.colors.ink,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.sm,
+    fontWeight: fiticianTokens.typography.fontWeight.bold,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  queueItems: { gap: fiticianTokens.spacing[4] },
   queueMeta: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -1616,6 +1661,20 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   selectedCard: { borderColor: fiticianTokens.colors.aqua },
+  sentAt: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  approvedAt: {
+    color: fiticianTokens.colors.success,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
   status: {
     color: fiticianTokens.colors.aqua,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,

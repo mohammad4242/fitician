@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { formatTehranDateTime } from "@fitician/core";
+import { formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn(), useQueryClient: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
@@ -39,11 +39,29 @@ const queueItem = {
   fitness_goal: "build_muscle",
   experience_level: "beginner",
   status: "pending",
+  approved_at: null,
 };
 
 const detail = {
   ...queueItem,
   status: "claimed",
+  profile_summary: {
+    display_name: "محمد",
+    height_cm: 178,
+    weight_kg: "76.50",
+    fitness_goal: "build_muscle",
+    training_days_per_week: 3,
+    physical_limitations: "زانو درد خفیف",
+    training_cautions: ["knee"],
+    nutrition: {
+      food_items: [{ kind: "favourite", name: "مرغ", details: null }],
+    },
+    medical: {
+      flags: { complex_medication_food_interaction: true },
+      conditions: [{ code: "controlled_hypertension", details: null }],
+      medications: [{ name: "داروی فشار خون", dosage: "روزانه", notes: null }],
+    },
+  },
   draft_revision: 1,
   lease_expires_at: "2026-09-09T10:00:00Z",
   coach_note: null,
@@ -168,6 +186,43 @@ test("groups the queue by sent age and replaces it with detail after selection",
 
   expect((await screen.findAllByText(/پیش‌نویس مربی/)).length).toBeGreaterThan(0);
   expect(screen.queryByText("صف پرونده‌ها")).toBeNull();
+});
+
+test("groups approved cases by approval date and shows the approval timestamp", async () => {
+  const approvedItem = {
+    ...queueItem,
+    status: "approved",
+    created_at: "2026-08-09T08:00:00Z",
+    approved_at: "2026-09-13T08:00:00Z",
+  };
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "detail") {
+      return key[2] === "selected" ? queryResult(undefined) : queryResult(detail);
+    }
+    return queryResult(key[2] === "approved" ? [approvedItem] : []);
+  });
+
+  renderScreen();
+  fireEvent.press(await screen.findByRole("radio", { name: "تأییدشده" }));
+
+  expect(await screen.findByText(formatPersianDateWithWeekday("2026-09-13"))).toBeTruthy();
+  expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeTruthy();
+});
+
+test("shows important profile highlights and the complete current profile", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
+
+  expect(await screen.findByText("خلاصهٔ کاربر")).toBeTruthy();
+  expect(screen.getByText("۱۷۸ سانتی‌متر")).toBeTruthy();
+  expect(screen.getByText("۷۶٫۵ کیلوگرم")).toBeTruthy();
+  expect(screen.getByText(/زانو درد خفیف/)).toBeTruthy();
+
+  fireEvent.press(screen.getByRole("button", { name: "پروفایل کامل" }));
+  expect(screen.getByText(/مرغ/)).toBeTruthy();
+  expect(screen.getByText(/داروی فشار خون/)).toBeTruthy();
 });
 
 test("returns from the selected case before leaving the coach route", async () => {

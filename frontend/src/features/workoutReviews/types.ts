@@ -1,5 +1,6 @@
 export type {
   CoachTemplateSelection,
+  ReviewProfileSummary,
   WorkoutReviewDayDraft,
   WorkoutReviewDetail,
   WorkoutReviewDraftUpdate,

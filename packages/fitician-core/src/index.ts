@@ -166,6 +166,7 @@ export type {
 export { groupReviewQueueByRecency, groupWorkoutReviewQueue } from "./workout-reviews";
 export type {
   CoachTemplateSelection,
+  ReviewProfileSummary,
   RecencyQueueGroup,
   WorkoutReviewDayDraft,
   WorkoutReviewDetail,

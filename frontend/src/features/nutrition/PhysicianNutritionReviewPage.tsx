@@ -13,6 +13,7 @@ import {
 } from "@fitician/core";
 import type { RecencyQueueGroup } from "@fitician/core";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
+import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
 import * as api from "./api";
 import type { PhysicianSupplementOrderInput, SupplementOrder } from "./api";
 import type { WeeklyPlan } from "./types";
@@ -59,8 +60,11 @@ export function PhysicianNutritionReviewPage() {
   const [orderForm, setOrderForm] = useState(emptyOrder);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const groupedReviews = useMemo(
-    () => groupReviewQueueByRecency(reviews, (review) => review.requested_at),
-    [reviews],
+    () => groupReviewQueueByRecency(
+      reviews,
+      (review) => activeView === "approved" ? review.reviewed_at ?? review.requested_at : review.requested_at,
+    ),
+    [activeView, reviews],
   );
 
   const load = (view: QueueView = activeView) => api.listPhysicianReviews(view)
@@ -198,13 +202,14 @@ export function PhysicianNutritionReviewPage() {
           </div>
           {loading && <p role="status">{l("در حال دریافت پرونده‌ها…", "Loading cases…")}</p>}
           {!loading && reviews.length === 0 && <p className="physician-review-empty">{l("پرونده‌ای در این صف نیست.", "This queue is clear.")}</p>}
-          <div className="physician-review-cases">{groupedReviews.map((group) => <section className="physician-review-case-group" key={group.key}><h3>{queueGroupTitle(group, fa)}</h3>{group.items.map((review) => <article key={review.review_id} className={selectedPlan?.id === review.plan_id ? "is-selected" : undefined}><div className="physician-review-member"><ProfilePhotoAvatar url={review.member_profile_photo_url} label={review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="sm" /><small>{review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small></div><strong>{review.status}</strong><span>{review.overdue ? l("گذشته از موعد", "Overdue") : l("نسخه تغذیه", "Nutrition plan")}</span><small>{l("ارسال‌شده", "Sent")}: {formatTehranDateTimeForLocale(review.requested_at, fa ? "fa-IR" : "en-US")}</small><button type="button" onClick={() => void claimAndOpen(review)}>{activeView === "pending" ? l("شروع بررسی", "Claim and view revision") : l("مشاهده پرونده", "View revision")}</button></article>)}</section>)}</div>
+          <div className="physician-review-cases">{groupedReviews.map((group) => <section className="physician-review-case-group" key={group.key}><h3>{queueGroupTitle(group, fa)}</h3>{group.items.map((review) => <article key={review.review_id} className={selectedPlan?.id === review.plan_id ? "is-selected" : undefined}><div className="physician-review-member"><ProfilePhotoAvatar url={review.member_profile_photo_url} label={review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="sm" /><small>{review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small></div><strong>{review.status}</strong><span>{review.overdue ? l("گذشته از موعد", "Overdue") : l("نسخه تغذیه", "Nutrition plan")}</span><small>{l("ارسال‌شده", "Sent")}: {formatTehranDateTimeForLocale(review.requested_at, fa ? "fa-IR" : "en-US")}</small>{review.reviewed_at ? <small className="physician-review-approved-at">{l("تاریخ تأیید", "Approved")}: {formatTehranDateTimeForLocale(review.reviewed_at, fa ? "fa-IR" : "en-US")}</small> : null}<button type="button" onClick={() => void claimAndOpen(review)}>{activeView === "pending" ? l("شروع بررسی", "Claim and view revision") : l("مشاهده پرونده", "View revision")}</button></article>)}</section>)}</div>
         </aside>
         <section className="physician-review-canvas" aria-live="polite">
           {!selectedPlan && <div className="physician-review-placeholder"><span aria-hidden="true">✦</span><h2>{l("یک پرونده را انتخاب کن", "Choose a case from the queue")}</h2><p>{l("نسخه، آزمایش‌ها، مکمل‌ها و یادداشت‌های بالینی اینجا نمایش داده می‌شوند.", "The plan, lab documents, supplements, and clinical notes will appear here.")}</p></div>}
           {selectedPlan && <>
             <header className="physician-review-case-header"><div><small>{l("پرونده تغذیه", "Nutrition case")}</small><div className="physician-review-case-member"><ProfilePhotoAvatar url={selectedReview?.member_profile_photo_url} label={selectedReview?.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="md" /><h2>{l("نسخه در حال بررسی", "Revision under review")} {selectedPlan.revision}</h2></div></div><span data-status={readOnly ? "approved" : "claimed"}>{readOnly ? l("تأییدشده", "Approved") : l("در حال بررسی", "In review")}</span></header>
             <div className="physician-review-profile-strip"><span>{l("هزینه هفتگی", "Weekly cost")}<strong>{irrToToman(selectedPlan.weekly_cost_irr)} {l("تومان", "Toman")}</strong></span><span>{l("مدت", "Duration")}<strong>{selectedPlan.days.length} {l("روز", "days")}</strong></span><span>{l("حالت", "Mode")}<strong>{readOnly ? l("فقط‌خواندنی", "Read only") : l("قابل ویرایش", "Editable")}</strong></span></div>
+            <ReviewProfileSummaryCard summary={selectedPlan.profile_summary} fa={fa} />
             <div className="physician-clinical-tabs" role="tablist" aria-label={l("بخش‌های پرونده", "Case sections")}>{(["plan", "labs", "supplements", "notes"] as ClinicalTab[]).map((tab) => <button key={tab} type="button" role="tab" aria-selected={clinicalTab === tab} onClick={() => setClinicalTab(tab)}>{tabTitle(tab)}</button>)}</div>
             {clinicalTab === "plan" && <section className="physician-review-section">
               <details><summary>{l("پروفایل، ایمنی، بودجه و منشأ داده", "Profile, safety, budget, and provenance")}</summary><pre>{JSON.stringify({ input_snapshot: selectedPlan.input_snapshot, budget: selectedPlan.budget_status, price_snapshot: selectedPlan.price_snapshot, food_data_manifest: selectedPlan.food_data_manifest }, null, 2)}</pre></details>

@@ -5,7 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import { formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
 
-import type { WorkoutReviewDetail, WorkoutReviewQueueItem } from "./types";
+import type { ReviewProfileSummary, WorkoutReviewDetail, WorkoutReviewQueueItem } from "./types";
 
 const api = vi.hoisted(() => ({
   listWorkoutReviews: vi.fn(),
@@ -39,12 +39,55 @@ const queueItem: WorkoutReviewQueueItem = {
   approved_at: null,
 };
 
+const profileSummary = {
+  user_id: "member-1",
+  display_name: "محمد",
+  birth_date: "1995-04-12",
+  age: 31,
+  sex: "male",
+  product_mode: "both",
+  timezone: "Asia/Tehran",
+  height_cm: 178,
+  weight_kg: "76.50",
+  weight_measured_at: "2026-09-13T08:00:00Z",
+  shoulder_circumference_cm: "110",
+  waist_circumference_cm: "84",
+  hip_circumference_cm: "98",
+  measurements_measured_at: "2026-09-13T08:00:00Z",
+  fitness_goal: "build_muscle",
+  experience_level: "beginner",
+  training_age_months: 12,
+  preferred_weekdays: [1, 3, 5],
+  priority_muscles: ["chest"],
+  training_days_per_week: 3,
+  training_location: "gym",
+  home_training_setup: null,
+  available_equipment: null,
+  session_duration_minutes: 45,
+  training_intensity: "moderate",
+  physical_limitations: "زانو درد خفیف",
+  plan_duration_weeks: 4,
+  workout_generation_method: "fitician_coach",
+  training_cautions: ["knee"],
+  profile_created_at: "2026-08-01T08:00:00Z",
+  profile_updated_at: "2026-09-13T08:00:00Z",
+  nutrition: {
+    food_items: [{ kind: "favourite", name: "مرغ", details: null }],
+  },
+  medical: {
+    flags: { complex_medication_food_interaction: true },
+    conditions: [{ code: "controlled_hypertension", details: null }],
+    medications: [{ name: "داروی فشار خون", dosage: "روزانه", notes: null }],
+  },
+} as unknown as ReviewProfileSummary;
+
 const detail: WorkoutReviewDetail = {
   ...queueItem,
   status: "claimed",
   claimed_by_user_id: "coach-1",
   lease_expires_at: "2026-08-09T10:00:00Z",
   coach_note: null,
+  profile_summary: profileSummary,
   draft: {
     days: [
       {
@@ -190,6 +233,41 @@ it("groups queue items by sent date and shows the sent timestamp", async () => {
 
   const groups = [...document.querySelectorAll<HTMLElement>("[data-queue-group-key]")];
   expect(groups.map((group) => group.dataset.queueGroupKey)).toEqual(["2026-09-13", "month"]);
+});
+
+it("groups approved cases by approval date and shows the approval timestamp", async () => {
+  const approvedItem = {
+    ...queueItem,
+    status: "approved" as const,
+    created_at: "2026-08-09T08:00:00Z",
+    approved_at: "2026-09-13T08:00:00Z",
+  };
+  api.listWorkoutReviews.mockImplementation(async (view) => view === "approved" ? [approvedItem] : []);
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
+
+  expect(await screen.findByRole("heading", { name: formatPersianDateWithWeekday("2026-09-13") })).toBeVisible();
+  expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
+});
+
+it("shows important profile highlights and the complete current profile in the detail view", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+
+  expect(await screen.findByRole("heading", { name: "خلاصهٔ کاربر" })).toBeVisible();
+  expect(screen.getByText("۱۷۸ سانتی‌متر")).toBeVisible();
+  expect(screen.getByText("۷۶٫۵ کیلوگرم")).toBeVisible();
+  expect(screen.getByText("زانو درد خفیف")).toBeVisible();
+
+  const details = screen.getByText("پروفایل کامل");
+  expect(details).toBeVisible();
+  await user.click(details);
+  expect(screen.getByText("مرغ")).toBeVisible();
+  expect(screen.getByText(/داروی فشار خون/)).toBeVisible();
 });
 
 it("switches to review detail mode on narrow layouts and returns to the queue", async () => {

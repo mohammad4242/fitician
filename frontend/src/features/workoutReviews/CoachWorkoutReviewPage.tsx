@@ -13,6 +13,7 @@ import {
 } from "@fitician/core";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
+import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
 import {
   approveWorkoutReview,
   claimWorkoutReview,
@@ -49,7 +50,10 @@ export function CoachWorkoutReviewPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const readOnly = selected?.status === "approved" || selected?.status === "rejected";
-  const groupedQueue = useMemo(() => groupWorkoutReviewQueue(queue), [queue]);
+  const groupedQueue = useMemo(
+    () => groupWorkoutReviewQueue(queue, new Date().toISOString(), view === "approved" ? "approved_at" : "created_at"),
+    [queue, view],
+  );
 
   const loadQueue = useCallback(async (nextView: WorkoutReviewQueueView) => {
     setLoading(true);
@@ -282,6 +286,7 @@ export function CoachWorkoutReviewPage() {
                           </div>
                         </div>
                         <time className="coach-review-sent-at" dateTime={item.created_at}>{sentAtLabel(item.created_at, fa)}</time>
+                        {item.approved_at && <time className="coach-review-approved-at" dateTime={item.approved_at}>{approvedAtLabel(item.approved_at, fa)}</time>}
                         <span className="coach-review-case-status">{statusTitle(item.status, fa)}</span>
                         <button type="button" disabled={busy} onClick={() => void openReview(item)}>
                           {item.status === "pending" ? l("شروع بازبینی", "Start review") : l("مشاهده پرونده", "Open case")}
@@ -327,6 +332,8 @@ export function CoachWorkoutReviewPage() {
                   <span>{l("سابقه", "Experience")}<strong>{humanize(selected.experience_level, fa)}</strong></span>
                   <span>{l("مدت", "Duration")}<strong>{selected.source_plan.plan_duration_weeks} {l("هفته", "weeks")}</strong></span>
                 </div>
+
+                <ReviewProfileSummaryCard summary={selected.profile_summary} fa={fa} />
 
                 {selected.template_selection && (
                   <TemplateSelectionAudit
@@ -490,6 +497,12 @@ function sentAtLabel(value: string, fa: boolean): string {
   return fa
     ? `ارسال‌شده: ${formatTehranDateTime(value)}`
     : `Sent: ${formatTehranDateTimeForLocale(value, "en-US")}`;
+}
+
+function approvedAtLabel(value: string, fa: boolean): string {
+  return fa
+    ? `تاریخ تأیید: ${formatTehranDateTime(value)}`
+    : `Approved: ${formatTehranDateTimeForLocale(value, "en-US")}`;
 }
 
 function statusTitle(status: WorkoutReviewQueueItem["status"], fa: boolean) {

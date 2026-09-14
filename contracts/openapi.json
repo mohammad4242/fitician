@@ -20035,6 +20035,917 @@
         "title": "ResistanceTrainingDayStatus",
         "type": "string"
       },
+      "ReviewProfileFoodItem": {
+        "additionalProperties": false,
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "details"
+        ],
+        "title": "ReviewProfileFoodItem",
+        "type": "object"
+      },
+      "ReviewProfileMedical": {
+        "additionalProperties": false,
+        "properties": {
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewProfileMedicalCondition"
+            },
+            "title": "Conditions",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Flags",
+            "type": "object"
+          },
+          "medical_condition_policy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Medical Condition Policy Version"
+          },
+          "medications": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewProfileMedication"
+            },
+            "title": "Medications",
+            "type": "array"
+          },
+          "other_relevant_condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Other Relevant Condition"
+          },
+          "physician_dietary_restrictions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physician Dietary Restrictions"
+          },
+          "safety_decision_created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Decision Created At"
+          },
+          "safety_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Outcome"
+          },
+          "safety_reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safety Reason Codes",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "flags",
+          "physician_dietary_restrictions",
+          "other_relevant_condition",
+          "conditions",
+          "medications",
+          "safety_outcome",
+          "safety_reason_codes",
+          "medical_condition_policy_version",
+          "safety_decision_created_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReviewProfileMedical",
+        "type": "object"
+      },
+      "ReviewProfileMedicalCondition": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "required": [
+          "code",
+          "details"
+        ],
+        "title": "ReviewProfileMedicalCondition",
+        "type": "object"
+      },
+      "ReviewProfileMedication": {
+        "additionalProperties": false,
+        "properties": {
+          "dosage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dosage"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "name",
+          "dosage",
+          "notes"
+        ],
+        "title": "ReviewProfileMedication",
+        "type": "object"
+      },
+      "ReviewProfileNutrition": {
+        "additionalProperties": false,
+        "properties": {
+          "accepts_batch_cooking": {
+            "title": "Accepts Batch Cooking",
+            "type": "boolean"
+          },
+          "accepts_leftovers": {
+            "title": "Accepts Leftovers",
+            "type": "boolean"
+          },
+          "budget_style": {
+            "title": "Budget Style",
+            "type": "string"
+          },
+          "cooking_equipment": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cooking Equipment",
+            "type": "array"
+          },
+          "cooking_frequency_per_week": {
+            "title": "Cooking Frequency Per Week",
+            "type": "integer"
+          },
+          "cooking_skill": {
+            "title": "Cooking Skill",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "daily_activity_level": {
+            "title": "Daily Activity Level",
+            "type": "string"
+          },
+          "daily_check_in_enabled": {
+            "title": "Daily Check In Enabled",
+            "type": "boolean"
+          },
+          "dietary_pattern": {
+            "title": "Dietary Pattern",
+            "type": "string"
+          },
+          "effective_main_meal_slots": {
+            "title": "Effective Main Meal Slots",
+            "type": "integer"
+          },
+          "effective_snack_slots": {
+            "title": "Effective Snack Slots",
+            "type": "integer"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewProfileFoodItem"
+            },
+            "title": "Food Items",
+            "type": "array"
+          },
+          "freezer_access": {
+            "title": "Freezer Access",
+            "type": "boolean"
+          },
+          "individual_monthly_food_budget_irr": {
+            "title": "Individual Monthly Food Budget Irr",
+            "type": "integer"
+          },
+          "main_meal_count_bucket": {
+            "title": "Main Meal Count Bucket",
+            "type": "string"
+          },
+          "maximum_cooking_time_minutes": {
+            "title": "Maximum Cooking Time Minutes",
+            "type": "integer"
+          },
+          "maximum_meal_repetition_per_week": {
+            "title": "Maximum Meal Repetition Per Week",
+            "type": "integer"
+          },
+          "meal_preparation_preference": {
+            "title": "Meal Preparation Preference",
+            "type": "string"
+          },
+          "meals_per_day": {
+            "title": "Meals Per Day",
+            "type": "integer"
+          },
+          "metabolic_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metabolic Basis"
+          },
+          "onboarding_status": {
+            "title": "Onboarding Status",
+            "type": "string"
+          },
+          "plan_style": {
+            "title": "Plan Style",
+            "type": "string"
+          },
+          "preferred_check_in_time": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Check In Time"
+          },
+          "preferred_plan_start_day": {
+            "title": "Preferred Plan Start Day",
+            "type": "string"
+          },
+          "preferred_variety": {
+            "title": "Preferred Variety",
+            "type": "string"
+          },
+          "refrigerator_access": {
+            "title": "Refrigerator Access",
+            "type": "boolean"
+          },
+          "snack_count_bucket": {
+            "title": "Snack Count Bucket",
+            "type": "string"
+          },
+          "snacks_per_day": {
+            "title": "Snacks Per Day",
+            "type": "integer"
+          },
+          "structured_exercise": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewProfileStructuredExercise"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplied_meal_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplied Meal Source"
+          },
+          "supplied_meals_per_week": {
+            "title": "Supplied Meals Per Week",
+            "type": "integer"
+          },
+          "target_weight_change_kg_per_week": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Weight Change Kg Per Week"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "weight_rate_mode": {
+            "title": "Weight Rate Mode",
+            "type": "string"
+          },
+          "work_shift_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Shift Context"
+          }
+        },
+        "required": [
+          "onboarding_status",
+          "daily_activity_level",
+          "metabolic_basis",
+          "individual_monthly_food_budget_irr",
+          "budget_style",
+          "meals_per_day",
+          "snacks_per_day",
+          "main_meal_count_bucket",
+          "snack_count_bucket",
+          "effective_main_meal_slots",
+          "effective_snack_slots",
+          "preferred_plan_start_day",
+          "plan_style",
+          "cooking_skill",
+          "maximum_cooking_time_minutes",
+          "cooking_frequency_per_week",
+          "meal_preparation_preference",
+          "refrigerator_access",
+          "freezer_access",
+          "supplied_meals_per_week",
+          "supplied_meal_source",
+          "dietary_pattern",
+          "preferred_variety",
+          "maximum_meal_repetition_per_week",
+          "accepts_leftovers",
+          "accepts_batch_cooking",
+          "work_shift_context",
+          "daily_check_in_enabled",
+          "preferred_check_in_time",
+          "target_weight_change_kg_per_week",
+          "weight_rate_mode",
+          "cooking_equipment",
+          "food_items",
+          "structured_exercise",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReviewProfileNutrition",
+        "type": "object"
+      },
+      "ReviewProfileStructuredExercise": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_at": {
+            "format": "date-time",
+            "title": "Confirmed At",
+            "type": "string"
+          },
+          "days_per_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Per Week"
+          },
+          "exercise_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exercise Type"
+          },
+          "intensity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intensity"
+          },
+          "minutes_per_session": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes Per Session"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "trains": {
+            "title": "Trains",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trains",
+          "exercise_type",
+          "days_per_week",
+          "minutes_per_session",
+          "intensity",
+          "source",
+          "confirmed_at",
+          "updated_at"
+        ],
+        "title": "ReviewProfileStructuredExercise",
+        "type": "object"
+      },
+      "ReviewProfileSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age"
+          },
+          "available_equipment": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Equipment"
+          },
+          "birth_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birth Date"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "experience_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experience Level"
+          },
+          "fitness_goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fitness Goal"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
+          },
+          "hip_circumference_cm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hip Circumference Cm"
+          },
+          "home_training_setup": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Training Setup"
+          },
+          "measurements_measured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measurements Measured At"
+          },
+          "medical": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewProfileMedical"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nutrition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewProfileNutrition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "physical_limitations": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physical Limitations"
+          },
+          "plan_duration_weeks": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Duration Weeks"
+          },
+          "preferred_weekdays": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Weekdays"
+          },
+          "priority_muscles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Muscles"
+          },
+          "product_mode": {
+            "title": "Product Mode",
+            "type": "string"
+          },
+          "profile_created_at": {
+            "format": "date-time",
+            "title": "Profile Created At",
+            "type": "string"
+          },
+          "profile_updated_at": {
+            "format": "date-time",
+            "title": "Profile Updated At",
+            "type": "string"
+          },
+          "session_duration_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Duration Minutes"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "shoulder_circumference_cm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Circumference Cm"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "training_age_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Age Months"
+          },
+          "training_cautions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Training Cautions",
+            "type": "array"
+          },
+          "training_days_per_week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Days Per Week"
+          },
+          "training_intensity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Intensity"
+          },
+          "training_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Location"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "waist_circumference_cm": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waist Circumference Cm"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          },
+          "weight_measured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Measured At"
+          },
+          "workout_generation_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workout Generation Method"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "birth_date",
+          "age",
+          "sex",
+          "product_mode",
+          "timezone",
+          "height_cm",
+          "weight_kg",
+          "weight_measured_at",
+          "shoulder_circumference_cm",
+          "waist_circumference_cm",
+          "hip_circumference_cm",
+          "measurements_measured_at",
+          "fitness_goal",
+          "experience_level",
+          "training_age_months",
+          "preferred_weekdays",
+          "priority_muscles",
+          "training_days_per_week",
+          "training_location",
+          "home_training_setup",
+          "available_equipment",
+          "session_duration_minutes",
+          "training_intensity",
+          "physical_limitations",
+          "plan_duration_weeks",
+          "workout_generation_method",
+          "training_cautions",
+          "profile_created_at",
+          "profile_updated_at",
+          "nutrition",
+          "medical"
+        ],
+        "title": "ReviewProfileSummary",
+        "type": "object"
+      },
       "RevokeGrantRequest": {
         "additionalProperties": false,
         "properties": {
@@ -23061,6 +23972,16 @@
             "title": "Price Snapshot",
             "type": "object"
           },
+          "profile_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewProfileSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "repair_actions": {
             "items": {
               "additionalProperties": true,
@@ -24906,6 +25827,16 @@
               }
             ],
             "title": "Member Profile Photo Url"
+          },
+          "profile_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewProfileSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source_plan": {
             "additionalProperties": true,

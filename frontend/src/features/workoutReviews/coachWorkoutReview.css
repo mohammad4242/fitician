@@ -169,7 +169,9 @@
 .coach-review-case-copy { display: grid; gap: 0.2rem; min-width: 0; }
 .coach-review-case-copy strong,
 .coach-review-case-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.coach-review-sent-at { grid-column: 1; font-size: 0.74rem; }
+.coach-review-sent-at,
+.coach-review-approved-at { grid-column: 1; font-size: 0.74rem; }
+.coach-review-approved-at { color: #efc778; }
 .coach-review-case-status { grid-column: 2; font-size: 0.74rem; white-space: nowrap; }
 .coach-review-case-member { display: flex; align-items: center; gap: 0.75rem; }
 .coach-review-case-member h2 { min-width: 0; }

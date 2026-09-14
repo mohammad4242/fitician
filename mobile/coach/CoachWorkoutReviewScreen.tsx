@@ -31,6 +31,7 @@ import {
   TextField,
 } from "../ui/components";
 import { Screen } from "../ui/layout";
+import { ReviewProfileSummaryCard } from "../ui/ReviewProfileSummaryCard";
 import { getMobileViewState, type MobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import {
@@ -329,7 +330,11 @@ function QueueState({
   }
   const items = state.data ?? [];
   if (items.length === 0) return <EmptyState title="این صف خالی است" />;
-  const groups = groupWorkoutReviewQueue(items);
+  const groups = groupWorkoutReviewQueue(
+    items,
+    new Date().toISOString(),
+    view === "approved" ? "approved_at" : "created_at",
+  );
   return (
     <View style={styles.queueItems}>
       {state.status === "offline" ? <Notice message="فهرست نمایش‌داده‌شده آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
@@ -342,6 +347,7 @@ function QueueState({
                 <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
                 <Text style={styles.queueMeta}>{humanize(item.fitness_goal)} · {humanize(item.experience_level)}</Text>
                 <Text style={styles.sentAt}>ارسال‌شده: {formatTehranDateTime(item.created_at)}</Text>
+                {item.approved_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.approved_at)}</Text> : null}
                 <Text style={styles.status}>{coachReviewStatusLabel(item.status)}</Text>
                 <Button
                   disabled={state.status === "offline"}
@@ -404,6 +410,8 @@ function CoachReviewDetail({
         <ProfileMetric label="سابقه" value={humanize(detail.experience_level)} />
         <ProfileMetric label="مدت" value={sourceSummary.durationWeeks === null ? "ثبت نشده" : `${faNumber(sourceSummary.durationWeeks)} هفته`} />
       </View>
+
+      <ReviewProfileSummaryCard summary={detail.profile_summary} />
 
       {detail.template_selection ? <TemplateSelectionAudit selection={detail.template_selection} /> : null}
 
@@ -992,6 +1000,13 @@ const styles = StyleSheet.create({
   selectedCard: { borderColor: fiticianTokens.colors.aqua },
   sentAt: {
     color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  approvedAt: {
+    color: fiticianTokens.colors.success,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",

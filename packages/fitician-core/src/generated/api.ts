@@ -10352,6 +10352,245 @@ export type components = {
          * @enum {string}
          */
         ResistanceTrainingDayStatus: "recommended" | "allowed" | "unsupported";
+        /** ReviewProfileFoodItem */
+        ReviewProfileFoodItem: {
+            /** Details */
+            details: string | null;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+        };
+        /** ReviewProfileMedical */
+        ReviewProfileMedical: {
+            /** Conditions */
+            conditions: components["schemas"]["ReviewProfileMedicalCondition"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Flags */
+            flags: {
+                [key: string]: boolean;
+            };
+            /** Medical Condition Policy Version */
+            medical_condition_policy_version: string | null;
+            /** Medications */
+            medications: components["schemas"]["ReviewProfileMedication"][];
+            /** Other Relevant Condition */
+            other_relevant_condition: string | null;
+            /** Physician Dietary Restrictions */
+            physician_dietary_restrictions: string | null;
+            /** Safety Decision Created At */
+            safety_decision_created_at: string | null;
+            /** Safety Outcome */
+            safety_outcome: string | null;
+            /** Safety Reason Codes */
+            safety_reason_codes: string[];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReviewProfileMedicalCondition */
+        ReviewProfileMedicalCondition: {
+            /** Code */
+            code: string;
+            /** Details */
+            details: string | null;
+        };
+        /** ReviewProfileMedication */
+        ReviewProfileMedication: {
+            /** Dosage */
+            dosage: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+        };
+        /** ReviewProfileNutrition */
+        ReviewProfileNutrition: {
+            /** Accepts Batch Cooking */
+            accepts_batch_cooking: boolean;
+            /** Accepts Leftovers */
+            accepts_leftovers: boolean;
+            /** Budget Style */
+            budget_style: string;
+            /** Cooking Equipment */
+            cooking_equipment: string[];
+            /** Cooking Frequency Per Week */
+            cooking_frequency_per_week: number;
+            /** Cooking Skill */
+            cooking_skill: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Daily Activity Level */
+            daily_activity_level: string;
+            /** Daily Check In Enabled */
+            daily_check_in_enabled: boolean;
+            /** Dietary Pattern */
+            dietary_pattern: string;
+            /** Effective Main Meal Slots */
+            effective_main_meal_slots: number;
+            /** Effective Snack Slots */
+            effective_snack_slots: number;
+            /** Food Items */
+            food_items: components["schemas"]["ReviewProfileFoodItem"][];
+            /** Freezer Access */
+            freezer_access: boolean;
+            /** Individual Monthly Food Budget Irr */
+            individual_monthly_food_budget_irr: number;
+            /** Main Meal Count Bucket */
+            main_meal_count_bucket: string;
+            /** Maximum Cooking Time Minutes */
+            maximum_cooking_time_minutes: number;
+            /** Maximum Meal Repetition Per Week */
+            maximum_meal_repetition_per_week: number;
+            /** Meal Preparation Preference */
+            meal_preparation_preference: string;
+            /** Meals Per Day */
+            meals_per_day: number;
+            /** Metabolic Basis */
+            metabolic_basis: string | null;
+            /** Onboarding Status */
+            onboarding_status: string;
+            /** Plan Style */
+            plan_style: string;
+            /** Preferred Check In Time */
+            preferred_check_in_time: string | null;
+            /** Preferred Plan Start Day */
+            preferred_plan_start_day: string;
+            /** Preferred Variety */
+            preferred_variety: string;
+            /** Refrigerator Access */
+            refrigerator_access: boolean;
+            /** Snack Count Bucket */
+            snack_count_bucket: string;
+            /** Snacks Per Day */
+            snacks_per_day: number;
+            structured_exercise: components["schemas"]["ReviewProfileStructuredExercise"] | null;
+            /** Supplied Meal Source */
+            supplied_meal_source: string | null;
+            /** Supplied Meals Per Week */
+            supplied_meals_per_week: number;
+            /** Target Weight Change Kg Per Week */
+            target_weight_change_kg_per_week: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weight Rate Mode */
+            weight_rate_mode: string;
+            /** Work Shift Context */
+            work_shift_context: string | null;
+        };
+        /** ReviewProfileStructuredExercise */
+        ReviewProfileStructuredExercise: {
+            /**
+             * Confirmed At
+             * Format: date-time
+             */
+            confirmed_at: string;
+            /** Days Per Week */
+            days_per_week: number | null;
+            /** Exercise Type */
+            exercise_type: string | null;
+            /** Intensity */
+            intensity: string | null;
+            /** Minutes Per Session */
+            minutes_per_session: number | null;
+            /** Source */
+            source: string;
+            /** Trains */
+            trains: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReviewProfileSummary */
+        ReviewProfileSummary: {
+            /** Age */
+            age: number | null;
+            /** Available Equipment */
+            available_equipment: string[] | null;
+            /** Birth Date */
+            birth_date: string | null;
+            /** Display Name */
+            display_name: string | null;
+            /** Experience Level */
+            experience_level: string | null;
+            /** Fitness Goal */
+            fitness_goal: string | null;
+            /** Height Cm */
+            height_cm: number | null;
+            /** Hip Circumference Cm */
+            hip_circumference_cm: string | null;
+            /** Home Training Setup */
+            home_training_setup: string | null;
+            /** Measurements Measured At */
+            measurements_measured_at: string | null;
+            medical: components["schemas"]["ReviewProfileMedical"] | null;
+            nutrition: components["schemas"]["ReviewProfileNutrition"] | null;
+            /** Physical Limitations */
+            physical_limitations: string | null;
+            /** Plan Duration Weeks */
+            plan_duration_weeks: number | null;
+            /** Preferred Weekdays */
+            preferred_weekdays: number[] | null;
+            /** Priority Muscles */
+            priority_muscles: string[] | null;
+            /** Product Mode */
+            product_mode: string;
+            /**
+             * Profile Created At
+             * Format: date-time
+             */
+            profile_created_at: string;
+            /**
+             * Profile Updated At
+             * Format: date-time
+             */
+            profile_updated_at: string;
+            /** Session Duration Minutes */
+            session_duration_minutes: number | null;
+            /** Sex */
+            sex: string | null;
+            /** Shoulder Circumference Cm */
+            shoulder_circumference_cm: string | null;
+            /** Timezone */
+            timezone: string;
+            /** Training Age Months */
+            training_age_months: number | null;
+            /** Training Cautions */
+            training_cautions: string[];
+            /** Training Days Per Week */
+            training_days_per_week: number | null;
+            /** Training Intensity */
+            training_intensity: string | null;
+            /** Training Location */
+            training_location: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Waist Circumference Cm */
+            waist_circumference_cm: string | null;
+            /** Weight Kg */
+            weight_kg: string | null;
+            /** Weight Measured At */
+            weight_measured_at: string | null;
+            /** Workout Generation Method */
+            workout_generation_method: string | null;
+        };
         /** RevokeGrantRequest */
         RevokeGrantRequest: {
             /** Reason */
@@ -11415,6 +11654,7 @@ export type components = {
             price_snapshot: {
                 [key: string]: unknown;
             };
+            profile_summary?: components["schemas"]["ReviewProfileSummary"] | null;
             /** Repair Actions */
             repair_actions: {
                 [key: string]: unknown;
@@ -12176,6 +12416,7 @@ export type components = {
             member_display_name: string | null;
             /** Member Profile Photo Url */
             member_profile_photo_url?: string | null;
+            profile_summary?: components["schemas"]["ReviewProfileSummary"] | null;
             /** Source Plan */
             source_plan: {
                 [key: string]: unknown;
