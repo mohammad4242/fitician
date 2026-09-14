@@ -46,8 +46,7 @@ class WorkoutPlanReview(Base):
         CheckConstraint(
             "(claimed_by_user_id IS NULL AND lease_acquired_at IS NULL "
             "AND lease_expires_at IS NULL) OR "
-            "(claimed_by_user_id IS NOT NULL AND lease_acquired_at IS NOT NULL "
-            "AND lease_expires_at IS NOT NULL)",
+            "(claimed_by_user_id IS NOT NULL AND lease_acquired_at IS NOT NULL)",
             name="ck_workout_plan_reviews_lease_fields_consistent",
         ),
         CheckConstraint(

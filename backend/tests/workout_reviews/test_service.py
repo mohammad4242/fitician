@@ -391,7 +391,7 @@ def test_fitician_recommendation_keeps_safety_and_preference_decisions_distinct(
     assert signal_id in safety.provenance.safety_signal_ids
 
 
-def test_claim_rejects_second_coach_until_lease_expires(db: Session) -> None:
+def test_claim_stays_with_coach_until_manual_release(db: Session) -> None:
     member = _user(db, "lease-member")
     first_coach = _user(db, "first-coach")
     second_coach = _user(db, "second-coach")
@@ -406,10 +406,37 @@ def test_claim_rejects_second_coach_until_lease_expires(db: Session) -> None:
     assert error.value.code is WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED
 
     clock.advance(minutes=31)
+    with pytest.raises(ReviewConflict) as error:
+        service.claim(review.id, second_coach.id)
+    assert error.value.code is WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED
+
+    released = service.release(review.id, first_coach.id)
+
+    assert released.status is WorkoutReviewStatus.PENDING
+    assert released.claimed_by_user_id is None
+    assert released.lease_expires_at is None
+
     claimed = service.claim(review.id, second_coach.id)
 
     assert claimed.claimed_by_user_id == second_coach.id
     assert claimed.status is WorkoutReviewStatus.CLAIMED
+
+
+def test_approval_remains_available_after_claim_time_passes(db: Session) -> None:
+    member = _user(db, "persistent-approval-member")
+    coach = _user(db, "persistent-approval-coach")
+    exercise = _exercise(db, "persistent-press")
+    review = ensure_pending_review(db, _active_plan(db, user=member, exercises=[exercise]))
+    clock = Clock()
+    service = WorkoutReviewService(db, clock=clock)
+
+    service.claim(review.id, coach.id)
+    clock.advance(minutes=31)
+
+    approved = service.approve(review.id, coach.id, expected_revision=review.draft_revision)
+
+    assert approved.status is WorkoutPlanStatus.ACTIVE
+    assert review.status is WorkoutReviewStatus.APPROVED
 
 
 def test_save_rejects_stale_revision_and_preserves_draft(db: Session) -> None:

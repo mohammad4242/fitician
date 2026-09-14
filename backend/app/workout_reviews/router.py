@@ -87,6 +87,21 @@ def claim_review(
 
 
 @router.post(
+    "/{review_id}/release",
+    response_model=WorkoutReviewDetailResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def release_review(
+    review_id: UUID,
+    service: WorkoutReviewServiceDependency,
+    coach: CoachUser,
+    db: DatabaseSession,
+) -> WorkoutReviewDetailResponse:
+    review = _service_call(lambda: service.release(review_id, coach.id))
+    return _detail_response(db, review, coach.id)
+
+
+@router.post(
     "/{review_id}/renew",
     response_model=WorkoutReviewDetailResponse,
     dependencies=[Depends(require_trusted_origin)],

@@ -54,10 +54,9 @@ class WorkoutReviewService:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_FOUND)
         if (
             viewer_id is not None
+            and review.status is WorkoutReviewStatus.CLAIMED
             and review.claimed_by_user_id is not None
             and review.claimed_by_user_id != viewer_id
-            and review.lease_expires_at is not None
-            and review.lease_expires_at > self._clock()
         ):
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
         return review
@@ -73,17 +72,12 @@ class WorkoutReviewService:
         review = self._required_review(review_id)
         now = self._clock()
         self._require_open(review)
-        if (
-            review.claimed_by_user_id is not None
-            and review.claimed_by_user_id != coach_id
-            and review.lease_expires_at is not None
-            and review.lease_expires_at > now
-        ):
+        if review.claimed_by_user_id is not None and review.claimed_by_user_id != coach_id:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
         review.status = WorkoutReviewStatus.CLAIMED
         review.claimed_by_user_id = coach_id
         review.lease_acquired_at = now
-        review.lease_expires_at = now + LEASE_DURATION
+        review.lease_expires_at = None
         if review.draft_payload is None:
             review.draft_payload = self._initial_draft(review.source_plan)
         self._db.commit()
@@ -91,10 +85,16 @@ class WorkoutReviewService:
 
     def renew(self, review_id: UUID, coach_id: UUID) -> WorkoutPlanReview:
         review = self._required_review(review_id)
-        self._require_lease(review, coach_id)
-        now = self._clock()
-        review.lease_acquired_at = now
-        review.lease_expires_at = now + LEASE_DURATION
+        self._require_claim(review, coach_id)
+        return review
+
+    def release(self, review_id: UUID, coach_id: UUID) -> WorkoutPlanReview:
+        review = self._required_review(review_id)
+        self._require_claim(review, coach_id)
+        review.status = WorkoutReviewStatus.PENDING
+        review.claimed_by_user_id = None
+        review.lease_acquired_at = None
+        review.lease_expires_at = None
         self._db.commit()
         return review
 
@@ -105,7 +105,7 @@ class WorkoutReviewService:
         payload: WorkoutReviewDraftUpdate,
     ) -> WorkoutPlanReview:
         review = self._required_review(review_id)
-        self._require_lease(review, coach_id)
+        self._require_claim(review, coach_id)
         self._require_revision(review, payload.expected_revision)
         self._validator.validate(review.source_plan, payload)
         review.draft_payload = payload.model_dump(
@@ -131,7 +131,7 @@ class WorkoutReviewService:
             if review.approved_plan is None:
                 raise ReviewConflict(WorkoutReviewErrorCode.INVALID_DRAFT)
             return review.approved_plan
-        self._require_lease(review, coach_id)
+        self._require_claim(review, coach_id)
         self._require_revision(review, expected_revision)
         active = get_active_plan_for_update(self._db, review.user_id)
         if review.source_plan.status not in {
@@ -203,7 +203,7 @@ class WorkoutReviewService:
         explanation: str,
     ) -> WorkoutPlanReview:
         review = self._required_review(review_id)
-        self._require_lease(review, coach_id)
+        self._require_claim(review, coach_id)
         self._require_revision(review, expected_revision)
         normalized_explanation = explanation.strip()
         if not normalized_explanation:
@@ -228,12 +228,12 @@ class WorkoutReviewService:
         if review.status is WorkoutReviewStatus.SUPERSEDED:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_SUPERSEDED)
 
-    def _require_lease(self, review: WorkoutPlanReview, coach_id: UUID) -> None:
+    def _require_claim(self, review: WorkoutPlanReview, coach_id: UUID) -> None:
         self._require_open(review)
+        if review.claimed_by_user_id is None:
+            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_CLAIMED)
         if review.claimed_by_user_id != coach_id:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
-        if review.lease_expires_at is None or review.lease_expires_at <= self._clock():
-            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_LEASE_EXPIRED)
 
     @staticmethod
     def _require_revision(review: WorkoutPlanReview, expected_revision: int) -> None:

@@ -99,13 +99,7 @@ def list_reviews(
 ) -> list[WorkoutPlanReview]:
     statement = select(WorkoutPlanReview).options(selectinload(WorkoutPlanReview.source_plan))
     if view is WorkoutReviewQueueView.PENDING:
-        statement = statement.where(
-            (WorkoutPlanReview.status == WorkoutReviewStatus.PENDING)
-            | (
-                (WorkoutPlanReview.status == WorkoutReviewStatus.CLAIMED)
-                & (WorkoutPlanReview.lease_expires_at <= now)
-            )
-        )
+        statement = statement.where(WorkoutPlanReview.status == WorkoutReviewStatus.PENDING)
     elif view is WorkoutReviewQueueView.MINE:
         statement = statement.where(
             WorkoutPlanReview.status == WorkoutReviewStatus.CLAIMED,

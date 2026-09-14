@@ -197,6 +197,40 @@ def test_coach_lists_and_claims_pending_review(client: TestClient, db: Session) 
     assert claimed.json()["draft_revision"] == 1
 
 
+def test_coach_can_release_claimed_review_back_to_pending_queue(
+    client: TestClient, db: Session
+) -> None:
+    member_id = _register(client, f"release-member-{uuid4()}@example.com")
+    review = ensure_pending_review(db, _plan(db, member_id))
+    db.commit()
+
+    first_coach_id = _switch_user(client, f"release-first-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=first_coach_id, role=SpecialistRole.COACH))
+    db.commit()
+    assert client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/claim",
+        headers=ORIGIN,
+    ).status_code == 200
+
+    released = client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/release",
+        headers=ORIGIN,
+    )
+
+    assert released.status_code == 200, released.text
+    assert released.json()["status"] == "pending"
+    assert released.json()["claimed_by_user_id"] is None
+    assert released.json()["lease_expires_at"] is None
+
+    second_coach_id = _switch_user(client, f"release-second-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=second_coach_id, role=SpecialistRole.COACH))
+    db.commit()
+    pending = client.get("/api/v1/coach/workout-reviews?view=pending")
+
+    assert pending.status_code == 200
+    assert [item["id"] for item in pending.json()] == [str(review.id)]
+
+
 def test_coach_case_detail_includes_live_member_profile_summary(
     client: TestClient,
     db: Session,
