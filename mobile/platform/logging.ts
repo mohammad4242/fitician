@@ -1,3 +1,8 @@
+import {
+  CORRELATION_ID_HEADER as CORE_CORRELATION_ID_HEADER,
+  createCorrelationId as createCoreCorrelationId,
+} from "@fitician/core";
+
 const REDACTED = "[REDACTED]";
 const SENSITIVE_KEY = /(access[_-]?token|refresh[_-]?token|id[_-]?token|device[_-]?token|fcm[_-]?token|token|authorization|cookie|password|secret|api[_-]?key|email|phone|user[_-]?id|image|photo|body|lab|laboratory|medical|diagnos|symptom|medication|supplement|document|filename|uri|address|latitude|longitude|date[_-]?of[_-]?birth|dob|full[_-]?name|display[_-]?name)/iu;
 const SAFE_CORRELATION_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
@@ -6,7 +11,7 @@ const SAFE_DIAGNOSTIC_KEY = /^(api_base_url|environment|error_type|is_online|mes
 
 declare const __DEV__: boolean | undefined;
 
-export const CORRELATION_ID_HEADER = "X-Correlation-ID";
+export const CORRELATION_ID_HEADER = CORE_CORRELATION_ID_HEADER;
 
 export type MobileTelemetryLevel = "info" | "warning" | "error";
 
@@ -87,13 +92,7 @@ export function redactLogMessage(message: string): string {
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu, REDACTED);
 }
 
-export function createCorrelationId(): string {
-  const randomUUID = globalThis.crypto?.randomUUID;
-  if (typeof randomUUID === "function") {
-    return randomUUID.call(globalThis.crypto);
-  }
-  return `fitician-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+export const createCorrelationId = createCoreCorrelationId;
 
 function safeCorrelationId(value: unknown): string | null {
   return typeof value === "string" && SAFE_CORRELATION_ID.test(value) ? value : null;

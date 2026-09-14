@@ -10,6 +10,16 @@ export type HttpMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 
 export type RequestHeaders = Readonly<Record<string, string>>;
 
+export const CORRELATION_ID_HEADER = "X-Correlation-ID";
+
+export function createCorrelationId(): string {
+  const randomUUID = globalThis.crypto?.randomUUID;
+  if (typeof randomUUID === "function") {
+    return randomUUID.call(globalThis.crypto);
+  }
+  return `fitician-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export interface CancellationSignal {
   readonly aborted: boolean;
 }
@@ -71,6 +81,18 @@ const SAFE_META_KEYS = new Set([
   "current_state",
 ]);
 const DEFAULT_API_ERROR_MESSAGE = "The request could not be completed.";
+const STATUS_ERROR_CODES: Readonly<Record<number, string>> = {
+  400: "BAD_REQUEST",
+  401: "UNAUTHORIZED",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  409: "CONFLICT",
+  422: "VALIDATION_ERROR",
+  429: "RATE_LIMITED",
+  500: "INTERNAL_SERVER_ERROR",
+  502: "BAD_GATEWAY",
+  503: "SERVICE_UNAVAILABLE",
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -146,6 +168,10 @@ function retryableForStatus(status: number): boolean {
   return status === 408 || status === 425 || status === 429 || status >= 500;
 }
 
+function fallbackErrorCode(status: number): string {
+  return STATUS_ERROR_CODES[status] ?? (status >= 500 ? "INTERNAL_SERVER_ERROR" : "BAD_REQUEST");
+}
+
 export class TransportError extends Error {
   readonly kind: TransportErrorKind;
   readonly requestId: string | null;
@@ -208,7 +234,7 @@ export function parseApiErrorPayload(
   const hasDetailEnvelope = isRecord(payload) && "detail" in payload;
   const detail = hasDetailEnvelope ? payload.detail : payload;
   if (typeof detail === "string" && hasDetailEnvelope) {
-    return new ApiError(status, detail || fallbackMessage, null, null, {
+    return new ApiError(status, detail || fallbackMessage, null, fallbackErrorCode(status), {
       requestId: options.requestId,
     });
   }
@@ -219,9 +245,11 @@ export function parseApiErrorPayload(
     });
   }
   if (!isRecord(detail)) {
-    return new ApiError(status, fallbackMessage, null, null, { requestId: options.requestId });
+    return new ApiError(status, fallbackMessage, null, fallbackErrorCode(status), {
+      requestId: options.requestId,
+    });
   }
-  const code = safeString(detail.code);
+  const code = safeString(detail.code) ?? fallbackErrorCode(status);
   const message = safeString(detail.message) ?? fallbackMessage;
   const detailMeta: Record<string, JsonValue> = { ...safeMeta(detail.meta) };
   for (const key of SAFE_META_KEYS) {

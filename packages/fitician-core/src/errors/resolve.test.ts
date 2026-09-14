@@ -179,7 +179,7 @@ describe("parseApiErrorPayload", () => {
       validationDetails: [{ loc: ["body", "height_cm"], type: "missing" }],
     });
     expect(parseApiErrorPayload(500, "<html>database password=secret</html>")).toMatchObject({
-      code: null,
+      code: "INTERNAL_SERVER_ERROR",
       message: "The request could not be completed.",
       meta: {},
     });

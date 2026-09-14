@@ -1,6 +1,7 @@
 import {
   ApiError,
-  type ApiValidationDetail,
+  TransportError,
+  parseApiErrorPayload,
   type BinaryDownload,
   type BinaryDownloadRequest,
   type FiticianTransport,
@@ -23,6 +24,7 @@ export interface NativeTransportOptions {
   readonly correlationIdFactory?: () => string;
   readonly fetchImpl?: NativeFetchLike;
   readonly logger?: MobileLogger;
+  readonly networkStateProvider?: () => "offline" | "online" | "unknown";
   readonly trustedOrigin?: string | null;
 }
 
@@ -32,10 +34,6 @@ type PreparedMultipartBody = {
 };
 
 let multipartBoundarySequence = 0;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 function requestUrl(baseUrl: string, path: string): string {
   if (/^https?:\/\//i.test(path)) {
@@ -88,16 +86,18 @@ function requestInit(
 }
 
 async function throwForError(response: Response): Promise<never> {
-  const body = (await response.json().catch(() => null)) as { detail?: unknown } | null;
-  const detail = body?.detail;
-  const details = Array.isArray(detail) ? (detail as ApiValidationDetail[]) : null;
-  const message = typeof detail === "string"
-    ? detail
-    : isRecord(detail) && typeof detail.message === "string"
-      ? detail.message
-      : "Request failed";
-  const code = isRecord(detail) && typeof detail.code === "string" ? detail.code : null;
-  throw new ApiError(response.status, message, details, code);
+  const rawBody = await response.text().catch(() => "");
+  let payload: unknown = null;
+  if (rawBody.trim().length > 0) {
+    try {
+      payload = JSON.parse(rawBody) as unknown;
+    } catch {
+      payload = null;
+    }
+  }
+  throw parseApiErrorPayload(response.status, payload, {
+    requestId: response.headers.get(CORRELATION_ID_HEADER),
+  });
 }
 
 async function ensureOk(response: Response): Promise<Response> {
@@ -105,6 +105,31 @@ async function ensureOk(response: Response): Promise<Response> {
     await throwForError(response);
   }
   return response;
+}
+
+function normalizeFetchError(
+  error: unknown,
+  requestId: string,
+  networkState: "offline" | "online" | "unknown",
+): unknown {
+  if (error instanceof ApiError || error instanceof TransportError) return error;
+  if (error instanceof Error && error.name === "AbortError") {
+    return new TransportError("aborted", requestId);
+  }
+  if (networkState === "offline") return new TransportError("offline", requestId);
+  if (
+    error instanceof Error
+    && (error.name === "TimeoutError" || /timed? ?out|timeout/iu.test(error.message))
+  ) {
+    return new TransportError("timeout", requestId);
+  }
+  if (
+    error instanceof TypeError
+    || (error instanceof Error && /network|connection|fetch failed|dns/iu.test(error.message))
+  ) {
+    return new TransportError("network", requestId);
+  }
+  return error;
 }
 
 function responseFilename(response: Response): string | null {
@@ -195,6 +220,7 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
   const fetchRequest = options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const logger = options.logger ?? mobileLogger;
   const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
+  const networkStateProvider = options.networkStateProvider ?? (() => "unknown" as const);
 
   async function send(
     request: TransportRequest,
@@ -227,7 +253,7 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
         method: request.method ?? "GET",
         operation,
       });
-      throw error;
+      throw normalizeFetchError(error, correlationId, networkStateProvider());
     }
   }
 

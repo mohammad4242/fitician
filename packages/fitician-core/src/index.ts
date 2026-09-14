@@ -194,7 +194,13 @@ export {
   nutritionProgressTone,
 } from "./nutrition-progress";
 export type { NutritionProgressTone } from "./nutrition-progress";
-export { ApiError, TransportError, parseApiErrorPayload } from "./transport";
+export {
+  ApiError,
+  CORRELATION_ID_HEADER,
+  TransportError,
+  createCorrelationId,
+  parseApiErrorPayload,
+} from "./transport";
 export type {
   ApiErrorObject,
   ApiErrorOptions,

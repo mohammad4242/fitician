@@ -1,6 +1,9 @@
 import {
   ApiError,
-  type ApiValidationDetail,
+  CORRELATION_ID_HEADER,
+  TransportError,
+  createCorrelationId,
+  parseApiErrorPayload,
   type BinaryDownload,
   type BinaryDownloadRequest,
   type FiticianTransport,
@@ -17,8 +20,8 @@ export interface WebFiticianTransport extends FiticianTransport {
   ): Promise<TResponse>;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+export interface WebTransportOptions {
+  readonly correlationIdFactory?: () => string;
 }
 
 function requestBody(body: TransportRequest["body"]): BodyInit | undefined {
@@ -28,10 +31,14 @@ function requestBody(body: TransportRequest["body"]): BodyInit | undefined {
 function requestHeaders(
   headers: TransportRequest["headers"],
   isMultipart: boolean,
+  correlationId: string,
 ): Headers {
   const result = new Headers(headers);
   if (!isMultipart && !result.has("Content-Type")) {
     result.set("Content-Type", "application/json");
+  }
+  if (!result.has(CORRELATION_ID_HEADER)) {
+    result.set(CORRELATION_ID_HEADER, correlationId);
   }
   return result;
 }
@@ -39,26 +46,31 @@ function requestHeaders(
 function requestInit(
   request: TransportRequest,
   body: BodyInit | undefined,
+  correlationId: string,
   isMultipart = false,
 ): RequestInit {
   return {
     body,
     credentials: "include",
-    headers: requestHeaders(request.headers, isMultipart),
+    headers: requestHeaders(request.headers, isMultipart, correlationId),
     method: request.method ?? "GET",
     signal: request.signal as AbortSignal | undefined,
   };
 }
 
 async function throwForError(response: Response): Promise<never> {
-  const body = (await response.json().catch(() => null)) as {
-    detail?: unknown;
-  } | null;
-  const detail = body?.detail;
-  const message = typeof detail === "string" ? detail : "Request failed";
-  const details = Array.isArray(detail) ? (detail as ApiValidationDetail[]) : null;
-  const code = isRecord(detail) && typeof detail.code === "string" ? detail.code : null;
-  throw new ApiError(response.status, message, details, code);
+  const rawBody = await response.text().catch(() => "");
+  let payload: unknown = null;
+  if (rawBody.trim().length > 0) {
+    try {
+      payload = JSON.parse(rawBody) as unknown;
+    } catch {
+      payload = null;
+    }
+  }
+  throw parseApiErrorPayload(response.status, payload, {
+    requestId: response.headers.get(CORRELATION_ID_HEADER),
+  });
 }
 
 async function ensureOk(response: Response): Promise<Response> {
@@ -66,6 +78,46 @@ async function ensureOk(response: Response): Promise<Response> {
     await throwForError(response);
   }
   return response;
+}
+
+function isOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+function runtimeErrorDetails(error: unknown): { readonly name: string; readonly message: string } {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message };
+  }
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { readonly name?: unknown; readonly message?: unknown };
+    return {
+      name: typeof candidate.name === "string" ? candidate.name : "",
+      message: typeof candidate.message === "string" ? candidate.message : "",
+    };
+  }
+  return { name: "", message: "" };
+}
+
+function normalizeFetchError(error: unknown, requestId: string): unknown {
+  if (error instanceof ApiError || error instanceof TransportError) return error;
+  const details = runtimeErrorDetails(error);
+  if (details.name === "AbortError") {
+    return new TransportError("aborted", requestId);
+  }
+  if (isOffline()) return new TransportError("offline", requestId);
+  if (
+    details.name === "TimeoutError"
+    || /timed? ?out|timeout/iu.test(details.message)
+  ) {
+    return new TransportError("timeout", requestId);
+  }
+  if (
+    error instanceof TypeError
+    || /network|connection|fetch failed|dns/iu.test(details.message)
+  ) {
+    return new TransportError("network", requestId);
+  }
+  return error;
 }
 
 function responseFilename(response: Response): string | null {
@@ -128,16 +180,36 @@ export async function formDataToMultipart(formData: FormData): Promise<Multipart
   );
 }
 
-export function createWebTransport(fetchImpl?: FetchLike): WebFiticianTransport {
+export function createWebTransport(
+  fetchImpl?: FetchLike,
+  options: WebTransportOptions = {},
+): WebFiticianTransport {
   const fetchRequest: FetchLike = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
+  const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
+
+  async function send(
+    request: TransportRequest,
+    body: BodyInit | undefined,
+    isMultipart = false,
+  ): Promise<Response> {
+    const suppliedCorrelationId = request.headers === undefined
+      ? null
+      : new Headers(request.headers).get(CORRELATION_ID_HEADER);
+    const correlationId = suppliedCorrelationId ?? correlationIdFactory();
+    try {
+      const response = await fetchRequest(
+        request.path,
+        requestInit(request, body, correlationId, isMultipart),
+      );
+      return await ensureOk(response);
+    } catch (error) {
+      throw normalizeFetchError(error, correlationId);
+    }
+  }
 
   return {
     async request<TResponse>(request: TransportRequest): Promise<TResponse> {
-      const response = await fetchRequest(
-        request.path,
-        requestInit(request, requestBody(request.body)),
-      );
-      await ensureOk(response);
+      const response = await send(request, requestBody(request.body));
       if (response.status === 204) {
         return undefined as TResponse;
       }
@@ -145,11 +217,7 @@ export function createWebTransport(fetchImpl?: FetchLike): WebFiticianTransport 
     },
 
     async download(request: BinaryDownloadRequest): Promise<BinaryDownload> {
-      const response = await fetchRequest(
-        request.path,
-        requestInit(request, requestBody(request.body)),
-      );
-      await ensureOk(response);
+      const response = await send(request, requestBody(request.body));
       return {
         bytes: new Uint8Array(await response.arrayBuffer()),
         contentType: response.headers.get("Content-Type"),
@@ -158,11 +226,7 @@ export function createWebTransport(fetchImpl?: FetchLike): WebFiticianTransport 
     },
 
     async upload<TResponse>(request: MultipartUploadRequest): Promise<TResponse> {
-      const response = await fetchRequest(
-        request.path,
-        requestInit(request, multipartFormData(request.parts), true),
-      );
-      await ensureOk(response);
+      const response = await send(request, multipartFormData(request.parts), true);
       if (response.status === 204) {
         return undefined as TResponse;
       }
@@ -172,11 +236,7 @@ export function createWebTransport(fetchImpl?: FetchLike): WebFiticianTransport 
     async uploadFormData<TResponse>(
       request: Omit<MultipartUploadRequest, "parts"> & { formData: FormData },
     ): Promise<TResponse> {
-      const response = await fetchRequest(
-        request.path,
-        requestInit(request, request.formData, true),
-      );
-      await ensureOk(response);
+      const response = await send(request, request.formData, true);
       if (response.status === 204) {
         return undefined as TResponse;
       }

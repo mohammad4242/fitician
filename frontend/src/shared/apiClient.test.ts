@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { ApiError, request, requestBlob } from "./apiClient";
+import { request, requestBlob } from "./apiClient";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -52,11 +52,16 @@ it("maps HTTP failures and empty success responses", async () => {
     )
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
 
-  await expect(request("/api/fail")).rejects.toEqual(new ApiError(409, "Conflict"));
+  await expect(request("/api/fail")).rejects.toMatchObject({
+    code: "CONFLICT",
+    message: "Conflict",
+    retryable: false,
+    status: 409,
+  });
   await expect(request<void>("/api/empty")).resolves.toBeUndefined();
 });
 
-it("uses the generic message for structured validation details", async () => {
+it("uses the shared message for structured validation details", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify({ detail: [{ msg: "Invalid value" }] }), {
       status: 422,
@@ -66,7 +71,8 @@ it("uses the generic message for structured validation details", async () => {
 
   await expect(request("/api/validation-error")).rejects.toMatchObject({
     status: 422,
-    message: "Request failed",
+    code: "VALIDATION_ERROR",
+    message: "The request contains invalid fields.",
     details: [{ msg: "Invalid value" }],
   });
 });
@@ -124,7 +130,10 @@ it("maps binary request failures to the existing API error", async () => {
     }),
   );
 
-  await expect(requestBlob("/api/pdf")).rejects.toEqual(
-    new ApiError(503, "PDF unavailable"),
-  );
+  await expect(requestBlob("/api/pdf")).rejects.toMatchObject({
+    code: "SERVICE_UNAVAILABLE",
+    message: "PDF unavailable",
+    retryable: true,
+    status: 503,
+  });
 });

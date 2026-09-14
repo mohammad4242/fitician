@@ -68,8 +68,19 @@ it("converts API error payloads into the shared ApiError", async () => {
   const transport = createNativeTransport({
     apiBaseUrl: "https://api.fitician.example",
     fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ detail: { code: "AUTH_INVALID", message: "Invalid" } }), {
-        headers: { "Content-Type": "application/json" },
+      new Response(JSON.stringify({
+        detail: {
+          code: "AUTH_INVALID",
+          message: "Invalid",
+          meta: { entitlement: "none", private_note: "hidden" },
+          request_id: "native-server-request-1",
+          retryable: false,
+        },
+      }), {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Correlation-ID": "native-server-request-1",
+        },
         status: 401,
       }),
     ),
@@ -78,7 +89,56 @@ it("converts API error payloads into the shared ApiError", async () => {
   await expect(transport.request({ method: "GET", path: "/api/v1/auth/me" })).rejects.toMatchObject({
     code: "AUTH_INVALID",
     message: "Invalid",
+    meta: { entitlement: "none" },
+    requestId: "native-server-request-1",
+    retryable: false,
     status: 401,
+  });
+});
+
+it("parses validation arrays consistently with web", async () => {
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({
+        detail: [{ loc: ["body", "weight_kg"], msg: "Field required", type: "missing" }],
+      }), { status: 422 }),
+    ),
+  });
+
+  await expect(transport.request({ path: "/api/v1/profile" })).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+    status: 422,
+    validationDetails: [{ type: "missing", loc: ["body", "weight_kg"] }],
+  });
+});
+
+it.each([
+  ["network", new TypeError("Failed to fetch")],
+  ["timeout", new DOMException("The request timed out", "TimeoutError")],
+  ["aborted", new DOMException("The request was aborted", "AbortError")],
+] as const)("classifies %s runtime failures", async (kind, failure) => {
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockRejectedValue(failure),
+  });
+
+  await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+    kind,
+    name: "TransportError",
+  });
+});
+
+it("keeps offline failures distinct from generic network failures", async () => {
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch")),
+    networkStateProvider: () => "offline",
+  });
+
+  await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+    kind: "offline",
+    name: "TransportError",
   });
 });
 

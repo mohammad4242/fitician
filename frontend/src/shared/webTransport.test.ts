@@ -82,3 +82,99 @@ it("maps binary responses and response metadata", async () => {
   });
   expect(Array.from(result.bytes)).toEqual([80, 68, 70]);
 });
+
+it("parses structured API errors without falling back to Request failed", async () => {
+  const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(JSON.stringify({
+      detail: {
+        code: "ENTITLEMENT_REQUIRED",
+        fields: [{ loc: ["body", "weight_kg"], type: "missing", msg: "Field required" }],
+        message: "safe backend message",
+        meta: { entitlement: "training.plan.generate", private_note: "do not expose" },
+        request_id: "server-request-1",
+        retryable: false,
+      },
+    }), {
+      headers: { "Content-Type": "application/json", "X-Correlation-ID": "server-request-1" },
+      status: 403,
+    }),
+  );
+  const transport = createWebTransport(fetchImpl);
+
+  await expect(transport.request({ path: "/api/v1/protected" })).rejects.toMatchObject({
+    code: "ENTITLEMENT_REQUIRED",
+    meta: { entitlement: "training.plan.generate" },
+    message: "safe backend message",
+    requestId: "server-request-1",
+    retryable: false,
+    status: 403,
+    validationDetails: [{ type: "missing", loc: ["body", "weight_kg"] }],
+  });
+});
+
+it("parses validation arrays and non-JSON error bodies", async () => {
+  const validationFetch = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(JSON.stringify({
+      detail: [{ loc: ["body", "height_cm"], msg: "Field required", type: "missing" }],
+    }), { status: 422 }),
+  );
+  const validationTransport = createWebTransport(validationFetch);
+  await expect(validationTransport.request({ path: "/api/v1/profile" })).rejects.toMatchObject({
+    code: "VALIDATION_ERROR",
+    status: 422,
+    validationDetails: [{ type: "missing", loc: ["body", "height_cm"] }],
+  });
+
+  const plainFetch = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response("upstream returned HTML", { status: 502 }),
+  );
+  const plainTransport = createWebTransport(plainFetch);
+  await expect(plainTransport.request({ path: "/api/v1/profile" })).rejects.toMatchObject({
+    code: "BAD_GATEWAY",
+    message: "The request could not be completed.",
+    status: 502,
+  });
+});
+
+it("adds one correlation id to every web request", async () => {
+  const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  );
+  const transport = createWebTransport(fetchImpl, {
+    correlationIdFactory: () => "web-correlation-1",
+  });
+
+  await transport.request({ path: "/api/v1/test" });
+
+  const [, init] = fetchImpl.mock.calls[0];
+  expect((init?.headers as Headers).get("X-Correlation-ID")).toBe("web-correlation-1");
+});
+
+it.each([
+  ["network", new TypeError("Failed to fetch")],
+  ["timeout", new DOMException("The request timed out", "TimeoutError")],
+  ["aborted", new DOMException("The request was aborted", "AbortError")],
+] as const)("classifies %s runtime failures", async (kind, failure) => {
+  const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(failure);
+  const transport = createWebTransport(fetchImpl);
+
+  await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+    kind,
+    name: "TransportError",
+  });
+});
+
+it("keeps offline failures distinct from generic network failures", async () => {
+  const previous = navigator.onLine;
+  Object.defineProperty(navigator, "onLine", { configurable: true, value: false });
+  try {
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
+    const transport = createWebTransport(fetchImpl);
+    await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+      kind: "offline",
+      name: "TransportError",
+    });
+  } finally {
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: previous });
+  }
+});
