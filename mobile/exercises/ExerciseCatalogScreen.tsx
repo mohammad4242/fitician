@@ -135,9 +135,15 @@ export function ExerciseCatalogScreen() {
     queryFn: () => api.list(filters),
     queryKey: exerciseKeys.list(filters),
   });
-  const categoriesState = getMobileViewState(categoriesQuery, { connectivityStatus });
-  const exercisesState = getMobileViewState(exercisesQuery, {
+  const categoriesState = getMobileViewState(categoriesQuery, {
+    audience: "member",
     connectivityStatus,
+    context: "workout",
+  });
+  const exercisesState = getMobileViewState(exercisesQuery, {
+    audience: "member",
+    connectivityStatus,
+    context: "workout",
     isEmpty: (data) => data.items.length === 0,
   });
   const categories = viewData(categoriesState);
@@ -295,7 +301,7 @@ export function ExerciseCatalogScreen() {
         {categoriesState.status === "error" && (
           <Notice
             actionLabel={exerciseCopy.retry}
-            message={exerciseCopy.categoriesError}
+            message={categoriesState.error.message}
             onAction={() => void categoriesQuery.refetch()}
             variant="danger"
           />
@@ -512,7 +518,7 @@ function ExerciseResults({
     return (
       <Notice
         actionLabel={exerciseCopy.retry}
-        message={exerciseCopy.error}
+        message={state.error.message}
         onAction={onRetry}
         variant="danger"
       />

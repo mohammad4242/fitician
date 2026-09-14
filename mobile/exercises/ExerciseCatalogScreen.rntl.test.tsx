@@ -12,6 +12,8 @@ jest.mock("./ExerciseMedia", () => ({ ExerciseMedia: () => null }));
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
+import { ApiError } from "@fitician/core";
+
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { ExerciseCatalogScreen } from "./ExerciseCatalogScreen";
 
@@ -151,6 +153,28 @@ test("starts in guided discovery without showing the full catalogue", () => {
   expect(screen.queryByText("نتایج حرکات")).toBeNull();
   expect(screen.queryByText("۱ نتیجه")).toBeNull();
   expect(latestExerciseQueryOptions().enabled).toBe(false);
+});
+
+test("shows the shared member error when exercise categories fail", async () => {
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "categories") {
+      return {
+        data: undefined,
+        error: new ApiError(503, "exercise provider secret", null, "SERVICE_UNAVAILABLE"),
+        isError: true,
+        isFetching: false,
+        isPending: false,
+        isStale: false,
+      } as never;
+    }
+    return queryResult(undefined);
+  });
+
+  renderCatalog();
+
+  expect(await screen.findByText("سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.")).toBeTruthy();
+  expect(screen.queryByText("exercise provider secret")).toBeNull();
 });
 
 test("selecting a body region reveals its target muscles", () => {

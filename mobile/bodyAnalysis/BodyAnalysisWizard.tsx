@@ -481,25 +481,19 @@ async function loadWizardState(options: {
 }
 
 function bodyPhotoWizardErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return resolveAppError(error, {
-      audience: "member",
-      context: "body_analysis",
-      locale: "fa",
-    }).message;
-  }
-  return "آماده‌سازی تحلیل بدن انجام نشد. دوباره تلاش کن.";
+  return resolveAppError(error, {
+    audience: "member",
+    context: "body_analysis",
+    locale: "fa",
+  }).message;
 }
 
 function bodyPhotoSubmitErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return resolveAppError(error, {
-      audience: "member",
-      context: "body_photo",
-      locale: "fa",
-    }).message;
-  }
-  return "ارسال امن تصاویر انجام نشد. عکس‌های ثبت‌شده حفظ شدند؛ دوباره تلاش کن.";
+  return resolveAppError(error, {
+    audience: "member",
+    context: "body_photo",
+    locale: "fa",
+  }).message;
 }
 
 function isBodyPhotoView(value: string): value is BodyPhotoView {

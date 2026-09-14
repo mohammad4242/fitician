@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Switch, Text, View } from "react-native";
 
+import { ApiError } from "@fitician/core";
 import type {
   MeasurementField,
   MeasurementFormValues,
@@ -9,6 +10,7 @@ import type {
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { Button, Card, Notice, PageHeading, Skeleton, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import { createProfileApi } from "../profile/profileApi";
 import { normalizeOnboardingDigits } from "../onboarding/onboardingModel";
@@ -38,8 +40,8 @@ export function BodyAnalysisRequirements({
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,14 +49,14 @@ export function BodyAnalysisRequirements({
       .then((loaded) => {
         if (!active) return;
         if (loaded === null) {
-          setError(bodyPhotoCopy.measurements.loadError);
+          setError(new ApiError(404, bodyPhotoCopy.measurements.loadError, null, "PROFILE_NOT_FOUND"));
           return;
         }
         setProfile(loaded);
         setValues(measurementValuesFromProfile(loaded));
       })
-      .catch(() => {
-        if (active) setError(bodyPhotoCopy.measurements.loadError);
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -90,8 +92,8 @@ export function BodyAnalysisRequirements({
       const patch = measurementPatch(values, profile);
       if (Object.keys(patch).length > 0) await api.updateProfile(patch);
       onConfirmed();
-    } catch {
-      setSaveError(true);
+    } catch (requestError) {
+      setSaveError(requestError);
     } finally {
       setBusy(false);
     }
@@ -114,7 +116,14 @@ export function BodyAnalysisRequirements({
         <View style={styles.errorState}>
           <Text style={styles.eyebrow}>{bodyPhotoCopy.measurements.eyebrow}</Text>
           <Text style={styles.title}>{bodyPhotoCopy.measurements.title}</Text>
-          <Notice message={error ?? bodyPhotoCopy.measurements.loadError} variant="danger" />
+          <Notice
+            message={mobileRequestErrorMessage(
+              error,
+              bodyPhotoCopy.measurements.loadError,
+              { audience: "member", context: "body_analysis" },
+            )}
+            variant="danger"
+          />
           <Button label={bodyPhotoCopy.measurements.back} onPress={onCancel} variant="secondary" />
         </View>
       </Screen>
@@ -232,7 +241,16 @@ export function BodyAnalysisRequirements({
           />
         </Card>
 
-        {saveError ? <Notice message={bodyPhotoCopy.measurements.saveError} variant="danger" /> : null}
+        {saveError !== null ? (
+          <Notice
+            message={mobileRequestErrorMessage(
+              saveError,
+              bodyPhotoCopy.measurements.saveError,
+              { audience: "member", context: "profile" },
+            )}
+            variant="danger"
+          />
+        ) : null}
         <View style={styles.actions}>
           <Button disabled={busy} label={bodyPhotoCopy.measurements.back} onPress={onCancel} variant="secondary" />
           <Button

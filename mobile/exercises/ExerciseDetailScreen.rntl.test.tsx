@@ -51,6 +51,8 @@ jest.mock("expo-video", () => {
 
 import { useQuery } from "@tanstack/react-query";
 
+import { ApiError } from "@fitician/core";
+
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { languageForDirection } from "../ui/rtl";
 import type { ExerciseDetail } from "./exerciseApi";
@@ -136,6 +138,35 @@ test("renders the compact media card without manual offline controls", () => {
   expect(screen.queryByText("This video is saved on this device for offline playback.")).toBeNull();
   expect(screen.queryByText("رسانه نمایش")).toBeNull();
   expect(screen.queryByText("ویدیوی مرد 1")).toBeNull();
+});
+
+test("shows the shared member error when exercise details are unavailable", async () => {
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const lastKey = queryKey[queryKey.length - 1];
+    if (lastKey === "media-inventory") {
+      return {
+        data: inventoryDetail,
+        error: null,
+        isError: false,
+        isFetching: false,
+        isPending: false,
+        isStale: false,
+      } as never;
+    }
+    return {
+      data: undefined,
+      error: new ApiError(404, "private exercise detail", null, "EXERCISE_NOT_FOUND"),
+      isError: true,
+      isFetching: false,
+      isPending: false,
+      isStale: false,
+    } as never;
+  });
+
+  renderDetail();
+
+  expect(await screen.findByText("حرکت موردنظر پیدا نشد.")).toBeTruthy();
+  expect(screen.queryByText("private exercise detail")).toBeNull();
 });
 
 test("renders all Persian safety notes in source order", () => {

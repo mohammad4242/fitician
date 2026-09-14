@@ -189,7 +189,12 @@ export function ExerciseDetailScreen() {
     queryFn: () => api.get(slug ?? "", "unspecified"),
     queryKey: [...exerciseKeys.detail(slug ?? ""), "media-inventory"],
   });
-  const detailState = getMobileViewState(detailQuery, { connectivityStatus });
+  const detailState = getMobileViewState(detailQuery, {
+    audience: "member",
+    connectivityStatus,
+    context: "workout",
+    locale: language,
+  });
   const detail = viewData(detailState);
   const mediaItems = useMemo(
     () => (detail === undefined || detail === null ? [] : buildExerciseMediaItems(detail)),
@@ -274,7 +279,7 @@ export function ExerciseDetailScreen() {
       {detailState.status === "error" ? (
         <Notice
           actionLabel={detailCopy[language].retry}
-          message={detailCopy[language].error}
+          message={detailState.error.message}
           onAction={() => void detailQuery.refetch()}
           variant="danger"
         />

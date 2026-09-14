@@ -15,6 +15,7 @@ import { createProfileApi } from "../profile/profileApi";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { decideMobileRoute, type MobileRouteSnapshot } from "../ui/navigation/routePolicy";
 import { Screen } from "../ui/layout";
+import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import type { SharedProfile } from "@fitician/core/profile";
 
@@ -36,8 +37,9 @@ export function MoreScreen() {
   const snapshot = useMobileRouteSnapshot();
   const profileApi = useMemo(() => createProfileApi(auth.request), [auth.request]);
   const [sharedProfile, setSharedProfile] = useState<SharedProfile | null | undefined>(undefined);
+  const [profileError, setProfileError] = useState<unknown | null>(null);
   const [logoutBusy, setLogoutBusy] = useState(false);
-  const [logoutError, setLogoutError] = useState(false);
+  const [logoutError, setLogoutError] = useState<unknown | null>(null);
   const accountContact = auth.user?.email?.trim() || auth.user?.phone_number?.trim() || null;
   const accountLabel = sharedProfile?.display_name?.trim()
     || auth.user?.email?.trim()
@@ -54,16 +56,23 @@ export function MoreScreen() {
     let active = true;
     if (auth.user?.id === undefined) {
       setSharedProfile(null);
+      setProfileError(null);
       return () => {
         active = false;
       };
     }
     void profileApi.getSharedProfile()
       .then((profile) => {
-        if (active) setSharedProfile(profile);
+        if (active) {
+          setSharedProfile(profile);
+          setProfileError(null);
+        }
       })
-      .catch(() => {
-        if (active) setSharedProfile(null);
+      .catch((loadError: unknown) => {
+        if (active) {
+          setSharedProfile(null);
+          setProfileError(loadError);
+        }
       });
     return () => {
       active = false;
@@ -103,12 +112,12 @@ export function MoreScreen() {
   async function handleLogout() {
     if (logoutBusy) return;
     setLogoutBusy(true);
-    setLogoutError(false);
+    setLogoutError(null);
     try {
       await auth.logout();
       router.replace("/auth/sign-in");
-    } catch {
-      setLogoutError(true);
+    } catch (logoutCause) {
+      setLogoutError(logoutCause);
     } finally {
       setLogoutBusy(false);
     }
@@ -169,7 +178,18 @@ export function MoreScreen() {
       </View>
 
       <GroupedList sections={sections} testID="more-groups" />
-      {logoutError ? <Notice message="خروج از حساب انجام نشد. دوباره تلاش کن." variant="danger" /> : null}
+      {profileError !== null ? (
+        <Notice
+          message={mobileRequestErrorMessage(profileError, "اطلاعات پروفایل دریافت نشد.", { audience: "member", context: "profile" })}
+          variant="info"
+        />
+      ) : null}
+      {logoutError !== null ? (
+        <Notice
+          message={mobileRequestErrorMessage(logoutError, "خروج از حساب انجام نشد. دوباره تلاش کن.", { audience: "member", context: "auth" })}
+          variant="danger"
+        />
+      ) : null}
       <Button disabled={logoutBusy} label="خروج از حساب" loading={logoutBusy} onPress={() => void handleLogout()} style={styles.logout} variant="danger" />
     </Screen>
   );
