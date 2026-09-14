@@ -1,6 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import { formatTehranDateTime } from "@fitician/core/iran-calendar";
+
+import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+
 import {
   getAdminAuditEvents,
   type AdminAuditEvent,
@@ -22,8 +26,8 @@ type AuditFilters = {
   actor_user_id: string;
   target_user_id: string;
   resource_type: string;
-  from_datetime: string;
-  to_datetime: string;
+  from_datetime: string | null;
+  to_datetime: string | null;
 };
 
 const initialFilters: AuditFilters = {
@@ -31,8 +35,8 @@ const initialFilters: AuditFilters = {
   actor_user_id: "",
   target_user_id: "",
   resource_type: "",
-  from_datetime: "",
-  to_datetime: "",
+  from_datetime: null,
+  to_datetime: null,
 };
 
 export function AdminAccessAuditPage() {
@@ -54,8 +58,8 @@ export function AdminAccessAuditPage() {
         actor_user_id: optional(next.actor_user_id),
         target_user_id: optional(next.target_user_id),
         resource_type: optional(next.resource_type),
-        from_datetime: toIsoDateTime(next.from_datetime),
-        to_datetime: toIsoDateTime(next.to_datetime),
+        from_datetime: next.from_datetime ?? undefined,
+        to_datetime: next.to_datetime ?? undefined,
       });
       setEvents(result);
       setState("ready");
@@ -81,8 +85,18 @@ export function AdminAccessAuditPage() {
           <label>{t("adminAccess.actor")}<input aria-label={t("adminAccess.actor")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, actor_user_id: value })); }} value={filters.actor_user_id} /></label>
           <label>{t("adminAccess.targetUser")}<input aria-label={t("adminAccess.targetUser")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, target_user_id: value })); }} value={filters.target_user_id} /></label>
           <label>{t("adminAccess.resource")}<input aria-label={t("adminAccess.resource")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, resource_type: value })); }} value={filters.resource_type} /></label>
-          <label>{t("adminAccess.from")}<input aria-label={t("adminAccess.from")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, from_datetime: value })); }} type="datetime-local" value={filters.from_datetime} /></label>
-          <label>{t("adminAccess.to")}<input aria-label={t("adminAccess.to")} onChange={(event) => { const value = event.currentTarget.value; setFilters((current) => ({ ...current, to_datetime: value })); }} type="datetime-local" value={filters.to_datetime} /></label>
+          <PersianDateTimePicker
+            ariaLabel={t("adminAccess.from")}
+            label={t("adminAccess.from")}
+            onChange={(value) => setFilters((current) => ({ ...current, from_datetime: value }))}
+            value={filters.from_datetime}
+          />
+          <PersianDateTimePicker
+            ariaLabel={t("adminAccess.to")}
+            label={t("adminAccess.to")}
+            onChange={(value) => setFilters((current) => ({ ...current, to_datetime: value }))}
+            value={filters.to_datetime}
+          />
           <button className="access-admin-button access-admin-button--primary" type="submit">{t("adminAccess.applyFilters")}</button>
         </form>
 
@@ -130,14 +144,12 @@ function optional(value: string): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
-function toIsoDateTime(value: string): string | undefined {
-  return value === "" ? undefined : new Date(value).toISOString();
-}
-
 function formatState(state: Record<string, unknown> | null): string {
   return state === null ? "—" : JSON.stringify(state, null, 2);
 }
 
 function formatDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return english
+    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(new Date(value))
+    : formatTehranDateTime(value);
 }

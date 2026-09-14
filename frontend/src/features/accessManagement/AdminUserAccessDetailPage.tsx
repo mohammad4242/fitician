@@ -3,6 +3,10 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
+import { formatTehranDateTime } from "@fitician/core/iran-calendar";
+
+import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+
 import {
   adminAccessPackageCodes,
   getCampaigns,
@@ -21,8 +25,8 @@ type Action = "grant" | "campaign" | "revoke" | null;
 type GrantForm = {
   package_code: AdminGrant["package_code"];
   term_weeks: string;
-  starts_at: string;
-  ends_at: string;
+  starts_at: string | null;
+  ends_at: string | null;
   reason: string;
   client_idempotency_key: string;
 };
@@ -30,8 +34,8 @@ type GrantForm = {
 const initialGrantForm: GrantForm = {
   package_code: "complete",
   term_weeks: "8",
-  starts_at: "",
-  ends_at: "",
+  starts_at: null,
+  ends_at: null,
   reason: "",
   client_idempotency_key: "",
 };
@@ -113,7 +117,7 @@ export function AdminUserAccessDetailPage() {
     event.preventDefault();
     setFormError(false);
     if (action === "grant") {
-      if (grantForm.ends_at === "" || grantForm.reason.trim() === "" || grantForm.client_idempotency_key.trim() === "") {
+      if (grantForm.ends_at === null || grantForm.reason.trim() === "" || grantForm.client_idempotency_key.trim() === "") {
         setFormError(true);
         return;
       }
@@ -122,8 +126,8 @@ export function AdminUserAccessDetailPage() {
         await grantUserAccess(memberId, {
           package_code: grantForm.package_code,
           term_weeks: toTermWeeks(grantForm.term_weeks),
-          starts_at: toIsoDateTime(grantForm.starts_at),
-          ends_at: toIsoDateTime(grantForm.ends_at) as string,
+          starts_at: grantForm.starts_at,
+          ends_at: grantForm.ends_at,
           reason: grantForm.reason.trim(),
           client_idempotency_key: grantForm.client_idempotency_key.trim(),
         });
@@ -236,8 +240,22 @@ export function AdminUserAccessDetailPage() {
                 <div className="access-admin-form-grid">
                   <label>{t("adminAccess.package")}<select onChange={(event) => { const value = event.currentTarget.value as GrantForm["package_code"]; setGrantForm((current) => ({ ...current, package_code: value })); }} value={grantForm.package_code}>{adminAccessPackageCodes.map((code) => <option key={code} value={code}>{t(`entitlements.packageLabels.${code}`, { defaultValue: code })}</option>)}</select></label>
                   <label>{t("adminAccess.trainingTerm")}<select onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, term_weeks: value })); }} value={grantForm.term_weeks}><option value="">—</option><option value="4">{t("billing.fourWeeks")}</option><option value="6">{t("billing.sixWeeks")}</option><option value="8">{t("billing.eightWeeks")}</option></select></label>
-                  <label>{t("adminAccess.start")}<input onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, starts_at: value })); }} type="datetime-local" value={grantForm.starts_at} /></label>
-                  <label>{t("adminAccess.end")}<input required onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, ends_at: value })); }} type="datetime-local" value={grantForm.ends_at} /></label>
+                  <div>
+                    <PersianDateTimePicker
+                      ariaLabel={t("adminAccess.start")}
+                      label={t("adminAccess.start")}
+                      onChange={(value) => setGrantForm((current) => ({ ...current, starts_at: value }))}
+                      value={grantForm.starts_at}
+                    />
+                  </div>
+                  <div>
+                    <PersianDateTimePicker
+                      ariaLabel={t("adminAccess.end")}
+                      label={t("adminAccess.end")}
+                      onChange={(value) => setGrantForm((current) => ({ ...current, ends_at: value }))}
+                      value={grantForm.ends_at}
+                    />
+                  </div>
                   <label>{t("adminAccess.reason")}<textarea required onChange={(event) => { const value = event.currentTarget.value; setGrantForm((current) => ({ ...current, reason: value })); }} value={grantForm.reason} /></label>
                 </div>
               )}
@@ -265,11 +283,9 @@ export function AdminUserAccessDetailPage() {
 }
 
 function formatDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
-}
-
-function toIsoDateTime(value: string): string | null {
-  return value === "" ? null : new Date(value).toISOString();
+  return english
+    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(new Date(value))
+    : formatTehranDateTime(value);
 }
 
 function toTermWeeks(value: string): AccessTermWeeks | null {

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { formatTehranDateTime } from "@fitician/core/iran-calendar";
+
+import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+
 import {
   activateCampaign,
   adminAccessPackageCodes,
@@ -24,8 +28,8 @@ type CampaignFormState = {
   package_code: AdminAccessCampaign["package_code"];
   duration_days: string;
   term_weeks: string;
-  available_from: string;
-  available_until: string;
+  available_from: string | null;
+  available_until: string | null;
   is_active: boolean;
   max_total_redemptions: string;
 };
@@ -38,8 +42,8 @@ const initialForm: CampaignFormState = {
   package_code: "complete",
   duration_days: "30",
   term_weeks: "8",
-  available_from: "",
-  available_until: "",
+  available_from: null,
+  available_until: null,
   is_active: false,
   max_total_redemptions: "",
 };
@@ -91,8 +95,8 @@ export function AdminAccessCampaignsPage() {
       package_code: campaign.package_code,
       duration_days: String(campaign.duration_days),
       term_weeks: campaign.term_weeks === null ? "" : String(campaign.term_weeks),
-      available_from: toDateTimeLocal(campaign.available_from),
-      available_until: toDateTimeLocal(campaign.available_until),
+      available_from: campaign.available_from,
+      available_until: campaign.available_until,
       is_active: campaign.is_active,
       max_total_redemptions: campaign.max_total_redemptions === null
         ? ""
@@ -242,14 +246,22 @@ export function AdminAccessCampaignsPage() {
                   </>}
                 </select>
               </label>
-              <label>
-                {t("adminAccess.campaignStart")}
-                <input onChange={(event) => setField("available_from", event.currentTarget.value)} type="datetime-local" value={form.available_from} />
-              </label>
-              <label>
-                {t("adminAccess.campaignEnd")}
-                <input onChange={(event) => setField("available_until", event.currentTarget.value)} type="datetime-local" value={form.available_until} />
-              </label>
+              <div>
+                <PersianDateTimePicker
+                  ariaLabel={t("adminAccess.campaignStart")}
+                  label={t("adminAccess.campaignStart")}
+                  onChange={(value) => setField("available_from", value)}
+                  value={form.available_from}
+                />
+              </div>
+              <div>
+                <PersianDateTimePicker
+                  ariaLabel={t("adminAccess.campaignEnd")}
+                  label={t("adminAccess.campaignEnd")}
+                  onChange={(value) => setField("available_until", value)}
+                  value={form.available_until}
+                />
+              </div>
               <label>
                 {t("adminAccess.maximumRedemptions")}
                 <input min="1" onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)} type="number" value={form.max_total_redemptions} />
@@ -304,8 +316,8 @@ function toCreateInput(form: CampaignFormState): AdminAccessCampaignInput {
     package_code: form.package_code,
     duration_days: Number(form.duration_days),
     term_weeks: toTermWeeks(form.term_weeks),
-    available_from: toIsoDateTime(form.available_from),
-    available_until: toIsoDateTime(form.available_until),
+    available_from: form.available_from,
+    available_until: form.available_until,
     is_active: form.is_active,
     max_total_redemptions: form.max_total_redemptions === "" ? null : Number(form.max_total_redemptions),
   };
@@ -315,8 +327,8 @@ function toUpdateInput(form: CampaignFormState, previous: AdminAccessCampaign): 
   const input: AdminAccessCampaignUpdate = {
     name: form.name.trim(),
     description: form.description.trim() === "" ? null : form.description.trim(),
-    available_from: toIsoDateTime(form.available_from),
-    available_until: toIsoDateTime(form.available_until),
+    available_from: form.available_from,
+    available_until: form.available_until,
     max_total_redemptions: form.max_total_redemptions === "" ? null : Number(form.max_total_redemptions),
   };
   if (previous.redemption_count === 0) {
@@ -336,18 +348,8 @@ function toTermWeeks(value: string): AccessTermWeeks | null {
   return null;
 }
 
-function toDateTimeLocal(value: string | null): string {
-  if (value === null) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
-
-function toIsoDateTime(value: string): string | null {
-  return value === "" ? null : new Date(value).toISOString();
-}
-
 function formatDate(value: string, english: boolean): string {
-  return new Intl.DateTimeFormat(english ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  return english
+    ? new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(new Date(value))
+    : formatTehranDateTime(value);
 }

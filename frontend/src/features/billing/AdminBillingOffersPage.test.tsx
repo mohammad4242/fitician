@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -65,6 +65,25 @@ function offerHeader(code: string) {
 
 function categoryHeader(name: string) {
   return screen.getByRole("button", { name });
+}
+
+async function chooseDateTime(
+  user: ReturnType<typeof userEvent.setup>,
+  card: HTMLElement,
+  label: string,
+  date: { year: string; month: string; day: string },
+) {
+  await user.click(within(card).getByRole("button", { name: label }));
+  await user.selectOptions(within(card).getByRole("combobox", { name: "تاریخ - سال" }), date.year);
+  await user.selectOptions(within(card).getByRole("combobox", { name: "تاریخ - ماه" }), date.month);
+  await user.selectOptions(within(card).getByRole("combobox", { name: "تاریخ - روز" }), date.day);
+  const hour = within(card).getByRole("spinbutton", { name: "ساعت" });
+  const minute = within(card).getByRole("spinbutton", { name: "دقیقه" });
+  await user.clear(hour);
+  await user.type(hour, "10");
+  await user.clear(minute);
+  await user.type(minute, "30");
+  await user.click(within(card).getByRole("button", { name: "انتخاب" }));
 }
 
 it("starts with only the three top-level offer categories", async () => {
@@ -217,14 +236,12 @@ it("updates the offer availability window", async () => {
   await user.click(categoryHeader("تمرین"));
   const card = screen.getByTestId("admin-offer-training_4w");
   await user.click(offerHeader("training_4w"));
-  const availableFrom = within(card).getByLabelText("شروع دسترسی");
-  const availableUntil = within(card).getByLabelText("پایان دسترسی");
-  fireEvent.change(availableFrom, { target: { value: "2026-09-20T10:30" } });
-  fireEvent.change(availableUntil, { target: { value: "2026-10-20T10:30" } });
+  await chooseDateTime(user, card, "شروع دسترسی", { year: "1405", month: "6", day: "29" });
+  await chooseDateTime(user, card, "پایان دسترسی", { year: "1405", month: "7", day: "28" });
   await user.click(within(card).getByRole("button", { name: "ذخیره" }));
 
   expect(adminApi.updateAdminBillingOffer).toHaveBeenCalledWith("training_4w", {
-    available_from: new Date("2026-09-20T10:30").toISOString(),
-    available_until: new Date("2026-10-20T10:30").toISOString(),
+    available_from: "2026-09-20T07:00:00.000Z",
+    available_until: "2026-10-20T07:00:00.000Z",
   });
 });

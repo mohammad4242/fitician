@@ -136,7 +136,8 @@ it("grants a package and applies a manual campaign with a reason", async () => {
   expect(screen.queryByRole("option", { name: "دوره آزمایشی شروع" })).not.toBeInTheDocument();
   await user.selectOptions(screen.getByLabelText("بسته"), "training_coach");
   await user.selectOptions(screen.getByLabelText("مدت تمرین"), "4");
-  await user.type(screen.getByLabelText("پایان"), "2026-11-01T10:00");
+  await user.click(screen.getByRole("button", { name: "پایان" }));
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
   await user.type(screen.getByLabelText("دلیل"), "beta tester");
   expect(screen.queryByLabelText("کلید درخواست")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
@@ -171,7 +172,8 @@ it("generates one hidden grant idempotency key and reuses it for retries", async
   renderDetail();
 
   await user.click(await screen.findByRole("button", { name: "اعطای دسترسی" }));
-  await user.type(screen.getByLabelText("پایان"), "2026-11-01T10:00");
+  await user.click(screen.getByRole("button", { name: "پایان" }));
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
   await user.type(screen.getByLabelText("دلیل"), "retryable support action");
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import type { BillingOffer } from "@fitician/core/billing";
 
+import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+
 import {
   getAdminBillingOffers,
   type AdminBillingOffer,
@@ -220,24 +222,22 @@ export function AdminBillingOffersPage() {
                   value={offer.price_irr ?? ""}
                 />
               </label>
-              <label>
-                {t("billing.availableFrom")}
-                <input
-                  aria-label={t("billing.availableFrom")}
-                  onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
-                  type="datetime-local"
-                  value={toDateTimeLocal(offer.available_from)}
+              <div>
+                <PersianDateTimePicker
+                  ariaLabel={t("billing.availableFrom")}
+                  label={t("billing.availableFrom")}
+                  onChange={(value) => updateOffer(offer.offer_code, { available_from: value })}
+                  value={offer.available_from}
                 />
-              </label>
-              <label>
-                {t("billing.availableUntil")}
-                <input
-                  aria-label={t("billing.availableUntil")}
-                  onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
-                  type="datetime-local"
-                  value={toDateTimeLocal(offer.available_until)}
+              </div>
+              <div>
+                <PersianDateTimePicker
+                  ariaLabel={t("billing.availableUntil")}
+                  label={t("billing.availableUntil")}
+                  onChange={(value) => updateOffer(offer.offer_code, { available_until: value })}
+                  value={offer.available_until}
                 />
-              </label>
+              </div>
               <label className="billing-admin-card__check">
                 <input
                   aria-label={t("billing.active")}
@@ -264,18 +264,6 @@ export function AdminBillingOffersPage() {
       </article>
     );
   }
-}
-
-function toDateTimeLocal(value: string | null): string {
-  if (value === null) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const timezoneOffset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
-}
-
-function toIsoDateTime(value: string): string | null {
-  return value === "" ? null : new Date(value).toISOString();
 }
 
 function buildUpdateInput(offer: AdminBillingOffer, previous: AdminBillingOffer | undefined): UpdateAdminBillingOfferInput {
