@@ -144,7 +144,7 @@ def _consume_limit(
     except AuthRateLimitError as error:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=AUTH_RATE_LIMIT_MESSAGE,
+            detail={"code": "AUTH_RATE_LIMITED"},
             headers={"Retry-After": str(error.retry_after_seconds)},
         ) from None
 
@@ -185,7 +185,7 @@ def register(
     except EmailAlreadyRegisteredError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email is already registered",
+            detail={"code": "AUTH_EMAIL_ALREADY_REGISTERED"},
         ) from None
     set_session_cookie(response, result.raw_token, settings)
     return UserResponse.model_validate(result.user)
@@ -207,7 +207,7 @@ def login(
     except InvalidCredentialsError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail={"code": "AUTH_INVALID_CREDENTIALS"},
         ) from None
     set_session_cookie(response, result.raw_token, settings)
     return UserResponse.model_validate(result.user)
@@ -245,7 +245,7 @@ def mobile_password_login(
     except InvalidCredentialsError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail={"code": "AUTH_INVALID_CREDENTIALS"},
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
     return _mobile_auth_response(
@@ -287,14 +287,14 @@ def google_auth(
     except (GoogleAuthError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Google authentication failed",
+            detail={"code": "AUTH_GOOGLE_FAILED"},
         ) from None
     try:
         result = authenticate_google(db, identity, settings.session_ttl_seconds, settings=settings)
     except GoogleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to use this Google account",
+            detail={"code": "AUTH_GOOGLE_ACCOUNT_CONFLICT"},
         ) from None
     set_session_cookie(response, result.raw_token, settings)
     return UserResponse.model_validate(result.user)
@@ -323,7 +323,7 @@ def mobile_google_auth(
     except (GoogleAuthError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Google authentication failed",
+            detail={"code": "AUTH_GOOGLE_FAILED"},
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
     try:
@@ -341,7 +341,7 @@ def mobile_google_auth(
     except GoogleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to use this Google account",
+            detail={"code": "AUTH_GOOGLE_ACCOUNT_CONFLICT"},
         ) from None
     return _mobile_auth_response(result)
 
@@ -371,14 +371,14 @@ def apple_auth(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Apple authentication failed",
+            detail={"code": "AUTH_APPLE_FAILED"},
         ) from None
     try:
         result = authenticate_apple(db, identity, settings.session_ttl_seconds, settings=settings)
     except AppleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to use this Apple account",
+            detail={"code": "AUTH_APPLE_ACCOUNT_CONFLICT"},
         ) from None
     set_session_cookie(response, result.raw_token, settings)
     return UserResponse.model_validate(result.user)
@@ -398,7 +398,7 @@ def mobile_apple_auth(
     if payload.platform != "ios":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Apple authentication is only available on iOS",
+            detail={"code": "AUTH_APPLE_PLATFORM_UNSUPPORTED"},
         )
     _consume_limit(
         db,
@@ -412,7 +412,7 @@ def mobile_apple_auth(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Apple authentication failed",
+            detail={"code": "AUTH_APPLE_FAILED"},
             headers={"WWW-Authenticate": "Bearer"},
         ) from None
     try:
@@ -430,7 +430,7 @@ def mobile_apple_auth(
     except AppleAccountConflictError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Unable to use this Apple account",
+            detail={"code": "AUTH_APPLE_ACCOUNT_CONFLICT"},
         ) from None
     return _mobile_auth_response(result)
 
@@ -501,7 +501,7 @@ def mobile_phone_verify_otp(
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired OTP",
+            detail={"code": "AUTH_OTP_INVALID_OR_EXPIRED"},
             headers={"WWW-Authenticate": "Bearer"},
         )
     return _mobile_auth_response(result)
@@ -533,7 +533,7 @@ def mobile_refresh(
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token",
+            detail={"code": "AUTH_SESSION_EXPIRED"},
             headers={"WWW-Authenticate": "Bearer"},
         )
     return _mobile_auth_response(result)
@@ -610,7 +610,7 @@ def reset_password_endpoint(
     if not reset_password(db, payload.token, payload.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token",
+            detail={"code": "AUTH_PASSWORD_RESET_INVALID"},
         )
 
 
@@ -664,7 +664,7 @@ def email_verify(
     if not verify_email(db, payload.token, email_provider):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token",
+            detail={"code": "AUTH_EMAIL_VERIFICATION_INVALID"},
         )
 
 
@@ -732,7 +732,7 @@ def phone_verify_otp(
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired OTP",
+            detail={"code": "AUTH_OTP_INVALID_OR_EXPIRED"},
         )
     set_session_cookie(response, result.raw_token, settings)
     return UserResponse.model_validate(result.user)

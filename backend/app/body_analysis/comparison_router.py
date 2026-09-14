@@ -50,6 +50,6 @@ def get_session_comparison(
     except BodyProgressComparisonNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Body photo session not found",
+            detail={"code": "BODY_PHOTO_SESSION_NOT_FOUND"},
         ) from None
     return _response(comparison) if comparison is not None else None

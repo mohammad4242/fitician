@@ -403,7 +403,13 @@ def test_patch_returns_404_for_missing_profile(client: TestClient) -> None:
     response = client.patch("/api/v1/profile", headers=ORIGIN, json={"display_name": "New Name"})
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Fitness profile not found"}
+    assert response.json()["detail"] == {
+        "code": "PROFILE_NOT_FOUND",
+        "message": "پروفایل فیتنس پیدا نشد.",
+        "retryable": False,
+        "meta": {},
+        "request_id": response.headers["X-Correlation-ID"],
+    }
 
 
 def test_patch_requires_authenticated_user(client: TestClient) -> None:
@@ -458,7 +464,13 @@ def test_patch_commit_failure_rolls_back_profile_and_new_measurement(
     monkeypatch.setattr(db, "commit", original_commit)
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Service temporarily unavailable"}
+    assert response.json()["detail"] == {
+        "code": "SERVICE_UNAVAILABLE",
+        "message": "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
+        "retryable": True,
+        "meta": {},
+        "request_id": response.headers["X-Correlation-ID"],
+    }
     profile = db.get(UserProfile, user_id)
     assert profile is not None
     assert profile.display_name == "Mohammad"

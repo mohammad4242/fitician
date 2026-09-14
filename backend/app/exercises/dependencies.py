@@ -39,6 +39,6 @@ def require_completed_profile(
     if not training_complete:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Completed fitness profile required",
+            detail={"code": "PROFILE_INCOMPLETE"},
         )
     return user

@@ -133,6 +133,22 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("پروفایل قبلاً ساخته شده است", "Profile already exists"),
     text("پروفایل فیتنس قبلاً ساخته شده است.", "The fitness profile already exists."),
   ),
+  SHARED_PROFILE_NOT_FOUND: entry(
+    text("اطلاعات پایه پیدا نشد", "Shared profile not found"),
+    text("اطلاعات پایه پروفایل ثبت نشده است.", "The shared profile information has not been recorded."),
+  ),
+  UNSUPPORTED_RESISTANCE_TRAINING_DAYS: entry(
+    text("تعداد روزهای تمرین پشتیبانی نمی‌شود", "Training-day count is not supported"),
+    text("تعداد روزهای تمرین با سطح فعلی سازگار نیست.", "This training-day count is not supported for the current experience level."),
+  ),
+  PROFILE_PHOTO_ACCESS_DENIED: entry(
+    text("دسترسی به عکس وجود ندارد", "Profile photo access denied"),
+    text("دسترسی به عکس پروفایل وجود ندارد.", "You do not have access to this profile photo."),
+  ),
+  PROFILE_PHOTO_NOT_FOUND: entry(
+    text("عکس پروفایل پیدا نشد", "Profile photo not found"),
+    text("عکس پروفایل پیدا نشد.", "The profile photo was not found."),
+  ),
   invalid_file_size: entry(
     text("حجم عکس مجاز نیست", "Image size is not allowed"),
     text("حجم عکس بیشتر از حد مجاز است. عکس کوچک‌تری انتخاب کنید.", "The image is larger than the allowed limit. Choose a smaller image."),
@@ -455,9 +471,21 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
       },
     },
   ),
+  BODY_ANALYSIS_STATE_INVALID: entry(
+    text("وضعیت تحلیل معتبر نیست", "Body analysis state is invalid"),
+    text("وضعیت تحلیل بدن اجازه این عملیات را نمی‌دهد.", "The body analysis is not in a state that allows this operation."),
+  ),
   MEASUREMENT_CONFIRMATION_REQUIRED: entry(
     text("تأیید اندازه‌گیری لازم است", "Measurement confirmation required"),
     text("تأیید کنید اندازه‌گیری‌های فعلی مربوط به این اسکن هستند.", "Confirm that the current measurements represent this scan."),
+  ),
+  missing_body_analysis_inputs: entry(
+    text("اطلاعات تحلیل کامل نیست", "Body analysis inputs are incomplete"),
+    text("اطلاعات لازم برای تحلیل بدن کامل نیست.", "The required body analysis information is incomplete."),
+  ),
+  measurement_confirmation_required: entry(
+    text("تأیید اندازه‌گیری لازم است", "Measurement confirmation required"),
+    text("پیش از تحلیل، اندازه‌گیری‌های فعلی را تأیید کنید.", "Confirm the current measurements before analysis."),
   ),
   COACH_ROLE_REQUIRED: entry(
     text("دسترسی مربی لازم است", "Coach access required"),
@@ -495,6 +523,22 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ACCOUNT_DELETION_NOT_ENABLED: entry(
     text("حذف حساب فعلاً در دسترس نیست", "Account deletion is unavailable"),
     text("حذف حساب هنوز برای این محیط فعال نشده است.", "Account deletion is not enabled for this environment yet."),
+  ),
+  AI_CONFIGURATION_INVALID: entry(
+    text("تنظیمات هوش مصنوعی معتبر نیست", "AI configuration is invalid"),
+    text("تنظیمات هوش مصنوعی را بررسی کنید.", "Check the AI configuration."),
+  ),
+  AI_CREDENTIAL_STORAGE_ERROR: entry(
+    text("ذخیره اعتبار انجام نشد", "Credential storage failed"),
+    text("ذخیره امن اعتبار هوش مصنوعی انجام نشد.", "The AI credential could not be stored securely."),
+  ),
+  AGENT_SERVICE_NOT_CONFIGURED: entry(
+    text("سرویس Agent پیکربندی نشده است", "Agent Service is not configured"),
+    text("سرویس Agent هنوز پیکربندی نشده است.", "The Agent Service has not been configured."),
+  ),
+  AGENT_SERVICE_UNAVAILABLE: entry(
+    text("سرویس Agent در دسترس نیست", "Agent Service unavailable"),
+    text("سرویس Agent موقتاً در دسترس نیست.", "The Agent Service is temporarily unavailable."),
   ),
   ADMIN_ROLE_REQUIRED: entry(
     text("دسترسی مدیر لازم است", "Administrator access required"),

@@ -145,7 +145,7 @@ def update_timezone(
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Fitness profile not found",
+            detail={"code": "PROFILE_NOT_FOUND"},
         ) from None
     return TimezoneResponse(timezone=profile.timezone)
 
@@ -308,7 +308,7 @@ def upload_profile_photo(
     except ProfilePhotoStorageError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
     return _photo_response(photo)
 
@@ -343,12 +343,12 @@ def _read_profile_photo(
     except ProfilePhotoAccessDeniedError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Profile photo access is not allowed",
+            detail={"code": "PROFILE_PHOTO_ACCESS_DENIED"},
         ) from None
     except ProfilePhotoNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile photo not found",
+            detail={"code": "PROFILE_PHOTO_NOT_FOUND"},
         ) from None
     return _stream_photo(row, handle, settings)
 
@@ -368,12 +368,12 @@ def delete_profile_photo(
     except ProfilePhotoNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Profile photo not found",
+            detail={"code": "PROFILE_PHOTO_NOT_FOUND"},
         ) from None
     except ProfilePhotoStorageError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 
@@ -398,7 +398,10 @@ def save_shared_profile(
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "PRODUCT_MODE_REQUIRED", "message": "ابتدا مسیر فیتیشن را انتخاب کنید."},
+            detail={
+                "code": "PRODUCT_MODE_REQUIRED",
+                "message": "ابتدا مسیر فیتیشن را انتخاب کنید.",
+            },
         ) from None
 
 
@@ -409,12 +412,12 @@ def read_shared_profile(db: DatabaseSession, user: CurrentUser) -> SharedProfile
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "SHARED_PROFILE_NOT_FOUND", "message": "اطلاعات پایه ثبت نشده است."},
+            detail={"code": "SHARED_PROFILE_NOT_FOUND"},
         ) from None
     except ProfileInvariantError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 
@@ -437,20 +440,19 @@ def create(
     except ProfileAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Fitness profile already exists",
+            detail={"code": "PROFILE_ALREADY_EXISTS"},
         ) from None
-    except UnsupportedResistanceTrainingCombinationError as error:
+    except UnsupportedResistanceTrainingCombinationError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "UNSUPPORTED_RESISTANCE_TRAINING_DAYS",
-                "message": str(error),
             },
         ) from None
     except ProfileInvariantError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 
@@ -472,35 +474,34 @@ def update(
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Fitness profile not found",
+            detail={"code": "PROFILE_NOT_FOUND"},
         ) from None
     except ProfileCycleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle not found",
+            detail={"code": "WORKOUT_CYCLE_NOT_FOUND"},
         ) from None
     except InvalidWorkoutSetupError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Home training setup is required for home training",
+            detail={"code": "HOME_TRAINING_SETUP_REQUIRED"},
         ) from None
     except InvalidProfilePreferencesError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Preferred weekdays cannot exceed training days per week",
+            detail={"code": "PREFERRED_WEEKDAYS_INVALID"},
         ) from None
-    except UnsupportedResistanceTrainingCombinationError as error:
+    except UnsupportedResistanceTrainingCombinationError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "code": "UNSUPPORTED_RESISTANCE_TRAINING_DAYS",
-                "message": str(error),
             },
         ) from None
     except ProfileInvariantError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 
@@ -511,10 +512,10 @@ def read(db: DatabaseSession, user: CurrentUser) -> ProfileResponse:
     except ProfileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Fitness profile not found",
+            detail={"code": "PROFILE_NOT_FOUND"},
         ) from None
     except ProfileInvariantError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None

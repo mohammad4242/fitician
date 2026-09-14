@@ -105,7 +105,8 @@ def _session_response(session: BodyPhotoSession) -> BodyPhotoSessionResponse:
 
 def _not_found() -> HTTPException:
     return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail="Body photo session not found"
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={"code": "BODY_PHOTO_SESSION_NOT_FOUND"},
     )
 
 
@@ -133,7 +134,7 @@ def create_session(
     except BodyPhotoSessionCycleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle not found",
+            detail={"code": "WORKOUT_CYCLE_NOT_FOUND"},
         ) from None
 
 
@@ -191,12 +192,12 @@ def upload_photo(
     except BodyPhotoSessionStateError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Body photo session cannot be changed",
+            detail={"code": "BODY_PHOTO_SESSION_STATE_INVALID"},
         ) from None
     except BodyPhotoStorageError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 
@@ -221,12 +222,12 @@ def submit_session(
     except BodyPhotoSessionValidationError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Three body photos and operational consent are required",
+            detail={"code": "BODY_PHOTO_SUBMISSION_INCOMPLETE"},
         ) from None
     except BodyPhotoSessionStateError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Body photo session cannot be submitted",
+            detail={"code": "BODY_PHOTO_SESSION_STATE_INVALID"},
         ) from None
 
 
@@ -275,12 +276,12 @@ def delete_session(
     except BodyPhotoStorageError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
     except BodyPhotoCleanupPendingError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service temporarily unavailable",
+            detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
 
 

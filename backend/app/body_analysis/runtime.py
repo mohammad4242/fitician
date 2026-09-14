@@ -36,14 +36,14 @@ def get_body_analysis_runtime(
     if task is None or not task.enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Body analysis is temporarily unavailable",
+            detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
         )
     try:
         backend = AIExecutionBackend(task.execution_backend)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Body analysis is temporarily unavailable",
+            detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
         ) from None
     try:
         client_name = (
@@ -71,7 +71,7 @@ def get_body_analysis_runtime(
     except (AIConfigError, ValueError) as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Body analysis is temporarily unavailable",
+            detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
         ) from error
     return BodyAnalysisRuntime(
         provider=configured.provider,

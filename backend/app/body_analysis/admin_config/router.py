@@ -113,7 +113,15 @@ def _agent_not_configured(error: AIConfigError) -> HTTPException:
 
 
 def _unprocessable(error: Exception) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error))
+    code = (
+        "AI_CREDENTIAL_STORAGE_ERROR"
+        if isinstance(error, CredentialEncryptionError)
+        else "AI_CONFIGURATION_INVALID"
+    )
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={"code": code},
+    )
 
 
 @router.get("/providers", response_model=list[ProviderDetail])
@@ -220,9 +228,7 @@ async def refresh_models(
     except (AIConfigError, CredentialEncryptionError) as error:
         raise _unprocessable(error) from None
     except AIProviderError as error:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail=error.safe_message
-        ) from None
+        raise _agent_provider_error(error) from None
     return ModelCatalogRefreshResponse(
         provider=AIProviderName.OPENROUTER,
         model_count=count,

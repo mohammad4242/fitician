@@ -45,7 +45,7 @@ def _bearer_token(
     if scheme.lower() != "bearer" or not separator or not token.strip():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail={"code": "AUTHENTICATION_REQUIRED"},
             headers={"WWW-Authenticate": "Bearer"},
         )
     return token.strip()
@@ -63,7 +63,7 @@ def get_current_authentication(
         if context is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
+                detail={"code": "AUTHENTICATION_REQUIRED"},
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return AuthenticatedPrincipal(
@@ -77,20 +77,20 @@ def get_current_authentication(
     if raw_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail={"code": "AUTHENTICATION_REQUIRED"},
         )
     auth_session = session_for_token(db, raw_token)
     if auth_session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail={"code": "AUTHENTICATION_REQUIRED"},
             headers={"Set-Cookie": session_cookie_deletion_header(settings)},
         )
     user = db.get(User, auth_session.user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail={"code": "AUTHENTICATION_REQUIRED"},
             headers={"Set-Cookie": session_cookie_deletion_header(settings)},
         )
     return AuthenticatedPrincipal(
@@ -120,14 +120,14 @@ def get_current_mobile_session(
     if raw_bearer_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Bearer authentication required",
+            detail={"code": "BEARER_AUTHENTICATION_REQUIRED"},
             headers={"WWW-Authenticate": "Bearer"},
         )
     context = mobile_access_context_for_token(db, raw_bearer_token)
     if context is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail={"code": "AUTHENTICATION_REQUIRED"},
             headers={"WWW-Authenticate": "Bearer"},
         )
     return context

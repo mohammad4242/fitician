@@ -59,7 +59,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def _not_found() -> HTTPException:
-    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Body analysis not found")
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={"code": "BODY_ANALYSIS_NOT_FOUND"},
+    )
 
 
 def _input_error(error: BodyAnalysisInputError) -> HTTPException:
@@ -233,7 +236,7 @@ def start_session_analysis(
     except BodyAnalysisStateError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Body photo session is not ready for analysis",
+            detail={"code": "BODY_ANALYSIS_NOT_READY"},
         ) from None
     background_tasks.add_task(_execute_background, service, analysis.id, runtime)
     return _response(db, analysis)
@@ -278,8 +281,11 @@ def retry_session_analysis(
         raise _not_found() from None
     except BodyAnalysisInputError as error:
         raise _input_error(error) from None
-    except BodyAnalysisStateError as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from None
+    except BodyAnalysisStateError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "BODY_ANALYSIS_STATE_INVALID"},
+        ) from None
     background_tasks.add_task(_execute_background, service, analysis.id, runtime)
     return _response(db, analysis)
 
@@ -316,8 +322,11 @@ def retry_analysis_as_admin(
         raise _not_found() from None
     except BodyAnalysisInputError as error:
         raise _input_error(error) from None
-    except BodyAnalysisStateError as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from None
+    except BodyAnalysisStateError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "BODY_ANALYSIS_STATE_INVALID"},
+        ) from None
     background_tasks.add_task(_execute_background, BodyAnalysisService(db), queued.id, runtime)
     return _response(db, queued)
 
@@ -341,8 +350,11 @@ def submit_specialist_review(
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None
-    except BodyAnalysisStateError as error:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from None
+    except BodyAnalysisStateError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "REVIEW_INVALID_STATE"},
+        ) from None
     return SpecialistReviewResponse(
         id=review.id,
         analysis_id=review.analysis_id,
