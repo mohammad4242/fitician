@@ -400,6 +400,64 @@ it("separates physician queue views and keeps approved revisions read-only", asy
   expect(screen.getByRole("spinbutton", { name: "Chicken breast quantity" })).toBeDisabled();
 });
 
+it("groups physician cases by requested date in every queue view", async () => {
+  const user = userEvent.setup();
+  const newerRequestedAt = new Date().toISOString();
+  const olderRequestedAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const queues: Record<api.PhysicianQueueView, api.PhysicianReviewQueueItem[]> = {
+    pending: [
+      { review_id: "old-pending", plan_id: "old-plan", user_id: "old-user", member_display_name: "Old Member", status: "pending", priority: 1, physician_user_id: null, requested_at: olderRequestedAt, target_review_by: null, reviewed_at: null, overdue: false },
+      { review_id: "new-pending", plan_id: "new-plan", user_id: "new-user", member_display_name: "New Member", status: "pending", priority: 1, physician_user_id: null, requested_at: newerRequestedAt, target_review_by: null, reviewed_at: null, overdue: false },
+    ],
+    claimed: [
+      { review_id: "old-claimed", plan_id: "old-plan", user_id: "old-user", member_display_name: "Old Member", status: "in_review", priority: 1, physician_user_id: "physician-1", requested_at: olderRequestedAt, target_review_by: null, reviewed_at: null, overdue: false },
+      { review_id: "new-claimed", plan_id: "new-plan", user_id: "new-user", member_display_name: "New Member", status: "in_review", priority: 1, physician_user_id: "physician-1", requested_at: newerRequestedAt, target_review_by: null, reviewed_at: null, overdue: false },
+    ],
+    approved: [
+      { review_id: "old-approved", plan_id: "old-plan", user_id: "old-user", member_display_name: "Old Member", status: "approved", priority: 1, physician_user_id: "physician-1", requested_at: olderRequestedAt, target_review_by: null, reviewed_at: newerRequestedAt, overdue: false },
+      { review_id: "new-approved", plan_id: "new-plan", user_id: "new-user", member_display_name: "New Member", status: "approved", priority: 1, physician_user_id: "physician-1", requested_at: newerRequestedAt, target_review_by: null, reviewed_at: newerRequestedAt, overdue: false },
+    ],
+  };
+  vi.mocked(api.listPhysicianReviews).mockImplementation(async (view = "pending") => queues[view]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: /Today/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
+    expect.stringContaining("New Member"),
+    expect.stringContaining("Old Member"),
+  ]);
+
+  await user.click(screen.getByRole("tab", { name: /Claimed/ }));
+  expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
+    expect.stringContaining("New Member"),
+    expect.stringContaining("Old Member"),
+  ]);
+
+  await user.click(screen.getByRole("tab", { name: /Approved/ }));
+  expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
+    expect.stringContaining("New Member"),
+    expect.stringContaining("Old Member"),
+  ]);
+});
+
+it("localizes physician recency group headings in Persian", async () => {
+  await i18n.changeLanguage("fa");
+  const now = new Date().toISOString();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([
+    { review_id: "today", plan_id: "today-plan", user_id: "today-user", member_display_name: "کاربر امروز", status: "pending", priority: 1, physician_user_id: null, requested_at: now, target_review_by: null, reviewed_at: null, overdue: false },
+    { review_id: "month", plan_id: "month-plan", user_id: "month-user", member_display_name: "کاربر قدیمی", status: "pending", priority: 1, physician_user_id: null, requested_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), target_review_by: null, reviewed_at: null, overdue: false },
+  ]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: /امروز/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "ماه قبل" })).toBeInTheDocument();
+});
+
 it("lays out physician cases in a desk sidebar with clinical workspace tabs", async () => {
   const user = userEvent.setup();
   vi.mocked(api.listPhysicianReviews).mockResolvedValue([

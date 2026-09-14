@@ -1,7 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import {
+  formatIsoDate,
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTimeForLocale,
+  groupReviewQueueByRecency,
+  IRAN_TIME_ZONE,
+  localIsoDate,
+} from "@fitician/core";
+import type { RecencyQueueGroup } from "@fitician/core";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import * as api from "./api";
 import type { PhysicianSupplementOrderInput, SupplementOrder } from "./api";
@@ -12,6 +22,7 @@ import "./nutritionEstimate.css";
 type Review = Awaited<ReturnType<typeof api.listPhysicianReviews>>[number];
 type QueueView = api.PhysicianQueueView;
 type ClinicalTab = "plan" | "labs" | "supplements" | "notes";
+type PhysicianQueueGroup = RecencyQueueGroup<Review>;
 
 const emptyOrder = {
   supplementId: "",
@@ -47,6 +58,10 @@ export function PhysicianNutritionReviewPage() {
   const [orders, setOrders] = useState<SupplementOrder[]>([]);
   const [orderForm, setOrderForm] = useState(emptyOrder);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const groupedReviews = useMemo(
+    () => groupReviewQueueByRecency(reviews, (review) => review.requested_at),
+    [reviews],
+  );
 
   const load = (view: QueueView = activeView) => api.listPhysicianReviews(view)
     .then((items) => { setReviews(items); setQueues((current) => ({ ...current, [view]: items })); setError(false); })
@@ -183,7 +198,7 @@ export function PhysicianNutritionReviewPage() {
           </div>
           {loading && <p role="status">{l("در حال دریافت پرونده‌ها…", "Loading cases…")}</p>}
           {!loading && reviews.length === 0 && <p className="physician-review-empty">{l("پرونده‌ای در این صف نیست.", "This queue is clear.")}</p>}
-          <div className="physician-review-cases">{reviews.map((review) => <article key={review.review_id} className={selectedPlan?.id === review.plan_id ? "is-selected" : undefined}><div className="physician-review-member"><ProfilePhotoAvatar url={review.member_profile_photo_url} label={review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="sm" /><small>{review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small></div><strong>{review.status}</strong><span>{review.overdue ? l("گذشته از موعد", "Overdue") : l("نسخه تغذیه", "Nutrition plan")}</span><button type="button" onClick={() => void claimAndOpen(review)}>{activeView === "pending" ? l("شروع بررسی", "Claim and view revision") : l("مشاهده پرونده", "View revision")}</button></article>)}</div>
+          <div className="physician-review-cases">{groupedReviews.map((group) => <section className="physician-review-case-group" key={group.key}><h3>{queueGroupTitle(group, fa)}</h3>{group.items.map((review) => <article key={review.review_id} className={selectedPlan?.id === review.plan_id ? "is-selected" : undefined}><div className="physician-review-member"><ProfilePhotoAvatar url={review.member_profile_photo_url} label={review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")} size="sm" /><small>{review.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small></div><strong>{review.status}</strong><span>{review.overdue ? l("گذشته از موعد", "Overdue") : l("نسخه تغذیه", "Nutrition plan")}</span><small>{l("ارسال‌شده", "Sent")}: {formatTehranDateTimeForLocale(review.requested_at, fa ? "fa-IR" : "en-US")}</small><button type="button" onClick={() => void claimAndOpen(review)}>{activeView === "pending" ? l("شروع بررسی", "Claim and view revision") : l("مشاهده پرونده", "View revision")}</button></article>)}</section>)}</div>
         </aside>
         <section className="physician-review-canvas" aria-live="polite">
           {!selectedPlan && <div className="physician-review-placeholder"><span aria-hidden="true">✦</span><h2>{l("یک پرونده را انتخاب کن", "Choose a case from the queue")}</h2><p>{l("نسخه، آزمایش‌ها، مکمل‌ها و یادداشت‌های بالینی اینجا نمایش داده می‌شوند.", "The plan, lab documents, supplements, and clinical notes will appear here.")}</p></div>}
@@ -215,4 +230,17 @@ export function PhysicianNutritionReviewPage() {
       </div>
     </main>
   </div>;
+}
+
+function queueGroupTitle(group: PhysicianQueueGroup, fa: boolean): string {
+  if (group.kind === "day") {
+    const date = fa ? formatPersianDateWithWeekday(group.date) : formatIsoDate(group.date, "en-US");
+    const today = localIsoDate(new Date(), IRAN_TIME_ZONE);
+    return group.date === today ? `${fa ? "امروز" : "Today"} · ${date}` : date;
+  }
+  if (group.kind === "month") return fa ? "ماه قبل" : "Previous month";
+  const weekNumber = group.key.slice(-1);
+  const start = fa ? formatPersianDate(group.startDate) : formatIsoDate(group.startDate, "en-US");
+  const end = fa ? formatPersianDate(group.endDate) : formatIsoDate(group.endDate, "en-US");
+  return fa ? `هفتهٔ ${weekNumber} قبل · ${start} تا ${end}` : `Week ${weekNumber} · ${start} – ${end}`;
 }
