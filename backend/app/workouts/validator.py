@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from app.exercises.enums import (
     PrescriptionMode,
 )
 from app.workouts.program_engine.exercise_semantics import LEG_EXTENSION_PRIMER_FAMILY
+from app.workouts.program_engine.session_coherence import hierarchy_for_focus
 from app.workouts.schemas import CandidateSet, WorkoutExerciseCandidate
 from app.workouts.time_budget import (
     ExerciseTiming,
@@ -56,11 +58,13 @@ class WorkoutPlanValidator:
         candidates: CandidateSet,
         policy: WorkoutGenerationPolicy,
         required_day_count: int,
+        day_focuses: Mapping[int, str] | None = None,
     ) -> None:
         self._candidates = candidates
         self._policy = policy
         self._required_day_count = required_day_count
         self._candidate_by_id = {candidate.id: candidate for candidate in candidates.exercises}
+        self._day_focuses = dict(day_focuses or {})
 
     def validate(self, plan: WorkoutPlanModelOutput) -> None:
         problems: list[ValidationProblem] = []
@@ -184,21 +188,52 @@ class WorkoutPlanValidator:
                 )
             )
 
+        self._validate_exercise_order(day.day_number, selected, problems)
+
+    def _validate_exercise_order(
+        self,
+        day_number: int,
+        selected: list[WorkoutExerciseCandidate],
+        problems: list[ValidationProblem],
+    ) -> None:
+        hierarchy = (
+            hierarchy_for_focus(self._day_focuses[day_number])
+            if day_number in self._day_focuses
+            else ()
+        )
+        block_by_muscle = {
+            muscle: block_index for block_index, block in enumerate(hierarchy) for muscle in block
+        }
         seen_smaller_movement = False
+        smaller_movement_block: int | None = None
         squat_seen = False
         has_squat = any(
             candidate.movement_pattern is MovementPattern.SQUAT for candidate in selected
         )
         for candidate in selected:
+            candidate_block = (
+                block_by_muscle.get(candidate.primary_muscle)
+                if candidate.primary_muscle is not None
+                else None
+            )
             if candidate.exercise_type is ExerciseType.COMPOUND and seen_smaller_movement:
-                problems.append(
-                    ValidationProblem(
-                        code="compound_order",
-                        message="Compound exercises must appear before isolation movements.",
-                        day_number=day.day_number,
-                    )
+                starts_new_muscle_block = (
+                    smaller_movement_block is not None
+                    and candidate_block is not None
+                    and candidate_block > smaller_movement_block
                 )
-                break
+                if starts_new_muscle_block:
+                    seen_smaller_movement = False
+                    smaller_movement_block = None
+                else:
+                    problems.append(
+                        ValidationProblem(
+                            code="compound_order",
+                            message="Compound exercises must appear before isolation movements.",
+                            day_number=day_number,
+                        )
+                    )
+                    break
             is_safe_leg_extension_primer = (
                 has_squat and not squat_seen and _is_leg_extension_primer(candidate)
             )
@@ -209,6 +244,7 @@ class WorkoutPlanValidator:
                 and not is_safe_leg_extension_primer
             ):
                 seen_smaller_movement = True
+                smaller_movement_block = candidate_block
 
     @staticmethod
     def _validate_notes(

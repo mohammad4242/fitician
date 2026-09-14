@@ -15,6 +15,7 @@ from app.exercises.enums import (
     MovementPattern,
 )
 from app.exercises.models import Exercise
+from app.exercises.substitution_groups import effective_substitution_group
 from app.profile.enums import ExperienceLevel, TrainingCaution
 from app.workouts.program_engine.equipment import (
     effective_required_equipment,
@@ -151,7 +152,13 @@ class WorkoutCandidateSelector:
             prescription_mode=exercise.prescription_mode,
             duration_min_seconds=exercise.duration_min_seconds,
             duration_max_seconds=exercise.duration_max_seconds,
-            substitution_group=exercise.substitution_group,
+            substitution_group=effective_substitution_group(
+                name_en=exercise.name_en,
+                movement_pattern=exercise.movement_pattern,
+                primary_muscle=exercise.primary_muscle,
+                exercise_type=exercise.exercise_type,
+                persisted_group=exercise.substitution_group,
+            ),
         )
 
     def _cap_for_movement_coverage(

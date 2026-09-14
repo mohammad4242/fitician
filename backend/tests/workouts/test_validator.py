@@ -308,6 +308,53 @@ def test_validator_accepts_a_safe_leg_extension_primer_before_a_squat() -> None:
     )
 
 
+def test_validator_allows_a_new_muscle_block_to_restart_compound_order() -> None:
+    chest_id, hamstring_id, shoulder_id = FIRST_ID, SECOND_ID, THIRD_ID
+    candidates = CandidateSet(
+        exercises=(
+            _candidate(chest_id, pattern=MovementPattern.HORIZONTAL_PUSH),
+            _candidate(
+                hamstring_id,
+                pattern=MovementPattern.KNEE_FLEXION,
+                exercise_type=ExerciseType.ISOLATION,
+                muscle=MuscleGroup.HAMSTRINGS,
+            ),
+            _candidate(
+                shoulder_id,
+                pattern=MovementPattern.VERTICAL_PUSH,
+                muscle=MuscleGroup.SHOULDERS,
+            ),
+        ),
+        candidate_set_hash="a" * 64,
+        soft_cautions=(),
+        minimum_candidate_count=1,
+    )
+    validator = WorkoutPlanValidator(
+        candidates=candidates,
+        policy=WorkoutGenerationPolicy.for_session_duration(45),
+        required_day_count=1,
+        day_focuses={1: "full_body_a"},
+    )
+
+    validator.validate(
+        _plan(
+            [
+                WorkoutPlanDayOutput(
+                    day_number=1,
+                    title_en="Full body blocks",
+                    title_fa="بلوک‌های تمام بدن",
+                    estimated_duration_minutes=24,
+                    exercises=[
+                        _exercise(chest_id),
+                        _exercise(hamstring_id),
+                        _exercise(shoulder_id),
+                    ],
+                )
+            ]
+        )
+    )
+
+
 def test_cardio_cannot_fill_required_strength_slot() -> None:
     candidates = CandidateSet(
         exercises=(

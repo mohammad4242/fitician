@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.ai.schemas import WorkoutPlanDayOutput, WorkoutPlanExerciseOutput, WorkoutPlanModelOutput
 from app.exercises.enums import PrescriptionMode
 from app.exercises.models import Exercise
+from app.exercises.substitution_groups import effective_substitution_group
 from app.workout_reviews.enums import WorkoutReviewErrorCode
 from app.workout_reviews.repository import get_exercises
 from app.workout_reviews.schemas import WorkoutReviewDraftUpdate
@@ -152,6 +153,7 @@ class WorkoutReviewDraftValidator:
                 ),
                 policy=policy,
                 required_day_count=len(source.days),
+                day_focuses={day.day_number: day.focus for day in source.days},
             ).validate(model)
         except WorkoutPlanValidationError as error:
             raise DraftValidationError(
@@ -222,7 +224,13 @@ class WorkoutReviewDraftValidator:
             prescription_mode=exercise.prescription_mode,
             duration_min_seconds=exercise.duration_min_seconds,
             duration_max_seconds=exercise.duration_max_seconds,
-            substitution_group=exercise.substitution_group,
+            substitution_group=effective_substitution_group(
+                name_en=exercise.name_en,
+                movement_pattern=exercise.movement_pattern,
+                primary_muscle=exercise.primary_muscle,
+                exercise_type=exercise.exercise_type,
+                persisted_group=exercise.substitution_group,
+            ),
         )
 
 
