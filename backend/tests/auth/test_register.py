@@ -37,7 +37,9 @@ def test_register_rejects_duplicate_email(client: TestClient) -> None:
     response = client.post("/api/v1/auth/register", headers=headers, json=payload)
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Email is already registered"}
+    assert response.json()["detail"]["code"] == "AUTH_EMAIL_ALREADY_REGISTERED"
+    assert response.json()["detail"]["message"] == "این ایمیل قبلاً ثبت شده است."
+    assert response.json()["detail"]["retryable"] is False
 
 
 def test_register_rejects_invalid_input(client: TestClient) -> None:
@@ -101,7 +103,9 @@ def test_database_failure_returns_503_and_rolls_back_user(
     monkeypatch.setattr(db, "commit", original_commit)
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Service temporarily unavailable"}
+    assert response.json()["detail"]["code"] == "SERVICE_UNAVAILABLE"
+    assert response.json()["detail"]["retryable"] is True
+    assert response.json()["detail"]["request_id"]
     assert db.scalar(select(User).where(User.email == "rollback@example.com")) is None
 
 

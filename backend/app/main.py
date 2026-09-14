@@ -1,11 +1,11 @@
 import asyncio
 import logging
 import mimetypes
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -47,6 +47,12 @@ from app.entitlements.exceptions import (
     EntitlementRequiredError,
 )
 from app.entitlements.router import router as entitlements_router
+from app.errors import (
+    CORRELATION_ID_HEADER,
+    build_error_response,
+    create_request_id,
+    error_response,
+)
 from app.exercises.router import router as exercises_router
 from app.notifications.router import router as notifications_router
 from app.nutrition.price_scheduler import scheduler_loop
@@ -142,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=[
             "Content-Type",
             "Idempotency-Key",
+            CORRELATION_ID_HEADER,
             "X-Fitician-Food-Photo-Consent",
             "X-Fitician-Client-Crop-Confirmed",
             "X-Fitician-Client-Crop-Confidence",
@@ -151,125 +158,152 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "X-Fitician-Processed-SHA256",
             "X-Fitician-Crop-Evidence-SHA256",
         ],
+        expose_headers=[CORRELATION_ID_HEADER],
     )
+
+    @app.middleware("http")
+    async def correlation_id_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        request_id = create_request_id(request.headers.get(CORRELATION_ID_HEADER))
+        request.state.request_id = request_id
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("Unhandled request exception", extra={"request_id": request_id})
+            raise
+        response.headers[CORRELATION_ID_HEADER] = request_id
+        return response
+
+    def request_id(request: Request) -> str:
+        return create_request_id(getattr(request.state, "request_id", None))
+
+    @app.exception_handler(HTTPException)
+    async def http_error_handler(request: Request, error: HTTPException) -> JSONResponse:
+        return build_error_response(error, request_id(request))
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error_handler(
-        _request: Request,
+        request: Request,
         _error: SQLAlchemyError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={"detail": "Service temporarily unavailable"},
+        logger.exception(
+            "Database request failed",
+            extra={"request_id": request_id(request)},
+        )
+        return error_response(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            {"code": "SERVICE_UNAVAILABLE"},
+            request_id(request),
         )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(
-        _request: Request,
+        request: Request,
         error: RequestValidationError,
     ) -> JSONResponse:
         error_types = {item["type"] for item in error.errors()}
+        error_code: str | None = None
+        error_message: str | None = None
         if "AGE_NOT_SUPPORTED" in error_types:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                content={
-                    "detail": {
-                        "code": "AGE_NOT_SUPPORTED",
-                        "message": "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود.",
-                    }
-                },
-            )
-        if "AGE_OUT_OF_RANGE" in error_types:
-            return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                content={
-                    "detail": {
-                        "code": "AGE_OUT_OF_RANGE",
-                        "message": "تاریخ تولد واردشده پشتیبانی نمی‌شود.",
-                    }
-                },
-            )
-        safe_errors = [
-            {
-                "type": item["type"],
-                "loc": item["loc"],
-                "msg": item["msg"],
-            }
-            for item in error.errors()
-        ]
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={"detail": safe_errors},
+            error_code = "AGE_NOT_SUPPORTED"
+            error_message = "فیتیشن در حال حاضر فقط برای افراد ۱۸ سال و بالاتر ارائه می‌شود."
+        elif "AGE_OUT_OF_RANGE" in error_types:
+            error_code = "AGE_OUT_OF_RANGE"
+            error_message = "تاریخ تولد واردشده پشتیبانی نمی‌شود."
+        return error_response(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            {"code": error_code or "VALIDATION_ERROR", "message": error_message}
+            if error_code is not None
+            else {"code": "VALIDATION_ERROR"},
+            request_id(request),
+            fields=error.errors(),
+            retryable=False,
         )
 
     @app.exception_handler(EntitlementRequiredError)
     async def entitlement_required_error_handler(
-        _request: Request,
+        request: Request,
         error: EntitlementRequiredError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={
-                "detail": {
-                    "code": "ENTITLEMENT_REQUIRED",
-                    "entitlement": error.entitlement.value,
-                    "eligible_packages": [package.value for package in error.eligible_packages],
-                }
+        return error_response(
+            status.HTTP_403_FORBIDDEN,
+            {"code": "ENTITLEMENT_REQUIRED"},
+            request_id(request),
+            meta={
+                "entitlement": error.entitlement.value,
+                "eligible_packages": [package.value for package in error.eligible_packages],
             },
+            retryable=False,
         )
 
     @app.exception_handler(EntitlementQuotaExceededError)
     async def entitlement_quota_error_handler(
-        _request: Request,
+        request: Request,
         error: EntitlementQuotaExceededError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        return error_response(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            {"code": "ENTITLEMENT_QUOTA_EXCEEDED"},
+            request_id(request),
             headers={"Retry-After": str(error.retry_after_seconds)},
-            content={
-                "detail": {
-                    "code": "ENTITLEMENT_QUOTA_EXCEEDED",
-                    "entitlement": error.entitlement.value,
-                    "reset_at": error.reset_at.isoformat(),
-                    "retry_after_seconds": error.retry_after_seconds,
-                }
+            meta={
+                "entitlement": error.entitlement.value,
+                "reset_at": error.reset_at.isoformat(),
+                "retry_after_seconds": error.retry_after_seconds,
             },
+            retryable=True,
         )
 
     @app.exception_handler(AccessTermTooShortError)
     async def access_term_too_short_error_handler(
-        _request: Request,
+        request: Request,
         error: AccessTermTooShortError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={
-                "detail": {
-                    "code": "ACCESS_TERM_TOO_SHORT",
-                    "requested_weeks": error.requested_weeks,
-                    "maximum_weeks": error.maximum_weeks,
-                }
+        return error_response(
+            status.HTTP_403_FORBIDDEN,
+            {"code": "ACCESS_TERM_TOO_SHORT"},
+            request_id(request),
+            meta={
+                "requested_weeks": error.requested_weeks,
+                "maximum_weeks": error.maximum_weeks,
             },
+            retryable=False,
         )
 
     @app.exception_handler(BillingError)
     async def billing_error_handler(
-        _request: Request,
+        request: Request,
         error: BillingError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=error.status_code,
-            content={"detail": {"code": error.code, "message": error.message}},
+        return error_response(
+            error.status_code,
+            {"code": error.code, "message": error.message},
+            request_id(request),
         )
 
     @app.exception_handler(AccessManagementError)
     async def access_management_error_handler(
-        _request: Request,
+        request: Request,
         error: AccessManagementError,
     ) -> JSONResponse:
-        return JSONResponse(
-            status_code=error.status_code,
-            content={"detail": {"code": error.code, "message": error.message}},
+        return error_response(
+            error.status_code,
+            {"code": error.code, "message": error.message},
+            request_id(request),
+        )
+
+    @app.exception_handler(Exception)
+    async def internal_error_handler(request: Request, _error: Exception) -> JSONResponse:
+        logger.exception(
+            "Unhandled application exception",
+            extra={"request_id": request_id(request)},
+        )
+        return error_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"code": "INTERNAL_SERVER_ERROR"},
+            request_id(request),
         )
 
     app.include_router(auth_router)

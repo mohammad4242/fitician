@@ -114,16 +114,24 @@ def test_standardized_entitlement_errors_are_structured(client: TestClient) -> N
     quota_response = client.get("/test-entitlement-quota")
 
     assert missing_response.status_code == 403
-    assert missing_response.json()["detail"] == {
-        "code": "ENTITLEMENT_REQUIRED",
+    missing_detail = missing_response.json()["detail"]
+    assert missing_detail["code"] == "ENTITLEMENT_REQUIRED"
+    assert missing_detail["message"]
+    assert missing_detail["retryable"] is False
+    assert missing_detail["meta"] == {
         "entitlement": "training.plan.generate",
         "eligible_packages": ["training", "training_coach", "complete", "complete_care"],
     }
+    assert missing_detail["request_id"]
     assert quota_response.status_code == 429
     assert quota_response.headers["retry-after"] == "123"
-    assert quota_response.json()["detail"] == {
-        "code": "ENTITLEMENT_QUOTA_EXCEEDED",
+    quota_detail = quota_response.json()["detail"]
+    assert quota_detail["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
+    assert quota_detail["message"]
+    assert quota_detail["retryable"] is True
+    assert quota_detail["meta"] == {
         "entitlement": "body_analysis.run",
         "reset_at": "2026-09-19T00:00:00+00:00",
         "retry_after_seconds": 123,
     }
+    assert quota_detail["request_id"]

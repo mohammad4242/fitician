@@ -222,7 +222,10 @@ def test_unconfigured_analysis_returns_safe_failure_without_changing_photo_sessi
 
     db.refresh(photo_session)
     assert response.status_code == 503
-    assert response.json() == {"detail": "Body analysis is temporarily unavailable"}
+    detail = response.json()["detail"]
+    assert detail["code"] == "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"
+    assert detail["retryable"] is True
+    assert detail["request_id"]
     assert photo_session.state is BodyPhotoSessionState.QUEUED
 
 
@@ -272,8 +275,8 @@ def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
     assert new_session.status_code == 429
     detail = new_session.json()["detail"]
     assert detail["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
-    assert detail["entitlement"] == "body_analysis.run"
-    reset_at = datetime.fromisoformat(detail["reset_at"])
+    assert detail["meta"]["entitlement"] == "body_analysis.run"
+    reset_at = datetime.fromisoformat(detail["meta"]["reset_at"])
     assert reset_at > datetime.now(UTC)
 
 
@@ -294,20 +297,19 @@ def test_v4_start_returns_structured_missing_measurement_fields(
     )
 
     assert response.status_code == 422
-    assert response.json() == {
-        "detail": {
-            "code": "missing_body_analysis_inputs",
-            "missing_fields": [
-                "sex",
-                "height_cm",
-                "weight_kg",
-                "shoulder_circumference_cm",
-                "waist_circumference_cm",
-                "hip_circumference_cm",
-                "fitness_goal",
-            ],
-        }
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_body_analysis_inputs"
+    assert detail["retryable"] is False
+    assert detail["meta"]["missing_fields"] == [
+        "sex",
+        "height_cm",
+        "weight_kg",
+        "shoulder_circumference_cm",
+        "waist_circumference_cm",
+        "hip_circumference_cm",
+        "fitness_goal",
+    ]
+    assert [field["field"] for field in detail["fields"]] == detail["meta"]["missing_fields"]
 
 
 def test_start_and_retry_do_not_disclose_another_users_photo_session(
