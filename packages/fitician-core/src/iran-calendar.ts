@@ -283,3 +283,36 @@ export function formatTehranTime(isoTimestamp: string): string {
   const parts = isoTimestampToTehranJalaliParts(isoTimestamp);
   return `${formatPersianCalendarNumber(parts.hour).padStart(2, "۰")}:${formatPersianCalendarNumber(parts.minute).padStart(2, "۰")}`;
 }
+
+export function formatTehranDateForLocale(
+  isoTimestamp: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: IRAN_TIME_ZONE,
+  }).format(timestampAsDate(isoTimestamp));
+}
+
+export function formatTehranDateTimeForLocale(
+  isoTimestamp: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" },
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: IRAN_TIME_ZONE,
+  }).format(timestampAsDate(isoTimestamp));
+}
+
+export function formatTehranTimeForLocale(
+  isoTimestamp: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" },
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: IRAN_TIME_ZONE,
+  }).format(timestampAsDate(isoTimestamp));
+}

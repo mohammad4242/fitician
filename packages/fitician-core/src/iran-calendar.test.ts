@@ -10,8 +10,11 @@ import {
   formatPersianWeekday,
   formatIsoDate,
   formatTehranDate,
+  formatTehranDateForLocale,
   formatTehranDateTime,
+  formatTehranDateTimeForLocale,
   formatTehranTime,
+  formatTehranTimeForLocale,
   daysInJalaliMonth,
   isValidJalaliDate,
   isoDateToJalaliParts,
@@ -137,6 +140,16 @@ it("formats an instant at the Tehran boundary in Tehran time", () => {
   expect(formatTehranTime("2026-09-13T20:45:00Z")).toBe("۰۰:۱۵");
   expect(formatTehranDateTime("2026-09-13T20:45:00Z")).toBe("۲۳ شهریور ۱۴۰۵، ۰:۱۵");
   expect(IRAN_TIME_ZONE).toBe("Asia/Tehran");
+});
+
+it("formats Tehran instants for the requested locale", () => {
+  const value = "2026-09-13T20:45:00Z";
+
+  expect(formatTehranDateForLocale(value, "en-US")).toBe("Sep 14, 2026");
+  expect(formatTehranDateTimeForLocale(value, "en-US")).toBe("Sep 14, 2026, 12:15 AM");
+  expect(formatTehranTimeForLocale(value, "en-US")).toBe("12:15 AM");
+  expect(formatTehranDateForLocale(value, "fa-IR")).toBe("۲۳ شهریور ۱۴۰۵");
+  expect(() => formatTehranDateForLocale("not-a-timestamp", "en-US")).toThrow(RangeError);
 });
 
 it("rejects malformed or impossible ISO date-only values", () => {
