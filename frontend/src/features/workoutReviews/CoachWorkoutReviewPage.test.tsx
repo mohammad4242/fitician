@@ -168,6 +168,7 @@ it("shows the three review queues and claims a pending plan", async () => {
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
 
   expect(api.claimWorkoutReview).toHaveBeenCalledWith("review-1");
+  expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
   expect(await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeEnabled();
 });
 

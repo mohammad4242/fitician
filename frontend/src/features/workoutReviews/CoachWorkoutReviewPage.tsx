@@ -95,12 +95,14 @@ export function CoachWorkoutReviewPage() {
     setBusy(true);
     setError(null);
     try {
+      const nextView = item.status === "pending" ? "mine" : view;
       openDetail(
         item.status === "pending"
           ? await claimWorkoutReview(item.id)
           : await getWorkoutReview(item.id),
       );
-      await loadQueue(item.status === "pending" ? "mine" : view);
+      if (nextView !== view) setView(nextView);
+      await loadQueue(nextView);
     } catch {
       setError(l("این پرونده در اختیار مربی دیگری است یا دیگر قابل بررسی نیست.", "Another coach owns this case, or it is no longer reviewable."));
       await loadQueue(view);
