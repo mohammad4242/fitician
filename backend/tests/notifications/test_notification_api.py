@@ -103,7 +103,7 @@ def test_notification_endpoints_require_native_bearer_auth(client: TestClient) -
     response = client.get("/api/v1/notifications/preferences")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Bearer authentication required"
+    assert response.json()["detail"]["code"] == "BEARER_AUTHENTICATION_REQUIRED"
 
 
 def test_notification_devices_are_user_scoped_and_delete_cascades_tokens(

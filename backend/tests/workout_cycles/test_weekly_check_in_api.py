@@ -179,7 +179,7 @@ def test_get_returns_404_when_current_week_has_no_check_in(
     response = client.get("/api/v1/workout-cycles/current/weekly-check-in")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No weekly check-in for current week"}
+    assert response.json()["detail"]["code"] == "WORKOUT_WEEKLY_CHECKIN_NOT_FOUND"
 
 
 def test_put_creates_current_weeks_check_in_without_client_week_number(
@@ -271,7 +271,7 @@ def test_another_users_cycle_and_check_in_are_never_returned(
     response = client.get("/api/v1/workout-cycles/current/weekly-check-in")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"
 
 
 def test_invalid_sessions_are_rejected(client: TestClient, db: Session) -> None:
@@ -285,9 +285,10 @@ def test_invalid_sessions_are_rejected(client: TestClient, db: Session) -> None:
     )
 
     assert response.status_code == 422
-    assert response.json() == {
-        "detail": "Completed sessions must be within the plan's prescribed weekly days"
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "WORKOUT_CHECKIN_INVALID"
+    assert detail["message"]
+    assert detail["retryable"] is False
 
 
 def test_invalid_difficulty_and_recovery_are_rejected(client: TestClient, db: Session) -> None:
@@ -324,7 +325,7 @@ def test_invalid_pain_reference_is_rejected(client: TestClient, db: Session) -> 
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Workout plan exercise not found in current cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_CYCLE_EXERCISE_NOT_FOUND"
     assert owner_cycle.user_id == owner_id
 
 
@@ -338,4 +339,4 @@ def test_put_returns_404_without_an_active_cycle(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"

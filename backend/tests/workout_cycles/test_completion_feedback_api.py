@@ -115,7 +115,10 @@ def test_completion_before_nominal_cycle_end_is_rejected(
     )
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Workout cycle has not reached its end"}
+    detail = response.json()["detail"]
+    assert detail["code"] == "WORKOUT_CYCLE_NOT_COMPLETE"
+    assert detail["message"]
+    assert detail["retryable"] is False
 
 
 def test_another_users_cycle_is_never_exposed(
@@ -129,4 +132,4 @@ def test_another_users_cycle_is_never_exposed(
     response = client.get("/api/v1/workout-cycles/current/completion-feedback")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No workout cycle available"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"

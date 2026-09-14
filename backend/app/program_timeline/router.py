@@ -24,9 +24,9 @@ def read_program_timeline_today(
     if timezone is not None:
         try:
             timezone = validate_timezone_name(timezone)
-        except ValueError as error:
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=str(error),
+                detail={"code": "TIMEZONE_INVALID"},
             ) from None
     return build_program_timeline(db, user_id=user.id, timezone_name=timezone)

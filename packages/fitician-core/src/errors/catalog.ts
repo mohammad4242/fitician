@@ -257,6 +257,30 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("حذف نسخه برنامه انجام نشد", "Plan version could not be deleted"),
     text("حذف نسخه قدیمی برنامه انجام نشد. دوباره تلاش کنید.", "The old workout plan version could not be deleted. Try again."),
   ),
+  WORKOUT_CYCLE_ALREADY_STARTED: entry(
+    text("چرخه قبلاً شروع شده است", "Workout cycle already started"),
+    text("این برنامه قبلاً با تاریخ دیگری شروع شده است.", "This plan has already been started with another date."),
+  ),
+  WORKOUT_CYCLE_INPUT_INVALID: entry(
+    text("اطلاعات چرخه معتبر نیست", "Workout cycle input is invalid"),
+    text("اطلاعات چرخه تمرینی معتبر نیست.", "The workout cycle information is invalid."),
+  ),
+  WORKOUT_CYCLE_FEEDBACK_NOT_FOUND: entry(
+    text("بازخورد چرخه پیدا نشد", "Cycle feedback not found"),
+    text("بازخورد چرخه تمرینی پیدا نشد.", "The workout cycle feedback was not found."),
+  ),
+  WORKOUT_WEEKLY_CHECKIN_NOT_FOUND: entry(
+    text("چک‌این هفتگی پیدا نشد", "Weekly check-in not found"),
+    text("چک‌این هفتگی این هفته پیدا نشد.", "The weekly check-in for this week was not found."),
+  ),
+  WORKOUT_SESSION_DATE_CONFLICT: entry(
+    text("تاریخ جلسه تکراری است", "Workout session date conflict"),
+    text("جلسه دیگری برای این تاریخ برنامه‌ریزی شده است.", "Another workout session is already scheduled for this date."),
+  ),
+  TIMEZONE_INVALID: entry(
+    text("منطقه زمانی معتبر نیست", "Timezone is invalid"),
+    text("منطقه زمانی معتبر نیست.", "The selected timezone is invalid."),
+  ),
   WORKOUT_PDF_UNAVAILABLE: entry(
     text("دانلود PDF انجام نشد", "PDF download failed"),
     text("فایل PDF برنامه آماده نشد. دوباره تلاش کنید.", "The workout-plan PDF could not be prepared. Try again."),
@@ -506,6 +530,58 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   REVIEW_INVALID_STATE: entry(
     text("وضعیت بررسی تغییر کرده است", "Review state changed"),
     text("این بررسی دیگر در وضعیت قابل انجام نیست. پرونده را دوباره بازخوانی کنید.", "This review is no longer in an actionable state. Reload the case."),
+  ),
+  REVIEW_NOT_FOUND: entry(
+    text("بررسی برنامه پیدا نشد", "Workout review not found"),
+    text("بررسی برنامه پیدا نشد.", "The workout review was not found."),
+  ),
+  REVIEW_NOT_CLAIMED: entry(
+    text("بررسی به نام شما ثبت نشده است", "Review is not claimed"),
+    text("ابتدا باید بررسی را به نام خود ثبت کنید.", "Claim the review before continuing."),
+  ),
+  REVIEW_ALREADY_CLAIMED: entry(
+    text("بررسی در اختیار مربی دیگری است", "Review is claimed by another coach"),
+    text("این بررسی در اختیار مربی دیگری است.", "This review is currently claimed by another coach."),
+  ),
+  REVIEW_LEASE_EXPIRED: entry(
+    text("مهلت بررسی تمام شده است", "Review lease expired"),
+    text("مهلت بررسی تمام شده است. بررسی را دوباره دریافت کنید.", "The review lease expired. Load the review again."),
+  ),
+  STALE_DRAFT_REVISION: entry(
+    text("نسخه پیش‌نویس تغییر کرده است", "Draft revision changed"),
+    text("نسخه پیش‌نویس تغییر کرده است. اطلاعات را دوباره دریافت کنید.", "The draft revision changed. Reload the review."),
+  ),
+  INVALID_DRAFT: entry(
+    text("پیش‌نویس برنامه معتبر نیست", "Invalid workout draft"),
+    text("پیش‌نویس برنامه با محدودیت‌های فعلی سازگار نیست.", "The workout draft is not compatible with the current constraints."),
+  ),
+  EXERCISE_NOT_ALLOWED: entry(
+    text("حرکت برای برنامه مجاز نیست", "Exercise is not allowed"),
+    text("یکی از حرکات انتخاب‌شده برای این برنامه مجاز نیست.", "One selected exercise is not allowed for this plan."),
+  ),
+  REVIEW_ALREADY_APPROVED: entry(
+    text("بررسی قبلاً تأیید شده است", "Review already approved"),
+    text("این بررسی قبلاً تأیید شده است.", "This review has already been approved."),
+  ),
+  REVIEW_ALREADY_REJECTED: entry(
+    text("بررسی قبلاً رد شده است", "Review already rejected"),
+    text("این بررسی قبلاً رد شده است.", "This review has already been rejected."),
+  ),
+  REVIEW_EXPLANATION_REQUIRED: entry(
+    text("توضیح رد برنامه لازم است", "Rejection explanation required"),
+    text("برای رد برنامه، توضیح مربی لازم است.", "A coach explanation is required to reject the plan."),
+  ),
+  REVIEW_SUPERSEDED: entry(
+    text("بررسی با نسخه جدید جایگزین شده است", "Review was superseded"),
+    text("این بررسی با نسخه جدید برنامه جایگزین شده است.", "This review was superseded by a newer plan version."),
+  ),
+  PLAN_STRUCTURE_CHANGED: entry(
+    text("ساختار برنامه تغییر کرده است", "Plan structure changed"),
+    text("ساختار روزها و حرکت‌های برنامه نباید تغییر کند.", "The plan days and exercise slots cannot be changed."),
+  ),
+  PRESCRIPTION_MODE_MISMATCH: entry(
+    text("نوع تجویز سازگار نیست", "Prescription mode mismatch"),
+    text("نوع تجویز با اطلاعات حرکت انتخاب‌شده سازگار نیست.", "The prescription mode does not match the selected exercise."),
   ),
   ENTITLEMENT_REQUIRED: entry(
     text("دسترسی لازم فعال نیست", "Access is required"),

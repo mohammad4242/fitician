@@ -133,7 +133,7 @@ def save_review_draft(
     except DraftValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={"code": error.code.value, "problems": error.problems},
+            detail={"code": error.code.value, "meta": {"problems": error.problems}},
         ) from error
     except ReviewConflict as error:
         raise _http_conflict(error) from error
@@ -162,7 +162,7 @@ def approve_review(
     except DraftValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={"code": error.code.value, "problems": error.problems},
+            detail={"code": error.code.value, "meta": {"problems": error.problems}},
         ) from error
     except ReviewConflict as error:
         raise _http_conflict(error) from error
@@ -208,7 +208,7 @@ def _http_conflict(error: ReviewConflict) -> HTTPException:
     )
     return HTTPException(
         status_code=status_code,
-        detail={"code": error.code.value, "message": str(error)},
+        detail={"code": error.code.value},
     )
 
 

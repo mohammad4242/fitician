@@ -53,7 +53,7 @@ def upsert_current_notification_device(
     except NotificationProviderMismatchError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Notification provider does not match the device platform",
+            detail={"code": "NOTIFICATION_PROVIDER_MISMATCH"},
         ) from None
 
 
@@ -68,7 +68,7 @@ def remove_notification_device(
     except NotificationDeviceNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notification device not found",
+            detail={"code": "NOTIFICATION_DEVICE_NOT_FOUND"},
         ) from None
 
 

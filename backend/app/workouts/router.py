@@ -94,7 +94,10 @@ def read_active_plan(
         review_required=has_entitlement(db, user.id, EntitlementCode.TRAINING_COACH_REVIEW),
     )
     if active is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active workout plan")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "WORKOUT_ACTIVE_PLAN_NOT_FOUND"},
+        )
     return to_plan_response(active.plan, is_stale=active.is_stale, db=db)
 
 
@@ -128,13 +131,13 @@ async def generate_plan(
     except GenerationCooldownError as error:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Workout plan generation is cooling down",
+            detail={"code": "WORKOUT_GENERATION_COOLDOWN"},
             headers={"Retry-After": str(error.retry_after_seconds)},
         ) from None
     except GenerationInProgressError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout plan generation is already in progress",
+            detail={"code": "WORKOUT_GENERATION_IN_PROGRESS"},
         ) from None
     except NoEligibleExercisesError as error:
         raise HTTPException(
@@ -175,7 +178,7 @@ async def generate_plan(
         status_code = _provider_failure_status(error.provider_error_code)
         raise HTTPException(
             status_code=status_code,
-            detail="Workout plan generation is temporarily unavailable",
+            detail={"code": "WORKOUT_GENERATION_FAILED"},
         ) from None
     return WorkoutPlanGenerateResponse(
         plan=to_plan_response(result.plan, db=db),
@@ -213,11 +216,14 @@ def delete_plan(
 ) -> None:
     plan = get_plan_for_deletion(db, plan_id=plan_id, user_id=user.id)
     if plan is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workout plan not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "WORKOUT_PLAN_NOT_FOUND"},
+        )
     if plan.status not in {WorkoutPlanStatus.SUPERSEDED, WorkoutPlanStatus.FAILED}:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This workout plan version cannot be deleted",
+            detail={"code": "WORKOUT_PLAN_DELETE_FAILED"},
         )
     plan.deleted_at = datetime.now(UTC)
     db.commit()
@@ -235,7 +241,10 @@ def download_plan_pdf(
 ) -> Response:
     plan = get_plan_for_user(db, plan_id=plan_id, user_id=user.id)
     if plan is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workout plan not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "WORKOUT_PLAN_NOT_FOUND"},
+        )
     content = render_workout_plan_pdf(to_plan_response(plan, db=db))
     return Response(
         content=content,
@@ -254,7 +263,10 @@ def read_plan(
 ) -> WorkoutPlanResponse:
     plan = get_plan_for_user(db, plan_id=plan_id, user_id=user.id)
     if plan is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workout plan not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "WORKOUT_PLAN_NOT_FOUND"},
+        )
     return to_plan_response(plan, db=db)
 
 

@@ -122,22 +122,22 @@ def start_current_cycle(
     except WorkoutCycleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout plan not found",
+            detail={"code": "WORKOUT_PLAN_NOT_FOUND"},
         ) from None
     except WorkoutCycleAlreadyStartedError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout plan has already been started with another date",
+            detail={"code": "WORKOUT_CYCLE_ALREADY_STARTED"},
         ) from None
     except WorkoutCyclePlanInactiveError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout plan is not executable",
+            detail={"code": "WORKOUT_PLAN_NOT_EXECUTABLE"},
         ) from None
-    except ValueError as error:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
+            detail={"code": "WORKOUT_CYCLE_INPUT_INVALID"},
         ) from None
     return _cycle_response(cycle, timezone_name=payload.timezone)
 
@@ -151,7 +151,7 @@ def read_current_cycle(
     if cycle is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active workout cycle",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         )
     return _cycle_response(
         cycle,
@@ -163,31 +163,31 @@ def _session_mutation_error(error: Exception) -> HTTPException:
     if isinstance(error, WorkoutCycleSessionNotFoundError):
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle session not found",
+            detail={"code": "WORKOUT_SESSION_NOT_FOUND"},
         )
     if isinstance(error, WorkoutCycleSessionAlreadyFinishedError):
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout cycle session is already finished",
+            detail={"code": "WORKOUT_SESSION_ALREADY_FINISHED"},
         )
     if isinstance(error, WorkoutCycleSessionNotActionableError):
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout cycle session is not actionable",
+            detail={"code": "WORKOUT_SESSION_NOT_ACTIONABLE"},
         )
     if isinstance(error, WorkoutCycleSessionDateConflictError):
         return HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Another workout session is already scheduled for that date",
+            detail={"code": "WORKOUT_SESSION_DATE_CONFLICT"},
         )
     if isinstance(error, WorkoutCycleSessionBeforeStartError):
         return HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Workout session cannot be scheduled before the cycle start date",
+            detail={"code": "WORKOUT_CYCLE_INPUT_INVALID"},
         )
     return HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        detail=str(error),
+        detail={"code": "WORKOUT_CYCLE_INPUT_INVALID"},
     )
 
 
@@ -300,7 +300,7 @@ def read_current_completion_feedback(
     except WorkoutCycleCompletionFeedbackNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No workout cycle available",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         ) from None
     return _completion_feedback_response(
         cycle,
@@ -327,20 +327,17 @@ def submit_current_completion_feedback_route(
     except WorkoutCycleCompletionFeedbackNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No workout cycle available",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         ) from None
     except WorkoutCycleCompletionFeedbackNotDueError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Workout cycle has not reached its end",
+            detail={"code": "WORKOUT_CYCLE_NOT_COMPLETE"},
         ) from None
-    except UnsupportedResistanceTrainingCombinationError as error:
+    except UnsupportedResistanceTrainingCombinationError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "code": "UNSUPPORTED_RESISTANCE_TRAINING_DAYS",
-                "message": str(error),
-            },
+            detail={"code": "UNSUPPORTED_RESISTANCE_TRAINING_DAYS"},
         ) from None
     return _completion_feedback_response(
         cycle,
@@ -386,12 +383,12 @@ def read_current_weekly_check_in(
     except WorkoutCycleWeeklyCheckInNoActiveCycleError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active workout cycle",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         ) from None
     except WorkoutCycleWeeklyCheckInNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No weekly check-in for current week",
+            detail={"code": "WORKOUT_WEEKLY_CHECKIN_NOT_FOUND"},
         ) from None
     return _weekly_check_in_response(check_in)
 
@@ -427,26 +424,26 @@ def upsert_current_weekly_check_in_route(
     except WorkoutCycleWeeklyCheckInNoActiveCycleError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active workout cycle",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         ) from None
     except WorkoutCycleWeeklyCheckInPainExerciseNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout plan exercise not found in current cycle",
+            detail={"code": "WORKOUT_CYCLE_EXERCISE_NOT_FOUND"},
         ) from None
-    except WorkoutCycleWeeklyCheckInSessionsOutOfRangeError as error:
+    except WorkoutCycleWeeklyCheckInSessionsOutOfRangeError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
+            detail={"code": "WORKOUT_CHECKIN_INVALID"},
         ) from None
     except (
         WorkoutCycleWeeklyCheckInPainExerciseRequiredError,
         WorkoutCycleWeeklyCheckInPainFollowUpNotAllowedError,
         ValueError,
-    ) as error:
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
+            detail={"code": "WORKOUT_CHECKIN_INVALID"},
         ) from None
     return _weekly_check_in_response(check_in)
 
@@ -474,22 +471,22 @@ def create_current_cycle_replacement(
     except WorkoutExerciseReplacementNoActiveCycleError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No active workout cycle",
+            detail={"code": "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"},
         ) from None
     except WorkoutExerciseReplacementPlanExerciseNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout plan exercise not found in current cycle",
+            detail={"code": "WORKOUT_CYCLE_EXERCISE_NOT_FOUND"},
         ) from None
     except WorkoutExerciseReplacementSelfError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Replacement exercise must differ from original exercise",
+            detail={"code": "WORKOUT_REPLACEMENT_NOT_ALLOWED"},
         ) from None
     except WorkoutExerciseReplacementAlternativeNotAllowedError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Replacement exercise is not an allowed alternative",
+            detail={"code": "WORKOUT_REPLACEMENT_NOT_ALLOWED"},
         ) from None
     return WorkoutExerciseReplacementResponse.model_validate(replacement)
 
@@ -512,7 +509,7 @@ def read_cycle_exercise_feedback_suggestions(
     except WorkoutCycleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle not found",
+            detail={"code": "WORKOUT_CYCLE_NOT_FOUND"},
         ) from None
     return WorkoutCycleExerciseFeedbackSuggestionsResponse(
         cycle_id=cycle_id,
@@ -534,7 +531,7 @@ def read_cycle_body_progress_comparison(
     except WorkoutCycleBodyProgressComparisonNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle not found",
+            detail={"code": "WORKOUT_CYCLE_NOT_FOUND"},
         ) from None
     return WorkoutCycleBodyProgressComparisonResponse(
         id=comparison.id,
@@ -563,11 +560,11 @@ def read_cycle_feedback_body_progress_context(
     except WorkoutCycleNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workout cycle not found",
+            detail={"code": "WORKOUT_CYCLE_NOT_FOUND"},
         ) from None
     if context is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cycle feedback not found",
+            detail={"code": "WORKOUT_CYCLE_FEEDBACK_NOT_FOUND"},
         )
     return context

@@ -239,8 +239,9 @@ def test_free_user_cannot_generate_a_workout_plan(client: TestClient, db: Sessio
     response = client.post("/api/v1/workout-plans/generate", headers=ORIGIN)
 
     assert response.status_code == 403
-    assert response.json()["detail"] == {
-        "code": "ENTITLEMENT_REQUIRED",
+    detail = response.json()["detail"]
+    assert detail["code"] == "ENTITLEMENT_REQUIRED"
+    assert detail["meta"] == {
         "entitlement": "training.plan.generate",
         "eligible_packages": [
             "training",
@@ -249,6 +250,9 @@ def test_free_user_cannot_generate_a_workout_plan(client: TestClient, db: Sessio
             "complete_care",
         ],
     }
+    assert detail["message"]
+    assert detail["retryable"] is False
+    assert detail["request_id"] == response.headers["X-Correlation-ID"]
 
 
 def test_training_generation_route_uses_direct_lifecycle(
@@ -337,11 +341,14 @@ def test_training_generation_cannot_exceed_active_access_term(
 
     assert response.status_code == expected_status
     if expected_status == 403:
-        assert response.json()["detail"] == {
-            "code": "ACCESS_TERM_TOO_SHORT",
+        detail = response.json()["detail"]
+        assert detail["code"] == "ACCESS_TERM_TOO_SHORT"
+        assert detail["meta"] == {
             "requested_weeks": requested_weeks,
             "maximum_weeks": access_weeks,
         }
+        assert detail["message"]
+        assert detail["retryable"] is False
 
 
 @pytest.mark.parametrize(
@@ -370,11 +377,14 @@ def test_launch_trial_limits_new_generation_to_four_weeks(
 
     assert response.status_code == expected_status
     if expected_status == 403:
-        assert response.json()["detail"] == {
-            "code": "ACCESS_TERM_TOO_SHORT",
+        detail = response.json()["detail"]
+        assert detail["code"] == "ACCESS_TERM_TOO_SHORT"
+        assert detail["meta"] == {
             "requested_weeks": requested_weeks,
             "maximum_weeks": 4,
         }
+        assert detail["message"]
+        assert detail["retryable"] is False
 
 
 def test_expired_training_grant_cannot_generate_new_plan(client: TestClient, db: Session) -> None:
@@ -457,7 +467,7 @@ def test_active_workout_plan_returns_not_found_without_a_plan(client: TestClient
     response = client.get("/api/v1/workout-plans/active")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout plan"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_PLAN_NOT_FOUND"
 
 
 def test_active_workout_plan_reports_backend_staleness(client: TestClient, db: Session) -> None:
@@ -675,7 +685,7 @@ def test_member_cannot_delete_a_non_historical_plan_status(
     response = client.delete(f"/api/v1/workout-plans/{plan.id}", headers=ORIGIN)
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "This workout plan version cannot be deleted"}
+    assert response.json()["detail"]["code"] == "WORKOUT_PLAN_DELETE_FAILED"
     assert db.get(WorkoutPlan, plan.id).deleted_at == original_deleted_at
 
 
@@ -688,7 +698,7 @@ def test_member_cannot_delete_another_users_plan(client: TestClient, db: Session
     response = client.delete(f"/api/v1/workout-plans/{plan.id}", headers=ORIGIN)
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Workout plan not found"}
+    assert response.json()["detail"]["code"] == "WORKOUT_PLAN_NOT_FOUND"
     assert db.get(WorkoutPlan, plan.id).deleted_at is None
 
 
@@ -701,7 +711,7 @@ def test_deleting_a_plan_twice_returns_not_found(client: TestClient, db: Session
 
     assert first.status_code == 204
     assert second.status_code == 404
-    assert second.json() == {"detail": "Workout plan not found"}
+    assert second.json()["detail"]["code"] == "WORKOUT_PLAN_NOT_FOUND"
 
 
 def test_workout_plan_returns_active_curated_alternatives_read_only(
@@ -1078,7 +1088,7 @@ def test_generate_returns_structured_professional_review_status(client: TestClie
 
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "PROGRAM_REJECTED_SAFETY_STATUS"
-    assert response.json()["detail"]["safety_status"] == "stop_and_refer"
+    assert response.json()["detail"]["meta"]["safety_status"] == "stop_and_refer"
 
 
 @pytest.mark.parametrize(
@@ -1128,11 +1138,11 @@ def test_generate_maps_bodyweight_rejections_to_actionable_422(
     app.dependency_overrides.pop(get_workout_generation_service)
 
     assert response.status_code == 422
-    assert response.json()["detail"] == {
-        "code": error_code,
-        "safety_status": None,
-        "message": message,
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == error_code
+    assert detail["meta"] == {}
+    assert detail["message"] == message
+    assert detail["retryable"] is False
 
 
 def test_generate_returns_construction_exhaustion_as_a_specific_422(client: TestClient) -> None:
@@ -1155,10 +1165,11 @@ def test_generate_returns_construction_exhaustion_as_a_specific_422(client: Test
     app.dependency_overrides.pop(get_workout_generation_service)
 
     assert response.status_code == 422
-    assert response.json()["detail"] == {
-        "code": "UNSATISFIED_CONSTRAINT",
-        "message": "No safe workout layout satisfies all required session constraints",
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "UNSATISFIED_CONSTRAINT"
+    assert detail["meta"] == {}
+    assert detail["message"] == "No safe workout layout satisfies all required session constraints"
+    assert detail["retryable"] is False
 
 
 def test_generate_exposes_preferred_calendar_conflict_reason(client: TestClient) -> None:
@@ -1183,11 +1194,12 @@ def test_generate_exposes_preferred_calendar_conflict_reason(client: TestClient)
     app.dependency_overrides.pop(get_workout_generation_service)
 
     assert response.status_code == 422
-    assert response.json()["detail"] == {
-        "code": "UNSATISFIED_CONSTRAINT",
-        "reason_codes": ["PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"],
-        "message": "No safe workout layout satisfies all required session constraints",
+    detail = response.json()["detail"]
+    assert detail["code"] == "UNSATISFIED_CONSTRAINT"
+    assert detail["meta"] == {
+        "reason_codes": ["PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"]
     }
+    assert detail["message"] == "No safe workout layout satisfies all required session constraints"
 
 
 def test_generate_returns_retry_after_during_a_generation_cooldown(

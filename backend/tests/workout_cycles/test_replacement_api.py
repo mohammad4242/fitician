@@ -201,7 +201,7 @@ def test_replacement_rejects_another_users_plan_exercise(
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Workout plan exercise not found in current cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_CYCLE_EXERCISE_NOT_FOUND"
 
 
 def test_replacement_rejects_exercise_outside_current_active_cycle(
@@ -231,7 +231,7 @@ def test_replacement_rejects_exercise_outside_current_active_cycle(
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Workout plan exercise not found in current cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_CYCLE_EXERCISE_NOT_FOUND"
 
 
 def test_replacement_must_be_a_safe_attached_alternative(
@@ -248,7 +248,7 @@ def test_replacement_must_be_a_safe_attached_alternative(
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "Replacement exercise is not an allowed alternative"}
+    assert response.json()["detail"]["code"] == "WORKOUT_REPLACEMENT_NOT_ALLOWED"
 
 
 def test_self_replacement_is_rejected(client: TestClient, db: Session) -> None:
@@ -262,7 +262,7 @@ def test_self_replacement_is_rejected(client: TestClient, db: Session) -> None:
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "Replacement exercise must differ from original exercise"}
+    assert response.json()["detail"]["code"] == "WORKOUT_REPLACEMENT_NOT_ALLOWED"
 
 
 def test_replacement_requires_an_active_cycle(client: TestClient) -> None:
@@ -280,7 +280,7 @@ def test_replacement_requires_an_active_cycle(client: TestClient) -> None:
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"
 
 
 @pytest.mark.parametrize(

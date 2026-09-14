@@ -28,7 +28,6 @@ def require_coach(user: AuthenticatedUser, db: DatabaseSession) -> User:
             status_code=status.HTTP_403_FORBIDDEN,
             detail={
                 "code": WorkoutReviewErrorCode.COACH_ROLE_REQUIRED.value,
-                "message": "Coach role is required",
             },
         )
     return user

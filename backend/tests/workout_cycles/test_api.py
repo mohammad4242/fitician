@@ -100,7 +100,11 @@ def test_current_cycle_returns_404_when_user_has_no_active_cycle(client: TestCli
     response = client.get("/api/v1/workout-cycles/current")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout cycle"}
+    detail = response.json()["detail"]
+    assert detail["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"
+    assert detail["message"]
+    assert detail["retryable"] is False
+    assert detail["request_id"] == response.headers["X-Correlation-ID"]
 
 
 def test_current_cycle_never_returns_another_users_cycle(
@@ -123,6 +127,6 @@ def test_current_cycle_never_returns_another_users_cycle(
     response = client.get("/api/v1/workout-cycles/current")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No active workout cycle"}
+    assert response.json()["detail"]["code"] == "WORKOUT_ACTIVE_CYCLE_NOT_FOUND"
     assert owner_cycle.user_id == owner_id
     assert db.query(WorkoutCycle).filter(WorkoutCycle.id == owner_cycle.id).one()
