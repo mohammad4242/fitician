@@ -48,10 +48,18 @@ class WorkoutReviewService:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._validator = WorkoutReviewDraftValidator(db)
 
-    def detail(self, review_id: UUID) -> WorkoutPlanReview:
+    def detail(self, review_id: UUID, viewer_id: UUID | None = None) -> WorkoutPlanReview:
         review = get_review(self._db, review_id)
         if review is None:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_FOUND)
+        if (
+            viewer_id is not None
+            and review.claimed_by_user_id is not None
+            and review.claimed_by_user_id != viewer_id
+            and review.lease_expires_at is not None
+            and review.lease_expires_at > self._clock()
+        ):
+            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
         return review
 
     def queue(

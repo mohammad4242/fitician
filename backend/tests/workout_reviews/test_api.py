@@ -196,6 +196,28 @@ def test_coach_lists_and_claims_pending_review(client: TestClient, db: Session) 
     assert claimed.json()["draft_revision"] == 1
 
 
+def test_second_coach_cannot_read_claimed_review_detail(client: TestClient, db: Session) -> None:
+    member_id = _register(client, f"isolated-member-{uuid4()}@example.com")
+    review = ensure_pending_review(db, _plan(db, member_id))
+    db.commit()
+
+    first_coach_id = _switch_user(client, f"isolated-first-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=first_coach_id, role=SpecialistRole.COACH))
+    db.commit()
+    assert client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/claim",
+        headers=ORIGIN,
+    ).status_code == 200
+
+    second_coach_id = _switch_user(client, f"isolated-second-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=second_coach_id, role=SpecialistRole.COACH))
+    db.commit()
+    response = client.get(f"/api/v1/coach/workout-reviews/{review.id}")
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "REVIEW_ALREADY_CLAIMED"
+
+
 def test_coach_rejection_requires_explanation_and_current_revision(
     client: TestClient, db: Session
 ) -> None:

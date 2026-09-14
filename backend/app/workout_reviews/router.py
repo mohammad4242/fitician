@@ -63,7 +63,11 @@ def read_review(
     coach: CoachUser,
     db: DatabaseSession,
 ) -> WorkoutReviewDetailResponse:
-    return _detail_response(db, _service_call(lambda: service.detail(review_id)), coach.id)
+    return _detail_response(
+        db,
+        _service_call(lambda: service.detail(review_id, coach.id)),
+        coach.id,
+    )
 
 
 @router.post(
