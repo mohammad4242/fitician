@@ -167,7 +167,13 @@ describe("profile validation", () => {
   });
 
   it("accepts only two through six training days", () => {
-    expect(validateStep({ ...validValues, training_days_per_week: "6" }, 3, today)).toEqual({});
+    expect(
+      validateStep(
+        { ...validValues, training_days_per_week: "6", preferred_weekdays: [0, 1, 2, 3, 4, 5] },
+        3,
+        today,
+      ),
+    ).toEqual({});
     expect(validateStep({ ...validValues, training_days_per_week: "1" }, 3, today)).toEqual({
       training_days_per_week: "trainingDaysRange",
     });
@@ -176,13 +182,29 @@ describe("profile validation", () => {
     });
   });
 
-  it("limits preferred weekdays to the configured training days", () => {
+  it("requires an exact preferred weekday count while keeping empty fallback valid", () => {
     expect(
-      validateStep({ ...validValues, training_days_per_week: "2" }, 3, today),
+      validateStep(
+        { ...validValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3] },
+        3,
+        today,
+      ),
     ).toEqual({ preferred_weekdays: "preferredWeekdaysInvalid" });
     expect(
-      validateStep({ ...validValues, training_days_per_week: "3" }, 3, today),
+      validateStep(
+        { ...validValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3, 4, 5] },
+        3,
+        today,
+      ),
+    ).toEqual({ preferred_weekdays: "preferredWeekdaysInvalid" });
+    expect(
+      validateStep(
+        { ...validValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3, 4] },
+        3,
+        today,
+      ),
     ).toEqual({});
+    expect(validateStep({ ...validValues, preferred_weekdays: [] }, 3, today)).toEqual({});
   });
 
   it("requires a home preset and accepts supported durations", () => {

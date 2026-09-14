@@ -194,7 +194,7 @@ function validateStepThree(values: ProfileFormValues): ProfileValidationErrors {
     && Number.isInteger(Number(trainingDays))
     && Number(trainingDays) >= 2
     && Number(trainingDays) <= 6
-    && values.preferred_weekdays.length > Number(trainingDays)
+    && values.preferred_weekdays.length !== Number(trainingDays)
   ) {
     errors.preferred_weekdays = "preferredWeekdaysInvalid";
   }

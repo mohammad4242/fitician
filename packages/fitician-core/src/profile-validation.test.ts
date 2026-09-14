@@ -94,3 +94,17 @@ it("keeps gym serialization free of home setup and equipment", () => {
     available_equipment: null,
   });
 });
+
+it("requires an exact preferred weekday count while keeping empty legacy fallback valid", () => {
+  expect(validateStep({ ...baseValues, preferred_weekdays: [0, 2] }, 3, today)).toEqual({
+    preferred_weekdays: "preferredWeekdaysInvalid",
+  });
+  expect(validateStep({ ...baseValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3] }, 3, today)).toEqual({
+    preferred_weekdays: "preferredWeekdaysInvalid",
+  });
+  expect(validateStep({ ...baseValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3, 4, 5] }, 3, today)).toEqual({
+    preferred_weekdays: "preferredWeekdaysInvalid",
+  });
+  expect(validateStep({ ...baseValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3, 4] }, 3, today)).toEqual({});
+  expect(validateStep({ ...baseValues, preferred_weekdays: [] }, 3, today)).toEqual({});
+});
