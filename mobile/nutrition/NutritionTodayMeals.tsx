@@ -8,17 +8,24 @@ import type { WeeklyPlan, WeeklyPlanMeal } from "./nutritionPlanApi";
 
 export function NutritionTodayMeals({
   absoluteDayNumber,
+  effectivePatternDayIndex,
+  effectivePlan,
   patternDayIndex,
   plan,
 }: {
   readonly absoluteDayNumber?: number | null;
+  readonly effectivePatternDayIndex?: number | null;
+  readonly effectivePlan?: WeeklyPlan | null;
   readonly patternDayIndex?: number | null;
   readonly plan: WeeklyPlan | null;
 }) {
   const router = useRouter();
-  const day = patternDayIndex === null || patternDayIndex === undefined
-    ? plan?.days.find((item) => item.plan_date === localIsoDate())
-    : plan?.days.find((item) => item.day_index === patternDayIndex);
+  const hasEffectivePlan = effectivePlan !== undefined;
+  const sourcePlan = hasEffectivePlan ? effectivePlan : plan;
+  const sourcePatternDayIndex = hasEffectivePlan ? effectivePatternDayIndex : patternDayIndex;
+  const day = sourcePatternDayIndex === null || sourcePatternDayIndex === undefined
+    ? sourcePlan?.days.find((item) => item.plan_date === localIsoDate())
+    : sourcePlan?.days.find((item) => item.day_index === sourcePatternDayIndex);
   if (day === undefined) return null;
 
   return (

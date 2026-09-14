@@ -89,3 +89,44 @@ test("uses the recurring timeline pattern index after the first plan week", () =
   expect(screen.getByText("۹۹۹ کیلوکالری")).toBeTruthy();
   expect(screen.queryByText("۱٬۰۰۰ کیلوکالری")).toBeNull();
 });
+
+test("uses the effective plan for today during a future handoff", () => {
+  const futurePlan = {
+    ...plan,
+    days: [{
+      ...plan.days[0],
+      day_index: 0,
+      nutrient_totals: { energy_kcal: 999 },
+      plan_date: "2026-09-17",
+    }],
+  } as unknown as WeeklyPlan;
+  const effectivePlan = {
+    ...plan,
+    days: [{
+      ...plan.days[0],
+      day_index: 6,
+      meals: [{
+        ...plan.days[0]?.meals[0],
+        id: "effective-breakfast",
+        nutrient_totals: { energy_kcal: 555 },
+      }],
+      nutrient_totals: { energy_kcal: 555 },
+      plan_date: today,
+    }],
+  } as unknown as WeeklyPlan;
+
+  render(
+    <NutritionTodayMeals
+      {...({
+        absoluteDayNumber: 14,
+        effectivePatternDayIndex: 6,
+        effectivePlan,
+        patternDayIndex: null,
+        plan: futurePlan,
+      } as never)}
+    />,
+  );
+
+  expect(screen.getByText("۵۵۵ کیلوکالری")).toBeTruthy();
+  expect(screen.queryByText("۹۹۹ کیلوکالری")).toBeNull();
+});

@@ -105,6 +105,10 @@ export function NutritionFoundationScreen() {
     queryFn: planApi.getLatest,
     queryKey: nutritionKeys.plan("latest"),
   });
+  const activePlanQuery = useQuery({
+    queryFn: planApi.getActive,
+    queryKey: nutritionKeys.plan("active"),
+  });
   const latestBundleQuery = useQuery({
     queryFn: planApi.getLatestBundle,
     queryKey: nutritionKeys.latestBundle(),
@@ -120,13 +124,17 @@ export function NutritionFoundationScreen() {
   const safetyState = getMobileViewState(safetyQuery, { connectivityStatus });
   const estimateState = getMobileViewState(estimateQuery, { connectivityStatus });
   const latestPlanState = getMobileViewState(latestPlanQuery, { connectivityStatus });
+  const activePlanState = getMobileViewState(activePlanQuery, { connectivityStatus });
   const latestBundleState = getMobileViewState(latestBundleQuery, { connectivityStatus });
   const safety = viewData(safetyState);
   const estimate = viewData(estimateState);
   const latestPlan = viewData(latestPlanState) ?? null;
+  const activePlan = viewData(activePlanState) ?? null;
   const latestBundle = viewData(latestBundleState) ?? null;
   const timeline = timelineQuery.data ?? null;
-  const planDataReady = !latestPlanQuery.isPending && !latestBundleQuery.isPending;
+  const planDataReady = !latestPlanQuery.isPending
+    && !activePlanQuery.isPending
+    && !latestBundleQuery.isPending;
   const plan = planDataReady ? resolveNutritionMainPlan(latestPlan, latestBundle) : null;
   const estimateAvailable = estimate !== undefined && estimate !== null;
 
@@ -165,7 +173,9 @@ export function NutritionFoundationScreen() {
       ) : null}
        {estimateAvailable && planDataReady ? (
          <NutritionTodayMeals
-           absoluteDayNumber={timeline?.nutrition.absolute_day_number}
+           absoluteDayNumber={timeline?.nutrition.effective_today?.absolute_day_number ?? timeline?.nutrition.absolute_day_number}
+           effectivePatternDayIndex={timeline?.nutrition.effective_today?.pattern_day_index}
+           effectivePlan={activePlan}
            patternDayIndex={timeline?.nutrition.pattern_day_index}
            plan={plan}
          />
