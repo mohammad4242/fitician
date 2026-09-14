@@ -1,0 +1,220 @@
+.fitician-date-picker,
+.fitician-date-time-picker {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  color: var(--fitician-ink);
+}
+
+.fitician-date-picker__label,
+.fitician-date-time-picker__label {
+  color: var(--fitician-ink);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.fitician-date-picker__trigger,
+.fitician-date-time-picker__trigger {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  padding: 0.72rem 0.85rem;
+  color: var(--fitician-mist);
+  background: var(--fitician-surface);
+  font: inherit;
+  text-align: start;
+  white-space: pre-line;
+  cursor: pointer;
+  transition: border-color var(--fitician-duration-fast) var(--fitician-ease), background var(--fitician-duration-fast) var(--fitician-ease);
+}
+
+.fitician-date-picker__trigger:hover,
+.fitician-date-picker__trigger:focus-visible,
+.fitician-date-time-picker__trigger:hover,
+.fitician-date-time-picker__trigger:focus-visible {
+  border-color: var(--fitician-line-strong);
+  background: var(--fitician-surface-interactive);
+  outline: none;
+}
+
+.fitician-date-picker__trigger[aria-invalid="true"],
+.fitician-date-time-picker__trigger[aria-invalid="true"] {
+  border-color: var(--fitician-coral);
+}
+
+.fitician-date-picker__placeholder,
+.fitician-date-time-picker__placeholder {
+  color: var(--fitician-muted);
+}
+
+.fitician-date-picker__icon,
+.fitician-date-time-picker__icon {
+  flex: 0 0 auto;
+  color: var(--fitician-aqua);
+  font-size: 1.1rem;
+}
+
+.fitician-date-picker__native,
+.fitician-date-time-picker__native {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-md);
+  padding: 0.7rem 0.8rem;
+  color: var(--fitician-mist);
+  background: var(--fitician-surface);
+  font: inherit;
+  color-scheme: dark;
+}
+
+.fitician-date-picker__native:focus-visible,
+.fitician-date-time-picker__native:focus-visible {
+  border-color: var(--fitician-aqua);
+  outline: 3px solid rgb(80 223 206 / 18%);
+  outline-offset: 1px;
+}
+
+.fitician-date-picker__panel,
+.fitician-date-time-picker__panel {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: var(--fitician-radius-lg);
+  padding: 0.9rem;
+  background: var(--fitician-surface-raised);
+  box-shadow: var(--fitician-shadow-soft);
+  animation: fitician-date-picker-in var(--fitician-duration-fast) var(--fitician-ease);
+}
+
+.fitician-date-picker__panel[hidden],
+.fitician-date-time-picker__panel[hidden] {
+  display: none;
+}
+
+.fitician-date-picker__fields,
+.fitician-date-time-picker__fields {
+  display: grid;
+  grid-template-columns: minmax(4rem, 0.7fr) minmax(7rem, 1.4fr) minmax(5rem, 1fr);
+  gap: 0.55rem;
+}
+
+.fitician-date-time-picker__fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.fitician-date-picker__field,
+.fitician-date-time-picker__field {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+  color: var(--fitician-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.fitician-date-picker__field select,
+.fitician-date-time-picker__field select,
+.fitician-date-time-picker__field input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-sm);
+  padding: 0.58rem 0.45rem;
+  color: var(--fitician-mist);
+  background: var(--fitician-surface);
+  font: inherit;
+  color-scheme: dark;
+}
+
+.fitician-date-picker__field select:focus-visible,
+.fitician-date-time-picker__field select:focus-visible,
+.fitician-date-time-picker__field input:focus-visible {
+  border-color: var(--fitician-aqua);
+  outline: 3px solid rgb(80 223 206 / 18%);
+  outline-offset: 1px;
+}
+
+.fitician-date-picker__time,
+.fitician-date-time-picker__time {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.fitician-date-picker__actions,
+.fitician-date-time-picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.55rem;
+}
+
+.fitician-date-picker__action,
+.fitician-date-time-picker__action {
+  border: 1px solid var(--fitician-line);
+  border-radius: var(--fitician-radius-sm);
+  padding: 0.55rem 0.75rem;
+  color: var(--fitician-mist);
+  background: var(--fitician-surface);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.fitician-date-picker__action:hover,
+.fitician-date-picker__action:focus-visible,
+.fitician-date-time-picker__action:hover,
+.fitician-date-time-picker__action:focus-visible {
+  border-color: var(--fitician-line-strong);
+  outline: none;
+}
+
+.fitician-date-picker__action--primary,
+.fitician-date-time-picker__action--primary {
+  border-color: var(--fitician-aqua);
+  color: var(--fitician-canvas);
+  background: var(--fitician-aqua);
+}
+
+.fitician-date-picker__action--clear,
+.fitician-date-time-picker__action--clear {
+  margin-inline-start: auto;
+  color: var(--fitician-coral);
+}
+
+.fitician-date-picker__error,
+.fitician-date-time-picker__error {
+  margin: 0;
+  color: var(--fitician-coral);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+@keyframes fitician-date-picker-in {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 42rem) {
+  .fitician-date-picker__fields,
+  .fitician-date-time-picker__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fitician-date-picker__panel,
+  .fitician-date-time-picker__panel {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fitician-date-picker__panel,
+  .fitician-date-time-picker__panel {
+    animation: none;
+  }
+}
