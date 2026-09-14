@@ -163,6 +163,18 @@ export type {
   OnboardingStep,
   OnboardingTransitionErrorCode,
 } from "./onboarding";
+export { groupWorkoutReviewQueue } from "./workout-reviews";
+export type {
+  CoachTemplateSelection,
+  WorkoutReviewDayDraft,
+  WorkoutReviewDetail,
+  WorkoutReviewDraftUpdate,
+  WorkoutReviewExerciseDraft,
+  WorkoutReviewQueueGroup,
+  WorkoutReviewQueueItem,
+  WorkoutReviewQueueView,
+  WorkoutReviewStatus,
+} from "./workout-reviews";
 export type {
   MobileAuthTokens,
   RefreshTokenStorage,

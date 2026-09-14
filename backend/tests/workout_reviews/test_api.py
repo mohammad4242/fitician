@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -194,6 +195,28 @@ def test_coach_lists_and_claims_pending_review(client: TestClient, db: Session) 
     assert claimed.status_code == 200
     assert claimed.json()["status"] == "claimed"
     assert claimed.json()["draft_revision"] == 1
+
+
+def test_coach_queue_orders_newest_reviews_first(client: TestClient, db: Session) -> None:
+    older_member_id = _register(client, f"queue-older-{uuid4()}@example.com")
+    older_review = ensure_pending_review(db, _plan(db, older_member_id))
+    older_review.created_at = datetime(2026, 9, 10, 8, tzinfo=UTC)
+    newer_member_id = _switch_user(client, f"queue-newer-{uuid4()}@example.com")
+    newer_review = ensure_pending_review(db, _plan(db, newer_member_id))
+    newer_review.created_at = datetime(2026, 9, 14, 8, tzinfo=UTC)
+    db.commit()
+
+    coach_id = _switch_user(client, f"queue-order-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=coach_id, role=SpecialistRole.COACH))
+    db.commit()
+
+    response = client.get("/api/v1/coach/workout-reviews?view=pending")
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [
+        str(newer_review.id),
+        str(older_review.id),
+    ]
 
 
 def test_second_coach_cannot_read_claimed_review_detail(client: TestClient, db: Session) -> None:

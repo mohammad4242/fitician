@@ -113,7 +113,14 @@ def list_reviews(
         )
     else:
         statement = statement.where(WorkoutPlanReview.status == WorkoutReviewStatus.APPROVED)
-    return list(db.scalars(statement.order_by(WorkoutPlanReview.created_at.asc())).all())
+    return list(
+        db.scalars(
+            statement.order_by(
+                WorkoutPlanReview.created_at.desc(),
+                WorkoutPlanReview.id.desc(),
+            )
+        ).all()
+    )
 
 
 def supersede_open_review(db: Session, plan_id: UUID) -> None:
