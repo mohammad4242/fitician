@@ -1629,7 +1629,9 @@ class WorkoutGenerationService:
                 is_stale=plan.generation_signature != signature or self._is_plan_expired(plan),
             )
         if self._settings.generation_method == "ai":
-            profile = self._to_generation_profile(get_profile(self._db, user_id))
+            source_profile = get_profile(self._db, user_id)
+            profile = self._to_generation_profile(source_profile)
+            preferred_weekdays = tuple(source_profile.profile.preferred_weekdays or ())
             eligible_exercises = WorkoutCandidateSelector(
                 self._db, maximum_candidates=self._settings.max_candidates
             ).select(profile)
@@ -1642,6 +1644,7 @@ class WorkoutGenerationService:
                 profile,
                 candidates,
                 eligible_exercises,
+                preferred_weekdays=preferred_weekdays,
                 review_required=review_required,
             )
             return ActiveWorkoutPlanResult(

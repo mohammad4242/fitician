@@ -1224,17 +1224,18 @@ def test_ai_generation_assigns_exact_profile_weekdays_before_persistence(
         )
     )
 
-    result = asyncio.run(
-        _service(
-            db,
-            ai_coach_provider=provider,
-            generation_method="ai",
-            deterministic_fallback_enabled=False,
-        ).generate(user.id)
+    service = _service(
+        db,
+        ai_coach_provider=provider,
+        generation_method="ai",
+        deterministic_fallback_enabled=False,
     )
+    result = asyncio.run(service.generate(user.id))
 
     assert [day.weekday for day in result.plan.days] == [1, 4]
     assert result.plan.profile_snapshot["preferred_weekdays"] == [1, 4]
+    active = service.get_active(user.id)
+    assert active is not None and not active.is_stale
 
 
 def test_coach_generation_has_one_review_and_one_quota_event(db: Session) -> None:
