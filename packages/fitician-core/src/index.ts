@@ -194,9 +194,10 @@ export {
   nutritionProgressTone,
 } from "./nutrition-progress";
 export type { NutritionProgressTone } from "./nutrition-progress";
-export { ApiError } from "./transport";
+export { ApiError, TransportError, parseApiErrorPayload } from "./transport";
 export type {
   ApiErrorObject,
+  ApiErrorOptions,
   ApiErrorPayload,
   ApiValidationDetail,
   BinaryDownload,
@@ -211,6 +212,22 @@ export type {
   MultipartPart,
   MultipartUploadRequest,
   Page,
+  ParseApiErrorOptions,
   RequestHeaders,
+  TransportErrorKind,
   TransportRequest,
 } from "./transport";
+export { ERROR_CATALOG, ERROR_FIELD_LABELS, resolveAppError } from "./errors";
+export type {
+  ErrorAudience,
+  ErrorAudienceInput,
+  ErrorCatalogEntry,
+  ErrorContext,
+  ErrorLocale,
+  ErrorNetworkState,
+  ErrorSeverity,
+  LocalizedErrorCopy,
+  ResolveAppErrorOptions,
+  ResolvedAppError,
+  ResolvedFieldError,
+} from "./errors";
