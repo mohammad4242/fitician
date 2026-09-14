@@ -3,8 +3,12 @@ import { expect, it } from "vitest";
 import {
   deriveHomeTrainingSetupFromEquipment,
   equipmentForHomeTrainingSetup,
+  getPrimaryTrainingWeekdayPreset,
+  getTrainingWeekdayPresets,
   homeTrainingSetups,
   homeTrainingSetupEquipment,
+  isTrainingWeekdayPreset,
+  trainingWeekdayPresets,
 } from "./profile.js";
 import en from "./i18n/en.js";
 import fa from "./i18n/fa.js";
@@ -20,6 +24,19 @@ const expectedEquipment = {
     "pull_up_bar",
   ],
 } as const;
+
+it("defines the official Fitician weekday presets without changing weekday mapping", () => {
+  expect(trainingWeekdayPresets).toEqual({
+    2: [[0, 3], [1, 4], [2, 5]],
+    3: [[0, 2, 4], [1, 3, 5]],
+    4: [[0, 1, 3, 4], [1, 2, 4, 5]],
+    5: [[0, 1, 2, 4, 5], [0, 1, 3, 4, 5]],
+  });
+  expect(getTrainingWeekdayPresets(6)).toEqual([]);
+  expect(getPrimaryTrainingWeekdayPreset(4)).toEqual([0, 1, 3, 4]);
+  expect(isTrainingWeekdayPreset(2, [1, 4])).toBe(true);
+  expect(isTrainingWeekdayPreset(2, [0, 4])).toBe(false);
+});
 
 it("defines the four canonical home training presets", () => {
   expect(homeTrainingSetups).toEqual([

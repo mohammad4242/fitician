@@ -92,6 +92,43 @@ export type TrainingCaution = (typeof trainingCautions)[number];
 export const preferredWeekdays = [0, 1, 2, 3, 4, 5, 6] as const;
 export type PreferredWeekday = (typeof preferredWeekdays)[number];
 
+export type TrainingWeekdayPresetDays = 2 | 3 | 4 | 5;
+
+export const trainingWeekdayPresets = {
+  2: [[0, 3], [1, 4], [2, 5]],
+  3: [[0, 2, 4], [1, 3, 5]],
+  4: [[0, 1, 3, 4], [1, 2, 4, 5]],
+  5: [[0, 1, 2, 4, 5], [0, 1, 3, 4, 5]],
+} as const satisfies Readonly<
+  Record<TrainingWeekdayPresetDays, readonly (readonly PreferredWeekday[])[]>
+>;
+
+export function getTrainingWeekdayPresets(
+  trainingDays: number,
+): readonly (readonly PreferredWeekday[])[] {
+  if (trainingDays !== 2 && trainingDays !== 3 && trainingDays !== 4 && trainingDays !== 5) {
+    return [];
+  }
+  return trainingWeekdayPresets[trainingDays];
+}
+
+export function getPrimaryTrainingWeekdayPreset(
+  trainingDays: number,
+): readonly PreferredWeekday[] | null {
+  return getTrainingWeekdayPresets(trainingDays)[0] ?? null;
+}
+
+export function isTrainingWeekdayPreset(
+  trainingDays: number,
+  selection: readonly number[],
+): boolean {
+  const sortedSelection = [...selection].sort((a, b) => a - b);
+  return getTrainingWeekdayPresets(trainingDays).some(
+    (preset) => preset.length === sortedSelection.length
+      && preset.every((weekday, index) => weekday === sortedSelection[index]),
+  );
+}
+
 export const muscleGroups = [
   "chest", "back", "shoulders", "biceps", "triceps", "traps", "forearms", "neck",
   "glutes", "quadriceps", "hamstrings", "adductors", "abductors", "legs", "calves",
