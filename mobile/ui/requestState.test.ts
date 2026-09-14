@@ -65,6 +65,24 @@ it("classifies validation, permission, and server failures", () => {
   ).toMatchObject({ status: "error", error: { kind: "server", retryable: true, status: 503 } });
 });
 
+it.each([
+  [400, "BAD_REQUEST"],
+  [401, "UNAUTHORIZED"],
+  [403, "FORBIDDEN"],
+  [404, "NOT_FOUND"],
+  [409, "CONFLICT"],
+  [422, "VALIDATION_ERROR"],
+  [429, "RATE_LIMITED"],
+  [500, "INTERNAL_SERVER_ERROR"],
+  [502, "BAD_GATEWAY"],
+  [503, "SERVICE_UNAVAILABLE"],
+] as const)("keeps HTTP %s failures distinct in the shared state", (status, code) => {
+  expect(classifyMobileStateError(new ApiError(status, "raw secret detail"))).toMatchObject({
+    code,
+    status,
+  });
+});
+
 it("maps transport failures to offline state without leaking raw errors", () => {
   const state = getMobileViewState(
     result({ error: new TransportError("offline"), isError: true, isPending: false }),
@@ -114,6 +132,22 @@ it("uses audience and context for API presentation", () => {
       code: "SPECIALIST_RELATIONSHIP_REQUIRED",
     },
   });
+});
+
+it.each([
+  ["member", "PROFILE_WEIGHT_REQUIRED", "وزن شما در پروفایل"],
+  ["admin", "BODY_ANALYSIS_PROVIDER_UNAVAILABLE", "سرویس ارائه‌دهنده تحلیل بدن"],
+  ["coach", "COACH_ROLE_REQUIRED", "مربی"],
+  ["physician", "SAFETY_DECISION_NOT_FOUND", "ارزیابی ایمنی"],
+] as const)("resolves API errors for the %s audience", (audience, code, expected) => {
+  const result = classifyMobileStateError(
+    new ApiError(403, "raw secret detail", null, code, { requestId: "role-request-1" }),
+    { audience, context: audience === "physician" ? "specialist_review" : "generic" },
+  );
+
+  expect(result.message).toContain(expected);
+  expect(result.message).not.toContain("raw secret detail");
+  if (audience === "admin") expect(result.presentation.showTechnicalDetails).toBe(true);
 });
 
 it("presents API failures without exposing server or provider messages", () => {

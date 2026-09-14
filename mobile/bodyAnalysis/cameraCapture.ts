@@ -1,4 +1,4 @@
-import { ApiError } from "@fitician/core";
+import { ApiError, resolveAppError } from "@fitician/core";
 
 export const BODY_PHOTO_COUNTDOWN_SECONDS = 5 as const;
 export const BODY_PHOTO_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -68,14 +68,12 @@ export function bodyPhotoPrivacyProcessingErrorMessage(): string {
 }
 
 export function bodyPhotoUploadErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 403) {
-    return "ارسال عکس از مسیر امن فیتیچیان انجام نشد. دوباره تلاش کن.";
-  }
-  if (error instanceof ApiError && error.status === 409) {
-    return "وضعیت این نشست تغییر کرده است. نشست را دوباره باز کن.";
-  }
-  if (error instanceof ApiError && error.status >= 500) {
-    return "سرویس ثبت عکس موقتاً در دسترس نیست. دوباره تلاش کن.";
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "member",
+      context: "body_photo",
+      locale: "fa",
+    }).message;
   }
   if (error instanceof Error && /unavailable|empty|upload|configured|file/i.test(error.message)) {
     return "فایل عکس آماده ارسال نیست. دوباره عکس را انتخاب کن.";

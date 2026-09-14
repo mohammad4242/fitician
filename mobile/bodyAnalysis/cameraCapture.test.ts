@@ -1,10 +1,13 @@
 import { expect, it } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import {
   BODY_PHOTO_COUNTDOWN_SECONDS,
   advanceBodyPhotoCountdown,
   bodyPhotoCaptureErrorMessage,
   bodyPhotoMimeTypeForAsset,
+  bodyPhotoUploadErrorMessage,
   filePathToUri,
   type BodyPhotoCapturedAsset,
 } from "./cameraCapture";
@@ -43,6 +46,15 @@ it("keeps capture failures user-safe and does not expose native details", () => 
   expect(bodyPhotoCaptureErrorMessage({ name: "NotAllowedError" })).toContain("دسترسی");
   expect(bodyPhotoCaptureErrorMessage(new Error("camera unavailable"))).toContain("دوربین");
   expect(bodyPhotoCaptureErrorMessage(new Error("native path /secret"))).not.toContain("/secret");
+});
+
+it("resolves backend body-photo failures by code instead of HTTP status", () => {
+  expect(bodyPhotoUploadErrorMessage(new ApiError(409, "private state detail", null, "BODY_PHOTO_SESSION_STATE_INVALID"))).toBe(
+    "وضعیت این نشست تغییر کرده است. آن را دوباره باز کنید.",
+  );
+  expect(bodyPhotoUploadErrorMessage(new ApiError(503, "provider secret", null, "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"))).toBe(
+    "تحلیل بدن فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.",
+  );
 });
 
 it("describes captured media without raw pixels", () => {

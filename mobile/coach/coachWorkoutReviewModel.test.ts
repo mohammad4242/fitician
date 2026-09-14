@@ -1,9 +1,10 @@
 import { expect, it } from "vitest";
 
-import type { components } from "@fitician/core";
+import { ApiError, type components } from "@fitician/core";
 
 import {
   coachReviewStatusLabel,
+  coachReviewErrorMessage,
   getCoachDraft,
   hasRequiredRejectionExplanation,
   isCoachReviewReadOnly,
@@ -58,4 +59,13 @@ it("uses explicit Persian status labels", () => {
   expect(coachReviewStatusLabel("pending")).toBe("در انتظار بررسی");
   expect(coachReviewStatusLabel("claimed")).toBe("در حال بررسی");
   expect(coachReviewStatusLabel("approved")).toBe("تأییدشده");
+});
+
+it("uses the shared workflow catalog for coach errors", () => {
+  expect(coachReviewErrorMessage(new ApiError(409, "private detail", null, "REVIEW_LEASE_EXPIRED"))).toBe(
+    "مهلت بررسی تمام شده است. بررسی را دوباره دریافت کنید.",
+  );
+  expect(coachReviewErrorMessage(new ApiError(409, "private detail", null, "REVIEW_ALREADY_CLAIMED"))).toBe(
+    "این بررسی در اختیار مربی دیگری است.",
+  );
 });

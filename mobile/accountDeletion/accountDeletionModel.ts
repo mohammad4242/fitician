@@ -1,4 +1,4 @@
-import { ApiError, formatTehranDateTime } from "@fitician/core";
+import { ApiError, formatTehranDateTime, resolveAppError } from "@fitician/core";
 
 import type { AccountDeletionStatus } from "./accountDeletionApi";
 
@@ -21,33 +21,25 @@ export function accountDeletionStatusLabel(status: AccountDeletionStatus): strin
 export function accountDeletionError(error: unknown): AccountDeletionErrorMessage {
   const code = error instanceof ApiError ? error.code : null;
   const message = error instanceof Error ? error.message : "";
-  if (code === "RECENT_AUTHENTICATION_REQUIRED" || message === "RECENT_AUTHENTICATION_REQUIRED") {
-    return {
-      message: "برای ادامه، یک‌بار خارج شو و دوباره وارد حساب شو.",
-      requiresReauthentication: true,
-    };
-  }
-  if (code === "INVALID_REAUTHENTICATION" || message === "INVALID_REAUTHENTICATION") {
-    return {
-      message: "رمز عبور درست نیست.",
-      requiresReauthentication: false,
-    };
-  }
-  if (code === "GRACE_PERIOD_EXPIRED" || message === "GRACE_PERIOD_EXPIRED") {
-    return {
-      message: "مهلت لغو این درخواست تمام شده است.",
-      requiresReauthentication: false,
-    };
-  }
-  if (error instanceof ApiError && error.status >= 500) {
-    return {
-      message: "حذف حساب فعلاً در دسترس نیست. بعداً دوباره تلاش کن.",
-      requiresReauthentication: false,
-    };
-  }
+  const legacyCode = code === null && (
+    message === "RECENT_AUTHENTICATION_REQUIRED"
+    || message === "INVALID_REAUTHENTICATION"
+    || message === "GRACE_PERIOD_EXPIRED"
+  ) ? message : null;
+  const resolvedError = error instanceof ApiError && legacyCode !== null
+    ? new ApiError(error.status, error.message, error.validationDetails, legacyCode, {
+        meta: error.meta,
+        requestId: error.requestId,
+        retryable: error.retryable,
+      })
+    : error;
   return {
-    message: "درخواست انجام نشد. اتصال را بررسی کن و دوباره تلاش کن.",
-    requiresReauthentication: false,
+    message: resolveAppError(resolvedError, {
+      audience: "member",
+      context: "access",
+      locale: "fa",
+    }).message,
+    requiresReauthentication: (code ?? legacyCode) === "RECENT_AUTHENTICATION_REQUIRED",
   };
 }
 

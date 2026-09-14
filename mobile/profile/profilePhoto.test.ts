@@ -64,7 +64,10 @@ it("resolves private profile URLs and keeps user-facing failures safe", () => {
   expect(() => resolveProfilePhotoUrl("https://cdn.fitician.test/photo.jpg", "https://api.fitician.test"))
     .toThrow(/configured backend origin/u);
   expect(profilePhotoErrorMessage(new ApiError(422, "invalid", null, "invalid_geometry"))).toBe(
-    "عکس باید مربعی باشد.",
+    "عکس باید مربعی و در اندازه مجاز باشد.",
+  );
+  expect(profilePhotoErrorMessage(new ApiError(403, "private permission detail", null, "PROFILE_PHOTO_ACCESS_DENIED"))).toBe(
+    "دسترسی به عکس پروفایل وجود ندارد.",
   );
   expect(profilePhotoErrorMessage(new Error("permission denied"))).toBe(
     "دسترسی به تصویر داده نشد. می‌توانی بعداً دوباره تلاش کنی.",

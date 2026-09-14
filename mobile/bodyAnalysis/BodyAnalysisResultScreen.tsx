@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { ApiError, formatTehranDateTime } from "@fitician/core";
+import { ApiError, formatTehranDateTime, resolveAppError } from "@fitician/core";
 import type {
   BodyAnalysis,
   BodyPhoto,
@@ -366,8 +366,13 @@ function ResultDetailsDisclosure({ analysis }: { readonly analysis: BodyAnalysis
 }
 
 function bodyAnalysisLoadErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 404) return "این نشست تحلیل پیدا نشد.";
-  if (error instanceof ApiError && error.status >= 500) return "سرویس تحلیل بدن موقتاً در دسترس نیست.";
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "member",
+      context: "body_analysis",
+      locale: "fa",
+    }).message;
+  }
   return "دریافت نتیجه تحلیل انجام نشد. دوباره تلاش کن.";
 }
 

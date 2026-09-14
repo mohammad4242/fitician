@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, Switch, Text, View } from "react-native";
 import { File } from "expo-file-system";
 
-import { ApiError } from "@fitician/core";
+import { ApiError, resolveAppError } from "@fitician/core";
 import type {
   BodyAnalysis,
   BodyPhotoPurpose,
@@ -481,24 +481,23 @@ async function loadWizardState(options: {
 }
 
 function bodyPhotoWizardErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 403) {
-    return "این درخواست از آدرس امن فیتیچیان ارسال نشد. دوباره تلاش کن.";
-  }
-  if (error instanceof ApiError && error.status >= 500) {
-    return "سرویس تحلیل بدن موقتاً در دسترس نیست.";
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "member",
+      context: "body_analysis",
+      locale: "fa",
+    }).message;
   }
   return "آماده‌سازی تحلیل بدن انجام نشد. دوباره تلاش کن.";
 }
 
 function bodyPhotoSubmitErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 403) {
-    return "ارسال از مسیر امن فیتیچیان انجام نشد. دوباره تلاش کن.";
-  }
-  if (error instanceof ApiError && error.status === 409) {
-    return "وضعیت این نشست تغییر کرده است. نشست را دوباره باز کن.";
-  }
-  if (error instanceof ApiError && error.status >= 500) {
-    return "سرویس تحلیل بدن موقتاً در دسترس نیست. اطلاعات ثبت‌شده حفظ شد.";
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "member",
+      context: "body_photo",
+      locale: "fa",
+    }).message;
   }
   return "ارسال امن تصاویر انجام نشد. عکس‌های ثبت‌شده حفظ شدند؛ دوباره تلاش کن.";
 }

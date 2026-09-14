@@ -17,11 +17,15 @@ it("requires the exact destructive confirmation phrase", () => {
 it("maps deletion states and reauthentication without exposing server details", () => {
   expect(accountDeletionStatusLabel("pending")).toBe("درخواست حذف در انتظار اجراست");
   expect(accountDeletionError(new ApiError(403, "RECENT_AUTHENTICATION_REQUIRED"))).toEqual({
-    message: "برای ادامه، یک‌بار خارج شو و دوباره وارد حساب شو.",
+    message: "برای ادامه، دوباره وارد حساب شوید.",
     requiresReauthentication: true,
   });
   expect(accountDeletionError(new ApiError(500, "internal stack trace"))).toEqual({
-    message: "حذف حساب فعلاً در دسترس نیست. بعداً دوباره تلاش کن.",
+    message: "انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.",
+    requiresReauthentication: false,
+  });
+  expect(accountDeletionError(new ApiError(409, "private detail", null, "NO_PENDING_DELETION"))).toEqual({
+    message: "درخواست حذف حسابی در انتظار نیست.",
     requiresReauthentication: false,
   });
 });

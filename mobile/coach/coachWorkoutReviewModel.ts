@@ -1,4 +1,4 @@
-import type { components } from "@fitician/core";
+import { ApiError, resolveAppError, type components } from "@fitician/core";
 
 export type CoachReviewStatus = components["schemas"]["WorkoutReviewStatus"];
 export type CoachReviewDraft = components["schemas"]["WorkoutReviewDraftUpdate"];
@@ -34,6 +34,13 @@ export function coachReviewStatusLabel(status: CoachReviewStatus): string {
 }
 
 export function coachReviewErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "coach",
+      context: "specialist_review",
+      locale: "fa",
+    }).message;
+  }
   const code = error instanceof Error && "code" in error
     ? (error as { readonly code?: unknown }).code
     : null;

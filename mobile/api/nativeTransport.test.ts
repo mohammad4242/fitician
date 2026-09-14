@@ -96,6 +96,40 @@ it("converts API error payloads into the shared ApiError", async () => {
   });
 });
 
+it("preserves legacy string details while assigning the stable status code", async () => {
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Invalid credentials" }), {
+        headers: { "X-Correlation-ID": "native-string-detail-1" },
+        status: 401,
+      }),
+    ),
+  });
+
+  await expect(transport.request({ method: "POST", path: "/api/v1/auth/sign-in" })).rejects.toMatchObject({
+    code: "UNAUTHORIZED",
+    message: "Invalid credentials",
+    requestId: "native-string-detail-1",
+    status: 401,
+  });
+});
+
+it("handles non-JSON error bodies without exposing their contents", async () => {
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(
+      new Response("<html>stack trace token=secret</html>", { status: 502 }),
+    ),
+  });
+
+  await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+    code: "BAD_GATEWAY",
+    message: "The request could not be completed.",
+    status: 502,
+  });
+});
+
 it("parses validation arrays consistently with web", async () => {
   const transport = createNativeTransport({
     apiBaseUrl: "https://api.fitician.example",

@@ -1,5 +1,5 @@
 import type { ImagePickerOptions } from "expo-image-picker";
-import type { MultipartPart } from "@fitician/core";
+import { ApiError, resolveAppError, type MultipartPart } from "@fitician/core";
 
 import type { UploadJob } from "../upload/uploadManager";
 import { resolveBackendResourceUrl } from "../config/backendResourceUrl";
@@ -89,6 +89,13 @@ export function resolveProfilePhotoUrl(path: string, apiBaseUrl: string): string
 }
 
 export function profilePhotoErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return resolveAppError(error, {
+      audience: "member",
+      context: "profile",
+      locale: "fa",
+    }).message;
+  }
   const code = error instanceof Error && "code" in error
     ? String((error as Error & { code?: unknown }).code)
     : "";
