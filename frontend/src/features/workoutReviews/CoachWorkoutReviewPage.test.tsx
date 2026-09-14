@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
+
 import type { WorkoutReviewDetail, WorkoutReviewQueueItem } from "./types";
 
 const api = vi.hoisted(() => ({
@@ -167,6 +169,40 @@ it("shows the three review queues and claims a pending plan", async () => {
 
   expect(api.claimWorkoutReview).toHaveBeenCalledWith("review-1");
   expect(await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeEnabled();
+});
+
+it("groups queue items by sent date and shows the sent timestamp", async () => {
+  api.listWorkoutReviews.mockResolvedValue([
+    queueItem,
+    {
+      ...queueItem,
+      id: "review-2",
+      member_display_name: "سارا",
+      created_at: "2026-09-13T08:00:00Z",
+    },
+  ]);
+  renderPage();
+
+  expect(await screen.findByRole("heading", { name: formatPersianDateWithWeekday("2026-09-13") })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "ماه قبل" })).toBeVisible();
+  expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
+
+  const groups = [...document.querySelectorAll<HTMLElement>("[data-queue-group-key]")];
+  expect(groups.map((group) => group.dataset.queueGroupKey)).toEqual(["2026-09-13", "month"]);
+});
+
+it("switches to review detail mode on narrow layouts and returns to the queue", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  const workspace = document.querySelector(".coach-review-workspace");
+  expect(workspace).not.toHaveClass("has-selected");
+
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+
+  expect(workspace).toHaveClass("has-selected");
+  await user.click(screen.getByRole("button", { name: "بازگشت به صف" }));
+  expect(workspace).not.toHaveClass("has-selected");
 });
 
 it("shows the coach explanation and keeps score details collapsed", async () => {

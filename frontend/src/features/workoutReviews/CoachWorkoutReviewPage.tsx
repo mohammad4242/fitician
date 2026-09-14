@@ -2,7 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { formatTehranTimeForLocale } from "@fitician/core";
+import {
+  formatIsoDate,
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTime,
+  formatTehranDateTimeForLocale,
+  formatTehranTimeForLocale,
+  groupWorkoutReviewQueue,
+} from "@fitician/core";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import {
@@ -19,6 +27,7 @@ import type {
   WorkoutReviewDayDraft,
   WorkoutReviewDetail,
   WorkoutReviewExerciseDraft,
+  WorkoutReviewQueueGroup,
   WorkoutReviewQueueItem,
   WorkoutReviewQueueView,
 } from "./types";
@@ -40,6 +49,7 @@ export function CoachWorkoutReviewPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const readOnly = selected?.status === "approved" || selected?.status === "rejected";
+  const groupedQueue = useMemo(() => groupWorkoutReviewQueue(queue), [queue]);
 
   const loadQueue = useCallback(async (nextView: WorkoutReviewQueueView) => {
     setLoading(true);
@@ -71,6 +81,13 @@ export function CoachWorkoutReviewPage() {
     setSelected(detail);
     setDraft(structuredClone(detail.draft?.days ?? []));
     setCoachNote(detail.coach_note ?? "");
+    setError(null);
+  }
+
+  function clearSelectedReview() {
+    setSelected(null);
+    setDraft([]);
+    setCoachNote("");
     setError(null);
   }
 
@@ -217,7 +234,7 @@ export function CoachWorkoutReviewPage() {
 
         {error && <p className="coach-review-error" role="alert">{error}</p>}
 
-        <div className="coach-review-workspace">
+        <div className={`coach-review-workspace${selected ? " has-selected" : ""}`}>
           <aside className="coach-review-queue">
             <div className="coach-review-tabs" role="tablist" aria-label={l("صف‌های بازبینی", "Review queues")}>
               {queueViews.map((item) => (
@@ -226,7 +243,7 @@ export function CoachWorkoutReviewPage() {
                   type="button"
                   role="tab"
                   aria-selected={view === item}
-                  onClick={() => { setView(item); setSelected(null); }}
+                  onClick={() => { setView(item); clearSelectedReview(); }}
                 >
                   {queueTitle(item, fa)}
                 </button>
@@ -237,22 +254,40 @@ export function CoachWorkoutReviewPage() {
               <p className="coach-review-empty">{l("در این صف پرونده‌ای نیست.", "This queue is clear.")}</p>
             )}
             <div className="coach-review-cases">
-              {queue.map((item) => (
-                <article key={item.id} className={selected?.id === item.id ? "is-selected" : undefined}>
-                  <div className="coach-review-member">
-                    <ProfilePhotoAvatar
-                      url={item.member_profile_photo_url}
-                      label={item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}
-                      size="sm"
-                    />
-                    <small>{item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</small>
+              {groupedQueue.map((group) => (
+                <section
+                  aria-labelledby={`coach-review-group-${group.key}`}
+                  className="coach-review-group"
+                  data-queue-group-key={group.key}
+                  key={group.key}
+                >
+                  <header className="coach-review-group-header">
+                    <h3 id={`coach-review-group-${group.key}`}>{queueGroupTitle(group, fa)}</h3>
+                    <span>{group.items.length.toLocaleString(fa ? "fa-IR" : "en-US")}</span>
+                  </header>
+                  <div className="coach-review-group-items">
+                    {group.items.map((item) => (
+                      <article key={item.id} className={selected?.id === item.id ? "is-selected" : undefined}>
+                        <div className="coach-review-member">
+                          <ProfilePhotoAvatar
+                            url={item.member_profile_photo_url}
+                            label={item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}
+                            size="sm"
+                          />
+                          <div className="coach-review-case-copy">
+                            <strong>{item.member_display_name ?? l("کاربر فیتیشن", "Fitician member")}</strong>
+                            <span>{humanize(item.fitness_goal, fa)} · {humanize(item.experience_level, fa)}</span>
+                          </div>
+                        </div>
+                        <time className="coach-review-sent-at" dateTime={item.created_at}>{sentAtLabel(item.created_at, fa)}</time>
+                        <span className="coach-review-case-status">{statusTitle(item.status, fa)}</span>
+                        <button type="button" disabled={busy} onClick={() => void openReview(item)}>
+                          {item.status === "pending" ? l("شروع بازبینی", "Start review") : l("مشاهده پرونده", "Open case")}
+                        </button>
+                      </article>
+                    ))}
                   </div>
-                  <strong>{humanize(item.fitness_goal, fa)}</strong>
-                  <span>{humanize(item.experience_level, fa)}</span>
-                  <button type="button" disabled={busy} onClick={() => void openReview(item)}>
-                    {item.status === "pending" ? l("شروع بازبینی", "Start review") : l("مشاهده پرونده", "Open case")}
-                  </button>
-                </article>
+                </section>
               ))}
             </div>
           </aside>
@@ -267,6 +302,9 @@ export function CoachWorkoutReviewPage() {
             )}
             {selected && (
               <>
+                <button className="coach-review-mobile-back" type="button" onClick={clearSelectedReview}>
+                  {l("بازگشت به صف", "Back to queue")}
+                </button>
                 <header className="coach-review-case-header">
                   <div>
                     <small>{l("پرونده", "Case")}</small>
@@ -431,6 +469,25 @@ function queueTitle(view: WorkoutReviewQueueView, fa: boolean) {
   if (view === "pending") return fa ? "در انتظار بررسی" : "Waiting";
   if (view === "mine") return fa ? "در حال بررسی من" : "My reviews";
   return fa ? "تأییدشده" : "Approved";
+}
+
+function queueGroupTitle(group: WorkoutReviewQueueGroup, fa: boolean): string {
+  if (group.kind === "day") {
+    return fa
+      ? formatPersianDateWithWeekday(group.date)
+      : formatIsoDate(group.date, "en-US");
+  }
+  if (group.kind === "month") return fa ? "ماه قبل" : "Previous month";
+  const weekNumber = group.key.slice(-1);
+  const start = fa ? formatPersianDate(group.startDate) : formatIsoDate(group.startDate, "en-US");
+  const end = fa ? formatPersianDate(group.endDate) : formatIsoDate(group.endDate, "en-US");
+  return fa ? `هفتهٔ ${weekNumber} · ${start} تا ${end}` : `Week ${weekNumber} · ${start} – ${end}`;
+}
+
+function sentAtLabel(value: string, fa: boolean): string {
+  return fa
+    ? `ارسال‌شده: ${formatTehranDateTime(value)}`
+    : `Sent: ${formatTehranDateTimeForLocale(value, "en-US")}`;
 }
 
 function statusTitle(status: WorkoutReviewQueueItem["status"], fa: boolean) {

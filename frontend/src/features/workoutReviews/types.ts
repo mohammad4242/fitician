@@ -4,6 +4,7 @@ export type {
   WorkoutReviewDetail,
   WorkoutReviewDraftUpdate,
   WorkoutReviewExerciseDraft,
+  WorkoutReviewQueueGroup,
   WorkoutReviewQueueItem,
   WorkoutReviewQueueView,
   WorkoutReviewStatus,
