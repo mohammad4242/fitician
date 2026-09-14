@@ -102,5 +102,8 @@
   "devDependencies": {
     "typescript": "~6.0.2",
     "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "jalaali-js": "^2.0.1"
   }
 }

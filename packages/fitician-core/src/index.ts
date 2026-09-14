@@ -41,14 +41,22 @@ export { localIsoDate, resolvedIanaTimeZone } from "./local-date";
 export {
   FITICIAN_WEEKDAY_LABELS_FA,
   IRAN_TIME_ZONE,
+  PERSIAN_MONTH_NAMES_FA,
   PERSIAN_CALENDAR_LOCALE,
+  daysInJalaliMonth,
   fiticianWeekdayFromIsoDate,
   formatIsoDate,
   formatPersianDate,
   formatPersianDateWithWeekday,
   formatPersianWeekday,
   formatTehranDateTime,
+  isValidJalaliDate,
+  isoDateToJalaliParts,
+  isoTimestampToTehranJalaliParts,
+  jalaliPartsToIsoDate,
+  tehranJalaliDateTimeToIso,
 } from "./iran-calendar";
+export type { JalaliDateParts, JalaliDateTimeParts } from "./iran-calendar";
 export type {
   NutritionPlanStartRequest,
   NutritionTimelineState,
