@@ -118,6 +118,14 @@ let mockTimeline: {
   readonly local_date: string;
   readonly nutrition: {
     readonly absolute_day_number?: number | null;
+    readonly effective_today?: {
+      readonly absolute_day_number: number;
+      readonly day_id: string;
+      readonly nutrient_totals: Record<string, number>;
+      readonly pattern_day_index: number;
+      readonly plan_id: string;
+      readonly start_date: string;
+    } | null;
     readonly nutrient_totals?: Record<string, number>;
     readonly pattern_day_index?: number | null;
     readonly plan_id?: string | null;
@@ -322,6 +330,51 @@ test("uses timeline targets and absolute nutrition day eight on Home", () => {
 
   expect(screen.getByText("۲٬۱۰۰")).toBeTruthy();
   expect(screen.getByText("امروز · روز ۸ برنامه")).toBeTruthy();
+});
+
+test("keeps Home targets on the effective plan during a future nutrition handoff", () => {
+  mockTimeline = {
+    local_date: "2026-09-14",
+    nutrition: {
+      state: "scheduled_start",
+      plan_id: "future-plan",
+      start_date: "2026-09-17",
+      nutrient_totals: { energy_kcal: 3_000, protein_g: 180 },
+      effective_today: {
+        plan_id: "old-plan",
+        start_date: "2026-09-01",
+        absolute_day_number: 14,
+        pattern_day_index: 6,
+        day_id: "old-day",
+        nutrient_totals: { energy_kcal: 2_200, protein_g: 150 },
+      },
+    },
+    workout: { completed_sessions: 0, state: "no_plan", total_sessions: 0 },
+  };
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[0] === "profile") return queryResult({ display_name: "مریم" });
+    if (key[0] === "program-timeline") return queryResult(mockTimeline);
+    if (key[0] === "workouts") return queryResult(null);
+    if (key[1] === "plan") return queryResult({
+      ...nutritionPlan,
+      days: [{ nutrient_totals: { energy_kcal: 3_000, protein_g: 180 }, plan_date: "2026-09-17" }],
+    });
+    if (key[1] === "estimate") return queryResult(null);
+    return queryResult({
+      ...dailyTracking,
+      actual_totals: {},
+      data_status: "insufficient_data",
+      entries: [],
+      check_in_status: null,
+    });
+  });
+
+  renderHome();
+
+  expect(screen.getByText("۲٬۲۰۰")).toBeTruthy();
+  expect(screen.getByText("۱۵۰g")).toBeTruthy();
+  expect(screen.queryByText("۳٬۰۰۰")).toBeNull();
 });
 
 test("previews a pending workout when no active plan exists", () => {
