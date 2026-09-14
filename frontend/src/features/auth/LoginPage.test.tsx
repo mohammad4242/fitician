@@ -214,7 +214,7 @@ it("shows a generic error for invalid or expired OTP codes", async () => {
       }),
     )
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ detail: "Invalid or expired OTP" }), {
+      new Response(JSON.stringify({ detail: { code: "AUTH_OTP_INVALID_OR_EXPIRED" } }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       }),
@@ -230,8 +230,45 @@ it("shows a generic error for invalid or expired OTP codes", async () => {
   await user.click(screen.getByRole("button", { name: "تأیید و ورود" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "کد واردشده معتبر نیست یا منقضی شده است",
+    "کد ورود معتبر نیست یا منقضی شده است",
   );
+});
+
+it("keeps a non-OTP backend cause when phone verification fails", async () => {
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "accepted", retry_after_seconds: 60 }), {
+        status: 202,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          detail: {
+            code: "AUTH_RATE_LIMITED",
+            message: "private rate-limit detail",
+            retryable: true,
+          },
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  const user = userEvent.setup();
+  renderPage();
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+  await user.click(screen.getByRole("tab", { name: "شماره موبایل" }));
+  await user.type(screen.getByLabelText("شماره موبایل"), "09123456789");
+  await user.click(screen.getByRole("button", { name: "ارسال کد ورود" }));
+  await user.type(await screen.findByLabelText("کد ورود"), "123456");
+  await user.click(screen.getByRole("button", { name: "تأیید و ورود" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("درخواست‌های ورود زیاد است");
+  expect(alert).not.toHaveTextContent("private rate-limit detail");
+  expect(alert).not.toHaveTextContent("کد واردشده معتبر نیست");
 });
 
 it("returns to the external deletion page after a requested login", async () => {

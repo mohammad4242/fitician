@@ -86,7 +86,7 @@ export function LoginPage() {
     void loginWithPhone(phoneNumber, String(data.get("code") ?? ""))
       .then(
         () => navigate(returnTo, { replace: true }),
-        () => setError(t("errors.invalidOtp")),
+        (requestError: unknown) => setError(authErrorMessage(requestError, t, locale)),
       )
       .finally(() => setBusy(false));
   }
@@ -105,9 +105,13 @@ export function LoginPage() {
     [loginWithGoogle, navigate, returnTo, t, locale],
   );
 
-  const handleGoogleError = useCallback(() => {
-    setError(t("errors.generic"));
-  }, [t]);
+  const handleGoogleError = useCallback((requestError?: unknown) => {
+    setError(
+      requestError === undefined
+        ? t("errors.generic")
+        : authErrorMessage(requestError, t, locale),
+    );
+  }, [locale, t]);
 
   return (
     <AuthShell>

@@ -311,8 +311,12 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
     finishAuthentication(authenticate);
   }
 
-  function handleGoogleError() {
-    setError(t("errors.generic"));
+  function handleGoogleError(requestError?: unknown) {
+    setError(
+      requestError === undefined
+        ? t("errors.generic")
+        : authErrorMessage(requestError, t, language),
+    );
   }
 
   function changePhone() {

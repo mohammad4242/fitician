@@ -95,7 +95,7 @@ export function GoogleSignInButton({
   disabled,
 }: {
   onCredential: (credential: string) => void;
-  onError: () => void;
+  onError: (error?: unknown) => void;
   disabled: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -127,8 +127,8 @@ export function GoogleSignInButton({
           locale: document.documentElement.lang || "fa",
         });
       })
-      .catch(() => {
-        if (active) onErrorRef.current();
+      .catch((error: unknown) => {
+        if (active) onErrorRef.current(error);
       });
     return () => {
       active = false;

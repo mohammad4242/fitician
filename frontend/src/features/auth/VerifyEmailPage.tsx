@@ -3,15 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { AuthShell } from "../../shared/AuthShell";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import * as api from "./api";
 
 type VerificationState = "checking" | "verified" | "invalid";
 
 export function VerifyEmailPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [state, setState] = useState<VerificationState>("checking");
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     let active = true;
@@ -27,8 +30,11 @@ export function VerifyEmailPage() {
       .then(() => {
         if (active) setState("verified");
       })
-      .catch(() => {
-        if (active) setState("invalid");
+      .catch((requestError: unknown) => {
+        if (active) {
+          setError(requestError);
+          setState("invalid");
+        }
       });
 
     return () => {
@@ -55,9 +61,13 @@ export function VerifyEmailPage() {
         </p>
       )}
       {state === "invalid" && (
-        <p className="form-error" role="alert" aria-live="polite">
-          {t("emailVerification.invalidToken")}
-        </p>
+        error === null ? (
+          <p className="form-error" role="alert" aria-live="polite">
+            {t("emailVerification.invalidToken")}
+          </p>
+        ) : (
+          <AppErrorNotice audience="member" context="auth" error={error} locale={locale} />
+        )
       )}
 
       <p className="form-alternative">

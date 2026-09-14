@@ -234,7 +234,7 @@ export function parseApiErrorPayload(
   const hasDetailEnvelope = isRecord(payload) && "detail" in payload;
   const detail = hasDetailEnvelope ? payload.detail : payload;
   if (typeof detail === "string" && hasDetailEnvelope) {
-    return new ApiError(status, detail || fallbackMessage, null, fallbackErrorCode(status), {
+    return new ApiError(status, detail || fallbackMessage, null, null, {
       requestId: options.requestId,
     });
   }
@@ -249,7 +249,7 @@ export function parseApiErrorPayload(
       requestId: options.requestId,
     });
   }
-  const code = safeString(detail.code) ?? fallbackErrorCode(status);
+  const code = safeString(detail.code);
   const message = safeString(detail.message) ?? fallbackMessage;
   const detailMeta: Record<string, JsonValue> = { ...safeMeta(detail.meta) };
   for (const key of SAFE_META_KEYS) {
