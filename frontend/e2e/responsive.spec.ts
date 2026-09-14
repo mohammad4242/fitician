@@ -78,7 +78,7 @@ for (const viewport of viewports) {
   test(`public routes stay within the ${viewport.name} viewport`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     for (const path of ["/", "/get-started", "/login", "/register"]) {
-      await page.goto(path, { waitUntil: "networkidle" });
+      await page.goto(path, { waitUntil: "domcontentloaded" });
       await expectNoHorizontalOverflow(page);
       await expect(page.locator("body")).toBeVisible();
     }
@@ -121,7 +121,7 @@ for (const viewport of viewports) {
 
 test("the public menu stays contained on a narrow RTL viewport", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.goto("/", { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.locator(".landing-menu-button").click();
   const menu = page.locator(".landing-menu");
   await expect(menu).toBeVisible();
@@ -136,7 +136,7 @@ test("the public menu stays contained on a narrow RTL viewport", async ({ page }
 
 test("the public shell keeps English LTR semantics", async ({ page }) => {
   await page.addInitScript(() => window.localStorage.setItem("fitician-language", "en"));
-  await page.goto("/login", { waitUntil: "networkidle" });
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expectNoHorizontalOverflow(page);

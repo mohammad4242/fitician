@@ -12,7 +12,7 @@ import {
 type WorkoutPlan = {
   id: string;
   status: string;
-  days: Array<{ exercises: Array<{ sets: number }> }>;
+  days: Array<{ exercises: Array<{ sets: number; rir: number | null }> }>;
   coach_review: {
     state: string;
     coach_display_name: string | null;
@@ -32,7 +32,7 @@ type WorkoutReview = {
 
 type WorkoutReviewDetail = WorkoutReview & {
   draft: {
-    days: Array<{ exercises: Array<{ sets: number }> }>;
+    days: Array<{ exercises: Array<{ sets: number; rir: number | null }> }>;
   } | null;
   coach_note: string | null;
 };
@@ -53,6 +53,14 @@ type NutritionPlan = {
   physician_display_name: string | null;
   physician_user_visible_notes: string | null;
   start_date: string;
+};
+
+type NutritionGeneration = {
+  bundle_id: string | null;
+  selected_plan_id: string | null;
+  plan: NutritionPlan | null;
+  budget_plan: NutritionPlan | null;
+  ideal_plan: NutritionPlan | null;
 };
 
 type NutritionReview = {
@@ -84,15 +92,45 @@ async function expectSeparateSessions(...accounts: E2EAccount[]) {
   expect(new Set(sessionCookies).size).toBe(accounts.length);
 }
 
+async function selectNutritionPlanForReview(
+  account: E2EAccount,
+  generation: NutritionGeneration,
+): Promise<NutritionPlan> {
+  if (generation.selected_plan_id) {
+    expect(generation.plan).not.toBeNull();
+    if (!generation.plan) throw new Error("Selected nutrition plan was not returned");
+    return generation.plan;
+  }
+
+  expect(generation.bundle_id).toBeTruthy();
+  expect(generation.budget_plan).not.toBeNull();
+  if (!generation.bundle_id || !generation.budget_plan) {
+    throw new Error("Nutrition generation did not return a selectable plan bundle");
+  }
+
+  const selected = await apiJson<{
+    selected_plan_id: string;
+    selected_plan_role: string;
+    plan: NutritionPlan;
+  }>(account.context, `/api/v1/nutrition/plan-bundles/${generation.bundle_id}/select`, {
+    method: "POST",
+    data: { plan_id: generation.budget_plan.id },
+  });
+  expect(selected.selected_plan_id).toBe(generation.budget_plan.id);
+  expect(selected.selected_plan_role).toBe("budget");
+  return selected.plan;
+}
+
 test.describe("real specialist multi-role flows", () => {
-  test("User -> Coach -> User proves the approved workout revision is isolated and active", async ({ browser }) => {
-    const member = await createE2EAccount(browser, "coach-member", { displayName: "کاربر تمرین" });
+  test("User -> Coach -> User proves the approved workout revision is isolated and active", async ({ browser }, testInfo) => {
+    const runLabel = `${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}`;
+    const member = await createE2EAccount(browser, "coach-member", { displayName: `کاربر تمرین ${runLabel}` });
     const coach = await createE2EAccount(browser, "coach-primary", {
-      displayName: "مربی سارا",
+      displayName: `مربی سارا ${runLabel}`,
       role: "coach",
     });
     const secondCoach = await createE2EAccount(browser, "coach-secondary", {
-      displayName: "مربی دوم",
+      displayName: `مربی دوم ${runLabel}`,
       role: "coach",
     });
     const admin = await createE2EAccount(browser, "admin-only", { admin: true });
@@ -134,6 +172,7 @@ test.describe("real specialist multi-role flows", () => {
 
       await coach.page.goto("/coach/workouts", { waitUntil: "networkidle" });
       const caseCard = coach.page.locator(".coach-review-cases article").filter({ hasText: member.displayName });
+      await expect(caseCard).toHaveCount(1);
       await expect(caseCard).toBeVisible();
       await caseCard.getByRole("button", { name: /شروع بازبینی|Start review/ }).click();
       await expect(coach.page.locator(".coach-review-case-header")).toContainText(member.displayName);
@@ -158,11 +197,19 @@ test.describe("real specialist multi-role flows", () => {
       );
       expect(secondDetail.ok()).toBe(false);
 
-      const setsInput = coach.page.getByLabel(/تعداد ست روز/).first();
-      const initialSets = Number(await setsInput.inputValue());
-      await setsInput.fill(String(initialSets + 1));
+      const rirInput = coach.page.getByLabel(/RIR روز/).first();
+      const initialRir = Number(await rirInput.inputValue());
+      const changedRir = initialRir === 0 ? 1 : initialRir - 1;
+      await rirInput.fill(String(changedRir));
+      await expect(rirInput).toHaveValue(String(changedRir));
       await coach.page.getByLabel("یادداشت مربی برای کاربر").fill("برای شروع ایمن‌تر تنظیم شد");
+      const draftResponsePromise = coach.page.waitForResponse((response) => (
+        response.url().includes(`/api/v1/coach/workout-reviews/${review.id}/draft`)
+        && response.request().method() === "PUT"
+      ));
       await coach.page.getByRole("button", { name: "ذخیره پیش‌نویس" }).click();
+      const draftResponse = await draftResponsePromise;
+      expect(draftResponse.ok()).toBe(true);
 
       await expect.poll(async () => (
         await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
@@ -171,7 +218,7 @@ test.describe("real specialist multi-role flows", () => {
         coach.context,
         `/api/v1/coach/workout-reviews/${review.id}`,
       );
-      expect(savedDraft.draft?.days[0]?.exercises[0]?.sets).toBe(initialSets + 1);
+      expect(savedDraft.draft?.days[0]?.exercises[0]?.rir).toBe(changedRir);
       expect(savedDraft.coach_note).toBe("برای شروع ایمن‌تر تنظیم شد");
 
       await coach.page.getByRole("button", { name: "تأیید و ارسال برای کاربر" }).click();
@@ -191,7 +238,7 @@ test.describe("real specialist multi-role flows", () => {
         coach_display_name: coach.displayName,
         coach_note: "برای شروع ایمن‌تر تنظیم شد",
       });
-      expect(activePlan.days[0]?.exercises[0]?.sets).toBe(initialSets + 1);
+      expect(activePlan.days[0]?.exercises[0]?.rir).toBe(changedRir);
 
       const historyAfter = await apiJson<WorkoutHistoryItem[]>(
         member.context,
@@ -215,15 +262,16 @@ test.describe("real specialist multi-role flows", () => {
     }
   });
 
-  test("User -> Physician -> User proves approval, medical isolation, and user-visible lab requests", async ({ browser }) => {
-    const patient = await createE2EAccount(browser, "physician-patient", { displayName: "پرونده فشار خون" });
-    const labPatient = await createE2EAccount(browser, "lab-patient", { displayName: "پرونده آزمایش" });
+  test("User -> Physician -> User proves approval, medical isolation, and user-visible lab requests", async ({ browser }, testInfo) => {
+    const runLabel = `${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}`;
+    const patient = await createE2EAccount(browser, "physician-patient", { displayName: `پرونده فشار خون ${runLabel}` });
+    const labPatient = await createE2EAccount(browser, "lab-patient", { displayName: `پرونده آزمایش ${runLabel}` });
     const physician = await createE2EAccount(browser, "physician-primary", {
-      displayName: "دکتر نادری",
+      displayName: `دکتر نادری ${runLabel}`,
       role: "physician",
     });
     const secondPhysician = await createE2EAccount(browser, "physician-secondary", {
-      displayName: "دکتر دوم",
+      displayName: `دکتر دوم ${runLabel}`,
       role: "physician",
     });
 
@@ -232,32 +280,35 @@ test.describe("real specialist multi-role flows", () => {
       await setupNutritionMember(patient.context, patient.displayName, "فشار خون کنترل‌شده پرونده اول");
       await setupNutritionMember(labPatient.context, labPatient.displayName, "پرونده آزمایش مستقل");
 
-      const patientGeneration = await apiJson<{ plan: NutritionPlan }>(
+      const patientGeneration = await apiJson<NutritionGeneration>(
         patient.context,
         "/api/v1/nutrition/plans",
         { method: "POST" },
       );
-      const labPatientGeneration = await apiJson<{ plan: NutritionPlan }>(
+      const labPatientGeneration = await apiJson<NutritionGeneration>(
         labPatient.context,
         "/api/v1/nutrition/plans",
         { method: "POST" },
       );
-      expect(patientGeneration.plan.lifecycle_status).toBe("pending_physician_review");
-      expect(patientGeneration.plan.physician_review_status).toBe("pending");
-      expect(labPatientGeneration.plan.lifecycle_status).toBe("pending_physician_review");
+      const patientPlan = await selectNutritionPlanForReview(patient, patientGeneration);
+      const labPatientPlan = await selectNutritionPlanForReview(labPatient, labPatientGeneration);
+      expect(patientPlan.lifecycle_status).toBe("pending_physician_review");
+      expect(patientPlan.physician_review_status).toBe("pending");
+      expect(labPatientPlan.lifecycle_status).toBe("pending_physician_review");
 
       const pendingReviews = await apiJson<NutritionReview[]>(
         physician.context,
         "/api/v1/nutrition/physician/reviews?view=pending",
       );
-      const patientReview = pendingReviews.find((item) => item.plan_id === patientGeneration.plan.id);
-      const labReview = pendingReviews.find((item) => item.plan_id === labPatientGeneration.plan.id);
+      const patientReview = pendingReviews.find((item) => item.plan_id === patientPlan.id);
+      const labReview = pendingReviews.find((item) => item.plan_id === labPatientPlan.id);
       expect(patientReview?.member_display_name).toBe(patient.displayName);
       expect(labReview?.member_display_name).toBe(labPatient.displayName);
       if (!patientReview || !labReview) throw new Error("Generated nutrition reviews were not in the physician queue");
 
       await physician.page.goto("/physician/nutrition", { waitUntil: "networkidle" });
       const patientCard = physician.page.locator(".physician-review-cases article").filter({ hasText: patient.displayName });
+      await expect(patientCard).toHaveCount(1);
       await expect(patientCard).toBeVisible();
       await patientCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
       await expect(physician.page.locator(".physician-review-case-header")).toBeVisible();
@@ -271,20 +322,24 @@ test.describe("real specialist multi-role flows", () => {
         physician_user_id: physician.userId,
       });
 
-      const medicalContext = await apiJson<{ other_relevant_condition: string | null }>(
+      const medicalContext = await apiJson<{
+        conditions: Array<{ code: string; details: string | null }>;
+      }>(
         physician.context,
-        `/api/v1/nutrition/physician/plans/${patientGeneration.plan.id}/medical-context`,
+        `/api/v1/nutrition/physician/plans/${patientPlan.id}/medical-context`,
       );
-      expect(medicalContext.other_relevant_condition).toBe("فشار خون کنترل‌شده پرونده اول");
+      expect(medicalContext.conditions).toEqual([
+        { code: "controlled_hypertension", details: "فشار خون کنترل‌شده پرونده اول" },
+      ]);
 
       const secondContext = await apiResponse(
         secondPhysician.context,
-        `/api/v1/nutrition/physician/plans/${patientGeneration.plan.id}/medical-context`,
+        `/api/v1/nutrition/physician/plans/${patientPlan.id}/medical-context`,
       );
       expect(secondContext.ok()).toBe(false);
       const secondPlan = await apiResponse(
         secondPhysician.context,
-        `/api/v1/nutrition/physician/plans/${patientGeneration.plan.id}`,
+        `/api/v1/nutrition/physician/plans/${patientPlan.id}`,
       );
       expect(secondPlan.ok()).toBe(false);
       const secondClaim = await apiResponse(
@@ -293,6 +348,20 @@ test.describe("real specialist multi-role flows", () => {
         { method: "POST" },
       );
       expect(secondClaim.status()).toBe(409);
+      const secondApprove = await apiResponse(
+        secondPhysician.context,
+        `/api/v1/nutrition/physician/plans/${patientPlan.id}/action`,
+        {
+          method: "POST",
+          data: {
+            expected_plan_revision_id: patientPlan.id,
+            action: "approve",
+            notes: null,
+            internal_notes: null,
+          },
+        },
+      );
+      expect(secondApprove.status()).toBe(409);
 
       await physician.page.getByRole("tab", { name: "یادداشت‌ها" }).click();
       await physician.page.getByLabel("یادداشت قابل مشاهده برای کاربر").fill("نسخه با پایش منظم ادامه یابد");
@@ -305,7 +374,7 @@ test.describe("real specialist multi-role flows", () => {
 
       const approvedPatient = await apiJson<NutritionPlan>(
         patient.context,
-        `/api/v1/nutrition/plans/${patientGeneration.plan.id}`,
+        `/api/v1/nutrition/plans/${patientPlan.id}`,
       );
       expect(approvedPatient).toMatchObject({
         lifecycle_status: "ready_to_start",
@@ -316,7 +385,7 @@ test.describe("real specialist multi-role flows", () => {
       });
       const activePatient = await apiJson<NutritionPlan>(
         patient.context,
-        `/api/v1/nutrition/plans/${patientGeneration.plan.id}/start`,
+        `/api/v1/nutrition/plans/${patientPlan.id}/start`,
         { method: "POST", data: { start_date: approvedPatient.start_date, timezone: "Asia/Tehran" } },
       );
       expect(activePatient.lifecycle_status).toBe("active");
@@ -326,6 +395,7 @@ test.describe("real specialist multi-role flows", () => {
       await expect(patient.page.locator(".weekly-plan__notice")).toContainText("نسخه با پایش منظم ادامه یابد");
 
       const labCard = physician.page.locator(".physician-review-cases article").filter({ hasText: labPatient.displayName });
+      await expect(labCard).toHaveCount(1);
       await expect(labCard).toBeVisible();
       await labCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
       await physician.page.getByRole("tab", { name: "آزمایش‌ها" }).click();

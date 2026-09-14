@@ -7,6 +7,16 @@ export function resolveApiProxyTarget(value: string | undefined): string {
 }
 
 const apiProxyTarget = resolveApiProxyTarget(process.env.VITE_API_PROXY_TARGET);
+const apiProxy = {
+  "/api": {
+    target: apiProxyTarget,
+    changeOrigin: false,
+  },
+  "^/media(?:/|$)": {
+    target: apiProxyTarget,
+    changeOrigin: false,
+  },
+};
 
 export const pwaManifest = {
   name: "Fitician | فیتیشن",
@@ -59,17 +69,10 @@ export default defineConfig({
   ],
   server: {
     host: "0.0.0.0",
-
-    proxy: {
-      "/api": {
-        target: apiProxyTarget,
-        changeOrigin: false,
-      },
-      "^/media(?:/|$)": {
-        target: apiProxyTarget,
-        changeOrigin: false,
-      },
-    },
+    proxy: apiProxy,
+  },
+  preview: {
+    proxy: apiProxy,
   },
   test: {
     environment: "jsdom",
