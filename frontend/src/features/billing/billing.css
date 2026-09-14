@@ -106,7 +106,21 @@
 .billing-history-card > div:last-child { align-items: end; text-align: end; }
 .billing-history-card strong { color: var(--fitician-ink); font-size: 0.9rem; }
 
-.billing-admin-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.billing-admin-categories { display: grid; gap: 0.75rem; }
+.billing-admin-category { display: grid; gap: 0; overflow: hidden; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); transition: border-color 0.18s ease, background-color 0.18s ease; }
+.billing-admin-category.is-open { border-color: var(--fitician-line-strong); background: var(--fitician-surface-raised); }
+.billing-admin-category__header { min-width: 0; }
+.billing-admin-category__toggle { display: flex; width: 100%; min-width: 0; min-height: 3.7rem; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0.9rem; border: 0; color: var(--fitician-ink); background: transparent; font: inherit; text-align: start; cursor: pointer; }
+.billing-admin-category__toggle:hover, .billing-admin-category__toggle:focus-visible { background: var(--fitician-surface-interactive); }
+.billing-admin-category__name { font-size: 1rem; font-weight: 800; }
+.billing-admin-category__panel { display: grid; min-width: 0; grid-template-rows: 0fr; padding-inline: 1rem; opacity: 0; transition: grid-template-rows 0.2s ease, opacity 0.16s ease, padding-block-end 0.2s ease; }
+.billing-admin-category__panel-inner { display: grid; min-width: 0; min-height: 0; overflow: hidden; }
+.billing-admin-category__panel.is-open { grid-template-rows: 1fr; padding-block-end: 1rem; opacity: 1; }
+.billing-admin-package-groups { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.billing-admin-package-group { display: grid; min-width: 0; gap: 0.65rem; padding: 0.8rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: var(--fitician-surface); }
+.billing-admin-package-group > header { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.billing-admin-package-group h2 { margin: 0; color: var(--fitician-ink); font-size: 0.95rem; }
+.billing-admin-package-group__offers { display: grid; min-width: 0; gap: 0.55rem; }
 .billing-admin-card { display: grid; gap: 0; overflow: hidden; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); transition: border-color 0.18s ease, background-color 0.18s ease; }
 .billing-admin-card.is-open { border-color: var(--fitician-line-strong); background: var(--fitician-surface-raised); }
 .billing-admin-card__header { min-width: 0; }
@@ -118,8 +132,8 @@
 .billing-admin-card__code { color: var(--fitician-aqua); font-family: "Sora Variable", sans-serif; font-size: 0.7rem; }
 .billing-admin-card__summary-end { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 0.7rem; }
 .billing-admin-card__availability { color: var(--fitician-aqua); font-size: 0.72rem; font-weight: 800; }
-.billing-admin-card__chevron { width: 0.55rem; height: 0.55rem; border-inline-end: 2px solid currentColor; border-block-end: 2px solid currentColor; transform: rotate(45deg) translateY(-0.15rem); transition: transform 0.18s ease; }
-.billing-admin-card__toggle[aria-expanded="true"] .billing-admin-card__chevron { transform: rotate(225deg) translate(-0.1rem, -0.05rem); }
+.billing-admin-chevron { width: 0.55rem; height: 0.55rem; flex: 0 0 auto; border-inline-end: 2px solid currentColor; border-block-end: 2px solid currentColor; transform: rotate(45deg) translateY(-0.15rem); transition: transform 0.18s ease; }
+.billing-admin-card__toggle[aria-expanded="true"] .billing-admin-chevron, .billing-admin-category__toggle[aria-expanded="true"] .billing-admin-chevron { transform: rotate(225deg) translate(-0.1rem, -0.05rem); }
 .billing-admin-card__panel { display: grid; min-width: 0; grid-template-rows: 0fr; padding-inline: 1rem; opacity: 0; transition: grid-template-rows 0.2s ease, opacity 0.16s ease, padding-block-end 0.2s ease; }
 .billing-admin-card__panel-inner { display: grid; min-width: 0; min-height: 0; gap: 0.85rem; overflow: hidden; }
 .billing-admin-card__panel.is-open { grid-template-rows: 1fr; padding-block-end: 1rem; opacity: 1; }
@@ -133,13 +147,15 @@
   .billing-offer-grid { grid-template-columns: 1fr; }
   .billing-access-summary, .billing-history-card { align-items: start; flex-direction: column; grid-template-columns: 1fr; }
   .billing-access-summary > span, .billing-history-card > div:last-child { align-items: start; text-align: start; }
-  .billing-admin-list { grid-template-columns: 1fr; }
+  .billing-admin-package-groups { grid-template-columns: 1fr; }
   .billing-admin-card__fields { grid-template-columns: minmax(0, 1fr); }
   .billing-admin-card__check { justify-self: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .billing-admin-category,
+  .billing-admin-category__panel,
   .billing-admin-card,
   .billing-admin-card__panel,
-  .billing-admin-card__chevron { transition: none; }
+  .billing-admin-chevron { transition: none; }
 }

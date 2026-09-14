@@ -28,12 +28,26 @@ const offer = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const offerFamilies = [
+  { package_code: "training", offer_code_prefix: "training" },
+  { package_code: "training_coach", offer_code_prefix: "training_coach" },
+  { package_code: "nutrition", offer_code_prefix: "nutrition" },
+  { package_code: "nutrition_physician", offer_code_prefix: "nutrition_physician" },
+  { package_code: "complete", offer_code_prefix: "complete" },
+  { package_code: "complete_care", offer_code_prefix: "complete_care" },
+] as const;
+
+const adminOffers = offerFamilies.flatMap(({ package_code, offer_code_prefix }) =>
+  ([4, 6, 8] as const).map((duration_weeks) => offer({
+    package_code,
+    offer_code: `${offer_code_prefix}_${duration_weeks}w`,
+    duration_weeks,
+  })),
+);
+
 beforeEach(() => {
   Object.values(adminApi).forEach((mock) => mock.mockReset());
-  adminApi.getAdminBillingOffers.mockResolvedValue([
-    offer(),
-    offer({ offer_code: "training_6w", duration_weeks: 6, price_irr: 180000 }),
-  ]);
+  adminApi.getAdminBillingOffers.mockResolvedValue(adminOffers);
   adminApi.updateAdminBillingOffer.mockImplementation(async (code: string, input: unknown) => {
     const update = input as Record<string, unknown>;
     return {
@@ -49,10 +63,60 @@ function offerHeader(code: string) {
   return screen.getByRole("button", { name: new RegExp(code) });
 }
 
-it("keeps every offer collapsed until its header is activated", async () => {
+function categoryHeader(name: string) {
+  return screen.getByRole("button", { name });
+}
+
+it("starts with only the three top-level offer categories", async () => {
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const firstCard = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+
+  expect(categoryHeader("تغذیه")).toHaveAttribute("aria-expanded", "false");
+  expect(categoryHeader("کامل")).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("heading", { name: "تمرین هوشمند" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /training_4w/ })).not.toBeInTheDocument();
+});
+
+it("opens training into smart and coach groups with four, six, and eight week offers", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+
+  expect(categoryHeader("تمرین")).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("heading", { name: "تمرین هوشمند" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "تمرین + مربی" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_4w/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_6w/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_8w/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_coach_4w/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_coach_6w/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /training_coach_8w/ })).toBeInTheDocument();
+});
+
+it("keeps only one top-level category open", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  await user.click(categoryHeader("تغذیه"));
+
+  expect(categoryHeader("تمرین")).toHaveAttribute("aria-expanded", "false");
+  expect(categoryHeader("تغذیه")).toHaveAttribute("aria-expanded", "true");
+  expect(screen.queryByRole("heading", { name: "تمرین هوشمند" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "تغذیه هوشمند" })).toBeInTheDocument();
+});
+
+it("keeps every offer collapsed until its header is activated", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
+
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const firstCard = screen.getByTestId("admin-offer-training_4w");
   const secondCard = screen.getByTestId("admin-offer-training_6w");
 
   expect(offerHeader("training_4w")).toHaveAttribute("aria-expanded", "false");
@@ -65,7 +129,9 @@ it("opens training_4w and exposes its form", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const card = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const card = screen.getByTestId("admin-offer-training_4w");
   const header = offerHeader("training_4w");
   await user.click(header);
 
@@ -79,7 +145,9 @@ it("closes the previous offer when another offer opens", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const firstCard = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const firstCard = screen.getByTestId("admin-offer-training_4w");
   const secondCard = screen.getByTestId("admin-offer-training_6w");
   await user.click(offerHeader("training_4w"));
   await user.click(offerHeader("training_6w"));
@@ -94,7 +162,9 @@ it("closes an open offer when its header is clicked again", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const card = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const card = screen.getByTestId("admin-offer-training_4w");
   await user.click(offerHeader("training_4w"));
   await user.click(offerHeader("training_4w"));
 
@@ -106,7 +176,9 @@ it("shows code-defined package and duration while updating database price", asyn
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const card = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const card = screen.getByTestId("admin-offer-training_4w");
   await user.click(offerHeader("training_4w"));
   expect(within(card).getByText("۴ هفته")).toBeInTheDocument();
   const price = within(card).getByLabelText("قیمت");
@@ -124,7 +196,9 @@ it("disables an offer without exposing immutable package or duration controls", 
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const card = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const card = screen.getByTestId("admin-offer-training_4w");
   await user.click(offerHeader("training_4w"));
   await user.click(within(card).getByRole("checkbox", { name: "فعال" }));
   await user.click(within(card).getByRole("button", { name: "ذخیره" }));
@@ -139,7 +213,9 @@ it("updates the offer availability window", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminBillingOffersPage /></MemoryRouter>);
 
-  const card = await screen.findByTestId("admin-offer-training_4w");
+  await screen.findByRole("button", { name: "تمرین" });
+  await user.click(categoryHeader("تمرین"));
+  const card = screen.getByTestId("admin-offer-training_4w");
   await user.click(offerHeader("training_4w"));
   const availableFrom = within(card).getByLabelText("شروع دسترسی");
   const availableUntil = within(card).getByLabelText("پایان دسترسی");

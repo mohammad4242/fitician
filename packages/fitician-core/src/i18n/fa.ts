@@ -78,6 +78,12 @@ const fa = {
       title: "اشتراک و دسترسی‌ها",
       controlPlane: "مرکز کنترل فیتیشن",
       subtitle: "مدیریت متمرکز پلن‌ها، کمپین‌ها و دسترسی اعضا",
+      offerCategories: {
+        training: "تمرین",
+        nutrition: "تغذیه",
+        complete: "کامل",
+      },
+      completeCareLabel: "کامل + مربی و پزشک",
       plansPricing: "پلن‌ها و قیمت‌ها",
       campaignsTrials: "کمپین‌ها و Trialها",
       usersAccess: "کاربران و دسترسی‌ها",

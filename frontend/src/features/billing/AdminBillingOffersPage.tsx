@@ -11,12 +11,33 @@ import {
 } from "./adminApi";
 import "./billing.css";
 
+const offerCategories = [
+  {
+    key: "training",
+    labelKey: "adminAccess.offerCategories.training",
+    packageCodes: ["training", "training_coach"],
+  },
+  {
+    key: "nutrition",
+    labelKey: "adminAccess.offerCategories.nutrition",
+    packageCodes: ["nutrition", "nutrition_physician"],
+  },
+  {
+    key: "complete",
+    labelKey: "adminAccess.offerCategories.complete",
+    packageCodes: ["complete", "complete_care"],
+  },
+] as const;
+
+type OfferCategoryKey = (typeof offerCategories)[number]["key"];
+
 export function AdminBillingOffersPage() {
   const { t } = useTranslation();
   const [offers, setOffers] = useState<AdminBillingOffer[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [saving, setSaving] = useState<string | null>(null);
   const [updated, setUpdated] = useState<string | null>(null);
+  const [openCategoryKey, setOpenCategoryKey] = useState<OfferCategoryKey | null>(null);
   const [openOfferCode, setOpenOfferCode] = useState<string | null>(null);
   const savedOffers = useRef(new Map<string, AdminBillingOffer>());
 
@@ -64,97 +85,67 @@ export function AdminBillingOffersPage() {
         {state === "loading" && <p className="billing-status" role="status">{t("billing.loading")}</p>}
         {state === "error" && <p className="billing-status billing-status--danger" role="alert">{t("billing.adminLoadError")}</p>}
         {state === "ready" && (
-          <div className="billing-admin-list">
-            {offers.map((offer) => (
-              <article
-                className={`billing-admin-card${openOfferCode === offer.offer_code ? " is-open" : ""}`}
-                data-testid={`admin-offer-${offer.offer_code}`}
-                key={offer.offer_code}
-              >
-                <header className="billing-admin-card__header">
-                  <button
-                    aria-controls={`admin-offer-panel-${offer.offer_code}`}
-                    aria-expanded={openOfferCode === offer.offer_code}
-                    className="billing-admin-card__toggle"
-                    onClick={() => setOpenOfferCode((current) => current === offer.offer_code ? null : offer.offer_code)}
-                    type="button"
-                  >
-                    <span className="billing-admin-card__summary">
-                      <span className="billing-admin-card__code">{offer.offer_code}</span>
-                      <span className="billing-admin-card__name" role="heading" aria-level={2}>
-                        {t(`entitlements.packageLabels.${offer.package_code}`, { defaultValue: offer.package_code })}
-                      </span>
-                      <span className="billing-admin-card__duration">{durationLabel(offer.duration_weeks, t)}</span>
-                    </span>
-                    <span className="billing-admin-card__summary-end">
-                      <span className="billing-admin-card__availability">
-                        {offer.is_active ? t("billing.active") : t("adminAccess.inactive")}
-                      </span>
-                      <span aria-hidden="true" className="billing-admin-card__chevron" />
-                    </span>
-                  </button>
-                </header>
-                <div
-                  aria-hidden={openOfferCode !== offer.offer_code}
-                  className={`billing-admin-card__panel${openOfferCode === offer.offer_code ? " is-open" : ""}`}
-                  id={`admin-offer-panel-${offer.offer_code}`}
-                  inert={openOfferCode !== offer.offer_code}
+          <div className="billing-admin-categories">
+            {offerCategories.map((category) => {
+              const categoryIsOpen = openCategoryKey === category.key;
+              const categoryToggleId = `billing-admin-category-toggle-${category.key}`;
+              const categoryPanelId = `billing-admin-category-panel-${category.key}`;
+
+              return (
+                <section
+                  className={`billing-admin-category${categoryIsOpen ? " is-open" : ""}`}
+                  data-testid={`billing-admin-category-${category.key}`}
+                  key={category.key}
                 >
-                  <div className="billing-admin-card__panel-inner">
-                    <div className="billing-admin-card__fields">
-                      <label>
-                        {t("billing.price")}
-                        <input
-                          aria-label={t("billing.price")}
-                          min="0"
-                          onChange={(event) => updateOffer(offer.offer_code, { price_irr: event.currentTarget.value === "" ? null : Number(event.currentTarget.value) })}
-                          type="number"
-                          value={offer.price_irr ?? ""}
-                        />
-                      </label>
-                      <label>
-                        {t("billing.availableFrom")}
-                        <input
-                          aria-label={t("billing.availableFrom")}
-                          onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
-                          type="datetime-local"
-                          value={toDateTimeLocal(offer.available_from)}
-                        />
-                      </label>
-                      <label>
-                        {t("billing.availableUntil")}
-                        <input
-                          aria-label={t("billing.availableUntil")}
-                          onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
-                          type="datetime-local"
-                          value={toDateTimeLocal(offer.available_until)}
-                        />
-                      </label>
-                      <label className="billing-admin-card__check">
-                        <input
-                          aria-label={t("billing.active")}
-                          checked={offer.is_active}
-                          onChange={(event) => updateOffer(offer.offer_code, { is_active: event.currentTarget.checked })}
-                          type="checkbox"
-                        />
-                        {t("billing.active")}
-                      </label>
+                  <header className="billing-admin-category__header">
+                    <button
+                      aria-controls={categoryPanelId}
+                      aria-expanded={categoryIsOpen}
+                      className="billing-admin-category__toggle"
+                      id={categoryToggleId}
+                      onClick={() => toggleCategory(category.key)}
+                      type="button"
+                    >
+                      <span className="billing-admin-category__name">{t(category.labelKey)}</span>
+                      <span aria-hidden="true" className="billing-admin-chevron" />
+                    </button>
+                  </header>
+                  <div
+                    aria-hidden={!categoryIsOpen}
+                    aria-labelledby={categoryToggleId}
+                    className={`billing-admin-category__panel${categoryIsOpen ? " is-open" : ""}`}
+                    id={categoryPanelId}
+                    inert={!categoryIsOpen}
+                    role="region"
+                  >
+                    <div className="billing-admin-category__panel-inner">
+                      <div className="billing-admin-package-groups">
+                        {category.packageCodes.map((packageCode) => {
+                          const packageOffers = offers
+                            .filter((offer) => offer.package_code === packageCode)
+                            .sort((left, right) => left.duration_weeks - right.duration_weeks);
+
+                          return (
+                            <section
+                              className="billing-admin-package-group"
+                              data-testid={`billing-admin-package-${packageCode}`}
+                              key={packageCode}
+                            >
+                              <header>
+                                <h2>{packageLabel(packageCode, t)}</h2>
+                              </header>
+                              <div className="billing-admin-package-group__offers">
+                                {packageOffers.map((offer) => renderOfferCard(offer))}
+                              </div>
+                            </section>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <footer>
-                      <button
-                        className="billing-button billing-button--primary"
-                        disabled={saving === offer.offer_code}
-                        onClick={() => void saveOffer(offer)}
-                        type="button"
-                      >
-                        {saving === offer.offer_code ? t("billing.saving") : t("billing.save")}
-                      </button>
-                      {updated === offer.offer_code && <span className="billing-admin-card__success" role="status">{t("billing.updateSuccess")}</span>}
-                    </footer>
                   </div>
-                </div>
-              </article>
-            ))}
+                </section>
+              );
+            })}
           </div>
         )}
       </div>
@@ -172,6 +163,106 @@ export function AdminBillingOffersPage() {
   ) {
     setUpdated(null);
     setOffers((current) => current.map((offer) => offer.offer_code === code ? { ...offer, ...changes } : offer));
+  }
+
+  function toggleCategory(categoryKey: OfferCategoryKey) {
+    setOpenCategoryKey((current) => current === categoryKey ? null : categoryKey);
+    setOpenOfferCode(null);
+  }
+
+  function renderOfferCard(offer: AdminBillingOffer) {
+    const offerIsOpen = openOfferCode === offer.offer_code;
+
+    return (
+      <article
+        className={`billing-admin-card${offerIsOpen ? " is-open" : ""}`}
+        data-testid={`admin-offer-${offer.offer_code}`}
+        key={offer.offer_code}
+      >
+        <header className="billing-admin-card__header">
+          <button
+            aria-controls={`admin-offer-panel-${offer.offer_code}`}
+            aria-expanded={offerIsOpen}
+            className="billing-admin-card__toggle"
+            onClick={() => setOpenOfferCode((current) => current === offer.offer_code ? null : offer.offer_code)}
+            type="button"
+          >
+            <span className="billing-admin-card__summary">
+              <span className="billing-admin-card__code">{offer.offer_code}</span>
+              <span className="billing-admin-card__name">
+                {packageLabel(offer.package_code, t)}
+              </span>
+              <span className="billing-admin-card__duration">{durationLabel(offer.duration_weeks, t)}</span>
+            </span>
+            <span className="billing-admin-card__summary-end">
+              <span className="billing-admin-card__availability">
+                {offer.is_active ? t("billing.active") : t("adminAccess.inactive")}
+              </span>
+              <span aria-hidden="true" className="billing-admin-chevron" />
+            </span>
+          </button>
+        </header>
+        <div
+          aria-hidden={!offerIsOpen}
+          className={`billing-admin-card__panel${offerIsOpen ? " is-open" : ""}`}
+          id={`admin-offer-panel-${offer.offer_code}`}
+          inert={!offerIsOpen}
+        >
+          <div className="billing-admin-card__panel-inner">
+            <div className="billing-admin-card__fields">
+              <label>
+                {t("billing.price")}
+                <input
+                  aria-label={t("billing.price")}
+                  min="0"
+                  onChange={(event) => updateOffer(offer.offer_code, { price_irr: event.currentTarget.value === "" ? null : Number(event.currentTarget.value) })}
+                  type="number"
+                  value={offer.price_irr ?? ""}
+                />
+              </label>
+              <label>
+                {t("billing.availableFrom")}
+                <input
+                  aria-label={t("billing.availableFrom")}
+                  onChange={(event) => updateOffer(offer.offer_code, { available_from: toIsoDateTime(event.currentTarget.value) })}
+                  type="datetime-local"
+                  value={toDateTimeLocal(offer.available_from)}
+                />
+              </label>
+              <label>
+                {t("billing.availableUntil")}
+                <input
+                  aria-label={t("billing.availableUntil")}
+                  onChange={(event) => updateOffer(offer.offer_code, { available_until: toIsoDateTime(event.currentTarget.value) })}
+                  type="datetime-local"
+                  value={toDateTimeLocal(offer.available_until)}
+                />
+              </label>
+              <label className="billing-admin-card__check">
+                <input
+                  aria-label={t("billing.active")}
+                  checked={offer.is_active}
+                  onChange={(event) => updateOffer(offer.offer_code, { is_active: event.currentTarget.checked })}
+                  type="checkbox"
+                />
+                {t("billing.active")}
+              </label>
+            </div>
+            <footer>
+              <button
+                className="billing-button billing-button--primary"
+                disabled={saving === offer.offer_code}
+                onClick={() => void saveOffer(offer)}
+                type="button"
+              >
+                {saving === offer.offer_code ? t("billing.saving") : t("billing.save")}
+              </button>
+              {updated === offer.offer_code && <span className="billing-admin-card__success" role="status">{t("billing.updateSuccess")}</span>}
+            </footer>
+          </div>
+        </div>
+      </article>
+    );
   }
 }
 
@@ -202,4 +293,9 @@ function durationLabel(duration: BillingOffer["duration_weeks"], t: (key: string
   if (duration === 4) return t("billing.fourWeeks");
   if (duration === 6) return t("billing.sixWeeks");
   return t("billing.eightWeeks");
+}
+
+function packageLabel(packageCode: BillingOffer["package_code"], t: (key: string) => string) {
+  if (packageCode === "complete_care") return t("adminAccess.completeCareLabel");
+  return t(`entitlements.packageLabels.${packageCode}`);
 }

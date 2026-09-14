@@ -78,6 +78,12 @@ const en = {
       title: "Subscriptions & Access",
       controlPlane: "Fitician Control Plane",
       subtitle: "Manage plans, campaigns, and member access in one place",
+      offerCategories: {
+        training: "Training",
+        nutrition: "Nutrition",
+        complete: "Complete",
+      },
+      completeCareLabel: "Complete + Coach & Physician",
       plansPricing: "Plans & Pricing",
       campaignsTrials: "Campaigns & Trials",
       usersAccess: "Users & Access",
