@@ -307,10 +307,12 @@ def test_agent_auth_proxy_maps_safe_downstream_errors_without_internal_details(
         _restore_agent_service(client, replacement)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == {
-        "code": "auth_in_progress",
-        "message": "Authentication is already in progress.",
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "auth_in_progress"
+    assert detail["message"] == "Authentication is already in progress."
+    assert detail["retryable"] is False
+    assert detail["meta"] == {}
+    assert detail["request_id"]
     assert "private" not in response.text
     assert "token" not in response.text.lower()
 
@@ -338,8 +340,9 @@ def test_agent_auth_proxy_rejects_extra_sensitive_response_fields(
         _restore_agent_service(client, replacement)
 
     assert response.status_code == 502
-    assert response.json()["detail"] == {
-        "code": "malformed_response",
-        "message": "The Agent Service returned a malformed response.",
-    }
+    detail = response.json()["detail"]
+    assert detail["code"] == "malformed_response"
+    assert detail["retryable"] is True
+    assert detail["request_id"]
+    assert "stack" not in detail["message"].lower()
     assert "secret-token" not in response.text

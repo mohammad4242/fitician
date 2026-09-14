@@ -238,7 +238,7 @@ def test_credential_replacement_must_be_explicit(
         json=payload,
     )
     assert response.status_code == 422
-    assert "explicit" in response.text.lower()
+    assert response.json()["detail"]["code"] == "VALIDATION_ERROR"
 
 
 def test_refresh_catalog_and_filter_models_by_task_capability(
@@ -350,7 +350,7 @@ def test_body_analysis_rejects_a_text_only_model_when_enabled(
     )
 
     assert response.status_code == 422
-    assert "image" in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 def test_selected_models_are_validated_even_when_task_is_disabled(
@@ -405,10 +405,11 @@ def test_selected_models_are_validated_even_when_task_is_disabled(
     )
 
     assert text_only.status_code == 422
-    assert "image" in text_only.text.lower()
+    assert text_only.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
     assert missing_fallback.status_code == 422
-    assert "catalog" in missing_fallback.text.lower()
+    assert missing_fallback.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
     assert malformed_fallback.status_code == 422
+    assert malformed_fallback.json()["detail"]["code"] == "VALIDATION_ERROR"
 
 
 def test_enabled_api_config_still_requires_a_credential(client: TestClient, db: Session) -> None:
@@ -423,7 +424,7 @@ def test_enabled_api_config_still_requires_a_credential(client: TestClient, db: 
         },
     )
     assert response.status_code == 422
-    assert "credential" in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 @pytest.mark.parametrize(
@@ -446,7 +447,7 @@ def test_agent_service_config_requires_each_agent_field(
         json={"enabled": True, "execution_backend": "agent_service", **payload},
     )
     assert response.status_code == 422
-    assert missing in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 def test_agent_service_config_exposes_routing(client: TestClient, db: Session) -> None:
@@ -521,7 +522,7 @@ def test_admin_rejects_enabled_food_price_search_api_mode(
         },
     )
     assert response.status_code == 422, response.text
-    assert "agent service" in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 def test_food_price_search_agent_enablement_requires_passed_profile(
@@ -541,7 +542,7 @@ def test_food_price_search_agent_enablement_requires_passed_profile(
     )
 
     assert response.status_code == 422, response.text
-    assert "pass" in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 def test_food_price_search_agent_enablement_succeeds_after_passed_profile(
@@ -589,7 +590,7 @@ def test_agent_service_rejects_unsupported_task(client: TestClient, db: Session)
         },
     )
     assert response.status_code == 422
-    assert "not supported" in response.text.lower()
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"
 
 
 def test_agent_service_rejects_a_blank_model_id(client: TestClient, db: Session) -> None:
