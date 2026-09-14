@@ -104,6 +104,15 @@ it("creates a package campaign from the admin form", async () => {
   }));
 });
 
+it("makes the create campaign action visually prominent", async () => {
+  render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);
+
+  const createButton = await screen.findByRole("button", { name: "ساخت کمپین" });
+
+  expect(createButton).toHaveClass("access-admin-button--create");
+  expect(createButton.querySelector(".access-admin-button__icon")).toHaveAttribute("aria-hidden", "true");
+});
+
 it("limits campaign packages by kind and keeps activation out of edit updates", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><AdminAccessCampaignsPage /></MemoryRouter>);

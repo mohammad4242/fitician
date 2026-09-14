@@ -165,6 +165,9 @@
 
 .access-admin-button:disabled { cursor: wait; opacity: .55; }
 .access-admin-button--primary { color: var(--fitician-canvas); background: var(--fitician-petrol); }
+.access-admin-button--create { gap: .5rem; border-color: var(--fitician-aqua); color: var(--fitician-petrol); background: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 18%), 0 .45rem 1.2rem rgb(80 223 206 / 18%); }
+.access-admin-button--create:hover, .access-admin-button--create:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: var(--fitician-teal); box-shadow: 0 0 0 3px rgb(80 223 206 / 22%), 0 .55rem 1.35rem rgb(0 0 0 / 28%); }
+.access-admin-button__icon { display: inline-grid; width: 1.25rem; height: 1.25rem; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-size: 1rem; font-weight: 900; line-height: 1; }
 .access-admin-button--quiet { border-color: var(--fitician-line-strong); background: var(--fitician-surface); }
 .access-admin-button--quiet:hover, .access-admin-button--quiet:focus-visible { border-color: var(--fitician-aqua); }
 
@@ -356,6 +359,7 @@
   .access-admin-form-grid { grid-template-columns: 1fr; }
   .access-campaign-card > header { align-items: flex-start; flex-direction: column; }
   .access-campaign-card > footer { flex-wrap: wrap; }
+  .access-admin-button--create { width: 100%; }
 }
 
 @media (max-width: 850px) {

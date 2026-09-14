@@ -142,7 +142,8 @@ export function AdminAccessCampaignsPage() {
             <h1>{t("adminAccess.campaignsTrials")}</h1>
             <p>{t("adminAccess.campaignsDescription")}</p>
           </div>
-          <button className="access-admin-button access-admin-button--primary" onClick={openCreate} type="button">
+          <button className="access-admin-button access-admin-button--primary access-admin-button--create" onClick={openCreate} type="button">
+            <span aria-hidden="true" className="access-admin-button__icon">+</span>
             {t("adminAccess.createCampaign")}
           </button>
         </header>
