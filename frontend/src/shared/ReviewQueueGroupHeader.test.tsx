@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { formatPersianDate, formatPersianDateWithWeekday } from "@fitician/core";
@@ -11,6 +11,37 @@ const reviewQueueGroupHeaderStyles = readFileSync("src/shared/reviewQueueGroupHe
 
 it("uses the vivid project aqua for the week accent", () => {
   expect(reviewQueueGroupHeaderStyles).toContain("border-inline-start: 0.3rem solid var(--fitician-aqua);");
+});
+
+it("starts collapsed and opens the selected queue group", () => {
+  render(
+    <details data-testid="review-group">
+      <ReviewQueueGroupHeader
+        collapsible
+        count={1}
+        fa
+        headingId="review-week-4"
+        group={{
+          endDate: "2026-08-24",
+          items: [],
+          key: "week-4",
+          kind: "week",
+          startDate: "2026-08-18",
+          weekOffset: 4,
+        }}
+      />
+      <div>پرونده هفته</div>
+    </details>,
+  );
+
+  const group = screen.getByTestId("review-group");
+  expect(group).not.toHaveAttribute("open");
+  const summary = group.querySelector("summary");
+  expect(summary).not.toBeNull();
+
+  fireEvent.click(summary as HTMLElement);
+
+  expect(group).toHaveAttribute("open");
 });
 
 it("renders a week title and date range as separate RTL-safe rows", () => {

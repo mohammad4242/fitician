@@ -340,24 +340,25 @@ function QueueState({
       {state.status === "offline" ? <Notice message="فهرست نمایش‌داده‌شده آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
       {groups.map((group) => (
         <View key={group.key} style={styles.queueGroup}>
-          <ReviewQueueGroupHeader group={group} />
-          <View style={styles.queueGroupItems}>
-            {group.items.map((item) => (
-              <Card key={item.id} style={selectedId === item.id ? styles.selectedCard : styles.queueCard} variant={selectedId === item.id ? "raised" : "interactive"}>
-                <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
-                <Text style={styles.queueMeta}>{humanize(item.fitness_goal)} · {humanize(item.experience_level)}</Text>
-                <Text style={styles.sentAt}>ارسال‌شده: {formatTehranDateTime(item.created_at)}</Text>
-                {item.approved_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.approved_at)}</Text> : null}
-                <Text style={styles.status}>{coachReviewStatusLabel(item.status)}</Text>
-                <Button
-                  disabled={state.status === "offline"}
-                  label={item.status === "pending" ? "شروع بازبینی" : "مشاهده پرونده"}
-                  onPress={() => onSelect(item.id, item.status === "pending" ? "pending" : view)}
-                  variant="secondary"
-                />
-              </Card>
-            ))}
-          </View>
+          <ReviewQueueGroupHeader group={group}>
+            <View style={styles.queueGroupItems}>
+              {group.items.map((item) => (
+                <Card key={item.id} style={selectedId === item.id ? styles.selectedCard : styles.queueCard} variant={selectedId === item.id ? "raised" : "interactive"}>
+                  <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
+                  <Text style={styles.queueMeta}>{humanize(item.fitness_goal)} · {humanize(item.experience_level)}</Text>
+                  <Text style={styles.sentAt}>ارسال‌شده: {formatTehranDateTime(item.created_at)}</Text>
+                  {item.approved_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.approved_at)}</Text> : null}
+                  <Text style={styles.status}>{coachReviewStatusLabel(item.status)}</Text>
+                  <Button
+                    disabled={state.status === "offline"}
+                    label={item.status === "pending" ? "شروع بازبینی" : "مشاهده پرونده"}
+                    onPress={() => onSelect(item.id, item.status === "pending" ? "pending" : view)}
+                    variant="secondary"
+                  />
+                </Card>
+              ))}
+            </View>
+          </ReviewQueueGroupHeader>
         </View>
       ))}
     </View>

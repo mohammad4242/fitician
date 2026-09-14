@@ -56,6 +56,42 @@
   font-weight: 800;
 }
 
+.review-queue-group-header--collapsible {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.review-queue-group-header--collapsible::-webkit-details-marker { display: none; }
+.review-queue-group-header--collapsible::marker { content: ""; }
+.review-queue-group-header--collapsible:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: -2px; }
+
+.review-queue-group-header__toggle {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(80 223 206 / 38%);
+  border-radius: 50%;
+  color: var(--fitician-aqua);
+  background: rgb(80 223 206 / 10%);
+}
+
+.review-queue-group-header__toggle::before {
+  width: 0.48rem;
+  height: 0.48rem;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  content: "";
+  transform: translateY(-0.12rem) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+details[open] > .review-queue-group-header--collapsible .review-queue-group-header__toggle::before {
+  transform: translateY(0.1rem) rotate(225deg);
+}
+
 @media (max-width: 640px) {
   .review-queue-group-header {
     gap: 0.55rem;
@@ -63,4 +99,6 @@
   }
 
   .review-queue-group-header p { font-size: 0.72rem; }
+
+  .review-queue-group-header__toggle { width: 1.55rem; height: 1.55rem; }
 }

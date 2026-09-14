@@ -259,13 +259,14 @@ export function CoachWorkoutReviewPage() {
             )}
             <div className="coach-review-cases">
               {groupedQueue.map((group) => (
-                <section
+                <details
                   aria-labelledby={`coach-review-group-${group.key}`}
                   className="coach-review-group"
                   data-queue-group-key={group.key}
                   key={group.key}
                 >
                   <ReviewQueueGroupHeader
+                    collapsible
                     count={group.items.length}
                     fa={fa}
                     group={group}
@@ -294,7 +295,7 @@ export function CoachWorkoutReviewPage() {
                       </article>
                     ))}
                   </div>
-                </section>
+                </details>
               ))}
             </div>
           </aside>

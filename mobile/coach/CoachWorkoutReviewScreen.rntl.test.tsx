@@ -149,6 +149,7 @@ beforeEach(() => {
 test("claims a case, edits the exercise selection, and saves the current revision", async () => {
   renderScreen();
 
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
   expect(await screen.findByText("علت انتخاب برنامه")).toBeTruthy();
 
@@ -180,6 +181,7 @@ test("groups the queue by sent age and replaces it with detail after selection",
   renderScreen();
 
   expect(await screen.findByText("۵ هفته قبل")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "۵ هفته قبل" }));
   expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-08-09T08:00:00Z")}`)).toBeTruthy();
   expect(screen.getByText("صف پرونده‌ها")).toBeTruthy();
 
@@ -208,12 +210,14 @@ test("groups approved cases by approval date and shows the approval timestamp", 
   fireEvent.press(await screen.findByRole("radio", { name: "تأییدشده" }));
 
   expect(await screen.findByText("این هفته")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "این هفته" }));
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeTruthy();
 });
 
 test("keeps detailed profile sections closed until the coach opens one", async () => {
   renderScreen();
 
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
 
   expect(await screen.findByText("خلاصهٔ کاربر")).toBeTruthy();
@@ -240,6 +244,7 @@ test("keeps detailed profile sections closed until the coach opens one", async (
 test("keeps each workout day collapsed until the coach opens it", async () => {
   renderScreen();
 
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
   expect((await screen.findAllByText(/پیش‌نویس مربی/)).length).toBeGreaterThan(0);
 
@@ -255,6 +260,7 @@ test("returns from the selected case before leaving the coach route", async () =
   mockUseRouter.mockReturnValue({ back: routerBack } as never);
   renderScreen();
 
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
   fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
   expect((await screen.findAllByText(/پیش‌نویس مربی/)).length).toBeGreaterThan(0);
 

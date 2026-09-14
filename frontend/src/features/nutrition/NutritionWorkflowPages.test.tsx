@@ -513,6 +513,26 @@ it("groups physician cases by requested date in every queue view", async () => {
   ]);
 });
 
+it("keeps each physician queue group collapsed until its header opens", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([
+    { review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
+  ]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  const heading = await screen.findByRole("heading", { name: /Today|امروز/ });
+  const group = heading.closest("details");
+  const card = screen.getByRole("article");
+  expect(group).not.toBeNull();
+  expect(group).not.toHaveAttribute("open");
+  expect(card).not.toBeVisible();
+
+  await user.click(heading);
+
+  expect(group).toHaveAttribute("open");
+  expect(card).toBeVisible();
+});
+
 it("localizes physician recency group headings in Persian", async () => {
   await i18n.changeLanguage("fa");
   const now = new Date().toISOString();

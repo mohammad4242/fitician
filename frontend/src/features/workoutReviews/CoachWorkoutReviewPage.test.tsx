@@ -216,6 +216,7 @@ it("shows the three review queues and claims a pending plan", async () => {
 });
 
 it("groups queue items by sent date and shows the sent timestamp", async () => {
+  const user = userEvent.setup();
   api.listWorkoutReviews.mockResolvedValue([
     queueItem,
     {
@@ -229,6 +230,8 @@ it("groups queue items by sent date and shows the sent timestamp", async () => {
 
   expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "۵ هفته قبل" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "این هفته" }).closest("details")).not.toHaveAttribute("open");
+  await user.click(screen.getByRole("heading", { name: "این هفته" }));
   expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
 
   const groups = [...document.querySelectorAll<HTMLElement>("[data-queue-group-key]")];
@@ -249,7 +252,25 @@ it("groups approved cases by approval date and shows the approval timestamp", as
   await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
 
   expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
+  await user.click(screen.getByRole("heading", { name: "این هفته" }));
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
+});
+
+it("keeps each coach queue group collapsed until its header opens", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  const heading = await screen.findByRole("heading", { name: "۵ هفته قبل" });
+  const group = heading.closest("details");
+  const card = screen.getByRole("article");
+  expect(group).not.toBeNull();
+  expect(group).not.toHaveAttribute("open");
+  expect(card).not.toBeVisible();
+
+  await user.click(heading);
+
+  expect(group).toHaveAttribute("open");
+  expect(card).toBeVisible();
 });
 
 it("keeps detailed profile sections closed until the coach opens one", async () => {

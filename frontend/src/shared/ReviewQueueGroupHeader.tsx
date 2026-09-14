@@ -10,12 +10,13 @@ import "./reviewQueueGroupHeader.css";
 
 type ReviewQueueGroupHeaderProps = {
   readonly count: number;
+  readonly collapsible?: boolean;
   readonly fa: boolean;
   readonly group: RecencyQueueGroup<unknown>;
   readonly headingId: string;
 };
 
-export function ReviewQueueGroupHeader({ count, fa, group, headingId }: ReviewQueueGroupHeaderProps) {
+export function ReviewQueueGroupHeader({ count, collapsible = false, fa, group, headingId }: ReviewQueueGroupHeaderProps) {
   const title = group.kind === "day"
     ? fa ? "امروز" : "Today"
     : reviewQueueWeekLabel(group.weekOffset, fa ? "fa" : "en");
@@ -24,10 +25,15 @@ export function ReviewQueueGroupHeader({ count, fa, group, headingId }: ReviewQu
     : fa
       ? `${formatPersianDate(group.startDate)} تا ${formatPersianDate(group.endDate)}`
       : `${formatIsoDate(group.startDate, "en-US")} – ${formatIsoDate(group.endDate, "en-US")}`;
+  const HeaderTag = collapsible ? "summary" : "header";
+  const className = [
+    "review-queue-group-header",
+    collapsible && "review-queue-group-header--collapsible",
+  ].filter(Boolean).join(" ");
 
   return (
-    <header
-      className="review-queue-group-header"
+    <HeaderTag
+      className={className}
       data-queue-group-header="true"
       data-week-offset={group.kind === "week" ? group.weekOffset : undefined}
     >
@@ -36,6 +42,7 @@ export function ReviewQueueGroupHeader({ count, fa, group, headingId }: ReviewQu
         <p>{dateRange}</p>
       </div>
       <span className="review-queue-group-header__count">{count.toLocaleString(fa ? "fa-IR" : "en-US")}</span>
-    </header>
+      {collapsible && <span aria-hidden="true" className="review-queue-group-header__toggle" />}
+    </HeaderTag>
   );
 }

@@ -674,28 +674,29 @@ function QueueState({
       {state.status === "offline" ? <Notice message="این فهرست آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
       {groups.map((group) => (
         <View key={group.key} style={styles.queueGroup}>
-          <ReviewQueueGroupHeader group={group} />
-          <View style={styles.queueGroupItems}>
-            {group.items.map((item) => (
-              <Card
-                key={item.review_id}
-                style={selectedPlanId === item.plan_id ? styles.selectedCard : undefined}
-                variant={selectedPlanId === item.plan_id ? "raised" : "interactive"}
-              >
-                <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
-                <Text style={styles.queueMeta}>{item.overdue ? "گذشته از موعد · " : ""}نسخهٔ تغذیه</Text>
-                <Text style={styles.sentAt}>درخواست‌شده: {formatTehranDateTime(item.requested_at)}</Text>
-                {item.reviewed_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.reviewed_at)}</Text> : null}
-                <Text style={styles.status}>{physicianReviewStatusLabel(item.status)}</Text>
-                <Button
-                  disabled={state.status === "offline"}
-                  label={item.status === "pending" || item.status === "changes_requested" ? "شروع بررسی" : "باز کردن پرونده"}
-                  onPress={() => onSelect(item)}
-                  variant="secondary"
-                />
-              </Card>
-            ))}
-          </View>
+          <ReviewQueueGroupHeader group={group}>
+            <View style={styles.queueGroupItems}>
+              {group.items.map((item) => (
+                <Card
+                  key={item.review_id}
+                  style={selectedPlanId === item.plan_id ? styles.selectedCard : undefined}
+                  variant={selectedPlanId === item.plan_id ? "raised" : "interactive"}
+                >
+                  <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
+                  <Text style={styles.queueMeta}>{item.overdue ? "گذشته از موعد · " : ""}نسخهٔ تغذیه</Text>
+                  <Text style={styles.sentAt}>درخواست‌شده: {formatTehranDateTime(item.requested_at)}</Text>
+                  {item.reviewed_at ? <Text style={styles.approvedAt}>تاریخ تأیید: {formatTehranDateTime(item.reviewed_at)}</Text> : null}
+                  <Text style={styles.status}>{physicianReviewStatusLabel(item.status)}</Text>
+                  <Button
+                    disabled={state.status === "offline"}
+                    label={item.status === "pending" || item.status === "changes_requested" ? "شروع بررسی" : "باز کردن پرونده"}
+                    onPress={() => onSelect(item)}
+                    variant="secondary"
+                  />
+                </Card>
+              ))}
+            </View>
+          </ReviewQueueGroupHeader>
         </View>
       ))}
     </View>
