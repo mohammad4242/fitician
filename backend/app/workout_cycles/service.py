@@ -204,9 +204,7 @@ def get_actionable_workout_session(cycle: WorkoutCycle) -> WorkoutCycleSession |
 
 
 def workout_cycle_timezone(db: Session, *, user_id: UUID, cycle: WorkoutCycle) -> str:
-    profile_timezone = db.scalar(
-        select(UserProfile.timezone).where(UserProfile.user_id == user_id)
-    )
+    profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
     return member_timezone_or_default(profile_timezone, cycle.start_timezone)
 
 
@@ -250,10 +248,7 @@ def cycle_has_reached_nominal_end(
 ) -> bool:
     current_at = _as_utc(datetime.now(UTC) if now is None else now)
     if cycle.sessions:
-        if any(
-            session.status is WorkoutCycleSessionStatus.SCHEDULED
-            for session in cycle.sessions
-        ):
+        if any(session.status is WorkoutCycleSessionStatus.SCHEDULED for session in cycle.sessions):
             return False
         current_date = local_date_for_timezone(timezone_name, now=current_at)
         return current_date >= workout_cycle_start_date(
@@ -1070,9 +1065,10 @@ def _current_executable_cycle(
     now: datetime | None = None,
 ) -> WorkoutCycle | None:
     cycles = _current_plan_cycles(db, user_id=user_id, lock=lock)
-    timezone_name = db.scalar(
-        select(UserProfile.timezone).where(UserProfile.user_id == user_id)
-    ) or DEFAULT_MEMBER_TIMEZONE
+    timezone_name = (
+        db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
+        or DEFAULT_MEMBER_TIMEZONE
+    )
     return next(
         (
             cycle

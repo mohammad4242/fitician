@@ -98,9 +98,7 @@ def enqueue_due_cycle_reminders(db: Session, *, now: datetime | None = None) -> 
         timezone_name = member_timezone_or_default(timezone_name, cycle.start_timezone)
         if not workout_cycle_has_started(cycle, timezone_name=timezone_name, now=current):
             continue
-        current_week = calculate_cycle_current_week(
-            cycle, timezone_name=timezone_name, now=current
-        )
+        current_week = calculate_cycle_current_week(cycle, timezone_name=timezone_name, now=current)
         has_check_in = (
             db.scalar(
                 select(WorkoutCycleWeeklyCheckIn.id).where(

@@ -91,10 +91,7 @@ def test_body_analysis_review_notifications_preserve_the_authorized_specialist_r
             NotificationOutboxEvent.event_type == "body_analysis_review_required"
         )
     ).all()
-    assert {
-        event.user_id: event.payload["data"]["recipient_role"]
-        for event in events
-    } == {
+    assert {event.user_id: event.payload["data"]["recipient_role"] for event in events} == {
         coach.id: "coach",
         doctor.id: "doctor",
     }
@@ -221,14 +218,14 @@ def test_cycle_reminder_producer_persists_and_deduplicates_events(db: Session) -
     db.add(plan)
     db.flush()
     db.add(
-            WorkoutCycle(
-                user_id=user.id,
-                workout_plan_id=plan.id,
-                duration_weeks=4,
-                started_at=now - timedelta(days=29),
-                start_date=(now - timedelta(days=29)).date(),
-                start_timezone="UTC",
-            )
+        WorkoutCycle(
+            user_id=user.id,
+            workout_plan_id=plan.id,
+            duration_weeks=4,
+            started_at=now - timedelta(days=29),
+            start_date=(now - timedelta(days=29)).date(),
+            start_timezone="UTC",
+        )
     )
     db.flush()
 
@@ -336,9 +333,12 @@ def test_cycle_reminders_ignore_future_and_superseded_cycles(db: Session) -> Non
     db.flush()
 
     assert enqueue_due_cycle_reminders(db, now=now) == 0
-    assert db.scalars(
-        select(NotificationOutboxEvent).where(NotificationOutboxEvent.user_id == user.id)
-    ).all() == []
+    assert (
+        db.scalars(
+            select(NotificationOutboxEvent).where(NotificationOutboxEvent.user_id == user.id)
+        ).all()
+        == []
+    )
 
 
 def test_reminder_payload_has_no_member_or_medical_text() -> None:

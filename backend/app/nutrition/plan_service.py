@@ -1354,9 +1354,7 @@ def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
     return weekly_plan_response(plan)
 
 
-def _member_local_today(
-    db: Session, user_id: UUID, *, now: datetime | None = None
-) -> date:
+def _member_local_today(db: Session, user_id: UUID, *, now: datetime | None = None) -> date:
     profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
     return local_date_for_timezone(
         member_timezone_or_default(profile_timezone),

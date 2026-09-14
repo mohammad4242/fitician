@@ -225,9 +225,7 @@ def test_active_nutrition_and_tracking_switch_at_tehran_midnight(
 
     active = active_weekly_plan(db, persisted.user_id, now=tehran_midnight)
     assert active.id == persisted.id
-    after_timeline = build_program_timeline(
-        db, user_id=persisted.user_id, now=tehran_midnight
-    )
+    after_timeline = build_program_timeline(db, user_id=persisted.user_id, now=tehran_midnight)
     assert after_timeline.local_date == date(2026, 9, 14)
     assert after_timeline.nutrition.state.value == "active"
     assert after_timeline.nutrition.effective_today is not None

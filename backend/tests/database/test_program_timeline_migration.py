@@ -31,9 +31,7 @@ def test_program_timeline_schema_has_required_columns_and_constraints(db: Sessio
     }
     assert nutrition_columns["started_at"]["nullable"] is True
 
-    cycle_columns = {
-        column["name"]: column for column in inspector.get_columns("workout_cycles")
-    }
+    cycle_columns = {column["name"]: column for column in inspector.get_columns("workout_cycles")}
     assert cycle_columns["start_date"]["nullable"] is False
     assert cycle_columns["start_timezone"]["nullable"] is True
     assert "ix_nutrition_weekly_plans_user_active_start" in {
@@ -131,10 +129,13 @@ def test_previous_nutrition_handoff_downgrade_preserves_effective_plan(
         {"user_id": current_plan.user_id},
     ).all()
     assert active_plans == [current_plan.id]
-    assert db.scalar(
-        text("SELECT lifecycle_status FROM nutrition_weekly_plans WHERE id = :id"),
-        {"id": future_plan.id},
-    ) == "archived"
+    assert (
+        db.scalar(
+            text("SELECT lifecycle_status FROM nutrition_weekly_plans WHERE id = :id"),
+            {"id": future_plan.id},
+        )
+        == "archived"
+    )
 
     migration.op = Operations(MigrationContext.configure(db.connection()))
     migration.upgrade()

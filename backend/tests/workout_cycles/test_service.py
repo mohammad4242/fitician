@@ -346,9 +346,7 @@ def test_rescheduled_last_exact_session_extends_execution_until_resolved(
     sessions[-1].status = WorkoutCycleSessionStatus.SKIPPED
     sessions[-1].skipped_at = datetime(2026, 9, 5, 12, tzinfo=UTC)
     db.flush()
-    assert cycle_has_reached_nominal_end(
-        cycle, now=datetime(2026, 9, 5, 12, tzinfo=UTC)
-    ) is True
+    assert cycle_has_reached_nominal_end(cycle, now=datetime(2026, 9, 5, 12, tzinfo=UTC)) is True
 
 
 def test_legacy_cycle_keeps_nominal_end_behavior(db: Session) -> None:
@@ -364,9 +362,7 @@ def test_legacy_cycle_keeps_nominal_end_behavior(db: Session) -> None:
     db.add(cycle)
     db.flush()
 
-    assert cycle_has_reached_nominal_end(
-        cycle, now=datetime(2026, 8, 30, tzinfo=UTC)
-    ) is True
+    assert cycle_has_reached_nominal_end(cycle, now=datetime(2026, 8, 30, tzinfo=UTC)) is True
 
 
 def test_start_cycle_rejects_unsupported_plan_duration(db: Session) -> None:
