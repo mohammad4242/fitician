@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { ApiError } from "../../shared/apiClient";
 import * as nutritionApi from "./api";
@@ -143,6 +143,23 @@ beforeEach(() => {
   vi.mocked(nutritionApi.confirmMealRemoval).mockResolvedValue({ ...plan(), id: "plan-2", revision: 2 });
   vi.mocked(nutritionApi.confirmMealReplacement).mockResolvedValue({ ...plan(), id: "plan-2", revision: 2 });
   vi.mocked(nutritionApi.confirmFoodReplacement).mockResolvedValue({ ...plan(), id: "plan-2", revision: 2 });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+it("renders the physician approval timestamp in Tehran time", () => {
+  vi.stubEnv("TZ", "UTC");
+  const approvedPlan = {
+    ...plan(),
+    physician_approved: true,
+    physician_approved_at: "2026-09-13T20:45:00Z",
+  };
+
+  render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={approvedPlan} /></MemoryRouter>);
+
+  expect(screen.getByText("Approved: Sep 14, 2026, 12:15 AM")).toBeInTheDocument();
 });
 
 async function openMeal(user: ReturnType<typeof userEvent.setup>) {

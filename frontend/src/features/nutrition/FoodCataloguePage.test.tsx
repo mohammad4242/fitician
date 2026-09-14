@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import * as api from "./api";
@@ -112,6 +112,10 @@ beforeEach(async () => {
   vi.mocked(api.getAdminFoodCatalogue).mockResolvedValue({ ...response, items: [{ ...response.items[0], price: { status: "not_found" } }] });
   vi.mocked(api.deleteCatalogueFood).mockResolvedValue(undefined);
   vi.mocked(api.uploadCatalogueFoodImage).mockResolvedValue({ image_url: "/media/food-catalogue/replacement.png" });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 it("shows nutrient data and never shows catalogue price information to a member", async () => {
@@ -348,6 +352,7 @@ it("uses English copy and left-to-right flow", async () => {
 });
 
 it("shows accepted catalogue prices to an admin only", async () => {
+  vi.stubEnv("TZ", "UTC");
   await i18n.changeLanguage("en");
   auth.isAdmin = true;
   vi.mocked(api.getAdminFoodCatalogue).mockResolvedValue({
@@ -358,7 +363,7 @@ it("shows accepted catalogue prices to an admin only", async () => {
         status: "accepted",
         reference_price_irr: "5900000.00000000",
         reference_unit: "IRR_PER_KG",
-        observed_at: "2026-08-09T12:00:00Z",
+        observed_at: "2026-09-13T20:45:00Z",
         accepted_at: "2026-08-09T12:05:00Z",
         source: "automatic",
       },
@@ -368,7 +373,7 @@ it("shows accepted catalogue prices to an admin only", async () => {
 
   expect(await screen.findByText("590,000 Toman")).toBeVisible();
   expect(screen.getByText(/Automatic market update/)).toBeVisible();
-  expect(screen.getByText(/8\/9\/26/)).toBeVisible();
+  expect(screen.getByText(/9\/14\/26/)).toBeVisible();
   expect(screen.getByText("Toman per kilogram")).toBeVisible();
 });
 

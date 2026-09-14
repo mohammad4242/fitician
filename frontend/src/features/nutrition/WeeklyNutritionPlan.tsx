@@ -5,7 +5,7 @@ import {
   FITICIAN_WEEKDAY_LABELS_FA,
   formatIsoDate,
   formatPersianDate,
-  formatTehranDateTime,
+  formatTehranDateTimeForLocale,
 } from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 
@@ -281,7 +281,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
                   </span>
                 )}
                 {reviewApproved && currentPlan.physician_approved_at && (
-                  <span>{l("تاریخ تأیید:", "Approved:")} {language === "en" ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(currentPlan.physician_approved_at)) : formatTehranDateTime(currentPlan.physician_approved_at)}</span>
+                  <span>{l("تاریخ تأیید:", "Approved:")} {formatTehranDateTimeForLocale(currentPlan.physician_approved_at, language === "en" ? "en-US" : "fa-IR")}</span>
                 )}
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import * as api from "./api";
@@ -23,6 +23,10 @@ vi.mock("../entitlements/EntitlementContext", () => ({
     quotaFor: () => null,
   }),
 }));
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 import { localIsoDate } from "@fitician/core/local-date";
 
 const today = localIsoDate();
@@ -111,6 +115,7 @@ beforeEach(async () => {
 });
 
 it("shows planned versus actual tracking and saves photo corrections before confirmation", async () => {
+  vi.stubEnv("TZ", "UTC");
   const user = userEvent.setup();
   vi.mocked(api.listRecentFoods).mockResolvedValue([{ food_id: "food-1", display_name: "Chicken breast", last_quantity_grams: 120, last_entry_date: today }]);
   vi.mocked(api.estimateFoodPhoto).mockResolvedValue({
@@ -119,6 +124,7 @@ it("shows planned versus actual tracking and saves photo corrections before conf
     needs_user_confirmation: true,
     macro_totals: { calories: 200, protein_g: 25, carbohydrate_g: 0, fat_g: 5 },
     macro_totals_complete: true,
+    created_at: "2026-09-13T20:45:00Z",
     items: [{ item_id: "item-1", food_id: "food-1", name_guess: "Chicken", estimated_amount: 120, unit: "g", mapping_status: "verified" }],
   });
   vi.mocked(api.correctFoodPhotoItem).mockResolvedValue({
@@ -143,6 +149,7 @@ it("shows planned versus actual tracking and saves photo corrections before conf
   );
   await user.upload(screen.getByLabelText("Choose food photo"), new File(["image"], "meal.jpg", { type: "image/jpeg" }));
   expect(await screen.findByRole("img", { name: "Meal photo preview" })).toBeInTheDocument();
+  expect(screen.getByText("Sep 14, 2026")).toBeInTheDocument();
   expect(screen.getByText(/≈ 200/)).toBeInTheDocument();
   const amount = await screen.findByRole("spinbutton", { name: "Chicken amount" });
   await user.clear(amount);

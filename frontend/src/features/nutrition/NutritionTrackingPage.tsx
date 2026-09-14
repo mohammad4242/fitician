@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { formatTehranDateForLocale } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
 import { AppIcon } from "../../shared/AppIcon";
@@ -64,8 +65,11 @@ function foodPhotoStatusLabel(
 
 function formatFoodPhotoDate(value: string | undefined, locale: string): string {
   if (!value) return "";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
+  try {
+    return formatTehranDateForLocale(value, locale);
+  } catch {
+    return "";
+  }
 }
 
 export function NutritionTrackingPage() {
