@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
+import { ApiError } from "@fitician/core";
 
 const auth = vi.hoisted(() => ({
   user: {
@@ -107,6 +108,21 @@ it("surfaces the real next session instead of generic workout copy", async () =>
 
   expect(await screen.findByRole("heading", { name: "فشار بالاتنه" })).toBeInTheDocument();
   expect(screen.getByText(/۵۲ دقیقه/)).toBeInTheDocument();
+});
+
+it("uses the shared safe presentation when the workout plan load fails", async () => {
+  workoutApi.getActiveWorkoutPlan.mockRejectedValueOnce(
+    new ApiError(503, "private provider detail", null, "SERVICE_UNAVAILABLE", {
+      requestId: "dashboard-plan-request-1",
+    }),
+  );
+
+  render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("private provider detail");
+  expect(alert).not.toHaveTextContent("dashboard-plan-request-1");
 });
 
 it("shows a rest day and the next real session without using the first plan day", async () => {

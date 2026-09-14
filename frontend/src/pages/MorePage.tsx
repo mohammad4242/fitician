@@ -9,6 +9,7 @@ import { verifyPhysicianAccess } from "../features/nutrition/api";
 import { useProfile } from "../features/profile/ProfileContext";
 import { ProfilePhotoAvatar } from "../features/profile/ProfilePhoto";
 import { verifyCoachAccess } from "../features/workoutReviews/api";
+import { AppErrorNotice } from "../shared/AppErrorNotice";
 import { LanguageSwitcher } from "../shared/LanguageSwitcher";
 import { AppIcon, type IconName } from "../shared/AppIcon";
 import { PwaInstallCard } from "../pwa/PwaInstallCard";
@@ -21,7 +22,7 @@ export function MorePage() {
   const { profile, productMode, status } = useProfile();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
   const [isCoach, setIsCoach] = useState(false);
   const [isPhysician, setIsPhysician] = useState(false);
   const english = i18n.resolvedLanguage === "en";
@@ -51,10 +52,10 @@ export function MorePage() {
 
   function handleLogout() {
     setBusy(true);
-    setError(false);
+    setError(null);
     void logout()
       .then(() => navigate("/login", { replace: true }))
-      .catch(() => setError(true))
+      .catch((cause: unknown) => setError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -128,7 +129,15 @@ export function MorePage() {
 
         <PwaInstallCard />
 
-        {error && <p className="fitician-status fitician-status--danger" role="alert">{l("خروج انجام نشد. دوباره تلاش کن.", "Could not sign out. Try again.")}</p>}
+        {error !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="auth"
+            error={error}
+            locale={english ? "en" : "fa"}
+            onRetry={handleLogout}
+          />
+        )}
         <button className="more-page__logout" type="button" disabled={busy} onClick={handleLogout}>
           {busy ? l("در حال خروج…", "Signing out…") : l("خروج از حساب", "Sign out")}
         </button>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { AuthShell } from "../../shared/AuthShell";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "../auth/AuthContext";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
 import {
@@ -59,13 +60,15 @@ export function OnboardingPage() {
   const [step, setStep] = useState<Step>(1);
   const [values, setValues] = useState<ProfileFormValues>(emptyValues);
   const [errors, setErrors] = useState<ProfileValidationErrors>({});
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [busy, setBusy] = useState(false);
 
   function chooseMode(mode: ProductMode) {
     if (busy) return;
     setBusy(true);
-    void selectProductMode(mode).catch(() => setSubmitError(true)).finally(() => setBusy(false));
+    void selectProductMode(mode)
+      .catch((cause: unknown) => setSubmitError(cause))
+      .finally(() => setBusy(false));
   }
 
   useEffect(() => {
@@ -109,7 +112,7 @@ export function OnboardingPage() {
       return;
     }
     setErrors({});
-    setSubmitError(false);
+    setSubmitError(null);
     setStep((step - 1) as Step);
   }
 
@@ -135,10 +138,10 @@ export function OnboardingPage() {
     }
 
     setBusy(true);
-    setSubmitError(false);
+    setSubmitError(null);
     void createProfile(toProfileInput(values))
       .then(() => navigate("/body-progress/new", { replace: true }))
-      .catch(() => setSubmitError(true))
+      .catch((cause: unknown) => setSubmitError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -166,7 +169,14 @@ export function OnboardingPage() {
               </button>
             ))}
           </div>
-          {submitError && <p className="form-error" role="alert">ارتباط با سرور برقرار نشد. دوباره تلاش کن.</p>}
+          {submitError !== null && (
+            <AppErrorNotice
+              audience="member"
+              context="profile"
+              error={submitError}
+              locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+            />
+          )}
         </main>
       </OnboardingShell>
     );
@@ -263,10 +273,13 @@ export function OnboardingPage() {
             </>
           )}
 
-          {submitError && (
-            <p className="form-error" role="alert" aria-live="polite">
-              {t("errors.generic")}
-            </p>
+          {submitError !== null && (
+            <AppErrorNotice
+              audience="member"
+              context="profile"
+              error={submitError}
+              locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+            />
           )}
 
           <div className="profile-actions">
@@ -298,18 +311,18 @@ export function OnboardingPage() {
 }
 
 function OnboardingShell({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
 
   function handleLogout() {
     setBusy(true);
-    setError(false);
+    setError(null);
     void logout()
       .then(() => navigate("/", { replace: true }))
-      .catch(() => setError(true))
+      .catch((cause: unknown) => setError(cause))
       .finally(() => setBusy(false));
   }
 
@@ -319,7 +332,15 @@ function OnboardingShell({ children }: { children: ReactNode }) {
         <button className="logout-button" type="button" disabled={busy} onClick={handleLogout}>
           {busy ? t("header.loggingOut") : t("header.logout")}
         </button>
-        {error && <p className="form-error" role="alert">{t("errors.generic")}</p>}
+        {error !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="auth"
+            error={error}
+            locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+            onRetry={handleLogout}
+          />
+        )}
       </div>
       {children}
     </AuthShell>

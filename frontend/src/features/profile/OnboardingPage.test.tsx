@@ -9,6 +9,8 @@ import {
 } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError, TransportError } from "@fitician/core";
+
 import i18n from "../../i18n";
 import type { SafetyProfileInput } from "../nutrition/types";
 import {
@@ -146,6 +148,25 @@ beforeEach(async () => {
   profileContext.status = "mode_selected";
   profileContext.productMode = "training";
   await i18n.changeLanguage("fa");
+});
+
+it("uses the shared safe presentation when selecting a product mode fails", async () => {
+  profileContext.status = "missing";
+  profileContext.productMode = null;
+  profileContext.selectProductMode.mockRejectedValueOnce(
+    new ApiError(503, "private mode detail", null, "SERVICE_UNAVAILABLE", {
+      requestId: "onboarding-mode-request-1",
+    }),
+  );
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await user.click(screen.getByText("تمرین و تغذیه", { exact: true }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("private mode detail");
+  expect(alert).not.toHaveTextContent("onboarding-mode-request-1");
 });
 
 it("resumes pending nutrition safety data after registration", () => {
@@ -552,7 +573,7 @@ it("offers the optional photo flow after successful profile creation", async () 
 });
 
 it("keeps entered values and shows an alert when creation fails", async () => {
-  profileContext.createProfile.mockRejectedValue(new Error("offline"));
+  profileContext.createProfile.mockRejectedValue(new TransportError("offline"));
   const user = userEvent.setup();
   renderOnboarding();
   await reachExperienceStep(user, "Mohammad");
@@ -561,7 +582,7 @@ it("keeps entered values and shows an alert when creation fails", async () => {
   await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "درخواست انجام نشد",
+    "اتصال اینترنت در دسترس نیست",
   );
   expect(screen.getByLabelText("روزهای تمرین در هفته")).toHaveValue(3);
   expect(screen.queryByLabelText("محدودیت‌های جسمی (اختیاری)")).not.toBeInTheDocument();

@@ -22,6 +22,7 @@ import { getProgramTimelineToday } from "../features/programTimeline/api";
 import { useProfile } from "../features/profile/ProfileContext";
 import { generateWorkoutPlan, getActiveWorkoutPlan } from "../features/workouts/api";
 import type { WorkoutPlan } from "../features/workouts/types";
+import { AppErrorNotice } from "../shared/AppErrorNotice";
 import { ProgressRing } from "../shared/ProgressRing";
 import "./dashboard.css";
 
@@ -45,16 +46,23 @@ export function DashboardPage() {
   const hasNutrition = productMode === "nutrition" || productMode === "both";
   const [planState, setPlanState] = useState<PlanState>("loading");
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
+  const [planError, setPlanError] = useState<unknown | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<unknown | null>(null);
   const [nutritionState, setNutritionState] = useState<NutritionState>("loading");
   const [nutritionPlan, setNutritionPlan] = useState<WeeklyPlan | null>(null);
   const [nutritionEstimate, setNutritionEstimate] = useState<NutritionEstimate | null>(null);
+  const [nutritionError, setNutritionError] = useState<unknown | null>(null);
   const [dailyTracking, setDailyTracking] = useState<DailyTrackingSummary | null>(null);
+  const [dailyTrackingError, setDailyTrackingError] = useState<unknown | null>(null);
   const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
+  const [timelineError, setTimelineError] = useState<unknown | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
 
   useEffect(() => {
     if (!hasTraining) {
+      setPlanError(null);
       setPlanState("empty");
       return;
     }
@@ -63,24 +71,36 @@ export function DashboardPage() {
       .then((activePlan) => {
         if (!active) return;
         setPlan(activePlan);
+        setPlanError(null);
         setPlanState(activePlan === null ? "empty" : "ready");
       })
-      .catch(() => { if (active) setPlanState("error"); });
+      .catch((cause: unknown) => {
+        if (active) {
+          setPlanError(cause);
+          setPlanState("error");
+        }
+      });
     return () => { active = false; };
-  }, [hasTraining]);
+  }, [hasTraining, retryAttempt]);
 
   useEffect(() => {
     let active = true;
     void getProgramTimelineToday(deviceTimezone)
       .then((loadedTimeline) => {
-        if (active && loadedTimeline !== undefined) setTimeline(loadedTimeline);
+        if (active) {
+          if (loadedTimeline !== undefined) setTimeline(loadedTimeline);
+          setTimelineError(null);
+        }
       })
-      .catch(() => undefined);
+      .catch((cause: unknown) => {
+        if (active) setTimelineError(cause);
+      });
     return () => { active = false; };
-  }, [deviceTimezone]);
+  }, [deviceTimezone, retryAttempt]);
 
   useEffect(() => {
     if (!hasNutrition) {
+      setNutritionError(null);
       setNutritionState("empty");
       return;
     }
@@ -93,34 +113,53 @@ export function DashboardPage() {
         if (active) {
           setNutritionPlan(latestPlan);
           setNutritionEstimate(estimate);
+          setNutritionError(null);
           setNutritionState(latestPlan !== null
             ? latestPlan.physician_review_required === true && !latestPlan.physician_approved ? "pending" : "ready"
             : estimate !== null ? "ready" : "empty");
         }
     })
-      .catch(() => { if (active) setNutritionState("empty"); });
+      .catch((cause: unknown) => {
+        if (active) {
+          setNutritionError(cause);
+          setNutritionState("empty");
+        }
+      });
     return () => { active = false; };
-  }, [hasNutrition]);
+  }, [hasNutrition, retryAttempt]);
 
   useEffect(() => {
-    if (!hasNutrition) return;
+    if (!hasNutrition) {
+      setDailyTrackingError(null);
+      return;
+    }
     let active = true;
     const date = timeline?.local_date ?? localIsoDate();
     void getDailyTracking(date)
-      .catch(() => null)
       .then((tracking) => {
-        if (active) setDailyTracking(tracking);
+        if (active) {
+          setDailyTracking(tracking);
+          setDailyTrackingError(null);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setDailyTracking(null);
+          setDailyTrackingError(cause);
+        }
       });
     return () => { active = false; };
-  }, [hasNutrition, timeline?.local_date]);
+  }, [hasNutrition, retryAttempt, timeline?.local_date]);
 
   if (user === null) return null;
 
   function startWorkout() {
     if (!canGenerateWorkout || entitlementsLoading) return;
     setGenerating(true);
+    setGenerationError(null);
     void generateWorkoutPlan()
       .then(() => navigate("/workout-plan"))
+      .catch((cause: unknown) => setGenerationError(cause))
       .finally(() => setGenerating(false));
   }
 
@@ -172,6 +211,7 @@ export function DashboardPage() {
   const format = (value: number) => Math.round(value).toLocaleString(locale);
   const displayName = profile?.display_name ?? (english ? "there" : "دوست");
   const avatarInitial = displayName.trim().charAt(0).toLocaleUpperCase(locale);
+  const retryDashboard = () => setRetryAttempt((attempt) => attempt + 1);
 
   return (
     <main className="command-center fitician-page">
@@ -190,10 +230,55 @@ export function DashboardPage() {
         {profile === null && (
           <Link className="fitician-button" to="/onboarding">{t("dashboard.completeProfile")}</Link>
         )}
+        {nutritionError !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="nutrition"
+            error={nutritionError}
+            locale={english ? "en" : "fa"}
+            onRetry={retryDashboard}
+          />
+        )}
+        {dailyTrackingError !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="nutrition"
+            error={dailyTrackingError}
+            locale={english ? "en" : "fa"}
+            onRetry={retryDashboard}
+          />
+        )}
 
         <section className="command-center__grid" aria-label={t("dashboard.statusLabel")}>
           {hasTraining && (
             <article className="command-card command-card--primary" role="region" aria-labelledby="dashboard-today-workout">
+              {planError !== null && (
+                <AppErrorNotice
+                  audience="member"
+                  context="workout"
+                  error={planError}
+                  locale={english ? "en" : "fa"}
+                  onRetry={retryDashboard}
+                />
+              )}
+              {generationError !== null && (
+                <AppErrorNotice
+                  audience="member"
+                  context="workout_generation"
+                  error={generationError}
+                  locale={english ? "en" : "fa"}
+                  onRetry={startWorkout}
+                />
+              )}
+              {timelineError !== null && (
+                <AppErrorNotice
+                  audience="member"
+                  context="workout"
+                  error={timelineError}
+                  locale={english ? "en" : "fa"}
+                  onRetry={retryDashboard}
+                />
+              )}
               <div className="command-card__head">
                 <div>
                   <p>{t("dashboard.trainingEyebrow")}</p>

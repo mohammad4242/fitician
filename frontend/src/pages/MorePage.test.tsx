@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import "../i18n";
 
 const logout = vi.fn(async () => undefined);
@@ -57,6 +59,23 @@ it("signs out from the separated account action", async () => {
   await user.click(screen.getByRole("button", { name: "خروج از حساب" }));
 
   expect(logout).toHaveBeenCalledOnce();
+});
+
+it("uses the shared safe presentation when sign out fails", async () => {
+  logout.mockRejectedValueOnce(
+    new ApiError(503, "private sign-out detail", null, "SERVICE_UNAVAILABLE", {
+      requestId: "more-logout-request-1",
+    }),
+  );
+  const user = userEvent.setup();
+  render(<MemoryRouter><MorePage /></MemoryRouter>);
+
+  await user.click(screen.getByRole("button", { name: "خروج از حساب" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("private sign-out detail");
+  expect(alert).not.toHaveTextContent("more-logout-request-1");
 });
 
 it("shows the training program library in the mobile admin workspace", () => {
