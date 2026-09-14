@@ -9,7 +9,9 @@ import {
   formatPersianDateWithWeekday,
   formatPersianWeekday,
   formatIsoDate,
+  formatTehranDate,
   formatTehranDateTime,
+  formatTehranTime,
   daysInJalaliMonth,
   isValidJalaliDate,
   isoDateToJalaliParts,
@@ -131,6 +133,8 @@ it("does not shift a date-only value under a negative machine timezone", () => {
 });
 
 it("formats an instant at the Tehran boundary in Tehran time", () => {
+  expect(formatTehranDate("2026-09-13T20:45:00Z")).toBe("۲۳ شهریور ۱۴۰۵");
+  expect(formatTehranTime("2026-09-13T20:45:00Z")).toBe("۰۰:۱۵");
   expect(formatTehranDateTime("2026-09-13T20:45:00Z")).toBe("۲۳ شهریور ۱۴۰۵، ۰:۱۵");
   expect(IRAN_TIME_ZONE).toBe("Asia/Tehran");
 });

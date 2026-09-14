@@ -104,6 +104,10 @@ function timestampAsDate(value: string): Date {
   return date;
 }
 
+function formatPersianCalendarNumber(value: number): string {
+  return value.toLocaleString("fa-IR", { useGrouping: false });
+}
+
 function assertInteger(value: number, name: string): void {
   if (!Number.isInteger(value)) throw new RangeError(`Expected an integer ${name}`);
 }
@@ -268,4 +272,14 @@ export function formatTehranDateTime(isoTimestamp: string): string {
     timeStyle: "short",
     timeZone: IRAN_TIME_ZONE,
   }).format(timestampAsDate(isoTimestamp));
+}
+
+export function formatTehranDate(isoTimestamp: string): string {
+  const parts = isoTimestampToTehranJalaliParts(isoTimestamp);
+  return `${formatPersianCalendarNumber(parts.day)} ${PERSIAN_MONTH_NAMES_FA[parts.month - 1]} ${formatPersianCalendarNumber(parts.year)}`;
+}
+
+export function formatTehranTime(isoTimestamp: string): string {
+  const parts = isoTimestampToTehranJalaliParts(isoTimestamp);
+  return `${formatPersianCalendarNumber(parts.hour).padStart(2, "۰")}:${formatPersianCalendarNumber(parts.minute).padStart(2, "۰")}`;
 }

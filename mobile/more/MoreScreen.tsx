@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Image, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { formatTehranDate } from "@fitician/core";
 
 import fa from "@fitician/core/i18n/fa";
 import type { AccessPackageCode } from "@fitician/core/entitlements";
@@ -266,9 +267,11 @@ function packageLabel(code: AccessPackageCode): string {
 }
 
 function formatAccessDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 const styles = StyleSheet.create({

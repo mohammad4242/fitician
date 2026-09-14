@@ -9,6 +9,7 @@ import type {
   NormalizedBodyProgressComparisonV1,
   NormalizedBodyProgressComparisonV2,
 } from "@fitician/core/body-photos";
+import { formatTehranDate } from "@fitician/core";
 
 import { bodyAreaLabel } from "./bodyAnalysisPresentation";
 import { Card, DisclosureCard, ProgressBar, SectionHeader } from "../ui/components";
@@ -130,7 +131,11 @@ function isAvailableMeasurement(delta: BodyProgressMeasurementDelta): boolean {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function formatNumber(value: number | null): string {

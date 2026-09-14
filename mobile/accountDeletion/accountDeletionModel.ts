@@ -1,4 +1,4 @@
-import { ApiError } from "@fitician/core";
+import { ApiError, formatTehranDateTime } from "@fitician/core";
 
 import type { AccountDeletionStatus } from "./accountDeletionApi";
 
@@ -53,7 +53,9 @@ export function accountDeletionError(error: unknown): AccountDeletionErrorMessag
 
 export function formatDeletionDate(value: string | null): string {
   if (value === null) return "زمان نامشخص";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "زمان نامشخص";
-  return date.toLocaleString("fa-IR");
+  try {
+    return formatTehranDateTime(value);
+  } catch {
+    return "زمان نامشخص";
+  }
 }

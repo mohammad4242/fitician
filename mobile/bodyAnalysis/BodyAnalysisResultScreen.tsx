@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-import { ApiError } from "@fitician/core";
+import { ApiError, formatTehranDateTime } from "@fitician/core";
 import type {
   BodyAnalysis,
   BodyPhoto,
@@ -376,7 +376,11 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 }
 
 function formatSessionDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  try {
+    return formatTehranDateTime(value);
+  } catch {
+    return value;
+  }
 }
 
 function sessionStatusLabel(status: BodyPhotoSession["state"]): string {

@@ -3,6 +3,7 @@ import { Linking, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import fa from "@fitician/core/i18n/fa";
+import { formatTehranDate } from "@fitician/core";
 import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -143,9 +144,11 @@ function formatAmount(amount: number, currency: string): string {
 }
 
 function formatAccessDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 const styles = StyleSheet.create({

@@ -4,6 +4,7 @@ import { File } from "expo-file-system";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { formatTehranDate } from "@fitician/core";
 import type { components, MultipartUploadRequest } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
@@ -1316,8 +1317,11 @@ function upsertPhotoHistory(
 }
 
 function formatPhotoHistoryDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("fa-IR");
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return "";
+  }
 }
 
 function numericValue(value: string): number {

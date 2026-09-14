@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import type { BodyProgressTimelineItem } from "@fitician/core/body-photos";
+import { formatTehranDate } from "@fitician/core";
 
 import { AppIcon, Card, SectionHeader } from "../ui/components";
 import { RTL_LAYOUT, RTL_ROW } from "../ui/rtl";
@@ -116,7 +117,11 @@ function formatChange(value: number, unit: string): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { day: "numeric", month: "short" }).format(new Date(value));
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function formatNumber(value: number): string {

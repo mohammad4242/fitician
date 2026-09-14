@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 
 import type { MultipartUploadRequest } from "@fitician/core";
+import { formatPersianDate } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
@@ -562,7 +563,7 @@ function LabDocumentsCard({
                 <Text style={styles.statusText}>{labReviewStatusLabel(document.review_status)}</Text>
               </View>
               <View style={styles.metaStack}>
-                <Text style={styles.mutedText}>تاریخ: {document.test_date ?? "ثبت نشده"}</Text>
+                <Text style={styles.mutedText}>تاریخ: {document.test_date ? formatClinicalDate(document.test_date) : "ثبت نشده"}</Text>
                 <Text style={styles.mutedText}>آزمایشگاه: {document.laboratory_name ?? "ثبت نشده"}</Text>
                 {document.category ? <Text style={styles.mutedText}>دسته‌بندی: {document.category}</Text> : null}
               </View>
@@ -577,6 +578,14 @@ function LabDocumentsCard({
       )}
     </Card>
   );
+}
+
+function formatClinicalDate(value: string): string {
+  try {
+    return formatPersianDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function SupplementOrdersCard({

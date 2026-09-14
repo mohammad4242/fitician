@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
-import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
+import { FITICIAN_WEEKDAY_LABELS_FA, formatTehranDateTime } from "@fitician/core";
 import type { NutritionProfile } from "@fitician/core/nutrition";
 import {
   equipmentForHomeTrainingSetup,
@@ -1233,10 +1233,11 @@ function ageFromBirthDate(value: string): number {
 }
 
 function formatProfileDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  try {
+    return formatTehranDateTime(value);
+  } catch {
+    return value;
+  }
 }
 
 function profileErrorMessage(error: unknown): string {

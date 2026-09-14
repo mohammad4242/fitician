@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { formatTehranTime } from "@fitician/core";
 import type { components } from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
@@ -710,9 +711,11 @@ function validationStatusLabel(value: components["schemas"]["ValidationStatus"])
 
 function reviewLeaseLabel(value: string | null): string {
   if (value === null) return "بدون قفل فعال";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "بدون قفل فعال";
-  return new Intl.DateTimeFormat("fa-IR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  try {
+    return formatTehranTime(value);
+  } catch {
+    return "بدون قفل فعال";
+  }
 }
 
 function formatPersianNumber(value: number): string {

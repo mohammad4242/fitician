@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 
-import { irrToToman, type components } from "@fitician/core";
+import { formatPersianDate, irrToToman, type components } from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -1435,9 +1435,11 @@ function formatNumber(value: number): string {
 }
 
 function formatPhysicianPlanDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { day: "numeric", month: "short" }).format(
-    new Date(`${value}T12:00:00`),
-  );
+  try {
+    return formatPersianDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function physicianErrorMessage(error: unknown): string {

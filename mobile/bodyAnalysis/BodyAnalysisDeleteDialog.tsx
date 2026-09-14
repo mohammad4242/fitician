@@ -2,6 +2,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { BodyProgressTimelineItem, BodyPhotoSessionState } from "@fitician/core/body-photos";
+import { formatTehranDate } from "@fitician/core";
 
 import { AppIcon, Button } from "../ui/components";
 import { RTL_LAYOUT, RTL_ROW } from "../ui/rtl";
@@ -79,7 +80,11 @@ export function BodyAnalysisDeleteDialog({
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function sessionStateLabel(state: BodyPhotoSessionState): string {

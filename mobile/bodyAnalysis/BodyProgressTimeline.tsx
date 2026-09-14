@@ -5,6 +5,7 @@ import type {
   BodyPhotoSessionState,
   BodyProgressTimelineItem,
 } from "@fitician/core/body-photos";
+import { formatTehranDate } from "@fitician/core";
 
 import { Button, Card } from "../ui/components";
 import { fiticianTokens } from "../ui/tokens";
@@ -290,7 +291,11 @@ function formatCount(value: number): string {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(value));
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 function formatMetric(value: number): string {

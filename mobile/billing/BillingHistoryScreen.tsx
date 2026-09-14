@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import fa from "@fitician/core/i18n/fa";
+import { formatTehranDate } from "@fitician/core";
 import type { BillingOrder } from "@fitician/core/billing";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -86,9 +87,11 @@ function formatAmount(amount: number, currency: string): string {
 }
 
 function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return value;
+  }
 }
 
 const styles = StyleSheet.create({

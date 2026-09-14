@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { formatTehranDate } from "@fitician/core";
+
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
 import { connectivityMonitor, type ConnectivityStatus } from "../platform/connectivity";
@@ -1027,8 +1029,11 @@ function foodPriceSourceLabel(price: FoodCataloguePrice): string {
 
 function foodPriceDate(value: string | null | undefined): string {
   if (!value) return "";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "" : new Intl.DateTimeFormat("fa-IR", { dateStyle: "short" }).format(date);
+  try {
+    return formatTehranDate(value);
+  } catch {
+    return "";
+  }
 }
 
 function researchReferenceUnit(value: string): NonNullable<FoodCataloguePrice["reference_unit"]> | null {
