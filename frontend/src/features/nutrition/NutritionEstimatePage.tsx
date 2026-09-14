@@ -8,6 +8,7 @@ import type { ProgramTimelineToday, TimelineNutrition } from "@fitician/core/pro
 
 import { AppIcon } from "../../shared/AppIcon";
 import { DualProgressRing } from "../../shared/DualProgressRing";
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import { ProgressRing } from "../../shared/ProgressRing";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as nutritionApi from "./api";
@@ -493,11 +494,12 @@ function NutritionPlanStartCard({
         <h2>{l("برنامه تغذیه‌ات آماده شروع است", "Your nutrition plan is ready")}</h2>
         <p>{l("تاریخ شروع را انتخاب کن تا برنامه هفتگی‌ات از همان روز دنبال شود.", "Choose a start date and your weekly plan will begin from that day.")}</p>
       </div>
-      <label>
-        <span>{l("تاریخ شروع", "Start date")}</span>
-        <input aria-label={l("تاریخ شروع برنامه تغذیه", "Nutrition plan start date")} type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-        {language === "fa" && startDate !== "" && <small>{formatPersianDateWithWeekday(startDate)}</small>}
-      </label>
+      <PersianDatePicker
+        ariaLabel={l("تاریخ شروع برنامه تغذیه", "Nutrition plan start date")}
+        label={l("تاریخ شروع", "Start date")}
+        onChange={setStartDate}
+        value={startDate}
+      />
       <button className="primary-button" disabled={starting || startDate === ""} onClick={() => onStart(startDate)} type="button" aria-busy={starting}>
         {starting ? l("در حال شروع…", "Starting…") : l("شروع برنامه تغذیه", "Start nutrition plan")}
       </button>

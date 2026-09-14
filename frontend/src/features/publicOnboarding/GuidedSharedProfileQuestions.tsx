@@ -1,7 +1,8 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import type { ProfileFormValues } from "../profile/types";
 import { useAutoAdvance } from "./useAutoAdvance";
 
@@ -27,10 +28,6 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
   const [question, setQuestion] = useState(0);
   const [showBodyConfirmation, setShowBodyConfirmation] = useState(false);
   const [bodyValuesConfirmed, setBodyValuesConfirmed] = useState(false);
-  const [birthParts, setBirthParts] = useState(() => {
-    const [year = "", month = "", day = ""] = values.birth_date.split("-");
-    return { year, month, day };
-  });
   const { selectAndAdvance, resetAdvancing } = useAutoAdvance();
   const onCompleteRef = useRef(onComplete);
   useEffect(() => {
@@ -40,17 +37,13 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
   const labels = language === "en"
     ? ["What should we call you?", "When were you born?", "What is your sex?", "What are your height and weight?", "What is your main goal?"]
     : ["دوست داری چه صدایت کنیم؟", "چه تاریخی به دنیا آمدی؟", "جنسیتت چیست؟", "قد و وزنت چقدر است؟", "هدف اصلی تو چیست؟"];
-  const years = useMemo(() => Array.from({ length: 83 }, (_, index) => String(new Date().getFullYear() - 18 - index)), []);
-  const daysInSelectedMonth = birthParts.year && birthParts.month
-    ? new Date(Number(birthParts.year), Number(birthParts.month), 0).getDate()
-    : 31;
   const next = language === "en" ? "Continue" : "ادامه";
   const back = language === "en" ? "Back" : "بازگشت";
   const activeStage = question <= 2 ? 0 : question === 3 ? 1 : 2;
   const stages = language === "en" ? ["Personal", "Body", "Goal"] : ["شخصی", "بدن", "هدف"];
   const ready = [
     values.display_name.trim().length >= 2,
-    Boolean(birthParts.year && birthParts.month && birthParts.day),
+    values.birth_date !== "",
     values.sex !== "",
     Number(values.height_cm) >= 120 && Number(values.height_cm) <= 230
       && Number(values.current_weight_kg) >= 35 && Number(values.current_weight_kg) <= 300,
@@ -59,18 +52,8 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
   const needsBodyConfirmation = Number(values.height_cm) < 140 || Number(values.height_cm) > 210
     || Number(values.current_weight_kg) < 40 || Number(values.current_weight_kg) > 180;
 
-  useEffect(() => {
-    if (Number(birthParts.day) > daysInSelectedMonth) {
-      setBirthParts((current) => ({ ...current, day: "" }));
-    }
-  }, [birthParts.day, daysInSelectedMonth]);
-
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (question === 1) {
-      if (!birthParts.year || !birthParts.month || !birthParts.day) return;
-      onChange("birth_date", `${birthParts.year}-${birthParts.month.padStart(2, "0")}-${birthParts.day.padStart(2, "0")}`);
-    }
     if (question === 3 && needsBodyConfirmation && !bodyValuesConfirmed) {
       setShowBodyConfirmation(true);
       return;
@@ -113,11 +96,16 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
       <h1 className="fitician-display" id="guided-question-title">{labels[question]}</h1>
       <form className="guided-question__form" onSubmit={submit}>
         {question === 0 && <label>{t("onboarding.fields.displayName")}<input name="display_name" autoFocus required minLength={2} maxLength={80} value={values.display_name} onChange={(event) => onChange("display_name", event.target.value)} /></label>}
-        {question === 1 && <fieldset className="birth-date-picker"><legend>{t("onboarding.fields.birthDate")}</legend>
-          <label>{language === "en" ? "Day" : "روز"}<select className="birth-date-picker__select" required value={birthParts.day} onChange={(event) => setBirthParts((current) => ({ ...current, day: event.target.value }))}><option value="" />{Array.from({ length: daysInSelectedMonth }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select></label>
-          <label>{language === "en" ? "Month" : "ماه"}<select className="birth-date-picker__select" required value={birthParts.month} onChange={(event) => setBirthParts((current) => ({ ...current, month: event.target.value }))}><option value="" />{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select></label>
-          <label>{language === "en" ? "Year" : "سال"}<select className="birth-date-picker__select" required value={birthParts.year} onChange={(event) => setBirthParts((current) => ({ ...current, year: event.target.value }))}><option value="" />{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-        </fieldset>}
+        {question === 1 && (
+          <div className="birth-date-picker">
+            <PersianDatePicker
+              ariaLabel={t("onboarding.fields.birthDate")}
+              label={t("onboarding.fields.birthDate")}
+              onChange={(value) => onChange("birth_date", value)}
+              value={values.birth_date}
+            />
+          </div>
+        )}
         {question === 2 && (
           <div className="guided-choice-grid guided-choice-grid--sex">
             {sexes.map((sex) => (
@@ -172,4 +160,3 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
     </section>
   );
 }
-

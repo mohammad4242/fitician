@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -84,9 +84,7 @@ it("asks training status and medical questions before account creation", async (
 
   await user.type(screen.getByLabelText("Display name"), "Sara");
   await user.click(screen.getByRole("button", { name: "Continue" }));
-  await user.selectOptions(screen.getByLabelText("Day"), "14");
-  await user.selectOptions(screen.getByLabelText("Month"), "5");
-  await user.selectOptions(screen.getByLabelText("Year"), "2000");
+  fireEvent.change(screen.getByLabelText("Birth date"), { target: { value: "2000-05-14" } });
   await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(screen.getByRole("button", { name: "Female" }));
   await user.type(await screen.findByLabelText("Height (centimeters)"), "165");
@@ -101,9 +99,11 @@ it("asks training status and medical questions before account creation", async (
 async function completeSharedQuestions(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - روز" }), "25");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - ماه" }), "2");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - سال" }), "1379");
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
   await user.click(screen.getByRole("button", { name: "ادامه" }));
   await user.click(screen.getByRole("button", { name: "زن" }));
   await user.type(await screen.findByLabelText("قد (سانتی‌متر)"), "165");
@@ -402,4 +402,3 @@ it("advances to account creation when selecting omnivore on the last pre-account
     );
   });
 });
-

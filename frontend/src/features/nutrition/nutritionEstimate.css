@@ -285,8 +285,9 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-plan-start-card__eyebrow { margin: 0 0 .35rem; color: var(--fitician-aqua); font-size: .78rem; font-weight: 850; }
 .nutrition-plan-start-card h2 { margin: 0 0 .4rem; font-size: clamp(1.35rem, 3vw, 2.25rem); }
 .nutrition-plan-start-card p { max-width: 48rem; margin: 0; color: rgb(234 244 241 / 72%); line-height: 1.7; }
-.nutrition-plan-start-card label { display: grid; gap: .35rem; min-width: 10rem; color: rgb(234 244 241 / 72%); font-size: .82rem; font-weight: 750; }
-.nutrition-plan-start-card input { min-height: 2.8rem; padding: .55rem .7rem; color: var(--fitician-ink); border: 1px solid rgb(234 244 241 / 22%); border-radius: .75rem; background: var(--fitician-mist); font: inherit; }
+.nutrition-plan-start-card .fitician-date-picker { min-width: 10rem; }
+.nutrition-plan-start-card .fitician-date-picker__label { color: rgb(234 244 241 / 72%); font-size: .82rem; }
+.nutrition-plan-start-card .fitician-date-picker__native { min-height: 2.8rem; padding: .55rem .7rem; border-color: rgb(234 244 241 / 22%); border-radius: .75rem; background: var(--fitician-surface); }
 .nutrition-plan-start-card__error { grid-column: 1 / -1; color: #ffb9ad !important; }
 .weekly-plan { margin-block: 1rem 6rem; }
 .weekly-plan__heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, .65fr); gap: 1rem; align-items: end; }
@@ -1005,7 +1006,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-tracking-entries > ul button:last-child { border-color: transparent; color: var(--fitician-coral); background: transparent; }
 .nutrition-tracking-entries > ul button:disabled { opacity: .45; cursor: not-allowed; }
 .nutrition-tracking-page .nutrition-adherence-chart article { grid-template-columns: 4rem 1fr 1fr; padding: .6rem; }
-.nutrition-tracking-page input[type="date"] { min-height: 2.5rem; padding: .4rem .55rem; border: 1px solid var(--fitician-line); border-radius: .6rem; color: var(--fitician-ink); background: var(--fitician-canvas); color-scheme: dark; }
+.nutrition-tracking-page .fitician-date-picker__native { min-height: 2.5rem; padding: .4rem .55rem; border-color: var(--fitician-line); border-radius: .6rem; background: var(--fitician-canvas); }
 .nutrition-confidence-card .text-button { width: fit-content; margin-top: .45rem; padding: .35rem 0; border: 0; color: var(--fitician-aqua); background: transparent; font: inherit; font-size: .72rem; font-weight: 850; cursor: pointer; }
 
 @media (max-width: 600px) {
@@ -1162,7 +1163,8 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .nutrition-labs-field textarea { min-height: 6rem; padding: .75rem .8rem; resize: vertical; }
 .nutrition-labs-field input:hover, .nutrition-labs-field textarea:hover { border-color: var(--fitician-line-strong); background: var(--fitician-surface-interactive); }
 .nutrition-labs-field input:focus, .nutrition-labs-field textarea:focus { border-color: var(--fitician-aqua); outline: 0; box-shadow: 0 0 0 .2rem rgb(80 223 206 / 12%); }
-.nutrition-labs-field input[type="date"] { color-scheme: dark; }
+.nutrition-labs-field .fitician-date-picker { min-width: 0; }
+.nutrition-labs-field .fitician-date-picker__native { min-height: 2.85rem; padding: .65rem .8rem; border-radius: .82rem; background: rgb(3 28 27 / 72%); }
 .nutrition-labs-upload__row { min-width: 0; display: grid; gap: .55rem; }
 .nutrition-labs-upload__button { position: relative; justify-content: center; min-height: 2.85rem; padding: .65rem .9rem; border: 1px solid var(--fitician-aqua); border-radius: .82rem; color: var(--fitician-canvas); background: var(--fitician-aqua); font-size: .76rem; font-weight: 850; cursor: pointer; transition: transform var(--fitician-duration-fast) ease, background var(--fitician-duration-fast) ease, box-shadow var(--fitician-duration-fast) ease; }
 .nutrition-labs-upload__button:hover { background: #79eee0; box-shadow: 0 .65rem 1.5rem rgb(80 223 206 / 14%); }
@@ -2886,5 +2888,5 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 
 @media (max-width: 700px) {
   .nutrition-plan-start-card { grid-template-columns: 1fr; align-items: stretch; }
-  .nutrition-plan-start-card label, .nutrition-plan-start-card button { width: 100%; }
+  .nutrition-plan-start-card .fitician-date-picker, .nutrition-plan-start-card button { width: 100%; }
 }

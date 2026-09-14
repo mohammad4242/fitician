@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { localIsoDate } from "@fitician/core/local-date";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import {
   normalizeImageForUpload,
   UserImageNormalizationError,
@@ -606,7 +607,15 @@ export function NutritionTrackingPage() {
     <section className={`nutrition-adherence-card${adherenceOpen ? " is-open" : ""}`}>
       <header className="nutrition-adherence-header">
         <h2><button aria-controls="nutrition-adherence-content" aria-expanded={adherenceOpen} onClick={() => setAdherenceOpen((open) => !open)} type="button"><span>{l("روند پایبندی", "Adherence trend")}</span><i aria-hidden="true" /></button></h2>
-        <label className="nutrition-adherence-date"><span>{l("از تاریخ", "From")}</span><input type="date" value={rangeStart} max={today} onChange={(event) => setRangeStart(event.target.value)} /></label>
+        <div className="nutrition-adherence-date">
+          <PersianDatePicker
+            ariaLabel={l("از تاریخ", "From")}
+            label={l("از تاریخ", "From")}
+            max={today}
+            onChange={setRangeStart}
+            value={rangeStart}
+          />
+        </div>
       </header>
       <div aria-hidden={!adherenceOpen} className="nutrition-adherence-content" id="nutrition-adherence-content" inert={!adherenceOpen}>
         <div className="nutrition-adherence-content__inner">

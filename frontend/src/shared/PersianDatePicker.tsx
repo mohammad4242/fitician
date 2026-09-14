@@ -25,6 +25,7 @@ export type PersianDatePickerProps = {
   min?: string;
   max?: string;
   disabled?: boolean;
+  id?: string;
   label?: string;
   ariaLabel?: string;
   error?: string;
@@ -133,6 +134,7 @@ export function PersianDatePicker({
   min,
   max,
   disabled = false,
+  id: providedId,
   label,
   ariaLabel,
   error,
@@ -140,7 +142,8 @@ export function PersianDatePicker({
 }: PersianDatePickerProps) {
   const { i18n } = useTranslation();
   const english = i18n.resolvedLanguage === "en";
-  const id = useId().replaceAll(":", "");
+  const generatedId = useId().replaceAll(":", "");
+  const id = providedId ?? generatedId;
   const panelId = `${id}-panel`;
   const errorId = `${id}-error`;
   const [open, setOpen] = useState(false);
@@ -234,7 +237,13 @@ export function PersianDatePicker({
           role="dialog"
           tabIndex={-1}
         >
-          <JalaliDateFields max={max} min={min} onChange={setDraft} parts={draft} />
+          <JalaliDateFields
+            labelPrefix={label ?? copy.label}
+            max={max}
+            min={min}
+            onChange={setDraft}
+            parts={draft}
+          />
           <PickerActions
             cancelLabel={copy.cancel}
             clearLabel={copy.clear}

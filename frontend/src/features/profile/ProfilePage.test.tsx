@@ -196,7 +196,7 @@ it("renders every saved profile value in its editable profile page", async () =>
   renderProfilePage();
 
   expect(screen.getByLabelText("نام نمایشی")).toHaveValue("Mohammad");
-  expect(screen.getByLabelText("تاریخ تولد")).toHaveValue("2000-05-14");
+  expect(screen.getByRole("button", { name: "تاریخ تولد" })).toHaveTextContent("۲۵ اردیبهشت ۱۳۷۹");
   expect(screen.getByLabelText("جنسیت")).toHaveValue("male");
   expect(screen.getByLabelText("قد (سانتی‌متر)")).toHaveValue(178);
   expect(screen.getByLabelText("وزن فعلی (کیلوگرم)")).toHaveValue(76.5);

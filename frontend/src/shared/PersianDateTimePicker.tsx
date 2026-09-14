@@ -23,6 +23,7 @@ export type PersianDateTimePickerProps = {
   min?: string;
   max?: string;
   disabled?: boolean;
+  id?: string;
   label?: string;
   ariaLabel?: string;
   error?: string;
@@ -35,6 +36,7 @@ export function PersianDateTimePicker({
   min,
   max,
   disabled = false,
+  id: providedId,
   label,
   ariaLabel,
   error,
@@ -42,7 +44,8 @@ export function PersianDateTimePicker({
 }: PersianDateTimePickerProps) {
   const { i18n } = useTranslation();
   const english = i18n.resolvedLanguage === "en";
-  const id = useId().replaceAll(":", "");
+  const generatedId = useId().replaceAll(":", "");
+  const id = providedId ?? generatedId;
   const panelId = `${id}-panel`;
   const errorId = `${id}-error`;
   const [open, setOpen] = useState(false);

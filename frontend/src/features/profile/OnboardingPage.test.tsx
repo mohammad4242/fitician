@@ -105,7 +105,11 @@ async function completePersonalStep(
   displayName = "Mohammad",
 ) {
   await user.type(screen.getByLabelText("نام نمایشی"), displayName);
-  await user.type(screen.getByLabelText("تاریخ تولد"), "2000-05-14");
+  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - روز" }), "25");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - ماه" }), "2");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - سال" }), "1379");
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
   await user.selectOptions(screen.getByLabelText("جنسیت"), "male");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 }

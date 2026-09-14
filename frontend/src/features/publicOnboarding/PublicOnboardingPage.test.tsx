@@ -73,6 +73,14 @@ function seedReadyTrainingDraft() {
   }));
 }
 
+async function choosePersianBirthDate(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - روز" }), "25");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - ماه" }), "2");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - سال" }), "1379");
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
+}
+
 it("uses English on the first public onboarding screen when English is selected", async () => {
   await i18n.changeLanguage("en");
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
@@ -92,9 +100,7 @@ it("keeps English and asks one shared-profile question per screen", async () => 
   await user.type(screen.getByLabelText("Display name"), "Alex");
   await user.click(screen.getByRole("button", { name: "Continue" }));
   expect(screen.getByRole("heading", { name: "When were you born?" })).toBeInTheDocument();
-  expect(screen.getByLabelText("Day")).toHaveClass("birth-date-picker__select");
-  expect(screen.getByLabelText("Month")).toHaveClass("birth-date-picker__select");
-  expect(screen.getByLabelText("Year")).toHaveClass("birth-date-picker__select");
+  expect(screen.getByLabelText("Birth date")).toHaveAttribute("type", "date");
 });
 
 it("groups height and weight with the selected valid ranges and auto-advances sex", async () => {
@@ -104,9 +110,7 @@ it("groups height and weight with the selected valid ranges and auto-advances se
   await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await choosePersianBirthDate(user);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   expect(screen.getByRole("heading", { name: "جنسیتت چیست؟" })).toBeInTheDocument();
@@ -140,9 +144,7 @@ it("auto-advances on fitness goal and completes shared profile flow", async () =
   await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await choosePersianBirthDate(user);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
   await user.click(screen.getByRole("button", { name: "زن" }));
 
@@ -164,9 +166,7 @@ it("preserves previously selected value on back navigation without auto-advancin
   await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await choosePersianBirthDate(user);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   await user.click(screen.getByRole("button", { name: "مرد" }));
@@ -187,9 +187,7 @@ it("prevents double-tap from skipping questions on single-choice options", async
   await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await choosePersianBirthDate(user);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   // Rapid double-click on sex option
@@ -230,9 +228,7 @@ it("offers only balanced female and male choices on the gender step", async () =
   await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
   await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-  await user.selectOptions(screen.getByLabelText("روز"), "14");
-  await user.selectOptions(screen.getByLabelText("ماه"), "5");
-  await user.selectOptions(screen.getByLabelText("سال"), "2000");
+  await choosePersianBirthDate(user);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   const female = screen.getByRole("button", { name: "زن" });

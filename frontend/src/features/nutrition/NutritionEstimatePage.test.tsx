@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
-import { formatPersianDateWithWeekday } from "@fitician/core";
+import { formatPersianDate, formatPersianDateWithWeekday } from "@fitician/core";
 
 import i18n from "../../i18n";
 import * as nutritionApi from "./api";
@@ -384,7 +384,8 @@ it("shows an explicit nutrition start action and sends the local date and timezo
   render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
   const user = userEvent.setup();
 
-  expect(await screen.findByText(formatPersianDateWithWeekday(localIsoDate()))).toBeInTheDocument();
+  const startDateButton = await screen.findByRole("button", { name: "تاریخ شروع برنامه تغذیه" });
+  expect(startDateButton).toHaveTextContent(formatPersianDate(localIsoDate()));
   await user.click(await screen.findByRole("button", { name: "شروع برنامه تغذیه" }));
 
   await waitFor(() => expect(nutritionApi.startNutritionPlan).toHaveBeenCalledWith("plan-1", {

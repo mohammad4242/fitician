@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import * as api from "./api";
 import "./nutritionEstimate.css";
@@ -178,10 +179,14 @@ export function NutritionLabsPage() {
           <div><p className="nutrition-eyebrow">{l("ثبت جدید", "New record")}</p><h2 id="nutrition-labs-form-title">{l("افزودن آزمایش", "Add lab result")}</h2></div>
         </header>
         <div className="nutrition-labs-form__fields">
-          <label className="nutrition-labs-field">
+          <div className="nutrition-labs-field">
             <span className="nutrition-labs-field__label"><span className="nutrition-labs-field__icon"><LabIcon name="calendar" size={17} /></span>{l("تاریخ آزمایش", "Test date")}</span>
-            <input type="date" value={testDate} onChange={(event) => setTestDate(event.target.value)} />
-          </label>
+            <PersianDatePicker
+              ariaLabel={l("تاریخ آزمایش", "Test date")}
+              onChange={setTestDate}
+              value={testDate}
+            />
+          </div>
           <label className="nutrition-labs-field">
             <span className="nutrition-labs-field__label"><span className="nutrition-labs-field__icon"><LabIcon name="lab" size={17} /></span>{l("نام آزمایشگاه", "Laboratory name")}</span>
             <input value={laboratoryName} onChange={(event) => setLaboratoryName(event.target.value)} />

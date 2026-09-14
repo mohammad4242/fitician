@@ -7,6 +7,7 @@ import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getProfile, updateProfile } from "../profile/api";
 import type { WorkoutGenerationMethod } from "../profile/types";
@@ -826,15 +827,12 @@ function WorkoutTimelineCard({
 
       {workout.state === "ready_to_start" && (
         <div className="workout-timeline-card__start">
-          <label>
-            {t("workoutPlan.startDate")}
-            <input
-              type="date"
-              value={startDate}
-              onChange={(event) => onStartDateChange(event.target.value)}
-            />
-            {!isEnglish && startDate !== "" && <small>{formatDate(startDate)}</small>}
-          </label>
+          <PersianDatePicker
+            ariaLabel={t("workoutPlan.startDate")}
+            label={t("workoutPlan.startDate")}
+            onChange={onStartDateChange}
+            value={startDate}
+          />
           <button className="workout-timeline-card__primary" type="button" disabled={action !== null || startDate === ""} onClick={onStart}>
             {action === "start" ? t("workoutPlan.starting") : t("workoutPlan.startProgram")}
           </button>
@@ -871,16 +869,13 @@ function WorkoutTimelineCard({
           </div>
           {rescheduleOpen && (
             <div className="workout-timeline-card__reschedule">
-              <label>
-                {t("workoutPlan.rescheduleDate")}
-                <input
-                  type="date"
-                  min={workout.start_date ?? undefined}
-                  value={rescheduleDate}
-                  onChange={(event) => setRescheduleDate(event.target.value)}
-                />
-                {!isEnglish && rescheduleDate !== "" && <small>{formatDate(rescheduleDate)}</small>}
-              </label>
+              <PersianDatePicker
+                ariaLabel={t("workoutPlan.rescheduleDate")}
+                label={t("workoutPlan.rescheduleDate")}
+                min={workout.start_date ?? undefined}
+                onChange={setRescheduleDate}
+                value={rescheduleDate}
+              />
               <button className="workout-timeline-card__primary" type="button" disabled={action !== null || rescheduleDate === ""} onClick={() => onReschedule(focusSession.id, rescheduleDate)}>
                 {t("workoutPlan.applyReschedule")}
               </button>

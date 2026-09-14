@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import { ApiError } from "../../shared/apiClient";
-import { formatPersianDateWithWeekday } from "@fitician/core";
+import { formatPersianDate, formatPersianDateWithWeekday } from "@fitician/core";
 import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { WorkoutPlan } from "./types";
 
@@ -279,7 +279,7 @@ it("shows an explicit start card for an active plan without a cycle", async () =
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   expect(await screen.findByText("برنامه‌ات آماده شروع است")).toBeInTheDocument();
-  expect(screen.getByText(formatPersianDateWithWeekday("2026-09-13"))).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "تاریخ شروع" })).toHaveTextContent(formatPersianDate("2026-09-13"));
   expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "شروع برنامه" }));
   await waitFor(() => expect(api.startWorkoutCycle).toHaveBeenCalledWith({

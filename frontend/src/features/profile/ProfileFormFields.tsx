@@ -6,6 +6,7 @@ import {
 } from "@fitician/core/profile";
 
 import { AppIcon, type IconName } from "../../shared/AppIcon";
+import { PersianDatePicker } from "../../shared/PersianDatePicker";
 
 import type {
   BodyAnalysisMeasurementErrors,
@@ -145,16 +146,11 @@ export function PersonalFields({
         <FieldLabel htmlFor="profile-birth-date" icon="calendar">
           {t("onboarding.fields.birthDate")}
         </FieldLabel>
-        <input
+        <PersianDatePicker
+          ariaLabel={t("onboarding.fields.birthDate")}
           id="profile-birth-date"
-          name="birth_date"
-          type="date"
-          autoComplete="bday"
-          required
+          onChange={(value) => onChange("birth_date", value)}
           value={values.birth_date}
-          aria-invalid={errors.birth_date !== undefined}
-          aria-describedby={describedBy("birth_date", errors.birth_date, true)}
-          onChange={(event) => onChange("birth_date", event.target.value)}
         />
         <p className="profile-field__hint" id="birth_date-hint">
           {t("onboarding.hints.birthDate")}
