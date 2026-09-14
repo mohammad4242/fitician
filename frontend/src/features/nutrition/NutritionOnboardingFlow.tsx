@@ -1,6 +1,7 @@
 import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import * as profileApi from "../profile/api";
 import {
@@ -55,6 +56,25 @@ type Props = {
   editExisting?: boolean;
   onBack?: () => void;
 };
+
+const planStartDayValues = [
+  "saturday",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+] as const;
+const planStartDayLabelsEn = [
+  "Saturday",
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+] as const;
 
 const emptyProfileValues: ProfileFormValues = {
   display_name: "", birth_date: "", sex: "", height_cm: "", current_weight_kg: "",
@@ -1230,15 +1250,10 @@ function BudgetForm(props: {
           label={l("روز شروع برنامه", "Plan start day")}
           value={props.startDay}
           onChange={(value) => props.onStartDay(value as NutritionProfileInput["preferred_plan_start_day"])}
-          options={[
-            ["saturday", l("شنبه", "Saturday")],
-            ["sunday", l("یکشنبه", "Sunday")],
-            ["monday", l("دوشنبه", "Monday")],
-            ["tuesday", l("سه‌شنبه", "Tuesday")],
-            ["wednesday", l("چهارشنبه", "Wednesday")],
-            ["thursday", l("پنجشنبه", "Thursday")],
-            ["friday", l("جمعه", "Friday")],
-          ]}
+          options={planStartDayValues.map((value, index) => [
+            value,
+            l(FITICIAN_WEEKDAY_LABELS_FA[index] ?? value, planStartDayLabelsEn[index] ?? value),
+          ])}
         />
       )}
     </NutritionQuestionFrame>

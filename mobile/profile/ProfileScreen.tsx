@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 
+import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
 import type { NutritionProfile } from "@fitician/core/nutrition";
 import {
   equipmentForHomeTrainingSetup,
@@ -128,15 +129,10 @@ const planDurationOptions = [
   { label: "۸ هفته", value: "8" },
 ] as const;
 
-const weekdayOptions = [
-  { label: "شنبه", value: "0" },
-  { label: "یکشنبه", value: "1" },
-  { label: "دوشنبه", value: "2" },
-  { label: "سه‌شنبه", value: "3" },
-  { label: "چهارشنبه", value: "4" },
-  { label: "پنجشنبه", value: "5" },
-  { label: "جمعه", value: "6" },
-] as const;
+const weekdayOptions = FITICIAN_WEEKDAY_LABELS_FA.map((label, value) => ({
+  label,
+  value: String(value),
+}));
 
 const cautionOptions = [
   { label: "کمر", value: "lower_back" },
@@ -190,15 +186,19 @@ const snackOptions = [
   { label: "۳ میان‌وعده یا بیشتر", value: "3" },
 ] as const;
 
-const startDayOptions = [
-  { label: "شنبه", value: "saturday" },
-  { label: "یکشنبه", value: "sunday" },
-  { label: "دوشنبه", value: "monday" },
-  { label: "سه‌شنبه", value: "tuesday" },
-  { label: "چهارشنبه", value: "wednesday" },
-  { label: "پنجشنبه", value: "thursday" },
-  { label: "جمعه", value: "friday" },
+const startDayValues = [
+  "saturday",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
 ] as const;
+const startDayOptions = startDayValues.map((value, index) => ({
+  label: FITICIAN_WEEKDAY_LABELS_FA[index] ?? value,
+  value,
+}));
 
 export function ProfileScreen() {
   const auth = useMobileAuth();

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
 import type { NutritionProfileInput, SafetyProfileInput, StructuredExerciseInput } from "@fitician/core/nutrition";
 import { getOnboardingSteps } from "@fitician/core/onboarding";
 import type { NutritionBasicsDraft, OnboardingState } from "@fitician/core/onboarding";
@@ -124,15 +125,24 @@ const cautionOptions: readonly ChoiceOption[] = [
   { label: "مورد دیگر", value: "other" },
 ];
 
-const weekdayOptions: readonly ChoiceOption[] = [
-  { label: "شنبه", value: "0" },
-  { label: "یکشنبه", value: "1" },
-  { label: "دوشنبه", value: "2" },
-  { label: "سه‌شنبه", value: "3" },
-  { label: "چهارشنبه", value: "4" },
-  { label: "پنجشنبه", value: "5" },
-  { label: "جمعه", value: "6" },
-];
+const weekdayOptions: readonly ChoiceOption[] = FITICIAN_WEEKDAY_LABELS_FA.map((label, value) => ({
+  label,
+  value: String(value),
+}));
+
+const planStartDayValues = [
+  "saturday",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+] as const;
+const planStartDayOptions: readonly ChoiceOption[] = planStartDayValues.map((value, index) => ({
+  label: FITICIAN_WEEKDAY_LABELS_FA[index] ?? value,
+  value,
+}));
 
 const sessionDurationOptions: readonly ChoiceOption[] = [
   { label: "۳۰ دقیقه", value: "30" },
@@ -1054,15 +1064,7 @@ export function NutritionPreferencesStage({
               control={control}
               label="شروع هفته برنامه"
               name="preferred_plan_start_day"
-              options={[
-                { label: "شنبه", value: "saturday" },
-                { label: "یکشنبه", value: "sunday" },
-                { label: "دوشنبه", value: "monday" },
-                { label: "سه‌شنبه", value: "tuesday" },
-                { label: "چهارشنبه", value: "wednesday" },
-                { label: "پنجشنبه", value: "thursday" },
-                { label: "جمعه", value: "friday" },
-              ]}
+              options={planStartDayOptions}
             />
           </View>,
           <View key="preferences" style={styles.formStack}>
