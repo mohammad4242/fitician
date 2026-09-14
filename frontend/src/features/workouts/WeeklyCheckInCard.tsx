@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   getCurrentWorkoutCycle,
   getCurrentWeeklyCheckIn,
@@ -50,7 +51,8 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [currentWeek, setCurrentWeek] = useState(1);
   const [formError, setFormError] = useState(false);
-  const [submitError, setSubmitError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm());
   const isEnglish = i18n.resolvedLanguage === "en";
   const l = (fa: string, en: string) => isEnglish ? en : fa;
@@ -62,6 +64,7 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
     setState("loading");
     setCheckIn(null);
     setEditing(false);
+    setLoadError(null);
     void Promise.all([getCurrentWorkoutCycle(), getCurrentWeeklyCheckIn()])
       .then(([cycle, loaded]) => {
         if (!active) return;
@@ -76,6 +79,7 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
       })
       .catch((error: unknown) => {
         if (!active) return;
+        setLoadError(error);
         setState(error instanceof ApiError && error.status === 404 ? "unavailable" : "error");
       });
     return () => {
@@ -86,13 +90,13 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setFormError(false);
-    setSubmitError(false);
+    setSubmitError(null);
   }
 
   function edit() {
     setForm(formFromCheckIn(checkIn));
     setFormError(false);
-    setSubmitError(false);
+    setSubmitError(null);
     setEditing(true);
   }
 
@@ -113,7 +117,7 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
       note_optional: null,
     };
     setSaving(true);
-    setSubmitError(false);
+    setSubmitError(null);
     void saveCurrentWeeklyCheckIn(input)
       .then((saved) => {
         setCheckIn(saved);
@@ -121,7 +125,7 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
         setEditing(false);
         setState("completed");
       })
-      .catch(() => setSubmitError(true))
+      .catch((cause: unknown) => setSubmitError(cause))
       .finally(() => setSaving(false));
   }
 
@@ -131,8 +135,13 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
   }
   if (state === "error") {
     return (
-      <section className="weekly-check-in weekly-check-in--error" role="alert">
-        <p>{t("workoutPlan.weeklyCheckIn.loadError")}</p>
+      <section className="weekly-check-in weekly-check-in--error">
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={loadError ?? new Error("Weekly check-in could not be loaded")}
+          locale={isEnglish ? "en" : "fa"}
+        />
         <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>{t("common.retry")}</button>
       </section>
     );
@@ -247,7 +256,12 @@ export function WeeklyCheckInCard({ plan }: { plan: WorkoutPlan }) {
           </div>
         )}
 
-        {submitError && <p className="weekly-check-in__validation" role="alert">{t("workoutPlan.weeklyCheckIn.saveError")}</p>}
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={submitError}
+          locale={isEnglish ? "en" : "fa"}
+        />
         <button className="weekly-check-in__submit" type="submit" disabled={saving} aria-busy={saving}>
           {saving ? t("workoutPlan.weeklyCheckIn.saving") : editing ? t("workoutPlan.weeklyCheckIn.saveChanges") : t("workoutPlan.weeklyCheckIn.submit")}
         </button>

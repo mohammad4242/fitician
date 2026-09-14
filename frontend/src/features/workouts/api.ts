@@ -110,11 +110,7 @@ export async function getCurrentWeeklyCheckIn(): Promise<WorkoutCycleWeeklyCheck
   try {
     return await request<WorkoutCycleWeeklyCheckIn>(`${workoutCyclesPath}/current/weekly-check-in`);
   } catch (error) {
-    if (
-      error instanceof ApiError
-      && error.status === 404
-      && error.message === "No weekly check-in for current week"
-    ) {
+    if (error instanceof ApiError && error.status === 404) {
       return null;
     }
     throw error;

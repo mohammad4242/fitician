@@ -181,6 +181,20 @@ it("treats a missing current-week check-in as empty", async () => {
   );
 });
 
+it("uses the stable check-in code instead of backend message text", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(
+    JSON.stringify({
+      detail: {
+        code: "WORKOUT_CHECKIN_NOT_FOUND",
+        message: "private backend wording",
+      },
+    }),
+    { status: 404, headers: { "Content-Type": "application/json" } },
+  ));
+
+  await expect(getCurrentWeeklyCheckIn()).resolves.toBeNull();
+});
+
 it("reads the current active cycle and server-derived week", async () => {
   const cycle = {
     cycle_id: "cycle-1",

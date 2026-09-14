@@ -186,8 +186,13 @@ it("shows loading and API error states cleanly", async () => {
   resolve?.(null);
   expect(await screen.findByRole("heading", { name: "چک‌این هفتگی" })).toBeInTheDocument();
 
-  api.saveCurrentWeeklyCheckIn.mockRejectedValue(new ApiError(422, "Invalid check-in"));
+  api.saveCurrentWeeklyCheckIn.mockRejectedValue(new ApiError(
+    422,
+    "Invalid check-in",
+    null,
+    "WORKOUT_CHECKIN_INVALID",
+  ));
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "ثبت چک‌این" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("ثبت چک‌این انجام نشد");
+  expect(await screen.findByRole("alert")).toHaveTextContent("اطلاعات چک‌این معتبر نیست");
 });

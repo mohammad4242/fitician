@@ -6,6 +6,7 @@ import { formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLoc
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
 import { useEntitlements } from "../entitlements/EntitlementContext";
@@ -51,14 +52,22 @@ type GenerationError =
   | "bodyweight_pull_up_bar"
   | "bodyweight_exercise";
 
-type DeleteVersionError = { versionId: string; message: string };
+type DeleteVersionError = { versionId: string; cause: unknown };
 type TimelineAction = "start" | "complete" | "skip" | "reschedule";
-type VersionDetailErrors = Record<string, string>;
+type VersionDetailErrors = Record<string, unknown>;
 
 type WorkoutDaysPresentation = {
   focusedWorkoutDayId?: string | null;
   nextWorkoutDayId?: string | null;
   state?: WorkoutTimelineState;
+};
+
+type MemberPlans = {
+  activePlan: WorkoutPlan | null;
+  versions: WorkoutPlanVersionSummary[];
+  pendingPlan: WorkoutPlan | null;
+  historyError: unknown | null;
+  pendingPlanError: unknown | null;
 };
 
 const bodyweightGenerationErrors: Record<string, GenerationError> = {
@@ -67,6 +76,13 @@ const bodyweightGenerationErrors: Record<string, GenerationError> = {
   BODYWEIGHT_PULL_UP_BAR_REQUIRED: "bodyweight_pull_up_bar",
   BODYWEIGHT_TEMPLATE_EXERCISE_UNAVAILABLE: "bodyweight_exercise",
 };
+
+function classifyGenerationError(error: unknown): GenerationError {
+  if (!(error instanceof ApiError)) return "failed";
+  if (error.status === 429 || error.code === "WORKOUT_GENERATION_COOLDOWN") return "cooldown";
+  if (error.status === 403 || error.code === "ENTITLEMENT_REQUIRED") return "entitlement";
+  return error.code === null ? "failed" : bodyweightGenerationErrors[error.code] ?? "failed";
+}
 
 const workoutPlanStatusIcons: Record<WorkoutPlanSummaryStatus, IconName> = {
   active: "zap",
@@ -86,30 +102,34 @@ function getWorkoutPlanSummaryStatus(plan: WorkoutPlan, historical: boolean): Wo
   return plan.status === "active" ? "active" : "inactive";
 }
 
-function generationErrorMessageKey(error: GenerationError): string {
-  if (error === "entitlement") return "entitlements.lockedAction";
-  if (error === "cooldown") return "workoutPlan.generateCooldown";
-  if (error === "bodyweight_level") return "workoutPlan.bodyweightLevelUnsupported";
-  if (error === "bodyweight_days") return "workoutPlan.bodyweightDaysUnsupported";
-  if (error === "bodyweight_pull_up_bar") return "workoutPlan.bodyweightPullUpBarRequired";
-  if (error === "bodyweight_exercise") return "workoutPlan.bodyweightExerciseUnavailable";
-  return "workoutPlan.generateError";
-}
-
 function isDeletableVersion(version: WorkoutPlanVersionSummary): boolean {
   return version.status === "superseded" || version.status === "failed";
 }
 
-async function loadMemberPlans() {
-  const [activePlan, versions] = await Promise.all([
+async function loadMemberPlans(): Promise<MemberPlans> {
+  const [activePlan, historyResult] = await Promise.all([
     getActiveWorkoutPlan(),
-    getWorkoutPlanHistory().catch(() => [] as WorkoutPlanVersionSummary[]),
+    getWorkoutPlanHistory()
+      .then((versions) => ({ versions, error: null as unknown | null }))
+      .catch((error: unknown) => ({ versions: [] as WorkoutPlanVersionSummary[], error })),
   ]);
-  const pendingVersion = versions.find((version) => version.status === "pending_review");
-  const pendingPlan = pendingVersion === undefined
-    ? null
-    : await getWorkoutPlan(pendingVersion.id).catch(() => null);
-  return { activePlan, versions, pendingPlan };
+  const pendingVersion = historyResult.versions.find((version) => version.status === "pending_review");
+  let pendingPlan: WorkoutPlan | null = null;
+  let pendingPlanError: unknown | null = null;
+  if (pendingVersion !== undefined) {
+    try {
+      pendingPlan = await getWorkoutPlan(pendingVersion.id);
+    } catch (error: unknown) {
+      pendingPlanError = error;
+    }
+  }
+  return {
+    activePlan,
+    versions: historyResult.versions,
+    pendingPlan,
+    historyError: historyResult.error,
+    pendingPlanError,
+  };
 }
 
 export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: number }) {
@@ -127,18 +147,22 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [deleteVersionError, setDeleteVersionError] = useState<DeleteVersionError | null>(null);
   const [deleteDialogVersion, setDeleteDialogVersion] = useState<WorkoutPlanVersionSummary | null>(null);
   const [state, setState] = useState<PlanState>("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const [generating, setGenerating] = useState(false);
   const [reused, setReused] = useState(false);
   const [generationError, setGenerationError] = useState<GenerationError | null>(null);
+  const [generationCause, setGenerationCause] = useState<unknown | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [savingGenerationMethod, setSavingGenerationMethod] = useState(false);
+  const [generationMethodError, setGenerationMethodError] = useState<unknown | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState(false);
+  const [pdfError, setPdfError] = useState<unknown | null>(null);
   const [timeline, setTimeline] = useState<ProgramTimelineToday | null>(null);
+  const [timelineLoadError, setTimelineLoadError] = useState<unknown | null>(null);
   const [startDate, setStartDate] = useState(() => localIsoDate());
   const [timelineAction, setTimelineAction] = useState<TimelineAction | null>(null);
-  const [timelineActionError, setTimelineActionError] = useState(false);
+  const [timelineActionError, setTimelineActionError] = useState<unknown | null>(null);
   const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const canGenerate = hasEntitlement("training.plan.generate");
@@ -174,16 +198,21 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   useEffect(() => {
     let active = true;
     setState("loading");
+    setLoadError(null);
     void loadMemberPlans()
-      .then(({ activePlan: loadedActivePlan, versions, pendingPlan: loadedPendingPlan }) => {
+      .then(({ activePlan: loadedActivePlan, versions, pendingPlan: loadedPendingPlan, historyError, pendingPlanError }) => {
         if (!active) return;
         setActivePlan(loadedActivePlan);
         setPendingPlan(loadedPendingPlan);
         setHistory(versions);
+        setLoadError(historyError ?? pendingPlanError);
         setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (active) {
+          setLoadError(cause);
+          setState("error");
+        }
       });
     return () => {
       active = false;
@@ -192,8 +221,11 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
 
   useEffect(() => {
     void getProfile().then((profile) => {
-      if (profile !== null) setGenerationMethod(profile.workout_generation_method ?? "fitician_coach");
-    }).catch(() => undefined);
+      if (profile !== null) {
+        setGenerationMethod(profile.workout_generation_method ?? "fitician_coach");
+        setGenerationMethodError(null);
+      }
+    }).catch((cause: unknown) => setGenerationMethodError(cause));
   }, []);
 
   useEffect(() => {
@@ -203,8 +235,9 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         if (!active || loadedTimeline === undefined) return;
         setTimeline(loadedTimeline);
         setStartDate(loadedTimeline.local_date);
+        setTimelineLoadError(null);
       })
-      .catch(() => undefined);
+      .catch((cause: unknown) => setTimelineLoadError(cause));
     return () => {
       active = false;
     };
@@ -212,13 +245,16 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
 
   async function refreshTimeline() {
     const loadedTimeline = await getProgramTimelineToday(deviceTimezone);
-    if (loadedTimeline !== undefined) setTimeline(loadedTimeline);
+    if (loadedTimeline !== undefined) {
+      setTimeline(loadedTimeline);
+      setTimelineLoadError(null);
+    }
   }
 
   function startProgram() {
     if (currentPlan === null || currentPlan.status !== "active" || timelineAction !== null) return;
     setTimelineAction("start");
-    setTimelineActionError(false);
+    setTimelineActionError(null);
     void startWorkoutCycle({
       workout_plan_id: currentPlan.id,
       start_date: startDate,
@@ -226,19 +262,19 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     })
       .then(async () => {
         await refreshTimeline();
-        await getCurrentWorkoutCycle().catch(() => null);
+        await getCurrentWorkoutCycle().catch((cause: unknown) => setTimelineLoadError(cause));
       })
-      .catch(() => setTimelineActionError(true))
+      .catch((cause: unknown) => setTimelineActionError(cause))
       .finally(() => setTimelineAction(null));
   }
 
   function runSessionAction(action: Exclude<TimelineAction, "start">, request: () => Promise<unknown>) {
     if (timelineAction !== null) return;
     setTimelineAction(action);
-    setTimelineActionError(false);
+    setTimelineActionError(null);
     void request()
-      .then(() => refreshTimeline().catch(() => undefined))
-      .catch(() => setTimelineActionError(true))
+      .then(() => refreshTimeline())
+      .catch((cause: unknown) => setTimelineActionError(cause))
       .finally(() => setTimelineAction(null));
   }
 
@@ -257,9 +293,13 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   function changeGenerationMethod(method: WorkoutGenerationMethod) {
     const previous = generationMethod;
     setGenerationMethod(method);
+    setGenerationMethodError(null);
     setSavingGenerationMethod(true);
     void updateProfile({ workout_generation_method: method })
-      .catch(() => setGenerationMethod(previous))
+      .catch((cause: unknown) => {
+        setGenerationMethod(previous);
+        setGenerationMethodError(cause);
+      })
       .finally(() => setSavingGenerationMethod(false));
   }
 
@@ -268,6 +308,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     setGenerating(true);
     setReused(false);
     setGenerationError(null);
+    setGenerationCause(null);
     void generateWorkoutPlan()
       .then(async (result) => {
         setSelectedHistoricalPlan(null);
@@ -280,26 +321,25 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             activePlan: loadedActivePlan,
             versions,
             pendingPlan: loadedPendingPlan,
+            historyError,
+            pendingPlanError,
           } = await loadMemberPlans();
           setActivePlan(loadedActivePlan);
           setPendingPlan(loadedPendingPlan);
           setHistory(versions);
+          setLoadError(historyError ?? pendingPlanError);
           setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
-        } catch {
+        } catch (cause: unknown) {
           // The successful generation response is already a valid foreground plan.
+          setLoadError(cause);
         }
-        await refreshTimeline().catch(() => undefined);
+        await refreshTimeline().catch((cause: unknown) => setTimelineLoadError(cause));
       })
       .catch((error: unknown) => {
-        const errorKind = error instanceof ApiError && error.status === 429
-          ? "cooldown"
-          : error instanceof ApiError && error.status === 403
-            ? "entitlement"
-          : error instanceof ApiError && error.code !== null
-            ? bodyweightGenerationErrors[error.code] ?? "failed"
-            : "failed";
+        const errorKind = classifyGenerationError(error);
         setState(currentPlan === null ? "empty" : "ready");
         setGenerationError(errorKind);
+        setGenerationCause(error);
       })
       .finally(() => setGenerating(false));
   }
@@ -314,12 +354,9 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     setLoadingVersionId(versionId);
     void getWorkoutPlan(versionId)
       .then((loadedPlan) => setVersionDetails((current) => ({ ...current, [versionId]: loadedPlan })))
-      .catch(() => setVersionDetailErrors((current) => ({
+      .catch((cause: unknown) => setVersionDetailErrors((current) => ({
         ...current,
-        [versionId]: l(
-          "اطلاعات این نسخه دریافت نشد. دوباره تلاش کن.",
-          "This version could not be loaded. Try again.",
-        ),
+        [versionId]: cause,
       })))
       .finally(() => setLoadingVersionId(null));
   }
@@ -342,6 +379,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     if (cachedPlan !== undefined) {
       setSelectedHistoricalPlan(cachedPlan);
       setGenerationError(null);
+      setGenerationCause(null);
       return;
     }
     setSelectingVersionId(version.id);
@@ -350,8 +388,12 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         setVersionDetails((current) => ({ ...current, [version.id]: loadedPlan }));
         setSelectedHistoricalPlan(loadedPlan);
         setGenerationError(null);
+        setGenerationCause(null);
       })
-      .catch(() => undefined)
+      .catch((cause: unknown) => setVersionDetailErrors((current) => ({
+        ...current,
+        [version.id]: cause,
+      })))
       .finally(() => setSelectingVersionId(null));
   }
 
@@ -373,10 +415,13 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           activePlan: loadedActivePlan,
           versions,
           pendingPlan: loadedPendingPlan,
+          historyError,
+          pendingPlanError,
         } = await loadMemberPlans();
         setActivePlan(loadedActivePlan);
         setPendingPlan(loadedPendingPlan);
         setHistory(versions);
+        setLoadError(historyError ?? pendingPlanError);
         if (wasViewingDeletedVersion) setSelectedHistoricalPlan(null);
         setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
         setDeleteDialogVersion(null);
@@ -387,13 +432,10 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           return next;
         });
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         setDeleteVersionError({
           versionId: version.id,
-          message: l(
-            "حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.",
-            "The old workout plan version could not be deleted. Please try again.",
-          ),
+          cause,
         });
       })
       .finally(() => setDeletingVersionId(null));
@@ -403,7 +445,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     if (displayedPlan === null || downloadingPdf) return;
     const planId = displayedPlan.id;
     setDownloadingPdf(true);
-    setPdfError(false);
+    setPdfError(null);
     void downloadWorkoutPlanPdf(planId)
       .then((blob) => {
         const url = URL.createObjectURL(blob);
@@ -418,7 +460,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           URL.revokeObjectURL(url);
         }
       })
-      .catch(() => setPdfError(true))
+      .catch((cause: unknown) => setPdfError(cause))
       .finally(() => setDownloadingPdf(false));
   }
 
@@ -451,6 +493,18 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             <AccessLockedNotice />
           )}
         </div>
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={generationMethodError}
+          locale={isEnglish ? "en" : "fa"}
+        />
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={timelineLoadError}
+          locale={isEnglish ? "en" : "fa"}
+        />
 
         {displayedPlan !== null
           ? <WorkoutPlanOverview plan={displayedPlan} historical={isViewingHistorical} isEnglish={isEnglish} />
@@ -485,23 +539,24 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
 
         {state === "loading" && <StatusPanel role="status" message={t("workoutPlan.loading")} />}
         {state === "error" && currentPlan === null && (
-          <StatusPanel
-            role="alert"
-            message={t("workoutPlan.loadError")}
-            action={t("common.retry")}
-            onAction={() => setLoadAttempt((attempt) => attempt + 1)}
-          />
+          <section className="workout-status">
+            <AppErrorNotice
+              audience="member"
+              context="workout"
+              error={loadError ?? new Error("Workout plan is unavailable")}
+              locale={isEnglish ? "en" : "fa"}
+            />
+            <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>{t("common.retry")}</button>
+          </section>
         )}
         {state === "empty" && (
           <>
-            {generationError !== null && (
-              <StatusPanel
-                role="alert"
-                message={t(generationErrorMessageKey(generationError))}
-                action={generationError === "failed" ? t("common.retry") : undefined}
-                onAction={generationError === "failed" ? generate : undefined}
-              />
-            )}
+            <GenerationErrorNotice
+              cause={generationCause}
+              errorKind={generationError}
+              locale={isEnglish ? "en" : "fa"}
+              onRetry={generate}
+            />
             {hasPendingReview ? (
               <StatusPanel role="status" message={t("workoutPlan.loading")} />
             ) : (
@@ -551,7 +606,12 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               {displayedPlan.is_stale && <p className="workout-stale" role="status">{t("workoutPlan.stale")}</p>}
               {displayedPlan.warnings?.includes("SESSION_DURATION_EXTENDED_TO_PRESERVE_CORE") && <p className="workout-body-analysis-warning" role="alert">{t("workoutPlan.corePreservationDurationWarning")}</p>}
               {displayedPlan.body_analysis_provenance?.provisional === true && <p className="workout-body-analysis-warning" role="alert">{t("workoutPlan.provisionalBodyAnalysisWarning")}</p>}
-              {generationError && <StatusPanel role="alert" message={t(generationErrorMessageKey(generationError))} action={generationError === "failed" ? t("common.retry") : undefined} onAction={generationError === "failed" ? generate : undefined} />}
+              <GenerationErrorNotice
+                cause={generationCause}
+                errorKind={generationError}
+                locale={isEnglish ? "en" : "fa"}
+                onRetry={generate}
+              />
             </div>
             {!isViewingHistorical && displayedPlan.status === "active" && <WeeklyCheckInCard plan={displayedPlan} />}
           </>
@@ -586,7 +646,12 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
               <strong>{t("workoutPlan.body.title")}</strong>
             </Link>
           </div>
-          {pdfError && <StatusPanel role="alert" message={t("workoutPlan.pdf.error")} />}
+          <AppErrorNotice
+            audience="member"
+            context="workout"
+            error={pdfError}
+            locale={isEnglish ? "en" : "fa"}
+          />
         </section>
 
         <details className="workout-secondary">
@@ -639,7 +704,12 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
                             {loadingVersionId === version.id && <p className="workout-version-history__loading" role="status">{l("در حال دریافت اطلاعات برنامه…", "Loading plan overview…")}</p>}
                             {detailError !== undefined && (
                               <div className="workout-version-history__error">
-                                <p role="alert">{detailError}</p>
+                                <AppErrorNotice
+                                  audience="member"
+                                  context="workout"
+                                  error={detailError}
+                                  locale={isEnglish ? "en" : "fa"}
+                                />
                                 <button type="button" onClick={() => loadVersionDetail(version.id)}>{l("تلاش دوباره", "Try again")}</button>
                               </div>
                             )}
@@ -687,7 +757,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           plan={versionDetails[deleteDialogVersion.id]}
           isEnglish={isEnglish}
           deleting={deletingVersionId === deleteDialogVersion.id}
-          error={deleteVersionError?.versionId === deleteDialogVersion.id ? deleteVersionError.message : null}
+          error={deleteVersionError?.versionId === deleteDialogVersion.id ? deleteVersionError.cause : null}
           onCancel={() => {
             if (deletingVersionId === null) setDeleteDialogVersion(null);
           }}
@@ -746,7 +816,7 @@ function WorkoutPlanDeleteDialog({
   plan: WorkoutPlan;
   isEnglish: boolean;
   deleting: boolean;
-  error: string | null;
+  error: unknown | null;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -780,8 +850,16 @@ function WorkoutPlanDeleteDialog({
           {l("این نسخه و اطلاعات کلی آن از تاریخچه برنامه‌ها حذف می‌شود و قابل بازگشت نیست.", "This version and its overview will be removed from your plan history and cannot be restored.")}
         </p>
         <WorkoutPlanHistoryOverview plan={plan} isEnglish={isEnglish} />
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={error}
+          locale={isEnglish ? "en" : "fa"}
+        />
         {error !== null && (
-          <StatusPanel role="alert" message={error} action={l("تلاش دوباره", "Retry")} onAction={onConfirm} />
+          <button type="button" onClick={onConfirm} disabled={deleting}>
+            {l("تلاش دوباره", "Retry")}
+          </button>
         )}
         <footer className="workout-delete-dialog__actions">
           <button type="button" className="workout-delete-dialog__cancel" disabled={deleting} onClick={onCancel}>
@@ -944,7 +1022,7 @@ function WorkoutTimelineCard({
   isEnglish: boolean;
   startDate: string;
   action: TimelineAction | null;
-  actionError: boolean;
+  actionError: unknown | null;
   onStartDateChange: (value: string) => void;
   onStart: () => void;
   onComplete: (sessionId: string) => void;
@@ -1079,7 +1157,12 @@ function WorkoutTimelineCard({
       {(workout.state === "rest_day" || workout.state === "completed_today" || workout.state === "overdue") && renderNextSession()}
       {workout.state === "legacy_cycle" && <p>{l("اطلاعات دوره و چک‌این هفتگی همچنان در دسترس است.", "Your cycle summary and weekly check-in are still available.")}</p>}
       {workout.state === "cycle_completed" && <p>{l("برای ادامه، برنامه بعدی‌ات را انتخاب یا آماده کن.", "Choose or prepare your next plan to continue.")}</p>}
-      {actionError && <p className="workout-timeline-card__error" role="alert">{t("workoutPlan.sessionActionError")}</p>}
+      <AppErrorNotice
+        audience="member"
+        context="workout"
+        error={actionError}
+        locale={isEnglish ? "en" : "fa"}
+      />
     </section>
   );
 }
@@ -1234,7 +1317,7 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
   const [reason, setReason] = useState<WorkoutExerciseReplacementReason | null>(null);
   const [alternativeId, setAlternativeId] = useState<string | null>(null);
   const [step, setStep] = useState<"reason" | "alternative" | "scope" | "success">("reason");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const l = (fa: string, en: string) => isEnglish ? en : fa;
   const selectedAlternative = item.alternatives.find(({ exercise }) => exercise.id === alternativeId)?.exercise;
@@ -1242,19 +1325,19 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
   function chooseReason(value: WorkoutExerciseReplacementReason) {
     setReason(value);
     setAlternativeId(null);
-    setError(false);
+    setError(null);
     setStep("alternative");
   }
 
   function chooseAlternative(value: string) {
     setAlternativeId(value);
-    setError(false);
+    setError(null);
     setStep("scope");
   }
 
   function submit(selectedScope: WorkoutExerciseReplacementScope) {
     if (reason === null || alternativeId === null) return;
-    setError(false);
+    setError(null);
     setSubmitting(true);
     void recordExerciseReplacement({
       workout_plan_exercise_id: item.id,
@@ -1263,8 +1346,8 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
       scope: selectedScope,
     })
       .then(() => setStep("success"))
-      .catch(() => {
-        setError(true);
+      .catch((cause: unknown) => {
+        setError(cause);
         setStep("scope");
       })
       .finally(() => setSubmitting(false));
@@ -1281,7 +1364,12 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
   return (
     <div className="workout-replacement-flow">
       {step === "reason" && <p>{l("اول دلیل تعویض را انتخاب کن.", "First, choose why you want to replace it.")}</p>}
-      {error && <p className="workout-replacement-error" role="alert">{l("ثبت جایگزین انجام نشد؛ دوباره تلاش کن.", "The replacement could not be saved. Try again.")}</p>}
+      <AppErrorNotice
+        audience="member"
+        context="workout"
+        error={error}
+        locale={isEnglish ? "en" : "fa"}
+      />
       {step === "reason" && (
         <div className="workout-replacement-options" role="group" aria-label={l("دلیل تعویض", "Replacement reason")}>
           {replacementReasons.map((option) => (
@@ -1350,6 +1438,28 @@ function AccessLockedNotice() {
     <p className="workout-status" role="status">
       <strong>{t("entitlements.lockedAction")}</strong> {t("entitlements.upgradeHint")}
     </p>
+  );
+}
+
+function GenerationErrorNotice({
+  cause,
+  errorKind,
+  locale,
+  onRetry,
+}: {
+  cause: unknown | null;
+  errorKind: GenerationError | null;
+  locale: "fa" | "en";
+  onRetry: () => void;
+}) {
+  return (
+    <AppErrorNotice
+      audience="member"
+      context="workout_generation"
+      error={cause}
+      locale={locale}
+      onRetry={errorKind === "failed" ? onRetry : undefined}
+    />
   );
 }
 

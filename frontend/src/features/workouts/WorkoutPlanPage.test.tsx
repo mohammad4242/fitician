@@ -959,7 +959,12 @@ it("keeps a failed deletion visible and exposes a retryable error", async () => 
     { id: plan.id, status: "active", created_at: plan.created_at, activated_at: plan.activated_at, is_active: true, coach_review: { state: "none", coach_display_name: null, coach_note: null, approved_at: null } },
     archivedVersion,
   ]);
-  api.deleteWorkoutPlan.mockRejectedValue(new Error("delete failed"));
+  api.deleteWorkoutPlan.mockRejectedValue(new ApiError(
+    503,
+    "delete failed",
+    null,
+    "WORKOUT_PLAN_DELETE_FAILED",
+  ));
   api.getWorkoutPlan.mockResolvedValue({ ...plan, id: archivedVersion.id, status: "failed" });
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
@@ -968,7 +973,7 @@ it("keeps a failed deletion visible and exposes a retryable error", async () => 
   await user.click(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
   await user.click(screen.getByRole("button", { name: "حذف دائمی" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("حذف نسخه قدیمی برنامه انجام نشد");
   expect(screen.getByRole("button", { name: "حذف دائمی" })).toBeEnabled();
 });
 
@@ -1140,7 +1145,7 @@ it("shows pending status and summary data for a pending-only plan", async () => 
 it("explains the generation cooldown instead of showing a generic failure", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(null);
   api.generateWorkoutPlan.mockRejectedValue(
-    new ApiError(429, "Workout plan generation is cooling down"),
+    new ApiError(429, "Workout plan generation is cooling down", null, "WORKOUT_GENERATION_COOLDOWN"),
   );
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
@@ -1149,9 +1154,27 @@ it("explains the generation cooldown instead of showing a generic failure", asyn
   await user.click(screen.getByRole("button", { name: "ساخت برنامه" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "لطفاً چند دقیقه دیگر دوباره تلاش کن.",
+    "ساخت برنامه تازه انجام شده است. کمی بعد دوباره تلاش کنید.",
   );
   expect(screen.queryByRole("button", { name: "تلاش دوباره" })).not.toBeInTheDocument();
+});
+
+it("presents a known generation error through the shared resolver", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(null);
+  api.generateWorkoutPlan.mockRejectedValue(new ApiError(
+    409,
+    "private generation detail",
+    null,
+    "WORKOUT_GENERATION_IN_PROGRESS",
+  ));
+  const user = userEvent.setup();
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: "ساخت برنامه" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("ساخت برنامه تمرینی در حال انجام است");
+  expect(alert).not.toHaveTextContent(/private generation detail/i);
 });
 
 it.each([
@@ -1298,7 +1321,12 @@ it("asks for a reason, then shows only prescribed alternatives and scope before 
 
 it("submits the selected reason and persistent scope and shows an API error", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(plan);
-  api.recordExerciseReplacement.mockRejectedValue(new ApiError(422, "Replacement is not allowed"));
+  api.recordExerciseReplacement.mockRejectedValue(new ApiError(
+    422,
+    "Replacement is not allowed",
+    null,
+    "WORKOUT_REPLACEMENT_NOT_ALLOWED",
+  ));
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
@@ -1308,7 +1336,7 @@ it("submits the selected reason and persistent scope and shows an API error", as
   await user.click(screen.getByRole("button", { name: "شنا سوئدی" }));
   await user.click(screen.getByRole("button", { name: "از این به بعد" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("ثبت جایگزین انجام نشد");
+  expect(await screen.findByRole("alert")).toHaveTextContent("این حرکت جایگزین برای برنامه فعلی مجاز نیست");
   expect(api.recordExerciseReplacement).toHaveBeenCalledWith({
     workout_plan_exercise_id: "018f0000-0000-7000-8000-000000000011",
     replacement_exercise_id: "018f0000-0000-7000-8000-000000000003",
@@ -1355,7 +1383,12 @@ it("disables the existing PDF button while the file is loading", async () => {
 
 it("shows a retryable error when the PDF request fails", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(plan);
-  api.downloadWorkoutPlanPdf.mockRejectedValue(new Error("PDF unavailable"));
+  api.downloadWorkoutPlanPdf.mockRejectedValue(new ApiError(
+    503,
+    "PDF unavailable",
+    null,
+    "WORKOUT_PDF_UNAVAILABLE",
+  ));
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
@@ -1363,7 +1396,7 @@ it("shows a retryable error when the PDF request fails", async () => {
   await user.click(button);
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "دانلود PDF انجام نشد. دوباره تلاش کن.",
+    "فایل PDF برنامه آماده نشد. دوباره تلاش کنید.",
   );
   expect(button).toBeEnabled();
 });
@@ -1449,7 +1482,12 @@ it("keeps a plan visible during regeneration and announces a reused plan", async
 
 it("keeps the active plan visible and offers retry when generation fails", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(plan);
-  api.generateWorkoutPlan.mockRejectedValueOnce(new Error("provider unavailable"));
+  api.generateWorkoutPlan.mockRejectedValueOnce(new ApiError(
+    503,
+    "provider unavailable",
+    null,
+    "WORKOUT_GENERATION_FAILED",
+  ));
   api.generateWorkoutPlan.mockResolvedValueOnce({ plan, reused: false });
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
@@ -1458,10 +1496,10 @@ it("keeps the active plan visible and offers retry when generation fails", async
   await user.click(screen.getByRole("button", { name: "به‌روزرسانی برنامه" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "ساخت برنامه انجام نشد؛ برنامه فعلی حفظ شده است. دوباره تلاش کن.",
+    "ساخت برنامه تمرینی کامل نشد. دوباره تلاش کنید.",
   );
   expect(screen.getByText("پرس سینه دمبل")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
+  await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
 
   expect(api.generateWorkoutPlan).toHaveBeenCalledTimes(2);
 });

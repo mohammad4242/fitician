@@ -92,6 +92,20 @@ describe("resolveAppError", () => {
     expect(result.message).not.toContain("raw nutrition detail");
   });
 
+  it.each([
+    ["WORKOUT_GENERATION_IN_PROGRESS", "ساخت برنامه تمرینی در حال انجام است"],
+    ["BODYWEIGHT_PULL_UP_BAR_REQUIRED", "میله بارفیکس"],
+    ["WORKOUT_REPLACEMENT_NOT_ALLOWED", "حرکت جایگزین"],
+  ])("resolves workout workflow code %s from the shared catalog", (code, expected) => {
+    const result = resolveAppError(
+      new ApiError(409, "private workout detail", null, code),
+      { audience: "member", context: "workout", locale: "fa" },
+    );
+
+    expect(result.message).toContain(expected);
+    expect(result.message).not.toContain("private workout detail");
+  });
+
   it("turns validation details into localized field errors", () => {
     const result = resolveAppError(
       new ApiError(

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { getCurrentCompletionFeedback, saveCurrentCompletionFeedback } from "./api";
 import type {
   WorkoutCycleCompletionFeedbackContext,
@@ -67,6 +68,7 @@ export function EndCycleFeedbackCard({
   const [draft, setDraft] = useState(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [error, setError] = useState<unknown | null>(null);
   const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   const isEnglish = i18n.resolvedLanguage === "en";
   const l = (fa: string, en: string) => isEnglish ? en : fa;
@@ -74,6 +76,7 @@ export function EndCycleFeedbackCard({
   useEffect(() => {
     let active = true;
     setState("loading");
+    setError(null);
     void getCurrentCompletionFeedback()
       .then((loaded) => {
         if (!active) return;
@@ -88,8 +91,11 @@ export function EndCycleFeedbackCard({
           setState("hidden");
         }
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(cause);
+          setState("error");
+        }
       });
     return () => {
       active = false;
@@ -112,7 +118,10 @@ export function EndCycleFeedbackCard({
         setDraft(saved.feedback ?? draft);
         setState("completed");
       })
-      .catch(() => setState("error"))
+      .catch((cause: unknown) => {
+        setError(cause);
+        setState("error");
+      })
       .finally(() => setSaving(false));
   }
 
@@ -160,8 +169,13 @@ export function EndCycleFeedbackCard({
   }
   if (state === "error") {
     return (
-      <section className="end-cycle-feedback end-cycle-feedback--error" role="alert">
-        <p>{t("workoutPlan.endCycleFeedback.loadError")}</p>
+      <section className="end-cycle-feedback end-cycle-feedback--error">
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={error ?? new Error("End-of-cycle feedback could not be loaded")}
+          locale={isEnglish ? "en" : "fa"}
+        />
         <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>{t("common.retry")}</button>
       </section>
     );

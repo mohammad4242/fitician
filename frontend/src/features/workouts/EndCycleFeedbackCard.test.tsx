@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { TransportError } from "@fitician/core";
+
 const api = vi.hoisted(() => ({
   getCurrentCompletionFeedback: vi.fn(),
   saveCurrentCompletionFeedback: vi.fn(),
@@ -92,8 +94,8 @@ it("submits structured feedback and shows the completed state", async () => {
 });
 
 it("keeps the page usable when the feedback API is unavailable", async () => {
-  api.getCurrentCompletionFeedback.mockRejectedValue(new Error("offline"));
+  api.getCurrentCompletionFeedback.mockRejectedValue(new TransportError("offline"));
   render(<EndCycleFeedbackCard />);
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("بازخورد پایان دوره دریافت نشد");
+  expect(await screen.findByRole("alert")).toHaveTextContent("اتصال اینترنت در دسترس نیست");
 });

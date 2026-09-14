@@ -129,6 +129,58 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("برنامه قابل اجرا نیست", "Workout plan is not executable"),
     text("این نسخه از برنامه در وضعیت قابل اجرا نیست.", "This workout plan version is not executable."),
   ),
+  WORKOUT_GENERATION_FAILED: entry(
+    text("ساخت برنامه ناموفق بود", "Workout generation failed"),
+    text("ساخت برنامه تمرینی کامل نشد. دوباره تلاش کنید.", "The workout plan could not be generated. Try again."),
+  ),
+  BODYWEIGHT_ONLY_LEVEL_NOT_SUPPORTED: entry(
+    text("سطح تمرین پشتیبانی نمی‌شود", "Workout level is not supported"),
+    text(
+      "برنامه تمرین فقط با وزن بدن در حال حاضر برای سطح ماه اول و مبتدی ارائه می‌شود.",
+      "Bodyweight-only workout plans are currently available for First Month and Beginner levels.",
+    ),
+  ),
+  BODYWEIGHT_TEMPLATE_DAYS_NOT_SUPPORTED: entry(
+    text("تعداد روزهای تمرین پشتیبانی نمی‌شود", "Training-day count is not supported"),
+    text(
+      "برنامه تمرین با وزن بدن در حال حاضر برای ۲، ۳ یا ۴ روز در هفته طراحی شده است.",
+      "Bodyweight workout plans are currently designed for 2, 3, or 4 days per week.",
+    ),
+  ),
+  BODYWEIGHT_PULL_UP_BAR_REQUIRED: entry(
+    text("میله بارفیکس لازم است", "Pull-up bar required"),
+    text(
+      "برای اجرای کامل این برنامه و تمرین عضلات پشت و زیربغل به میله بارفیکس نیاز دارید. میله بارفیکس را به تجهیزات اضافه کنید.",
+      "A pull-up bar is needed to complete this plan and train your back and lats. Add a pull-up bar to your equipment.",
+    ),
+  ),
+  BODYWEIGHT_TEMPLATE_EXERCISE_UNAVAILABLE: entry(
+    text("حرکت مناسب پیدا نشد", "A suitable exercise is unavailable"),
+    text(
+      "با محدودیت‌های فعلی شما یکی از حرکات این برنامه قابل اجرا یا ایمن نیست. تجهیزات و محدودیت‌های تمرینی خود را بررسی کنید.",
+      "One exercise in this plan cannot be performed safely with your current limitations. Check your equipment and training restrictions.",
+    ),
+  ),
+  WORKOUT_SESSION_ACTION_FAILED: entry(
+    text("تغییر وضعیت جلسه انجام نشد", "Workout session could not be updated"),
+    text("تغییر وضعیت جلسه تمرین انجام نشد. دوباره تلاش کنید.", "The workout session could not be updated. Try again."),
+  ),
+  WORKOUT_REPLACEMENT_NOT_ALLOWED: entry(
+    text("جایگزین حرکت مجاز نیست", "Exercise replacement is not allowed"),
+    text("این حرکت جایگزین برای برنامه فعلی مجاز نیست.", "This exercise is not an allowed replacement for the current plan."),
+  ),
+  WORKOUT_CHECKIN_INVALID: entry(
+    text("چک‌این معتبر نیست", "Check-in is invalid"),
+    text("اطلاعات چک‌این معتبر نیست. موارد واردشده را بررسی کنید.", "The check-in is invalid. Review the submitted information."),
+  ),
+  WORKOUT_PLAN_DELETE_FAILED: entry(
+    text("حذف نسخه برنامه انجام نشد", "Plan version could not be deleted"),
+    text("حذف نسخه قدیمی برنامه انجام نشد. دوباره تلاش کنید.", "The old workout plan version could not be deleted. Try again."),
+  ),
+  WORKOUT_PDF_UNAVAILABLE: entry(
+    text("دانلود PDF انجام نشد", "PDF download failed"),
+    text("فایل PDF برنامه آماده نشد. دوباره تلاش کنید.", "The workout-plan PDF could not be prepared. Try again."),
+  ),
   NUTRITION_PROFILE_INCOMPLETE: entry(
     text("پروفایل تغذیه کامل نیست", "Nutrition profile incomplete"),
     text("برای ادامه، اطلاعات تغذیه را در پروفایل کامل کنید.", "Complete your nutrition profile to continue."),
