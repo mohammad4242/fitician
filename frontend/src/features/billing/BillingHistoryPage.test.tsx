@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import "../../i18n";
+import { ApiError } from "../../shared/apiClient";
 
 const billingApi = vi.hoisted(() => ({
   getOrders: vi.fn(),
@@ -38,4 +39,21 @@ it("shows safe order history fields without payment details", async () => {
   expect(screen.getByText(/۴ هفته/)).toBeInTheDocument();
   expect(screen.getByText("پرداخت موفق بود")).toBeInTheDocument();
   expect(screen.queryByText(/card|بانک|شماره کارت/i)).not.toBeInTheDocument();
+});
+
+it("uses the shared billing resolver for a backend failure", async () => {
+  billingApi.getOrders.mockRejectedValueOnce(new ApiError(
+    503,
+    "raw provider secret",
+    null,
+    "BILLING_PROVIDER_UNAVAILABLE",
+    { requestId: "billing-request-1" },
+  ));
+
+  render(<MemoryRouter><BillingHistoryPage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("درگاه پرداخت فعلاً در دسترس نیست");
+  expect(alert).not.toHaveTextContent("raw provider secret");
+  expect(alert).not.toHaveTextContent("billing-request-1");
 });

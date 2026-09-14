@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { formatTehranDateForLocale } from "@fitician/core";
 import type { BillingOrder } from "@fitician/core/billing";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+
 import { getOrders } from "./api";
 import "./billing.css";
 
@@ -11,6 +13,7 @@ export function BillingHistoryPage() {
   const { i18n, t } = useTranslation();
   const [orders, setOrders] = useState<BillingOrder[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
   useEffect(() => {
@@ -19,10 +22,13 @@ export function BillingHistoryPage() {
       .then((result) => {
         if (!active) return;
         setOrders(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, []);
@@ -35,7 +41,7 @@ export function BillingHistoryPage() {
           <h1>{t("billing.purchaseHistory")}</h1>
         </header>
         {state === "loading" && <p className="billing-status" role="status">{t("billing.loading")}</p>}
-        {state === "error" && <p className="billing-status billing-status--danger" role="alert">{t("billing.historyError")}</p>}
+        {state === "error" && <AppErrorNotice audience="member" context="billing" error={loadError} locale={english ? "en" : "fa"} onRetry={() => window.location.reload()} />}
         {state === "ready" && orders.length === 0 && <p className="billing-status">{t("billing.noOffers")}</p>}
         {state === "ready" && orders.length > 0 && (
           <div className="billing-history-list">

@@ -10,6 +10,8 @@ import {
   type PaymentProviderCode,
 } from "@fitician/core/billing";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+
 import {
   getAdminBillingOrders,
   type AdminBillingOrder,
@@ -28,6 +30,7 @@ export function AdminBillingOrdersPage() {
   const [orders, setOrders] = useState<AdminBillingOrder[]>([]);
   const [filters, setFilters] = useState<OrderFilters>(initialFilters);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
   useEffect(() => {
@@ -43,8 +46,10 @@ export function AdminBillingOrdersPage() {
         user_id: next.user_id.trim() === "" ? undefined : next.user_id.trim(),
       });
       setOrders(result);
+      setLoadError(null);
       setState("ready");
-    } catch {
+    } catch (cause: unknown) {
+      setLoadError(cause);
       setState("error");
     }
   }
@@ -73,7 +78,7 @@ export function AdminBillingOrdersPage() {
         </form>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
-        {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="billing" error={loadError} locale={english ? "en" : "fa"} onRetry={() => void loadOrders(filters)} />}
         {state === "ready" && orders.length === 0 && <p className="access-admin-status">{t("adminAccess.noOrders")}</p>}
         {state === "ready" && orders.length > 0 && (
           <div className="access-order-list">

@@ -106,7 +106,7 @@ describe("AccountDeletionPage", () => {
     expect(await screen.findByText("درخواست حذف لغو شد")).toBeInTheDocument();
   });
 
-  it("offers a fresh login when a passwordless web session is old", async () => {
+it("offers a fresh login when a passwordless web session is old", async () => {
     auth.user = { email: "google@example.com", phone_number: null };
     api.getAccountDeletionStatus.mockResolvedValue(emptyStatus);
     api.requestAccountDeletion.mockRejectedValue(
@@ -123,6 +123,24 @@ describe("AccountDeletionPage", () => {
 
     await waitFor(() => expect(auth.logout).toHaveBeenCalledOnce());
     expect(await screen.findByText("صفحه ورود")).toBeInTheDocument();
+  });
+
+  it("uses the shared resolver when deletion is unavailable", async () => {
+    auth.user = { email: "member@example.com", phone_number: null };
+    api.getAccountDeletionStatus.mockRejectedValueOnce(new ApiError(
+      503,
+      "internal account deletion details",
+      null,
+      "ACCOUNT_DELETION_NOT_ENABLED",
+      { requestId: "deletion-request-1" },
+    ));
+
+    renderAccountPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("حذف حساب فعلاً در دسترس نیست");
+    expect(alert).not.toHaveTextContent("internal account deletion details");
+    expect(alert).not.toHaveTextContent("deletion-request-1");
   });
 });
 

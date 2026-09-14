@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatTehranDateForLocale } from "@fitician/core";
 import type { BillingOffer } from "@fitician/core/billing";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getOffers } from "./api";
 import "./billing.css";
@@ -25,6 +27,7 @@ export function PlansPage() {
   const { snapshot } = useEntitlements();
   const [offers, setOffers] = useState<BillingOffer[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const [requiredEntitlement] = useState(() => searchParams.get("required"));
   const english = i18n.resolvedLanguage === "en";
 
@@ -35,10 +38,13 @@ export function PlansPage() {
       .then((result) => {
         if (!active) return;
         setOffers(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, []);
@@ -80,7 +86,7 @@ export function PlansPage() {
         )}
 
         {state === "loading" && <p className="billing-status" role="status">{t("billing.loading")}</p>}
-        {state === "error" && <p className="billing-status billing-status--danger" role="alert">{t("billing.loadError")}</p>}
+        {state === "error" && <AppErrorNotice audience="member" context="billing" error={loadError} locale={english ? "en" : "fa"} onRetry={() => window.location.reload()} />}
         {state === "ready" && offers.length === 0 && <p className="billing-status">{t("billing.noOffers")}</p>}
         {state === "ready" && groupedOffers.length > 0 && (
           <div className="billing-offer-groups">

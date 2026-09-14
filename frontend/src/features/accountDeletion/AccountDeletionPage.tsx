@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "../auth/AuthContext";
 import { authPath } from "../auth/returnTo";
 import {
@@ -38,8 +39,8 @@ export function AccountDeletionPage() {
   const [deletion, setDeletion] = useState<AccountDeletionStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [unavailable, setUnavailable] = useState(false);
+  const [requestError, setRequestError] = useState<unknown | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [requiresReauthentication, setRequiresReauthentication] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [password, setPassword] = useState("");
@@ -58,19 +59,17 @@ export function AccountDeletionPage() {
     if (authLoading || user === null) return;
     let active = true;
     setLoading(true);
-    setError(null);
-    setUnavailable(false);
+    setRequestError(null);
+    setLocalError(null);
     void getAccountDeletionStatus()
       .then((response) => {
-        if (active) setDeletion(response);
+        if (!active) return;
+        setDeletion(response);
+        setRequestError(null);
       })
       .catch((requestError: unknown) => {
         if (!active) return;
-        if (requestError instanceof ApiError && requestError.status === 503) {
-          setUnavailable(true);
-        } else {
-          setError(l("وضعیت حذف حساب دریافت نشد. دوباره تلاش کن.", "Could not load deletion status. Try again."));
-        }
+        setRequestError(requestError);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -102,8 +101,8 @@ export function AccountDeletionPage() {
 
         {user === null ? (
           <SignedOutState english={english} />
-        ) : unavailable ? (
-          <PublicState message={l("حذف حساب هنوز برای این محیط فعال نشده است.", "Account deletion is not enabled for this environment yet.")} />
+        ) : requestError !== null && deletion === null ? (
+          <AppErrorNotice audience="member" context="access" error={requestError} locale={english ? "en" : "fa"} />
         ) : loading || deletion === null ? (
           <PublicState message={l("در حال دریافت وضعیت حذف…", "Loading deletion status…")} />
         ) : deletion.status === "pending" ? (
@@ -113,10 +112,14 @@ export function AccountDeletionPage() {
             busy={busy}
             onCancel={() => {
               setBusy(true);
-              setError(null);
+              setRequestError(null);
+              setLocalError(null);
               void cancelAccountDeletion()
-                .then(setDeletion)
-                .catch(() => setError(l("لغو درخواست انجام نشد. دوباره تلاش کن.", "Could not cancel the request. Try again.")))
+                .then((response) => {
+                  setDeletion(response);
+                  setRequestError(null);
+                })
+                .catch((cause: unknown) => setRequestError(cause))
                 .finally(() => setBusy(false));
             }}
           />
@@ -142,31 +145,31 @@ export function AccountDeletionPage() {
                 setBusy(true);
                 void logout()
                   .then(() => navigate(authPath("/login", "/delete-account"), { replace: true }))
-                  .catch(() => {
+                  .catch((cause: unknown) => {
                     setBusy(false);
-                    setError(l("ورود دوباره شروع نشد. دوباره تلاش کن.", "Could not start reauthentication. Try again."));
+                    setRequestError(cause);
                   });
               }}
               onSubmit={(event) => {
                 event.preventDefault();
                 if (confirmation.trim() !== DELETE_CONFIRMATION) {
-                  setError(l("عبارت DELETE را دقیق وارد کن.", "Enter DELETE exactly to confirm."));
+                  setLocalError(l("عبارت DELETE را دقیق وارد کن.", "Enter DELETE exactly to confirm."));
                   return;
                 }
                 setBusy(true);
-                setError(null);
+                setRequestError(null);
+                setLocalError(null);
                 setRequiresReauthentication(false);
                 void requestAccountDeletion(password.trim() === "" ? undefined : password)
-                  .then(setDeletion)
+                  .then((response) => {
+                    setDeletion(response);
+                    setRequestError(null);
+                  })
                   .catch((requestError: unknown) => {
                     if (isApiError(requestError, 403, "RECENT_AUTHENTICATION_REQUIRED")) {
                       setRequiresReauthentication(true);
-                      setError(l("برای امنیت، ابتدا دوباره وارد حساب شو.", "For security, sign in again before deleting your account."));
-                    } else if (isApiError(requestError, 403, "INVALID_REAUTHENTICATION")) {
-                      setError(l("رمز عبور درست نیست.", "The password is not correct."));
-                    } else {
-                      setError(l("ثبت درخواست حذف انجام نشد. دوباره تلاش کن.", "Could not submit the deletion request. Try again."));
                     }
+                    setRequestError(requestError);
                   })
                   .finally(() => setBusy(false));
               }}
@@ -174,9 +177,8 @@ export function AccountDeletionPage() {
           </>
         )}
 
-        {error !== null && (
-          <p className="public-account-card__error" role="alert">{error}</p>
-        )}
+        {localError !== null && <p className="public-account-card__error" role="alert">{localError}</p>}
+        {requestError !== null && deletion !== null && <AppErrorNotice audience="member" context="access" error={requestError} locale={english ? "en" : "fa"} />}
       </section>
     </PublicPageFrame>
   );

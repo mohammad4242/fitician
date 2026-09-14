@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
 import { formatTehranDateForLocale } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   getAdminBillingOrder,
   type AdminBillingOrder,
@@ -13,6 +14,7 @@ export function AdminBillingOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<AdminBillingOrder | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
   useEffect(() => {
@@ -25,16 +27,20 @@ export function AdminBillingOrderDetailPage() {
       .then((result) => {
         if (!active) return;
         setOrder(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [orderId]);
 
   if (state === "loading") return <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>;
-  if (state === "error" || order === null) return <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.orderNotFound")}</p>;
+  if (state === "error") return <AppErrorNotice audience="admin" context="billing" error={loadError} locale={english ? "en" : "fa"} />;
+  if (order === null) return <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.orderNotFound")}</p>;
 
   return (
     <main className="access-admin-page fitician-page">

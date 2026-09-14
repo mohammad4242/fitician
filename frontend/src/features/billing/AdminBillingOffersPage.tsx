@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { BillingOffer } from "@fitician/core/billing";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
 
 import {
@@ -34,9 +35,11 @@ const offerCategories = [
 type OfferCategoryKey = (typeof offerCategories)[number]["key"];
 
 export function AdminBillingOffersPage() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [offers, setOffers] = useState<AdminBillingOffer[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [updated, setUpdated] = useState<string | null>(null);
   const [openCategoryKey, setOpenCategoryKey] = useState<OfferCategoryKey | null>(null);
@@ -50,10 +53,13 @@ export function AdminBillingOffersPage() {
         if (!active) return;
         setOffers(result);
         savedOffers.current = new Map(result.map((offer) => [offer.offer_code, offer]));
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, []);
@@ -64,13 +70,14 @@ export function AdminBillingOffersPage() {
     if (Object.keys(input).length === 0) return;
     setSaving(offer.offer_code);
     setUpdated(null);
+    setSaveError(null);
     try {
       const result = await updateAdminBillingOffer(offer.offer_code, input);
       setOffers((current) => current.map((item) => item.offer_code === result.offer_code ? result : item));
       savedOffers.current.set(result.offer_code, result);
       setUpdated(result.offer_code);
-    } catch {
-      setState("error");
+    } catch (cause: unknown) {
+      setSaveError(cause);
     } finally {
       setSaving(null);
     }
@@ -85,7 +92,8 @@ export function AdminBillingOffersPage() {
           <p>{t("billing.choosePlan")}</p>
         </header>
         {state === "loading" && <p className="billing-status" role="status">{t("billing.loading")}</p>}
-        {state === "error" && <p className="billing-status billing-status--danger" role="alert">{t("billing.adminLoadError")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="billing" error={loadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} onRetry={() => window.location.reload()} />}
+        {saveError !== null && <AppErrorNotice audience="admin" context="billing" error={saveError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
         {state === "ready" && (
           <div className="billing-admin-categories">
             {offerCategories.map((category) => {

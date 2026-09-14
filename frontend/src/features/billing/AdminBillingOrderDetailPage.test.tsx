@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import "../../i18n";
+import { ApiError } from "../../shared/apiClient";
 
 const adminApi = vi.hoisted(() => ({ getAdminBillingOrder: vi.fn() }));
 vi.mock("./adminApi", () => adminApi);
@@ -63,4 +64,26 @@ it("shows the immutable order snapshot and safe transaction history", async () =
   );
   expect(screen.queryByRole("button", { name: /Refund|بازپرداخت/ })).not.toBeInTheDocument();
   expect(within(screen.getByRole("region", { name: "تراکنش‌ها" })).getByText("provider-ref-1")).toBeInTheDocument();
+});
+
+it("shows safe admin diagnostics for a failed order lookup", async () => {
+  adminApi.getAdminBillingOrder.mockRejectedValueOnce(new ApiError(
+    404,
+    "private payment details",
+    null,
+    "BILLING_ORDER_NOT_FOUND",
+    { requestId: "admin-billing-request-1" },
+  ));
+
+  render(
+    <MemoryRouter initialEntries={["/admin/billing/orders/order-missing"]}>
+      <Routes><Route path="/admin/billing/orders/:orderId" element={<AdminBillingOrderDetailPage />} /></Routes>
+    </MemoryRouter>,
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("BILLING_ORDER_NOT_FOUND");
+  expect(alert).toHaveTextContent("404");
+  expect(alert).toHaveTextContent("admin-billing-request-1");
+  expect(alert).not.toHaveTextContent("private payment details");
 });

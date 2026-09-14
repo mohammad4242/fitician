@@ -4,6 +4,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
+
 import { createCheckout, createOrder, getOffers } from "./api";
 import "./billing.css";
 
@@ -17,7 +19,8 @@ export function CheckoutPage() {
     return stateOffer !== undefined && stateOffer.offer_code === offerCode ? stateOffer : null;
   });
   const [state, setState] = useState<"loading" | "ready" | "submitting" | "error">(offer ? "ready" : "loading");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const idempotencyKey = useRef(createIdempotencyKey());
   const english = i18n.resolvedLanguage === "en";
   const provider = paymentProviderCodes[0];
@@ -30,10 +33,13 @@ export function CheckoutPage() {
         if (!active) return;
         const selected = offers.find((item) => item.offer_code === offerCode) ?? null;
         setOffer(selected);
+        setLoadError(null);
         setState(selected === null ? "error" : "ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [offer, offerCode]);
@@ -41,7 +47,7 @@ export function CheckoutPage() {
   async function beginCheckout() {
     if (offer === null || !offer.is_available) return;
     setState("submitting");
-    setError(false);
+    setError(null);
     try {
       const order = await createOrder({
         offer_code: offer.offer_code,
@@ -59,8 +65,8 @@ export function CheckoutPage() {
         return;
       }
       navigate(`/billing/checkout-result?order_id=${order.id}&transaction_id=${checkout.transaction_id}`);
-    } catch {
-      setError(true);
+    } catch (cause: unknown) {
+      setError(cause);
       setState("error");
     }
   }
@@ -73,11 +79,9 @@ export function CheckoutPage() {
           <h1>{offer ? t(`entitlements.packageLabels.${offer.package_code}`, { defaultValue: offer.package_code }) : t("billing.plans")}</h1>
         </header>
         {state === "loading" && <p className="billing-status" role="status">{t("billing.loading")}</p>}
-        {state === "error" && (
-          <p className="billing-status billing-status--danger" role="alert">
-            {error ? t("billing.orderError") : t("billing.offerUnavailable")}
-          </p>
-        )}
+        {state === "error" && error !== null && <AppErrorNotice audience="member" context="billing" error={error} locale={english ? "en" : "fa"} onRetry={() => void beginCheckout()} />}
+        {state === "error" && error === null && loadError !== null && <AppErrorNotice audience="member" context="billing" error={loadError} locale={english ? "en" : "fa"} />}
+        {state === "error" && error === null && loadError === null && <p className="billing-status billing-status--danger" role="alert">{t("billing.offerUnavailable")}</p>}
         {offer && state !== "loading" && (
           <section className="billing-checkout-card" aria-label={t("billing.continueToPayment")}>
             <div className="billing-checkout-card__row">

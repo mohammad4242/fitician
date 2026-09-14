@@ -50,6 +50,14 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("ورود با اپل انجام نشد", "Apple sign-in conflict"),
     text("این حساب اپل به حساب دیگری متصل است.", "This Apple account is linked to another account."),
   ),
+  RECENT_AUTHENTICATION_REQUIRED: entry(
+    text("تأیید دوباره هویت لازم است", "Recent sign-in required"),
+    text("برای ادامه، دوباره وارد حساب شوید.", "Sign in again to continue."),
+  ),
+  INVALID_REAUTHENTICATION: entry(
+    text("تأیید هویت انجام نشد", "Reauthentication failed"),
+    text("رمز عبور درست نیست.", "The password is not correct."),
+  ),
   AUTHENTICATION_REQUIRED: entry(
     text("ورود لازم است", "Sign-in required"),
     text("برای ادامه دوباره وارد حساب شوید.", "Sign in again to continue."),
@@ -427,6 +435,19 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ACCESS_TERM_TOO_SHORT: entry(
     text("مدت دسترسی معتبر نیست", "Access term is invalid"),
     text("مدت انتخاب‌شده بیشتر از سقف دسترسی مجاز است.", "The selected access term exceeds the allowed maximum."),
+  ),
+  ACCOUNT_DELETION_NOT_ENABLED: entry(
+    text("حذف حساب فعلاً در دسترس نیست", "Account deletion is unavailable"),
+    text("حذف حساب هنوز برای این محیط فعال نشده است.", "Account deletion is not enabled for this environment yet."),
+  ),
+  BILLING_PROVIDER_UNAVAILABLE: entry(
+    text("درگاه پرداخت موقتاً در دسترس نیست", "Payment provider unavailable"),
+    text("درگاه پرداخت فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "The payment provider is temporarily unavailable. Try again later."),
+    text("دوباره تلاش کنید", "Try again"),
+  ),
+  BILLING_ORDER_NOT_FOUND: entry(
+    text("سفارش پرداخت پیدا نشد", "Billing order not found"),
+    text("سفارش پرداخت موردنظر پیدا نشد.", "The requested billing order was not found."),
   ),
   VALIDATION_ERROR: entry(
     text("اطلاعات معتبر نیست", "Invalid information"),

@@ -2,15 +2,18 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getOrder, verifyPayment } from "./api";
 import "./billing.css";
 
 export function CheckoutResultPage() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { refresh } = useEntitlements();
   const [state, setState] = useState<"loading" | "success" | "failed">("loading");
+  const [error, setError] = useState<unknown | null>(null);
+  const english = i18n.resolvedLanguage === "en";
 
   const transactionId = searchParams.get("transaction_id");
   const orderId = searchParams.get("order_id");
@@ -18,6 +21,7 @@ export function CheckoutResultPage() {
 
   useEffect(() => {
     let active = true;
+    setError(null);
     if (transactionId === null || orderId === null) {
       setState("failed");
       return () => { active = false; };
@@ -37,8 +41,10 @@ export function CheckoutResultPage() {
           setState("failed");
         }
       })
-      .catch(() => {
-        if (active) setState("failed");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setError(cause);
+        setState("failed");
       });
     return () => { active = false; };
   }, [orderId, providerReference, refresh, transactionId]);
@@ -48,7 +54,8 @@ export function CheckoutResultPage() {
     <main className="billing-page fitician-page">
       <div className="billing-page__container billing-page__container--narrow">
         {state === "loading" && <p className="billing-status" role="status">{t("billing.paymentPending")}</p>}
-        {state !== "loading" && (
+        {state === "failed" && error !== null && <AppErrorNotice audience="member" context="billing" error={error} locale={english ? "en" : "fa"} />}
+        {state !== "loading" && error === null && (
           <section className={`billing-result billing-result--${success ? "success" : "failed"}`}>
             <p className="eyebrow eyebrow--accent">{t("billing.plans")}</p>
             <h1>{success ? t("billing.paymentSuccessful") : t("billing.paymentFailed")}</h1>
