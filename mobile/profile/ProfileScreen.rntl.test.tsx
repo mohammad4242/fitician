@@ -294,6 +294,31 @@ test("keeps an existing custom Friday calendar unchanged on profile load", async
   expect(api.updateProfile).not.toHaveBeenCalled();
 });
 
+test("shows the exact preferred weekday validation message", async () => {
+  const invalidProfile = {
+    ...profile,
+    preferred_weekdays: [0, 2, 4],
+    training_days_per_week: 4,
+  } as Profile;
+  mockCreateProfileApi.mockReturnValue({
+    getNutritionProfile: resolved(nutrition),
+    getProfile: resolved(invalidProfile),
+    getSharedProfile: resolved(shared),
+    saveNutritionProfile: resolved(nutrition),
+    saveSharedProfile: resolved(shared),
+    updateProfile: resolved(invalidProfile),
+  } as never);
+
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  fireEvent.press(screen.getByRole("radio", { name: "تمرینی" }));
+  fireEvent.press(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+
+  expect(await screen.findByText("تعداد روزهای انتخابی باید دقیقاً برابر تعداد روزهای تمرین در هفته باشد.")).toBeTruthy();
+  expect(screen.queryByText("preferredWeekdaysInvalid")).toBeNull();
+});
+
 test("saves personal edits through the existing updateProfile API", async () => {
   renderProfile();
 

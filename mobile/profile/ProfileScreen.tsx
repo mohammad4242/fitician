@@ -47,6 +47,7 @@ import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
 import { useMobileRouteSnapshot, useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
+import { profileValidationMessage } from "../onboarding/onboardingModel";
 import { createProfileApi } from "./profileApi";
 import { ProfilePhotoControl } from "./ProfilePhotoControl";
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
@@ -695,6 +696,9 @@ function TrainingSection({
   readonly onChange: (field: keyof ProfileFormValues, value: ProfileFormValues[keyof ProfileFormValues]) => void;
 }) {
   const trainingDays = Number(values.training_days_per_week);
+  const preferredWeekdaysError = errors.preferred_weekdays === "preferredWeekdaysInvalid"
+    ? profileValidationMessage(errors.preferred_weekdays)
+    : errors.preferred_weekdays;
   return (
     <ProfileFormGroup icon="training" title="تنظیمات تمرین">
       <ChoiceField
@@ -718,14 +722,14 @@ function TrainingSection({
       />
       {trainingDays >= 2 && trainingDays <= 5 ? (
         <TrainingWeekdaySelector
-          error={errors.preferred_weekdays}
+          error={preferredWeekdaysError}
           onChange={(weekdays) => onChange("preferred_weekdays", weekdays)}
           selectedWeekdays={values.preferred_weekdays}
           trainingDays={trainingDays}
         />
       ) : trainingDays === 6 ? (
         <MultiChoiceField
-          error={errors.preferred_weekdays}
+          error={preferredWeekdaysError}
           label="روزهای ترجیحی (اختیاری)"
           options={weekdayOptions}
           selected={(values.preferred_weekdays ?? []).map(String)}
