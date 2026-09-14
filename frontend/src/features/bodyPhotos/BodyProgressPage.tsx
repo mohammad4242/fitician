@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { formatTehranDateForLocale, formatTehranDateTimeForLocale } from "@fitician/core";
 import { AppIcon } from "../../shared/AppIcon";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import bodyAnalysisHeroImg from "../../assets/bodyPhotos/bodyanalysis.jpg";
 import { deleteBodyPhotoSession, getBodyProgressTimeline } from "./api";
@@ -15,16 +16,16 @@ export function BodyProgressPage() {
   const { t, i18n } = useTranslation();
   const { loading: entitlementsLoading, hasEntitlement, quotaFor } = useEntitlements();
   const [timeline, setTimeline] = useState<BodyProgressTimelineResponse | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<unknown | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BodyProgressTimelineItem["session"] | null>(null);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
-  const [deleteFailed, setDeleteFailed] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState<unknown | null>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     void getBodyProgressTimeline()
       .then((response) => setTimeline(response))
-      .catch(() => setFailed(true));
+      .catch((cause: unknown) => setFailed(cause));
   }, []);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export function BodyProgressPage() {
       if (event.key !== "Escape" || deletingSessionId !== null) return;
       event.preventDefault();
       setDeleteTarget(null);
-      setDeleteFailed(false);
+      setDeleteFailed(null);
       deleteTriggerRef.current?.focus();
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -74,14 +75,14 @@ export function BodyProgressPage() {
 
   function openDeleteDialog(session: BodyProgressTimelineItem["session"], trigger: HTMLButtonElement) {
     deleteTriggerRef.current = trigger;
-    setDeleteFailed(false);
+    setDeleteFailed(null);
     setDeleteTarget(session);
   }
 
   function closeDeleteDialog() {
     if (deletingSessionId !== null) return;
     setDeleteTarget(null);
-    setDeleteFailed(false);
+    setDeleteFailed(null);
     deleteTriggerRef.current?.focus();
   }
 
@@ -89,15 +90,15 @@ export function BodyProgressPage() {
     if (deleteTarget === null) return;
     const sessionId = deleteTarget.id;
     setDeletingSessionId(sessionId);
-    setDeleteFailed(false);
+    setDeleteFailed(null);
     try {
       await deleteBodyPhotoSession(sessionId);
       setTimeline((current) => current === null
         ? current
         : { ...current, items: current.items.filter((item) => item.session.id !== sessionId) });
       setDeleteTarget(null);
-    } catch {
-      setDeleteFailed(true);
+    } catch (cause: unknown) {
+      setDeleteFailed(cause);
     } finally {
       setDeletingSessionId(null);
     }
@@ -151,7 +152,20 @@ export function BodyProgressPage() {
           <p className="body-analysis-home__status" role="status">{t("bodyPhotos.loading")}</p>
         </div>
       )}
-      {failed && <p className="form-error body-analysis-home__status" role="alert">{t("bodyPhotos.errors.load")}</p>}
+      {failed !== null && (
+        <AppErrorNotice
+          audience="member"
+          context="body_analysis"
+          error={failed}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+          onRetry={() => {
+            setFailed(null);
+            void getBodyProgressTimeline()
+              .then((response) => setTimeline(response))
+              .catch((cause: unknown) => setFailed(cause));
+          }}
+        />
+      )}
 
       {timeline?.items.length === 0 && (
         <section className="body-analysis-empty" aria-labelledby="body-analysis-empty-title">
@@ -277,10 +291,14 @@ export function BodyProgressPage() {
                 <dd>{t(`bodyPhotos.status.${deleteTarget.state}`)}</dd>
               </div>
             </dl>
-            {deleteFailed && (
-              <p className="form-error body-analysis-delete-dialog__error" role="alert">
-                {t("bodyPhotos.deleteDialog.error")}
-              </p>
+            {deleteFailed !== null && (
+              <AppErrorNotice
+                audience="member"
+                context="body_photo"
+                error={deleteFailed}
+                locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+                onRetry={() => void removeSession()}
+              />
             )}
             <footer>
               <button

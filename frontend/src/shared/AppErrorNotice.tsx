@@ -51,7 +51,7 @@ export function AppErrorNotice({
       {resolved.action ? <p>{resolved.action}</p> : null}
       {onRetry && resolved.retryable ? (
         <button onClick={onRetry} type="button">
-          دوباره تلاش کنید
+          {locale === "en" ? "Try again" : "دوباره تلاش کنید"}
         </button>
       ) : null}
       {resolved.showTechnicalDetails ? (

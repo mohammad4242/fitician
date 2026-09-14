@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
+import { ApiError } from "../../shared/apiClient";
 import type { Profile } from "../profile/types";
 
 const profileApi = vi.hoisted(() => ({
@@ -134,4 +135,27 @@ it("does not write unchanged measurements and does not continue after a failed s
   await waitFor(() => expect(onConfirmed).not.toHaveBeenCalled());
   expect(profileApi.updateProfile).toHaveBeenCalledWith({ shoulder_circumference_cm: 112 });
   expect(screen.getByRole("alert")).toBeInTheDocument();
+});
+
+it("presents a backend error through the shared member resolver", async () => {
+  const user = userEvent.setup();
+  profileApi.updateProfile.mockRejectedValue(new ApiError(
+    503,
+    "provider secret and stack trace",
+    null,
+    "BODY_ANALYSIS_PROVIDER_UNAVAILABLE",
+  ));
+  render(<BodyAnalysisRequirementsStep onConfirmed={vi.fn()} onCancel={vi.fn()} />);
+
+  const shoulder = await screen.findByLabelText(/shoulder circumference/i);
+  await user.type(shoulder, "112");
+  await user.type(screen.getByLabelText(/waist circumference/i), "82.5");
+  await user.type(screen.getByLabelText(/hip circumference/i), "99");
+  await user.click(screen.getByRole("checkbox", { name: /measurements are current/i }));
+  await user.click(screen.getByRole("button", { name: /continue/i }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Body analysis is temporarily unavailable. Try again later.",
+  );
+  expect(screen.getByRole("alert")).not.toHaveTextContent(/provider secret|stack trace/i);
 });

@@ -8,6 +8,7 @@ import {
 import {
   MeasurementFields,
 } from "../profile/ProfileFormFields";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import type {
   MeasurementField,
   MeasurementFormValues,
@@ -31,14 +32,14 @@ export function BodyAnalysisRequirementsStep({
   onConfirmed,
   onCancel,
 }: BodyAnalysisRequirementsStepProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [values, setValues] = useState<MeasurementFormValues | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,15 +47,15 @@ export function BodyAnalysisRequirementsStep({
       .then((loadedProfile) => {
         if (!active) return;
         if (loadedProfile === null) {
-          setLoadError(true);
+          setLoadError(new Error("Profile could not be loaded"));
           return;
         }
         const nextValues = measurementValuesFromProfile(loadedProfile);
         setProfile(loadedProfile);
         setValues(nextValues);
       })
-      .catch(() => {
-        if (active) setLoadError(true);
+      .catch((error: unknown) => {
+        if (active) setLoadError(error);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -72,11 +73,12 @@ export function BodyAnalysisRequirementsStep({
     && Object.keys(validationErrors).length === 0
     && confirmed
     && !busy;
+  const errorLocale = i18n.resolvedLanguage === "en" ? "en" : "fa";
 
   function changeMeasurement(field: MeasurementField, value: string) {
     setValues((current) => current === null ? current : { ...current, [field]: value });
     setConfirmed(false);
-    setSaveError(false);
+    setSaveError(null);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -86,15 +88,15 @@ export function BodyAnalysisRequirementsStep({
     if (Object.keys(nextErrors).length > 0) return;
 
     setBusy(true);
-    setSaveError(false);
+    setSaveError(null);
     try {
       const patch = measurementPatch(values, profile);
       if (Object.keys(patch).length > 0) {
         await updateProfile(patch);
       }
       onConfirmed();
-    } catch {
-      setSaveError(true);
+    } catch (error: unknown) {
+      setSaveError(error);
     } finally {
       setBusy(false);
     }
@@ -108,14 +110,16 @@ export function BodyAnalysisRequirementsStep({
     );
   }
 
-  if (loadError || values === null) {
+  if (loadError !== null || values === null) {
     return (
       <section className="body-photo-wizard body-analysis-requirements" aria-labelledby="body-analysis-requirements-title">
         <p className="eyebrow eyebrow--accent">{t("bodyPhotos.measurements.eyebrow")}</p>
         <h1 id="body-analysis-requirements-title" className="fitician-display">
           {t("bodyPhotos.measurements.title")}
         </h1>
-        <p role="alert">{t("bodyPhotos.measurements.loadError")}</p>
+        {loadError !== null && (
+          <AppErrorNotice audience="member" context="body_analysis" error={loadError} locale={errorLocale} />
+        )}
         <button className="secondary-button" type="button" onClick={onCancel}>
           {t("bodyPhotos.measurements.back")}
         </button>
@@ -215,7 +219,9 @@ export function BodyAnalysisRequirementsStep({
           />
           <span>{t("bodyPhotos.measurements.confirmLabel")}</span>
         </label>
-        {saveError && <p className="form-error" role="alert">{t("bodyPhotos.measurements.saveError")}</p>}
+        {saveError !== null && (
+          <AppErrorNotice audience="member" context="body_analysis" error={saveError} locale={errorLocale} />
+        )}
         <div className="body-analysis-requirements__actions">
           <button className="secondary-button" type="button" onClick={onCancel} disabled={busy}>
             {t("bodyPhotos.measurements.back")}

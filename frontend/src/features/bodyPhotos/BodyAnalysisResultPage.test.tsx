@@ -252,7 +252,7 @@ it("keeps anonymized photos available when analysis cannot start", async () => {
   renderPage();
 
   expect(await screen.findAllByRole("img", { name: /anonymized/i })).toHaveLength(3);
-  expect(screen.getByRole("alert")).toHaveTextContent(/workout plan is still available/i);
+  expect(screen.getByText(/workout plan is still available/i)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /retry analysis/i })).toBeInTheDocument();
 });
 

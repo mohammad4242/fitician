@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { formatTehranDateTimeForLocale } from "@fitician/core";
-import { ApiError } from "../../shared/apiClient";
+import type { ErrorContext } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   normalizeImageForUpload,
   UserImageNormalizationError,
@@ -42,6 +43,11 @@ type SelectedPhotoPreview = {
   url: string;
 };
 
+type WizardApiError = {
+  cause: unknown;
+  context: Extract<ErrorContext, "body_photo" | "body_analysis">;
+};
+
 export function BodyPhotoWizard({
   processor = browserBodyPhotoProcessor,
   purpose = "initial_plan",
@@ -71,6 +77,7 @@ export function BodyPhotoWizard({
   const [editorFile, setEditorFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<WizardApiError | null>(null);
   const [termsOpen, setTermsOpen] = useState(false);
   const [selectedPreview, setSelectedPreview] = useState<SelectedPhotoPreview | null>(null);
   const processedRef = useRef(processed);
@@ -88,6 +95,11 @@ export function BodyPhotoWizard({
   ));
   const canRunBodyAnalysis = hasEntitlement("body_analysis.run");
   const bodyAnalysisQuota = quotaFor("body_analysis.run");
+
+  function clearErrors() {
+    setError(null);
+    setApiError(null);
+  }
 
   useEffect(() => {
     processedRef.current = processed;
@@ -124,8 +136,8 @@ export function BodyPhotoWizard({
           }
         }
       })
-      .catch(() => {
-        if (mountedRef.current) setError(t("bodyPhotos.errors.load"));
+      .catch((cause: unknown) => {
+        if (mountedRef.current) setApiError({ cause, context: "body_photo" });
       })
       .finally(() => {
         if (mountedRef.current) setSessionLoading(false);
@@ -144,7 +156,7 @@ export function BodyPhotoWizard({
     const selectionToken = ++selectionTokenRef.current;
     replaceSelectedPreview(file, selectedView);
     setBusy(true);
-    setError(null);
+    clearErrors();
     try {
       const options = (context?.ghostScale !== undefined || context?.sideProfile !== undefined)
         ? {
@@ -181,7 +193,7 @@ export function BodyPhotoWizard({
     event.target.value = "";
     if (file === undefined) return;
     const selectionToken = ++selectionTokenRef.current;
-    setError(null);
+    clearErrors();
     void normalizeSelectedFile(file, selectionToken);
   }
 
@@ -195,6 +207,7 @@ export function BodyPhotoWizard({
       if (mountedRef.current && selectionToken === selectionTokenRef.current) setEditorFile(normalized);
     } catch (normalizationError) {
       if (mountedRef.current && selectionToken === selectionTokenRef.current) {
+        setApiError(null);
         setError(imageNormalizationErrorMessage(normalizationError, t));
       }
     }
@@ -206,12 +219,13 @@ export function BodyPhotoWizard({
   }
 
   function openCamera() {
-    setError(null);
+    clearErrors();
     setCaptureMode("camera");
   }
 
   function handleCameraFallback(reason: CameraFallbackReason) {
     setCaptureMode("upload");
+    setApiError(null);
     setError(t(`bodyPhotos.cameraFallback.${reason}`));
   }
 
@@ -231,6 +245,7 @@ export function BodyPhotoWizard({
       return remaining;
     });
     setError(null);
+    setApiError(null);
   }
 
   async function confirmUpload() {
@@ -240,7 +255,7 @@ export function BodyPhotoWizard({
       return;
     }
     setBusy(true);
-    setError(null);
+    clearErrors();
     let uploadedPhoto = false;
     let uploadedSessionId: string | null = null;
     try {
@@ -274,11 +289,12 @@ export function BodyPhotoWizard({
         navigate(`/body-progress/${uploadedSessionId}`);
         return;
       }
-      setError(
-        uploadedPhoto
-          ? t("bodyPhotos.errors.analysisNotStarted")
-          : uploadErrorMessage(uploadError, t),
-      );
+      if (uploadedPhoto) {
+        setError(t("bodyPhotos.errors.analysisNotStarted"));
+        setApiError({ cause: uploadError, context: "body_analysis" });
+      } else {
+        setApiError({ cause: uploadError, context: "body_photo" });
+      }
     } finally {
       setBusy(false);
     }
@@ -302,20 +318,21 @@ export function BodyPhotoWizard({
   async function submit() {
     if (session === null || !complete || !operationalConsent || busy) return;
     setBusy(true);
-    setError(null);
+    clearErrors();
     try {
       const submitted = await submitBodyPhotoSession(session.id, true, modelTrainingConsent);
       setSession(submitted);
-    } catch {
-      setError(t("bodyPhotos.errors.submit"));
+    } catch (cause: unknown) {
+      setApiError({ cause, context: "body_photo" });
       setBusy(false);
       return;
     }
     try {
       await startBodyPhotoAnalysis(session.id, true);
       setState("complete");
-    } catch {
+    } catch (cause: unknown) {
       setError(t("bodyPhotos.errors.analysisNotStarted"));
+      setApiError({ cause, context: "body_analysis" });
     } finally {
       setBusy(false);
     }
@@ -420,7 +437,7 @@ export function BodyPhotoWizard({
           <span>{t("bodyPhotos.modelTraining")}</span>
         </label>
         <p className="body-photo-muted">{t("bodyPhotos.modelTrainingHint")}</p>
-        {error !== null && <p className="form-error" role="alert">{error}</p>}
+        <WizardErrorNotice error={error} apiError={apiError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />
         <button className="primary-button body-photo-submit-btn" type="button" onClick={() => void submit()} disabled={busy || !operationalConsent}>
           {busy ? t("bodyPhotos.submitting") : t("bodyPhotos.submit")}
         </button>
@@ -631,7 +648,7 @@ export function BodyPhotoWizard({
               />
               <span>{t("bodyPhotos.processingConsentBefore")} <button type="button" className="body-photo-link-button" onClick={() => setTermsOpen(true)}>{t("bodyPhotos.processingTerms")}</button></span>
             </label>
-            {error !== null && <p className="form-error" role="alert">{error}</p>}
+            <WizardErrorNotice error={error} apiError={apiError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />
             <button className="primary-button body-photo-confirm-btn" type="button" onClick={() => void confirmUpload()} disabled={current === null || !operationalConsent || busy || sessionLoading}>
               {busy ? t("bodyPhotos.preparing") : t("bodyPhotos.confirmUpload", { view: t(`bodyPhotos.views.${view}`) })}
             </button>
@@ -754,18 +771,28 @@ function imageNormalizationErrorMessage(error: unknown, t: ReturnType<typeof use
   return t("bodyPhotos.errors.processing");
 }
 
-function uploadErrorMessage(error: unknown, t: ReturnType<typeof useTranslation>["t"]): string {
-  if (
-    error instanceof ApiError
-    && error.status === 403
-    && error.message === "Untrusted request origin"
-  ) {
-    return t("bodyPhotos.errors.untrustedOrigin");
-  }
-  if (error instanceof ApiError && error.code !== null) {
-    return t(`bodyPhotos.errors.${error.code}`, { defaultValue: t("bodyPhotos.errors.upload") });
-  }
-  return t("bodyPhotos.errors.upload");
+function WizardErrorNotice({
+  error,
+  apiError,
+  locale,
+}: {
+  error: string | null;
+  apiError: WizardApiError | null;
+  locale: "fa" | "en";
+}) {
+  return (
+    <>
+      {error !== null && <p className="form-error" role="alert">{error}</p>}
+      {apiError !== null && (
+        <AppErrorNotice
+          audience="member"
+          context={apiError.context}
+          error={apiError.cause}
+          locale={locale}
+        />
+      )}
+    </>
+  );
 }
 
 function formatScore(score: number): string {

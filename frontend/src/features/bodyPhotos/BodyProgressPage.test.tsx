@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
+import { ApiError } from "../../shared/apiClient";
 
 const api = vi.hoisted(() => ({
   deleteBodyPhotoSession: vi.fn(),
@@ -231,7 +232,12 @@ it("closes the delete dialog with Escape", async () => {
 it("keeps the dialog open after a deletion failure and allows retry", async () => {
   const user = userEvent.setup();
   api.deleteBodyPhotoSession
-    .mockRejectedValueOnce(new Error("storage unavailable"))
+    .mockRejectedValueOnce(new ApiError(
+      503,
+      "storage unavailable",
+      null,
+      "SERVICE_UNAVAILABLE",
+    ))
     .mockResolvedValueOnce(undefined);
   api.getBodyProgressTimeline.mockResolvedValue(timelineResponse([{
       id: "incomplete-1",
@@ -247,7 +253,9 @@ it("keeps the dialog open after a deletion failure and allows retry", async () =
   await user.click(await screen.findByRole("button", { name: "Delete upload" }));
   await user.click(screen.getByRole("button", { name: "Delete permanently" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Session could not be deleted");
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "The service is temporarily unavailable. Try again later.",
+  );
   expect(screen.getByRole("dialog")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Delete permanently" }));
 

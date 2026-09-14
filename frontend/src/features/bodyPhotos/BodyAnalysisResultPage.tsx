@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
-import { formatTehranDateTimeForLocale } from "@fitician/core";
+import { ApiError, formatTehranDateTimeForLocale } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   getBodyPhotoComparison,
   getBodyPhotoAnalysis,
@@ -23,38 +24,49 @@ export function BodyAnalysisResultPage() {
   const [session, setSession] = useState<BodyPhotoSession | null>(null);
   const [analysis, setAnalysis] = useState<BodyAnalysis | null>(null);
   const [comparison, setComparison] = useState<Awaited<ReturnType<typeof getBodyPhotoComparison>>>(null);
+  const [comparisonError, setComparisonError] = useState<unknown | null>(null);
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
-  const [analysisActionFailed, setAnalysisActionFailed] = useState(false);
+  const [analysisActionError, setAnalysisActionError] = useState<unknown | null>(null);
+  const [pollError, setPollError] = useState<unknown | null>(null);
 
   const load = useCallback(async () => {
     if (sessionId === undefined) {
-      setFailed(true);
+      setLoadError(new Error("Body analysis session id is missing"));
       setLoading(false);
       return;
     }
+    setLoadError(null);
+    setComparisonError(null);
+    setAnalysisActionError(null);
+    setPollError(null);
     try {
-      const [loadedSession, loadedAnalysis, loadedComparison] = await Promise.all([
+      const [loadedSession, loadedAnalysis, loadedComparisonResult] = await Promise.all([
         getBodyPhotoSession(sessionId),
         getBodyPhotoAnalysis(sessionId),
-        getBodyPhotoComparison(sessionId).catch(() => null),
+        getBodyPhotoComparison(sessionId)
+          .then((value) => ({ value, error: null as unknown | null }))
+          .catch((error: unknown) => ({
+            value: null,
+            error: isMissingComparison(error) ? null : error,
+          })),
       ]);
       setSession(loadedSession);
       let effectiveAnalysis = loadedAnalysis;
       if (effectiveAnalysis === null && loadedSession.state === "queued") {
         try {
           effectiveAnalysis = await startBodyPhotoAnalysis(sessionId);
-          setAnalysisActionFailed(false);
-        } catch {
-          setAnalysisActionFailed(true);
+          setAnalysisActionError(null);
+        } catch (cause: unknown) {
+          setAnalysisActionError(cause);
         }
       }
       setAnalysis(effectiveAnalysis);
-      setComparison(loadedComparison);
-      setFailed(false);
-    } catch {
-      setFailed(true);
+      setComparison(loadedComparisonResult.value);
+      setComparisonError(loadedComparisonResult.error);
+    } catch (cause: unknown) {
+      setLoadError(cause);
     } finally {
       setLoading(false);
     }
@@ -71,16 +83,19 @@ export function BodyAnalysisResultPage() {
     const timer = window.setTimeout(() => {
       void getBodyPhotoAnalysis(sessionId)
         .then((next) => {
+          setPollError(null);
           if (next !== null) {
             setAnalysis(next);
             if (next.normalized_result !== null) {
               void getBodyPhotoComparison(sessionId)
                 .then(setComparison)
-                .catch(() => undefined);
+                .catch((cause: unknown) => {
+                  if (!isMissingComparison(cause)) setComparisonError(cause);
+                });
             }
           }
         })
-        .catch(() => undefined);
+        .catch((cause: unknown) => setPollError(cause));
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [analysis, sessionId]);
@@ -93,14 +108,19 @@ export function BodyAnalysisResultPage() {
         ? await retryBodyPhotoAnalysis(sessionId)
         : await startBodyPhotoAnalysis(sessionId);
       setAnalysis(next);
+      setAnalysisActionError(null);
       if (next.normalized_result !== null) {
         void getBodyPhotoComparison(sessionId)
-          .then(setComparison)
-          .catch(() => undefined);
+          .then((value) => {
+            setComparison(value);
+            setComparisonError(null);
+          })
+          .catch((cause: unknown) => {
+            if (!isMissingComparison(cause)) setComparisonError(cause);
+          });
       }
-      setAnalysisActionFailed(false);
-    } catch {
-      setAnalysisActionFailed(true);
+    } catch (cause: unknown) {
+      setAnalysisActionError(cause);
     } finally {
       setActionBusy(false);
     }
@@ -109,10 +129,15 @@ export function BodyAnalysisResultPage() {
   if (loading) {
     return <main className="body-analysis-page fitician-page"><p role="status">{t("bodyPhotos.results.loading")}</p></main>;
   }
-  if (failed || session === null) {
+  if (loadError !== null || session === null) {
     return (
       <main className="body-analysis-page fitician-page">
-        <p className="form-error" role="alert">{t("bodyPhotos.results.loadError")}</p>
+        <AppErrorNotice
+          audience="member"
+          context="body_analysis"
+          error={loadError ?? new Error("Body analysis session is unavailable")}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+        />
         <button className="secondary-button" type="button" onClick={() => {
           setLoading(true);
           void load();
@@ -137,14 +162,37 @@ export function BodyAnalysisResultPage() {
         <p>{t("bodyPhotos.results.sessionDate", { date: sessionDate })}</p>
       </header>
 
-      {analysis === null && !analysisActionFailed && (
+      {pollError !== null && (
+        <AppErrorNotice
+          audience="member"
+          context="body_analysis"
+          error={pollError}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+        />
+      )}
+      {comparisonError !== null && (
+        <AppErrorNotice
+          audience="member"
+          context="body_analysis"
+          error={comparisonError}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+        />
+      )}
+
+      {analysis === null && analysisActionError === null && (
         <p role="status">{t("bodyPhotos.results.notStarted")}</p>
       )}
-      {analysisActionFailed && analysis?.status !== "failed" && (
-        <section className="body-analysis-status body-analysis-status--failed" role="alert">
+      {analysisActionError !== null && analysis?.status !== "failed" && (
+        <section className="body-analysis-status body-analysis-status--failed">
           <div>
             <strong>{t("bodyPhotos.results.analysisStatus.failed")}</strong>
             <p>{t("bodyPhotos.results.failedSafe")}</p>
+            <AppErrorNotice
+              audience="member"
+              context="body_analysis"
+              error={analysisActionError}
+              locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+            />
           </div>
           <button className="secondary-button" type="button" disabled={actionBusy} onClick={() => void retry()}>
             {t("bodyPhotos.results.retry")}
@@ -203,4 +251,8 @@ export function BodyAnalysisResultPage() {
       )}
     </main>
   );
+}
+
+function isMissingComparison(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
 }

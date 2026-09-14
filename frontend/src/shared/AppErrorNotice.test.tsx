@@ -79,4 +79,18 @@ describe("AppErrorNotice", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("localizes the retry action", () => {
+    render(
+      <AppErrorNotice
+        audience="member"
+        context="generic"
+        error={new ApiError(503, "private detail", null, "SERVICE_UNAVAILABLE")}
+        locale="en"
+        onRetry={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button")).toHaveTextContent("Try again");
+  });
 });

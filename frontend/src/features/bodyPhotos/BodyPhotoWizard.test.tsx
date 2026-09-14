@@ -237,7 +237,7 @@ it("explains how to recover when the phone origin is not trusted", async () => {
   const user = userEvent.setup();
   const processor: BodyPhotoProcessor = { process: vi.fn().mockResolvedValue(processed("front")) };
   api.createBodyPhotoSession.mockRejectedValueOnce(
-    new ApiError(403, "Untrusted request origin"),
+    new ApiError(403, "Untrusted request origin", null, "TRUSTED_ORIGIN_REQUIRED"),
   );
   renderWizard(processor);
 
@@ -246,7 +246,7 @@ it("explains how to recover when the phone origin is not trusted", async () => {
   await user.click(screen.getByRole("button", { name: /confirm and upload front/i }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    /current phone address is not trusted by fitician/i,
+    /request did not come from a trusted origin/i,
   );
 });
 
@@ -441,7 +441,12 @@ it("starts analysis immediately after a successful submission", async () => {
 it("explains that photos were submitted when body analysis cannot start", async () => {
   const user = userEvent.setup();
   const processor: BodyPhotoProcessor = { process: vi.fn().mockImplementation((_, view) => processed(view)) };
-  api.startBodyPhotoAnalysis.mockRejectedValue(new ApiError(503, "Body photo analysis is temporarily unavailable"));
+  api.startBodyPhotoAnalysis.mockRejectedValue(new ApiError(
+    503,
+    "Body photo analysis is temporarily unavailable",
+    null,
+    "BODY_ANALYSIS_PROVIDER_UNAVAILABLE",
+  ));
   renderWizard(processor);
 
   for (const view of ["front", "side", "back"] as const) {
@@ -454,8 +459,12 @@ it("explains that photos were submitted when body analysis cannot start", async 
 
   await user.click(await screen.findByRole("button", { name: /submit photos/i }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent(
+  expect(await screen.findByText(/photos were submitted successfully, but body analysis has not started/i)).toBeInTheDocument();
+  expect(screen.getAllByRole("alert")[0]).toHaveTextContent(
     /photos were submitted successfully, but body analysis has not started/i,
+  );
+  expect(screen.getAllByRole("alert")[1]).toHaveTextContent(
+    /body analysis is temporarily unavailable/i,
   );
   expect(api.submitBodyPhotoSession).toHaveBeenCalledWith("session-1", true, false);
 });

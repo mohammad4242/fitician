@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { formatTehranDateForLocale } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { getBodyProgressTimeline } from "./api";
 import type { BodyProgressTimelineItem } from "./types";
 
@@ -25,22 +26,29 @@ export function BodyAnalysisProgressStrip({
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<BodyProgressTimelineItem[]>(initialItems ?? []);
   const [loaded, setLoaded] = useState(initialItems !== undefined);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     if (initialItems !== undefined) {
       setItems(initialItems);
       setLoaded(true);
+      setLoadError(null);
       return;
     }
+    setLoaded(false);
+    setLoadError(null);
     void getBodyProgressTimeline()
       .then((res) => {
         setItems(res.items);
         setLoaded(true);
+        setLoadError(null);
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         setLoaded(true);
+        setLoadError(cause);
       });
-  }, [initialItems]);
+  }, [initialItems, loadAttempt]);
 
   const locale = i18n.resolvedLanguage === "en" ? "en-US" : "fa-IR";
 
@@ -137,6 +145,16 @@ export function BodyAnalysisProgressStrip({
           </div>
         )}
       </header>
+
+      {loadError !== null && (
+        <AppErrorNotice
+          audience="member"
+          context="body_analysis"
+          error={loadError}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
+      )}
 
       {/* When only 1 scan exists */}
       {loaded && scanPoints.length <= 1 ? (
