@@ -32,6 +32,14 @@ const statusCode: Readonly<Record<number, string>> = {
   503: "SERVICE_UNAVAILABLE",
 };
 
+const contextualStatusCode: Readonly<Partial<Record<string, Readonly<Record<number, string>>>>> = {
+  auth: {
+    401: "AUTH_INVALID_CREDENTIALS",
+    409: "AUTH_EMAIL_ALREADY_REGISTERED",
+    429: "AUTH_RATE_LIMITED",
+  },
+};
+
 const genericCopy: Readonly<Record<string, ErrorCatalogEntry>> = {
   BAD_REQUEST: ERROR_CATALOG.BAD_REQUEST,
   UNAUTHORIZED: ERROR_CATALOG.UNAUTHORIZED,
@@ -100,17 +108,15 @@ function localizedFieldMessage(
 
 function fieldErrors(
   details: readonly ApiValidationDetail[] | null,
-  audience: ErrorAudience,
   locale: ErrorLocale,
 ): readonly ResolvedFieldError[] {
   return (details ?? []).map((detail) => {
     const field = fieldName(detail);
     const code = safeCode(detail.code ?? detail.type) ?? "invalid";
-    const rawMessage = detail.message ?? detail.msg;
     return {
       field,
       code,
-      message: audience === "admin" && rawMessage ? rawMessage : localizedFieldMessage(detail, field, locale),
+      message: localizedFieldMessage(detail, field, locale),
     };
   });
 }
@@ -185,10 +191,13 @@ function resolveApiError(
   options: ResolveAppErrorOptions,
   audience: ErrorAudience,
 ): ResolvedAppError {
-  const code = safeCode(error.code) ?? statusCode[error.status] ?? "HTTP_ERROR";
+  const code = safeCode(error.code)
+    ?? contextualStatusCode[options.context]?.[error.status]
+    ?? statusCode[error.status]
+    ?? "HTTP_ERROR";
   const entry = fallbackEntry(code, error.status);
   const copy = copyFor(entry, audience, options.locale);
-  const resolvedFields = fieldErrors(error.validationDetails, audience, options.locale);
+  const resolvedFields = fieldErrors(error.validationDetails, options.locale);
   const message = resolvedFields.length > 0 && code === "VALIDATION_ERROR"
     ? resolvedFields.map((item) => item.message).join(options.locale === "fa" ? " " : " ")
     : copy.message;

@@ -88,6 +88,32 @@ describe("resolveAppError", () => {
     expect(result.message).toContain("وزن");
   });
 
+  it("keeps authentication status fallbacks code-specific", () => {
+    expect(resolveAppError(
+      new ApiError(401, "raw auth detail"),
+      { audience: "member", context: "auth", locale: "fa" },
+    )).toMatchObject({ code: "AUTH_INVALID_CREDENTIALS", message: "ایمیل یا رمز عبور درست نیست." });
+    expect(resolveAppError(
+      new ApiError(409, "raw duplicate detail"),
+      { audience: "member", context: "auth", locale: "fa" },
+    )).toMatchObject({ code: "AUTH_EMAIL_ALREADY_REGISTERED", message: "این ایمیل قبلاً ثبت شده است." });
+  });
+
+  it("redacts raw validation messages for admins too", () => {
+    const result = resolveAppError(
+      new ApiError(
+        422,
+        "validation failed",
+        [{ field: "email", code: "invalid", message: "private note token=secret" }],
+        "VALIDATION_ERROR",
+      ),
+      { audience: "admin", context: "profile", locale: "fa" },
+    );
+
+    expect(result.fieldErrors[0]?.message).toBe("ایمیل معتبر نیست.");
+    expect(result.fieldErrors[0]?.message).not.toContain("secret");
+  });
+
   it.each([
     [400, "درخواست معتبر نیست"],
     [401, "نشست"],
