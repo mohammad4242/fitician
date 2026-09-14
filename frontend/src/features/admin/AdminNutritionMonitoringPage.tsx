@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { formatTehranDateTimeForLocale } from "@fitician/core";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import * as api from "../nutrition/api";
 import "../nutrition/nutritionEstimate.css";
 
@@ -11,25 +12,32 @@ export function AdminNutritionMonitoringPage() {
   const fa = i18n.resolvedLanguage !== "en";
   const l = (persian: string, english: string) => fa ? persian : english;
   const [data, setData] = useState<api.NutritionMonitoring | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<unknown>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
-  useEffect(() => { void api.getNutritionMonitoring().then(setData).catch(() => setFailed(true)); }, []);
+  const [refreshError, setRefreshError] = useState<unknown>(null);
+  useEffect(() => {
+    void api.getNutritionMonitoring()
+      .then((monitoring) => { setData(monitoring); setFailed(null); })
+      .catch((cause) => setFailed(cause));
+  }, []);
   async function refreshPrices() {
     setRefreshing(true);
     setRefreshMessage("");
+    setRefreshError(null);
     try {
       await api.triggerNutritionPriceRefresh();
       setRefreshMessage(l("اجرای دستی ثبت شد.", "Manual refresh was recorded."));
-    } catch {
-      setRefreshMessage(l("اجرای دستی ناموفق بود.", "Manual refresh failed."));
+    } catch (cause) {
+      setRefreshError(cause);
     } finally {
       setRefreshing(false);
     }
   }
   return <main className="nutrition-estimate-page" dir={fa ? "rtl" : "ltr"}>
     <section className="nutrition-estimate-hero"><Link to="/dashboard">{l("بازگشت", "Back")}</Link><h1>{l("پایش تغذیه", "Nutrition monitoring")}</h1><p>{l("تمرکز این صفحه روی استثناها، سلامت کاتالوگ و اجرای قیمت‌گذاری است.", "This workspace focuses on exceptions, catalogue health, and pricing runs.")}</p><button type="button" disabled={refreshing} onClick={() => void refreshPrices()}>{refreshing ? l("در حال اجرا…", "Running…") : l("به‌روزرسانی دستی قیمت‌ها", "Refresh prices manually")}</button>{refreshMessage && <p role="status">{refreshMessage}</p>}</section>
-    {failed && <p className="nutrition-estimate-state" role="alert">{l("داده‌های پایش دریافت نشد.", "Monitoring data could not be loaded.")}</p>}
+    <AppErrorNotice audience="admin" context="nutrition" error={failed} onRetry={() => { setData(null); void api.getNutritionMonitoring().then((monitoring) => { setData(monitoring); setFailed(null); }).catch((cause) => setFailed(cause)); }} />
+    <AppErrorNotice audience="admin" context="nutrition" error={refreshError} onRetry={() => void refreshPrices()} />
     {data === null && !failed ? <p className="nutrition-estimate-state" role="status">{l("در حال دریافت…", "Loading…")}</p> : data && <>
       <section className="nutrition-target-grid" aria-label={l("شاخص‌ها", "Metrics")}>
         {Object.entries(data.counts).map(([key, value]) => <article className="nutrition-target-card" key={key}><span>{metricLabel(key, fa)}</span><strong>{new Intl.NumberFormat(fa ? "fa-IR" : "en-US").format(value)}</strong></article>)}

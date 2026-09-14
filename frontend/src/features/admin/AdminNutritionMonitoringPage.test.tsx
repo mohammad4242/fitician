@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+
+import { ApiError } from "@fitician/core";
 import i18n from "../../i18n";
 
 const nutritionApi = vi.hoisted(() => ({
@@ -153,4 +155,26 @@ it("renders recent nutrition runs in Tehran time", async () => {
   );
 
   expect(await screen.findByText("Sep 14, 2026, 12:15 AM")).toBeInTheDocument();
+});
+
+it("shows shared admin diagnostics for a failed monitoring request", async () => {
+  nutritionApi.getNutritionMonitoring.mockRejectedValueOnce(new ApiError(
+    503,
+    "provider secret",
+    null,
+    "BODY_ANALYSIS_PROVIDER_UNAVAILABLE",
+    { requestId: "monitoring-request-1", retryable: true },
+  ));
+
+  render(
+    <MemoryRouter>
+      <AdminNutritionMonitoringPage />
+    </MemoryRouter>,
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("BODY_ANALYSIS_PROVIDER_UNAVAILABLE");
+  expect(alert).toHaveTextContent("503");
+  expect(alert).toHaveTextContent("monitoring-request-1");
+  expect(alert).not.toHaveTextContent("provider secret");
 });

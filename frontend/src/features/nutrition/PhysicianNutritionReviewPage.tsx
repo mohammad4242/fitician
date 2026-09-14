@@ -9,6 +9,7 @@ import {
   groupReviewQueueByRecency,
 } from "@fitician/core";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
 import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
 import { ReviewQueueGroupHeader } from "../../shared/ReviewQueueGroupHeader";
@@ -43,7 +44,7 @@ export function PhysicianNutritionReviewPage() {
   const [activeView, setActiveView] = useState<QueueView>("pending");
   const [clinicalTab, setClinicalTab] = useState<ClinicalTab>("plan");
   const [readOnly, setReadOnly] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
   const [supplementCatalogue, setSupplementCatalogue] = useState<Awaited<ReturnType<typeof api.listSupplementCatalogue>>>([]);
   const [foodCatalogue, setFoodCatalogue] = useState<api.CatalogueFood[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<WeeklyPlan | null>(null);
@@ -65,8 +66,8 @@ export function PhysicianNutritionReviewPage() {
   );
 
   const load = (view: QueueView = activeView) => api.listPhysicianReviews(view)
-    .then((items) => { setReviews(items); setQueues((current) => ({ ...current, [view]: items })); setError(false); })
-    .catch(() => setError(true))
+    .then((items) => { setReviews(items); setQueues((current) => ({ ...current, [view]: items })); setError(null); })
+    .catch((cause) => setError(cause))
     .finally(() => setLoading(false));
 
   useEffect(() => {
@@ -76,9 +77,9 @@ export function PhysicianNutritionReviewPage() {
       .then(([pending, claimed, approved]) => {
         setQueues({ pending, claimed, approved });
         setReviews(pending);
-        setError(false);
+        setError(null);
       })
-      .catch(() => setError(true))
+      .catch((cause) => setError(cause))
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
@@ -87,11 +88,11 @@ export function PhysicianNutritionReviewPage() {
         setSupplementCatalogue(supplements);
         setFoodCatalogue(foods);
       })
-      .catch(() => setError(true));
+      .catch((cause) => setError(cause));
   }, []);
 
   async function claimAndOpen(review: Review) {
-    setError(false);
+    setError(null);
     setSelectedReview(review);
     setSelectedPlan(null);
     setLabs([]);
@@ -114,7 +115,7 @@ export function PhysicianNutritionReviewPage() {
       setLabs(documents);
       setOrders(planOrders);
       await load(activeView);
-    } catch { setError(true); }
+    } catch (cause) { setError(cause); }
   }
 
   async function act(action: "approve" | "request_changes" | "reject") {
@@ -127,7 +128,7 @@ export function PhysicianNutritionReviewPage() {
         internalNotes.trim() || null,
       ));
       await load(activeView);
-    } catch { setError(true); }
+    } catch (cause) { setError(cause); }
   }
 
   function orderPayload(): PhysicianSupplementOrderInput | null {
@@ -157,7 +158,7 @@ export function PhysicianNutritionReviewPage() {
       setOrders(await api.listPhysicianSupplementOrders(selectedPlan.id));
       setEditingOrderId(null);
       setOrderForm(emptyOrder);
-    } catch { setError(true); }
+    } catch (cause) { setError(cause); }
   }
 
   function editOrder(order: SupplementOrder) {
@@ -179,7 +180,7 @@ export function PhysicianNutritionReviewPage() {
     try {
       await api.transitionPhysicianSupplementOrder(orderId, status);
       setOrders(await api.listPhysicianSupplementOrders(selectedPlan.id));
-    } catch { setError(true); }
+    } catch (cause) { setError(cause); }
   }
 
   const tabTitle = (tab: ClinicalTab) => tab === "plan" ? l("بررسی برنامه", "Plan review") : tab === "labs" ? l("آزمایش‌ها", "Laboratory review") : tab === "supplements" ? l("مکمل‌ها", "Supplements") : l("یادداشت‌ها", "Notes");
@@ -191,7 +192,7 @@ export function PhysicianNutritionReviewPage() {
         <div><p>{l("میز کار پزشک", "Physician desk")}</p><h1 className="fitician-display">{l("صف بررسی برنامه‌های تغذیه", "Nutrition plan reviews")}</h1><span>{l("آزمایش‌ها، مکمل‌ها و نسخه را در یک پرونده بررسی کن.", "Review the plan, lab documents, and supplements in one case.")}</span></div>
         <aside className="physician-review-summary"><strong>{queues.pending.length}</strong><small>{l("پرونده در انتظار", "pending cases")}</small></aside>
       </header>
-      {error && <p className="physician-review-error" role="alert">{l("عملیات پزشک انجام نشد.", "The physician operation failed.")}</p>}
+      <AppErrorNotice audience="physician" context="specialist_review" error={error} />
       <div className={`physician-review-workspace${selectedPlan ? " has-selected" : ""}`}>
         <aside className="physician-review-queue">
           <div className="physician-queue-tabs" role="tablist" aria-label={l("صف‌های پزشک", "Physician queues")}>
@@ -216,7 +217,7 @@ export function PhysicianNutritionReviewPage() {
               <ReviewDisclosure section="physician-nutrients" title={l("وضعیت مواد مغذی", "Nutrient validation")} summary={l(`${Object.keys(selectedPlan.nutrients).length} شاخص ثبت‌شده`, `${Object.keys(selectedPlan.nutrients).length} recorded metrics`)}>
                 <div className="physician-nutrient-list">{Object.values(selectedPlan.nutrients).map((nutrient) => <p key={nutrient.nutrient_code}>{nutrient.nutrient_code}: {nutrient.planned} {nutrient.unit} · {nutrient.status}</p>)}</div>
               </ReviewDisclosure>
-              <div className="physician-plan-days">{selectedPlan.days.map((day) => <ReviewDisclosure className="physician-plan-day" key={day.plan_date} section="physician-plan-day" title={fa ? `روز ${day.day_index + 1} · ${formatPersianDate(day.plan_date)}` : `Day ${day.day_index + 1} · ${formatIsoDate(day.plan_date, "en-US")}`} summary={fa ? `${day.meals.length} وعده` : `${day.meals.length} meals`}><div className="physician-plan-meals">{day.meals.map((meal, mealIndex) => <ReviewDisclosure className="physician-plan-meal" key={meal.id} section="physician-plan-meal" title={fa ? (meal.name_fa ?? `وعده ${mealIndex + 1}`) : (meal.name_en ?? `Meal ${mealIndex + 1}`)} summary={fa ? `${meal.foods.length} ماده غذایی` : `${meal.foods.length} food items`}><div className="physician-plan-foods">{meal.foods.map((food) => food.food_id === null ? <p key={food.slug}><span>{fa ? food.name_fa : food.name_en}</span><strong>{food.grams} g</strong></p> : <p key={food.food_id}><span>{fa ? food.name_fa : food.name_en}</span><input disabled={readOnly} aria-label={l(`مقدار ${food.name_fa}`, `${food.name_en} quantity`)} type="number" min="1" max="5000" defaultValue={food.grams} onBlur={(event) => { const grams = Number(event.target.value); if (!readOnly && grams !== food.grams) void api.adjustPhysicianFoodQuantity(selectedPlan.id, meal.id, food.food_id!, grams).then(setSelectedPlan).catch(() => setError(true)); }} /><select disabled={readOnly} aria-label={l(`جایگزین ${food.name_fa}`, `Replace ${food.name_en}`)} value={food.food_id} onChange={(event) => { if (!readOnly && event.target.value !== food.food_id) void api.replacePhysicianFood(selectedPlan.id, meal.id, food.food_id!, event.target.value).then(setSelectedPlan).catch(() => setError(true)); }}><option value={food.food_id}>{fa ? food.name_fa : food.name_en}</option>{foodCatalogue.filter((candidate) => candidate.id !== food.food_id).map((candidate) => <option key={candidate.id} value={candidate.id}>{fa ? candidate.name_fa : candidate.name_en}</option>)}</select></p>)}</div></ReviewDisclosure>)}</div></ReviewDisclosure>)}</div>
+              <div className="physician-plan-days">{selectedPlan.days.map((day) => <ReviewDisclosure className="physician-plan-day" key={day.plan_date} section="physician-plan-day" title={fa ? `روز ${day.day_index + 1} · ${formatPersianDate(day.plan_date)}` : `Day ${day.day_index + 1} · ${formatIsoDate(day.plan_date, "en-US")}`} summary={fa ? `${day.meals.length} وعده` : `${day.meals.length} meals`}><div className="physician-plan-meals">{day.meals.map((meal, mealIndex) => <ReviewDisclosure className="physician-plan-meal" key={meal.id} section="physician-plan-meal" title={fa ? (meal.name_fa ?? `وعده ${mealIndex + 1}`) : (meal.name_en ?? `Meal ${mealIndex + 1}`)} summary={fa ? `${meal.foods.length} ماده غذایی` : `${meal.foods.length} food items`}><div className="physician-plan-foods">{meal.foods.map((food) => food.food_id === null ? <p key={food.slug}><span>{fa ? food.name_fa : food.name_en}</span><strong>{food.grams} g</strong></p> : <p key={food.food_id}><span>{fa ? food.name_fa : food.name_en}</span><input disabled={readOnly} aria-label={l(`مقدار ${food.name_fa}`, `${food.name_en} quantity`)} type="number" min="1" max="5000" defaultValue={food.grams} onBlur={(event) => { const grams = Number(event.target.value); if (!readOnly && grams !== food.grams) void api.adjustPhysicianFoodQuantity(selectedPlan.id, meal.id, food.food_id!, grams).then(setSelectedPlan).catch((cause) => setError(cause)); }} /><select disabled={readOnly} aria-label={l(`جایگزین ${food.name_fa}`, `Replace ${food.name_en}`)} value={food.food_id} onChange={(event) => { if (!readOnly && event.target.value !== food.food_id) void api.replacePhysicianFood(selectedPlan.id, meal.id, food.food_id!, event.target.value).then(setSelectedPlan).catch((cause) => setError(cause)); }}><option value={food.food_id}>{fa ? food.name_fa : food.name_en}</option>{foodCatalogue.filter((candidate) => candidate.id !== food.food_id).map((candidate) => <option key={candidate.id} value={candidate.id}>{fa ? candidate.name_fa : candidate.name_en}</option>)}</select></p>)}</div></ReviewDisclosure>)}</div></ReviewDisclosure>)}</div>
               {!readOnly && <div className="weekly-plan__meal-actions"><button onClick={() => void act("approve")}>{l("تأیید این نسخه", "Approve this revision")}</button><button disabled={!notes.trim()} onClick={() => void act("request_changes")}>{l("درخواست تغییر", "Request changes")}</button><button disabled={!notes.trim()} onClick={() => void act("reject")}>{l("رد", "Reject")}</button></div>}
             </section>}
             {clinicalTab === "notes" && <section className="physician-review-section physician-review-notes"><label>{l("یادداشت قابل مشاهده برای کاربر", "User-visible note")}<textarea disabled={readOnly} value={notes} onChange={(event) => setNotes(event.target.value)} /></label><label>{l("یادداشت محرمانه پزشک", "Private physician note")}<textarea disabled={readOnly} value={internalNotes} onChange={(event) => setInternalNotes(event.target.value)} /></label></section>}

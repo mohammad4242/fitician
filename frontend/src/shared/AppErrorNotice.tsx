@@ -28,6 +28,7 @@ export function AppErrorNotice({
   networkState,
   onRetry,
 }: AppErrorNoticeProps) {
+  if (error === null || error === undefined) return null;
   const resolved = resolveWebAppError(error, { audience, context, locale, networkState });
   if (resolved.severity === "silent") return null;
 

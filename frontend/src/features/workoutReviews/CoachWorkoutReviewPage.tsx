@@ -9,6 +9,7 @@ import {
   groupWorkoutReviewQueue,
 } from "@fitician/core";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
 import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
@@ -47,6 +48,7 @@ export function CoachWorkoutReviewPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<unknown>(null);
   const readOnly = selected?.status === "approved" || selected?.status === "rejected";
   const groupedQueue = useMemo(
     () => groupWorkoutReviewQueue(queue, new Date().toISOString(), view === "approved" ? "approved_at" : "created_at"),
@@ -55,11 +57,11 @@ export function CoachWorkoutReviewPage() {
 
   const loadQueue = useCallback(async (nextView: WorkoutReviewQueueView) => {
     setLoading(true);
-    setError(null);
+    setApiError(null);
     try {
       setQueue(await listWorkoutReviews(nextView));
-    } catch {
-      setError(l("صف بازبینی دریافت نشد. دوباره تلاش کن.", "The review queue could not be loaded. Try again."));
+    } catch (cause) {
+      setApiError(cause);
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ export function CoachWorkoutReviewPage() {
     const timer = window.setInterval(() => {
       void renewWorkoutReview(selected.id)
         .then((updated) => setSelected(updated))
-        .catch(() => setError(l("زمان بازبینی منقضی شد؛ پرونده را دوباره باز کن.", "The review lease expired. Reopen the case.")));
+        .catch((cause) => setApiError(cause));
     }, 8 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [l, selected?.id, selected?.status]);
@@ -84,6 +86,7 @@ export function CoachWorkoutReviewPage() {
     setDraft(structuredClone(detail.draft?.days ?? []));
     setCoachNote(detail.coach_note ?? "");
     setError(null);
+    setApiError(null);
   }
 
   function clearSelectedReview() {
@@ -91,11 +94,13 @@ export function CoachWorkoutReviewPage() {
     setDraft([]);
     setCoachNote("");
     setError(null);
+    setApiError(null);
   }
 
   async function openReview(item: WorkoutReviewQueueItem) {
     setBusy(true);
     setError(null);
+    setApiError(null);
     try {
       const nextView = item.status === "pending" ? "mine" : view;
       openDetail(
@@ -105,9 +110,9 @@ export function CoachWorkoutReviewPage() {
       );
       if (nextView !== view) setView(nextView);
       await loadQueue(nextView);
-    } catch {
-      setError(l("این پرونده در اختیار مربی دیگری است یا دیگر قابل بررسی نیست.", "Another coach owns this case, or it is no longer reviewable."));
+    } catch (cause) {
       await loadQueue(view);
+      setApiError(cause);
     } finally {
       setBusy(false);
     }
@@ -159,14 +164,15 @@ export function CoachWorkoutReviewPage() {
     if (!selected) return;
     setBusy(true);
     setError(null);
+    setApiError(null);
     try {
       openDetail(await saveWorkoutReviewDraft(selected.id, {
         expected_revision: selected.draft_revision,
         coach_note: coachNote.trim() || null,
         days: draft,
       }));
-    } catch {
-      setError(l("پیش‌نویس معتبر نیست یا نسخه جدیدتری ثبت شده است.", "The draft is invalid or a newer revision exists."));
+    } catch (cause) {
+      setApiError(cause);
     } finally {
       setBusy(false);
     }
@@ -176,14 +182,15 @@ export function CoachWorkoutReviewPage() {
     if (!selected) return;
     setBusy(true);
     setError(null);
+    setApiError(null);
     try {
       await approveWorkoutReview(selected.id, selected.draft_revision);
       setSelected(null);
       setDraft([]);
       setView("approved");
       await loadQueue("approved");
-    } catch {
-      setError(l("تأیید انجام نشد؛ خطاهای برنامه یا زمان بازبینی را بررسی کن.", "Approval failed. Check the plan errors or review lease."));
+    } catch (cause) {
+      setApiError(cause);
     } finally {
       setBusy(false);
     }
@@ -198,14 +205,15 @@ export function CoachWorkoutReviewPage() {
     }
     setBusy(true);
     setError(null);
+    setApiError(null);
     try {
       await rejectWorkoutReview(selected.id, selected.draft_revision, explanation);
       setSelected(null);
       setDraft([]);
       setView("mine");
       await loadQueue("mine");
-    } catch {
-      setError(l("برگشت انجام نشد؛ نسخه یا زمان بازبینی تغییر کرده است.", "Return failed. The revision or review lease changed."));
+    } catch (cause) {
+      setApiError(cause);
     } finally {
       setBusy(false);
     }
@@ -236,6 +244,7 @@ export function CoachWorkoutReviewPage() {
           </aside>
         </header>
 
+        <AppErrorNotice audience="coach" context="specialist_review" error={apiError} />
         {error && <p className="coach-review-error" role="alert">{error}</p>}
 
         <div className={`coach-review-workspace${selected ? " has-selected" : ""}`}>

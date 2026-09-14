@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { formatTehranDateTime } from "@fitician/core";
+import { ApiError } from "@fitician/core";
 
 import type { ReviewProfileSummary, WorkoutReviewDetail, WorkoutReviewQueueItem } from "./types";
 
@@ -23,6 +26,8 @@ vi.mock("../../shared/AuthenticatedHeader", () => ({
 }));
 
 import { CoachWorkoutReviewPage } from "./CoachWorkoutReviewPage";
+
+const coachWorkoutReviewStyles = readFileSync("src/features/workoutReviews/coachWorkoutReview.css", "utf8");
 
 const queueItem: WorkoutReviewQueueItem = {
   id: "review-1",
@@ -199,6 +204,15 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+it("keeps final coach actions in normal flow with mobile safe-area spacing", () => {
+  const actionRule = coachWorkoutReviewStyles.match(/\.coach-review-actions\s*\{[^}]*\}/)?.[0] ?? "";
+
+  expect(actionRule).not.toMatch(/position:\s*(?:sticky|fixed)/);
+  expect(actionRule).not.toContain("inset-block-end");
+  expect(actionRule).toContain("padding-bottom: max(");
+  expect(coachWorkoutReviewStyles).not.toMatch(/\.coach-review-actions[^}]*position:\s*(?:sticky|fixed)/);
+});
 
 it("shows the three review queues and claims a pending plan", async () => {
   const user = userEvent.setup();
@@ -425,4 +439,19 @@ it("requires an explanation before returning a plan for correction", async () =>
 
   expect(api.rejectWorkoutReview).toHaveBeenCalledWith("review-1", 1, "فرم را کنترل کن");
   expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("mine");
+});
+
+it("shows shared coach workflow language for a specialist access error", async () => {
+  api.listWorkoutReviews.mockRejectedValueOnce(new ApiError(
+    403,
+    "private relationship note",
+    null,
+    "SPECIALIST_RELATIONSHIP_REQUIRED",
+  ));
+
+  renderPage();
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("این متخصص به پرونده موردنظر دسترسی ندارد");
+  expect(alert).not.toHaveTextContent("private relationship note");
 });
