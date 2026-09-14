@@ -514,6 +514,36 @@ def test_physician_queue_views_move_a_case_from_pending_to_claimed_to_approved(
     )
 
 
+def test_assigned_physician_plan_includes_live_member_profile_summary(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db, "live-summary-member@example.com")
+    _login_physician(client, db, "live-summary-physician@example.com")
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+
+    claimed = client.post(
+        f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+        headers=ORIGIN,
+    )
+    response = client.get(f"/api/v1/nutrition/physician/plans/{plan['id']}")
+
+    assert claimed.status_code == 200
+    assert response.status_code == 200
+    summary = response.json()["profile_summary"]
+    assert summary["height_cm"] == 165
+    assert summary["weight_kg"] == "62.50"
+    assert summary["training_location"] is None
+    assert summary["nutrition"]["cooking_equipment"] == []
+    assert summary["medical"]["safety_outcome"] == "standard_automatic"
+    assert summary["medical"]["conditions"] == []
+    assert summary["medical"]["medications"] == []
+
+
 def test_physician_queue_orders_each_view_by_requested_at(
     client: TestClient,
     db: Session,

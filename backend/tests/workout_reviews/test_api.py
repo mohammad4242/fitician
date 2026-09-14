@@ -197,6 +197,35 @@ def test_coach_lists_and_claims_pending_review(client: TestClient, db: Session) 
     assert claimed.json()["draft_revision"] == 1
 
 
+def test_coach_case_detail_includes_live_member_profile_summary(
+    client: TestClient,
+    db: Session,
+) -> None:
+    member_id = _register(client, f"summary-live-member-{uuid4()}@example.com")
+    assert client.post("/api/v1/profile", headers=ORIGIN, json=PROFILE).status_code == 201
+    review = ensure_pending_review(db, _plan(db, member_id))
+    db.commit()
+
+    coach_id = _switch_user(client, f"summary-live-coach-{uuid4()}@example.com")
+    db.add(UserSpecialistRole(user_id=coach_id, role=SpecialistRole.COACH))
+    db.commit()
+
+    response = client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/claim",
+        headers=ORIGIN,
+    )
+
+    assert response.status_code == 200
+    summary = response.json()["profile_summary"]
+    assert summary["user_id"] == str(member_id)
+    assert summary["height_cm"] == 178
+    assert summary["weight_kg"] == "76.50"
+    assert summary["fitness_goal"] == "build_muscle"
+    assert summary["training_location"] == "gym"
+    assert summary["nutrition"] is None
+    assert summary["medical"] is None
+
+
 def test_coach_queue_orders_newest_reviews_first(client: TestClient, db: Session) -> None:
     older_member_id = _register(client, f"queue-older-{uuid4()}@example.com")
     older_review = ensure_pending_review(db, _plan(db, older_member_id))
