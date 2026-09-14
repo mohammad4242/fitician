@@ -5,7 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import { ApiError } from "../../shared/apiClient";
-import { formatPersianDate, formatPersianDateWithWeekday } from "@fitician/core";
+import {
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTimeForLocale,
+} from "@fitician/core";
 import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { WorkoutPlan } from "./types";
 
@@ -731,6 +735,109 @@ it("renders English coach timestamps in Tehran time", async () => {
   expect(await screen.findByText("Sep 14, 2026, 12:15 AM")).toBeInTheDocument();
 });
 
+it("shows archived plans as collapsed rows and loads only their overview on expand", async () => {
+  const archivedVersion = {
+    ...pendingVersion,
+    status: "superseded" as const,
+    coach_review: { ...pendingVersion.coach_review, state: "initial_generated" as const },
+  };
+  const archivedPlan: WorkoutPlan = {
+    ...plan,
+    id: archivedVersion.id,
+    status: "superseded",
+    generation_source: "ai",
+    plan_duration_weeks: 6,
+    days: [
+      { ...plan.days[0]!, id: "archived-day-1", title_fa: "روز قدرت", title_en: "Strength day" },
+      {
+        ...plan.days[0]!,
+        id: "archived-day-2",
+        day_number: 2,
+        title_fa: "روز پایین‌تنه",
+        title_en: "Lower body day",
+        exercises: plan.days[0]!.exercises.map((item) => ({
+          ...item,
+          exercise: { ...item.exercise, name_fa: "حرکت مخفی آرشیو" },
+        })),
+      },
+    ],
+  };
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getWorkoutPlanHistory.mockResolvedValue([
+    {
+      id: plan.id,
+      status: "active",
+      created_at: plan.created_at,
+      activated_at: plan.activated_at,
+      is_active: true,
+      coach_review: { state: "none", coach_display_name: null, coach_note: null, approved_at: null },
+    },
+    archivedVersion,
+  ]);
+  api.getWorkoutPlan.mockResolvedValue(archivedPlan);
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  const archiveToggle = await screen.findByRole("button", { name: /برنامه شماره ۱/ });
+  expect(archiveToggle).toHaveAttribute("aria-expanded", "false");
+  expect(archiveToggle).toHaveTextContent(formatTehranDateTimeForLocale(archivedPlan.created_at, "fa-IR"));
+  expect(screen.queryByText("روز قدرت")).not.toBeInTheDocument();
+  expect(api.getWorkoutPlan).not.toHaveBeenCalled();
+
+  await user.click(archiveToggle);
+
+  expect(archiveToggle).toHaveAttribute("aria-expanded", "true");
+  expect(api.getWorkoutPlan).toHaveBeenCalledWith(archivedPlan.id);
+  expect(await screen.findByText("هوش مصنوعی")).toBeInTheDocument();
+  expect(screen.getByText("۶ هفته")).toBeInTheDocument();
+  expect(screen.getByText("۲ روز تمرین")).toBeInTheDocument();
+  expect(screen.getByText("روز قدرت")).toBeInTheDocument();
+  expect(screen.getByText("روز پایین‌تنه")).toBeInTheDocument();
+  expect(screen.queryByText("حرکت مخفی آرشیو")).not.toBeInTheDocument();
+
+  await user.click(archiveToggle);
+  await user.click(archiveToggle);
+  expect(api.getWorkoutPlan).toHaveBeenCalledTimes(1);
+});
+
+it("opens an overview delete dialog and cancels without deleting", async () => {
+  const archivedVersion = {
+    ...pendingVersion,
+    status: "superseded" as const,
+    coach_review: { ...pendingVersion.coach_review, state: "initial_generated" as const },
+  };
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getWorkoutPlanHistory.mockResolvedValue([
+    {
+      id: plan.id,
+      status: "active",
+      created_at: plan.created_at,
+      activated_at: plan.activated_at,
+      is_active: true,
+      coach_review: { state: "none", coach_display_name: null, coach_note: null, approved_at: null },
+    },
+    archivedVersion,
+  ]);
+  api.getWorkoutPlan.mockResolvedValue({ ...plan, id: archivedVersion.id, status: "superseded" });
+  const user = userEvent.setup();
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("button", { name: /برنامه شماره ۱/ }));
+  await user.click(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
+
+  const dialog = screen.getByRole("dialog", { name: "حذف نسخه قدیمی برنامه" });
+  expect(dialog).toHaveTextContent("مربی فیتیشن");
+  expect(dialog).toHaveTextContent("۴ هفته");
+  expect(dialog).not.toHaveTextContent("پرس سینه دمبل");
+  expect(screen.getByRole("button", { name: "حذف دائمی" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "انصراف" }));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(api.deleteWorkoutPlan).not.toHaveBeenCalled();
+});
+
 it("shows deletion only for an archived version, never for the active version", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(plan);
   api.getWorkoutPlanHistory.mockResolvedValue([
@@ -750,9 +857,13 @@ it("shows deletion only for an archived version, never for the active version", 
       coach_review: { state: "initial_generated", coach_display_name: null, coach_note: null, approved_at: null },
     },
   ]);
+  api.getWorkoutPlan.mockResolvedValue({ ...plan, status: "superseded" });
+  const user = userEvent.setup();
 
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
+  expect(screen.queryByRole("button", { name: "حذف نسخه قدیمی برنامه" })).not.toBeInTheDocument();
+  await user.click(await screen.findByRole("button", { name: /برنامه شماره ۱/ }));
   expect(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /نسخه تأیید مربی/ })).not.toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: "حذف نسخه قدیمی برنامه" })).toHaveLength(1);
@@ -771,11 +882,13 @@ it("does not delete an archived version when confirmation is cancelled", async (
     },
     { ...pendingVersion, status: "superseded", coach_review: { ...pendingVersion.coach_review, state: "initial_generated" } },
   ]);
-  vi.spyOn(window, "confirm").mockReturnValue(false);
+  api.getWorkoutPlan.mockResolvedValue({ ...plan, id: pendingVersion.id, status: "superseded" });
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
+  await user.click(await screen.findByRole("button", { name: /برنامه شماره ۱/ }));
   await user.click(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
+  await user.click(screen.getByRole("button", { name: "انصراف" }));
 
   expect(api.deleteWorkoutPlan).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "حذف نسخه قدیمی برنامه" })).toBeInTheDocument();
@@ -797,11 +910,13 @@ it("removes an archived version after successful deletion and refreshes member p
       archivedVersion,
     ])
     .mockResolvedValueOnce([{ id: plan.id, status: "active", created_at: plan.created_at, activated_at: plan.activated_at, is_active: true, coach_review: { state: "none", coach_display_name: null, coach_note: null, approved_at: null } }]);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  api.getWorkoutPlan.mockResolvedValue({ ...plan, id: archivedVersion.id, status: "superseded" });
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
+  await user.click(await screen.findByRole("button", { name: /برنامه شماره ۱/ }));
   await user.click(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
+  await user.click(screen.getByRole("button", { name: "حذف دائمی" }));
 
   await waitFor(() => expect(api.deleteWorkoutPlan).toHaveBeenCalledWith(archivedVersion.id));
   await waitFor(() => expect(screen.queryByRole("button", { name: "حذف نسخه قدیمی برنامه" })).not.toBeInTheDocument());
@@ -819,14 +934,15 @@ it("returns to the active plan when deleting the historical version currently di
     ])
     .mockResolvedValueOnce([{ id: plan.id, status: "active", created_at: plan.created_at, activated_at: plan.activated_at, is_active: true, coach_review: { state: "none", coach_display_name: null, coach_note: null, approved_at: null } }]);
   api.getWorkoutPlan.mockResolvedValue(historicalPlan);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   const historicalVersionButton = await screen.findByRole("button", { name: /نسخه اولیه/ });
   await user.click(historicalVersionButton);
+  await user.click(await screen.findByRole("button", { name: "مشاهده نسخه کامل" }));
   expect(await screen.findByText("در حال مشاهده نسخه قبلی")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
+  await user.click(screen.getByRole("button", { name: "حذف دائمی" }));
 
   await waitFor(() => expect(api.deleteWorkoutPlan).toHaveBeenCalledWith(archivedVersion.id));
   await waitFor(() => expect(screen.queryByText("در حال مشاهده نسخه قبلی")).not.toBeInTheDocument());
@@ -841,15 +957,16 @@ it("keeps a failed deletion visible and exposes a retryable error", async () => 
     archivedVersion,
   ]);
   api.deleteWorkoutPlan.mockRejectedValue(new Error("delete failed"));
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  api.getWorkoutPlan.mockResolvedValue({ ...plan, id: archivedVersion.id, status: "failed" });
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
-  const deleteButton = await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" });
-  await user.click(deleteButton);
+  await user.click(await screen.findByRole("button", { name: /برنامه شماره ۱/ }));
+  await user.click(await screen.findByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
+  await user.click(screen.getByRole("button", { name: "حذف دائمی" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.");
-  expect(screen.getByRole("button", { name: "حذف نسخه قدیمی برنامه" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "حذف دائمی" })).toBeEnabled();
 });
 
 it("shows the fixed start guide and a generate action when no plan exists", async () => {
