@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { formatTehranDateForLocale } from "@fitician/core";
+
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   searchAccessUsers,
   type AdminMemberSummary,
@@ -15,6 +17,7 @@ export function AdminUserAccessPage() {
   const [input, setInput] = useState(query);
   const [users, setUsers] = useState<AdminMemberSummary[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
   useEffect(() => {
@@ -25,10 +28,13 @@ export function AdminUserAccessPage() {
       .then((result) => {
         if (!active) return;
         setUsers(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [query]);
@@ -65,7 +71,7 @@ export function AdminUserAccessPage() {
         </form>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
-        {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="access" error={loadError} locale={english ? "en" : "fa"} onRetry={() => window.location.reload()} />}
         {state === "ready" && users.length === 0 && <p className="access-admin-status">{t("adminAccess.noUsers")}</p>}
         {state === "ready" && users.length > 0 && (
           <div className="access-user-list">

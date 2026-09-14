@@ -449,6 +449,54 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("سفارش پرداخت پیدا نشد", "Billing order not found"),
     text("سفارش پرداخت موردنظر پیدا نشد.", "The requested billing order was not found."),
   ),
+  ACCESS_AUDIT_UNAVAILABLE: entry(
+    text("تاریخچه دسترسی در دسترس نیست", "Access audit is unavailable"),
+    text("تاریخچه تغییرات دسترسی دریافت نشد. دوباره تلاش کنید.", "The access change history could not be loaded. Try again."),
+  ),
+  ACCESS_USERS_UNAVAILABLE: entry(
+    text("فهرست کاربران در دسترس نیست", "User access list is unavailable"),
+    text("فهرست کاربران و دسترسی‌ها دریافت نشد. دوباره تلاش کنید.", "The user access list could not be loaded. Try again."),
+  ),
+  ACCESS_CAMPAIGN_NOT_FOUND: entry(
+    text("کمپین پیدا نشد", "Campaign not found"),
+    text("کمپین دسترسی موردنظر پیدا نشد.", "The requested access campaign was not found."),
+  ),
+  ACCESS_USER_NOT_FOUND: entry(
+    text("کاربر پیدا نشد", "User not found"),
+    text("کاربر موردنظر پیدا نشد.", "The requested user was not found."),
+  ),
+  ACCESS_GRANT_NOT_FOUND: entry(
+    text("اعطای دسترسی پیدا نشد", "Access grant not found"),
+    text("اعطای دسترسی موردنظر پیدا نشد.", "The requested access grant was not found."),
+  ),
+  ACCESS_CAMPAIGN_CONFLICT: entry(
+    text("وضعیت کمپین اجازه این کار را نمی‌دهد", "Campaign state conflict"),
+    text("این عملیات با وضعیت فعلی کمپین سازگار نیست.", "This operation is not valid for the campaign's current state."),
+  ),
+  ACCESS_CAMPAIGN_INVALID: entry(
+    text("اطلاعات کمپین معتبر نیست", "Campaign details are invalid"),
+    text("اطلاعات کمپین را بررسی و موارد مشخص‌شده را اصلاح کنید.", "Check the campaign details and correct the highlighted fields."),
+  ),
+  ACCESS_CAMPAIGN_WINDOW_OVERLAPS: entry(
+    text("بازه کمپین تداخل دارد", "Campaign window overlaps"),
+    text("این بازه با یک Signup Trial فعال دیگر تداخل دارد.", "This window overlaps another active Signup Trial."),
+  ),
+  ACCESS_CAMPAIGN_SEMANTICS_IMMUTABLE: entry(
+    text("مشخصات کمپین قفل شده است", "Campaign details are locked"),
+    text("پس از اولین ردیم، مشخصات اصلی کمپین قابل تغییر نیست.", "The campaign's core details cannot change after redemption."),
+  ),
+  ACCESS_CAMPAIGN_NOT_REDEEMABLE: entry(
+    text("کمپین قابل استفاده نیست", "Campaign is not redeemable"),
+    text("این کمپین در وضعیت فعلی قابل اعمال نیست.", "This campaign cannot be redeemed in its current state."),
+  ),
+  ACCESS_CAMPAIGN_KIND_INVALID: entry(
+    text("نوع کمپین معتبر نیست", "Campaign kind is invalid"),
+    text("نوع کمپین انتخاب‌شده معتبر نیست.", "The selected campaign kind is invalid."),
+  ),
+  ACCESS_GRANT_IDEMPOTENCY_CONFLICT: entry(
+    text("درخواست اعطای دسترسی تکراری است", "Duplicate access request"),
+    text("این کلید درخواست قبلاً برای عملیات دیگری استفاده شده است.", "This request key has already been used for another access operation."),
+  ),
   VALIDATION_ERROR: entry(
     text("اطلاعات معتبر نیست", "Invalid information"),
     text("اطلاعات واردشده را بررسی و موارد مشخص‌شده را اصلاح کنید.", "Check the entered information and correct the highlighted fields."),

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 
 import {
   getAdminAuditEvents,
@@ -44,6 +45,7 @@ export function AdminAccessAuditPage() {
   const [events, setEvents] = useState<AdminAuditEvent[]>([]);
   const [filters, setFilters] = useState<AuditFilters>(initialFilters);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState<unknown | null>(null);
   const english = i18n.resolvedLanguage === "en";
 
   useEffect(() => {
@@ -62,8 +64,10 @@ export function AdminAccessAuditPage() {
         to_datetime: next.to_datetime ?? undefined,
       });
       setEvents(result);
+      setLoadError(null);
       setState("ready");
-    } catch {
+    } catch (cause: unknown) {
+      setLoadError(cause);
       setState("error");
     }
   }
@@ -101,7 +105,7 @@ export function AdminAccessAuditPage() {
         </form>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
-        {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="access" error={loadError} locale={english ? "en" : "fa"} onRetry={() => void loadEvents(filters)} />}
         {state === "ready" && events.length === 0 && <p className="access-admin-status">{t("adminAccess.noAuditEvents")}</p>}
         {state === "ready" && events.length > 0 && <div className="access-audit-list">{events.map((event) => <AuditRow english={english} event={event} key={event.id} t={t} />)}</div>}
       </div>

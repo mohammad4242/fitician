@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router-dom";
 import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 
 import {
   adminAccessPackageCodes,
@@ -52,7 +53,9 @@ export function AdminUserAccessDetailPage() {
   const [grantForm, setGrantForm] = useState<GrantForm>(initialGrantForm);
   const [campaignId, setCampaignId] = useState("");
   const [reason, setReason] = useState("");
-  const [formError, setFormError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [actionError, setActionError] = useState<unknown | null>(null);
+  const [formValidationError, setFormValidationError] = useState(false);
   const [saving, setSaving] = useState(false);
   const english = i18n.resolvedLanguage === "en";
 
@@ -67,10 +70,13 @@ export function AdminUserAccessDetailPage() {
       .then((result) => {
         if (!active) return;
         setAccess(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, [memberId]);
@@ -82,7 +88,8 @@ export function AdminUserAccessDetailPage() {
       client_idempotency_key: makeClientIdempotencyKey(),
     });
     setReason("");
-    setFormError(false);
+    setFormValidationError(false);
+    setActionError(null);
     setAction("grant");
   }
 
@@ -90,22 +97,30 @@ export function AdminUserAccessDetailPage() {
     setSelectedGrant(null);
     setCampaignId("");
     setReason("");
-    setFormError(false);
+    setFormValidationError(false);
+    setActionError(null);
     setAction("campaign");
-    void getCampaigns().then(setCampaigns).catch(() => setFormError(true));
+    void getCampaigns()
+      .then((result) => {
+        setCampaigns(result);
+        setActionError(null);
+      })
+      .catch((cause: unknown) => setActionError(cause));
   }
 
   function openRevoke(grant: AdminGrant) {
     setSelectedGrant(grant);
     setReason("");
-    setFormError(false);
+    setFormValidationError(false);
+    setActionError(null);
     setAction("revoke");
   }
 
   function closeAction() {
     setAction(null);
     setSelectedGrant(null);
-    setFormError(false);
+    setFormValidationError(false);
+    setActionError(null);
   }
 
   async function refresh() {
@@ -115,10 +130,11 @@ export function AdminUserAccessDetailPage() {
 
   async function submitAction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormError(false);
+    setFormValidationError(false);
+    setActionError(null);
     if (action === "grant") {
       if (grantForm.ends_at === null || grantForm.reason.trim() === "" || grantForm.client_idempotency_key.trim() === "") {
-        setFormError(true);
+        setFormValidationError(true);
         return;
       }
       setSaving(true);
@@ -133,8 +149,8 @@ export function AdminUserAccessDetailPage() {
         });
         await refresh();
         closeAction();
-      } catch {
-        setFormError(true);
+      } catch (cause: unknown) {
+        setActionError(cause);
       } finally {
         setSaving(false);
       }
@@ -142,7 +158,7 @@ export function AdminUserAccessDetailPage() {
     }
     if (action === "campaign") {
       if (campaignId === "" || reason.trim() === "") {
-        setFormError(true);
+        setFormValidationError(true);
         return;
       }
       setSaving(true);
@@ -150,8 +166,8 @@ export function AdminUserAccessDetailPage() {
         await redeemUserCampaign(memberId, campaignId, reason.trim());
         await refresh();
         closeAction();
-      } catch {
-        setFormError(true);
+      } catch (cause: unknown) {
+        setActionError(cause);
       } finally {
         setSaving(false);
       }
@@ -159,7 +175,7 @@ export function AdminUserAccessDetailPage() {
     }
     if (action === "revoke" && selectedGrant !== null) {
       if (reason.trim() === "") {
-        setFormError(true);
+        setFormValidationError(true);
         return;
       }
       setSaving(true);
@@ -167,8 +183,8 @@ export function AdminUserAccessDetailPage() {
         await revokeUserAccess(selectedGrant.id, reason.trim());
         await refresh();
         closeAction();
-      } catch {
-        setFormError(true);
+      } catch (cause: unknown) {
+        setActionError(cause);
       } finally {
         setSaving(false);
       }
@@ -176,7 +192,12 @@ export function AdminUserAccessDetailPage() {
   }
 
   if (state === "loading") return <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>;
-  if (state === "error" || access === null) return <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.userNotFound")}</p>;
+  if (state === "error") {
+    return loadError === null
+      ? <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.userNotFound")}</p>
+      : <AppErrorNotice audience="admin" context="access" error={loadError} locale={english ? "en" : "fa"} />;
+  }
+  if (access === null) return <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.userNotFound")}</p>;
 
   return (
     <main className="access-admin-page fitician-page">
@@ -272,7 +293,8 @@ export function AdminUserAccessDetailPage() {
                   <label>{t("adminAccess.revokeReason")}<textarea required aria-label={t("adminAccess.revokeReason")} onChange={(event) => setReason(event.currentTarget.value)} value={reason} /></label>
                 </div>
               )}
-              {formError && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.saveError")}</p>}
+              {formValidationError && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.saveError")}</p>}
+              {actionError !== null && <AppErrorNotice audience="admin" context="access" error={actionError} locale={english ? "en" : "fa"} />}
               <button className="access-admin-button access-admin-button--primary" disabled={saving} type="submit">{action === "revoke" ? t("adminAccess.confirmRevoke") : t("adminAccess.saveChanges")}</button>
             </form>
           </section>

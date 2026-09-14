@@ -5,6 +5,7 @@ import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
 import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 
 import {
   activateCampaign,
@@ -89,7 +90,8 @@ export function AdminAccessCampaignsPage() {
   const [saving, setSaving] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<CampaignFormErrors>({});
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [actionError, setActionError] = useState<unknown | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -97,10 +99,13 @@ export function AdminAccessCampaignsPage() {
       .then((result) => {
         if (!active) return;
         setCampaigns(result);
+        setLoadError(null);
         setState("ready");
       })
-      .catch(() => {
-        if (active) setState("error");
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setLoadError(cause);
+        setState("error");
       });
     return () => { active = false; };
   }, []);
@@ -160,7 +165,7 @@ export function AdminAccessCampaignsPage() {
       setShowForm(false);
     } catch (error) {
       setFormErrors(apiCampaignFormErrors(error));
-      setActionError(campaignErrorMessage(error, t, "save"));
+      setActionError(error);
     } finally {
       setSaving(false);
     }
@@ -175,7 +180,7 @@ export function AdminAccessCampaignsPage() {
         : await activateCampaign(campaign.id);
       setCampaigns((current) => current.map((item) => item.id === result.id ? result : item));
     } catch (error) {
-      setActionError(campaignErrorMessage(error, t, "toggle"));
+      setActionError(error);
     } finally {
       setWorking(null);
     }
@@ -197,8 +202,8 @@ export function AdminAccessCampaignsPage() {
         </header>
 
         {state === "loading" && <p className="access-admin-status" role="status">{t("adminAccess.loading")}</p>}
-        {state === "error" && <p className="access-admin-status access-admin-status--error" role="alert">{t("adminAccess.loadError")}</p>}
-        {actionError !== null && <p className="access-admin-status access-admin-status--error" role="alert">{actionError}</p>}
+        {state === "error" && <AppErrorNotice audience="admin" context="access" error={loadError} locale={english ? "en" : "fa"} onRetry={() => window.location.reload()} />}
+        {actionError !== null && <AppErrorNotice audience="admin" context="access" error={actionError} locale={english ? "en" : "fa"} />}
 
         {state === "ready" && campaigns.length === 0 && <p className="access-admin-status">{t("adminAccess.noCampaigns")}</p>}
         {state === "ready" && campaigns.length > 0 && (
@@ -516,27 +521,4 @@ function apiCampaignFormErrors(error: unknown): CampaignFormErrors {
     else if (field === "available_until" || field === "available_from") errors.availability = "availabilityOrder";
   }
   return errors;
-}
-
-function campaignErrorMessage(
-  error: unknown,
-  t: (key: string) => string,
-  action: "save" | "toggle",
-): string {
-  if (error instanceof ApiError) {
-    if (error.code === "ACCESS_CAMPAIGN_WINDOW_OVERLAPS") {
-      return t("adminAccess.campaignOverlapError");
-    }
-    if (error.code === "ACCESS_CAMPAIGN_SEMANTICS_IMMUTABLE") {
-      return t("adminAccess.campaignImmutableError");
-    }
-    if (error.code === "ACCESS_CAMPAIGN_CONFLICT") {
-      return t("adminAccess.campaignConflictError");
-    }
-    if (error.code === "ACCESS_CAMPAIGN_INVALID" || error.status === 422) {
-      return t("adminAccess.validationError");
-    }
-    if (error.status === 403) return t("adminAccess.permissionError");
-  }
-  return action === "save" ? t("adminAccess.saveError") : t("adminAccess.actionError");
 }

@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import "../../i18n";
 
 const accessApi = vi.hoisted(() => ({ getAdminAuditEvents: vi.fn() }));
@@ -66,4 +68,22 @@ it("passes audit filters to the read-only API", async () => {
     action: "access.grant.created",
     target_user_id: "member-1",
   });
+});
+
+it("shows safe admin diagnostics when the audit API fails", async () => {
+  accessApi.getAdminAuditEvents.mockRejectedValueOnce(new ApiError(
+    503,
+    "raw database query",
+    null,
+    "ACCESS_AUDIT_UNAVAILABLE",
+    { requestId: "access-audit-request-1" },
+  ));
+
+  render(<MemoryRouter><AdminAccessAuditPage /></MemoryRouter>);
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("ACCESS_AUDIT_UNAVAILABLE");
+  expect(alert).toHaveTextContent("503");
+  expect(alert).toHaveTextContent("access-audit-request-1");
+  expect(alert).not.toHaveTextContent("raw database query");
 });

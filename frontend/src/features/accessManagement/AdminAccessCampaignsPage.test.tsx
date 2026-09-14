@@ -164,7 +164,7 @@ it("keeps the form open and explains a validation response from the API", async 
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
 
   expect(await screen.findByText("کد کمپین معتبر نیست.")).toBeInTheDocument();
-  expect(screen.getByRole("alert")).toHaveTextContent("اطلاعات فرم را اصلاح کنید.");
+  expect(screen.getByRole("alert")).toHaveTextContent("اطلاعات معتبر نیست");
   expect(screen.getByRole("heading", { name: "ساخت کمپین" })).toBeInTheDocument();
 });
 
