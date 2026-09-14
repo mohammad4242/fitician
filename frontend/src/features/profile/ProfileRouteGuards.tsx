@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet } from "react-router-dom";
 
+import { ApiError, type ErrorAudienceInput, type ErrorContext } from "@fitician/core";
+
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "../auth/AuthContext";
 import { HYDRATED_ACCOUNT_KEY } from "../publicOnboarding/onboardingDraft";
@@ -12,9 +14,13 @@ import { useProfile, type ProfileStatus } from "./ProfileContext";
 function StartupState({
   error,
   onRetry,
+  audience = "member",
+  context = "profile",
 }: {
   error: unknown;
   onRetry: () => void;
+  audience?: ErrorAudienceInput;
+  context?: ErrorContext;
 }) {
   const { t, i18n } = useTranslation();
 
@@ -22,8 +28,8 @@ function StartupState({
     return (
       <main className="loading-screen">
         <AppErrorNotice
-          audience="member"
-          context="profile"
+          audience={audience}
+          context={context}
           error={error}
           locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
         />
@@ -103,28 +109,54 @@ export function NutritionCapabilityRoute() {
     : <Navigate to="/dashboard" replace />;
 }
 
-export function PhysicianRoute() {
-  const [status, setStatus] = useState<"loading" | "authorized" | "denied">("loading");
+type SpecialistAccessStatus = "loading" | "authorized" | "denied" | "error";
+
+function SpecialistAccessRoute({
+  audience,
+  verifyAccess,
+}: {
+  audience: "coach" | "physician";
+  verifyAccess: () => Promise<{ authorized: true }>;
+}) {
+  const [status, setStatus] = useState<SpecialistAccessStatus>("loading");
+  const [error, setError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     let active = true;
-    void verifyPhysicianAccess()
+    setStatus("loading");
+    setError(null);
+    void verifyAccess()
       .then(() => { if (active) setStatus("authorized"); })
-      .catch(() => { if (active) setStatus("denied"); });
+      .catch((cause: unknown) => {
+        if (!active) return;
+        if (cause instanceof ApiError && cause.status === 403) {
+          setStatus("denied");
+          return;
+        }
+        setError(cause);
+        setStatus("error");
+      });
     return () => { active = false; };
-  }, []);
-  if (status === "loading") return <StartupState error={false} onRetry={() => undefined} />;
+  }, [attempt, verifyAccess]);
+  if (status === "loading") return <StartupState error={null} onRetry={() => undefined} />;
+  if (status === "error") {
+    return (
+      <StartupState
+        audience={audience}
+        context="specialist_review"
+        error={error}
+        onRetry={() => setAttempt((value) => value + 1)}
+      />
+    );
+  }
   return status === "authorized" ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }
 
+export function PhysicianRoute() {
+  return <SpecialistAccessRoute audience="physician" verifyAccess={verifyPhysicianAccess} />;
+}
+
 export function CoachRoute() {
-  const [status, setStatus] = useState<"loading" | "authorized" | "denied">("loading");
-  useEffect(() => {
-    let active = true;
-    void verifyCoachAccess()
-      .then(() => { if (active) setStatus("authorized"); })
-      .catch(() => { if (active) setStatus("denied"); });
-    return () => { active = false; };
-  }, []);
-  if (status === "loading") return <StartupState error={false} onRetry={() => undefined} />;
-  return status === "authorized" ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return <SpecialistAccessRoute audience="coach" verifyAccess={verifyCoachAccess} />;
 }

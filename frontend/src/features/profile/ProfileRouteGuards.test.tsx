@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TransportError } from "@fitician/core";
+import { ApiError, TransportError } from "@fitician/core";
 
 import type { ProductMode, Profile } from "./types";
 
@@ -111,7 +111,9 @@ beforeEach(() => {
   workoutReviewApi.listWorkoutReviews.mockReset();
   workoutReviewApi.listWorkoutReviews.mockResolvedValue([]);
   physicianApi.verifyPhysicianAccess.mockReset();
-  physicianApi.verifyPhysicianAccess.mockRejectedValue(new Error("forbidden"));
+  physicianApi.verifyPhysicianAccess.mockRejectedValue(
+    new ApiError(403, "forbidden", null, "PHYSICIAN_ROLE_REQUIRED"),
+  );
   physicianApi.listSupplementCatalogue.mockReset();
   physicianApi.listSupplementCatalogue.mockResolvedValue([]);
   physicianApi.listCatalogueFoods.mockReset();
@@ -137,11 +139,39 @@ describe("profile route matrix", () => {
     contexts.auth.user = member;
     contexts.profile.status = "ready";
     contexts.profile.profile = readyProfile;
-    workoutReviewApi.verifyCoachAccess.mockRejectedValue(new Error("forbidden"));
+    workoutReviewApi.verifyCoachAccess.mockRejectedValue(
+      new ApiError(403, "forbidden", null, "COACH_ROLE_REQUIRED"),
+    );
 
     renderRoute("/coach/workouts");
 
     expect(await screen.findByRole("heading", { name: "سلام، Mohammad" })).toBeVisible();
+  });
+
+  it("keeps a non-authorization coach access failure visible and retryable", async () => {
+    contexts.auth.user = member;
+    contexts.profile.status = "ready";
+    contexts.profile.profile = readyProfile;
+    workoutReviewApi.verifyCoachAccess
+      .mockRejectedValueOnce(
+        new ApiError(503, "private access detail", null, "SERVICE_UNAVAILABLE", {
+          requestId: "coach-access-1",
+        }),
+      )
+      .mockResolvedValueOnce({ authorized: true });
+    const user = userEvent.setup();
+
+    renderRoute("/coach/workouts");
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
+    expect(alert).not.toHaveTextContent("private access detail");
+    expect(alert).not.toHaveTextContent("coach-access-1");
+    await user.click(screen.getByRole("button", { name: "تلاش دوباره" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "بازبینی برنامه‌های تمرینی" }),
+    ).toBeVisible();
   });
 
   it("lets an authorized physician open the workspace without a member profile", async () => {
