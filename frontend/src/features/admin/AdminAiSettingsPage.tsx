@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import appTrainingAccent from "../../assets/landing/app-training-accent.jpg";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { MemberHeaderMedia } from "../../shared/MemberHeaderMedia";
-import { ApiError } from "../../shared/apiClient";
 import {
   getAdminAiTaskConfigs,
   getAdminAiTaskModels,
@@ -49,13 +49,14 @@ export function AdminAiSettingsPage() {
   const [catalogStale, setCatalogStale] = useState(false);
   const [agentCapabilities, setAgentCapabilities] = useState<AdminAiAgentRunnerCapability[]>([]);
   const [agentCapabilitiesLoading, setAgentCapabilitiesLoading] = useState(false);
-  const [agentCapabilitiesError, setAgentCapabilitiesError] = useState(false);
+  const [agentCapabilitiesLoadError, setAgentCapabilitiesLoadError] = useState<unknown | null>(null);
   const [authAgent, setAuthAgent] = useState<AgentAuthDialogState | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [configsLoading, setConfigsLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [feedbackOperation, setFeedbackOperation] = useState<AiSettingsOperation | null>(null);
   const modelRequestVersion = useRef(0);
   const operationVersion = useRef(0);
@@ -95,7 +96,7 @@ export function AdminAiSettingsPage() {
           setSelectedTask(items[0].task_type);
         }
       })
-      .catch(() => setError(t("admin.aiSettings.loadError")))
+      .catch((cause: unknown) => setError(cause))
       .finally(() => setConfigsLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -119,7 +120,7 @@ export function AdminAiSettingsPage() {
     const requestVersion = agentRequestVersion.current + 1;
     agentRequestVersion.current = requestVersion;
     setAgentCapabilitiesLoading(true);
-    setAgentCapabilitiesError(false);
+    setAgentCapabilitiesLoadError(null);
     void getAdminAiAgentServiceCapabilities(selectedTask)
       .then((response) => {
         if (
@@ -129,12 +130,12 @@ export function AdminAiSettingsPage() {
         ) return;
         setAgentCapabilities(response.runners);
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (
           requestVersion === agentRequestVersion.current
           && activeTask.current === taskAtStart
           && taskEpoch.current === epochAtStart
-        ) setAgentCapabilitiesError(true);
+        ) setAgentCapabilitiesLoadError(cause);
       })
       .finally(() => {
         if (
@@ -148,7 +149,7 @@ export function AdminAiSettingsPage() {
   function handleAgentLogout(agent: AdminAiAgentName) {
     void logoutAdminAiAgentAuth(agent)
       .then(() => loadAgentCapabilities())
-      .catch(() => setError(t("admin.aiSettings.connectionFailed")));
+      .catch((cause: unknown) => setError(cause));
   }
 
   useEffect(() => {
@@ -169,13 +170,13 @@ export function AdminAiSettingsPage() {
         setModels(response.items);
         setCatalogStale(response.stale);
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (
           requestVersion === modelRequestVersion.current
           && activeTask.current === task
           && taskEpoch.current === epoch
         ) {
-          setError(t("admin.aiSettings.catalogError"));
+          setError(cause);
         }
       });
   }
@@ -192,7 +193,7 @@ export function AdminAiSettingsPage() {
     event.preventDefault();
     if (!config) return;
     if (foodPriceAgentOnly && config.execution_backend !== "agent_service" && config.enabled) {
-      setError(t("admin.aiSettings.foodPriceAgentOnly"));
+      setLocalError(t("admin.aiSettings.foodPriceAgentOnly"));
       return;
     }
     persistConfig(config, apiKey);
@@ -208,7 +209,7 @@ export function AdminAiSettingsPage() {
     const epochAtStart = taskEpoch.current;
     const operation = beginOperation("save");
     setMessage(null);
-    setError(null);
+    clearErrors();
     const payload: AdminAiTaskConfigUpdate = {
       provider: target.provider,
       execution_backend: target.execution_backend,
@@ -234,9 +235,9 @@ export function AdminAiSettingsPage() {
         setApiKey("");
         setMessage(t("admin.aiSettings.saved"));
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-          setError(t("admin.aiSettings.saveError"));
+          setError(cause);
         }
       })
       .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
@@ -247,10 +248,10 @@ export function AdminAiSettingsPage() {
     const epochAtStart = taskEpoch.current;
     const operation = beginOperation("test");
     setMessage(null);
-    setError(null);
+    clearErrors();
     if (agentMode) {
       if (config === null || !targetAgentIsReady(config)) {
-        setError(t("admin.aiSettings.agentTestRequiresSelection"));
+        setLocalError(t("admin.aiSettings.agentTestRequiresSelection"));
         finishOperation(taskAtStart, epochAtStart, operation);
         return;
       }
@@ -268,11 +269,11 @@ export function AdminAiSettingsPage() {
             verification_safe_error_message: result.safe_error_message,
           });
           if (result.ok) setMessage(t("admin.aiSettings.taskSmokePassed"));
-          else setError(result.safe_error_message ?? t("admin.aiSettings.connectionFailed"));
+          else setLocalError(result.safe_error_message ?? t("admin.aiSettings.connectionFailed"));
         })
-        .catch(() => {
+        .catch((cause: unknown) => {
           if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-            setError(t("admin.aiSettings.connectionFailed"));
+            setError(cause);
           }
         })
         .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
@@ -282,11 +283,11 @@ export function AdminAiSettingsPage() {
       .then((result) => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
         if (result.ok) setMessage(t("admin.aiSettings.connected"));
-        else setError(result.safe_error_message ?? t("admin.aiSettings.connectionFailed"));
+        else setLocalError(result.safe_error_message ?? t("admin.aiSettings.connectionFailed"));
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-          setError(t("admin.aiSettings.connectionFailed"));
+          setError(cause);
         }
       })
       .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
@@ -310,7 +311,7 @@ export function AdminAiSettingsPage() {
     const epochAtStart = taskEpoch.current;
     const operation = beginOperation("refresh");
     setMessage(null);
-    setError(null);
+    clearErrors();
     void refreshAdminAiModels()
       .then(() => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
@@ -323,11 +324,7 @@ export function AdminAiSettingsPage() {
       })
       .catch((requestError: unknown) => {
         if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-          setError(
-            requestError instanceof ApiError
-              ? requestError.message
-              : t("admin.aiSettings.refreshError"),
-          );
+          setError(requestError);
         }
       })
       .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
@@ -339,7 +336,7 @@ export function AdminAiSettingsPage() {
     setBusy(null);
     setAuthAgent(null);
     setMessage(null);
-    setError(null);
+    clearErrors();
     setSelectedTask(task);
   }
 
@@ -363,13 +360,20 @@ export function AdminAiSettingsPage() {
     if (isActiveOperation(task, epoch, operation)) setBusy(null);
   }
 
+  function clearErrors() {
+    setError(null);
+    setLocalError(null);
+  }
+
   const backLabel = i18n.resolvedLanguage === "en" ? "Return" : "بازگشت";
 
   if (configsLoading) return <main className="admin-main"><p>{t("admin.aiSettings.loading")}</p></main>;
   if (!config) {
-    return <main className="admin-main"><p className="form-error" role="alert">
-      {error ?? t("admin.aiSettings.loadError")}
-    </p></main>;
+    return <main className="admin-main">
+      {error !== null
+        ? <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />
+        : <p className="form-error" role="alert">{t("admin.aiSettings.loadError")}</p>}
+    </main>;
   }
 
   return (
@@ -451,7 +455,7 @@ export function AdminAiSettingsPage() {
           {agentMode && <AgentServicePanel
             runners={agentCapabilities}
             loading={agentCapabilitiesLoading}
-            unavailable={agentCapabilitiesError}
+            unavailable={agentCapabilitiesLoadError !== null}
             selectedAgent={selectedAgent}
             selectedModelId={config.agent_model_id}
             selectedModelLabel={selectedProfile?.display_name ?? config.agent_model_id}
@@ -462,6 +466,7 @@ export function AdminAiSettingsPage() {
             onTest={handleConnectionTest}
             testDisabled={busy !== null || !targetAgentIsReady(config)}
           />}
+          {agentCapabilitiesLoadError !== null && <AppErrorNotice audience="admin" context="generic" error={agentCapabilitiesLoadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
           <dl className="admin-ai-observability">
             <div><dt>{t("admin.aiSettings.lastConnection")}</dt><dd>{config.last_successful_connection_test_at ?? "—"}</dd></div>
             <div><dt>{t("admin.aiSettings.lastCatalogRefresh")}</dt><dd>{config.last_model_catalog_refresh_at ?? "—"}</dd></div>
@@ -472,7 +477,8 @@ export function AdminAiSettingsPage() {
             <button type="button" disabled={busy !== null || !config.credential.configured} onClick={handleRefresh}>{t("admin.aiSettings.refresh")}</button>
           </div>}
           {feedbackOperation !== "save" && message && <p className="admin-ai-provider-feedback admin-ai-settings-message" role="status">{message}</p>}
-          {feedbackOperation !== "save" && error && <p className="admin-ai-provider-feedback form-error" role="alert">{error}</p>}
+          {feedbackOperation !== "save" && error !== null && <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
+          {feedbackOperation !== "save" && localError !== null && <p className="admin-ai-provider-feedback form-error" role="alert">{localError}</p>}
         </section>
 
         <section className="admin-panel">
@@ -523,7 +529,8 @@ export function AdminAiSettingsPage() {
         </section>
 
         {(feedbackOperation === "save" || feedbackOperation === null) && message && <p className="admin-ai-settings-message" role="status">{message}</p>}
-        {(feedbackOperation === "save" || feedbackOperation === null) && error && <p className="form-error" role="alert">{error}</p>}
+        {(feedbackOperation === "save" || feedbackOperation === null) && error !== null && <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
+        {(feedbackOperation === "save" || feedbackOperation === null) && localError !== null && <p className="form-error" role="alert">{localError}</p>}
         {agentMode && selectedProfile && selectedProfile.verification_status !== "passed" && <p className="admin-ai-inline-note" role="note">{t("admin.aiSettings.agentService.profileMustPassTest")}</p>}
         <div className="admin-ai-settings-actions"><button type="submit" disabled={busy !== null || (agentMode && config.enabled && selectedProfile?.verification_status !== "passed")}>{t("admin.aiSettings.save")}</button><button type="button" disabled={busy !== null} onClick={handleDisable}>{t("admin.aiSettings.disable")}</button></div>
       </form>

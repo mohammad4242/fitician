@@ -58,6 +58,34 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("تأیید هویت انجام نشد", "Reauthentication failed"),
     text("رمز عبور درست نیست.", "The password is not correct."),
   ),
+  auth_in_progress: entry(
+    text("احراز هویت قبلی هنوز فعال است", "Authentication is already in progress"),
+    text("برای این Agent یک فرایند احراز هویت دیگر در حال انجام است.", "Authentication is already in progress for this Agent."),
+  ),
+  auth_session_not_found: entry(
+    text("نشست احراز هویت پیدا نشد", "Authentication session not found"),
+    text("نشست احراز هویت پیدا نشد. دوباره شروع کنید.", "The authentication session was not found. Start again."),
+  ),
+  auth_session_expired: entry(
+    text("نشست احراز هویت منقضی شده است", "Authentication session expired"),
+    text("نشست احراز هویت منقضی شده است. دوباره شروع کنید.", "The authentication session has expired. Start again."),
+  ),
+  auth_input_not_expected: entry(
+    text("ورودی احراز هویت در این مرحله لازم نیست", "Authentication input is not expected"),
+    text("در این مرحله ورودی احراز هویت پذیرفته نمی‌شود.", "Authentication input is not expected at this stage."),
+  ),
+  auth_input_invalid: entry(
+    text("ورودی احراز هویت معتبر نیست", "Authentication input is invalid"),
+    text("کد احراز هویت معتبر نیست. آن را بررسی و دوباره وارد کنید.", "The authentication input is invalid. Check it and try again."),
+  ),
+  auth_unavailable: entry(
+    text("احراز هویت موقتاً در دسترس نیست", "Authentication is unavailable"),
+    text("احراز هویت فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Authentication is temporarily unavailable. Try again later."),
+  ),
+  auth_manual_only: entry(
+    text("احراز هویت دستی لازم است", "Manual authentication is required"),
+    text("این Agent فقط با احراز هویت دستی قابل اتصال است.", "This Agent requires manual authentication."),
+  ),
   AUTHENTICATION_REQUIRED: entry(
     text("ورود لازم است", "Sign-in required"),
     text("برای ادامه دوباره وارد حساب شوید.", "Sign in again to continue."),

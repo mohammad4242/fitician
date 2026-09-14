@@ -127,8 +127,26 @@ it("shows the settings load error instead of staying on the loading state", asyn
   api.getAdminAiTaskConfigs.mockRejectedValue(new ApiError(500, "Request failed"));
   renderPage();
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("Unable to load AI settings.");
+  expect(await screen.findByRole("alert")).toHaveTextContent("INTERNAL_SERVER_ERROR");
   expect(screen.queryByText("Loading AI settings…")).not.toBeInTheDocument();
+});
+
+it("shows safe admin diagnostics for a failed settings request", async () => {
+  api.getAdminAiTaskConfigs.mockRejectedValueOnce(new ApiError(
+    500,
+    "raw API key and SQL details",
+    null,
+    "INTERNAL_SERVER_ERROR",
+    { requestId: "ai-settings-request-1" },
+  ));
+
+  renderPage();
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("INTERNAL_SERVER_ERROR");
+  expect(alert).toHaveTextContent("500");
+  expect(alert).toHaveTextContent("ai-settings-request-1");
+  expect(alert).not.toHaveTextContent("raw API key");
 });
 
 it("starts the Agent Service proxy toggle off before status loads", async () => {
@@ -294,7 +312,8 @@ it("shows the provider refresh error beside the provider controls", async () => 
   await user.click(await screen.findByRole("button", { name: "Refresh models" }));
 
   const providerError = await screen.findByRole("alert");
-  expect(providerError).toHaveTextContent("The AI provider is temporarily unreachable.");
+  expect(providerError).toHaveTextContent("BAD_GATEWAY");
+  expect(providerError).not.toHaveTextContent("The AI provider is temporarily unreachable.");
   expect(providerError.closest(".admin-panel")).toContainElement(
     screen.getByRole("button", { name: "Refresh models" }),
   );

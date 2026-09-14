@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { ApiError } from "../../shared/apiClient";
 import {
   cancelAdminAiAgentAuthActive,
@@ -32,23 +33,6 @@ const inputLabelKeys: Record<string, string> = {
   "verification code": "verificationCode",
   "device code": "deviceCode",
 };
-const errorKeys: Record<string, string> = {
-  auth_in_progress: "inProgress",
-  auth_session_not_found: "notFound",
-  auth_session_expired: "expired",
-  auth_input_not_expected: "invalidInput",
-  auth_input_invalid: "invalidInput",
-  auth_unavailable: "unavailable",
-  auth_manual_only: "unavailable",
-  "authentication failed": "failed",
-  "authentication expired": "expired",
-  "authentication was canceled": "canceled",
-  "authentication is unavailable": "unavailable",
-  "authentication input is invalid": "invalidInput",
-  "authentication is already in progress": "inProgress",
-  "authentication session was not found": "notFound",
-};
-
 export type AgentAuthDialogProps = {
   agent: AdminAiAgentName;
   forceReauth?: boolean;
@@ -62,13 +46,14 @@ export function AgentAuthDialog({
   onClose,
   onAuthenticated,
 }: AgentAuthDialogProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [session, setSession] = useState<AdminAiAgentAuthSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [startErrorCode, setStartErrorCode] = useState<string | null>(null);
   const runVersion = useRef(0);
@@ -118,6 +103,7 @@ export function AgentAuthDialog({
     setCanceling(false);
     setInputValue("");
     setError(null);
+    setLocalError(null);
     setStartErrorCode(null);
     setCopyFeedback(null);
     let disposed = false;
@@ -143,7 +129,7 @@ export function AgentAuthDialog({
         }
       } catch (requestError: unknown) {
         if (isCurrent()) {
-          setError(toSafeAuthError(requestError, t));
+          setError(requestError);
           setLoading(false);
           schedulePoll();
         }
@@ -169,7 +155,7 @@ export function AgentAuthDialog({
         if (isCurrent()) {
           setLoading(false);
           setStartErrorCode(requestError instanceof ApiError ? requestError.code : null);
-          setError(toSafeAuthError(requestError, t));
+          setError(requestError);
         }
       }
     };
@@ -201,7 +187,7 @@ export function AgentAuthDialog({
   function handleCopy(value: string, feedbackKey: string) {
     void copyText(value)
       .then(() => setCopyFeedback(t(`admin.aiSettings.agentAuth.${feedbackKey}`)))
-      .catch(() => setError(t("admin.aiSettings.agentAuth.errors.copyFailed")));
+      .catch(() => setLocalError(t("admin.aiSettings.agentAuth.errors.copyFailed")));
   }
 
   async function handleSubmitInput(event: FormEvent) {
@@ -214,11 +200,12 @@ export function AgentAuthDialog({
     setInputValue("");
     setSubmitting(true);
     setError(null);
+    setLocalError(null);
     try {
       const next = await submitAdminAiAgentAuthInput(current.session_id, value);
       applySession(next, runId, responseId);
     } catch (requestError: unknown) {
-      if (runVersion.current === runId) setError(toSafeAuthError(requestError, t));
+      if (runVersion.current === runId) setError(requestError);
     } finally {
       if (runVersion.current === runId) setSubmitting(false);
     }
@@ -240,7 +227,7 @@ export function AgentAuthDialog({
       if (runVersion.current === runId) {
         cancelRequested.current = false;
         setCanceling(false);
-        setError(toSafeAuthError(requestError, t));
+        setError(requestError);
       }
     }
   }
@@ -255,7 +242,7 @@ export function AgentAuthDialog({
     } catch (requestError: unknown) {
       if (runVersion.current === runId) {
         setCanceling(false);
-        setError(toSafeAuthError(requestError, t));
+        setError(requestError);
       }
     }
   }
@@ -281,7 +268,8 @@ export function AgentAuthDialog({
         </header>
 
         {loading && <p role="status">{t("admin.aiSettings.agentAuth.starting")}</p>}
-        {error && <p className="form-error" role="alert">{error}</p>}
+        {error !== null && <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
+        {localError !== null && <p className="form-error" role="alert">{localError}</p>}
         {startErrorCode === "auth_in_progress" && <button
           type="button"
           onClick={() => void handleCancelActive()}
@@ -380,13 +368,6 @@ function normalizeAuthInput(
     return value.replace(/\s+/g, "");
   }
   return value;
-}
-
-function toSafeAuthError(error: unknown, t: (key: string) => string): string {
-  const key = error instanceof ApiError
-    ? errorKeys[error.code ?? ""]
-    : undefined;
-  return t(`admin.aiSettings.agentAuth.errors.${key ?? "unavailable"}`);
 }
 
 async function copyText(value: string): Promise<void> {

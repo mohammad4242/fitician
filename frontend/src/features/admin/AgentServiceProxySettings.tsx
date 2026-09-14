@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiError } from "../../shared/apiClient";
+import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   getAdminAiAgentServiceProxy,
   saveAdminAiAgentServiceProxy,
@@ -13,7 +13,7 @@ import type {
 } from "./types";
 
 export function AgentServiceProxySettings() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [settings, setSettings] = useState<AdminAiAgentServiceProxy | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [source, setSource] = useState<AdminAiAgentServiceProxySource>("deployment_default");
@@ -21,22 +21,21 @@ export function AgentServiceProxySettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<unknown | null>(null);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [safeError, setSafeError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     void getAdminAiAgentServiceProxy()
       .then((next) => {
         if (!active) return;
+        setLoadError(null);
         hydrate(next);
       })
       .catch((requestError: unknown) => {
         if (!active) return;
-        setError(
-          requestError instanceof ApiError
-            ? requestError.message
-            : t("admin.aiSettings.proxy.loadError"),
-        );
+        setLoadError(requestError);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -56,7 +55,7 @@ export function AgentServiceProxySettings() {
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (source === "custom" && enabled && !proxyUrl.trim()) {
-      setError(t("admin.aiSettings.proxy.customRequired"));
+      setSafeError(t("admin.aiSettings.proxy.customRequired"));
       setMessage(null);
       return;
     }
@@ -69,22 +68,19 @@ export function AgentServiceProxySettings() {
     };
     setSaving(true);
     setMessage(null);
-    setError(null);
+    setSaveError(null);
+    setSafeError(null);
     void saveAdminAiAgentServiceProxy(payload)
       .then((next) => {
         hydrate(next);
         if (next.applied) {
           setMessage(t("admin.aiSettings.proxy.saved"));
         } else {
-          setError(next.last_apply_error ?? t("admin.aiSettings.proxy.pending"));
+          setSafeError(next.last_apply_error ?? t("admin.aiSettings.proxy.pending"));
         }
       })
       .catch((requestError: unknown) => {
-        setError(
-          requestError instanceof ApiError
-            ? requestError.message
-            : t("admin.aiSettings.proxy.saveError"),
-        );
+        setSaveError(requestError);
       })
       .finally(() => setSaving(false));
   }
@@ -116,6 +112,8 @@ export function AgentServiceProxySettings() {
           {statusLabel}
         </span>
       </header>
+
+      {loadError !== null && <AppErrorNotice audience="admin" context="generic" error={loadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
 
       <form className="admin-agent-proxy__form" onSubmit={handleSubmit}>
         <label className="admin-agent-proxy__toggle">
@@ -197,7 +195,8 @@ export function AgentServiceProxySettings() {
             {saving ? t("admin.aiSettings.proxy.saving") : t("admin.aiSettings.proxy.save")}
           </button>
           {message && <p className="admin-ai-settings-message" role="status">{message}</p>}
-          {error && <p className="form-error" role="alert">{error}</p>}
+          {safeError !== null && <p className="form-error" role="alert">{safeError}</p>}
+          {saveError !== null && <AppErrorNotice audience="admin" context="generic" error={saveError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
         </div>
       </form>
     </section>
