@@ -47,25 +47,27 @@ export type WorkoutReviewQueueItem = {
   approved_at: string | null;
 };
 
-export type WorkoutReviewQueueGroup =
+export type RecencyQueueGroup<T> =
   | {
       kind: "day";
       key: string;
       date: string;
-      items: WorkoutReviewQueueItem[];
+      items: T[];
     }
   | {
       kind: "week";
       key: "week-2" | "week-3" | "week-4";
       startDate: string;
       endDate: string;
-      items: WorkoutReviewQueueItem[];
+      items: T[];
     }
   | {
       kind: "month";
       key: "month";
-      items: WorkoutReviewQueueItem[];
+      items: T[];
     };
+
+export type WorkoutReviewQueueGroup = RecencyQueueGroup<WorkoutReviewQueueItem>;
 
 const REVIEW_DAY_MS = 24 * 60 * 60 * 1000;
 const TEHRAN_DATE_PARTS_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -106,15 +108,15 @@ function addDays(value: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function reviewAgeInDays(createdAt: string, now: string): number {
-  return Math.floor((dateKeyToMilliseconds(dateKey(now)) - dateKeyToMilliseconds(dateKey(createdAt))) / REVIEW_DAY_MS);
+function ageInDays(timestamp: string, now: string): number {
+  return Math.floor((dateKeyToMilliseconds(dateKey(now)) - dateKeyToMilliseconds(dateKey(timestamp))) / REVIEW_DAY_MS);
 }
 
-function weeklyGroup(
+function weeklyGroup<T>(
   key: "week-2" | "week-3" | "week-4",
   today: string,
-  items: WorkoutReviewQueueItem[],
-): WorkoutReviewQueueGroup {
+  items: T[],
+): RecencyQueueGroup<T> {
   const weekNumber = Number(key.slice(-1));
   const newestAge = (weekNumber - 1) * 7;
   return {
@@ -126,20 +128,24 @@ function weeklyGroup(
   };
 }
 
-export function groupWorkoutReviewQueue(
-  items: readonly WorkoutReviewQueueItem[],
+export function groupReviewQueueByRecency<T>(
+  items: readonly T[],
+  getTimestamp: (item: T) => string,
   now: string = new Date().toISOString(),
-): WorkoutReviewQueueGroup[] {
+  getTieBreaker?: (item: T) => string,
+): RecencyQueueGroup<T>[] {
   const sorted = [...items].sort((left, right) => {
-    const timestampDifference = Date.parse(right.created_at) - Date.parse(left.created_at);
-    return timestampDifference || right.id.localeCompare(left.id);
+    const timestampDifference = Date.parse(getTimestamp(right)) - Date.parse(getTimestamp(left));
+    if (timestampDifference !== 0 || getTieBreaker === undefined) return timestampDifference;
+    return getTieBreaker(right).localeCompare(getTieBreaker(left));
   });
   const today = dateKey(now);
-  const groups = new Map<string, WorkoutReviewQueueGroup>();
+  const groups = new Map<string, RecencyQueueGroup<T>>();
 
   for (const item of sorted) {
-    const itemDate = dateKey(item.created_at);
-    const age = reviewAgeInDays(item.created_at, now);
+    const timestamp = getTimestamp(item);
+    const itemDate = dateKey(timestamp);
+    const age = ageInDays(timestamp, now);
     const key = age < 7
       ? itemDate
       : age < 14
@@ -154,7 +160,7 @@ export function groupWorkoutReviewQueue(
       existing.items.push(item);
       continue;
     }
-    let group: WorkoutReviewQueueGroup;
+    let group: RecencyQueueGroup<T>;
     if (key === "month") {
       group = { items: [item], key: "month", kind: "month" };
     } else if (key === "week-2" || key === "week-3" || key === "week-4") {
@@ -166,6 +172,13 @@ export function groupWorkoutReviewQueue(
   }
 
   return [...groups.values()];
+}
+
+export function groupWorkoutReviewQueue(
+  items: readonly WorkoutReviewQueueItem[],
+  now: string = new Date().toISOString(),
+): WorkoutReviewQueueGroup[] {
+  return groupReviewQueueByRecency(items, (item) => item.created_at, now, (item) => item.id);
 }
 
 export type CoachTemplateSelection = {

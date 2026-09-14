@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  groupReviewQueueByRecency,
   groupWorkoutReviewQueue,
   type WorkoutReviewQueueItem,
 } from "./workout-reviews.js";
@@ -77,5 +78,20 @@ describe("groupWorkoutReviewQueue", () => {
     ], "2026-09-14T20:30:00.000Z");
 
     expect(groups.map((group) => group.key)).toEqual(["2026-09-15", "2026-09-14"]);
+  });
+});
+
+describe("groupReviewQueueByRecency", () => {
+  it("groups any queue item using its selected sent timestamp", () => {
+    const cases = [
+      { review_id: "older", requested_at: "2026-08-10T08:00:00.000Z" },
+      { review_id: "today", requested_at: "2026-09-14T07:00:00.000Z" },
+    ];
+
+    const groups = groupReviewQueueByRecency(cases, (review) => review.requested_at, NOW);
+
+    expect(groups.map((group) => group.key)).toEqual(["2026-09-14", "month"]);
+    expect(groups[0]?.items).toEqual([cases[1]]);
+    expect(groups[1]?.items).toEqual([cases[0]]);
   });
 });

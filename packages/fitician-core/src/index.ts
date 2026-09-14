@@ -163,9 +163,10 @@ export type {
   OnboardingStep,
   OnboardingTransitionErrorCode,
 } from "./onboarding";
-export { groupWorkoutReviewQueue } from "./workout-reviews";
+export { groupReviewQueueByRecency, groupWorkoutReviewQueue } from "./workout-reviews";
 export type {
   CoachTemplateSelection,
+  RecencyQueueGroup,
   WorkoutReviewDayDraft,
   WorkoutReviewDetail,
   WorkoutReviewDraftUpdate,
