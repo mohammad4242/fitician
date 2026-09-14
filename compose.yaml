@@ -2,16 +2,16 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: fitsho
-      POSTGRES_PASSWORD: fitsho
-      POSTGRES_DB: fitsho
+      POSTGRES_USER: fitician
+      POSTGRES_PASSWORD: fitician
+      POSTGRES_DB: fitician
     ports:
       - "5432:5432"
     volumes:
       - fitician_postgres_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fitsho -d fitsho"]
+      test: ["CMD-SHELL", "pg_isready -U fitician -d fitician"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -62,7 +62,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       FRONTEND_ORIGIN: http://localhost:5173
       FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://10.120.36.22:5173,http://100.97.78.5:5173}
       APP_ENV: local
@@ -109,7 +109,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
       FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
       FOOD_PHOTO_WORKER_BATCH_SIZE: ${FOOD_PHOTO_WORKER_BATCH_SIZE:-5}
@@ -142,7 +142,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://fitsho:fitsho@db:5432/fitsho
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
       NOTIFICATION_WORKER_BATCH_SIZE: ${NOTIFICATION_WORKER_BATCH_SIZE:-100}
       NOTIFICATION_WORKER_POLL_SECONDS: ${NOTIFICATION_WORKER_POLL_SECONDS:-5}
@@ -159,6 +159,6 @@ services:
 volumes:
   fitician_postgres_data:
     external: true
-    name: fitsho_fitsho_postgres_data
+    name: fitician_fitician_postgres_data
   fitician_exercise_media:
   fitician_agent_home:
