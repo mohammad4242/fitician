@@ -35,6 +35,7 @@ from app.workout_cycles.service import (
     calculate_current_week,
     complete_cycle,
     cycle_has_reached_nominal_end,
+    get_current_active_cycle_for_user,
     get_current_completion_feedback_cycle,
     get_current_weekly_check_in,
     get_cycle_for_user,
@@ -189,6 +190,23 @@ def test_superseded_plan_cycle_is_historical_not_current(db: Session) -> None:
     with pytest.raises(WorkoutCycleCompletionFeedbackNotFoundError):
         get_current_completion_feedback_cycle(db, user_id=user.id)
     assert get_cycle_for_user(db, cycle_id=cycle.id, user_id=user.id) is cycle
+
+
+def test_current_cycle_uses_cycle_timezone_when_profile_timezone_is_invalid(db: Session) -> None:
+    user = make_user(db, "invalid-profile-timezone-current-cycle@example.com")
+    profile = make_profile(db, user.id)
+    plan = make_plan(db, user.id)
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date.today() - timedelta(days=1),
+        timezone_name="Asia/Tehran",
+    )
+    profile.timezone = "Not/AZone"
+    db.flush()
+
+    assert get_current_active_cycle_for_user(db, user_id=user.id) is cycle
 
 
 def test_future_current_cycle_hides_historical_completion_feedback(db: Session) -> None:

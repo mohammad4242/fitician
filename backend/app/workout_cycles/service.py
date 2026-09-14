@@ -1065,15 +1065,16 @@ def _current_executable_cycle(
     now: datetime | None = None,
 ) -> WorkoutCycle | None:
     cycles = _current_plan_cycles(db, user_id=user_id, lock=lock)
-    timezone_name = (
-        db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
-        or DEFAULT_MEMBER_TIMEZONE
-    )
+    profile_timezone = db.scalar(select(UserProfile.timezone).where(UserProfile.user_id == user_id))
     return next(
         (
             cycle
             for cycle in cycles
-            if workout_cycle_has_started(cycle, timezone_name=timezone_name, now=now)
+            if workout_cycle_has_started(
+                cycle,
+                timezone_name=member_timezone_or_default(profile_timezone, cycle.start_timezone),
+                now=now,
+            )
         ),
         None,
     )
