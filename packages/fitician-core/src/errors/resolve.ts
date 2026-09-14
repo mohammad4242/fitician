@@ -120,18 +120,33 @@ function runtimeErrorKind(
   networkState: ErrorNetworkState,
 ): TransportError | null {
   if (error instanceof TransportError) return error;
-  if (error instanceof Error && error.name === "AbortError") return new TransportError("aborted");
+  const details = runtimeErrorDetails(error);
+  if (details.name === "AbortError") return new TransportError("aborted");
   if (networkState === "offline") return new TransportError("offline");
-  if (error instanceof Error && (error.name === "TimeoutError" || /timed? ?out|timeout/i.test(error.message))) {
+  if (details.name === "TimeoutError" || /timed? ?out|timeout/i.test(details.message)) {
     return new TransportError("timeout");
   }
   if (
     error instanceof TypeError
-    || (error instanceof Error && /network|connection|fetch failed|dns/i.test(error.message))
+    || /network|connection|fetch failed|dns/i.test(details.message)
   ) {
     return new TransportError("network");
   }
   return null;
+}
+
+function runtimeErrorDetails(error: unknown): { readonly name: string; readonly message: string } {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message };
+  }
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { readonly name?: unknown; readonly message?: unknown };
+    return {
+      name: typeof candidate.name === "string" ? candidate.name : "",
+      message: typeof candidate.message === "string" ? candidate.message : "",
+    };
+  }
+  return { name: "", message: "" };
 }
 
 function runtimeResolution(
