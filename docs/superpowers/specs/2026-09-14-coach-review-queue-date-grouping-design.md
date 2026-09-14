@@ -21,7 +21,7 @@ relative Tehran-date buckets:
 
 - each of the seven most recent days gets its own date group;
 - days 8–14, 15–21, and 22–28 become week 2, week 3, and week 4 groups;
-- items older than 28 days become one `month` group.
+- items 28 days old or older become one `month` group.
 
 Empty daily and weekly groups are omitted. This keeps the queue compact while
 preserving chronological order. The helper accepts an optional current

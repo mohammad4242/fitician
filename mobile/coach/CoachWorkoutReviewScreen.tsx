@@ -3,8 +3,15 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { formatTehranTime } from "@fitician/core";
+import {
+  formatPersianDate,
+  formatPersianDateWithWeekday,
+  formatTehranDateTime,
+  formatTehranTime,
+  groupWorkoutReviewQueue,
+} from "@fitician/core";
 import type { components } from "@fitician/core";
+import type { WorkoutReviewQueueGroup } from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -255,46 +262,45 @@ export function CoachWorkoutReviewScreen() {
       />
 
       <View style={styles.workspace}>
-        <View style={styles.queue}>
-          <Text style={styles.sectionTitle}>صف پرونده‌ها</Text>
-          <QueueState
-            onRetry={() => void queueQuery.refetch()}
-            onSelect={openReview}
-            selectedId={selectedId}
-            state={queueState}
-            view={view}
-          />
-        </View>
-        <View style={styles.detail}>
-          {selected === undefined && detailState.status === "loading" ? <Skeleton height={240} /> : null}
-          {selected === undefined && detailState.status === "offline" ? (
-            <Notice message="جزئیات این پرونده در حافظهٔ فعلی نیست." variant="offline" />
-          ) : null}
-          {selected === undefined && detailState.status === "error" ? (
-            <Notice actionLabel="تلاش دوباره" message="جزئیات پرونده دریافت نشد." onAction={() => void detailQuery.refetch()} variant="danger" />
-          ) : null}
-          {selected !== undefined && draft !== null ? (
-            <CoachReviewDetail
-              busy={busy}
-              detail={selected}
-              draft={draft}
-              onApprove={() => void decide("approve")}
-              onDraftChange={setDraft}
-              onExerciseChange={updateExercise}
-              onExerciseSelection={updateExerciseSelection}
-              onReject={() => void decide("reject")}
-              onRejectionExplanationChange={setRejectionExplanation}
-              onSave={() => void saveDraft()}
-              readOnly={readOnly}
-              rejectionExplanation={rejectionExplanation}
+        {selectedId === null ? (
+          <View style={styles.queue}>
+            <Text style={styles.sectionTitle}>صف پرونده‌ها</Text>
+            <QueueState
+              onRetry={() => void queueQuery.refetch()}
+              onSelect={openReview}
+              selectedId={selectedId}
+              state={queueState}
+              view={view}
             />
-          ) : null}
-          {selected === undefined && detailState.status !== "loading" && selectedId === null ? (
-            <EmptyState title="یک پرونده را از صف انتخاب کن">
-              <Text style={styles.body}>پس از باز کردن پرونده، خلاصهٔ برنامه و ابزار بررسی نمایش داده می‌شود.</Text>
-            </EmptyState>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
+        {selectedId !== null ? (
+          <View style={styles.detail}>
+            {selected === undefined && detailState.status === "loading" ? <Skeleton height={240} /> : null}
+            {selected === undefined && detailState.status === "offline" ? (
+              <Notice message="جزئیات این پرونده در حافظهٔ فعلی نیست." variant="offline" />
+            ) : null}
+            {selected === undefined && detailState.status === "error" ? (
+              <Notice actionLabel="تلاش دوباره" message="جزئیات پرونده دریافت نشد." onAction={() => void detailQuery.refetch()} variant="danger" />
+            ) : null}
+            {selected !== undefined && draft !== null ? (
+              <CoachReviewDetail
+                busy={busy}
+                detail={selected}
+                draft={draft}
+                onApprove={() => void decide("approve")}
+                onDraftChange={setDraft}
+                onExerciseChange={updateExercise}
+                onExerciseSelection={updateExerciseSelection}
+                onReject={() => void decide("reject")}
+                onRejectionExplanationChange={setRejectionExplanation}
+                onSave={() => void saveDraft()}
+                readOnly={readOnly}
+                rejectionExplanation={rejectionExplanation}
+              />
+            ) : null}
+          </View>
+        ) : null}
       </View>
       <AccountPrivacyLinks />
     </Screen>
@@ -323,21 +329,30 @@ function QueueState({
   }
   const items = state.data ?? [];
   if (items.length === 0) return <EmptyState title="این صف خالی است" />;
+  const groups = groupWorkoutReviewQueue(items);
   return (
     <View style={styles.queueItems}>
       {state.status === "offline" ? <Notice message="فهرست نمایش‌داده‌شده آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
-      {items.map((item) => (
-        <Card key={item.id} style={selectedId === item.id ? styles.selectedCard : undefined} variant={selectedId === item.id ? "raised" : "interactive"}>
-          <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
-          <Text style={styles.queueMeta}>{humanize(item.fitness_goal)} · {humanize(item.experience_level)}</Text>
-          <Text style={styles.status}>{coachReviewStatusLabel(item.status)}</Text>
-          <Button
-            disabled={state.status === "offline"}
-            label={item.status === "pending" ? "شروع بازبینی" : "مشاهده پرونده"}
-            onPress={() => onSelect(item.id, item.status === "pending" ? "pending" : view)}
-            variant="secondary"
-          />
-        </Card>
+      {groups.map((group) => (
+        <View key={group.key} style={styles.queueGroup}>
+          <Text accessibilityRole="header" style={styles.queueGroupTitle}>{queueGroupTitle(group)}</Text>
+          <View style={styles.queueGroupItems}>
+            {group.items.map((item) => (
+              <Card key={item.id} style={selectedId === item.id ? styles.selectedCard : styles.queueCard} variant={selectedId === item.id ? "raised" : "interactive"}>
+                <Text style={styles.memberName}>{item.member_display_name ?? "کاربر فیتیشین"}</Text>
+                <Text style={styles.queueMeta}>{humanize(item.fitness_goal)} · {humanize(item.experience_level)}</Text>
+                <Text style={styles.sentAt}>ارسال‌شده: {formatTehranDateTime(item.created_at)}</Text>
+                <Text style={styles.status}>{coachReviewStatusLabel(item.status)}</Text>
+                <Button
+                  disabled={state.status === "offline"}
+                  label={item.status === "pending" ? "شروع بازبینی" : "مشاهده پرونده"}
+                  onPress={() => onSelect(item.id, item.status === "pending" ? "pending" : view)}
+                  variant="secondary"
+                />
+              </Card>
+            ))}
+          </View>
+        </View>
       ))}
     </View>
   );
@@ -692,6 +707,13 @@ function queueLabel(view: CoachWorkoutReviewView): string {
   return "تأییدشده";
 }
 
+function queueGroupTitle(group: WorkoutReviewQueueGroup): string {
+  if (group.kind === "day") return formatPersianDateWithWeekday(group.date);
+  if (group.kind === "month") return "ماه قبل";
+  const weekNumber = group.key.slice(-1);
+  return `هفتهٔ ${weekNumber} · ${formatPersianDate(group.startDate)} تا ${formatPersianDate(group.endDate)}`;
+}
+
 function humanize(value: string | null): string {
   const labels: Record<string, string> = {
     advanced: "پیشرفته",
@@ -915,7 +937,18 @@ const styles = StyleSheet.create({
   },
   profileStrip: { flexDirection: "row", flexWrap: "wrap", gap: fiticianTokens.spacing[2] },
   queue: { gap: fiticianTokens.spacing[3] },
-  queueItems: { gap: fiticianTokens.spacing[3] },
+  queueCard: { gap: fiticianTokens.spacing[1] },
+  queueGroup: { gap: fiticianTokens.spacing[2] },
+  queueGroupItems: { gap: fiticianTokens.spacing[2] },
+  queueGroupTitle: {
+    color: fiticianTokens.colors.ink,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.sm,
+    fontWeight: fiticianTokens.typography.fontWeight.bold,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  queueItems: { gap: fiticianTokens.spacing[4] },
   queueMeta: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -957,6 +990,13 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   selectedCard: { borderColor: fiticianTokens.colors.aqua },
+  sentAt: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: fiticianTokens.typography.fontSize.xs,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
   status: {
     color: fiticianTokens.colors.aqua,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,

@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { formatTehranDateTime } from "@fitician/core";
+
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn(), useQueryClient: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
@@ -32,6 +34,7 @@ const mockCreateApi = jest.mocked(createCoachWorkoutReviewApi);
 
 const queueItem = {
   id: "review-1",
+  created_at: "2026-08-09T08:00:00Z",
   member_display_name: "محمد",
   fitness_goal: "build_muscle",
   experience_level: "beginner",
@@ -152,6 +155,19 @@ test("claims a case, edits the exercise selection, and saves the current revisio
       }),
     );
   });
+});
+
+test("groups the queue by sent age and replaces it with detail after selection", async () => {
+  renderScreen();
+
+  expect(await screen.findByText("ماه قبل")).toBeTruthy();
+  expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-08-09T08:00:00Z")}`)).toBeTruthy();
+  expect(screen.getByText("صف پرونده‌ها")).toBeTruthy();
+
+  fireEvent.press(screen.getByRole("button", { name: "شروع بازبینی" }));
+
+  expect((await screen.findAllByText(/پیش‌نویس مربی/)).length).toBeGreaterThan(0);
+  expect(screen.queryByText("صف پرونده‌ها")).toBeNull();
 });
 
 test("returns from the selected case before leaving the coach route", async () => {
