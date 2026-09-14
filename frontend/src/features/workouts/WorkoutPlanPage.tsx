@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
@@ -564,7 +565,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
                           type="button"
                           className={`workout-version-history__select${version.id === selectedHistoricalPlan?.id ? " workout-version-history__active" : ""}`}
                           disabled={selectingVersionId !== null}
-                          aria-label={`${label} — ${new Intl.DateTimeFormat(isEnglish ? "en" : "fa-IR", { dateStyle: "medium" }).format(new Date(version.created_at))}`}
+                          aria-label={`${label} — ${formatMemberTimestamp(version.created_at, isEnglish)}`}
                           onClick={() => selectVersion(version)}
                         >
                           <strong>{label}</strong>
@@ -700,7 +701,7 @@ function CoachReviewBanner({ plan, isEnglish, historical }: { plan: WorkoutPlan;
         <span className="workout-review-indicator" aria-hidden="true">✓</span>
         <div>
           <strong>{l(`تأییدشده توسط ${coach}`, `Approved by ${coach}`)}</strong>
-          {review.approved_at && <time dateTime={review.approved_at}>{new Intl.DateTimeFormat(isEnglish ? "en" : "fa-IR", { dateStyle: "long" }).format(new Date(review.approved_at))}</time>}
+          {review.approved_at && <time dateTime={review.approved_at}>{formatMemberTimestamp(review.approved_at, isEnglish)}</time>}
           {review.coach_note && <p>{review.coach_note}</p>}
         </div>
       </aside>
@@ -726,9 +727,13 @@ function CoachReviewBanner({ plan, isEnglish, historical }: { plan: WorkoutPlan;
 }
 
 function formatTimelineDate(value: string, isEnglish: boolean): string {
-  return new Intl.DateTimeFormat(isEnglish ? "en-US" : "fa-IR", { dateStyle: "medium" }).format(
-    new Date(value + "T12:00:00"),
-  );
+  return isEnglish ? formatIsoDate(value, "en-US") : formatPersianDateWithWeekday(value);
+}
+
+function formatMemberTimestamp(value: string, isEnglish: boolean): string {
+  return isEnglish
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value))
+    : formatTehranDateTime(value);
 }
 
 function WorkoutTimelineCard({
@@ -828,6 +833,7 @@ function WorkoutTimelineCard({
               value={startDate}
               onChange={(event) => onStartDateChange(event.target.value)}
             />
+            {!isEnglish && startDate !== "" && <small>{formatDate(startDate)}</small>}
           </label>
           <button className="workout-timeline-card__primary" type="button" disabled={action !== null || startDate === ""} onClick={onStart}>
             {action === "start" ? t("workoutPlan.starting") : t("workoutPlan.startProgram")}
@@ -873,6 +879,7 @@ function WorkoutTimelineCard({
                   value={rescheduleDate}
                   onChange={(event) => setRescheduleDate(event.target.value)}
                 />
+                {!isEnglish && rescheduleDate !== "" && <small>{formatDate(rescheduleDate)}</small>}
               </label>
               <button className="workout-timeline-card__primary" type="button" disabled={action !== null || rescheduleDate === ""} onClick={() => onReschedule(focusSession.id, rescheduleDate)}>
                 {t("workoutPlan.applyReschedule")}

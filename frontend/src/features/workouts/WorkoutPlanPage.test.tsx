@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
 import { ApiError } from "../../shared/apiClient";
+import { formatPersianDateWithWeekday } from "@fitician/core";
 import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { WorkoutPlan } from "./types";
 
@@ -278,6 +279,7 @@ it("shows an explicit start card for an active plan without a cycle", async () =
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   expect(await screen.findByText("برنامه‌ات آماده شروع است")).toBeInTheDocument();
+  expect(screen.getByText(formatPersianDateWithWeekday("2026-09-13"))).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "شروع برنامه" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "شروع برنامه" }));
   await waitFor(() => expect(api.startWorkoutCycle).toHaveBeenCalledWith({
@@ -315,7 +317,9 @@ it("focuses the actual rest-day next session rather than the first array item", 
 
   expect(await screen.findByText("روز استراحت")).toBeInTheDocument();
   expect(screen.getAllByText("جلسه بعد").length).toBeGreaterThan(0);
-  expect(screen.getByText("روز استراحت").closest(".workout-timeline-card")).toHaveTextContent("روز دوم");
+  const restCard = screen.getByText("روز استراحت").closest(".workout-timeline-card");
+  expect(restCard).toHaveTextContent("روز دوم");
+  expect(restCard).toHaveTextContent(formatPersianDateWithWeekday("2026-09-15"));
   expect(document.querySelector('[data-workout-day-id="day-2"]')).toHaveClass("workout-day--next");
   expect(document.querySelector('[data-workout-day-id="day-1"]')).not.toHaveClass("workout-day--next");
 });
@@ -362,6 +366,9 @@ it("focuses an overdue session and sends Do today to reschedule", async () => {
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   expect(await screen.findByText("این جلسه عقب افتاده است")).toBeInTheDocument();
+  expect(screen.getByText("این جلسه عقب افتاده است").closest(".workout-timeline-card")).toHaveTextContent(
+    formatPersianDateWithWeekday("2026-09-10"),
+  );
   expect(document.querySelector('[data-workout-day-id="day-1"]')).toHaveClass("workout-day--focus");
   await user.click(screen.getByRole("button", { name: "انجام امروز" }));
   await waitFor(() => expect(api.rescheduleWorkoutSession).toHaveBeenCalledWith("session-1", "2026-09-13"));
