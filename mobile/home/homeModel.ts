@@ -71,7 +71,10 @@ export function nutritionSummary(
   timeline?: TimelineNutrition | null,
 ): HomeNutritionSummary {
   const day = plan?.days.find((item) => item.plan_date === date);
-  const planned = timeline?.nutrient_totals ?? day?.nutrient_totals ?? {};
+  const planned = timeline?.effective_today?.nutrient_totals
+    ?? (timeline?.state === "active" ? timeline.nutrient_totals : undefined)
+    ?? day?.nutrient_totals
+    ?? {};
   const targets = estimate?.targets ?? {};
   const targetCalories = numberValue(planned.energy_kcal) ?? firstTarget(targets.goal_calories);
   const targetProtein = numberValue(planned.protein_g) ?? firstTarget(targets.protein);

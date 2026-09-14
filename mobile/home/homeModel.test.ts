@@ -129,6 +129,35 @@ it("uses the recurring timeline target on nutrition day eight", () => {
   expect(summary.protein).toBe(140);
 });
 
+it("uses effective today totals instead of the selected future plan during a handoff", () => {
+  const summary = nutritionSummary(
+    {
+      days: [{ nutrient_totals: { energy_kcal: 3_000 }, plan_date: "2026-09-17" }],
+      physician_approved: true,
+    } as never,
+    null,
+    null,
+    "2026-09-14",
+    {
+      state: "scheduled_start",
+      plan_id: "future-plan",
+      start_date: "2026-09-17",
+      nutrient_totals: { energy_kcal: 3_000 },
+      effective_today: {
+        plan_id: "old-plan",
+        start_date: "2026-09-01",
+        absolute_day_number: 14,
+        pattern_day_index: 6,
+        day_id: "old-day",
+        nutrient_totals: { energy_kcal: 2_200, protein_g: 150 },
+      },
+    } satisfies TimelineNutrition,
+  );
+
+  expect(summary.targetCalories).toBe(2_200);
+  expect(summary.protein).toBe(150);
+});
+
 it("returns an empty nutrition state when neither plan nor estimate exists", () => {
   expect(nutritionSummary(null, null, null, "2026-09-09")).toMatchObject({
     status: "empty",
