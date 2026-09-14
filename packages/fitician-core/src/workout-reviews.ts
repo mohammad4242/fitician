@@ -59,14 +59,10 @@ export type RecencyQueueGroup<T> =
     }
   | {
       kind: "week";
-      key: "week-2" | "week-3" | "week-4";
+      key: string;
+      weekOffset: number;
       startDate: string;
       endDate: string;
-      items: T[];
-    }
-  | {
-      kind: "month";
-      key: "month";
       items: T[];
     };
 
@@ -116,18 +112,19 @@ function ageInDays(timestamp: string, now: string): number {
 }
 
 function weeklyGroup<T>(
-  key: "week-2" | "week-3" | "week-4",
+  weekOffset: number,
   today: string,
   items: T[],
 ): RecencyQueueGroup<T> {
-  const weekNumber = Number(key.slice(-1));
-  const newestAge = (weekNumber - 1) * 7;
+  const newestAge = weekOffset * 7;
+  const endAge = weekOffset === 0 ? 1 : newestAge;
   return {
-    endDate: addDays(today, -newestAge),
+    endDate: addDays(today, -endAge),
     items,
-    key,
+    key: `week-${weekOffset}`,
     kind: "week",
-    startDate: addDays(today, -(newestAge + 6)),
+    startDate: addDays(today, -(weekOffset === 0 ? 6 : newestAge + 6)),
+    weekOffset,
   };
 }
 
@@ -149,32 +146,31 @@ export function groupReviewQueueByRecency<T>(
     const timestamp = getTimestamp(item);
     const itemDate = dateKey(timestamp);
     const age = ageInDays(timestamp, now);
-    const key = age < 7
-      ? itemDate
-      : age < 14
-        ? "week-2"
-        : age < 21
-          ? "week-3"
-          : age < 28
-            ? "week-4"
-            : "month";
+    const isDayGroup = age < 0 || itemDate === today;
+    const weekOffset = Math.floor(Math.max(age, 0) / 7);
+    const key = isDayGroup ? itemDate : `week-${weekOffset}`;
     const existing = groups.get(key);
     if (existing !== undefined) {
       existing.items.push(item);
       continue;
     }
     let group: RecencyQueueGroup<T>;
-    if (key === "month") {
-      group = { items: [item], key: "month", kind: "month" };
-    } else if (key === "week-2" || key === "week-3" || key === "week-4") {
-      group = weeklyGroup(key, today, [item]);
-    } else {
+    if (isDayGroup) {
       group = { date: itemDate, items: [item], key: itemDate, kind: "day" };
+    } else {
+      group = weeklyGroup(weekOffset, today, [item]);
     }
     groups.set(key, group);
   }
 
   return [...groups.values()];
+}
+
+export function reviewQueueWeekLabel(weekOffset: number, language: "fa" | "en"): string {
+  if (language === "fa") {
+    return weekOffset === 0 ? "این هفته" : `${weekOffset.toLocaleString("fa-IR", { useGrouping: false })} هفته قبل`;
+  }
+  return weekOffset === 0 ? "This week" : `${weekOffset} ${weekOffset === 1 ? "week" : "weeks"} ago`;
 }
 
 export function groupWorkoutReviewQueue(

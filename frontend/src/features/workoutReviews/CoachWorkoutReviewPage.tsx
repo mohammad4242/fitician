@@ -3,9 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import {
-  formatIsoDate,
-  formatPersianDate,
-  formatPersianDateWithWeekday,
   formatTehranDateTime,
   formatTehranDateTimeForLocale,
   formatTehranTimeForLocale,
@@ -15,6 +12,7 @@ import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
 import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
+import { ReviewQueueGroupHeader } from "../../shared/ReviewQueueGroupHeader";
 import {
   approveWorkoutReview,
   claimWorkoutReview,
@@ -29,7 +27,6 @@ import type {
   WorkoutReviewDayDraft,
   WorkoutReviewDetail,
   WorkoutReviewExerciseDraft,
-  WorkoutReviewQueueGroup,
   WorkoutReviewQueueItem,
   WorkoutReviewQueueView,
 } from "./types";
@@ -268,10 +265,12 @@ export function CoachWorkoutReviewPage() {
                   data-queue-group-key={group.key}
                   key={group.key}
                 >
-                  <header className="coach-review-group-header">
-                    <h3 id={`coach-review-group-${group.key}`}>{queueGroupTitle(group, fa)}</h3>
-                    <span>{group.items.length.toLocaleString(fa ? "fa-IR" : "en-US")}</span>
-                  </header>
+                  <ReviewQueueGroupHeader
+                    count={group.items.length}
+                    fa={fa}
+                    group={group}
+                    headingId={`coach-review-group-${group.key}`}
+                  />
                   <div className="coach-review-group-items">
                     {group.items.map((item) => (
                       <article key={item.id} className={selected?.id === item.id ? "is-selected" : undefined}>
@@ -480,19 +479,6 @@ function queueTitle(view: WorkoutReviewQueueView, fa: boolean) {
   if (view === "pending") return fa ? "در انتظار بررسی" : "Waiting";
   if (view === "mine") return fa ? "در حال بررسی من" : "My reviews";
   return fa ? "تأییدشده" : "Approved";
-}
-
-function queueGroupTitle(group: WorkoutReviewQueueGroup, fa: boolean): string {
-  if (group.kind === "day") {
-    return fa
-      ? formatPersianDateWithWeekday(group.date)
-      : formatIsoDate(group.date, "en-US");
-  }
-  if (group.kind === "month") return fa ? "ماه قبل" : "Previous month";
-  const weekNumber = group.key.slice(-1);
-  const start = fa ? formatPersianDate(group.startDate) : formatIsoDate(group.startDate, "en-US");
-  const end = fa ? formatPersianDate(group.endDate) : formatIsoDate(group.endDate, "en-US");
-  return fa ? `هفتهٔ ${weekNumber} · ${start} تا ${end}` : `Week ${weekNumber} · ${start} – ${end}`;
 }
 
 function sentAtLabel(value: string, fa: boolean): string {

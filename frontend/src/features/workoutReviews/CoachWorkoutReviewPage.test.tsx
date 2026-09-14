@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 
-import { formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
+import { formatTehranDateTime } from "@fitician/core";
 
 import type { ReviewProfileSummary, WorkoutReviewDetail, WorkoutReviewQueueItem } from "./types";
 
@@ -227,12 +227,12 @@ it("groups queue items by sent date and shows the sent timestamp", async () => {
   ]);
   renderPage();
 
-  expect(await screen.findByRole("heading", { name: formatPersianDateWithWeekday("2026-09-13") })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "ماه قبل" })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "۵ هفته قبل" })).toBeVisible();
   expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
 
   const groups = [...document.querySelectorAll<HTMLElement>("[data-queue-group-key]")];
-  expect(groups.map((group) => group.dataset.queueGroupKey)).toEqual(["2026-09-13", "month"]);
+  expect(groups.map((group) => group.dataset.queueGroupKey)).toEqual(["week-0", "week-5"]);
 });
 
 it("groups approved cases by approval date and shows the approval timestamp", async () => {
@@ -248,7 +248,7 @@ it("groups approved cases by approval date and shows the approval timestamp", as
 
   await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
 
-  expect(await screen.findByRole("heading", { name: formatPersianDateWithWeekday("2026-09-13") })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
 });
 

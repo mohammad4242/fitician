@@ -163,7 +163,7 @@ export type {
   OnboardingStep,
   OnboardingTransitionErrorCode,
 } from "./onboarding";
-export { groupReviewQueueByRecency, groupWorkoutReviewQueue } from "./workout-reviews";
+export { groupReviewQueueByRecency, groupWorkoutReviewQueue, reviewQueueWeekLabel } from "./workout-reviews";
 export type {
   CoachTemplateSelection,
   ReviewProfileSummary,

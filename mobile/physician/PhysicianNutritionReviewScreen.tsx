@@ -5,14 +5,12 @@ import { Alert, StyleSheet, Text, View } from "react-native";
 
 import {
   formatPersianDate,
-  formatPersianDateWithWeekday,
   formatTehranDateTime,
   groupReviewQueueByRecency,
   irrToToman,
   reviewDisclosureDefaultExpanded,
   reviewDisclosureKeys,
   type components,
-  type RecencyQueueGroup,
 } from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
@@ -29,6 +27,7 @@ import {
   MetricStrip,
   Notice,
   PageHeading,
+  ReviewQueueGroupHeader,
   SegmentedControl,
   Sheet,
   Skeleton,
@@ -675,7 +674,7 @@ function QueueState({
       {state.status === "offline" ? <Notice message="این فهرست آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
       {groups.map((group) => (
         <View key={group.key} style={styles.queueGroup}>
-          <Text accessibilityRole="header" style={styles.queueGroupTitle}>{physicianQueueGroupTitle(group)}</Text>
+          <ReviewQueueGroupHeader group={group} />
           <View style={styles.queueGroupItems}>
             {group.items.map((item) => (
               <Card
@@ -1409,13 +1408,6 @@ function queueLabel(view: PhysicianReviewQueueView): string {
   return "تأییدشده";
 }
 
-function physicianQueueGroupTitle(group: RecencyQueueGroup<PhysicianReviewQueueItem>): string {
-  if (group.kind === "day") return formatPersianDateWithWeekday(group.date);
-  if (group.kind === "month") return "ماه قبل";
-  const weekNumber = group.key.slice(-1);
-  return `هفتهٔ ${weekNumber} · ${formatPersianDate(group.startDate)} تا ${formatPersianDate(group.endDate)}`;
-}
-
 function clinicalTabLabel(tab: ClinicalTab): string {
   if (tab === "plan") return "بررسی برنامه";
   if (tab === "labs") return "آزمایش‌ها";
@@ -1641,14 +1633,6 @@ const styles = StyleSheet.create({
   queue: { gap: fiticianTokens.spacing[3] },
   queueGroup: { gap: fiticianTokens.spacing[2] },
   queueGroupItems: { gap: fiticianTokens.spacing[2] },
-  queueGroupTitle: {
-    color: fiticianTokens.colors.ink,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.bold,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
   queueItems: { gap: fiticianTokens.spacing[4] },
   queueMeta: {
     color: fiticianTokens.colors.muted,

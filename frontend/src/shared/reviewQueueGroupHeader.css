@@ -1,0 +1,66 @@
+.review-queue-group-header {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 0.8rem 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgb(125 224 210 / 28%);
+  border-inline-start: 0.3rem solid #7de0d2;
+  border-radius: 1rem;
+  color: #e8f8f4;
+  background: rgb(13 50 47 / 78%);
+  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 12%);
+  direction: inherit;
+}
+
+.review-queue-group-header__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.review-queue-group-header h3 {
+  min-width: 0;
+  margin: 0;
+  color: #e8f8f4;
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  font-weight: 850;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.review-queue-group-header p {
+  min-width: 0;
+  margin: 0;
+  color: #8fb9b2;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.review-queue-group-header__count {
+  flex: 0 0 auto;
+  display: grid;
+  min-width: 1.7rem;
+  min-height: 1.7rem;
+  place-items: center;
+  padding-inline: 0.25rem;
+  border-radius: 99px;
+  color: #06201e;
+  background: #7de0d2;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .review-queue-group-header {
+    gap: 0.55rem;
+    padding: 0.8rem 0.85rem;
+  }
+
+  .review-queue-group-header p { font-size: 0.72rem; }
+}

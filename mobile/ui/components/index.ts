@@ -15,6 +15,8 @@ export { BrandMark } from "./BrandMark";
 export type { BrandMarkProps } from "./BrandMark";
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
+export { ReviewQueueGroupHeader } from "./ReviewQueueGroupHeader";
+export type { ReviewQueueGroupHeaderProps } from "./ReviewQueueGroupHeader";
 export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps } from "./SectionHeader";
 export { CinematicSurface } from "./CinematicSurface";

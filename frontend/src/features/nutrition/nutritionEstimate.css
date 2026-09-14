@@ -546,7 +546,6 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .physician-queue-tabs button[aria-selected="true"], .physician-clinical-tabs button[aria-selected="true"] { color: #03211e; background: #7de0d2; }
 .physician-review-cases { display: grid; gap: 0.6rem; margin-top: 0.75rem; }
 .physician-review-case-group { display: grid; gap: 0.45rem; }
-.physician-review-case-group h3 { margin: 0.7rem 0 0.1rem; color: #7de0d2; font-size: 0.78rem; font-weight: 850; }
 .physician-review-cases article { display: grid; gap: 0.35rem; padding: 1rem; border: 1px solid transparent; border-radius: 1rem; background: rgb(4 24 23 / 58%); }
 .physician-review-cases article.is-selected { border-color: #58c9b9; }
 .physician-review-cases small, .physician-review-cases span { color: #87aaa5; }

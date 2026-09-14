@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
-  formatPersianDate,
-  formatPersianDateWithWeekday,
   formatTehranDateTime,
   formatTehranTime,
   groupWorkoutReviewQueue,
@@ -13,7 +11,6 @@ import {
   reviewDisclosureKeys,
 } from "@fitician/core";
 import type { components } from "@fitician/core";
-import type { WorkoutReviewQueueGroup } from "@fitician/core";
 
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -28,6 +25,7 @@ import {
   Notice,
   PageHeading,
   SegmentedControl,
+  ReviewQueueGroupHeader,
   Sheet,
   Skeleton,
   TextField,
@@ -342,7 +340,7 @@ function QueueState({
       {state.status === "offline" ? <Notice message="فهرست نمایش‌داده‌شده آخرین دادهٔ دریافت‌شده است." variant="offline" /> : null}
       {groups.map((group) => (
         <View key={group.key} style={styles.queueGroup}>
-          <Text accessibilityRole="header" style={styles.queueGroupTitle}>{queueGroupTitle(group)}</Text>
+          <ReviewQueueGroupHeader group={group} />
           <View style={styles.queueGroupItems}>
             {group.items.map((item) => (
               <Card key={item.id} style={selectedId === item.id ? styles.selectedCard : styles.queueCard} variant={selectedId === item.id ? "raised" : "interactive"}>
@@ -720,13 +718,6 @@ function queueLabel(view: CoachWorkoutReviewView): string {
   return "تأییدشده";
 }
 
-function queueGroupTitle(group: WorkoutReviewQueueGroup): string {
-  if (group.kind === "day") return formatPersianDateWithWeekday(group.date);
-  if (group.kind === "month") return "ماه قبل";
-  const weekNumber = group.key.slice(-1);
-  return `هفتهٔ ${weekNumber} · ${formatPersianDate(group.startDate)} تا ${formatPersianDate(group.endDate)}`;
-}
-
 function humanize(value: string | null): string {
   const labels: Record<string, string> = {
     advanced: "پیشرفته",
@@ -953,14 +944,6 @@ const styles = StyleSheet.create({
   queueCard: { gap: fiticianTokens.spacing[1] },
   queueGroup: { gap: fiticianTokens.spacing[2] },
   queueGroupItems: { gap: fiticianTokens.spacing[2] },
-  queueGroupTitle: {
-    color: fiticianTokens.colors.ink,
-    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.bold,
-    textAlign: "auto",
-    writingDirection: "rtl",
-  },
   queueItems: { gap: fiticianTokens.spacing[4] },
   queueMeta: {
     color: fiticianTokens.colors.muted,

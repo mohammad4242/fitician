@@ -121,32 +121,6 @@
 
 .coach-review-group { display: grid; gap: 0.45rem; }
 
-.coach-review-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding-inline: 0.25rem;
-}
-
-.coach-review-group-header h3 {
-  margin: 0;
-  color: #dffbf6;
-  font-size: 0.9rem;
-}
-
-.coach-review-group-header > span {
-  display: grid;
-  min-width: 1.6rem;
-  min-height: 1.6rem;
-  place-items: center;
-  border-radius: 99px;
-  color: #06201e;
-  background: #7de0d2;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
 .coach-review-group-items { display: grid; gap: 0.5rem; }
 
 .coach-review-cases article {

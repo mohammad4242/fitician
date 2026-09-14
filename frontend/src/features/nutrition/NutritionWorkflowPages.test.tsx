@@ -490,7 +490,7 @@ it("groups physician cases by requested date in every queue view", async () => {
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "6 weeks ago" })).toBeInTheDocument();
   expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
     expect.stringContaining("New Member"),
     expect.stringContaining("Old Member"),
@@ -498,7 +498,7 @@ it("groups physician cases by requested date in every queue view", async () => {
 
   await user.click(screen.getByRole("tab", { name: /Claimed/ }));
   expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "6 weeks ago" })).toBeInTheDocument();
   expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
     expect.stringContaining("New Member"),
     expect.stringContaining("Old Member"),
@@ -506,10 +506,10 @@ it("groups physician cases by requested date in every queue view", async () => {
 
   await user.click(screen.getByRole("tab", { name: /Approved/ }));
   expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Previous month" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "6 weeks ago" })).not.toBeInTheDocument();
   expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
-    expect.stringContaining("New Member"),
     expect.stringContaining("Old Member"),
+    expect.stringContaining("New Member"),
   ]);
 });
 
@@ -523,7 +523,7 @@ it("localizes physician recency group headings in Persian", async () => {
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: /امروز/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "ماه قبل" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "۶ هفته قبل" })).toBeInTheDocument();
 });
 
 it("lays out physician cases in a desk sidebar with clinical workspace tabs", async () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   groupReviewQueueByRecency,
   groupWorkoutReviewQueue,
+  reviewQueueWeekLabel,
   type WorkoutReviewQueueItem,
 } from "./workout-reviews.js";
 
@@ -33,13 +34,13 @@ function daysAgo(days: number): string {
 }
 
 describe("groupWorkoutReviewQueue", () => {
-  it("keeps seven recent calendar days separate and rolls older items into weekly and monthly groups", () => {
+  it("keeps today separate and rolls older items into explicit weekly groups", () => {
     const groups = groupWorkoutReviewQueue(
       [
-        item("month", daysAgo(28)),
-        item("week-4", daysAgo(21)),
-        item("week-3", daysAgo(14)),
-        item("week-2", daysAgo(7)),
+        item("week-4", daysAgo(28)),
+        item("week-3", daysAgo(21)),
+        item("week-2", daysAgo(14)),
+        item("week-1", daysAgo(7)),
         ...Array.from({ length: 7 }, (_, index) => item(`day-${index}`, daysAgo(index))),
       ],
       NOW,
@@ -47,19 +48,14 @@ describe("groupWorkoutReviewQueue", () => {
 
     expect(groups.map((group) => group.key)).toEqual([
       "2026-09-14",
-      "2026-09-13",
-      "2026-09-12",
-      "2026-09-11",
-      "2026-09-10",
-      "2026-09-09",
-      "2026-09-08",
+      "week-0",
+      "week-1",
       "week-2",
       "week-3",
       "week-4",
-      "month",
     ]);
-    expect(groups.find((group) => group.key === "week-2")?.items.map(({ id }) => id)).toEqual(["week-2"]);
-    expect(groups.find((group) => group.key === "month")?.items.map(({ id }) => id)).toEqual(["month"]);
+    expect(groups.find((group) => group.key === "week-1")?.items.map(({ id }) => id)).toEqual(["week-1"]);
+    expect(groups.find((group) => group.key === "week-4")?.items.map(({ id }) => id)).toEqual(["week-4"]);
   });
 
   it("sorts items newest-first inside a date group", () => {
@@ -77,7 +73,7 @@ describe("groupWorkoutReviewQueue", () => {
       item("before-midnight", "2026-09-14T20:29:00.000Z"),
     ], "2026-09-14T20:30:00.000Z");
 
-    expect(groups.map((group) => group.key)).toEqual(["2026-09-15", "2026-09-14"]);
+    expect(groups.map((group) => group.key)).toEqual(["2026-09-15", "week-0"]);
   });
 
   it("groups approved reviews by approval date when requested", () => {
@@ -89,7 +85,7 @@ describe("groupWorkoutReviewQueue", () => {
 
     const groups = groupWorkoutReviewQueue([approved], NOW, "approved_at");
 
-    expect(groups[0]?.key).toBe("2026-09-13");
+    expect(groups[0]?.key).toBe("week-0");
     expect(groups[0]?.items[0]).toBe(approved);
   });
 });
@@ -103,8 +99,55 @@ describe("groupReviewQueueByRecency", () => {
 
     const groups = groupReviewQueueByRecency(cases, (review) => review.requested_at, NOW);
 
-    expect(groups.map((group) => group.key)).toEqual(["2026-09-14", "month"]);
+    expect(groups.map((group) => group.key)).toEqual(["2026-09-14", "week-5"]);
     expect(groups[0]?.items).toEqual([cases[1]]);
     expect(groups[1]?.items).toEqual([cases[0]]);
+  });
+
+  it("keeps today separate and exposes real week offsets beyond four", () => {
+    const cases = [
+      { review_id: "today", requested_at: daysAgo(0) },
+      { review_id: "current-week", requested_at: daysAgo(1) },
+      { review_id: "one-week", requested_at: daysAgo(7) },
+      { review_id: "two-weeks", requested_at: daysAgo(14) },
+      { review_id: "four-weeks", requested_at: daysAgo(28) },
+      { review_id: "five-weeks", requested_at: daysAgo(35) },
+    ];
+
+    const groups = groupReviewQueueByRecency(cases, (review) => review.requested_at, NOW);
+
+    expect(groups.map((group) => group.key)).toEqual([
+      "2026-09-14",
+      "week-0",
+      "week-1",
+      "week-2",
+      "week-4",
+      "week-5",
+    ]);
+    expect(groups[1]).toMatchObject({
+      endDate: "2026-09-13",
+      kind: "week",
+      startDate: "2026-09-08",
+      weekOffset: 0,
+    });
+    expect(groups[2]).toMatchObject({
+      endDate: "2026-09-07",
+      kind: "week",
+      startDate: "2026-09-01",
+      weekOffset: 1,
+    });
+    expect(groups[4]).toMatchObject({
+      endDate: "2026-08-17",
+      kind: "week",
+      startDate: "2026-08-11",
+      weekOffset: 4,
+    });
+  });
+
+  it("formats week labels from the explicit offset", () => {
+    expect(reviewQueueWeekLabel(0, "fa")).toBe("این هفته");
+    expect(reviewQueueWeekLabel(1, "fa")).toBe("۱ هفته قبل");
+    expect(reviewQueueWeekLabel(4, "fa")).toBe("۴ هفته قبل");
+    expect(reviewQueueWeekLabel(4, "fa")).not.toContain("هفتهٔ 4");
   });
 });

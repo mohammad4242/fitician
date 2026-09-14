@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { formatPersianDateWithWeekday, formatTehranDateTime } from "@fitician/core";
+import { formatTehranDateTime } from "@fitician/core";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn(), useQueryClient: jest.fn() }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
@@ -179,7 +179,7 @@ test("claims a case, edits the exercise selection, and saves the current revisio
 test("groups the queue by sent age and replaces it with detail after selection", async () => {
   renderScreen();
 
-  expect(await screen.findByText("ماه قبل")).toBeTruthy();
+  expect(await screen.findByText("۵ هفته قبل")).toBeTruthy();
   expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-08-09T08:00:00Z")}`)).toBeTruthy();
   expect(screen.getByText("صف پرونده‌ها")).toBeTruthy();
 
@@ -207,7 +207,7 @@ test("groups approved cases by approval date and shows the approval timestamp", 
   renderScreen();
   fireEvent.press(await screen.findByRole("radio", { name: "تأییدشده" }));
 
-  expect(await screen.findByText(formatPersianDateWithWeekday("2026-09-13"))).toBeTruthy();
+  expect(await screen.findByText("این هفته")).toBeTruthy();
   expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeTruthy();
 });
 
