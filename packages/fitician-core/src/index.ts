@@ -43,6 +43,7 @@ export {
   IRAN_TIME_ZONE,
   PERSIAN_CALENDAR_LOCALE,
   fiticianWeekdayFromIsoDate,
+  formatIsoDate,
   formatPersianDate,
   formatPersianDateWithWeekday,
   formatPersianWeekday,

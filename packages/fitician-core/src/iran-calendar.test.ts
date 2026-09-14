@@ -7,6 +7,7 @@ import {
   formatPersianDate,
   formatPersianDateWithWeekday,
   formatPersianWeekday,
+  formatIsoDate,
   formatTehranDateTime,
 } from "./iran-calendar.js";
 import { resolvedIanaTimeZone } from "./local-date.js";
@@ -20,6 +21,11 @@ it("formats a known Gregorian date with the Persian calendar", () => {
   expect(formatPersianDate("2026-09-14")).toBe("۲۳ شهریور ۱۴۰۵");
   expect(formatPersianDateWithWeekday("2026-09-14")).toBe("دوشنبه ۲۳ شهریور ۱۴۰۵");
   expect(formatPersianWeekday("2026-09-14")).toBe("دوشنبه");
+});
+
+it("formats ISO date-only values with a stable Gregorian calendar", () => {
+  expect(formatIsoDate("2026-09-14", "en-US")).toBe("Sep 14, 2026");
+  expect(formatIsoDate("2026-09-14", "en-US", { day: "numeric", month: "short" })).toBe("Sep 14");
 });
 
 it("maps every Gregorian Saturday-through-Friday date to the Fitician weekday contract", () => {

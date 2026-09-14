@@ -39,6 +39,17 @@ function timestampAsDate(value: string): Date {
   return date;
 }
 
+export function formatIsoDate(
+  isoDate: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: "UTC",
+  }).format(dateOnlyAsUtcNoon(isoDate));
+}
+
 export function fiticianWeekdayFromIsoDate(isoDate: string): number {
   return (dateOnlyAsUtcNoon(isoDate).getUTCDay() + 1) % 7;
 }
