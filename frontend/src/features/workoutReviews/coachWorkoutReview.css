@@ -366,6 +366,26 @@
 .coach-review-day > summary .review-disclosure__summary { color: #86aaa4; }
 .coach-review-day > .review-disclosure__body { padding: 0 1rem 1rem; }
 
+.coach-review-exercise {
+  margin-block-start: 0.7rem;
+  border-color: rgb(154 225 214 / 15%);
+  border-radius: 0.95rem;
+  background: rgb(4 24 23 / 58%);
+}
+
+.coach-review-exercise > summary {
+  min-height: 3.4rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.coach-review-exercise > summary .review-disclosure__title {
+  color: #e9faf6;
+  font-size: 0.95rem;
+}
+
+.coach-review-exercise > summary .review-disclosure__summary { color: #86aaa4; }
+.coach-review-exercise > .review-disclosure__body { padding: 0 0.85rem 0.85rem; }
+
 .coach-review-day fieldset {
   display: grid;
   grid-template-columns: minmax(12rem, 1.2fr) minmax(16rem, 2fr);

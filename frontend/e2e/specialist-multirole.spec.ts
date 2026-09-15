@@ -177,6 +177,7 @@ test.describe("real specialist multi-role flows", () => {
       await coach.page.goto("/coach/workouts", { waitUntil: "networkidle" });
       const caseCard = coach.page.locator(".coach-review-cases article").filter({ hasText: member.displayName });
       await expect(caseCard).toHaveCount(1);
+      await caseCard.locator("xpath=ancestor::details").locator("[data-queue-group-header='true']").click();
       await expect(caseCard).toBeVisible();
       await caseCard.getByRole("button", { name: /شروع بازبینی|Start review/ }).click();
       await expect(coach.page.locator(".coach-review-case-header")).toContainText(member.displayName);
@@ -201,6 +202,8 @@ test.describe("real specialist multi-role flows", () => {
       );
       expect(secondDetail.ok()).toBe(false);
 
+      await coach.page.locator(".coach-review-day").first().locator("summary").click();
+      await coach.page.locator(".coach-review-exercise").first().locator("summary").click();
       const rirInput = coach.page.getByLabel(/RIR روز/).first();
       const initialRir = Number(await rirInput.inputValue());
       const changedRir = initialRir === 0 ? 1 : initialRir - 1;

@@ -367,46 +367,61 @@ export function CoachWorkoutReviewPage() {
                       title={l(`روز ${faNumber(day.day_number)}`, `Day ${day.day_number}`)}
                     >
                       {day.exercises.map((exercise, exerciseIndex) => {
+                        const exerciseOption = selected.exercise_options.find((option) => option.id === exercise.exercise_id);
+                        const exerciseName = exerciseOption
+                          ? (fa ? exerciseOption.name_fa : exerciseOption.name_en)
+                          : l(`حرکت ${faNumber(exercise.order_index)}`, `Exercise ${exercise.order_index}`);
+                        const exerciseTitle = exerciseOption
+                          ? l(`حرکت ${faNumber(exercise.order_index)} · ${exerciseName}`, `Exercise ${exercise.order_index} · ${exerciseName}`)
+                          : exerciseName;
                         const labelSuffix = l(
                           `روز ${faNumber(day.day_number)} حرکت ${faNumber(exercise.order_index)}`,
                           `day ${day.day_number} exercise ${exercise.order_index}`,
                         );
                         return (
-                          <fieldset key={exercise.order_index} disabled={busy || readOnly}>
-                            <legend>{l(`حرکت ${faNumber(exercise.order_index)}`, `Exercise ${exercise.order_index}`)}</legend>
-                            <label>
-                              {l("انتخاب حرکت", "Exercise")}
-                              <select value={exercise.exercise_id} onChange={(event) => updateExerciseSelection(dayIndex, exerciseIndex, event.target.value)}>
-                                {selected.exercise_options.map((option) => (
-                                  <option key={option.id} value={option.id}>{fa ? option.name_fa : option.name_en}</option>
-                                ))}
-                              </select>
-                            </label>
-                            <div className="coach-review-prescription">
-                              <NumberField label={l(`تعداد ست ${labelSuffix}`, `Sets ${labelSuffix}`)} value={exercise.sets} onChange={(sets) => updateExercise(dayIndex, exerciseIndex, { sets })} />
-                              {exercise.prescription_mode === "duration" ? (
-                                <>
-                                  <NumberField label={l(`حداقل ثانیه ${labelSuffix}`, `Minimum seconds ${labelSuffix}`)} value={exercise.duration_min_seconds ?? 0} onChange={(duration_min_seconds) => updateExercise(dayIndex, exerciseIndex, { duration_min_seconds })} />
-                                  <NumberField label={l(`حداکثر ثانیه ${labelSuffix}`, `Maximum seconds ${labelSuffix}`)} value={exercise.duration_max_seconds ?? 0} onChange={(duration_max_seconds) => updateExercise(dayIndex, exerciseIndex, { duration_max_seconds })} />
-                                </>
-                              ) : (
-                                <>
-                                  <NumberField label={l(`حداقل تکرار ${labelSuffix}`, `Minimum reps ${labelSuffix}`)} value={exercise.reps_min ?? 8} onChange={(reps_min) => updateExercise(dayIndex, exerciseIndex, { reps_min })} />
-                                  <NumberField label={l(`حداکثر تکرار ${labelSuffix}`, `Maximum reps ${labelSuffix}`)} value={exercise.reps_max ?? 12} onChange={(reps_max) => updateExercise(dayIndex, exerciseIndex, { reps_max })} />
-                                  <NumberField label={`RIR ${labelSuffix}`} value={exercise.rir ?? 2} min={0} max={5} onChange={(rir) => updateExercise(dayIndex, exerciseIndex, { rir })} />
-                                </>
-                              )}
-                              <NumberField label={l(`استراحت ${labelSuffix}`, `Rest ${labelSuffix}`)} value={exercise.rest_seconds} step={15} onChange={(rest_seconds) => updateExercise(dayIndex, exerciseIndex, { rest_seconds })} />
-                            </div>
-                            <label>
-                              {l("یادداشت فارسی حرکت", "Persian exercise note")}
-                              <textarea value={exercise.notes_fa ?? ""} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { notes_fa: event.target.value || null })} />
-                            </label>
-                            <label>
-                              {l("یادداشت انگلیسی حرکت", "English exercise note")}
-                              <textarea dir="ltr" value={exercise.notes_en ?? ""} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { notes_en: event.target.value || null })} />
-                            </label>
-                          </fieldset>
+                          <ReviewDisclosure
+                            className="coach-review-exercise"
+                            key={exercise.order_index}
+                            section="coach-workout-exercise"
+                            summary={l(`${faNumber(exercise.sets)} ست`, `${exercise.sets} sets`)}
+                            title={exerciseTitle}
+                          >
+                            <fieldset disabled={busy || readOnly}>
+                              <legend>{l(`حرکت ${faNumber(exercise.order_index)}`, `Exercise ${exercise.order_index}`)}</legend>
+                              <label>
+                                {l("انتخاب حرکت", "Exercise")}
+                                <select value={exercise.exercise_id} onChange={(event) => updateExerciseSelection(dayIndex, exerciseIndex, event.target.value)}>
+                                  {selected.exercise_options.map((option) => (
+                                    <option key={option.id} value={option.id}>{fa ? option.name_fa : option.name_en}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <div className="coach-review-prescription">
+                                <NumberField label={l(`تعداد ست ${labelSuffix}`, `Sets ${labelSuffix}`)} value={exercise.sets} onChange={(sets) => updateExercise(dayIndex, exerciseIndex, { sets })} />
+                                {exercise.prescription_mode === "duration" ? (
+                                  <>
+                                    <NumberField label={l(`حداقل ثانیه ${labelSuffix}`, `Minimum seconds ${labelSuffix}`)} value={exercise.duration_min_seconds ?? 0} onChange={(duration_min_seconds) => updateExercise(dayIndex, exerciseIndex, { duration_min_seconds })} />
+                                    <NumberField label={l(`حداکثر ثانیه ${labelSuffix}`, `Maximum seconds ${labelSuffix}`)} value={exercise.duration_max_seconds ?? 0} onChange={(duration_max_seconds) => updateExercise(dayIndex, exerciseIndex, { duration_max_seconds })} />
+                                  </>
+                                ) : (
+                                  <>
+                                    <NumberField label={l(`حداقل تکرار ${labelSuffix}`, `Minimum reps ${labelSuffix}`)} value={exercise.reps_min ?? 8} onChange={(reps_min) => updateExercise(dayIndex, exerciseIndex, { reps_min })} />
+                                    <NumberField label={l(`حداکثر تکرار ${labelSuffix}`, `Maximum reps ${labelSuffix}`)} value={exercise.reps_max ?? 12} onChange={(reps_max) => updateExercise(dayIndex, exerciseIndex, { reps_max })} />
+                                    <NumberField label={`RIR ${labelSuffix}`} value={exercise.rir ?? 2} min={0} max={5} onChange={(rir) => updateExercise(dayIndex, exerciseIndex, { rir })} />
+                                  </>
+                                )}
+                                <NumberField label={l(`استراحت ${labelSuffix}`, `Rest ${labelSuffix}`)} value={exercise.rest_seconds} step={15} onChange={(rest_seconds) => updateExercise(dayIndex, exerciseIndex, { rest_seconds })} />
+                              </div>
+                              <label>
+                                {l("یادداشت فارسی حرکت", "Persian exercise note")}
+                                <textarea value={exercise.notes_fa ?? ""} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { notes_fa: event.target.value || null })} />
+                              </label>
+                              <label>
+                                {l("یادداشت انگلیسی حرکت", "English exercise note")}
+                                <textarea dir="ltr" value={exercise.notes_en ?? ""} onChange={(event) => updateExercise(dayIndex, exerciseIndex, { notes_en: event.target.value || null })} />
+                              </label>
+                            </fieldset>
+                          </ReviewDisclosure>
                         );
                       })}
                     </ReviewDisclosure>

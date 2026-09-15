@@ -226,6 +226,8 @@ it("shows the three review queues and claims a pending plan", async () => {
 
   expect(api.claimWorkoutReview).toHaveBeenCalledWith("review-1");
   expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+  await user.click(screen.getByText("روز ۱"));
+  await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   expect(await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeEnabled();
 });
 
@@ -328,7 +330,26 @@ it("keeps each workout day closed until the coach opens it", async () => {
 
   await user.click(daySummary);
 
-  expect(screen.getByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeVisible();
+  expect(daySummary.closest("details")).toHaveAttribute("open");
+  const exerciseTitle = screen.getByText("حرکت ۱ · پرس سینه");
+  expect(exerciseTitle.closest("details")).not.toHaveAttribute("open");
+});
+
+it("keeps each workout exercise closed until the coach opens it", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await user.click(screen.getByText("روز ۱"));
+
+  const exerciseDisclosure = document.querySelector<HTMLElement>("[data-review-disclosure='coach-workout-exercise']");
+  expect(exerciseDisclosure).not.toBeNull();
+  expect(exerciseDisclosure).not.toHaveAttribute("open");
+  expect(screen.getByLabelText("RIR روز ۱ حرکت ۱")).not.toBeVisible();
+
+  await user.click(exerciseDisclosure?.querySelector("summary") as HTMLElement);
+
+  expect(screen.getByLabelText("RIR روز ۱ حرکت ۱")).toBeVisible();
 });
 
 it("switches to review detail mode on narrow layouts and returns to the queue", async () => {
@@ -370,6 +391,7 @@ it("saves permitted edits with the current revision", async () => {
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
   await user.click(screen.getByText("روز ۱"));
+  await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   const sets = await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱");
   await user.clear(sets);
   await user.type(sets, "4");
@@ -396,6 +418,7 @@ it("allows the coach to edit RIR and sends it with the draft", async () => {
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
   await user.click(screen.getByText("روز ۱"));
+  await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   const rir = await screen.findByLabelText("RIR روز ۱ حرکت ۱");
 
   await user.clear(rir);
