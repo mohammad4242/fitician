@@ -34,7 +34,7 @@ export function ResetPasswordPage() {
         setError(
           requestError instanceof ApiError && requestError.status === 400
             ? t("passwordRecovery.invalidToken")
-            : authErrorMessage(requestError, t, locale),
+            : authErrorMessage(requestError, t, locale, "recovery"),
         );
       })
       .finally(() => setBusy(false));

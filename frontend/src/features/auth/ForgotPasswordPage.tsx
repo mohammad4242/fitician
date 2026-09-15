@@ -21,7 +21,7 @@ export function ForgotPasswordPage() {
     void api
       .forgotPassword(String(data.get("email") ?? ""))
       .then(() => setSent(true))
-      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale)))
+      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale, "recovery")))
       .finally(() => setBusy(false));
   }
 

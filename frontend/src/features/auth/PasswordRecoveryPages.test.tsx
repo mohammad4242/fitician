@@ -110,7 +110,7 @@ it("shows a safe error for an invalid email verification token", async () => {
   );
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "لینک تأیید معتبر نیست یا منقضی شده است.",
+    "لینک تأیید ایمیل معتبر نیست یا منقضی شده است.",
   );
 });
 

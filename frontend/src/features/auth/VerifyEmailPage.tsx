@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { AuthShell } from "../../shared/AuthShell";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import * as api from "./api";
+import { normalizeAuthError } from "./authError";
 
 type VerificationState = "checking" | "verified" | "invalid";
 
@@ -32,7 +33,7 @@ export function VerifyEmailPage() {
       })
       .catch((requestError: unknown) => {
         if (active) {
-          setError(requestError);
+          setError(normalizeAuthError(requestError, "verification"));
           setState("invalid");
         }
       });

@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { AppIcon } from "../../shared/AppIcon";
 import * as authApi from "../auth/api";
-import { authErrorMessage } from "../auth/authError";
+import { authErrorMessage, type AuthErrorContext } from "../auth/authError";
 import { useAuth } from "../auth/AuthContext";
 import { GoogleSignInButton } from "../auth/GoogleSignInButton";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
@@ -255,13 +255,16 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
     setError(null);
   }
 
-  function finishAuthentication(authentication: Promise<void>) {
+  function finishAuthentication(
+    authentication: Promise<void>,
+    context: AuthErrorContext = "credentials",
+  ) {
     setBusy(true);
     setError(null);
     void authentication
       .then(() => hydrateOnboardingDraft(draft))
       .then(() => navigate(draft.mode === "training" ? "/dashboard" : "/onboarding", { replace: true }))
-      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language)))
+      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language, context)))
       .finally(() => setBusy(false));
   }
 
@@ -289,7 +292,7 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
         setPhoneStep("verify");
         setCountdown(result.retry_after_seconds);
       })
-      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language)))
+      .catch((reason: unknown) => setError(authErrorMessage(reason, t, language, "otp")))
       .finally(() => setBusy(false));
   }
 
@@ -303,19 +306,19 @@ function FinalAccountStep({ draft, language, onEdit }: { draft: OnboardingDraft;
     }
     const code = String(data.get("code") ?? "");
     const authenticate = user !== null ? Promise.resolve() : loginWithPhone(number, code);
-    finishAuthentication(authenticate);
+    finishAuthentication(authenticate, "otp");
   }
 
   function handleGoogleCredential(credential: string) {
     const authenticate = user !== null ? Promise.resolve() : loginWithGoogle(credential);
-    finishAuthentication(authenticate);
+    finishAuthentication(authenticate, "google");
   }
 
   function handleGoogleError(requestError?: unknown) {
     setError(
       requestError === undefined
         ? t("errors.generic")
-        : authErrorMessage(requestError, t, language),
+        : authErrorMessage(requestError, t, language, "google"),
     );
   }
 

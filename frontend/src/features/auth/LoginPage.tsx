@@ -70,7 +70,7 @@ export function LoginPage() {
         setPhoneStep("verify");
         setCountdown(result.retry_after_seconds);
       })
-      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale)))
+      .catch((requestError: unknown) => setError(authErrorMessage(requestError, t, locale, "otp")))
       .finally(() => setBusy(false));
   }
 
@@ -86,7 +86,7 @@ export function LoginPage() {
     void loginWithPhone(phoneNumber, String(data.get("code") ?? ""))
       .then(
         () => navigate(returnTo, { replace: true }),
-        (requestError: unknown) => setError(authErrorMessage(requestError, t, locale)),
+        (requestError: unknown) => setError(authErrorMessage(requestError, t, locale, "otp")),
       )
       .finally(() => setBusy(false));
   }
@@ -98,7 +98,7 @@ export function LoginPage() {
       void loginWithGoogle(credential)
         .then(
           () => navigate(returnTo, { replace: true }),
-          (requestError: unknown) => setError(authErrorMessage(requestError, t, locale)),
+          (requestError: unknown) => setError(authErrorMessage(requestError, t, locale, "google")),
         )
         .finally(() => setBusy(false));
     },
@@ -109,7 +109,7 @@ export function LoginPage() {
     setError(
       requestError === undefined
         ? t("errors.generic")
-        : authErrorMessage(requestError, t, locale),
+          : authErrorMessage(requestError, t, locale, "google"),
     );
   }, [locale, t]);
 
