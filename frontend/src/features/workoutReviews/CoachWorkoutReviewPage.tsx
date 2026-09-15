@@ -451,6 +451,13 @@ export function CoachWorkoutReviewPage() {
 
                 <ReviewProfileSummaryCard summary={selected.profile_summary} fa={fa} />
 
+                {selected.member_rejection_note && (
+                  <aside className="coach-review-member-feedback" role="status">
+                    <strong>{l("درخواست اصلاح کاربر", "Member correction request")}</strong>
+                    <p>{selected.member_rejection_note}</p>
+                  </aside>
+                )}
+
                 {selected.template_selection && (
                   <TemplateSelectionAudit
                     selection={selected.template_selection}

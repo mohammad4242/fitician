@@ -224,6 +224,21 @@
 
 .coach-review-profile-strip strong { color: #e7f7f3; }
 
+.coach-review-member-feedback {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(239 186 98 / 35%);
+  border-inline-start: 0.28rem solid #efba62;
+  border-radius: 0.9rem;
+  color: #d7eee8;
+  background: rgb(84 62 29 / 28%);
+}
+
+.coach-review-member-feedback strong { color: #efc778; }
+.coach-review-member-feedback p { margin: 0; line-height: 1.6; }
+
 .coach-template-selection {
   position: relative;
   margin: 0 0 1.25rem;

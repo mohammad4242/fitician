@@ -495,6 +495,28 @@ it("requires an explanation before returning a plan for correction", async () =>
   expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("mine");
 });
 
+it("shows the member correction request when reopening a returned proposal", async () => {
+  const user = userEvent.setup();
+  const requestedItem = {
+    ...queueItem,
+    status: "member_changes_requested" as const,
+    claimed_by_user_id: "coach-1",
+  };
+  api.listWorkoutReviews.mockResolvedValue([requestedItem]);
+  api.getWorkoutReview.mockResolvedValue({
+    ...detail,
+    status: "member_changes_requested",
+    member_rejection_note: "حرکت روز اول را ساده‌تر می‌خواهم",
+  });
+  renderPage();
+
+  await user.click(await screen.findByRole("tab", { name: "در حال بررسی من" }));
+  await user.click(await screen.findByRole("button", { name: "مشاهده پرونده" }));
+
+  expect(await screen.findByText("درخواست اصلاح کاربر", { selector: ".coach-review-member-feedback strong" })).toBeVisible();
+  expect(screen.getByText("حرکت روز اول را ساده‌تر می‌خواهم")).toBeVisible();
+});
+
 it("hides editing actions for an approved read-only review", async () => {
   const user = userEvent.setup();
   const approvedItem = {
