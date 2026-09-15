@@ -370,6 +370,38 @@ test("admin sees safe error diagnostics for a catalogue request", async () => {
   expect(screen.queryByText("catalogue provider secret")).toBeNull();
 });
 
+test("admin sees safe error diagnostics for a meal catalogue request", async () => {
+  isAdmin = true;
+  mockUseMobileAuth.mockReturnValue({ request: jest.fn(), upload: jest.fn(), user: { is_admin: true } } as never);
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "meal-catalogue") {
+      return {
+        data: undefined,
+        error: new ApiError(503, "meal catalogue provider secret", null, "SERVICE_UNAVAILABLE", {
+          meta: { current_state: "meal-catalogue" },
+          requestId: "meal-catalogue-admin-request-1",
+        }),
+        isError: true,
+        isFetching: false,
+        isPending: false,
+        isStale: false,
+        refetch: jest.fn(),
+      } as never;
+    }
+    return queryResult({ categories: ["breakfast"], items: [] });
+  });
+
+  renderCatalogue("meals");
+
+  expect(await screen.findByText("سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.")).toBeTruthy();
+  const diagnostics = screen.getByTestId("mobile-error-technical-details");
+  expect(diagnostics).toHaveTextContent(/کد خطا: SERVICE_UNAVAILABLE/u);
+  expect(diagnostics).toHaveTextContent(/HTTP: 503/u);
+  expect(diagnostics).toHaveTextContent(/شناسه پیگیری: meal-catalogue-admin-request-1/u);
+  expect(screen.queryByText("meal catalogue provider secret")).toBeNull();
+});
+
 test("food cards keep calories separate and expose exactly three macro cells", () => {
   renderCatalogue();
   const card = screen.getByTestId("food-card-food-1");

@@ -283,6 +283,7 @@ export function NutritionCatalogueSection({ initialMode }: { readonly initialMod
       ) : (
         <MealCatalogueView
           category={mealCategory}
+          isAdmin={isAdmin}
           onCategoryChange={setMealCategory}
           onRetry={() => void mealQuery.refetch()}
           page={mealPage}
@@ -506,12 +507,14 @@ function FoodCatalogueView({
 
 function MealCatalogueView({
   category,
+  isAdmin,
   onCategoryChange,
   onRetry,
   page,
   state,
 }: {
   readonly category: MealCatalogueCategory | null;
+  readonly isAdmin: boolean;
   readonly onCategoryChange: (category: MealCatalogueCategory | null) => void;
   readonly onRetry: () => void;
   readonly page: ReturnType<typeof stateData<MealCataloguePage>>;
@@ -519,7 +522,15 @@ function MealCatalogueView({
 }) {
   if (state.status === "loading") return <Skeleton height={420} />;
   if (state.status === "error" && page === undefined) {
-    return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
+    return (
+      <Notice
+        actionLabel="تلاش دوباره"
+        message={state.error.message}
+        onAction={onRetry}
+        technicalDetails={isAdmin ? state.error.presentation : null}
+        variant="danger"
+      />
+    );
   }
   if (state.status === "offline" && page === undefined) {
     return <Notice message="برای مرور کاتالوگ وعده‌ها به اینترنت وصل شو." variant="offline" />;
