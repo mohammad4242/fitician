@@ -277,6 +277,18 @@ describe("resolveAppError", () => {
       }),
     ).toMatchObject({ code: "UNKNOWN_ERROR", severity: "error" });
   });
+
+  it("does not invent a network or service cause for REQUEST_FAILED", () => {
+    const result = resolveAppError(
+      new ApiError(422, "raw unknown failure", null, "REQUEST_FAILED"),
+      { audience: "member", context: "nutrition", locale: "fa" },
+    );
+
+    expect(result.message).toContain("کامل نشد");
+    expect(result.message).not.toContain("اتصال");
+    expect(result.message).not.toContain("سرویس");
+    expect(result.message).not.toContain("raw unknown failure");
+  });
 });
 
 describe("parseApiErrorPayload", () => {

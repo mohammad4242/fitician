@@ -603,7 +603,7 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ),
   REQUEST_FAILED: entry(
     text("درخواست ساخت برنامه انجام نشد", "Plan request failed"),
-    text("درخواست ساخت برنامه انجام نشد. اتصال یا سرویس را بررسی کن و دوباره تلاش کن.", "The plan request failed. Check the connection or service and try again."),
+    text("درخواست ساخت برنامه کامل نشد. دوباره تلاش کنید.", "The plan request could not be completed. Try again."),
   ),
   NUTRITION_PLAN_GENERATED: entry(
     text("برنامه ساخته شد", "Plan generated"),
