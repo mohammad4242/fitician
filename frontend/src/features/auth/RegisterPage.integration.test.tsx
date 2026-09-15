@@ -33,7 +33,7 @@ it("shows a retryable localized message when the server cannot be reached", asyn
   await user.click(screen.getByRole("button", { name: "ساخت حساب" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "ارتباط با سرور برقرار نشد. دوباره تلاش کن.",
+    "ارتباط با سرویس برقرار نشد. دوباره تلاش کنید.",
   );
   expect(screen.queryByText("long password")).not.toBeInTheDocument();
 });

@@ -171,7 +171,7 @@ describe("profile api", () => {
     );
 
     await expect(getProfile()).rejects.toEqual(
-      new ApiError(503, "Service temporarily unavailable"),
+      new ApiError(503, "Service temporarily unavailable", null, "SERVICE_UNAVAILABLE"),
     );
   });
 

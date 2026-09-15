@@ -129,7 +129,7 @@ describe("exercise api", () => {
 
     await expect(getExercise("unknown-exercise")).resolves.toBeNull();
     await expect(getExercise("known-exercise")).rejects.toEqual(
-      new ApiError(503, "Service unavailable"),
+      new ApiError(503, "Service unavailable", null, "SERVICE_UNAVAILABLE"),
     );
   });
 });
