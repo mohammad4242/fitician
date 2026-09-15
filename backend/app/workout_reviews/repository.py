@@ -127,6 +127,7 @@ def list_reviews(
             WorkoutPlanReview.status.in_(
                 [
                     WorkoutReviewStatus.CLAIMED,
+                    WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE,
                     WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED,
                 ]
             ),

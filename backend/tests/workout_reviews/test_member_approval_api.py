@@ -60,6 +60,14 @@ def test_member_can_read_diff_and_accept_coach_proposal(
     assert submitted.status_code == 200, submitted.text
     assert submitted.json()["status"] == "awaiting_member_acceptance"
 
+    mine = client.get("/api/v1/coach/workout-reviews?view=mine")
+    assert mine.status_code == 200, mine.text
+    assert any(
+        item["id"] == str(review.id)
+        and item["status"] == "awaiting_member_acceptance"
+        for item in mine.json()
+    )
+
     client.post("/api/v1/auth/logout", headers=ORIGIN)
     _login(client, member_email)
     current = client.get("/api/v1/workout-reviews/current")
