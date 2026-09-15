@@ -154,6 +154,7 @@ test("claims a case, edits the exercise selection, and saves the current revisio
   expect(await screen.findByText("علت انتخاب برنامه")).toBeTruthy();
 
   fireEvent.press(screen.getByRole("button", { name: "روز ۱" }));
+  fireEvent.press(screen.getByRole("button", { name: "حرکت ۱ · پرس سینه" }));
   fireEvent.press(screen.getByRole("button", { name: "انتخاب حرکت" }));
   fireEvent.press(await screen.findByRole("button", { name: "شنا سوئدی" }));
   fireEvent.changeText(screen.getByLabelText("ست"), "4");
@@ -241,7 +242,7 @@ test("keeps detailed profile sections closed until the coach opens one", async (
   expect(screen.getByText(/داروی فشار خون/)).toBeTruthy();
 });
 
-test("keeps each workout day collapsed until the coach opens it", async () => {
+test("keeps each workout day and exercise collapsed until the coach opens them", async () => {
   renderScreen();
 
   fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
@@ -252,6 +253,12 @@ test("keeps each workout day collapsed until the coach opens it", async () => {
   expect(daySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
   fireEvent.press(daySection);
   expect(daySection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: true }));
+
+  expect(screen.queryByLabelText("انتخاب حرکت")).toBeNull();
+  const exerciseSection = screen.getByRole("button", { name: "حرکت ۱ · پرس سینه" });
+  expect(exerciseSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: false }));
+  fireEvent.press(exerciseSection);
+  expect(exerciseSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: true }));
   expect(screen.getByLabelText("انتخاب حرکت")).toBeTruthy();
 });
 

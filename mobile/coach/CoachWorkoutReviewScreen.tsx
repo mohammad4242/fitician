@@ -510,127 +510,136 @@ function ReviewExerciseEditor({
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedOption = options.find((option) => option.id === exercise.exercise_id);
   const durationMode = exercise.prescription_mode === "duration";
+  const exerciseTitle = selectedOption === undefined
+    ? `حرکت ${faNumber(exercise.order_index)}`
+    : `حرکت ${faNumber(exercise.order_index)} · ${selectedOption.name_fa}`;
 
   return (
-    <>
-      <View style={styles.exerciseEditor}>
-        <Text style={styles.exerciseTitle}>حرکت {faNumber(exercise.order_index)}</Text>
-        <Pressable
-          accessibilityLabel="انتخاب حرکت"
-          accessibilityRole="button"
-          accessibilityState={{ disabled }}
-          disabled={disabled}
-          onPress={() => setPickerOpen(true)}
-          style={styles.exercisePicker}
-        >
-          <Text style={styles.fieldLabel}>انتخاب حرکت</Text>
-          <Text style={styles.exercisePickerValue}>{selectedOption?.name_fa ?? "حرکت انتخاب نشده"}</Text>
-        </Pressable>
-        <View style={styles.numberRow}>
-          <TextField
-            editable={!disabled}
-            keyboardType="number-pad"
-            label="ست"
-            onChangeText={(value) => onChange({ sets: boundedNumber(value, exercise.sets, 1, 10) })}
-            value={String(exercise.sets)}
-          />
-          {durationMode ? (
-            <>
-              <TextField
-                editable={!disabled}
-                keyboardType="number-pad"
-                label="حداقل ثانیه"
-                onChangeText={(value) => onChange({ duration_min_seconds: positiveNumber(value, exercise.duration_min_seconds ?? 1) })}
-                value={String(exercise.duration_min_seconds ?? "")}
-              />
-              <TextField
-                editable={!disabled}
-                keyboardType="number-pad"
-                label="حداکثر ثانیه"
-                onChangeText={(value) => onChange({ duration_max_seconds: positiveNumber(value, exercise.duration_max_seconds ?? 1) })}
-                value={String(exercise.duration_max_seconds ?? "")}
-              />
-            </>
-          ) : (
-            <>
-              <TextField
-                editable={!disabled}
-                keyboardType="number-pad"
-                label="تکرار حداقل"
-                onChangeText={(value) => onChange({ reps_min: boundedNumber(value, exercise.reps_min ?? 1, 1, 100) })}
-                value={String(exercise.reps_min ?? "")}
-              />
-              <TextField
-                editable={!disabled}
-                keyboardType="number-pad"
-                label="تکرار حداکثر"
-                onChangeText={(value) => onChange({ reps_max: boundedNumber(value, exercise.reps_max ?? 1, 1, 100) })}
-                value={String(exercise.reps_max ?? "")}
-              />
-            </>
-          )}
-        </View>
-        <View style={styles.numberRow}>
-          {!durationMode ? (
+    <DisclosureCard
+      defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.coachWorkoutExercise)}
+      icon="training"
+      summary={`${faNumber(exercise.sets)} ست`}
+      title={exerciseTitle}
+    >
+      <>
+        <View style={styles.exerciseEditor}>
+          <Pressable
+            accessibilityLabel="انتخاب حرکت"
+            accessibilityRole="button"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
+            onPress={() => setPickerOpen(true)}
+            style={styles.exercisePicker}
+          >
+            <Text style={styles.fieldLabel}>انتخاب حرکت</Text>
+            <Text style={styles.exercisePickerValue}>{selectedOption?.name_fa ?? "حرکت انتخاب نشده"}</Text>
+          </Pressable>
+          <View style={styles.numberRow}>
             <TextField
               editable={!disabled}
               keyboardType="number-pad"
-              label="RIR"
-              onChangeText={(value) => onChange({ rir: boundedNumber(value, exercise.rir ?? 0, 0, 5) })}
-              value={String(exercise.rir ?? "")}
+              label="ست"
+              onChangeText={(value) => onChange({ sets: boundedNumber(value, exercise.sets, 1, 10) })}
+              value={String(exercise.sets)}
             />
-          ) : null}
+            {durationMode ? (
+              <>
+                <TextField
+                  editable={!disabled}
+                  keyboardType="number-pad"
+                  label="حداقل ثانیه"
+                  onChangeText={(value) => onChange({ duration_min_seconds: positiveNumber(value, exercise.duration_min_seconds ?? 1) })}
+                  value={String(exercise.duration_min_seconds ?? "")}
+                />
+                <TextField
+                  editable={!disabled}
+                  keyboardType="number-pad"
+                  label="حداکثر ثانیه"
+                  onChangeText={(value) => onChange({ duration_max_seconds: positiveNumber(value, exercise.duration_max_seconds ?? 1) })}
+                  value={String(exercise.duration_max_seconds ?? "")}
+                />
+              </>
+            ) : (
+              <>
+                <TextField
+                  editable={!disabled}
+                  keyboardType="number-pad"
+                  label="تکرار حداقل"
+                  onChangeText={(value) => onChange({ reps_min: boundedNumber(value, exercise.reps_min ?? 1, 1, 100) })}
+                  value={String(exercise.reps_min ?? "")}
+                />
+                <TextField
+                  editable={!disabled}
+                  keyboardType="number-pad"
+                  label="تکرار حداکثر"
+                  onChangeText={(value) => onChange({ reps_max: boundedNumber(value, exercise.reps_max ?? 1, 1, 100) })}
+                  value={String(exercise.reps_max ?? "")}
+                />
+              </>
+            )}
+          </View>
+          <View style={styles.numberRow}>
+            {!durationMode ? (
+              <TextField
+                editable={!disabled}
+                keyboardType="number-pad"
+                label="RIR"
+                onChangeText={(value) => onChange({ rir: boundedNumber(value, exercise.rir ?? 0, 0, 5) })}
+                value={String(exercise.rir ?? "")}
+              />
+            ) : null}
+            <TextField
+              editable={!disabled}
+              keyboardType="number-pad"
+              label="استراحت به ثانیه"
+              onChangeText={(value) => onChange({ rest_seconds: boundedNumber(value, exercise.rest_seconds, 0, 600) })}
+              value={String(exercise.rest_seconds)}
+            />
+          </View>
           <TextField
             editable={!disabled}
-            keyboardType="number-pad"
-            label="استراحت به ثانیه"
-            onChangeText={(value) => onChange({ rest_seconds: boundedNumber(value, exercise.rest_seconds, 0, 600) })}
-            value={String(exercise.rest_seconds)}
+            label="یادداشت فارسی حرکت"
+            multiline
+            numberOfLines={3}
+            onChangeText={(value) => onChange({ notes_fa: value || null })}
+            value={exercise.notes_fa ?? ""}
+          />
+          <TextField
+            editable={!disabled}
+            label="یادداشت انگلیسی حرکت"
+            multiline
+            numberOfLines={3}
+            onChangeText={(value) => onChange({ notes_en: value || null })}
+            textDirection="ltr"
+            value={exercise.notes_en ?? ""}
           />
         </View>
-        <TextField
-          editable={!disabled}
-          label="یادداشت فارسی حرکت"
-          multiline
-          numberOfLines={3}
-          onChangeText={(value) => onChange({ notes_fa: value || null })}
-          value={exercise.notes_fa ?? ""}
-        />
-        <TextField
-          editable={!disabled}
-          label="یادداشت انگلیسی حرکت"
-          multiline
-          numberOfLines={3}
-          onChangeText={(value) => onChange({ notes_en: value || null })}
-          textDirection="ltr"
-          value={exercise.notes_en ?? ""}
-        />
-      </View>
-      <Sheet
-        closeLabel="بستن انتخاب حرکت"
-        onClose={() => setPickerOpen(false)}
-        title="انتخاب حرکت"
-        visible={pickerOpen}
-      >
-        <Text style={styles.muted}>حرکت جایگزین را از گزینه‌های مجاز انتخاب کن.</Text>
-        {options.map((option) => (
-          <Pressable
-            accessibilityLabel={option.name_fa}
-            accessibilityRole="button"
-            accessibilityState={{ selected: option.id === exercise.exercise_id }}
-            key={option.id}
-            onPress={() => {
-              onSelect(option.id);
-              setPickerOpen(false);
-            }}
-            style={styles.exerciseOption}
-          >
-            <Text style={styles.exerciseOptionFa}>{option.name_fa}</Text>
-            <Text style={styles.exerciseOptionEn}>{option.name_en}</Text>
-          </Pressable>
-        ))}
-      </Sheet>
-    </>
+        <Sheet
+          closeLabel="بستن انتخاب حرکت"
+          onClose={() => setPickerOpen(false)}
+          title="انتخاب حرکت"
+          visible={pickerOpen}
+        >
+          <Text style={styles.muted}>حرکت جایگزین را از گزینه‌های مجاز انتخاب کن.</Text>
+          {options.map((option) => (
+            <Pressable
+              accessibilityLabel={option.name_fa}
+              accessibilityRole="button"
+              accessibilityState={{ selected: option.id === exercise.exercise_id }}
+              key={option.id}
+              onPress={() => {
+                onSelect(option.id);
+                setPickerOpen(false);
+              }}
+              style={styles.exerciseOption}
+            >
+              <Text style={styles.exerciseOptionFa}>{option.name_fa}</Text>
+              <Text style={styles.exerciseOptionEn}>{option.name_en}</Text>
+            </Pressable>
+          ))}
+        </Sheet>
+      </>
+    </DisclosureCard>
   );
 }
 

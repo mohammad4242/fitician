@@ -29,9 +29,8 @@ it("keeps coach review layout logical for native RTL", async () => {
   expect(source).toMatch(/<Screen contentWidth="reading">/);
   expect(source).toContain('textAlign: "auto"');
   expect(source).toContain('writingDirection: "rtl"');
-  expect(source).toMatch(
-    /<View style=\{styles\.dayHeader\}>\s*<Text style=\{styles\.dayTitle\}>[\s\S]*?<Text style=\{styles\.dayNumber\}>/,
-  );
+  expect(source).toContain("reviewDisclosureKeys.coachWorkoutDay");
+  expect(source).toContain("reviewDisclosureKeys.coachWorkoutExercise");
   expect(source).toMatch(
     /<View style=\{styles\.headerCopy\}>[\s\S]*?<View style=\{styles\.memberIdentity\}>[\s\S]*?<Text style=\{styles\.detailTitle\}>/,
   );
