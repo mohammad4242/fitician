@@ -3,11 +3,14 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
-from app.workouts.models import WorkoutPlan, WorkoutPlanExercise
+from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
 
 COACH_DIFF_SCHEMA_VERSION = "1.0"
 
 _CHANGE_ORDER = {
+    "day_added": 0,
+    "day_removed": 1,
+    "day_title_changed": 2,
     "exercise_added": 0,
     "exercise_removed": 1,
     "exercise_reordered": 2,
@@ -72,6 +75,54 @@ def build_coach_diff(
             if approved_day is not None
             else {}
         )
+        if source_day is None:
+            entries.append(
+                {
+                    "change_type": "day_added",
+                    "day_number": day_number,
+                    "order_index": 0,
+                    "generated": None,
+                    "approved": _day_snapshot(approved_day),
+                    "generated_exercise_id": None,
+                    "approved_exercise_id": None,
+                    "provenance": dict(provenance),
+                }
+            )
+        elif approved_day is None:
+            entries.append(
+                {
+                    "change_type": "day_removed",
+                    "day_number": day_number,
+                    "order_index": 0,
+                    "generated": _day_snapshot(source_day),
+                    "approved": None,
+                    "generated_exercise_id": None,
+                    "approved_exercise_id": None,
+                    "provenance": dict(provenance),
+                }
+            )
+        elif (source_day.title_en, source_day.title_fa) != (
+            approved_day.title_en,
+            approved_day.title_fa,
+        ):
+            entries.append(
+                {
+                    "change_type": "day_title_changed",
+                    "day_number": day_number,
+                    "order_index": 0,
+                    "generated": {
+                        "title_en": source_day.title_en,
+                        "title_fa": source_day.title_fa,
+                    },
+                    "approved": {
+                        "title_en": approved_day.title_en,
+                        "title_fa": approved_day.title_fa,
+                    },
+                    "generated_exercise_id": None,
+                    "approved_exercise_id": None,
+                    "provenance": dict(provenance),
+                }
+            )
         if _has_same_exercise_set(source_items, approved_items):
             if _has_reordered_exercises(source_items, approved_items):
                 _append_reorder_entries(
@@ -328,6 +379,17 @@ def _item_snapshot(item: WorkoutPlanExercise | None) -> dict[str, object] | None
         "rest_seconds": item.rest_seconds,
         "notes_en": item.notes_en,
         "notes_fa": item.notes_fa,
+    }
+
+
+def _day_snapshot(day: WorkoutDay | None) -> dict[str, object] | None:
+    if day is None:
+        return None
+    return {
+        "day_number": day.day_number,
+        "title_en": day.title_en,
+        "title_fa": day.title_fa,
+        "exercise_count": len(day.exercises),
     }
 
 

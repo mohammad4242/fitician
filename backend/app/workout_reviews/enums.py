@@ -4,6 +4,8 @@ from enum import StrEnum
 class WorkoutReviewStatus(StrEnum):
     PENDING = "pending"
     CLAIMED = "claimed"
+    AWAITING_MEMBER_ACCEPTANCE = "awaiting_member_acceptance"
+    MEMBER_CHANGES_REQUESTED = "member_changes_requested"
     APPROVED = "approved"
     REJECTED = "rejected"
     SUPERSEDED = "superseded"
@@ -28,3 +30,6 @@ class WorkoutReviewErrorCode(StrEnum):
     REVIEW_ALREADY_REJECTED = "REVIEW_ALREADY_REJECTED"
     REVIEW_EXPLANATION_REQUIRED = "REVIEW_EXPLANATION_REQUIRED"
     REVIEW_SUPERSEDED = "REVIEW_SUPERSEDED"
+    MEMBER_NOT_ALLOWED = "MEMBER_NOT_ALLOWED"
+    REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE = "REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE"
+    REVIEW_PROPOSAL_NOT_FOUND = "REVIEW_PROPOSAL_NOT_FOUND"

@@ -34,6 +34,7 @@ class WorkoutPlanReview(Base):
     __tablename__ = "workout_plan_reviews"
     __table_args__ = (
         UniqueConstraint("source_plan_id", name="uq_workout_plan_reviews_source_plan_id"),
+        UniqueConstraint("proposed_plan_id", name="uq_workout_plan_reviews_proposed_plan_id"),
         UniqueConstraint("approved_plan_id", name="uq_workout_plan_reviews_approved_plan_id"),
         CheckConstraint(
             "draft_revision > 0",
@@ -42,6 +43,10 @@ class WorkoutPlanReview(Base):
         CheckConstraint(
             "coach_note IS NULL OR char_length(coach_note) <= 2000",
             name="ck_workout_plan_reviews_coach_note_length",
+        ),
+        CheckConstraint(
+            "member_rejection_note IS NULL OR char_length(member_rejection_note) <= 2000",
+            name="ck_workout_plan_reviews_member_rejection_note_length",
         ),
         CheckConstraint(
             "(claimed_by_user_id IS NULL AND lease_acquired_at IS NULL "
@@ -88,6 +93,10 @@ class WorkoutPlanReview(Base):
     draft_revision: Mapped[int] = mapped_column(
         Integer, default=1, server_default="1", nullable=False
     )
+    proposed_plan_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("workout_plans.id", ondelete="SET NULL")
+    )
+    member_rejection_note: Mapped[str | None] = mapped_column(String(2000))
     approved_plan_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("workout_plans.id", ondelete="SET NULL")
     )
@@ -107,4 +116,7 @@ class WorkoutPlanReview(Base):
     )
     approved_plan: Mapped[WorkoutPlan | None] = relationship(
         foreign_keys=[approved_plan_id], back_populates="approval_review"
+    )
+    proposed_plan: Mapped[WorkoutPlan | None] = relationship(
+        foreign_keys=[proposed_plan_id], back_populates="proposal_review"
     )

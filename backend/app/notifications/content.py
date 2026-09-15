@@ -24,6 +24,18 @@ _COPY: dict[str, NotificationCopy] = {
         channel_id="fitician-activity",
         allowed_data_keys=frozenset({"plan_id"}),
     ),
+    "workout_plan_acceptance_required": NotificationCopy(
+        title="تغییرات برنامه برای تایید شما آماده است",
+        body="مربی برنامه تمرینی شما را ویرایش کرده است؛ تغییرات را بررسی و تایید کنید.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"review_id", "plan_id"}),
+    ),
+    "workout_plan_changes_requested": NotificationCopy(
+        title="اصلاح برنامه لازم است",
+        body="عضو درخواست کرده است تغییرات برنامه تمرینی اصلاح شود.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"review_id", "plan_id"}),
+    ),
     "nutrition_plan_approved": NotificationCopy(
         title="برنامه آماده است",
         body="برنامه شما برای استفاده آماده شده است.",

@@ -157,6 +157,11 @@ class WorkoutPlan(Base):
         back_populates="approved_plan",
         uselist=False,
     )
+    proposal_review: Mapped[WorkoutPlanReview | None] = relationship(
+        foreign_keys="WorkoutPlanReview.proposed_plan_id",
+        back_populates="proposed_plan",
+        uselist=False,
+    )
 
 
 class WorkoutDay(Base):

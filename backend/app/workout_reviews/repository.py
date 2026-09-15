@@ -55,6 +55,10 @@ def get_review(db: Session, review_id: UUID) -> WorkoutPlanReview | None:
             .selectinload(WorkoutPlan.days)
             .selectinload(WorkoutDay.exercises)
             .selectinload(WorkoutPlanExercise.exercise),
+            selectinload(WorkoutPlanReview.proposed_plan)
+            .selectinload(WorkoutPlan.days)
+            .selectinload(WorkoutDay.exercises)
+            .selectinload(WorkoutPlanExercise.exercise),
         )
     )
 
@@ -102,7 +106,12 @@ def list_reviews(
         statement = statement.where(WorkoutPlanReview.status == WorkoutReviewStatus.PENDING)
     elif view is WorkoutReviewQueueView.MINE:
         statement = statement.where(
-            WorkoutPlanReview.status == WorkoutReviewStatus.CLAIMED,
+            WorkoutPlanReview.status.in_(
+                [
+                    WorkoutReviewStatus.CLAIMED,
+                    WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED,
+                ]
+            ),
             WorkoutPlanReview.claimed_by_user_id == coach_id,
         )
     else:
@@ -123,7 +132,12 @@ def supersede_open_review(db: Session, plan_id: UUID) -> None:
         .where(
             WorkoutPlanReview.source_plan_id == plan_id,
             WorkoutPlanReview.status.in_(
-                [WorkoutReviewStatus.PENDING, WorkoutReviewStatus.CLAIMED]
+                [
+                    WorkoutReviewStatus.PENDING,
+                    WorkoutReviewStatus.CLAIMED,
+                    WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE,
+                    WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED,
+                ]
             ),
         )
         .with_for_update()

@@ -60,6 +60,8 @@ class WorkoutReviewDayDraft(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     day_number: int = Field(ge=1, le=6)
+    title_en: str | None = Field(default=None, max_length=120)
+    title_fa: str | None = Field(default=None, max_length=120)
     exercises: list[WorkoutReviewExerciseDraft] = Field(min_length=1, max_length=10)
 
 
@@ -174,6 +176,7 @@ class WorkoutReviewQueueItemResponse(BaseModel):
 
 class WorkoutReviewDetailResponse(WorkoutReviewQueueItemResponse):
     coach_note: str | None
+    member_rejection_note: str | None
     draft: dict[str, object] | None
     source_plan: dict[str, object]
     exercise_options: list[WorkoutReviewExerciseOption]

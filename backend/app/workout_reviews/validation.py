@@ -47,6 +47,7 @@ class WorkoutReviewDraftValidator:
         source: WorkoutPlan,
         payload: WorkoutReviewDraftUpdate,
     ) -> ValidatedDraft:
+        source_days = {day.day_number: day for day in source.days}
         source_slots = {
             (day.day_number, item.order_index): (day, item)
             for day in source.days
@@ -58,13 +59,28 @@ class WorkoutReviewDraftValidator:
             for item in day.exercises
         }
         problems: list[dict[str, object]] = []
-        if set(source_slots) != set(draft_slots):
+        expected_day_numbers = list(range(1, len(payload.days) + 1))
+        actual_day_numbers = [day.day_number for day in payload.days]
+        if actual_day_numbers != expected_day_numbers:
             problems.append(
                 {
-                    "code": "PLAN_STRUCTURE_CHANGED",
-                    "message": "Workout days and exercise slots cannot be added or removed.",
+                    "code": "PLAN_STRUCTURE_INVALID",
+                    "message": "Workout days must be unique and sequential starting at one.",
                 }
             )
+        for day in payload.days:
+            expected_order_indices = list(range(1, len(day.exercises) + 1))
+            actual_order_indices = [item.order_index for item in day.exercises]
+            if actual_order_indices != expected_order_indices:
+                problems.append(
+                    {
+                        "code": "PLAN_STRUCTURE_INVALID",
+                        "message": (
+                            "Exercise order indices must be unique and sequential starting at one."
+                        ),
+                        "day_number": day.day_number,
+                    }
+                )
 
         catalog = source.exercise_catalog_snapshot.get("exercises")
         allowed_ids = (
@@ -152,8 +168,12 @@ class WorkoutReviewDraftValidator:
                     minimum_candidate_count=1,
                 ),
                 policy=policy,
-                required_day_count=len(source.days),
-                day_focuses={day.day_number: day.focus for day in source.days},
+                required_day_count=len(payload.days),
+                day_focuses={
+                    day.day_number: source_days[day.day_number].focus
+                    for day in payload.days
+                    if day.day_number in source_days
+                },
             ).validate(model)
         except WorkoutPlanValidationError as error:
             raise DraftValidationError(
@@ -170,10 +190,11 @@ class WorkoutReviewDraftValidator:
         source_days = {day.day_number: day for day in source.days}
         output_days: list[WorkoutPlanDayOutput] = []
         for draft_day in sorted(payload.days, key=lambda item: item.day_number):
-            source_day = source_days[draft_day.day_number]
+            source_day = source_days.get(draft_day.day_number)
             output_exercises: list[WorkoutPlanExerciseOutput] = []
             for item in sorted(draft_day.exercises, key=lambda value: value.order_index):
-                source_item = source_slots[(draft_day.day_number, item.order_index)][1]
+                source_slot = source_slots.get((draft_day.day_number, item.order_index))
+                source_item = source_slot[1] if source_slot is not None else None
                 timing = ExerciseTiming(item.sets, item.rest_seconds)
                 output_exercises.append(
                     WorkoutPlanExerciseOutput(
@@ -190,7 +211,7 @@ class WorkoutReviewDraftValidator:
                             if item.prescription_mode is PrescriptionMode.DURATION
                             else item.rir
                             if item.rir is not None
-                            else source_item.rir
+                            else source_item.rir if source_item is not None else 2
                         ),
                         estimated_minutes=calculate_exercise_minutes(timing),
                         notes_en=item.notes_en,
@@ -201,8 +222,12 @@ class WorkoutReviewDraftValidator:
             output_days.append(
                 WorkoutPlanDayOutput(
                     day_number=draft_day.day_number,
-                    title_en=source_day.title_en,
-                    title_fa=source_day.title_fa,
+                    title_en=draft_day.title_en
+                    or (source_day.title_en if source_day is not None else None)
+                    or f"Day {draft_day.day_number}",
+                    title_fa=draft_day.title_fa
+                    or (source_day.title_fa if source_day is not None else None)
+                    or f"روز {draft_day.day_number}",
                     estimated_duration_minutes=5 + calculate_day_minutes(timings),
                     exercises=output_exercises,
                 )
