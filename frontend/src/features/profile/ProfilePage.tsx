@@ -126,11 +126,13 @@ function NutritionOnlyProfileLoader({
 }
 
 function ProfileLoadingShell({ message, error = null }: { message: string; error?: unknown }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   return (
     <div className="profile-page-shell">
       <MemberHeaderMedia imageSrc={authTrainingAccent} className="member-page-background" />
       <main className="profile-page-main">
-        {error ? <AppErrorNotice audience="member" context="profile" error={error} /> : <p role="status">{message}</p>}
+        {error ? <AppErrorNotice audience="member" context="profile" error={error} locale={language} /> : <p role="status">{message}</p>}
       </main>
     </div>
   );
@@ -410,7 +412,7 @@ function ReadyProfilePage({
                 </div>
               )}
 
-              <AppErrorNotice audience="member" context="profile" error={saveError} />
+              <AppErrorNotice audience="member" context="profile" error={saveError} locale={language} />
               {status !== "idle" && (
                 <p className="profile-save-message profile-save-message--success" role="status">
                   {status === "saved" ? t("profile.saved", { name: baselineShared.display_name }) : t("profile.unchanged")}

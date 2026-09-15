@@ -20,6 +20,12 @@ function technicalValue(value: string | number | null): string {
   return value === null ? "—" : String(value);
 }
 
+function diagnosticLabels(locale: ErrorLocale) {
+  return locale === "en"
+    ? { code: "Error code", requestId: "Request ID", retryable: "Retryable", yes: "Yes", no: "No" }
+    : { code: "کد خطا", requestId: "شناسه پیگیری", retryable: "قابل تلاش مجدد", yes: "بله", no: "خیر" };
+}
+
 export function AppErrorNotice({
   audience,
   context,
@@ -31,6 +37,7 @@ export function AppErrorNotice({
   if (error === null || error === undefined) return null;
   const resolved = resolveWebAppError(error, { audience, context, locale, networkState });
   if (resolved.severity === "silent") return null;
+  const labels = diagnosticLabels(locale);
 
   return (
     <div
@@ -56,10 +63,10 @@ export function AppErrorNotice({
       ) : null}
       {resolved.showTechnicalDetails ? (
         <dl data-testid="app-error-technical-details">
-          <div><dt>کد خطا</dt><dd>{technicalValue(resolved.code)}</dd></div>
+          <div><dt>{labels.code}</dt><dd>{technicalValue(resolved.code)}</dd></div>
           <div><dt>HTTP</dt><dd>{technicalValue(resolved.status)}</dd></div>
-          <div><dt>شناسه پیگیری</dt><dd>{technicalValue(resolved.requestId)}</dd></div>
-          <div><dt>قابل تلاش مجدد</dt><dd>{resolved.retryable ? "بله" : "خیر"}</dd></div>
+          <div><dt>{labels.requestId}</dt><dd>{technicalValue(resolved.requestId)}</dd></div>
+          <div><dt>{labels.retryable}</dt><dd>{resolved.retryable ? labels.yes : labels.no}</dd></div>
           {Object.entries(resolved.meta).map(([key, value]) => (
             <div key={key}><dt>{key}</dt><dd>{JSON.stringify(value)}</dd></div>
           ))}

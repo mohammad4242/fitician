@@ -164,7 +164,7 @@ export function ProfilePhotoControl({
           </button>
         )}
       </div>
-      <AppErrorNotice audience="member" context="profile" error={apiError} />
+      <AppErrorNotice audience="member" context="profile" error={apiError} locale={fa ? "fa" : "en"} />
       {clientError && <p className="profile-photo-control__error" role="alert">{clientError}</p>}
       {selectedFile && (
         <div className="profile-photo-dialog-backdrop">

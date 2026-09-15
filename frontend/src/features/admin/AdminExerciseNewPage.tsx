@@ -24,7 +24,8 @@ import {
 import "./admin.css";
 
 export function AdminExerciseNewPage() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = readExerciseLibraryReturn(searchParams);
@@ -120,6 +121,7 @@ export function AdminExerciseNewPage() {
               audience="admin"
               context="workout"
               error={saveError}
+              locale={language}
               onRetry={() => void submitForm()}
             />
           ) : Object.keys(errors).length > 0 ? (

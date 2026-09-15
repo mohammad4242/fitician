@@ -244,7 +244,7 @@ export function CoachWorkoutReviewPage() {
           </aside>
         </header>
 
-        <AppErrorNotice audience="coach" context="specialist_review" error={apiError} />
+        <AppErrorNotice audience="coach" context="specialist_review" error={apiError} locale={fa ? "fa" : "en"} />
         {error && <p className="coach-review-error" role="alert">{error}</p>}
 
         <div className={`coach-review-workspace${selected ? " has-selected" : ""}`}>

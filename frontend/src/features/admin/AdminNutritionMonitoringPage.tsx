@@ -36,8 +36,8 @@ export function AdminNutritionMonitoringPage() {
   }
   return <main className="nutrition-estimate-page" dir={fa ? "rtl" : "ltr"}>
     <section className="nutrition-estimate-hero"><Link to="/dashboard">{l("بازگشت", "Back")}</Link><h1>{l("پایش تغذیه", "Nutrition monitoring")}</h1><p>{l("تمرکز این صفحه روی استثناها، سلامت کاتالوگ و اجرای قیمت‌گذاری است.", "This workspace focuses on exceptions, catalogue health, and pricing runs.")}</p><button type="button" disabled={refreshing} onClick={() => void refreshPrices()}>{refreshing ? l("در حال اجرا…", "Running…") : l("به‌روزرسانی دستی قیمت‌ها", "Refresh prices manually")}</button>{refreshMessage && <p role="status">{refreshMessage}</p>}</section>
-    <AppErrorNotice audience="admin" context="nutrition" error={failed} onRetry={() => { setData(null); void api.getNutritionMonitoring().then((monitoring) => { setData(monitoring); setFailed(null); }).catch((cause) => setFailed(cause)); }} />
-    <AppErrorNotice audience="admin" context="nutrition" error={refreshError} onRetry={() => void refreshPrices()} />
+    <AppErrorNotice audience="admin" context="nutrition" error={failed} locale={fa ? "fa" : "en"} onRetry={() => { setData(null); void api.getNutritionMonitoring().then((monitoring) => { setData(monitoring); setFailed(null); }).catch((cause) => setFailed(cause)); }} />
+    <AppErrorNotice audience="admin" context="nutrition" error={refreshError} locale={fa ? "fa" : "en"} onRetry={() => void refreshPrices()} />
     {data === null && !failed ? <p className="nutrition-estimate-state" role="status">{l("در حال دریافت…", "Loading…")}</p> : data && <>
       <section className="nutrition-target-grid" aria-label={l("شاخص‌ها", "Metrics")}>
         {Object.entries(data.counts).map(([key, value]) => <article className="nutrition-target-card" key={key}><span>{metricLabel(key, fa)}</span><strong>{new Intl.NumberFormat(fa ? "fa-IR" : "en-US").format(value)}</strong></article>)}

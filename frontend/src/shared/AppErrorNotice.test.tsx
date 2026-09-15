@@ -42,6 +42,25 @@ describe("AppErrorNotice", () => {
     expect(alert).not.toHaveTextContent("provider secret");
   });
 
+  it("localizes admin diagnostic labels", () => {
+    render(
+      <AppErrorNotice
+        audience="admin"
+        context="body_analysis"
+        error={new ApiError(503, "private detail", null, "BODY_ANALYSIS_PROVIDER_UNAVAILABLE", {
+          requestId: "ui-request-en-1",
+        })}
+        locale="en"
+      />,
+    );
+
+    const details = screen.getByTestId("app-error-technical-details");
+    expect(details).toHaveTextContent("Error code");
+    expect(details).toHaveTextContent("Request ID");
+    expect(details).toHaveTextContent("Retryable");
+    expect(details).not.toHaveTextContent("کد خطا");
+  });
+
   it("uses coach workflow language", () => {
     render(
       <AppErrorNotice

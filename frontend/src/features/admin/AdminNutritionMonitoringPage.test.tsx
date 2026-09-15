@@ -178,3 +178,25 @@ it("shows shared admin diagnostics for a failed monitoring request", async () =>
   expect(alert).toHaveTextContent("monitoring-request-1");
   expect(alert).not.toHaveTextContent("provider secret");
 });
+
+it("shows monitoring errors in the selected English language", async () => {
+  await i18n.changeLanguage("en");
+  nutritionApi.getNutritionMonitoring.mockRejectedValueOnce(new ApiError(
+    503,
+    "provider secret",
+    null,
+    "BODY_ANALYSIS_PROVIDER_UNAVAILABLE",
+    { requestId: "monitoring-request-en-1" },
+  ));
+
+  render(
+    <MemoryRouter>
+      <AdminNutritionMonitoringPage />
+    </MemoryRouter>,
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("The Body Analysis provider is unavailable");
+  expect(alert).toHaveTextContent("Error code");
+  expect(alert).not.toHaveTextContent("سرویس تحلیل بدن");
+});

@@ -24,7 +24,8 @@ import {
 import "./admin.css";
 
 export function AdminExerciseEditPage() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const { exerciseId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -155,6 +156,7 @@ export function AdminExerciseEditPage() {
             audience="admin"
             context="workout"
             error={loadError}
+            locale={language}
             onRetry={() => setReload((value) => value + 1)}
           />
         )}
@@ -172,6 +174,7 @@ export function AdminExerciseEditPage() {
                 audience="admin"
                 context="workout"
                 error={saveError}
+                locale={language}
                 onRetry={() => void save()}
               />
             ) : Object.keys(errors).length > 0 ? (
