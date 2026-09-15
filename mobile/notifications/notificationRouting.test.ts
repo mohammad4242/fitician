@@ -12,6 +12,10 @@ it("maps domain notification events to authenticated native destinations", () =>
   expect(notificationPathFromData({ event_type: "workout_plan_approved" })).toBe(
     "/member/workouts",
   );
+  expect(notificationPathFromData({ event_type: "workout_plan_acceptance_required" })).toBe(
+    "/member/workouts",
+  );
+  expect(notificationPathFromData({ event_type: "workout_plan_changes_requested" })).toBe("/coach");
   expect(notificationPathFromData({ event_type: "nutrition_plan_approved" })).toBe(
     "/member/nutrition",
   );

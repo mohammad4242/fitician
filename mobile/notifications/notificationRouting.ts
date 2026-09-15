@@ -21,7 +21,9 @@ const notificationRoutes: Readonly<Record<string, NotificationRoutePath>> = {
   physician_plan_approved: "/member/nutrition",
   physician_plan_rejected: "/member/nutrition",
   weekly_check_in_due: "/member/workouts",
+  workout_plan_acceptance_required: "/member/workouts",
   workout_plan_approved: "/member/workouts",
+  workout_plan_changes_requested: "/coach",
   workout_review_required: "/coach",
 };
 
