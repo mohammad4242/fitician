@@ -159,3 +159,197 @@
   .billing-admin-card__panel,
   .billing-admin-chevron { transition: none; }
 }
+
+/* Member pricing */
+.billing-pricing {
+  --billing-aqua-soft: rgb(80 223 206 / 10%);
+  --billing-aqua-line: rgb(80 223 206 / 32%);
+  max-width: 74rem;
+}
+
+.billing-pricing__hero {
+  position: relative;
+  max-width: 47rem;
+  margin-block-end: clamp(1.5rem, 4vw, 2.4rem);
+}
+
+.billing-pricing__hero::before {
+  position: absolute;
+  z-index: -1;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: rgb(80 223 206 / 8%);
+  content: "";
+  filter: blur(2.8rem);
+  inset-block-start: -2.8rem;
+  inset-inline-start: -2rem;
+}
+
+.billing-pricing__hero h1 {
+  max-width: 17ch;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.billing-pricing__hero p:last-child { max-width: 42rem; font-size: clamp(0.9rem, 2vw, 1.05rem); line-height: 1.8; }
+
+.billing-current-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--billing-aqua-line);
+  border-radius: var(--fitician-radius-lg);
+  margin-block-end: 1rem;
+  background: linear-gradient(112deg, var(--billing-aqua-soft), transparent 48%), var(--fitician-surface);
+  box-shadow: var(--fitician-shadow-card);
+}
+
+.billing-current-card__mark,
+.billing-package-card__icon {
+  display: inline-grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--billing-aqua-line);
+  border-radius: 0.9rem;
+  color: var(--fitician-aqua);
+  background: var(--billing-aqua-soft);
+}
+
+.billing-current-card__mark svg,
+.billing-package-card__icon svg { width: 1.35rem; height: 1.35rem; }
+.billing-current-card__copy { display: grid; gap: 0.2rem; }
+.billing-current-card__copy > span { color: var(--fitician-muted); font-size: 0.72rem; }
+.billing-current-card__copy strong { color: var(--fitician-ink); font-size: 1.05rem; }
+.billing-current-card__status { display: grid; justify-items: end; gap: 0.45rem; }
+.billing-current-card__status > div, .billing-package-card__badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+.billing-current-card__status time { color: var(--fitician-muted); font-size: 0.72rem; }
+
+.billing-badge {
+  display: inline-flex;
+  min-height: 1.65rem;
+  align-items: center;
+  padding: 0.2rem 0.62rem;
+  border: 1px solid var(--billing-aqua-line);
+  border-radius: 999px;
+  color: var(--fitician-aqua);
+  background: var(--billing-aqua-soft);
+  font-size: 0.67rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.billing-badge--active { color: #89e0bd; border-color: rgb(102 200 159 / 36%); background: rgb(102 200 159 / 11%); }
+.billing-badge--trial { color: var(--fitician-ink); border-color: var(--fitician-line-strong); background: var(--fitician-surface-highlight); }
+
+.billing-category-selector {
+  display: grid;
+  width: min(100%, 31rem);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 1px solid var(--fitician-line);
+  border-radius: 999px;
+  margin-block: 1.2rem 1.4rem;
+  background: var(--fitician-surface-subtle);
+}
+
+.billing-category-selector button {
+  min-height: 2.65rem;
+  padding-inline: 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--fitician-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.billing-category-selector button:hover { color: var(--fitician-ink); background: var(--fitician-surface-interactive); }
+.billing-category-selector button.is-active { border-color: var(--billing-aqua-line); color: var(--fitician-canvas); background: var(--fitician-aqua); box-shadow: 0 0.35rem 1rem rgb(80 223 206 / 14%); }
+
+.billing-package-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 1rem; }
+
+.billing-package-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: clamp(1rem, 3vw, 1.4rem);
+  overflow: hidden;
+  border: 1px solid var(--fitician-line);
+  border-radius: calc(var(--fitician-radius-lg) + 0.2rem);
+  background: linear-gradient(145deg, rgb(255 255 255 / 2%), transparent 42%), var(--fitician-surface);
+  box-shadow: 0 0.8rem 2.6rem rgb(0 0 0 / 18%);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.billing-package-card:hover { border-color: var(--fitician-line-strong); box-shadow: 0 1.1rem 3.2rem rgb(0 0 0 / 25%); transform: translateY(-2px); }
+.billing-package-card--eligible { border-color: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 18%), 0 1rem 3rem rgb(0 0 0 / 22%); }
+.billing-package-card--active::after { position: absolute; width: 6rem; height: 0.16rem; border-radius: 999px; background: var(--fitician-aqua); content: ""; inset-block-start: 0; inset-inline-start: 1.4rem; box-shadow: 0 0 1rem rgb(80 223 206 / 38%); }
+.billing-package-card--featured { border-color: rgb(80 223 206 / 34%); background: linear-gradient(145deg, rgb(80 223 206 / 8%), transparent 42%), var(--fitician-surface); }
+.billing-package-card--premium { border-color: rgb(80 223 206 / 52%); background: radial-gradient(circle at 88% 0%, rgb(242 184 91 / 8%), transparent 25%), linear-gradient(145deg, rgb(80 223 206 / 12%), transparent 46%), var(--fitician-surface-raised); box-shadow: 0 0 0 1px rgb(80 223 206 / 8%), 0 1.2rem 3.5rem rgb(0 0 0 / 28%); }
+.billing-package-card--premium .billing-package-card__icon { color: #b9f5ec; background: rgb(80 223 206 / 16%); box-shadow: 0 0 1.2rem rgb(80 223 206 / 12%); }
+
+.billing-package-card__topline { display: flex; min-height: 2.8rem; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-block-end: 1rem; }
+.billing-package-card__header h2 { margin: 0; color: var(--fitician-ink); font-size: clamp(1.35rem, 3vw, 1.7rem); letter-spacing: -0.02em; }
+.billing-package-card__header p { min-height: 3.2em; margin: 0.45rem 0 0; color: var(--fitician-muted); font-size: 0.84rem; line-height: 1.65; }
+.billing-package-card__tagline { min-height: 3em; margin: 0.85rem 0 0; color: var(--fitician-ink); font-size: 0.78rem; font-weight: 650; line-height: 1.7; }
+
+.billing-feature-list { display: grid; gap: 0.65rem; padding: 0; margin: 1rem 0 0; list-style: none; }
+.billing-feature-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0.55rem; color: var(--fitician-muted); font-size: 0.76rem; line-height: 1.65; animation: billing-feature-in 180ms ease both; }
+.billing-feature-row__check { position: relative; width: 1rem; height: 1rem; border: 1px solid var(--billing-aqua-line); border-radius: 50%; margin-block-start: 0.16rem; background: var(--billing-aqua-soft); }
+.billing-feature-row__check::after { position: absolute; width: 0.35rem; height: 0.18rem; border-block-end: 1.5px solid var(--fitician-aqua); border-inline-start: 1.5px solid var(--fitician-aqua); content: ""; inset-block-start: 0.28rem; inset-inline-start: 0.26rem; transform: rotate(-45deg); }
+
+.billing-feature-toggle { display: inline-flex; width: fit-content; align-items: center; gap: 0.5rem; padding: 0.55rem 0; border: 0; margin-block-start: 0.25rem; color: var(--fitician-aqua); background: transparent; font: inherit; font-size: 0.74rem; font-weight: 750; cursor: pointer; }
+.billing-feature-toggle__chevron { width: 0.4rem; height: 0.4rem; border-inline-end: 1.5px solid currentColor; border-block-end: 1.5px solid currentColor; transform: rotate(45deg); transition: transform 160ms ease; }
+.billing-feature-toggle__chevron.is-open { transform: rotate(225deg); }
+
+.billing-package-card__purchase { display: grid; gap: 0.9rem; padding-block-start: 1rem; border-block-start: 1px solid var(--fitician-line); margin-block-start: auto; }
+.billing-duration-block { display: grid; gap: 0.55rem; }
+.billing-duration-block > span { color: var(--fitician-muted); font-size: 0.69rem; }
+.billing-duration-selector { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+.billing-duration-selector button { min-height: 2.45rem; padding: 0.35rem; border: 1px solid var(--fitician-line); border-radius: 0.7rem; color: var(--fitician-muted); background: var(--fitician-surface-subtle); font: inherit; font-size: 0.74rem; font-weight: 750; cursor: pointer; transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease, transform 150ms ease; }
+.billing-duration-selector button:hover { border-color: var(--fitician-line-strong); color: var(--fitician-ink); }
+.billing-duration-selector button.is-selected { border-color: var(--fitician-aqua); color: var(--fitician-ink); background: var(--billing-aqua-soft); box-shadow: inset 0 0 0 1px rgb(80 223 206 / 9%); }
+
+.billing-quota-highlight { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.55rem; padding: 0.7rem 0.8rem; border: 1px solid var(--billing-aqua-line); border-radius: var(--fitician-radius-md); margin: 0; color: var(--fitician-ink); background: var(--billing-aqua-soft); font-size: 0.7rem; line-height: 1.55; }
+.billing-quota-highlight svg { width: 1.05rem; height: 1.05rem; color: var(--fitician-aqua); }
+.billing-package-card__price-row { display: flex; min-height: 2.2rem; align-items: center; justify-content: space-between; gap: 0.7rem; }
+.billing-package-card__price { margin: 0; color: var(--fitician-ink); font-family: "Sora Variable", sans-serif; font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 800; direction: ltr; }
+.billing-package-card__unavailable { color: var(--fitician-muted); font-size: 0.67rem; }
+.billing-package-card__cta { width: 100%; min-height: 3rem; box-shadow: 0 0.5rem 1.3rem rgb(80 223 206 / 13%); transition: filter 150ms ease, transform 150ms ease; }
+.billing-package-card__cta:not(:disabled):hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+.billing-category-selector button:focus-visible,
+.billing-duration-selector button:focus-visible,
+.billing-feature-toggle:focus-visible,
+.billing-package-card__cta:focus-visible { outline: 3px solid rgb(80 223 206 / 28%); outline-offset: 2px; }
+
+@keyframes billing-feature-in { from { opacity: 0; transform: translateY(-0.2rem); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 720px) {
+  .billing-package-grid { grid-template-columns: 1fr; }
+  .billing-current-card { grid-template-columns: auto minmax(0, 1fr); }
+  .billing-current-card__status { grid-column: 1 / -1; justify-items: start; padding-block-start: 0.65rem; border-block-start: 1px solid var(--fitician-line); }
+  .billing-current-card__status > div { justify-content: flex-start; }
+  .billing-category-selector { width: 100%; }
+  .billing-package-card__header p, .billing-package-card__tagline { min-height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billing-category-selector button,
+  .billing-package-card,
+  .billing-duration-selector button,
+  .billing-feature-row,
+  .billing-feature-toggle__chevron,
+  .billing-package-card__cta { animation: none; transition: none; }
+}
