@@ -3,7 +3,14 @@ import type { components } from "./generated/api.js";
 import { IRAN_TIME_ZONE } from "./iran-calendar.js";
 import type { WorkoutPlan } from "./workouts.js";
 
-export type WorkoutReviewStatus = "pending" | "claimed" | "approved" | "rejected" | "superseded";
+export type WorkoutReviewStatus =
+  | "pending"
+  | "claimed"
+  | "awaiting_member_acceptance"
+  | "member_changes_requested"
+  | "approved"
+  | "rejected"
+  | "superseded";
 export type WorkoutReviewQueueView = "pending" | "mine" | "approved";
 export type WorkoutReviewQueueTimestamp = "created_at" | "approved_at";
 export type ReviewProfileSummary = components["schemas"]["ReviewProfileSummary"];
@@ -25,6 +32,8 @@ export type WorkoutReviewExerciseDraft = {
 
 export type WorkoutReviewDayDraft = {
   day_number: number;
+  title_en?: string | null;
+  title_fa?: string | null;
   exercises: WorkoutReviewExerciseDraft[];
 };
 
@@ -202,6 +211,7 @@ export type CoachTemplateSelection = {
 
 export type WorkoutReviewDetail = WorkoutReviewQueueItem & {
   coach_note: string | null;
+  member_rejection_note: string | null;
   draft: { days: WorkoutReviewDayDraft[] } | null;
   source_plan: WorkoutPlan;
   exercise_options: Array<{
@@ -214,4 +224,28 @@ export type WorkoutReviewDetail = WorkoutReviewQueueItem & {
   }>;
   template_selection: CoachTemplateSelection | null;
   profile_summary?: ReviewProfileSummary | null;
+};
+
+export type WorkoutReviewDifferenceEntry = {
+  change_type: string;
+  day_number: number;
+  order_index: number;
+  generated: unknown;
+  approved: unknown;
+  generated_exercise_id: string | null;
+  approved_exercise_id: string | null;
+  provenance: Record<string, string>;
+};
+
+export type WorkoutReviewMemberDetail = {
+  id: string;
+  source_plan_id: string;
+  status: WorkoutReviewStatus;
+  draft_revision: number;
+  coach_note: string | null;
+  member_rejection_note: string | null;
+  source_plan: WorkoutPlan;
+  proposed_plan: WorkoutPlan | null;
+  difference_summary: WorkoutReviewDifferenceEntry[];
+  coach_display_name: string | null;
 };

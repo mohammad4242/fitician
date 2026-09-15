@@ -49,7 +49,9 @@ export function CoachWorkoutReviewPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<unknown>(null);
-  const readOnly = selected?.status === "approved" || selected?.status === "rejected";
+  const readOnly = selected?.status === "approved"
+    || selected?.status === "rejected"
+    || selected?.status === "awaiting_member_acceptance";
   const groupedQueue = useMemo(
     () => groupWorkoutReviewQueue(queue, new Date().toISOString(), view === "approved" ? "approved_at" : "created_at"),
     [queue, view],
@@ -65,7 +67,7 @@ export function CoachWorkoutReviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [l]);
+  }, []);
 
   useEffect(() => {
     void loadQueue(view);
@@ -128,6 +130,110 @@ export function CoachWorkoutReviewPage() {
       exercises: day.exercises.map((exercise, itemIndex) => (
         itemIndex === exerciseIndex ? { ...exercise, ...patch } : exercise
       )),
+    }));
+  }
+
+  function updateDay(dayIndex: number, patch: Partial<WorkoutReviewDayDraft>) {
+    setDraft((current) => current.map((day, index) => (
+      index === dayIndex ? { ...day, ...patch } : day
+    )));
+  }
+
+  function addDay() {
+    if (!selected?.exercise_options.length) {
+      setError(l("حرکتی برای افزودن وجود ندارد.", "No exercise is available to add."));
+      return;
+    }
+    if (draft.length >= 6) {
+      setError(l("حداکثر ۶ روز مجاز است.", "A plan can have at most 6 days."));
+      return;
+    }
+    const dayNumber = draft.length + 1;
+    setError(null);
+    setDraft((current) => [
+      ...current,
+      {
+        day_number: dayNumber,
+        title_en: null,
+        title_fa: null,
+        exercises: [newExerciseDraft(1, selected?.exercise_options[0])],
+      },
+    ]);
+  }
+
+  function removeDay(dayIndex: number) {
+    if (draft.length <= 1) {
+      setError(l("برای حذف آخرین روز، ابتدا یک روز دیگر اضافه کن.", "Keep at least one workout day."));
+      return;
+    }
+    setError(null);
+    setDraft((current) => renumberDays(current.filter((_, index) => index !== dayIndex)));
+  }
+
+  function moveDay(dayIndex: number, direction: -1 | 1) {
+    const targetIndex = dayIndex + direction;
+    if (targetIndex < 0 || targetIndex >= draft.length) return;
+    setError(null);
+    setDraft((current) => {
+      const next = [...current];
+      const [moved] = next.splice(dayIndex, 1);
+      if (!moved) return current;
+      next.splice(targetIndex, 0, moved);
+      return renumberDays(next);
+    });
+  }
+
+  function addExercise(dayIndex: number) {
+    if (!selected?.exercise_options.length) {
+      setError(l("حرکتی برای افزودن وجود ندارد.", "No exercise is available to add."));
+      return;
+    }
+    if (draft[dayIndex]?.exercises.length >= 10) {
+      setError(l("حداکثر ۱۰ حرکت در هر روز مجاز است.", "A day can have at most 10 exercises."));
+      return;
+    }
+    setError(null);
+    setDraft((current) => current.map((day, index) => {
+      if (index !== dayIndex) return day;
+      return {
+        ...day,
+        exercises: [
+          ...day.exercises,
+          newExerciseDraft(day.exercises.length + 1, selected?.exercise_options[0]),
+        ],
+      };
+    }));
+  }
+
+  function removeExercise(dayIndex: number, exerciseIndex: number) {
+    const day = draft[dayIndex];
+    if (!day || day.exercises.length <= 1) {
+      setError(l("برای حذف آخرین حرکت، روز را حذف کن.", "Remove the day to remove its last exercise."));
+      return;
+    }
+    setError(null);
+    setDraft((current) => current.map((item, index) => {
+      if (index !== dayIndex) return item;
+      return {
+        ...item,
+        exercises: renumberExercises(item.exercises.filter((_, itemIndex) => itemIndex !== exerciseIndex)),
+      };
+    }));
+  }
+
+  function moveExercise(dayIndex: number, exerciseIndex: number, direction: -1 | 1) {
+    const day = draft[dayIndex];
+    if (!day) return;
+    const targetIndex = exerciseIndex + direction;
+    if (targetIndex < 0 || targetIndex >= day.exercises.length) return;
+    setError(null);
+    setDraft((current) => current.map((item, index) => {
+      if (index !== dayIndex) return item;
+      const exercises = [...item.exercises];
+      const [moved] = exercises.splice(exerciseIndex, 1);
+      if (!moved) return item;
+      exercises.splice(targetIndex, 0, moved);
+      return { ...item, exercises: renumberExercises(exercises) };
     }));
   }
 
@@ -357,6 +463,19 @@ export function CoachWorkoutReviewPage() {
                   <span>{readOnly ? l("نسخه تأییدشده", "Approved version") : l("پیش‌نویس مربی", "Coach draft")}</span>
                 </div>
 
+                {!readOnly && (
+                  <div className="coach-review-structure-toolbar">
+                    <span>{l("ساختار برنامه را کامل ویرایش کن", "Edit the full plan structure")}</span>
+                    <button
+                      type="button"
+                      disabled={busy || draft.length >= 6 || selected.exercise_options.length === 0}
+                      onClick={addDay}
+                    >
+                      {l("افزودن روز", "Add day")}
+                    </button>
+                  </div>
+                )}
+
                 <div className="coach-review-days">
                   {draft.map((day, dayIndex) => (
                     <ReviewDisclosure
@@ -364,8 +483,52 @@ export function CoachWorkoutReviewPage() {
                       key={day.day_number}
                       section="coach-workout-day"
                       summary={l(`${faNumber(day.exercises.length)} حرکت`, `${day.exercises.length} exercises`)}
-                      title={l(`روز ${faNumber(day.day_number)}`, `Day ${day.day_number}`)}
+                      title={fa ? day.title_fa || `روز ${faNumber(day.day_number)}` : day.title_en || `Day ${day.day_number}`}
                     >
+                      {!readOnly && (
+                        <div className="coach-review-day-tools">
+                          <div className="coach-review-day-titles">
+                            <label>
+                              {l(`عنوان فارسی روز ${faNumber(day.day_number)}`, `Persian title for day ${day.day_number}`)}
+                              <input
+                                aria-label={l(`عنوان فارسی روز ${faNumber(day.day_number)}`, `Persian title for day ${day.day_number}`)}
+                                value={day.title_fa ?? ""}
+                                onChange={(event) => updateDay(dayIndex, { title_fa: event.target.value || null })}
+                              />
+                            </label>
+                            <label>
+                              {l(`عنوان انگلیسی روز ${faNumber(day.day_number)}`, `English title for day ${day.day_number}`)}
+                              <input
+                                aria-label={l(`عنوان انگلیسی روز ${faNumber(day.day_number)}`, `English title for day ${day.day_number}`)}
+                                dir="ltr"
+                                value={day.title_en ?? ""}
+                                onChange={(event) => updateDay(dayIndex, { title_en: event.target.value || null })}
+                              />
+                            </label>
+                          </div>
+                          <div className="coach-review-inline-actions">
+                            <button
+                              type="button"
+                              aria-label={l(`روز ${faNumber(day.day_number)} را بالا ببر`, `Move day ${day.day_number} up`)}
+                              disabled={busy || dayIndex === 0}
+                              onClick={() => moveDay(dayIndex, -1)}
+                            >↑</button>
+                            <button
+                              type="button"
+                              aria-label={l(`روز ${faNumber(day.day_number)} را پایین ببر`, `Move day ${day.day_number} down`)}
+                              disabled={busy || dayIndex === draft.length - 1}
+                              onClick={() => moveDay(dayIndex, 1)}
+                            >↓</button>
+                            <button
+                              className="is-danger"
+                              type="button"
+                              aria-label={l(`حذف روز ${faNumber(day.day_number)}`, `Remove day ${day.day_number}`)}
+                              disabled={busy || draft.length <= 1}
+                              onClick={() => removeDay(dayIndex)}
+                            >{l("حذف روز", "Remove day")}</button>
+                          </div>
+                        </div>
+                      )}
                       {day.exercises.map((exercise, exerciseIndex) => {
                         const exerciseOption = selected.exercise_options.find((option) => option.id === exercise.exercise_id);
                         const exerciseName = exerciseOption
@@ -386,6 +549,29 @@ export function CoachWorkoutReviewPage() {
                             summary={l(`${faNumber(exercise.sets)} ست`, `${exercise.sets} sets`)}
                             title={exerciseTitle}
                           >
+                            {!readOnly && (
+                              <div className="coach-review-exercise-tools">
+                                <button
+                                  type="button"
+                                  aria-label={l(`حرکت ${faNumber(exercise.order_index)} از روز ${faNumber(day.day_number)} را بالا ببر`, `Move exercise ${exercise.order_index} in day ${day.day_number} up`)}
+                                  disabled={busy || exerciseIndex === 0}
+                                  onClick={() => moveExercise(dayIndex, exerciseIndex, -1)}
+                                >↑</button>
+                                <button
+                                  type="button"
+                                  aria-label={l(`حرکت ${faNumber(exercise.order_index)} از روز ${faNumber(day.day_number)} را پایین ببر`, `Move exercise ${exercise.order_index} in day ${day.day_number} down`)}
+                                  disabled={busy || exerciseIndex === day.exercises.length - 1}
+                                  onClick={() => moveExercise(dayIndex, exerciseIndex, 1)}
+                                >↓</button>
+                                <button
+                                  className="is-danger"
+                                  type="button"
+                                  aria-label={l(`حرکت ${faNumber(exercise.order_index)} از روز ${faNumber(day.day_number)} را حذف کن`, `Remove exercise ${exercise.order_index} from day ${day.day_number}`)}
+                                  disabled={busy || day.exercises.length <= 1}
+                                  onClick={() => removeExercise(dayIndex, exerciseIndex)}
+                                >{l("حذف حرکت", "Remove exercise")}</button>
+                              </div>
+                            )}
                             <fieldset disabled={busy || readOnly}>
                               <legend>{l(`حرکت ${faNumber(exercise.order_index)}`, `Exercise ${exercise.order_index}`)}</legend>
                               <label>
@@ -424,6 +610,14 @@ export function CoachWorkoutReviewPage() {
                           </ReviewDisclosure>
                         );
                       })}
+                      {!readOnly && (
+                        <button
+                          className="coach-review-add-exercise"
+                          type="button"
+                          disabled={busy || day.exercises.length >= 10}
+                          onClick={() => addExercise(dayIndex)}
+                        >{l(`افزودن حرکت به روز ${faNumber(day.day_number)}`, `Add exercise to day ${day.day_number}`)}</button>
+                      )}
                     </ReviewDisclosure>
                   ))}
                 </div>
@@ -437,7 +631,7 @@ export function CoachWorkoutReviewPage() {
                   <footer className="coach-review-actions">
                     <button type="button" disabled={busy} onClick={() => void saveDraft()}>{l("ذخیره پیش‌نویس", "Save draft")}</button>
                     <button className="is-reject" type="button" disabled={busy || !coachNote.trim()} onClick={() => void reject()}>{l("برگشت برای اصلاح", "Return for correction")}</button>
-                    <button className="is-primary" type="button" disabled={busy} onClick={() => void approve()}>{l("تأیید و ارسال برای کاربر", "Approve and send to member")}</button>
+                    <button className="is-primary" type="button" disabled={busy} onClick={() => void approve()}>{l("ارسال برای تأیید کاربر", "Send for member approval")}</button>
                   </footer>
                 )}
               </>
@@ -522,6 +716,8 @@ function statusTitle(status: WorkoutReviewQueueItem["status"], fa: boolean) {
   const labels = {
     pending: fa ? "در انتظار" : "Waiting",
     claimed: fa ? "در حال بررسی" : "In review",
+    awaiting_member_acceptance: fa ? "در انتظار تایید کاربر" : "Awaiting member approval",
+    member_changes_requested: fa ? "درخواست اصلاح کاربر" : "Member requested changes",
     approved: fa ? "تأییدشده" : "Approved",
     rejected: fa ? "برگشت‌داده‌شده" : "Returned",
     superseded: fa ? "بایگانی‌شده" : "Archived",
@@ -544,4 +740,37 @@ function humanize(value: string | null, fa: boolean) {
 
 function faNumber(value: number) {
   return value.toLocaleString("fa-IR", { useGrouping: false });
+}
+
+function newExerciseDraft(
+  orderIndex: number,
+  option: WorkoutReviewDetail["exercise_options"][number] | undefined,
+): WorkoutReviewExerciseDraft {
+  const duration = option?.prescription_mode === "duration";
+  return {
+    order_index: orderIndex,
+    exercise_id: option?.id ?? "",
+    sets: 3,
+    prescription_mode: duration ? "duration" : "reps",
+    reps_min: duration ? null : 8,
+    reps_max: duration ? null : 12,
+    duration_min_seconds: duration ? option?.duration_min_seconds ?? null : null,
+    duration_max_seconds: duration ? option?.duration_max_seconds ?? null : null,
+    rir: duration ? null : 2,
+    rest_seconds: 90,
+    notes_en: null,
+    notes_fa: null,
+  };
+}
+
+function renumberExercises(exercises: WorkoutReviewExerciseDraft[]) {
+  return exercises.map((exercise, index) => ({ ...exercise, order_index: index + 1 }));
+}
+
+function renumberDays(days: WorkoutReviewDayDraft[]) {
+  return days.map((day, index) => ({
+    ...day,
+    day_number: index + 1,
+    exercises: renumberExercises(day.exercises),
+  }));
 }

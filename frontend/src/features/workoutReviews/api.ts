@@ -2,6 +2,7 @@ import { request } from "../../shared/apiClient";
 
 import type {
   WorkoutReviewDetail,
+  WorkoutReviewMemberDetail,
   WorkoutReviewDraftUpdate,
   WorkoutReviewQueueItem,
   WorkoutReviewQueueView,
@@ -45,10 +46,17 @@ export function approveWorkoutReview(
   reviewId: string,
   expectedRevision: number,
 ): Promise<WorkoutReviewDetail> {
-  return request(`${basePath}/${reviewId}/approve`, {
+  return request(`${basePath}/${reviewId}/submit`, {
     method: "POST",
     body: JSON.stringify({ expected_revision: expectedRevision }),
   });
+}
+
+export function submitWorkoutReview(
+  reviewId: string,
+  expectedRevision: number,
+): Promise<WorkoutReviewDetail> {
+  return approveWorkoutReview(reviewId, expectedRevision);
 }
 
 export function rejectWorkoutReview(
@@ -57,6 +65,33 @@ export function rejectWorkoutReview(
   explanation: string,
 ): Promise<WorkoutReviewDetail> {
   return request(`${basePath}/${reviewId}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ expected_revision: expectedRevision, explanation }),
+  });
+}
+
+const memberBasePath = "/api/v1/workout-reviews";
+
+export function getCurrentMemberWorkoutReview(): Promise<WorkoutReviewMemberDetail> {
+  return request(`${memberBasePath}/current`);
+}
+
+export function acceptMemberWorkoutReview(
+  reviewId: string,
+  expectedRevision: number,
+): Promise<WorkoutReviewMemberDetail> {
+  return request(`${memberBasePath}/${reviewId}/accept`, {
+    method: "POST",
+    body: JSON.stringify({ expected_revision: expectedRevision }),
+  });
+}
+
+export function rejectMemberWorkoutReview(
+  reviewId: string,
+  expectedRevision: number,
+  explanation: string,
+): Promise<WorkoutReviewMemberDetail> {
+  return request(`${memberBasePath}/${reviewId}/reject`, {
     method: "POST",
     body: JSON.stringify({ expected_revision: expectedRevision, explanation }),
   });

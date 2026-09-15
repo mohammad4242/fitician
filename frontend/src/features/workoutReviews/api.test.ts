@@ -23,6 +23,7 @@ const detail: WorkoutReviewDetail = {
   created_at: "2026-08-09T08:00:00Z",
   approved_at: null,
   coach_note: null,
+  member_rejection_note: null,
   draft: { days: [] },
   source_plan: {
     id: "plan-1",

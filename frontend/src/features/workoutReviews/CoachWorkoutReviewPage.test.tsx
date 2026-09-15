@@ -92,6 +92,7 @@ const detail: WorkoutReviewDetail = {
   claimed_by_user_id: "coach-1",
   lease_expires_at: "2026-08-09T10:00:00Z",
   coach_note: null,
+  member_rejection_note: null,
   profile_summary: profileSummary,
   draft: {
     days: [
@@ -352,6 +353,31 @@ it("keeps each workout exercise closed until the coach opens it", async () => {
   expect(screen.getByLabelText("RIR روز ۱ حرکت ۱")).toBeVisible();
 });
 
+it("lets the coach add, reorder, rename, and remove days and exercises", async () => {
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+
+  await user.click(screen.getByRole("button", { name: "افزودن روز" }));
+  expect(screen.getByText("روز ۲")).toBeVisible();
+
+  await user.click(screen.getByText("روز ۱"));
+  await user.click(screen.getByRole("button", { name: "افزودن حرکت به روز ۱" }));
+  expect(screen.getByText("حرکت ۲ · پرس سینه")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "حرکت ۲ از روز ۱ را حذف کن" }));
+  expect(screen.queryByText("حرکت ۲ · پرس سینه")).not.toBeInTheDocument();
+
+  const title = screen.getByLabelText("عنوان فارسی روز ۱");
+  await user.clear(title);
+  await user.type(title, "قدرت بالاتنه");
+  expect(title).toHaveValue("قدرت بالاتنه");
+
+  await user.click(screen.getByRole("button", { name: "روز ۲ را بالا ببر" }));
+  await user.click(screen.getByRole("button", { name: "حذف روز ۲" }));
+  expect(screen.queryByText("روز ۲")).not.toBeInTheDocument();
+});
+
 it("switches to review detail mode on narrow layouts and returns to the queue", async () => {
   const user = userEvent.setup();
   renderPage();
@@ -442,7 +468,7 @@ it("approves the saved coach version and refreshes the approved queue", async ()
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
 
-  await user.click(screen.getByRole("button", { name: "تأیید و ارسال برای کاربر" }));
+  await user.click(screen.getByRole("button", { name: "ارسال برای تأیید کاربر" }));
 
   expect(api.approveWorkoutReview).toHaveBeenCalledWith("review-1", 1);
   expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("approved");
@@ -482,7 +508,7 @@ it("hides editing actions for an approved read-only review", async () => {
   expect(await screen.findByText("نسخه تأییدشده")).toBeVisible();
   expect(screen.queryByRole("button", { name: "ذخیره پیش‌نویس" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "برگشت برای اصلاح" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "تأیید و ارسال برای کاربر" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "ارسال برای تأیید کاربر" })).not.toBeInTheDocument();
 });
 
 it("shows shared coach workflow language for a specialist access error", async () => {
