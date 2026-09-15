@@ -35,6 +35,7 @@ type WorkoutReviewDetail = WorkoutReview & {
     days: Array<{ exercises: Array<{ sets: number; rir: number | null }> }>;
   } | null;
   coach_note: string | null;
+  member_rejection_note: string | null;
 };
 
 type WorkoutHistoryItem = {
@@ -122,7 +123,7 @@ async function selectNutritionPlanForReview(
 }
 
 test.describe("real specialist multi-role flows", () => {
-  test("User -> Coach -> User proves the approved workout revision is isolated and active", async ({ browser }, testInfo) => {
+  test("User -> Coach -> User proves member approval controls the active workout revision", async ({ browser }, testInfo) => {
     const runLabel = `${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}`;
     const member = await createE2EAccount(browser, "coach-member", { displayName: `کاربر تمرین ${runLabel}` });
     const coach = await createE2EAccount(browser, "coach-primary", {
@@ -202,8 +203,8 @@ test.describe("real specialist multi-role flows", () => {
       );
       expect(secondDetail.ok()).toBe(false);
 
-      await coach.page.locator(".coach-review-day").first().locator("summary").click();
-      await coach.page.locator(".coach-review-exercise").first().locator("summary").click();
+      await coach.page.locator(".coach-review-day").first().locator("summary").first().click();
+      await coach.page.locator(".coach-review-exercise").first().locator("summary").first().click();
       const rirInput = coach.page.getByLabel(/RIR روز/).first();
       const initialRir = Number(await rirInput.inputValue());
       const changedRir = initialRir === 0 ? 1 : initialRir - 1;
@@ -228,24 +229,131 @@ test.describe("real specialist multi-role flows", () => {
       expect(savedDraft.draft?.days[0]?.exercises[0]?.rir).toBe(changedRir);
       expect(savedDraft.coach_note).toBe("برای شروع ایمن‌تر تنظیم شد");
 
-      await coach.page.getByRole("button", { name: "تأیید و ارسال برای کاربر" }).click();
-      await expect(coach.page.getByRole("tab", { name: /تأییدشده|Approved/ })).toHaveAttribute("aria-selected", "true");
+      await coach.page.getByRole("button", { name: "ارسال برای تأیید کاربر" }).click();
+      await expect.poll(async () => (
+        await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
+      ).status).toBe("awaiting_member_acceptance");
+      await expect(coach.page.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+
+      const submitted = await apiJson<WorkoutReviewDetail>(
+        coach.context,
+        `/api/v1/coach/workout-reviews/${review.id}`,
+      );
+      expect(submitted.status).toBe("awaiting_member_acceptance");
+      expect(submitted.draft_revision).toBe(savedDraft.draft_revision);
+
+      const mineQueue = await apiJson<WorkoutReview[]>(
+        coach.context,
+        "/api/v1/coach/workout-reviews?view=mine",
+      );
+      expect(mineQueue.find((item) => item.id === review.id)?.status).toBe("awaiting_member_acceptance");
+
+      const activeBeforeAcceptance = await apiResponse(member.context, "/api/v1/workout-plans/active");
+      expect(activeBeforeAcceptance.status()).toBe(404);
+      const memberProposal = await apiJson<{
+        id: string;
+        status: string;
+        draft_revision: number;
+        source_plan: { id: string; status: string };
+        proposed_plan: { id: string; status: string } | null;
+        member_rejection_note: string | null;
+      }>(member.context, "/api/v1/workout-reviews/current");
+      expect(memberProposal).toMatchObject({
+        id: review.id,
+        status: "awaiting_member_acceptance",
+        draft_revision: savedDraft.draft_revision,
+        source_plan: { id: generated.plan.id, status: "pending_review" },
+        proposed_plan: { status: "pending_review" },
+        member_rejection_note: null,
+      });
+      const firstProposalPlanId = memberProposal.proposed_plan?.id;
+      expect(firstProposalPlanId).toBeTruthy();
+
+      await member.page.goto("/workout-plan", { waitUntil: "networkidle" });
+      const memberReviewCard = member.page.locator(".member-workout-review");
+      await expect(memberReviewCard).toBeVisible();
+      await expect(memberReviewCard).toContainText("تغییرات پیشنهادی مربی");
+      await expect(memberReviewCard).toContainText("برای شروع ایمن‌تر تنظیم شد");
+      await memberReviewCard.getByLabel("دلیل درخواست اصلاح").fill("حرکت روز اول را ساده‌تر می‌خواهم");
+      await memberReviewCard.getByRole("button", { name: "درخواست اصلاح" }).click();
+      await expect(memberReviewCard).toContainText("درخواست اصلاح ثبت شد؛ پیشنهاد به مربی برگشت.");
+
+      const rejectedProposal = await apiJson<{
+        status: string;
+        member_rejection_note: string | null;
+      }>(member.context, "/api/v1/workout-reviews/current");
+      expect(rejectedProposal).toMatchObject({
+        status: "member_changes_requested",
+        member_rejection_note: "حرکت روز اول را ساده‌تر می‌خواهم",
+      });
+
+      await coach.page.reload({ waitUntil: "networkidle" });
+      await coach.page.getByRole("tab", { name: "در حال بررسی من" }).click();
+      const returnedCase = coach.page.locator(".coach-review-cases article").filter({ hasText: member.displayName });
+      await expect(returnedCase).toHaveCount(1);
+      const returnedGroup = returnedCase.locator("xpath=ancestor::details");
+      if ((await returnedGroup.getAttribute("open")) === null) {
+        await returnedGroup.locator("[data-queue-group-header='true']").click();
+      }
+      await returnedCase.getByRole("button", { name: "مشاهده پرونده" }).click();
+      await expect(coach.page.locator(".coach-review-member-feedback")).toContainText("حرکت روز اول را ساده‌تر می‌خواهم");
+
+      await coach.page.locator(".coach-review-day").first().locator("summary").first().click();
+      await coach.page.locator(".coach-review-exercise").first().locator("summary").first().click();
+      const resubmissionRir = changedRir === 0 ? 1 : changedRir - 1;
+      const resubmissionRirInput = coach.page.getByLabel(/RIR روز/).first();
+      await resubmissionRirInput.fill(String(resubmissionRir));
+      await coach.page.getByLabel("یادداشت مربی برای کاربر").fill("نسخه اصلاح‌شده برای شروع ایمن‌تر تنظیم شد");
+      await coach.page.getByRole("button", { name: "ذخیره پیش‌نویس" }).click();
+      await expect.poll(async () => (
+        await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
+      ).draft_revision).toBeGreaterThan(submitted.draft_revision);
+      const resubmittedDraft = await apiJson<WorkoutReviewDetail>(
+        coach.context,
+        `/api/v1/coach/workout-reviews/${review.id}`,
+      );
+      expect(resubmittedDraft.draft?.days[0]?.exercises[0]?.rir).toBe(resubmissionRir);
+      await coach.page.getByRole("button", { name: "ارسال برای تأیید کاربر" }).click();
+      await expect.poll(async () => (
+        await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
+      ).status).toBe("awaiting_member_acceptance");
+      await expect(coach.page.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+
+      const resubmitted = await apiJson<WorkoutReviewDetail>(
+        coach.context,
+        `/api/v1/coach/workout-reviews/${review.id}`,
+      );
+      expect(resubmitted.status).toBe("awaiting_member_acceptance");
+      expect(resubmitted.member_rejection_note).toBeNull();
+      expect(resubmitted.draft_revision).toBe(resubmittedDraft.draft_revision);
+      const resubmittedMemberProposal = await apiJson<{
+        proposed_plan: { id: string; status: string } | null;
+      }>(member.context, "/api/v1/workout-reviews/current");
+      expect(resubmittedMemberProposal.proposed_plan).toMatchObject({ status: "pending_review" });
+      expect(resubmittedMemberProposal.proposed_plan?.id).not.toBe(firstProposalPlanId);
+
+      await member.page.reload({ waitUntil: "networkidle" });
+      const finalMemberReviewCard = member.page.locator(".member-workout-review");
+      await expect(finalMemberReviewCard).toBeVisible();
+      await finalMemberReviewCard.getByRole("button", { name: "تأیید تغییرات مربی" }).click();
+      await expect(finalMemberReviewCard).toHaveCount(0);
+
+      const activePlan = await apiJson<WorkoutPlan>(member.context, "/api/v1/workout-plans/active");
+      expect(activePlan.status).toBe("active");
+      expect(activePlan.id).toBe(resubmittedMemberProposal.proposed_plan?.id);
+      expect(activePlan.id).not.toBe(generated.plan.id);
+      expect(activePlan.coach_review).toMatchObject({
+        state: "coach_approved",
+        coach_display_name: coach.displayName,
+        coach_note: "نسخه اصلاح‌شده برای شروع ایمن‌تر تنظیم شد",
+      });
+      expect(activePlan.days[0]?.exercises[0]?.rir).toBe(resubmissionRir);
 
       const approvedQueue = await apiJson<WorkoutReview[]>(
         coach.context,
         "/api/v1/coach/workout-reviews?view=approved",
       );
       expect(approvedQueue.find((item) => item.id === review.id)?.status).toBe("approved");
-
-      const activePlan = await apiJson<WorkoutPlan>(member.context, "/api/v1/workout-plans/active");
-      expect(activePlan.status).toBe("active");
-      expect(activePlan.id).not.toBe(generated.plan.id);
-      expect(activePlan.coach_review).toMatchObject({
-        state: "coach_approved",
-        coach_display_name: coach.displayName,
-        coach_note: "برای شروع ایمن‌تر تنظیم شد",
-      });
-      expect(activePlan.days[0]?.exercises[0]?.rir).toBe(changedRir);
 
       const historyAfter = await apiJson<WorkoutHistoryItem[]>(
         member.context,
@@ -261,9 +369,8 @@ test.describe("real specialist multi-role flows", () => {
         coach_review: { state: "coach_approved" },
       });
 
-      await member.page.goto("/workout-plan", { waitUntil: "networkidle" });
       await expect(member.page.locator(".workout-review-banner--approved")).toContainText(coach.displayName);
-      await expect(member.page.locator(".workout-review-banner--approved")).toContainText("برای شروع ایمن‌تر تنظیم شد");
+      await expect(member.page.locator(".workout-review-banner--approved")).toContainText("نسخه اصلاح‌شده برای شروع ایمن‌تر تنظیم شد");
     } finally {
       await closeAccounts(member, coach, secondCoach, admin);
     }
