@@ -25676,6 +25676,30 @@
             "minItems": 1,
             "title": "Exercises",
             "type": "array"
+          },
+          "title_en": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title En"
+          },
+          "title_fa": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title Fa"
           }
         },
         "required": [
@@ -25828,6 +25852,17 @@
             ],
             "title": "Member Profile Photo Url"
           },
+          "member_rejection_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Member Rejection Note"
+          },
           "profile_summary": {
             "anyOf": [
               {
@@ -25881,6 +25916,7 @@
           "created_at",
           "approved_at",
           "coach_note",
+          "member_rejection_note",
           "draft",
           "source_plan",
           "exercise_options",
@@ -26106,6 +26142,133 @@
         "title": "WorkoutReviewExerciseOption",
         "type": "object"
       },
+      "WorkoutReviewMemberAcceptRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_revision"
+        ],
+        "title": "WorkoutReviewMemberAcceptRequest",
+        "type": "object"
+      },
+      "WorkoutReviewMemberDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "coach_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Display Name"
+          },
+          "coach_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Note"
+          },
+          "difference_summary": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Difference Summary",
+            "type": "array"
+          },
+          "draft_revision": {
+            "minimum": 1.0,
+            "title": "Draft Revision",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "member_rejection_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Member Rejection Note"
+          },
+          "proposed_plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutPlanResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_plan": {
+            "$ref": "#/components/schemas/WorkoutPlanResponse"
+          },
+          "source_plan_id": {
+            "format": "uuid",
+            "title": "Source Plan Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkoutReviewStatus"
+          }
+        },
+        "required": [
+          "id",
+          "source_plan_id",
+          "status",
+          "draft_revision",
+          "coach_note",
+          "member_rejection_note",
+          "source_plan",
+          "proposed_plan",
+          "difference_summary"
+        ],
+        "title": "WorkoutReviewMemberDetailResponse",
+        "type": "object"
+      },
+      "WorkoutReviewMemberRejectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 1.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "explanation": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "explanation"
+        ],
+        "title": "WorkoutReviewMemberRejectRequest",
+        "type": "object"
+      },
       "WorkoutReviewQueueItemResponse": {
         "additionalProperties": false,
         "properties": {
@@ -26269,6 +26432,8 @@
         "enum": [
           "pending",
           "claimed",
+          "awaiting_member_acceptance",
+          "member_changes_requested",
           "approved",
           "rejected",
           "superseded"
@@ -31475,7 +31640,7 @@
     },
     "/api/v1/coach/workout-reviews/{review_id}/approve": {
       "post": {
-        "operationId": "approve_review_api_v1_coach_workout_reviews__review_id__approve_post",
+        "operationId": "submit_review_api_v1_coach_workout_reviews__review_id__approve_post",
         "parameters": [
           {
             "in": "path",
@@ -31525,7 +31690,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Approve Review",
+        "summary": "Submit Review",
         "tags": [
           "coach-workout-reviews"
         ]
@@ -31695,6 +31860,54 @@
         ]
       }
     },
+    "/api/v1/coach/workout-reviews/{review_id}/release": {
+      "post": {
+        "operationId": "release_review_api_v1_coach_workout_reviews__review_id__release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutReviewDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Release Review",
+        "tags": [
+          "coach-workout-reviews"
+        ]
+      }
+    },
     "/api/v1/coach/workout-reviews/{review_id}/renew": {
       "post": {
         "operationId": "renew_review_api_v1_coach_workout_reviews__review_id__renew_post",
@@ -31738,6 +31951,64 @@
           }
         ],
         "summary": "Renew Review",
+        "tags": [
+          "coach-workout-reviews"
+        ]
+      }
+    },
+    "/api/v1/coach/workout-reviews/{review_id}/submit": {
+      "post": {
+        "operationId": "submit_review_api_v1_coach_workout_reviews__review_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutReviewApproveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutReviewDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit Review",
         "tags": [
           "coach-workout-reviews"
         ]
@@ -38855,6 +39126,148 @@
         "summary": "Download Plan Pdf",
         "tags": [
           "workout-plans"
+        ]
+      }
+    },
+    "/api/v1/workout-reviews/current": {
+      "get": {
+        "operationId": "read_current_member_review_api_v1_workout_reviews_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutReviewMemberDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Current Member Review",
+        "tags": [
+          "workout-reviews"
+        ]
+      }
+    },
+    "/api/v1/workout-reviews/{review_id}/accept": {
+      "post": {
+        "operationId": "accept_member_review_api_v1_workout_reviews__review_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutReviewMemberAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutReviewMemberDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept Member Review",
+        "tags": [
+          "workout-reviews"
+        ]
+      }
+    },
+    "/api/v1/workout-reviews/{review_id}/reject": {
+      "post": {
+        "operationId": "reject_member_review_api_v1_workout_reviews__review_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutReviewMemberRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutReviewMemberDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reject Member Review",
+        "tags": [
+          "workout-reviews"
         ]
       }
     }

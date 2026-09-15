@@ -197,6 +197,13 @@ def test_coach_submission_waits_for_member_acceptance(db: Session) -> None:
     assert source.status is WorkoutPlanStatus.ACTIVE
     assert submitted.approved_plan_id is None
 
+    with pytest.raises(ReviewConflict) as error:
+        service.submit_for_member(
+            review.id, coach.id, expected_revision=saved.draft_revision - 1
+        )
+
+    assert error.value.code is WorkoutReviewErrorCode.STALE_DRAFT_REVISION
+
 
 def test_member_rejection_returns_case_to_same_coach(db: Session) -> None:
     member = _user(db, "reject-member")

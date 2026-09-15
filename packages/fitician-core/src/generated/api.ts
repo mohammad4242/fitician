@@ -1392,8 +1392,8 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Approve Review */
-        post: operations["approve_review_api_v1_coach_workout_reviews__review_id__approve_post"];
+        /** Submit Review */
+        post: operations["submit_review_api_v1_coach_workout_reviews__review_id__approve_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1451,6 +1451,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coach/workout-reviews/{review_id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Release Review */
+        post: operations["release_review_api_v1_coach_workout_reviews__review_id__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/coach/workout-reviews/{review_id}/renew": {
         parameters: {
             query?: never;
@@ -1462,6 +1479,23 @@ export type paths = {
         put?: never;
         /** Renew Review */
         post: operations["renew_review_api_v1_coach_workout_reviews__review_id__renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coach/workout-reviews/{review_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Review */
+        post: operations["submit_review_api_v1_coach_workout_reviews__review_id__submit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3642,6 +3676,57 @@ export type paths = {
         };
         /** Read Plan History */
         get: operations["read_plan_history_api_v1_workout_plans_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-reviews/{review_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Member Review */
+        post: operations["accept_member_review_api_v1_workout_reviews__review_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-reviews/{review_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Member Review */
+        post: operations["reject_member_review_api_v1_workout_reviews__review_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workout-reviews/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Current Member Review */
+        get: operations["read_current_member_review_api_v1_workout_reviews_current_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12376,6 +12461,10 @@ export type components = {
             day_number: number;
             /** Exercises */
             exercises: components["schemas"]["WorkoutReviewExerciseDraft"][];
+            /** Title En */
+            title_en?: string | null;
+            /** Title Fa */
+            title_fa?: string | null;
         };
         /** WorkoutReviewDetailResponse */
         WorkoutReviewDetailResponse: {
@@ -12416,6 +12505,8 @@ export type components = {
             member_display_name: string | null;
             /** Member Profile Photo Url */
             member_profile_photo_url?: string | null;
+            /** Member Rejection Note */
+            member_rejection_note: string | null;
             profile_summary?: components["schemas"]["ReviewProfileSummary"] | null;
             /** Source Plan */
             source_plan: {
@@ -12491,6 +12582,46 @@ export type components = {
             /** @default reps */
             prescription_mode: components["schemas"]["PrescriptionMode"];
         };
+        /** WorkoutReviewMemberAcceptRequest */
+        WorkoutReviewMemberAcceptRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** WorkoutReviewMemberDetailResponse */
+        WorkoutReviewMemberDetailResponse: {
+            /** Coach Display Name */
+            coach_display_name?: string | null;
+            /** Coach Note */
+            coach_note: string | null;
+            /** Difference Summary */
+            difference_summary: {
+                [key: string]: unknown;
+            }[];
+            /** Draft Revision */
+            draft_revision: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Member Rejection Note */
+            member_rejection_note: string | null;
+            proposed_plan: components["schemas"]["WorkoutPlanResponse"] | null;
+            source_plan: components["schemas"]["WorkoutPlanResponse"];
+            /**
+             * Source Plan Id
+             * Format: uuid
+             */
+            source_plan_id: string;
+            status: components["schemas"]["WorkoutReviewStatus"];
+        };
+        /** WorkoutReviewMemberRejectRequest */
+        WorkoutReviewMemberRejectRequest: {
+            /** Expected Revision */
+            expected_revision: number;
+            /** Explanation */
+            explanation: string;
+        };
         /** WorkoutReviewQueueItemResponse */
         WorkoutReviewQueueItemResponse: {
             /** Approved At */
@@ -12547,7 +12678,7 @@ export type components = {
          * WorkoutReviewStatus
          * @enum {string}
          */
-        WorkoutReviewStatus: "pending" | "claimed" | "approved" | "rejected" | "superseded";
+        WorkoutReviewStatus: "pending" | "claimed" | "awaiting_member_acceptance" | "member_changes_requested" | "approved" | "rejected" | "superseded";
         /**
          * WorkoutTimelineState
          * @enum {string}
@@ -15631,7 +15762,7 @@ export interface operations {
             };
         };
     };
-    approve_review_api_v1_coach_workout_reviews__review_id__approve_post: {
+    submit_review_api_v1_coach_workout_reviews__review_id__approve_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -15767,6 +15898,37 @@ export interface operations {
             };
         };
     };
+    release_review_api_v1_coach_workout_reviews__review_id__release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutReviewDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     renew_review_api_v1_coach_workout_reviews__review_id__renew_post: {
         parameters: {
             query?: never;
@@ -15777,6 +15939,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutReviewDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_review_api_v1_coach_workout_reviews__review_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutReviewApproveRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -20269,6 +20466,96 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutPlanVersionSummaryResponse"][];
+                };
+            };
+        };
+    };
+    accept_member_review_api_v1_workout_reviews__review_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutReviewMemberAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutReviewMemberDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_member_review_api_v1_workout_reviews__review_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutReviewMemberRejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutReviewMemberDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_current_member_review_api_v1_workout_reviews_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutReviewMemberDetailResponse"];
                 };
             };
         };

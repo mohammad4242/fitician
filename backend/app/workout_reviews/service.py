@@ -132,6 +132,7 @@ class WorkoutReviewService:
         if review.status is WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE:
             if review.claimed_by_user_id != coach_id:
                 raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
+            self._require_revision(review, expected_revision)
             if review.proposed_plan is None:
                 raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_PROPOSAL_NOT_FOUND)
             return review
@@ -196,6 +197,9 @@ class WorkoutReviewService:
         proposal = review.proposed_plan
         if proposal is None:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_PROPOSAL_NOT_FOUND)
+        coach_id = review.claimed_by_user_id
+        if coach_id is None:
+            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_PROPOSAL_NOT_FOUND)
         active = get_active_plan_for_update(self._db, review.user_id)
         self._require_current_source(review, active)
         now = self._clock()
@@ -212,7 +216,7 @@ class WorkoutReviewService:
             review.source_plan,
             proposal,
             review_id=review.id,
-            coach_id=review.claimed_by_user_id or UUID(int=0),
+            coach_id=coach_id,
             previous_active_plan_id=(
                 active.id if active is not None and active.id != review.source_plan_id else None
             ),
