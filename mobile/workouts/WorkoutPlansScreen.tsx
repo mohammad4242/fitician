@@ -34,6 +34,11 @@ import {
   type WorkoutPlanVersionSummary,
 } from "./workoutApi";
 import { createWorkoutCycleApi, type WorkoutCycleStartInput } from "./workoutCycleApi";
+import { MemberWorkoutReviewCard } from "./MemberWorkoutReviewCard";
+import {
+  createWorkoutReviewApi,
+  type MemberWorkoutReview,
+} from "./workoutReviewApi";
 import {
   classifyWorkoutGenerationError,
   findPendingWorkoutPlanId,
@@ -69,6 +74,10 @@ type WorkoutSessionAction =
   | { readonly action: "reschedule"; readonly scheduledDate: string; readonly sessionId: string }
   | { readonly action: "skip"; readonly sessionId: string };
 
+type MemberReviewAction =
+  | { readonly action: "accept" }
+  | { readonly action: "reject"; readonly explanation: string };
+
 const generationErrorMessages: Record<WorkoutGenerationErrorKind, string> = {
   cooldown: "ساخت برنامه به‌تازگی انجام شده است؛ کمی بعد دوباره تلاش کن.",
   failed: "ساخت برنامه انجام نشد. وضعیت پروفایل و اتصال اینترنت را بررسی کن.",
@@ -93,6 +102,7 @@ export function WorkoutPlansScreen() {
     () => createProgramTimelineApi(auth.request),
     [auth.request],
   );
+  const reviewApi = useMemo(() => createWorkoutReviewApi(auth.request), [auth.request]);
   const pdfStore = useMemo(() => new ExpoWorkoutPlanPdfStore(), []);
   const planTargetId = firstParam(params.planId);
   const cycleTargetId = firstParam(params.cycleId);
@@ -109,6 +119,7 @@ export function WorkoutPlansScreen() {
   const [rescheduleDate, setRescheduleDate] = useState(localIsoDate);
   const [cycleStartError, setCycleStartError] = useState<string | null>(null);
   const [sessionActionError, setSessionActionError] = useState<string | null>(null);
+  const [memberReviewActionError, setMemberReviewActionError] = useState<string | null>(null);
   const deviceTimezone = resolvedIanaTimeZone();
   const canGenerateEntitled = entitlements.hasEntitlement("training.plan.generate");
   const coachReviewQuota = entitlements.quotaFor("training.coach_review");
@@ -129,6 +140,10 @@ export function WorkoutPlansScreen() {
   const historyQuery = useQuery({
     queryFn: api.getHistory,
     queryKey: workoutKeys.plans(),
+  });
+  const memberReviewQuery = useQuery({
+    queryFn: reviewApi.getCurrent,
+    queryKey: workoutKeys.currentReview(),
   });
   const profileQuery = useQuery({
     queryFn: profileApi.getProfile,
@@ -162,10 +177,17 @@ export function WorkoutPlansScreen() {
   });
   const pendingState = getMobileViewState(pendingQuery, { context: "workout", connectivityStatus });
   const selectedState = getMobileViewState(selectedQuery, { context: "workout", connectivityStatus });
+  const memberReviewState = getMobileViewState(memberReviewQuery, {
+    context: "workout",
+    connectivityStatus,
+  });
   const activePlan = viewData(activeState);
   const pendingPlan = pendingPlanId === null ? undefined : viewData(pendingState);
   const selectedPlan = selectedPlanId === null ? undefined : viewData(selectedState);
-  const loadedCurrentPlan = pendingPlanId !== null ? pendingPlan : activePlan;
+  const memberReview = viewData(memberReviewState);
+  const loadedCurrentPlan = activePlan !== undefined && activePlan !== null
+    ? activePlan
+    : pendingPlanId !== null ? pendingPlan : activePlan;
   const currentPlan = generatedForegroundPlan
     ?? loadedCurrentPlan;
   const currentPlanId = currentPlan?.id ?? pendingPlanId;
@@ -244,6 +266,36 @@ export function WorkoutPlansScreen() {
       setSessionActionError(null);
       await timelineQuery.refetch();
       await queryClient.invalidateQueries({ queryKey: workoutKeys.currentCycle() });
+    },
+  });
+  const memberReviewMutation = useMutation({
+    mutationKey: ["workout-review-member-action"],
+    mutationFn: (input: MemberReviewAction) => {
+      if (memberReview === undefined || memberReview === null) {
+        throw new Error("No current workout review is available.");
+      }
+      return input.action === "accept"
+        ? reviewApi.accept(memberReview.id, memberReview.draft_revision)
+        : reviewApi.reject(memberReview.id, memberReview.draft_revision, input.explanation ?? "");
+    },
+    onError: (error: unknown) => setMemberReviewActionError(mobileRequestErrorMessage(
+      error,
+      "ثبت پاسخ به پیشنهاد مربی انجام نشد؛ دوباره تلاش کن.",
+      { audience: "member", context: "workout" },
+    )),
+    onSuccess: async (updated: MemberWorkoutReview) => {
+      setMemberReviewActionError(null);
+      queryClient.setQueryData(
+        workoutKeys.currentReview(),
+        updated.status === "approved" ? null : updated,
+      );
+      await Promise.all([
+        activeQuery.refetch(),
+        historyQuery.refetch(),
+        memberReviewQuery.refetch(),
+        timelineQuery.refetch(),
+        queryClient.invalidateQueries({ queryKey: programTimelineKeys.all }),
+      ]);
     },
   });
   const deletion = useMutation({
@@ -455,6 +507,24 @@ export function WorkoutPlansScreen() {
           />
         ) : null}
       </View>
+
+      {memberReviewState.status === "error" ? (
+        <Notice
+          actionLabel="تلاش دوباره"
+          message={memberReviewState.error.message}
+          onAction={() => void memberReviewQuery.refetch()}
+          variant="danger"
+        />
+      ) : null}
+      {memberReview !== undefined && memberReview !== null ? (
+        <MemberWorkoutReviewCard
+          busy={memberReviewMutation.isPending}
+          onAccept={() => memberReviewMutation.mutate({ action: "accept" })}
+          onReject={(explanation) => memberReviewMutation.mutate({ action: "reject", explanation })}
+          review={memberReview}
+        />
+      ) : null}
+      {memberReviewActionError !== null ? <Notice message={memberReviewActionError} variant="danger" /> : null}
 
       {displayedPlan !== undefined && displayedPlan !== null ? (
         <PlanOverview historical={isViewingHistorical} plan={displayedPlan} />

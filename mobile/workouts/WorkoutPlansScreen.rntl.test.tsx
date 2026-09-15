@@ -48,6 +48,7 @@ jest.mock("../platform/connectivity", () => ({
 jest.mock("../profile/profileApi", () => ({ createProfileApi: jest.fn() }));
 jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelineApi: jest.fn() }));
 jest.mock("./workoutApi", () => ({ createWorkoutPlanApi: jest.fn() }));
+jest.mock("./workoutReviewApi", () => ({ createWorkoutReviewApi: jest.fn() }));
 jest.mock("./workoutPdfStore", () => ({
   ExpoWorkoutPlanPdfStore: jest.fn().mockImplementation(() => ({
     get: mockPdfGet,
@@ -66,6 +67,7 @@ import { createProgramTimelineApi } from "../programTimeline/programTimelineApi"
 import type { WorkoutPlan, WorkoutPlanExercise, WorkoutPlanVersionSummary } from "./workoutApi";
 import { createWorkoutPlanApi } from "./workoutApi";
 import type { StoredWorkoutPlanPdf } from "./workoutPdfStore";
+import { createWorkoutReviewApi, type MemberWorkoutReview } from "./workoutReviewApi";
 import { WorkoutPlansScreen } from "./WorkoutPlansScreen";
 
 const mockPush = jest.fn();
@@ -82,6 +84,7 @@ const mockLanguageForDirection = jest.mocked(languageForDirection);
 const mockCreateProfileApi = jest.mocked(createProfileApi);
 const mockCreateProgramTimelineApi = jest.mocked(createProgramTimelineApi);
 const mockCreateWorkoutPlanApi = jest.mocked(createWorkoutPlanApi);
+const mockCreateWorkoutReviewApi = jest.mocked(createWorkoutReviewApi);
 const mockMutate = jest.fn();
 const mockInvalidateQueries = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
 const mockRemoveQueries = jest.fn();
@@ -94,6 +97,7 @@ let mockHistory: WorkoutPlanVersionSummary[] = [];
 let mockCycle: unknown = null;
 let mockCompletionFeedback: unknown = null;
 let mockTimeline: { local_date: string; timezone: string; workout: TimelineWorkout } | null = null;
+let mockMemberReview: MemberWorkoutReview | null = null;
 let mockProfileGenerationMethod: "fitician_coach" | "ai" = "fitician_coach";
 let executeMutation = false;
 
@@ -195,6 +199,7 @@ beforeEach(() => {
   mockCycle = null;
   mockCompletionFeedback = null;
   mockTimeline = null;
+  mockMemberReview = null;
   mockProfileGenerationMethod = "fitician_coach";
   executeMutation = false;
   mockPdfGet.mockReset();
@@ -242,6 +247,11 @@ beforeEach(() => {
     getActive: resolved(null),
     getHistory: resolved([]),
   } as never);
+  mockCreateWorkoutReviewApi.mockReturnValue({
+    accept: resolved(null),
+    getCurrent: resolved(null),
+    reject: resolved(null),
+  } as never);
   mockUseQuery.mockImplementation(({ queryKey }) => {
     const key = queryKey as readonly unknown[];
     if (key[0] === "profile") return queryResult({ workout_generation_method: mockProfileGenerationMethod });
@@ -249,6 +259,7 @@ beforeEach(() => {
     if (key[1] === "current-cycle") return queryResult(mockCycle);
     if (key[1] === "weekly-check-in") return queryResult(null);
     if (key[1] === "completion-feedback") return queryResult(mockCompletionFeedback);
+    if (key[1] === "review" && key[2] === "current") return queryResult(mockMemberReview);
     if (key[0] === "program-timeline") return queryResult(mockTimeline);
     if (key[1] === "plan" && key[2] === "active") return queryResult(mockActivePlan);
     if (key[1] === "plan") return queryResult(mockPlansById[String(key[2])] ?? mockPlanById);
@@ -722,6 +733,68 @@ test("renders a complete pending-only plan when the active endpoint is empty", (
   expect(screen.getByText("برنامه تمرینی من")).toBeTruthy();
   expect(screen.getByText("در انتظار تایید مربی")).toBeTruthy();
   expect(screen.queryByText("هنوز برنامهٔ فعالی نداری")).toBeNull();
+});
+
+test("keeps the active plan visible while a coach proposal awaits member approval", () => {
+  const active = makePlan("active", [], "active-plan");
+  const pending = makePlan("pending_review", [], "pending-proposal");
+  mockActivePlan = active;
+  mockHistory = [
+    makeHistoryVersion(active.id, "active"),
+    makeHistoryVersion(pending.id, "pending_review"),
+  ];
+  mockPlansById = { [pending.id]: pending };
+  mockMemberReview = {
+    coach_display_name: "مربی",
+    coach_note: "اصلاح برنامه",
+    difference_summary: [],
+    draft_revision: 1,
+    id: "review-1",
+    member_rejection_note: null,
+    proposed_plan: pending,
+    source_plan: active,
+    source_plan_id: active.id,
+    status: "awaiting_member_acceptance",
+  };
+
+  renderWorkoutPlans();
+
+  expect(screen.getByTestId("workout-plan-overview-active-plan")).toBeTruthy();
+  expect(screen.queryByTestId("workout-plan-overview-pending-proposal")).toBeNull();
+  expect(screen.getByTestId("member-workout-review")).toBeTruthy();
+});
+
+test("accepts the visible coach proposal with its current revision", async () => {
+  const active = makePlan("active", [], "active-plan");
+  const pending = makePlan("pending_review", [], "pending-proposal");
+  const review: MemberWorkoutReview = {
+    coach_display_name: "مربی",
+    coach_note: null,
+    difference_summary: [],
+    draft_revision: 7,
+    id: "review-1",
+    member_rejection_note: null,
+    proposed_plan: pending,
+    source_plan: active,
+    source_plan_id: active.id,
+    status: "awaiting_member_acceptance",
+  };
+  const accept = jest.fn<() => Promise<MemberWorkoutReview>>().mockResolvedValue({ ...review, status: "approved" });
+  mockActivePlan = active;
+  mockHistory = [makeHistoryVersion(active.id, "active"), makeHistoryVersion(pending.id)];
+  mockPlansById = { [pending.id]: pending };
+  mockMemberReview = review;
+  mockCreateWorkoutReviewApi.mockReturnValue({
+    accept,
+    getCurrent: resolved(review),
+    reject: jest.fn(),
+  } as never);
+  executeMutation = true;
+
+  renderWorkoutPlans();
+  fireEvent.press(screen.getByRole("button", { name: "تأیید تغییرات مربی" }));
+
+  await waitFor(() => expect(accept).toHaveBeenCalledWith("review-1", 7));
 });
 
 test("exposes the existing completion feedback form when the cycle is due", () => {
