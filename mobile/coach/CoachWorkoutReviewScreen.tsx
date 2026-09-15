@@ -242,6 +242,100 @@ export function CoachWorkoutReviewScreen() {
     });
   }
 
+  function updateDay(dayIndex: number, patch: Partial<CoachDraftDay>) {
+    setDraft((current) => current === null ? current : {
+      ...current,
+      days: current.days.map((day, currentDayIndex) => currentDayIndex === dayIndex
+        ? { ...day, ...patch }
+        : day),
+    });
+  }
+
+  function addDay() {
+    if (selected === undefined || busy) return;
+    const option = selected.exercise_options[0];
+    if (option === undefined) return;
+    setDraft((current) => {
+      if (current === null || current.days.length >= 6) return current;
+      const dayNumber = current.days.length + 1;
+      return {
+        ...current,
+        days: [
+          ...current.days,
+          {
+            day_number: dayNumber,
+            exercises: [createDraftExercise(option, 1)],
+            title_en: `Workout day ${dayNumber}`,
+            title_fa: `روز تمرین ${faNumber(dayNumber)}`,
+          },
+        ],
+      };
+    });
+  }
+
+  function removeDay(dayIndex: number) {
+    if (busy) return;
+    setDraft((current) => {
+      if (current === null || current.days.length <= 1) return current;
+      return { ...current, days: normalizeDraftDays(current.days.filter((_, index) => index !== dayIndex)) };
+    });
+  }
+
+  function moveDay(dayIndex: number, direction: -1 | 1) {
+    if (busy) return;
+    setDraft((current) => {
+      if (current === null) return current;
+      const targetIndex = dayIndex + direction;
+      if (targetIndex < 0 || targetIndex >= current.days.length) return current;
+      return { ...current, days: normalizeDraftDays(moveItem(current.days, dayIndex, targetIndex)) };
+    });
+  }
+
+  function addExercise(dayIndex: number) {
+    if (selected === undefined || busy) return;
+    const option = selected.exercise_options[0];
+    if (option === undefined) return;
+    setDraft((current) => {
+      const day = current?.days[dayIndex];
+      if (current === null || day === undefined || day.exercises.length >= 10) return current;
+      const exercises = [...day.exercises, createDraftExercise(option, day.exercises.length + 1)];
+      return {
+        ...current,
+        days: current.days.map((candidate, index) => index === dayIndex ? { ...candidate, exercises } : candidate),
+      };
+    });
+  }
+
+  function removeExercise(dayIndex: number, exerciseIndex: number) {
+    if (busy) return;
+    setDraft((current) => {
+      const day = current?.days[dayIndex];
+      if (current === null || day === undefined || day.exercises.length <= 1) return current;
+      return {
+        ...current,
+        days: current.days.map((candidate, index) => index !== dayIndex
+          ? candidate
+          : { ...candidate, exercises: normalizeDraftExercises(candidate.exercises.filter((_, itemIndex) => itemIndex !== exerciseIndex)) }),
+      };
+    });
+  }
+
+  function moveExercise(dayIndex: number, exerciseIndex: number, direction: -1 | 1) {
+    if (busy) return;
+    setDraft((current) => {
+      const day = current?.days[dayIndex];
+      if (current === null || day === undefined) return current;
+      const targetIndex = exerciseIndex + direction;
+      if (targetIndex < 0 || targetIndex >= day.exercises.length) return current;
+      return {
+        ...current,
+        days: current.days.map((candidate, index) => index !== dayIndex
+          ? candidate
+          : { ...candidate, exercises: normalizeDraftExercises(moveItem(candidate.exercises, exerciseIndex, targetIndex)) }),
+      };
+    });
+  }
+
   return (
     <Screen contentWidth="reading">
       <PageHeading
@@ -295,9 +389,16 @@ export function CoachWorkoutReviewScreen() {
                 busy={busy}
                 detail={selected}
                 draft={draft}
+                onAddDay={addDay}
+                onAddExercise={addExercise}
+                onDayChange={updateDay}
+                onDayMove={moveDay}
+                onDayRemove={removeDay}
                 onSubmit={() => void decide("submit")}
                 onDraftChange={setDraft}
                 onExerciseChange={updateExercise}
+                onExerciseMove={moveExercise}
+                onExerciseRemove={removeExercise}
                 onExerciseSelection={updateExerciseSelection}
                 onReject={() => void decide("reject")}
                 onRejectionExplanationChange={setRejectionExplanation}
@@ -375,9 +476,16 @@ function CoachReviewDetail({
   busy,
   detail,
   draft,
+  onAddDay,
+  onAddExercise,
+  onDayChange,
+  onDayMove,
+  onDayRemove,
   onSubmit,
   onDraftChange,
   onExerciseChange,
+  onExerciseMove,
+  onExerciseRemove,
   onExerciseSelection,
   onReject,
   onRejectionExplanationChange,
@@ -388,9 +496,16 @@ function CoachReviewDetail({
   readonly busy: boolean;
   readonly detail: CoachWorkoutReviewDetail;
   readonly draft: CoachDraft;
+  readonly onAddDay: () => void;
+  readonly onAddExercise: (dayIndex: number) => void;
+  readonly onDayChange: (dayIndex: number, patch: Partial<CoachDraftDay>) => void;
+  readonly onDayMove: (dayIndex: number, direction: -1 | 1) => void;
+  readonly onDayRemove: (dayIndex: number) => void;
   readonly onSubmit: () => void;
   readonly onDraftChange: (draft: CoachDraft) => void;
   readonly onExerciseChange: (dayIndex: number, exerciseIndex: number, patch: Partial<CoachDraftExercise>) => void;
+  readonly onExerciseMove: (dayIndex: number, exerciseIndex: number, direction: -1 | 1) => void;
+  readonly onExerciseRemove: (dayIndex: number, exerciseIndex: number) => void;
   readonly onExerciseSelection: (dayIndex: number, exerciseIndex: number, exerciseId: string) => void;
   readonly onReject: () => void;
   readonly onRejectionExplanationChange: (value: string) => void;
@@ -440,7 +555,17 @@ function CoachReviewDetail({
       </Card>
 
       {readOnly ? <Notice message="این پرونده در حالت فقط‌خواندنی نمایش داده می‌شود." variant="info" /> : null}
-      <Text style={styles.sectionTitle}>پیش‌نویس مربی · نسخه {faNumber(detail.draft_revision)}</Text>
+      <View style={styles.structureHeading}>
+        <Text style={styles.sectionTitle}>پیش‌نویس مربی · نسخه {faNumber(detail.draft_revision)}</Text>
+        {!readOnly ? (
+          <Button
+            disabled={busy || draft.days.length >= 6 || detail.exercise_options.length === 0}
+            label="افزودن روز"
+            onPress={onAddDay}
+            variant="secondary"
+          />
+        ) : null}
+      </View>
       {draft.days.length === 0 ? <Notice message="پیش‌نویس برنامه در دسترس نیست." variant="warning" /> : null}
       {draft.days.map((day, dayIndex) => (
         <DisclosureCard
@@ -448,16 +573,63 @@ function CoachReviewDetail({
           icon="training"
           key={day.day_number}
           style={styles.dayCard}
-          summary={`${faNumber(day.exercises.length)} حرکت`}
+          summary={`${day.title_fa ?? "بدون عنوان"} · ${faNumber(day.exercises.length)} حرکت`}
           title={`روز ${faNumber(day.day_number)}`}
         >
+          <TextField
+            editable={!readOnly && !busy}
+            label="عنوان روز فارسی"
+            onChangeText={(value) => onDayChange(dayIndex, { title_fa: value || null })}
+            value={day.title_fa ?? ""}
+          />
+          <TextField
+            editable={!readOnly && !busy}
+            label="عنوان روز انگلیسی"
+            onChangeText={(value) => onDayChange(dayIndex, { title_en: value || null })}
+            textDirection="ltr"
+            value={day.title_en ?? ""}
+          />
+          {!readOnly ? (
+            <View style={styles.structureActions}>
+              <Button
+                disabled={busy || dayIndex === 0}
+                label={`جابجایی روز ${faNumber(day.day_number)} به بالا`}
+                onPress={() => onDayMove(dayIndex, -1)}
+                variant="ghost"
+              />
+              <Button
+                disabled={busy || dayIndex === draft.days.length - 1}
+                label={`جابجایی روز ${faNumber(day.day_number)} به پایین`}
+                onPress={() => onDayMove(dayIndex, 1)}
+                variant="ghost"
+              />
+              <Button
+                disabled={busy || draft.days.length <= 1}
+                label={`حذف روز ${faNumber(day.day_number)}`}
+                onPress={() => onDayRemove(dayIndex)}
+                variant="danger"
+              />
+              <Button
+                disabled={busy || day.exercises.length >= 10 || detail.exercise_options.length === 0}
+                label={`افزودن حرکت به روز ${faNumber(day.day_number)}`}
+                onPress={() => onAddExercise(dayIndex)}
+                variant="secondary"
+              />
+            </View>
+          ) : null}
           {day.exercises.map((exercise, exerciseIndex) => (
             <ReviewExerciseEditor
+              canMoveDown={exerciseIndex < day.exercises.length - 1}
+              canMoveUp={exerciseIndex > 0}
+              canRemove={day.exercises.length > 1}
               disabled={readOnly || busy}
               exercise={exercise}
               key={`${day.day_number}-${exercise.order_index}`}
               options={detail.exercise_options}
               onChange={(patch) => onExerciseChange(dayIndex, exerciseIndex, patch)}
+              onMoveDown={() => onExerciseMove(dayIndex, exerciseIndex, 1)}
+              onMoveUp={() => onExerciseMove(dayIndex, exerciseIndex, -1)}
+              onRemove={() => onExerciseRemove(dayIndex, exerciseIndex)}
               onSelect={(exerciseId) => onExerciseSelection(dayIndex, exerciseIndex, exerciseId)}
             />
           ))}
@@ -495,15 +667,27 @@ function CoachReviewDetail({
 }
 
 function ReviewExerciseEditor({
+  canMoveDown,
+  canMoveUp,
+  canRemove,
   disabled,
   exercise,
   onChange,
+  onMoveDown,
+  onMoveUp,
+  onRemove,
   onSelect,
   options,
 }: {
+  readonly canMoveDown: boolean;
+  readonly canMoveUp: boolean;
+  readonly canRemove: boolean;
   readonly disabled: boolean;
   readonly exercise: CoachDraftExercise;
   readonly onChange: (patch: Partial<CoachDraftExercise>) => void;
+  readonly onMoveDown: () => void;
+  readonly onMoveUp: () => void;
+  readonly onRemove: () => void;
   readonly onSelect: (exerciseId: string) => void;
   readonly options: readonly CoachExerciseOption[];
 }) {
@@ -523,6 +707,26 @@ function ReviewExerciseEditor({
     >
       <>
         <View style={styles.exerciseEditor}>
+          <View style={styles.exerciseActions}>
+            <Button
+              disabled={disabled || !canMoveUp}
+              label={`بالا بردن حرکت ${faNumber(exercise.order_index)}`}
+              onPress={onMoveUp}
+              variant="ghost"
+            />
+            <Button
+              disabled={disabled || !canMoveDown}
+              label={`پایین بردن حرکت ${faNumber(exercise.order_index)}`}
+              onPress={onMoveDown}
+              variant="ghost"
+            />
+            <Button
+              disabled={disabled || !canRemove}
+              label={`حذف حرکت ${faNumber(exercise.order_index)}`}
+              onPress={onRemove}
+              variant="danger"
+            />
+          </View>
           <Pressable
             accessibilityLabel="انتخاب حرکت"
             accessibilityRole="button"
@@ -730,6 +934,47 @@ function boundedNumber(value: string, fallback: number, minimum: number, maximum
     : fallback;
 }
 
+function createDraftExercise(option: CoachExerciseOption, orderIndex: number): CoachDraftExercise {
+  const durationMode = option.prescription_mode === "duration";
+  return {
+    duration_max_seconds: durationMode ? option.duration_max_seconds ?? 60 : null,
+    duration_min_seconds: durationMode ? option.duration_min_seconds ?? 30 : null,
+    exercise_id: option.id,
+    notes_en: null,
+    notes_fa: null,
+    order_index: orderIndex,
+    prescription_mode: option.prescription_mode,
+    reps_max: durationMode ? null : 12,
+    reps_min: durationMode ? null : 8,
+    rest_seconds: 90,
+    rir: durationMode ? null : 2,
+    sets: 3,
+  };
+}
+
+function normalizeDraftDays(days: readonly CoachDraftDay[]): CoachDraftDay[] {
+  return days.map((day, dayIndex) => ({
+    ...day,
+    day_number: dayIndex + 1,
+    exercises: normalizeDraftExercises(day.exercises),
+  }));
+}
+
+function normalizeDraftExercises(exercises: readonly CoachDraftExercise[]): CoachDraftExercise[] {
+  return exercises.map((exercise, exerciseIndex) => ({
+    ...exercise,
+    order_index: exerciseIndex + 1,
+  }));
+}
+
+function moveItem<T>(items: readonly T[], fromIndex: number, toIndex: number): T[] {
+  const next = [...items];
+  const [item] = next.splice(fromIndex, 1);
+  if (item === undefined) return next;
+  next.splice(toIndex, 0, item);
+  return next;
+}
+
 function queueLabel(view: CoachWorkoutReviewView): string {
   if (view === "pending") return "در انتظار بررسی";
   if (view === "mine") return "در حال بررسی من";
@@ -827,6 +1072,7 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
+  exerciseActions: { gap: fiticianTokens.spacing[2] },
   exerciseEditor: {
     borderTopColor: fiticianTokens.colors.line,
     borderTopWidth: 1,
@@ -1026,6 +1272,8 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
+  structureActions: { gap: fiticianTokens.spacing[2] },
+  structureHeading: { gap: fiticianTokens.spacing[3] },
   summaryCard: { gap: fiticianTokens.spacing[2] },
   templateSlug: {
     alignItems: "center",

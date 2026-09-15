@@ -161,7 +161,7 @@ test("claims a case, edits the exercise selection, and saves the current revisio
   fireEvent.press(screen.getByRole("button", { name: "ذخیرهٔ پیش‌نویس" }));
 
   await waitFor(() => {
-    const api = mockCreateApi.mock.results[0]?.value as { readonly saveDraft: jest.Mock };
+    const api = mockCreateApi.mock.results.at(-1)?.value as { readonly saveDraft: jest.Mock };
     expect(api.saveDraft).toHaveBeenCalledWith(
       "review-1",
       expect.objectContaining({
@@ -260,6 +260,61 @@ test("keeps each workout day and exercise collapsed until the coach opens them",
   fireEvent.press(exerciseSection);
   expect(exerciseSection.props.accessibilityState).toEqual(expect.objectContaining({ expanded: true }));
   expect(screen.getByLabelText("انتخاب حرکت")).toBeTruthy();
+});
+
+test("adds, removes, reorders, and renames workout days before saving", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  expect(await screen.findByText("علت انتخاب برنامه")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "روز ۱" }));
+  fireEvent.changeText(screen.getByLabelText("عنوان روز فارسی"), "قدرت");
+  fireEvent.press(screen.getByRole("button", { name: "افزودن روز" }));
+
+  const secondDay = screen.getByRole("button", { name: "روز ۲" });
+  fireEvent.press(secondDay);
+  fireEvent.press(screen.getByRole("button", { name: "جابجایی روز ۲ به بالا" }));
+  fireEvent.press(screen.getByRole("button", { name: "ذخیرهٔ پیش‌نویس" }));
+
+  await waitFor(() => {
+    const api = mockCreateApi.mock.results.at(-1)?.value as { readonly saveDraft: jest.Mock };
+    expect(api.saveDraft).toHaveBeenCalledWith(
+      "review-1",
+      expect.objectContaining({
+        days: expect.arrayContaining([
+          expect.objectContaining({ title_fa: "قدرت" }),
+        ]),
+      }),
+    );
+    const saved = api.saveDraft.mock.calls.at(-1)?.[1] as { readonly days: readonly unknown[] } | undefined;
+    expect(saved?.days).toHaveLength(2);
+  });
+});
+
+test("adds, removes, and reorders exercises inside a workout day", async () => {
+  renderScreen();
+
+  fireEvent.press(await screen.findByRole("button", { name: "۵ هفته قبل" }));
+  fireEvent.press(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  expect(await screen.findByText("علت انتخاب برنامه")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "روز ۱" }));
+  fireEvent.press(screen.getByRole("button", { name: "افزودن حرکت به روز ۱" }));
+
+  fireEvent.press(screen.getByRole("button", { name: "حرکت ۲ · پرس سینه" }));
+  fireEvent.press(screen.getByRole("button", { name: "بالا بردن حرکت ۲" }));
+  expect(screen.getByRole("button", { name: "حرکت ۱ · پرس سینه" })).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "حذف حرکت ۲" }));
+
+  fireEvent.press(screen.getByRole("button", { name: "ذخیرهٔ پیش‌نویس" }));
+
+  await waitFor(() => {
+    const api = mockCreateApi.mock.results[0]?.value as { readonly saveDraft: jest.Mock };
+    const saved = api.saveDraft.mock.calls.at(-1)?.[1] as {
+      readonly days: readonly [{ readonly exercises: readonly unknown[] }];
+    } | undefined;
+    expect(saved?.days[0]?.exercises).toHaveLength(1);
+  });
 });
 
 test("returns from the selected case before leaving the coach route", async () => {
