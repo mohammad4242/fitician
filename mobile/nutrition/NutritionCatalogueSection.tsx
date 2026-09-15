@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { formatTehranDate } from "@fitician/core";
+import { formatTehranDate, type ResolvedAppError } from "@fitician/core";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { nutritionKeys } from "../data/queryKeys";
@@ -22,7 +22,7 @@ import {
   Skeleton,
   TextField,
 } from "../ui/components";
-import { getMobileViewState, mobileRequestErrorMessage } from "../ui/requestState";
+import { classifyMobileStateError, getMobileViewState } from "../ui/requestState";
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
 import {
@@ -84,7 +84,27 @@ type CatalogueFoodItem = FoodCatalogueItem | AdminFoodCatalogueItem;
 type FoodCataloguePageData = FoodCataloguePage | AdminFoodCataloguePage;
 type FoodResearchState =
   | { readonly status: "researching" }
-  | { readonly message: string; readonly status: "error" };
+  | { readonly message: string; readonly presentation?: ResolvedAppError; readonly status: "error" };
+type AdminSheetError = string | ResolvedAppError;
+
+function resolveAdminNutritionError(error: unknown): ResolvedAppError {
+  return classifyMobileStateError(error, {
+    audience: "admin",
+    context: "nutrition",
+  }).presentation;
+}
+
+function AdminNutritionErrorNotice({ error }: { readonly error: AdminSheetError }) {
+  const presentation = typeof error === "string" ? null : error;
+  return (
+    <Notice
+      compact
+      message={presentation?.message ?? error as string}
+      technicalDetails={presentation}
+      variant="danger"
+    />
+  );
+}
 
 export function NutritionCatalogueSection({ initialMode }: { readonly initialMode?: CatalogueMode } = {}) {
   const auth = useMobileAuth();
@@ -204,9 +224,10 @@ export function NutritionCatalogueSection({ initialMode }: { readonly initialMod
         return next;
       });
     } catch (error) {
+      const presentation = resolveAdminNutritionError(error);
       setResearchStates((current) => ({
         ...current,
-        [food.slug]: { message: mobileRequestErrorMessage(error, "استعلام قیمت انجام نشد."), status: "error" },
+        [food.slug]: { message: presentation.message, presentation, status: "error" },
       }));
     }
   }
@@ -1015,7 +1036,11 @@ function FoodPriceTicket({
       </Text>
       {accepted && price?.reference_unit ? <Text style={styles.foodPriceUnit}>{foodPriceUnitLabel(price)}</Text> : null}
       {accepted && price ? <Text style={styles.foodPriceMeta}>{foodPriceSourceLabel(price)}{foodPriceDate(price.observed_at) ? ` · ${foodPriceDate(price.observed_at)}` : ""}</Text> : null}
-      {researchState?.status === "error" ? <Text style={styles.foodPriceError}>{researchState.message}</Text> : null}
+      {researchState?.status === "error"
+        ? researchState.presentation
+          ? <AdminNutritionErrorNotice error={researchState.presentation} />
+          : <Text style={styles.foodPriceError}>{researchState.message}</Text>
+        : null}
     </View>
   );
 }
@@ -1101,7 +1126,7 @@ function AddFoodSheet({
     total_fat_g: "",
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AdminSheetError | null>(null);
 
   async function submit(): Promise<void> {
     const hasMissingIdentity = Object.values(identity).some((value) => value.trim().length === 0);
@@ -1145,7 +1170,7 @@ function AddFoodSheet({
       await api.saveCatalogueFood(payload);
       onSaved();
     } catch (requestError) {
-      setError(mobileRequestErrorMessage(requestError, "ماده غذایی ذخیره نشد."));
+      setError(resolveAdminNutritionError(requestError));
     } finally {
       setSaving(false);
     }
@@ -1207,7 +1232,7 @@ function AddFoodSheet({
             value={values[code]}
           />
         ))}
-        {error ? <Notice compact message={error} variant="danger" /> : null}
+        {error ? <AdminNutritionErrorNotice error={error} /> : null}
         <Button
           disabled={saving}
           label={saving ? "در حال ذخیره…" : "افزودن به کاتالوگ"}
@@ -1233,7 +1258,7 @@ function FoodImageSheet({
   const [asset, setAsset] = useState<CatalogueFoodImageAsset | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AdminSheetError | null>(null);
 
   async function chooseImage(): Promise<void> {
     setError(null);
@@ -1265,8 +1290,8 @@ function FoodImageSheet({
       const selectedName = picked.fileName?.trim() || `food-image.${catalogueFoodImageExtension(mimeType)}`;
       setAsset({ bytes, filename: selectedName, mimeType });
       setFilename(selectedName);
-    } catch (pickerError) {
-      setError(mobileRequestErrorMessage(pickerError, "انتخاب تصویر انجام نشد."));
+    } catch {
+      setError("انتخاب تصویر انجام نشد.");
     }
   }
 
@@ -1278,7 +1303,7 @@ function FoodImageSheet({
       await api.uploadCatalogueFoodImage(food.slug, asset);
       onSaved();
     } catch (requestError) {
-      setError(mobileRequestErrorMessage(requestError, "تصویر ذخیره نشد."));
+      setError(resolveAdminNutritionError(requestError));
     } finally {
       setSaving(false);
     }
@@ -1294,7 +1319,7 @@ function FoodImageSheet({
         <Text style={[styles.sheetHelper, RTL_TEXT]}>فایل JPEG، PNG، WebP یا GIF انتخاب کنید.</Text>
         <Button label="انتخاب تصویر" onPress={() => void chooseImage()} variant="secondary" />
         {filename ? <Text style={[styles.sheetFileName, RTL_TEXT]}>{filename}</Text> : null}
-        {error ? <Notice compact message={error} variant="danger" /> : null}
+        {error ? <AdminNutritionErrorNotice error={error} /> : null}
         <Button
           disabled={asset === null || saving}
           label={saving ? "در حال ذخیره…" : "ذخیره تصویر"}
@@ -1328,8 +1353,8 @@ function PriceOverrideSheet({
   const [saving, setSaving] = useState(false);
   const [researching, setResearching] = useState(false);
   const [researchResult, setResearchResult] = useState<SingleFoodPriceResearchResponse | null>(null);
-  const [researchError, setResearchError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [researchError, setResearchError] = useState<AdminSheetError | null>(null);
+  const [error, setError] = useState<AdminSheetError | null>(null);
 
   async function runResearch(): Promise<void> {
     if (food === null) return;
@@ -1346,7 +1371,7 @@ function PriceOverrideSheet({
         setResearchError(result.message ?? "قیمتی در فروشگاه‌ها یافت نشد.");
       }
     } catch (requestError) {
-      setResearchError(mobileRequestErrorMessage(requestError, "خطا در برقراری ارتباط با سرویس استعلام قیمت."));
+      setResearchError(resolveAdminNutritionError(requestError));
     } finally {
       setResearching(false);
     }
@@ -1368,7 +1393,7 @@ function PriceOverrideSheet({
       });
       onSaved();
     } catch (requestError) {
-      setError(mobileRequestErrorMessage(requestError, "قیمت ذخیره نشد."));
+      setError(resolveAdminNutritionError(requestError));
     } finally {
       setSaving(false);
     }
@@ -1385,7 +1410,7 @@ function PriceOverrideSheet({
           onPress={() => void runResearch()}
           variant="secondary"
         />
-        {researchError ? <Notice compact message={researchError} variant="danger" /> : null}
+        {researchError ? <AdminNutritionErrorNotice error={researchError} /> : null}
         {researchResult?.quotes && researchResult.quotes.length > 0 ? (
           <View style={styles.quoteStack}>
             <Text style={[styles.sheetLabel, RTL_TEXT]}>قیمت‌های کشف‌شده در فروشگاه‌ها:</Text>
@@ -1431,7 +1456,7 @@ function PriceOverrideSheet({
           required
           value={reason}
         />
-        {error ? <Notice compact message={error} variant="danger" /> : null}
+        {error ? <AdminNutritionErrorNotice error={error} /> : null}
         <Button
           disabled={saving || researching}
           label={saving ? "در حال ذخیره…" : "ذخیره قیمت"}
@@ -1459,7 +1484,7 @@ function DeleteFoodSheet({
   readonly onDelete: (food: AdminFoodCatalogueItem) => Promise<void>;
 }) {
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AdminSheetError | null>(null);
 
   async function confirmDelete(): Promise<void> {
     if (food === null) return;
@@ -1468,11 +1493,7 @@ function DeleteFoodSheet({
     try {
       await onDelete(food);
     } catch (requestError) {
-      setError(mobileRequestErrorMessage(
-        requestError,
-        "حذف ماده غذایی انجام نشد.",
-        { audience: "admin", context: "nutrition" },
-      ));
+      setError(resolveAdminNutritionError(requestError));
     } finally {
       setDeleting(false);
     }
@@ -1483,7 +1504,7 @@ function DeleteFoodSheet({
       <View style={styles.sheetStack}>
         {food ? <Text style={[styles.sheetText, RTL_TEXT]}>«{food.name_fa}» از کاتالوگ فعال حذف شود؟</Text> : null}
         <Text style={[styles.deleteWarning, RTL_TEXT]}>این ماده دیگر در کاتالوگ و برنامه‌های غذایی جدید استفاده نمی‌شود، اما اطلاعات و سوابق تاریخی آن حذف نخواهند شد.</Text>
-        {error ? <Notice compact message={error} variant="danger" /> : null}
+        {error ? <AdminNutritionErrorNotice error={error} /> : null}
         <View style={[styles.sheetActions, RTL_ROW]}>
           <Button disabled={deleting} label="انصراف" onPress={onClose} variant="ghost" />
           <Button

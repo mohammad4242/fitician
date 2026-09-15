@@ -619,7 +619,10 @@ test("delete requires confirmation, keeps errors open, and refreshes after succe
   fireEvent.press(screen.getByRole("button", { name: "حذف ماده غذایی" }));
   await waitFor(() => expect(screen.getByText("ماده غذایی پیدا نشد.")).toBeTruthy());
   expect(screen.queryByText("private catalogue detail")).toBeNull();
-  expect(screen.queryByText("catalogue-admin-1")).toBeNull();
+  const diagnostics = screen.getByTestId("mobile-error-technical-details");
+  expect(diagnostics).toHaveTextContent(/کد خطا: FOOD_NOT_FOUND/u);
+  expect(diagnostics).toHaveTextContent(/HTTP: 409/u);
+  expect(diagnostics).toHaveTextContent(/شناسه پیگیری: catalogue-admin-1/u);
   expect(screen.getByRole("header", { name: "حذف ماده غذایی؟" })).toBeTruthy();
 
   catalogueApi.deleteCatalogueFood.mockResolvedValueOnce(undefined);
