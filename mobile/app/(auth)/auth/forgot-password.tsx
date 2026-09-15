@@ -30,7 +30,7 @@ export default function ForgotPasswordScreen() {
       await auth.forgotPassword(email.trim());
       setSuccess(true);
     } catch (submissionError) {
-      setError(authErrorMessage(submissionError));
+      setError(authErrorMessage(submissionError, "recovery"));
     }
   });
 

@@ -38,7 +38,7 @@ export default function ResetPasswordScreen() {
       await auth.resetPassword(token, newPassword);
       setSuccess(true);
     } catch (submissionError) {
-      setError(authErrorMessage(submissionError));
+      setError(authErrorMessage(submissionError, "recovery"));
     }
   });
 

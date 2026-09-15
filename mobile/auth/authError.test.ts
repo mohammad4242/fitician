@@ -45,4 +45,7 @@ it("uses context only when a legacy API error has no domain code", () => {
   expect(authErrorMessage(new ApiError(401, "legacy detail"), "google")).toBe(
     "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
   );
+  expect(authErrorMessage(new ApiError(401, "legacy detail"), "recovery")).toBe(
+    "نشست شما منقضی شده است. دوباره وارد شوید.",
+  );
 });
