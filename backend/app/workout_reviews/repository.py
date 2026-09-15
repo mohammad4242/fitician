@@ -63,6 +63,24 @@ def get_review(db: Session, review_id: UUID) -> WorkoutPlanReview | None:
     )
 
 
+def get_current_member_review(db: Session, user_id: UUID) -> WorkoutPlanReview | None:
+    review = db.scalar(
+        select(WorkoutPlanReview)
+        .where(
+            WorkoutPlanReview.user_id == user_id,
+            WorkoutPlanReview.status.in_(
+                [
+                    WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE,
+                    WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED,
+                ]
+            ),
+        )
+        .order_by(WorkoutPlanReview.updated_at.desc(), WorkoutPlanReview.id.desc())
+        .limit(1)
+    )
+    return get_review(db, review.id) if review is not None else None
+
+
 def get_review_for_update(db: Session, review_id: UUID) -> WorkoutPlanReview | None:
     review = db.scalar(
         select(WorkoutPlanReview).where(WorkoutPlanReview.id == review_id).with_for_update()

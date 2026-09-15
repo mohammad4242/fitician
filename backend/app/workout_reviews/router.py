@@ -14,19 +14,24 @@ from app.profile.photo import authorized_profile_photo_url
 from app.profile.review_summary import build_review_profile_summary
 from app.workout_reviews.coach_quality import build_coach_quality_projection
 from app.workout_reviews.dependencies import (
+    AuthenticatedUser,
     CoachUser,
     DatabaseSession,
     WorkoutReviewServiceDependency,
 )
+from app.workout_reviews.diff import build_coach_diff
 from app.workout_reviews.enums import WorkoutReviewErrorCode, WorkoutReviewQueueView
 from app.workout_reviews.models import WorkoutPlanReview
-from app.workout_reviews.repository import get_exercises
+from app.workout_reviews.repository import get_current_member_review, get_exercises
 from app.workout_reviews.schemas import (
     WorkoutReviewAccessResponse,
     WorkoutReviewApproveRequest,
     WorkoutReviewDetailResponse,
     WorkoutReviewDraftUpdate,
     WorkoutReviewExerciseOption,
+    WorkoutReviewMemberAcceptRequest,
+    WorkoutReviewMemberDetailResponse,
+    WorkoutReviewMemberRejectRequest,
     WorkoutReviewQueueItemResponse,
     WorkoutReviewRejectRequest,
 )
@@ -40,6 +45,7 @@ from app.workout_reviews.validation import DraftValidationError
 from app.workouts.router import to_plan_response
 
 router = APIRouter(prefix="/api/v1/coach/workout-reviews", tags=["coach-workout-reviews"])
+member_router = APIRouter(prefix="/api/v1/workout-reviews", tags=["workout-reviews"])
 
 
 @router.get("/access", response_model=WorkoutReviewAccessResponse)
@@ -141,11 +147,16 @@ def save_review_draft(
 
 
 @router.post(
+    "/{review_id}/submit",
+    response_model=WorkoutReviewDetailResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+@router.post(
     "/{review_id}/approve",
     response_model=WorkoutReviewDetailResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def approve_review(
+def submit_review(
     review_id: UUID,
     payload: WorkoutReviewApproveRequest,
     service: WorkoutReviewServiceDependency,
@@ -153,7 +164,7 @@ def approve_review(
     db: DatabaseSession,
 ) -> WorkoutReviewDetailResponse:
     try:
-        service.approve(
+        service.submit_for_member(
             review_id,
             coach.id,
             expected_revision=payload.expected_revision,
@@ -167,6 +178,72 @@ def approve_review(
     except ReviewConflict as error:
         raise _http_conflict(error) from error
     return _detail_response(db, review, coach.id)
+
+
+@member_router.get(
+    "/current",
+    response_model=WorkoutReviewMemberDetailResponse,
+)
+def read_current_member_review(
+    db: DatabaseSession,
+    user: AuthenticatedUser,
+) -> WorkoutReviewMemberDetailResponse:
+    review = get_current_member_review(db, user.id)
+    if review is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": WorkoutReviewErrorCode.REVIEW_NOT_FOUND.value},
+        )
+    return _member_detail_response(db, review)
+
+
+@member_router.post(
+    "/{review_id}/accept",
+    response_model=WorkoutReviewMemberDetailResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def accept_member_review(
+    review_id: UUID,
+    payload: WorkoutReviewMemberAcceptRequest,
+    service: WorkoutReviewServiceDependency,
+    db: DatabaseSession,
+    user: AuthenticatedUser,
+) -> WorkoutReviewMemberDetailResponse:
+    try:
+        service.accept_by_member(
+            review_id,
+            user.id,
+            expected_revision=payload.expected_revision,
+        )
+        review = service.detail(review_id)
+    except ReviewConflict as error:
+        raise _http_conflict(error) from error
+    return _member_detail_response(db, review)
+
+
+@member_router.post(
+    "/{review_id}/reject",
+    response_model=WorkoutReviewMemberDetailResponse,
+    dependencies=[Depends(require_trusted_origin)],
+)
+def reject_member_review(
+    review_id: UUID,
+    payload: WorkoutReviewMemberRejectRequest,
+    service: WorkoutReviewServiceDependency,
+    db: DatabaseSession,
+    user: AuthenticatedUser,
+) -> WorkoutReviewMemberDetailResponse:
+    try:
+        service.reject_by_member(
+            review_id,
+            user.id,
+            payload.explanation,
+            expected_revision=payload.expected_revision,
+        )
+        review = service.detail(review_id)
+    except ReviewConflict as error:
+        raise _http_conflict(error) from error
+    return _member_detail_response(db, review)
 
 
 @router.post(
@@ -272,6 +349,7 @@ def _detail_response(
     return WorkoutReviewDetailResponse(
         **summary.model_dump(),
         coach_note=review.coach_note,
+        member_rejection_note=review.member_rejection_note,
         draft=review.draft_payload,
         source_plan=to_plan_response(review.source_plan, db=db).model_dump(mode="json"),
         exercise_options=options,
@@ -283,8 +361,45 @@ def _detail_response(
     )
 
 
+def _member_detail_response(
+    db: Session,
+    review: WorkoutPlanReview,
+) -> WorkoutReviewMemberDetailResponse:
+    proposed = review.proposed_plan
+    difference_summary: list[dict[str, object]] = []
+    if proposed is not None and review.claimed_by_user_id is not None:
+        difference_summary = build_coach_diff(
+            review.source_plan,
+            proposed,
+            provenance={
+                "source_plan_id": str(review.source_plan_id),
+                "review_id": str(review.id),
+                "approved_plan_id": str(proposed.id),
+                "coach_id": str(review.claimed_by_user_id),
+            },
+        )
+    return WorkoutReviewMemberDetailResponse(
+        id=review.id,
+        source_plan_id=review.source_plan_id,
+        status=review.status,
+        draft_revision=review.draft_revision,
+        coach_note=review.coach_note,
+        member_rejection_note=review.member_rejection_note,
+        source_plan=to_plan_response(review.source_plan, db=db),
+        proposed_plan=to_plan_response(proposed, db=db) if proposed is not None else None,
+        difference_summary=difference_summary,
+        coach_display_name=_coach_display_name(db, review.claimed_by_user_id),
+    )
+
+
 def _optional_text(value: object) -> str | None:
     return str(value) if value is not None else None
+
+
+def _coach_display_name(db: Session, coach_id: UUID | None) -> str | None:
+    if coach_id is None:
+        return None
+    return db.scalar(select(UserProfile.display_name).where(UserProfile.user_id == coach_id))
 
 
 def _uuid_text(value: object) -> str | None:

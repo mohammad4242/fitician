@@ -12,6 +12,7 @@ from app.profile.review_summary import ReviewProfileSummary
 from app.workout_reviews.enums import WorkoutReviewStatus
 from app.workouts.program_engine.adaptation_policy import CycleAdaptationDecision
 from app.workouts.program_engine.enums import ValidationStatus
+from app.workouts.schemas import WorkoutPlanResponse
 
 
 class WorkoutReviewExerciseDraft(BaseModel):
@@ -80,6 +81,27 @@ class WorkoutReviewApproveRequest(BaseModel):
 
 
 class WorkoutReviewRejectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+    explanation: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("explanation")
+    @classmethod
+    def normalize_explanation(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("A rejection explanation is required")
+        return normalized
+
+
+class WorkoutReviewMemberAcceptRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_revision: int = Field(ge=1)
+
+
+class WorkoutReviewMemberRejectRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     expected_revision: int = Field(ge=1)
@@ -189,3 +211,18 @@ class WorkoutReviewDetailResponse(WorkoutReviewQueueItemResponse):
 
 class WorkoutReviewAccessResponse(BaseModel):
     authorized: Literal[True] = True
+
+
+class WorkoutReviewMemberDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    source_plan_id: UUID
+    status: WorkoutReviewStatus
+    draft_revision: int = Field(ge=1)
+    coach_note: str | None
+    member_rejection_note: str | None
+    source_plan: WorkoutPlanResponse
+    proposed_plan: WorkoutPlanResponse | None
+    difference_summary: list[dict[str, object]]
+    coach_display_name: str | None = None
