@@ -52,6 +52,7 @@ it.each([
 ] as const)("shows capability-aware links for %s mode", (productMode, visibleLabels, hiddenLabels) => {
   vi.spyOn(profileContextModule, "useOptionalProfile").mockReturnValue({
     profile: null,
+    profileError: null,
     status: "ready",
     productMode,
     retryProfile: vi.fn(),
