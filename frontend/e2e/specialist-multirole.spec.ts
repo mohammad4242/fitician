@@ -423,6 +423,10 @@ test.describe("real specialist multi-role flows", () => {
       await physician.page.goto("/physician/nutrition", { waitUntil: "networkidle" });
       const patientCard = physician.page.locator(".physician-review-cases article").filter({ hasText: patient.displayName });
       await expect(patientCard).toHaveCount(1);
+      const patientGroup = patientCard.locator("xpath=ancestor::details");
+      if ((await patientGroup.getAttribute("open")) === null) {
+        await patientGroup.locator("[data-queue-group-header='true']").click();
+      }
       await expect(patientCard).toBeVisible();
       await patientCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
       await expect(physician.page.locator(".physician-review-case-header")).toBeVisible();
@@ -510,6 +514,10 @@ test.describe("real specialist multi-role flows", () => {
 
       const labCard = physician.page.locator(".physician-review-cases article").filter({ hasText: labPatient.displayName });
       await expect(labCard).toHaveCount(1);
+      const labGroup = labCard.locator("xpath=ancestor::details");
+      if ((await labGroup.getAttribute("open")) === null) {
+        await labGroup.locator("[data-queue-group-header='true']").click();
+      }
       await expect(labCard).toBeVisible();
       await labCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
       await physician.page.getByRole("tab", { name: "آزمایش‌ها" }).click();
