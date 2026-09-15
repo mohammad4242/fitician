@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 
 import { useOptionalProfile } from "../features/profile/ProfileContext";
+import { useEntitlements } from "../features/entitlements/EntitlementContext";
+import { AppErrorNotice } from "./AppErrorNotice";
 import { AuthenticatedHeader } from "./AuthenticatedHeader";
 import { AppIcon } from "./AppIcon";
 
@@ -19,9 +21,10 @@ const navigation = [
 ] as const;
 
 export function AppShell({ children }: AppShellProps) {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const location = useLocation();
   const productMode = useOptionalProfile()?.productMode;
+  const { error: entitlementError, retry: retryEntitlements } = useEntitlements();
   const visibleNavigation = navigation.filter((item) => (
     !("capability" in item)
     || productMode === undefined
@@ -33,7 +36,16 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="app-shell fitician-app">
       <AuthenticatedHeader />
-      <div className="app-shell__content">{children}</div>
+      <div className="app-shell__content">
+        <AppErrorNotice
+          audience="member"
+          context="access"
+          error={entitlementError}
+          locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+          onRetry={retryEntitlements}
+        />
+        {children}
+      </div>
       <nav className="app-shell__nav" aria-label={t("header.primaryNavigation")}>
         {visibleNavigation.map((item) => {
           const active = isPrimaryRouteActive(item.to, location.pathname);

@@ -1,8 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { ApiError } from "@fitician/core";
+
 import "../i18n";
+import * as entitlementContextModule from "../features/entitlements/EntitlementContext";
 import * as profileContextModule from "../features/profile/ProfileContext";
 import { AppShell } from "./AppShell";
 
@@ -86,4 +89,32 @@ it.each([
   );
 
   expect(screen.getByRole("link", { name: label })).toHaveAttribute("aria-current", "page");
+});
+
+it("shows the shared entitlement error and preserves its retry action", () => {
+  const retry = vi.fn();
+  vi.spyOn(entitlementContextModule, "useEntitlements").mockReturnValue({
+    error: new ApiError(503, "provider secret", null, "SERVICE_UNAVAILABLE", {
+      requestId: "web-entitlement-corr-1",
+    }),
+    hasEntitlement: () => false,
+    loading: false,
+    quotaFor: () => null,
+    refresh: async () => undefined,
+    retry,
+    snapshot: null,
+  });
+
+  render(
+    <MemoryRouter initialEntries={["/dashboard"]}>
+      <AppShell><p>content</p></AppShell>
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
+  );
+  expect(screen.getByRole("alert")).not.toHaveTextContent("provider secret");
+  fireEvent.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
+  expect(retry).toHaveBeenCalledTimes(1);
 });
