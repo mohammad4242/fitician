@@ -1,0 +1,65 @@
+.member-workout-review { display: grid; gap: .7rem; margin: .8rem 0 1rem; padding: .9rem; border: 1px solid rgb(239 186 98 / 42%); border-radius: var(--fitician-radius-lg); background: linear-gradient(135deg, rgb(239 186 98 / 8%), var(--fitician-surface)); box-shadow: var(--fitician-shadow-card); }
+.member-workout-review__heading { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+.member-workout-review__heading h2 { margin: .15rem 0 0; font-size: 1.05rem; }
+.member-workout-review__heading .eyebrow { margin: 0; color: var(--fitician-amber); font-size: .64rem; font-weight: 850; }
+.member-workout-review__status { max-width: 12rem; padding: .3rem .5rem; border: 1px solid rgb(239 186 98 / 45%); border-radius: 99rem; color: var(--fitician-amber); font-size: .62rem; font-weight: 850; text-align: center; }
+.member-workout-review__status--member_changes_requested { border-color: rgb(255 108 116 / 45%); color: var(--fitician-coral); }
+.member-workout-review__intro, .member-workout-review__coach { margin: 0; color: var(--fitician-muted); font-size: .75rem; line-height: 1.6; }
+.member-workout-review__coach strong { color: var(--fitician-ink); }
+.member-workout-review__note, .member-workout-review__rejection { margin: 0; padding: .6rem .7rem; border-inline-start: .18rem solid var(--fitician-amber); border-radius: .55rem; background: rgb(239 186 98 / 7%); }
+.member-workout-review__rejection { border-inline-start-color: var(--fitician-coral); background: rgb(255 108 116 / 6%); }
+.member-workout-review__note strong, .member-workout-review__rejection strong { font-size: .72rem; }
+.member-workout-review__note p, .member-workout-review__rejection p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .72rem; line-height: 1.6; }
+.member-workout-review__comparison { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .45rem; padding: .65rem; border: 1px solid var(--fitician-line); border-radius: .7rem; background: var(--fitician-surface-subtle); }
+.member-workout-review__comparison > span:not([aria-hidden]) { min-width: 0; display: grid; gap: .15rem; }
+.member-workout-review__comparison > span[aria-hidden] { color: var(--fitician-amber); font-size: 1.1rem; }
+.member-workout-review__comparison small { color: var(--fitician-muted); font-size: .6rem; }
+.member-workout-review__comparison strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.member-workout-review__section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; }
+.member-workout-review__section-heading h3 { margin: 0; font-size: .82rem; }
+.member-workout-review__section-heading span { color: var(--fitician-muted); font-size: .62rem; }
+.member-workout-review__differences ol { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.member-workout-review__differences li { display: grid; gap: .4rem; padding: .55rem .6rem; border: 1px solid var(--fitician-line); border-radius: .6rem; background: var(--fitician-surface-subtle); }
+.member-workout-review__difference-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.member-workout-review__difference-heading strong { color: var(--fitician-amber); font-size: .72rem; }
+.member-workout-review__difference-heading span { color: var(--fitician-muted); font-size: .62rem; }
+.member-workout-review__before-after { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .45rem; }
+.member-workout-review__before-after > span:not([aria-hidden]) { min-width: 0; display: grid; gap: .1rem; }
+.member-workout-review__before-after > span[aria-hidden] { color: var(--fitician-muted); }
+.member-workout-review__before-after small { color: var(--fitician-muted); font-size: .58rem; }
+.member-workout-review__before-after b { overflow: hidden; color: var(--fitician-ink); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.member-workout-review__empty { margin: 0; color: var(--fitician-muted); font-size: .72rem; }
+.member-workout-review__proposal { border-top: 1px solid var(--fitician-line); }
+.member-workout-review__proposal > summary { padding-top: .65rem; color: var(--fitician-aqua); font-size: .72rem; font-weight: 850; cursor: pointer; }
+.member-workout-review__proposal-body { display: grid; gap: .55rem; padding-top: .55rem; }
+.member-workout-review__proposal-body section { padding: .5rem .6rem; border: 1px solid var(--fitician-line); border-radius: .55rem; background: var(--fitician-surface-subtle); }
+.member-workout-review__proposal-body h4 { margin: 0 0 .35rem; color: var(--fitician-amber); font-size: .72rem; }
+.member-workout-review__proposal-body ul { display: grid; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+.member-workout-review__proposal-body li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: .35rem; font-size: .68rem; }
+.member-workout-review__proposal-body li > span { color: var(--fitician-muted); }
+.member-workout-review__proposal-body li strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-workout-review__proposal-body li small { color: var(--fitician-muted); font-size: .6rem; white-space: nowrap; }
+.member-workout-review__response { display: grid; gap: .45rem; padding-top: .25rem; border-top: 1px solid var(--fitician-line); }
+.member-workout-review__response label { display: grid; gap: .3rem; color: var(--fitician-muted); font-size: .7rem; font-weight: 750; }
+.member-workout-review__response textarea { min-height: 4.25rem; resize: vertical; padding: .5rem .6rem; border: 1px solid var(--fitician-line-strong); border-radius: .55rem; color: var(--fitician-ink); background: var(--fitician-surface); font: inherit; font-size: .72rem; line-height: 1.55; }
+.member-workout-review__response textarea:focus { border-color: var(--fitician-aqua); outline: 2px solid rgb(80 223 206 / 25%); outline-offset: 1px; }
+.member-workout-review__validation { margin: 0; color: var(--fitician-coral); font-size: .68rem; }
+.member-workout-review__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
+.member-workout-review__actions button { min-height: 2.45rem; padding: .45rem .75rem; border-radius: 99rem; font: inherit; font-size: .7rem; font-weight: 850; cursor: pointer; }
+.member-workout-review__reject { border: 1px solid rgb(255 108 116 / 52%); color: var(--fitician-coral); background: rgb(255 108 116 / 6%); }
+.member-workout-review__accept { border: 1px solid var(--fitician-aqua); color: var(--fitician-canvas); background: var(--fitician-aqua); }
+.member-workout-review__actions button:hover, .member-workout-review__actions button:focus-visible { filter: brightness(1.08); }
+.member-workout-review__actions button:disabled { cursor: wait; opacity: .55; }
+
+@media (max-width: 430px) {
+  .member-workout-review { padding: .75rem; }
+  .member-workout-review__heading { display: grid; }
+  .member-workout-review__status { max-width: none; justify-self: start; }
+  .member-workout-review__comparison { grid-template-columns: minmax(0, 1fr); }
+  .member-workout-review__comparison > span[aria-hidden] { display: none; }
+  .member-workout-review__difference-heading { display: grid; gap: .15rem; }
+  .member-workout-review__proposal-body li { grid-template-columns: auto minmax(0, 1fr); }
+  .member-workout-review__proposal-body li small { grid-column: 2; }
+  .member-workout-review__actions { justify-content: stretch; }
+  .member-workout-review__actions button { flex: 1 1 10rem; }
+}

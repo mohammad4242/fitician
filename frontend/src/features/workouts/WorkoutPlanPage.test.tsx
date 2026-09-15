@@ -12,6 +12,7 @@ import {
 } from "@fitician/core";
 import { resolvedIanaTimeZone } from "@fitician/core/local-date";
 import type { WorkoutPlan } from "./types";
+import type { WorkoutReviewMemberDetail } from "../workoutReviews/types";
 
 const api = vi.hoisted(() => ({
   deleteWorkoutPlan: vi.fn(),
@@ -45,6 +46,11 @@ const entitlements = vi.hoisted(() => ({
     quotaFor: vi.fn(() => null),
   },
 }));
+const memberReviewApi = vi.hoisted(() => ({
+  getCurrentMemberWorkoutReview: vi.fn(),
+  acceptMemberWorkoutReview: vi.fn(),
+  rejectMemberWorkoutReview: vi.fn(),
+}));
 
 vi.mock("./api", () => api);
 vi.mock("../programTimeline/api", () => ({
@@ -54,6 +60,7 @@ vi.mock("../profile/api", () => profileApi);
 vi.mock("../entitlements/EntitlementContext", () => ({
   useEntitlements: () => entitlements.value,
 }));
+vi.mock("../workoutReviews/api", () => memberReviewApi);
 vi.mock("../../shared/AuthenticatedHeader", () => ({
   AuthenticatedHeader: () => <header>Fitician</header>,
 }));
@@ -171,6 +178,28 @@ const pendingPlan: WorkoutPlan = {
   },
 };
 
+const memberReview: WorkoutReviewMemberDetail = {
+  id: "review-1",
+  source_plan_id: plan.id,
+  status: "awaiting_member_acceptance",
+  draft_revision: 3,
+  coach_note: "تعداد ست روز اول را افزایش دادم.",
+  member_rejection_note: null,
+  source_plan: plan,
+  proposed_plan: pendingPlan,
+  difference_summary: [{
+    change_type: "sets_changed",
+    day_number: 1,
+    order_index: 1,
+    generated: 3,
+    approved: 4,
+    generated_exercise_id: plan.days[0]?.exercises[0]?.exercise.id ?? null,
+    approved_exercise_id: pendingPlan.days[0]?.exercises[0]?.exercise.id ?? null,
+    provenance: {},
+  }],
+  coach_display_name: "مربی سارا",
+};
+
 beforeEach(async () => {
   await i18n.changeLanguage("fa");
   api.deleteWorkoutPlan.mockReset();
@@ -191,6 +220,9 @@ beforeEach(async () => {
   api.saveCurrentWeeklyCheckIn.mockReset();
   profileApi.getProfile.mockReset();
   profileApi.updateProfile.mockReset();
+  memberReviewApi.getCurrentMemberWorkoutReview.mockReset();
+  memberReviewApi.acceptMemberWorkoutReview.mockReset();
+  memberReviewApi.rejectMemberWorkoutReview.mockReset();
   entitlements.value.hasEntitlement.mockReset();
   entitlements.value.hasEntitlement.mockReturnValue(true);
   api.getWorkoutPlanHistory.mockResolvedValue([]);
@@ -229,6 +261,9 @@ beforeEach(async () => {
   api.saveCurrentWeeklyCheckIn.mockResolvedValue(null);
   profileApi.getProfile.mockResolvedValue({ workout_generation_method: "fitician_coach" });
   profileApi.updateProfile.mockResolvedValue({ workout_generation_method: "ai" });
+  memberReviewApi.getCurrentMemberWorkoutReview.mockResolvedValue(null);
+  memberReviewApi.acceptMemberWorkoutReview.mockResolvedValue({ ...memberReview, status: "approved" });
+  memberReviewApi.rejectMemberWorkoutReview.mockResolvedValue({ ...memberReview, status: "member_changes_requested", member_rejection_note: "اصلاح لازم است." });
 });
 
 afterEach(() => {
@@ -265,6 +300,46 @@ function mockBrowserDownload() {
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
   return { click, createObjectURL, revokeObjectURL };
 }
+
+it("lets the member approve coach changes and refreshes the current plan", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  memberReviewApi.getCurrentMemberWorkoutReview
+    .mockResolvedValueOnce(memberReview)
+    .mockResolvedValueOnce(null);
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: "تغییرات پیشنهادی مربی" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "تأیید تغییرات مربی" }));
+
+  await waitFor(() => expect(memberReviewApi.acceptMemberWorkoutReview).toHaveBeenCalledWith("review-1", 3));
+  await waitFor(() => expect(memberReviewApi.getCurrentMemberWorkoutReview).toHaveBeenCalledTimes(2));
+  expect(screen.queryByRole("heading", { name: "تغییرات پیشنهادی مربی" })).not.toBeInTheDocument();
+  expect(screen.getByRole("list", { name: "روزهای تمرین تو" })).toHaveTextContent("پرس سینه دمبل");
+});
+
+it("lets the member return a coach proposal with an explanation while keeping the active plan", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  memberReviewApi.getCurrentMemberWorkoutReview
+    .mockResolvedValueOnce(memberReview)
+    .mockResolvedValueOnce({ ...memberReview, status: "member_changes_requested", member_rejection_note: "اصلاح لازم است." });
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+
+  const explanation = await screen.findByRole("textbox", { name: "دلیل درخواست اصلاح" });
+  await user.type(explanation, "حرکت پیشنهادی برای زانویم مناسب نیست.");
+  await user.click(screen.getByRole("button", { name: "درخواست اصلاح" }));
+
+  await waitFor(() => expect(memberReviewApi.rejectMemberWorkoutReview).toHaveBeenCalledWith(
+    "review-1",
+    3,
+    "حرکت پیشنهادی برای زانویم مناسب نیست.",
+  ));
+  expect(await screen.findByText("درخواست اصلاح ثبت شد؛ پیشنهاد به مربی برگشت.")).toBeInTheDocument();
+  expect(screen.getByRole("list", { name: "روزهای تمرین تو" })).toHaveTextContent("پرس سینه دمبل");
+});
 
 it("does not label the first plan day as the next session without timeline evidence", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(plan);
@@ -626,7 +701,7 @@ it("renders the pending plan returned by generation with its review warning", as
   await waitFor(() => expect(api.getProgramTimelineToday).toHaveBeenCalledTimes(2));
 });
 
-it("replaces the visible active plan with the generated pending plan", async () => {
+it("keeps the active plan visible while a generated proposal awaits approval", async () => {
   const archivedVersion = {
     ...pendingVersion,
     id: plan.id,
@@ -646,7 +721,7 @@ it("replaces the visible active plan with the generated pending plan", async () 
   };
   api.getActiveWorkoutPlan
     .mockResolvedValueOnce(plan)
-    .mockResolvedValueOnce(null);
+    .mockResolvedValueOnce(plan);
   api.getWorkoutPlanHistory
     .mockResolvedValueOnce([{ ...archivedVersion, id: plan.id, status: "active", is_active: true }])
     .mockResolvedValueOnce([pendingVersion, archivedVersion]);
@@ -656,15 +731,14 @@ it("replaces the visible active plan with the generated pending plan", async () 
 
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
-  expect(await screen.findByText("پرس سینه دمبل")).toBeInTheDocument();
+  const schedule = await screen.findByRole("list", { name: "روزهای تمرین تو" });
+  expect(schedule).toHaveTextContent("پرس سینه دمبل");
   await user.click(screen.getByRole("button", { name: "به‌روزرسانی برنامه" }));
 
-  expect(await screen.findByText("حرکت جایگزین جدید")).toBeInTheDocument();
+  expect(await screen.findByRole("list", { name: "روزهای تمرین تو" })).toHaveTextContent("پرس سینه دمبل");
   expect(screen.getAllByRole("heading", { name: "برنامه تمرینی من" })).toHaveLength(1);
   expect(screen.getAllByRole("list", { name: "روزهای تمرین تو" })).toHaveLength(1);
-  expect(screen.getAllByText("در انتظار تایید مربی")).toHaveLength(1);
-  expect(screen.queryByText("پرس سینه دمبل")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /نسخه اولیه/ })).toBeInTheDocument();
+  expect(screen.queryByRole("list", { name: "روزهای تمرین تو" })).not.toHaveTextContent("حرکت جایگزین جدید");
 });
 
 it("lets the member inspect old and coach-approved immutable versions", async () => {

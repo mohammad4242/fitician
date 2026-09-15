@@ -32,6 +32,13 @@ import {
 import { WeeklyCheckInCard } from "./WeeklyCheckInCard";
 import { EndCycleFeedbackCard } from "./EndCycleFeedbackCard";
 import { formatPrescriptionTarget } from "./prescriptionFormatter";
+import {
+  acceptMemberWorkoutReview,
+  getCurrentMemberWorkoutReview,
+  rejectMemberWorkoutReview,
+} from "../workoutReviews/api";
+import { MemberWorkoutReviewCard } from "../workoutReviews/MemberWorkoutReviewCard";
+import type { WorkoutReviewMemberDetail } from "../workoutReviews/types";
 import type {
   WorkoutExerciseReplacementReason,
   WorkoutExerciseReplacementScope,
@@ -68,6 +75,8 @@ type MemberPlans = {
   pendingPlan: WorkoutPlan | null;
   historyError: unknown | null;
   pendingPlanError: unknown | null;
+  memberReview: WorkoutReviewMemberDetail | null;
+  memberReviewError: unknown | null;
 };
 
 const bodyweightGenerationErrors: Record<string, GenerationError> = {
@@ -107,11 +116,19 @@ function isDeletableVersion(version: WorkoutPlanVersionSummary): boolean {
 }
 
 async function loadMemberPlans(): Promise<MemberPlans> {
-  const [activePlan, historyResult] = await Promise.all([
+  const [activePlan, historyResult, memberReviewResult] = await Promise.all([
     getActiveWorkoutPlan(),
     getWorkoutPlanHistory()
       .then((versions) => ({ versions, error: null as unknown | null }))
       .catch((error: unknown) => ({ versions: [] as WorkoutPlanVersionSummary[], error })),
+    getCurrentMemberWorkoutReview()
+      .then((review) => ({ review, error: null as unknown | null }))
+      .catch((error: unknown) => {
+        if (error instanceof ApiError && error.status === 404) {
+          return { review: null, error: null as unknown | null };
+        }
+        return { review: null, error };
+      }),
   ]);
   const pendingVersion = historyResult.versions.find((version) => version.status === "pending_review");
   let pendingPlan: WorkoutPlan | null = null;
@@ -129,6 +146,8 @@ async function loadMemberPlans(): Promise<MemberPlans> {
     pendingPlan,
     historyError: historyResult.error,
     pendingPlanError,
+    memberReview: memberReviewResult.review,
+    memberReviewError: memberReviewResult.error,
   };
 }
 
@@ -163,17 +182,20 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [startDate, setStartDate] = useState(() => localIsoDate());
   const [timelineAction, setTimelineAction] = useState<TimelineAction | null>(null);
   const [timelineActionError, setTimelineActionError] = useState<unknown | null>(null);
+  const [memberReview, setMemberReview] = useState<WorkoutReviewMemberDetail | null>(null);
+  const [memberReviewAction, setMemberReviewAction] = useState<"accept" | "reject" | null>(null);
+  const [memberReviewError, setMemberReviewError] = useState<unknown | null>(null);
   const [deviceTimezone] = useState(() => resolvedIanaTimeZone());
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const canGenerate = hasEntitlement("training.plan.generate");
   const isEnglish = i18n.resolvedLanguage === "en";
   const l = (fa: string, en: string) => isEnglish ? en : fa;
   const pendingVersionId = history.find((version) => version.status === "pending_review")?.id ?? null;
-  const loadedCurrentPlan = pendingVersionId === null
-    ? activePlan
-    : pendingPlan?.id === pendingVersionId
+  const loadedCurrentPlan = activePlan ?? (
+    pendingVersionId !== null && pendingPlan?.id === pendingVersionId
       ? pendingPlan
-      : null;
+      : null
+  );
   const currentPlan = loadedCurrentPlan;
   const displayedPlan = selectedHistoricalPlan ?? currentPlan;
   const isViewingHistorical = selectedHistoricalPlan !== null;
@@ -195,18 +217,24 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
       : null;
   const nextWorkoutDayId = liveWorkout?.next_session?.workout_day_id ?? null;
 
+  function applyMemberPlans(loaded: MemberPlans) {
+    setActivePlan(loaded.activePlan);
+    setPendingPlan(loaded.pendingPlan);
+    setHistory(loaded.versions);
+    setLoadError(loaded.historyError ?? loaded.pendingPlanError);
+    setMemberReview(loaded.memberReview);
+    setMemberReviewError(loaded.memberReviewError);
+    setState(loaded.activePlan === null && loaded.pendingPlan === null ? "empty" : "ready");
+  }
+
   useEffect(() => {
     let active = true;
     setState("loading");
     setLoadError(null);
     void loadMemberPlans()
-      .then(({ activePlan: loadedActivePlan, versions, pendingPlan: loadedPendingPlan, historyError, pendingPlanError }) => {
+      .then((loaded) => {
         if (!active) return;
-        setActivePlan(loadedActivePlan);
-        setPendingPlan(loadedPendingPlan);
-        setHistory(versions);
-        setLoadError(historyError ?? pendingPlanError);
-        setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
+        applyMemberPlans(loaded);
       })
       .catch((cause: unknown) => {
         if (active) {
@@ -248,6 +276,25 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     if (loadedTimeline !== undefined) {
       setTimeline(loadedTimeline);
       setTimelineLoadError(null);
+    }
+  }
+
+  async function respondToMemberReview(action: "accept" | "reject", explanation?: string) {
+    if (memberReview === null || memberReviewAction !== null) return;
+    setMemberReviewAction(action);
+    setMemberReviewError(null);
+    try {
+      if (action === "accept") {
+        await acceptMemberWorkoutReview(memberReview.id, memberReview.draft_revision);
+      } else {
+        await rejectMemberWorkoutReview(memberReview.id, memberReview.draft_revision, explanation ?? "");
+      }
+      applyMemberPlans(await loadMemberPlans());
+      await refreshTimeline();
+    } catch (cause: unknown) {
+      setMemberReviewError(cause);
+    } finally {
+      setMemberReviewAction(null);
     }
   }
 
@@ -317,18 +364,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
         setState("ready");
         setReused(result.reused);
         try {
-          const {
-            activePlan: loadedActivePlan,
-            versions,
-            pendingPlan: loadedPendingPlan,
-            historyError,
-            pendingPlanError,
-          } = await loadMemberPlans();
-          setActivePlan(loadedActivePlan);
-          setPendingPlan(loadedPendingPlan);
-          setHistory(versions);
-          setLoadError(historyError ?? pendingPlanError);
-          setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
+          applyMemberPlans(await loadMemberPlans());
         } catch (cause: unknown) {
           // The successful generation response is already a valid foreground plan.
           setLoadError(cause);
@@ -411,19 +447,9 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     setDeleteVersionError(null);
     void deleteWorkoutPlan(version.id)
       .then(async () => {
-        const {
-          activePlan: loadedActivePlan,
-          versions,
-          pendingPlan: loadedPendingPlan,
-          historyError,
-          pendingPlanError,
-        } = await loadMemberPlans();
-        setActivePlan(loadedActivePlan);
-        setPendingPlan(loadedPendingPlan);
-        setHistory(versions);
-        setLoadError(historyError ?? pendingPlanError);
+        const loaded = await loadMemberPlans();
+        applyMemberPlans(loaded);
         if (wasViewingDeletedVersion) setSelectedHistoricalPlan(null);
-        setState(loadedActivePlan === null && loadedPendingPlan === null ? "empty" : "ready");
         setDeleteDialogVersion(null);
         setExpandedVersionId((current) => current === version.id ? null : current);
         setVersionDetails((current) => {
@@ -505,6 +531,21 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           error={timelineLoadError}
           locale={isEnglish ? "en" : "fa"}
         />
+        <AppErrorNotice
+          audience="member"
+          context="workout"
+          error={memberReviewError}
+          locale={isEnglish ? "en" : "fa"}
+        />
+
+        {!isViewingHistorical && memberReview !== null && (
+          <MemberWorkoutReviewCard
+            review={memberReview}
+            busy={memberReviewAction !== null}
+            onAccept={() => void respondToMemberReview("accept")}
+            onReject={(explanation) => void respondToMemberReview("reject", explanation)}
+          />
+        )}
 
         {displayedPlan !== null
           ? <WorkoutPlanOverview plan={displayedPlan} historical={isViewingHistorical} isEnglish={isEnglish} />
