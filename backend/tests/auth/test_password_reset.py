@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import AuthSession, PasswordResetToken, User
 from app.auth.security import hash_password_reset_token, verify_password
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 GENERIC_RESPONSE = {"message": "If the account exists, a reset link has been sent."}
@@ -98,7 +99,12 @@ def test_reset_password_is_single_use_and_invalidates_all_sessions(
     db.refresh(user)
     assert reset.status_code == 204
     assert reused.status_code == 400
-    assert reused.json() == {"detail": "Invalid or expired reset token"}
+    assert_standard_error(
+        reused.json()["detail"],
+        code="AUTH_PASSWORD_RESET_INVALID",
+        message="لینک بازنشانی رمز عبور معتبر نیست یا منقضی شده است.",
+        retryable=False,
+    )
     assert user.password_hash is not None
     assert verify_password("new secure password", user.password_hash)
     assert db.scalars(select(AuthSession).where(AuthSession.user_id == user.id)).all() == []
@@ -144,7 +150,21 @@ def test_expired_or_unknown_reset_token_uses_the_same_error(
     )
 
     assert expired.status_code == unknown.status_code == 400
-    assert expired.json() == unknown.json() == {"detail": "Invalid or expired reset token"}
+    expired_detail = expired.json()["detail"]
+    unknown_detail = unknown.json()["detail"]
+    assert_standard_error(
+        expired_detail,
+        code="AUTH_PASSWORD_RESET_INVALID",
+        message="لینک بازنشانی رمز عبور معتبر نیست یا منقضی شده است.",
+        retryable=False,
+    )
+    assert_standard_error(
+        unknown_detail,
+        code="AUTH_PASSWORD_RESET_INVALID",
+        message="لینک بازنشانی رمز عبور معتبر نیست یا منقضی شده است.",
+        retryable=False,
+    )
+    assert expired_detail["request_id"] != unknown_detail["request_id"]
 
 
 def test_password_recovery_requires_a_trusted_origin(client: TestClient) -> None:

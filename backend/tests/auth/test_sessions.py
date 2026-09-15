@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import AuthSession
 from app.auth.security import hash_session_token
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -63,7 +64,21 @@ def test_login_uses_generic_error_for_unknown_email_and_wrong_password(
 
     assert wrong_password.status_code == 401
     assert unknown_email.status_code == 401
-    assert wrong_password.json() == unknown_email.json() == {"detail": "Invalid email or password"}
+    wrong_detail = wrong_password.json()["detail"]
+    unknown_detail = unknown_email.json()["detail"]
+    assert_standard_error(
+        wrong_detail,
+        code="AUTH_INVALID_CREDENTIALS",
+        message="ایمیل یا رمز عبور درست نیست.",
+        retryable=False,
+    )
+    assert_standard_error(
+        unknown_detail,
+        code="AUTH_INVALID_CREDENTIALS",
+        message="ایمیل یا رمز عبور درست نیست.",
+        retryable=False,
+    )
+    assert wrong_detail["request_id"] != unknown_detail["request_id"]
 
 
 def test_me_rejects_missing_and_forged_sessions(client: TestClient) -> None:

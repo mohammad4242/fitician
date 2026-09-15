@@ -12,6 +12,7 @@ from app.body_analysis.models import UserSpecialistRole
 from app.config import Settings
 from app.profile.models import UserProfilePhoto
 from app.workout_reviews.repository import ensure_pending_review
+from tests.error_assertions import assert_standard_error
 from tests.nutrition.test_clinical_review_api import _login_physician, _member_plan
 from tests.workout_reviews.test_api import _plan
 
@@ -164,7 +165,12 @@ def test_invalid_profile_photo_is_rejected_without_creating_a_row(
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": {"code": "invalid_geometry"}}
+    assert_standard_error(
+        response.json()["detail"],
+        code="invalid_geometry",
+        message="عکس باید مربعی و در اندازه مجاز باشد.",
+        retryable=False,
+    )
     assert db.scalar(select(UserProfilePhoto)) is None
 
 

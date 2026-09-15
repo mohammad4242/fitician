@@ -8,6 +8,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.profile.models import BodyMeasurement, UserProfile
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 VALID_PROFILE = {
@@ -205,7 +206,12 @@ def test_get_profile_returns_404_until_onboarding_is_complete(client: TestClient
     response = client.get("/api/v1/profile")
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Fitness profile not found"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="PROFILE_NOT_FOUND",
+        message="پروفایل فیتنس پیدا نشد.",
+        retryable=False,
+    )
 
 
 def test_selecting_product_mode_creates_the_single_profile_draft(client: TestClient) -> None:
@@ -308,7 +314,12 @@ def test_commit_failure_rolls_back_profile_and_measurement(
     monkeypatch.setattr(db, "commit", original_commit)
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Service temporarily unavailable"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="SERVICE_UNAVAILABLE",
+        message="سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
+        retryable=True,
+    )
     assert db.get(UserProfile, user_id) is None
     assert db.scalar(select(BodyMeasurement).where(BodyMeasurement.user_id == user_id)) is None
 

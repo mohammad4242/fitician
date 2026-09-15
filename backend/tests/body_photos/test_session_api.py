@@ -16,6 +16,7 @@ from app.body_photos.models import BodyPhotoSession
 from app.config import Settings
 from app.entitlements.enums import AccessPackageCode
 from app.entitlements.models import UserAccessGrant
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -105,18 +106,23 @@ def test_free_user_cannot_start_a_new_body_analysis_session(
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == {
-        "code": "ENTITLEMENT_REQUIRED",
-        "entitlement": "body_analysis.run",
-        "eligible_packages": [
+    assert_standard_error(
+        response.json()["detail"],
+        code="ENTITLEMENT_REQUIRED",
+        message="برای استفاده از این قابلیت، دسترسی لازم را فعال کنید.",
+        retryable=False,
+        meta={
+            "entitlement": "body_analysis.run",
+            "eligible_packages": [
             "training",
             "training_coach",
             "nutrition",
             "nutrition_physician",
             "complete",
             "complete_care",
-        ],
-    }
+            ],
+        },
+    )
 
 
 def _upload(

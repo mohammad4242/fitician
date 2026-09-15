@@ -18,6 +18,7 @@ from app.body_photos.models import BodyPhotoStorageCleanup
 from app.body_photos.service import BodyPhotoService
 from app.body_photos.storage import BodyPhotoStorage, BodyPhotoStorageError, StoredBodyPhoto
 from app.config import Settings
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -136,7 +137,12 @@ def test_mime_mismatch_and_corruption_leave_no_stored_file(
     response = _upload(client, session_id, content, content_type)
 
     assert response.status_code == 422
-    assert response.json() == {"detail": {"code": "invalid_image"}}
+    assert_standard_error(
+        response.json()["detail"],
+        code="invalid_image",
+        message="فایل عکس معتبر نیست. عکس دیگری انتخاب کنید.",
+        retryable=False,
+    )
     assert _stored_files(private_root) == []
 
 
@@ -174,7 +180,12 @@ def test_pillow_decompression_bomb_warning_is_sanitized_and_stores_nothing(
     response = _upload(client, session_id, bomb, "image/png")
 
     assert response.status_code == 422
-    assert response.json() == {"detail": {"code": "image_too_large"}}
+    assert_standard_error(
+        response.json()["detail"],
+        code="image_too_large",
+        message="ابعاد عکس بیشتر از حد مجاز است. عکس کوچک‌تری انتخاب کنید.",
+        retryable=False,
+    )
     assert _stored_files(private_root) == []
 
 
@@ -491,4 +502,3 @@ def test_stored_body_photo_has_readable_permissions(
     assert stored_path.is_file()
     mode = stored_path.stat().st_mode & 0o777
     assert mode == 0o644
-

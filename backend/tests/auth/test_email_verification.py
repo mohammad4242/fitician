@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import models, security
 from app.auth.models import User
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 GENERIC_RESPONSE = {"message": "If verification is available, an email has been sent."}
@@ -96,7 +97,12 @@ def test_expired_email_verification_token_fails(client: TestClient, db: Session)
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Invalid or expired verification token"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_EMAIL_VERIFICATION_INVALID",
+        message="لینک تأیید ایمیل معتبر نیست یا منقضی شده است.",
+        retryable=False,
+    )
 
 
 def test_authenticated_user_can_request_another_verification(client: TestClient) -> None:

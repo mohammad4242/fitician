@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -17,7 +18,12 @@ def test_forgot_password_rate_limit_is_generic(
 
     assert first.status_code == 202
     assert limited.status_code == 429
-    assert limited.json() == {"detail": "Too many authentication requests"}
+    assert_standard_error(
+        limited.json()["detail"],
+        code="AUTH_RATE_LIMITED",
+        message="درخواست‌های ورود زیاد است. کمی بعد دوباره تلاش کنید.",
+        retryable=True,
+    )
 
 
 def test_phone_send_rate_limit_does_not_reveal_account_state(
@@ -39,4 +45,9 @@ def test_phone_send_rate_limit_does_not_reveal_account_state(
 
     assert first.status_code == 202
     assert limited.status_code == 429
-    assert limited.json() == {"detail": "Too many authentication requests"}
+    assert_standard_error(
+        limited.json()["detail"],
+        code="AUTH_RATE_LIMITED",
+        message="درخواست‌های ورود زیاد است. کمی بعد دوباره تلاش کنید.",
+        retryable=True,
+    )

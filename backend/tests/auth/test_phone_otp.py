@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 from app.auth.models import PhoneOtpChallenge, User
 from app.auth.security import hash_otp_code
 from app.config import Settings
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PHONE = "09123456789"
 NORMALIZED_PHONE = "+989123456789"
 GENERIC_SEND_MESSAGE = "If the number can receive messages, an OTP has been sent."
-GENERIC_OTP_ERROR = {"detail": "Invalid or expired OTP"}
+OTP_ERROR_CODE = "AUTH_OTP_INVALID_OR_EXPIRED"
+OTP_ERROR_MESSAGE = "کد واردشده معتبر نیست یا منقضی شده است."
 
 
 def _send(client: TestClient, phone_number: str = PHONE):
@@ -99,7 +101,12 @@ def test_wrong_otp_consumes_attempts_and_locks_the_challenge(
     for _ in range(test_settings.phone_otp_max_attempts):
         wrong = _verify(client, "000000" if correct_code != "000000" else "111111")
         assert wrong.status_code == 401
-        assert wrong.json() == GENERIC_OTP_ERROR
+        assert_standard_error(
+            wrong.json()["detail"],
+            code=OTP_ERROR_CODE,
+            message=OTP_ERROR_MESSAGE,
+            retryable=False,
+        )
 
     challenge = db.scalar(
         select(PhoneOtpChallenge).where(PhoneOtpChallenge.phone_number == NORMALIZED_PHONE)
@@ -133,7 +140,13 @@ def test_expired_unknown_and_reused_otp_have_the_same_error(
     reused = _verify(client, fresh_code)
 
     assert expired.status_code == unknown.status_code == reused.status_code == 401
-    assert expired.json() == unknown.json() == reused.json() == GENERIC_OTP_ERROR
+    for response in (expired, unknown, reused):
+        assert_standard_error(
+            response.json()["detail"],
+            code=OTP_ERROR_CODE,
+            message=OTP_ERROR_MESSAGE,
+            retryable=False,
+        )
 
 
 def test_successful_otp_creates_phone_user_and_existing_session_cookie(

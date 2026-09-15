@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.profile.models import BodyMeasurement, UserProfile
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 VALID_PROFILE = {
@@ -47,6 +48,11 @@ def test_refresh_failure_rolls_back_profile_and_measurement(
     monkeypatch.setattr(db, "refresh", original_refresh)
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Service temporarily unavailable"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="SERVICE_UNAVAILABLE",
+        message="سرویس موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.",
+        retryable=True,
+    )
     assert db.get(UserProfile, user_id) is None
     assert db.scalar(select(BodyMeasurement).where(BodyMeasurement.user_id == user_id)) is None

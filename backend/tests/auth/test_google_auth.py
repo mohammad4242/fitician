@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.models import AuthSession, User
+from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -114,7 +115,12 @@ def test_google_does_not_overwrite_a_conflicting_identity(
     )
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Unable to use this Google account"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_GOOGLE_ACCOUNT_CONFLICT",
+        message="این حساب گوگل به حساب دیگری متصل است.",
+        retryable=False,
+    )
     db.refresh(user)
     assert user.google_sub == "existing-google-sub"
     assert db.scalar(select(func.count()).select_from(User)) == 1
@@ -199,7 +205,12 @@ def test_invalid_google_tokens_use_one_safe_error(
     )
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Google authentication failed"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_GOOGLE_FAILED",
+        message="ورود با گوگل انجام نشد. دوباره تلاش کنید.",
+        retryable=False,
+    )
     assert "signed-google-id-token" not in response.text
 
 

@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.models import MobileTokenFamily, User
+from tests.error_assertions import assert_standard_error
 
 
 class StubAppleIdentityProvider:
@@ -81,7 +82,12 @@ def test_mobile_apple_auth_is_iOS_only(client: TestClient) -> None:
     response = _apple_login(client, provider, platform="android")
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Apple authentication is only available on iOS"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_APPLE_PLATFORM_UNSUPPORTED",
+        message="ورود با اپل فقط در iOS در دسترس است.",
+        retryable=False,
+    )
     assert provider.calls == []
 
 
@@ -147,7 +153,12 @@ def test_apple_identity_conflict_is_safe(
     response = _apple_login(client, StubAppleIdentityProvider(email="member@example.com"))
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "Unable to use this Apple account"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_APPLE_ACCOUNT_CONFLICT",
+        message="این حساب اپل به حساب دیگری متصل است.",
+        retryable=False,
+    )
     db.refresh(user)
     assert user.apple_sub == "existing-apple-sub"
 
@@ -160,7 +171,12 @@ def test_invalid_apple_tokens_use_one_safe_error(
     response = _apple_login(client, StubAppleIdentityProvider(error=provider_error))
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Apple authentication failed"}
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_APPLE_FAILED",
+        message="ورود با اپل انجام نشد. دوباره تلاش کنید.",
+        retryable=False,
+    )
     assert "signed-apple-id-token" not in response.text
 
 
