@@ -463,15 +463,20 @@ it("allows the coach to edit RIR and sends it with the draft", async () => {
   );
 });
 
-it("approves the saved coach version and refreshes the approved queue", async () => {
+it("submits the saved coach version and refreshes the mine queue", async () => {
   const user = userEvent.setup();
+  api.approveWorkoutReview.mockResolvedValueOnce({
+    ...detail,
+    status: "awaiting_member_acceptance",
+  });
   renderPage();
   await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
 
   await user.click(screen.getByRole("button", { name: "ارسال برای تأیید کاربر" }));
 
   expect(api.approveWorkoutReview).toHaveBeenCalledWith("review-1", 1);
-  expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("approved");
+  expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("mine");
+  expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
 });
 
 it("requires an explanation before returning a plan for correction", async () => {

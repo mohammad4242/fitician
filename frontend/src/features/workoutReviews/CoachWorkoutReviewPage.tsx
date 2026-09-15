@@ -293,8 +293,8 @@ export function CoachWorkoutReviewPage() {
       await approveWorkoutReview(selected.id, selected.draft_revision);
       setSelected(null);
       setDraft([]);
-      setView("approved");
-      await loadQueue("approved");
+      setView("mine");
+      await loadQueue("mine");
     } catch (cause) {
       setApiError(cause);
     } finally {
