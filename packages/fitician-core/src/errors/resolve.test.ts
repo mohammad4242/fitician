@@ -95,6 +95,9 @@ describe("resolveAppError", () => {
   it.each([
     ["NUTRITION_PRODUCT_MODE_REQUIRED", "مسیر تغذیه"],
     ["FOOD_CATALOGUE_PRIMARY_NUTRIENTS_REQUIRED", "مواد مغذی اصلی"],
+    ["FOOD_PRICE_REFRESH_INVALID", "تنظیمات به‌روزرسانی قیمت"],
+    ["FOOD_PRICE_RESEARCH_FAILED", "قیمت‌یابی خودکار"],
+    ["MEAL_REFERENCED", "در برنامه‌های موجود استفاده شده"],
     ["PREPARED_RECIPE_INVALID", "دستور تهیه"],
     ["NUTRITION_PROGRAM_UNAVAILABLE", "برنامه غذایی"],
     ["SUPPLEMENT_SAFETY_HARD_BLOCK", "ایمنی"],

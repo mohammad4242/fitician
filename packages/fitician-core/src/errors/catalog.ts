@@ -429,6 +429,14 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("قیمت‌یابی پیکربندی نشده است", "Price research is not configured"),
     text("سرویس قیمت‌یابی برای این قابلیت پیکربندی نشده است.", "Price research is not configured for this feature."),
   ),
+  FOOD_PRICE_REFRESH_INVALID: entry(
+    text("تنظیمات به‌روزرسانی قیمت معتبر نیست", "Invalid price refresh settings"),
+    text("تنظیمات به‌روزرسانی قیمت معتبر نیست.", "The price refresh settings are invalid. Review them and try again."),
+  ),
+  FOOD_PRICE_RESEARCH_FAILED: entry(
+    text("قیمت‌یابی خودکار انجام نشد", "Automatic price research failed"),
+    text("قیمت‌یابی خودکار انجام نشد. دوباره تلاش کنید.", "Automatic price research could not be completed. Try again."),
+  ),
   FOOD_PHOTO_STORAGE_UNAVAILABLE: entry(
     text("ذخیره‌سازی عکس در دسترس نیست", "Photo storage unavailable"),
     text("ذخیره‌سازی عکس غذا فعلاً در دسترس نیست. بعداً دوباره تلاش کنید.", "Food photo storage is temporarily unavailable. Try again later."),
@@ -586,6 +594,10 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("برنامه غذایی فعالی برای این انتخاب وجود ندارد.", "No active nutrition program is available for this selection."),
   ),
   meal_referenced: entry(
+    text("وعده قابل حذف نیست", "Meal cannot be deleted"),
+    text("این وعده در برنامه‌های موجود استفاده شده و قابل حذف نیست.", "This meal is used by existing programs and cannot be deleted."),
+  ),
+  MEAL_REFERENCED: entry(
     text("وعده قابل حذف نیست", "Meal cannot be deleted"),
     text("این وعده در برنامه‌های موجود استفاده شده و قابل حذف نیست.", "This meal is used by existing programs and cannot be deleted."),
   ),
