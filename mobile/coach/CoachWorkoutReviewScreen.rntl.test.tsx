@@ -135,7 +135,6 @@ beforeEach(() => {
     return queryResult([queueItem]);
   });
   mockCreateApi.mockReturnValue({
-    approve: jest.fn<() => Promise<typeof detail>>().mockResolvedValue(detail),
     claim: jest.fn<() => Promise<typeof detail>>().mockResolvedValue(detail),
     get: jest.fn<() => Promise<typeof detail>>().mockResolvedValue(detail),
     getAccess: jest.fn<() => Promise<{ authorized: true }>>().mockResolvedValue({ authorized: true }),
@@ -143,6 +142,7 @@ beforeEach(() => {
     reject: jest.fn<() => Promise<typeof detail>>().mockResolvedValue(detail),
     renew: jest.fn<() => Promise<typeof detail>>().mockResolvedValue(detail),
     saveDraft: jest.fn<() => Promise<typeof detail>>().mockResolvedValue({ ...detail, draft_revision: 2 }),
+    submitForMember: jest.fn<() => Promise<typeof detail>>().mockResolvedValue({ ...detail, status: "awaiting_member_acceptance" }),
   } as never);
 });
 

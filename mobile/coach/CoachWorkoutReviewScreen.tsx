@@ -165,7 +165,7 @@ export function CoachWorkoutReviewScreen() {
     }
   }
 
-  async function decide(decision: "approve" | "reject") {
+  async function decide(decision: "submit" | "reject") {
     if (selected === undefined || readOnly) return;
     if (decision === "reject" && !hasRequiredRejectionExplanation(rejectionExplanation)) {
       setError("برای رد برنامه، توضیح اصلاحات الزامی است.");
@@ -181,11 +181,11 @@ export function CoachWorkoutReviewScreen() {
         setError("نسخهٔ پرونده تغییر کرده است؛ پیش‌نویس جدید را بررسی کن.");
         return;
       }
-      const updated = decision === "approve"
-        ? await api.approve(selected.id, latest.draft_revision)
+      const updated = decision === "submit"
+        ? await api.submitForMember(selected.id, latest.draft_revision)
         : await api.reject(selected.id, latest.draft_revision, rejectionExplanation.trim());
       queryClient.setQueryData(coachKeys.detail(selected.id), updated);
-      setMessage(decision === "approve" ? "برنامه تأیید شد." : "برنامه برای اصلاح برگشت داده شد.");
+      setMessage(decision === "submit" ? "پیشنهاد برای تأیید کاربر ارسال شد." : "برنامه برای اصلاح برگشت داده شد.");
       await queueQuery.refetch();
     } catch (requestError) {
       setError(coachReviewErrorMessage(requestError));
@@ -295,7 +295,7 @@ export function CoachWorkoutReviewScreen() {
                 busy={busy}
                 detail={selected}
                 draft={draft}
-                onApprove={() => void decide("approve")}
+                onSubmit={() => void decide("submit")}
                 onDraftChange={setDraft}
                 onExerciseChange={updateExercise}
                 onExerciseSelection={updateExerciseSelection}
@@ -375,7 +375,7 @@ function CoachReviewDetail({
   busy,
   detail,
   draft,
-  onApprove,
+  onSubmit,
   onDraftChange,
   onExerciseChange,
   onExerciseSelection,
@@ -388,7 +388,7 @@ function CoachReviewDetail({
   readonly busy: boolean;
   readonly detail: CoachWorkoutReviewDetail;
   readonly draft: CoachDraft;
-  readonly onApprove: () => void;
+  readonly onSubmit: () => void;
   readonly onDraftChange: (draft: CoachDraft) => void;
   readonly onExerciseChange: (dayIndex: number, exerciseIndex: number, patch: Partial<CoachDraftExercise>) => void;
   readonly onExerciseSelection: (dayIndex: number, exerciseIndex: number, exerciseId: string) => void;
@@ -425,7 +425,9 @@ function CoachReviewDetail({
       <View style={styles.versionLabels}>
         <Text style={styles.versionLabel}>نسخه اولیه — فقط خواندنی</Text>
         <Text style={styles.versionLabelActive}>
-          {readOnly ? "نسخه تأییدشده" : `پیش‌نویس مربی · نسخه ${faNumber(detail.draft_revision)}`}
+          {readOnly
+            ? detail.status === "awaiting_member_acceptance" ? "پیشنهاد ارسال‌شده برای کاربر" : "نسخه تأییدشده"
+            : `پیش‌نویس مربی · نسخه ${faNumber(detail.draft_revision)}`}
         </Text>
       </View>
 
@@ -484,7 +486,7 @@ function CoachReviewDetail({
           />
           <View style={styles.decisionRow}>
             <Button disabled={busy} label="برگشت برای اصلاح" onPress={onReject} variant="danger" />
-            <Button disabled={busy || draft.days.length === 0} label="تأیید و ارسال برای کاربر" onPress={onApprove} />
+            <Button disabled={busy || draft.days.length === 0} label="ارسال برای تأیید کاربر" onPress={onSubmit} />
           </View>
         </>
       ) : null}

@@ -51,6 +51,8 @@ it("requires a non-blank explanation before a coach can reject a review", () => 
 
 it("keeps approved and offline coach reviews read-only", () => {
   expect(isCoachReviewReadOnly("approved", false)).toBe(true);
+  expect(isCoachReviewReadOnly("awaiting_member_acceptance", false)).toBe(true);
+  expect(isCoachReviewReadOnly("member_changes_requested", false)).toBe(false);
   expect(isCoachReviewReadOnly("claimed", true)).toBe(true);
   expect(isCoachReviewReadOnly("claimed", false)).toBe(false);
 });
@@ -58,6 +60,8 @@ it("keeps approved and offline coach reviews read-only", () => {
 it("uses explicit Persian status labels", () => {
   expect(coachReviewStatusLabel("pending")).toBe("در انتظار بررسی");
   expect(coachReviewStatusLabel("claimed")).toBe("در حال بررسی");
+  expect(coachReviewStatusLabel("awaiting_member_acceptance")).toBe("در انتظار تأیید کاربر");
+  expect(coachReviewStatusLabel("member_changes_requested")).toBe("درخواست اصلاح کاربر");
   expect(coachReviewStatusLabel("approved")).toBe("تأییدشده");
 });
 

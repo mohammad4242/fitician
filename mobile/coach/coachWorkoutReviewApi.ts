@@ -10,7 +10,6 @@ export type AuthenticatedCoachRequest = <TResponse>(
 ) => Promise<TResponse>;
 
 export interface CoachWorkoutReviewApi {
-  approve(reviewId: string, expectedRevision: number): Promise<CoachWorkoutReviewDetail>;
   claim(reviewId: string): Promise<CoachWorkoutReviewDetail>;
   get(reviewId: string): Promise<CoachWorkoutReviewDetail>;
   getAccess(): Promise<components["schemas"]["WorkoutReviewAccessResponse"]>;
@@ -18,6 +17,7 @@ export interface CoachWorkoutReviewApi {
   reject(reviewId: string, expectedRevision: number, explanation: string): Promise<CoachWorkoutReviewDetail>;
   renew(reviewId: string): Promise<CoachWorkoutReviewDetail>;
   saveDraft(reviewId: string, draft: CoachWorkoutReviewDraft): Promise<CoachWorkoutReviewDetail>;
+  submitForMember(reviewId: string, expectedRevision: number): Promise<CoachWorkoutReviewDetail>;
 }
 
 const reviewPath = "/api/v1/coach/workout-reviews";
@@ -34,10 +34,10 @@ export function createCoachWorkoutReviewApi(
   request: AuthenticatedCoachRequest,
 ): CoachWorkoutReviewApi {
   return {
-    approve: (reviewId, expectedRevision) => request<CoachWorkoutReviewDetail>({
+    submitForMember: (reviewId, expectedRevision) => request<CoachWorkoutReviewDetail>({
       body: jsonBody({ expected_revision: expectedRevision }),
       method: "POST",
-      path: `${detailPath(reviewId)}/approve`,
+      path: `${detailPath(reviewId)}/submit`,
     }),
     claim: (reviewId) => request<CoachWorkoutReviewDetail>({
       method: "POST",

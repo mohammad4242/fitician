@@ -19,13 +19,18 @@ export function hasRequiredRejectionExplanation(explanation: string): boolean {
 }
 
 export function isCoachReviewReadOnly(status: CoachReviewStatus, offline: boolean): boolean {
-  return offline || status === "approved" || status === "superseded";
+  return offline
+    || status === "approved"
+    || status === "awaiting_member_acceptance"
+    || status === "superseded";
 }
 
 export function coachReviewStatusLabel(status: CoachReviewStatus): string {
   const labels: Record<CoachReviewStatus, string> = {
     pending: "در انتظار بررسی",
     claimed: "در حال بررسی",
+    awaiting_member_acceptance: "در انتظار تأیید کاربر",
+    member_changes_requested: "درخواست اصلاح کاربر",
     approved: "تأییدشده",
     rejected: "برگشت‌داده‌شده برای اصلاح",
     superseded: "بایگانی‌شده",

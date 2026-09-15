@@ -22,7 +22,7 @@ it("uses the authenticated coach review contract for queue, claim, draft, and de
   await api.claim("review-1");
   await api.renew("review-1");
   await api.saveDraft("review-1", draft);
-  await api.approve("review-1", 3);
+  await api.submitForMember("review-1", 3);
   await api.reject("review-1", 3, "نیاز به اصلاح دارد");
 
   expect(requests).toEqual([
@@ -39,7 +39,7 @@ it("uses the authenticated coach review contract for queue, claim, draft, and de
     {
       body: { expected_revision: 3 },
       method: "POST",
-      path: "/api/v1/coach/workout-reviews/review-1/approve",
+      path: "/api/v1/coach/workout-reviews/review-1/submit",
     },
     {
       body: { expected_revision: 3, explanation: "نیاز به اصلاح دارد" },
