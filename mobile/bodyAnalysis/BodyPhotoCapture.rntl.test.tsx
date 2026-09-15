@@ -146,7 +146,7 @@ test("keeps the selected editor state and reports an upload failure separately",
   await waitFor(() => expect(screen.getByLabelText("ویرایشگر کادر عکس")).toBeTruthy());
   fireEvent.press(screen.getByRole("button", { name: "استفاده از این عکس" }));
 
-  await waitFor(() => expect(screen.getByText("سرویس ثبت عکس موقتاً در دسترس نیست. دوباره تلاش کن.")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy());
   expect(screen.getByLabelText("ویرایشگر کادر عکس")).toBeTruthy();
   expect(onCaptured).toHaveBeenCalledWith(renderedAsset);
 });

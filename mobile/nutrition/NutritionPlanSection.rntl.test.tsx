@@ -651,7 +651,7 @@ test("keeps PDF loading, offline, and error states actionable", async () => {
   renderPlan();
   await settlePdf();
   fireEvent.press(screen.getByRole("button", { name: "دانلود نسخه PDF برنامه غذایی" }));
-  await waitFor(() => expect(screen.getByText("دریافت یا باز کردن PDF انجام نشد؛ دوباره تلاش کن.")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy());
 });
 
 test("keeps shopping loading and retryable error states inside its disclosure", async () => {
@@ -667,7 +667,7 @@ test("keeps shopping loading and retryable error states inside its disclosure", 
   renderPlan();
   await settlePdf();
   fireEvent.press(screen.getAllByRole("button", { name: "لیست خرید دقیق" }).at(-1)!);
-  expect(screen.getByText("لیست خرید برنامه دریافت نشد.")).toBeTruthy();
+  expect(screen.getByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy();
   fireEvent.press(screen.getByRole("button", { name: "تلاش دوباره" }));
   expect(mockShoppingRefetch).toHaveBeenCalled();
 });

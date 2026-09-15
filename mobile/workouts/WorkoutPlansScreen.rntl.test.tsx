@@ -620,7 +620,7 @@ test("keeps the compact PDF tool disabled while downloading and shows a retryabl
 
   mockDownloadPdf.mockRejectedValue(new Error("PDF unavailable"));
   fireEvent.press(button);
-  expect(await screen.findByText("دانلود PDF انجام نشد. دوباره تلاش کن.")).toBeTruthy();
+  expect(await screen.findByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy();
 });
 
 test("shows locked feedback compactly and expands the dynamic duration explanation", () => {
@@ -1077,7 +1077,7 @@ test("failed old-plan deletion keeps the version and shows a retry notice", asyn
 
   fireEvent.press(screen.getByRole("button", { name: "حذف نسخه قدیمی برنامه" }));
 
-  await waitFor(() => expect(screen.getByText("حذف نسخه قدیمی برنامه انجام نشد؛ دوباره تلاش کن.")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy());
   expect(screen.getByRole("button", { name: "حذف نسخه قدیمی برنامه" })).toBeTruthy();
 });
 
