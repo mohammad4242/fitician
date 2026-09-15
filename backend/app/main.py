@@ -161,7 +161,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         expose_headers=[CORRELATION_ID_HEADER],
     )
 
-    @app.middleware("http")  # type: ignore[untyped-decorator]
+    @app.middleware("http")
     async def correlation_id_middleware(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
@@ -179,11 +179,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def request_id(request: Request) -> str:
         return create_request_id(getattr(request.state, "request_id", None))
 
-    @app.exception_handler(HTTPException)  # type: ignore[untyped-decorator]
+    @app.exception_handler(HTTPException)
     async def http_error_handler(request: Request, error: HTTPException) -> JSONResponse:
         return build_error_response(error, request_id(request))
 
-    @app.exception_handler(SQLAlchemyError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(SQLAlchemyError)
     async def database_error_handler(
         request: Request,
         _error: SQLAlchemyError,
@@ -198,7 +198,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request_id(request),
         )
 
-    @app.exception_handler(RequestValidationError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(RequestValidationError)
     async def validation_error_handler(
         request: Request,
         error: RequestValidationError,
@@ -222,7 +222,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             retryable=False,
         )
 
-    @app.exception_handler(EntitlementRequiredError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(EntitlementRequiredError)
     async def entitlement_required_error_handler(
         request: Request,
         error: EntitlementRequiredError,
@@ -238,7 +238,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             retryable=False,
         )
 
-    @app.exception_handler(EntitlementQuotaExceededError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(EntitlementQuotaExceededError)
     async def entitlement_quota_error_handler(
         request: Request,
         error: EntitlementQuotaExceededError,
@@ -256,7 +256,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             retryable=True,
         )
 
-    @app.exception_handler(AccessTermTooShortError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(AccessTermTooShortError)
     async def access_term_too_short_error_handler(
         request: Request,
         error: AccessTermTooShortError,
@@ -272,7 +272,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             retryable=False,
         )
 
-    @app.exception_handler(BillingError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(BillingError)
     async def billing_error_handler(
         request: Request,
         error: BillingError,
@@ -283,7 +283,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request_id(request),
         )
 
-    @app.exception_handler(AccessManagementError)  # type: ignore[untyped-decorator]
+    @app.exception_handler(AccessManagementError)
     async def access_management_error_handler(
         request: Request,
         error: AccessManagementError,
@@ -294,7 +294,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request_id(request),
         )
 
-    @app.exception_handler(Exception)  # type: ignore[untyped-decorator]
+    @app.exception_handler(Exception)
     async def internal_error_handler(request: Request, _error: Exception) -> JSONResponse:
         logger.exception(
             "Unhandled application exception",
