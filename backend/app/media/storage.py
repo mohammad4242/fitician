@@ -298,6 +298,18 @@ class S3ObjectStorage:
             else:
                 self._client.upload_file(str(source), self._bucket, key, ExtraArgs=extra)
         except (BotoCoreError, ClientError, OSError) as error:
+            # S3-compatible providers can commit the object and lose the PUT response.
+            # Accept that outcome only after an authenticated size and SHA-256 check.
+            try:
+                completed = self.head(key)
+            except ObjectStorageError:
+                completed = None
+            if (
+                completed is not None
+                and completed.size_bytes == source.stat().st_size
+                and completed.sha256 == sha256
+            ):
+                return StoredObject(key, sha256, completed.size_bytes, True)
             raise ObjectStorageError("S3 object upload failed") from error
         uploaded = self.head(key)
         if (

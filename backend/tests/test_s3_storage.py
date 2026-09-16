@@ -106,6 +106,12 @@ class FakeS3Client:
         self.objects.pop(Key, None)
 
 
+class CommitThenFailS3Client(FakeS3Client):
+    def put_object(self, *, Bucket: str, Key: str, Body: Any, **kwargs: Any) -> None:
+        super().put_object(Bucket=Bucket, Key=Key, Body=Body, **kwargs)
+        raise OSError("response lost after remote commit")
+
+
 def _storage(client: FakeS3Client) -> S3ObjectStorage:
     return S3ObjectStorage(
         client,
@@ -153,6 +159,22 @@ def test_s3_upload_skips_identical_and_rejects_conflicts(tmp_path: Path) -> None
     client.objects["public/food-catalogue/food.jpg"]["metadata"] = {}
     with pytest.raises(ObjectConflictError, match="differs"):
         storage.put_file("public/food-catalogue/food.jpg", source, sha256=digest)
+
+
+def test_s3_upload_accepts_committed_object_when_put_response_is_lost(tmp_path: Path) -> None:
+    client = CommitThenFailS3Client()
+    storage = _storage(client)
+    source = tmp_path / "food.jpg"
+    source.write_bytes(b"food")
+
+    stored = storage.put_file(
+        "public/food-catalogue/food.jpg",
+        source,
+        sha256=sha256_file(source),
+    )
+
+    assert stored.created is True
+    assert stored.size_bytes == source.stat().st_size
 
 
 def test_s3_missing_and_private_url_are_safe() -> None:
