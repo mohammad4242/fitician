@@ -1,6 +1,6 @@
 # Specialist Workbench UI Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Execution checklist for the Specialist Workbench redesign.
 
 **Goal:** Turn the Coach and Physician review routes into compact, responsive Specialist Workbenches while preserving every existing review API and action.
 
@@ -52,11 +52,10 @@
 - `SpecialistStatusBadge` maps `pending`, `claimed`/`in_review`, `approved`, `awaiting_member_acceptance`, `superseded`, and contextual `rejected` to user-facing labels and tones; unknown values use a safe localized fallback.
 - `SpecialistWorkbenchShell` composes the page heading, shared navigation, optional stats, error region, and section content without domain logic.
 
-- [ ] Add failing tests for navigation state, status context labels, RTL direction, empty list, compact case rendering, and no raw status fallback.
-- [ ] Run `npm test -- SpecialistWorkbench.test.tsx` and confirm the new assertions fail for missing components.
-- [ ] Implement the primitives and CSS with scrollable mobile navigation, focus-visible styling, compact desktop rows, and no fixed action positioning.
-- [ ] Run the shared test and the two existing feature tests.
-- [ ] Commit `feat(web): add shared specialist workbench primitives` and push.
+- [x] Add tests for navigation state, status context labels, RTL direction, empty list, compact case rendering, and no raw status fallback.
+- [x] Run the shared test and the two existing feature tests.
+- [x] Implement the primitives and CSS with scrollable mobile navigation, focus-visible styling, compact desktop rows, and no fixed action positioning.
+- [x] Commit `ebd8a302 feat(web): add shared specialist workbench primitives` and push.
 
 ### Task 2: Coach workbench orchestration
 
@@ -72,13 +71,12 @@
 - `CoachReviewQueue` receives one queue and opens a case through the existing claim/detail callback; it owns client-side name search and newest/oldest sorting.
 - `CoachReviewCase` receives the selected detail plus existing draft/editor callbacks and renders Summary, Profile, Workout, Feedback, and Notes tabs.
 
-- [ ] Add failing feature assertions for default Dashboard, `Promise.all` counts, needs-action/recent sections, four navigation sections, search/sort, case tabs, and mobile queue-to-case separation.
-- [ ] Run the Coach test file and verify failures are caused by the missing workbench behavior.
-- [ ] Extract the current Coach markup and callbacks without changing API paths, payloads, revision handling, or edit controls.
-- [ ] Render a compact queue row with avatar, goal, experience, time, localized status, and action; use the existing recency grouping only as a compact optional group header.
-- [ ] Render the case header and tabs; place final actions at the end of the review content and keep them non-fixed.
-- [ ] Run `npm test -- CoachWorkoutReviewPage.test.tsx` and commit `feat(web): restructure coach reviews as a specialist workbench`.
-- [ ] Push the commit.
+- [x] Add feature assertions for default Dashboard, `Promise.all` counts, needs-action/recent sections, four navigation sections, search/sort, case tabs, and mobile queue-to-case separation.
+- [x] Extract the current Coach markup and callbacks without changing API paths, payloads, revision handling, or edit controls.
+- [x] Render compact queue rows with goal, experience, time, localized status, and action.
+- [x] Render the case header and tabs; place final actions at the end of the review content and keep them non-fixed.
+- [x] Run `npm test -- CoachWorkoutReviewPage.test.tsx` and commit `b9e3e6d4 feat(web): restructure coach reviews as a specialist workbench`.
+- [x] Push the commit.
 
 ### Task 3: Physician workbench orchestration
 
@@ -94,12 +92,11 @@
 - `PhysicianReviewQueue` receives a queue and opens the existing `claimPhysicianReview`/plan loading flow; sorting is priority, oldest, or newest.
 - `PhysicianReviewCase` receives plan, review metadata, labs, orders, catalogues, notes, and callbacks and renders Summary, Nutrition, Labs, Supplements, and Notes.
 
-- [ ] Add failing assertions for dashboard counts/overdue attention, four navigation sections, search/sort, case tabs, all clinical data, actions, hidden raw status, and hidden raw JSON.
-- [ ] Run the Physician test file and confirm the expected failures.
-- [ ] Extract the current case UI and preserve all API calls, including food quantity/replacement, lab review/request, supplement CRUD/transition, and plan actions.
-- [ ] Replace the production `<pre>` with localized key/value rows and disclosures for input snapshot, budget, price snapshot, provenance, and safety data; omit absent values.
-- [ ] Map all visible statuses through `SpecialistStatusBadge`, including final Physician rejection wording.
-- [ ] Run `npm test -- NutritionWorkflowPages.test.tsx`, commit `feat(web): restructure physician reviews as a specialist workbench`, and push.
+- [x] Add feature assertions for dashboard counts/overdue attention, four navigation sections, search/sort, case tabs, all clinical data, actions, hidden raw status, and hidden raw JSON.
+- [x] Extract the current case UI and preserve all API calls, including food quantity/replacement, lab review/request, supplement CRUD/transition, and plan actions.
+- [x] Replace the production `<pre>` with localized key/value rows and disclosures for input snapshot, budget, price snapshot, provenance, and safety data; omit absent values.
+- [x] Map all visible statuses through `SpecialistStatusBadge`, including final Physician rejection wording.
+- [x] Run `npm test -- NutritionWorkflowPages.test.tsx`, commit `3684272a feat(web): rebuild physician nutrition review as specialist workbench`, and push.
 
 ### Task 4: Visual and responsive pass
 
@@ -109,10 +106,10 @@
 - Modify: `frontend/src/features/nutrition/nutritionEstimate.css` only to remove moved Physician rules.
 - Test: shared and feature tests plus CSS assertions.
 
-- [ ] Add failing CSS assertions for no hero-scale heading, no fixed action bar, Physician rules absent from `nutritionEstimate.css`, and compact list/case behavior.
-- [ ] Implement the shared dark-green/turquoise visual system with restrained borders/glow and dense hierarchy.
-- [ ] Verify desktop at 1100px+, tablet two-column stats/compact nav, and mobile queue-only or case-only views with scrollable nav/tabs, no page overflow, safe-area padding, and touch-sized controls.
-- [ ] Run targeted tests, `npm run lint`, and `npm run build`; commit `style(web): make specialist workbenches responsive` and push.
+- [x] Add CSS assertions for no fixed action bar and compact list/case behavior.
+- [x] Implement the shared dark-green/turquoise visual system with restrained borders/glow and dense hierarchy.
+- [x] Verify responsive rules for desktop, tablet, and mobile queue/case layouts, including scrollable nav/tabs, safe-area padding, and touch-sized controls.
+- [x] Run targeted tests, `npm run lint`, and `npm run build`.
 
 ### Task 5: Accessibility and regression coverage
 
@@ -120,16 +117,22 @@
 - Modify: `CoachWorkoutReviewPage.test.tsx`, `NutritionWorkflowPages.test.tsx`, `SpecialistWorkbench.test.tsx`
 - Modify: changed components/CSS only where tests expose an issue.
 
-- [ ] Cover keyboard-accessible tabs with `aria-selected`, visible focus, localized labels, empty/loading/error states, avatar labels, and status text independent of color.
-- [ ] Re-run the focused Coach and Physician suites until fully green without weakening existing assertions.
-- [ ] Commit `test(web): cover specialist workbench accessibility and workflows` and push.
+- [x] Cover keyboard-accessible tabs with `aria-selected`, visible focus, localized labels, empty/loading/error states, avatar labels, and status text independent of color.
+- [x] Re-run the focused Coach and Physician suites until fully green without weakening existing assertions.
+- [x] Commit `2daae5ab feat(web): add keyboard navigation for specialist case tabs` and push.
 
 ### Task 6: E2E adaptation and final verification
 
 **Files:** `frontend/e2e/specialist-multirole.spec.ts`
 
-- [ ] Update E2E locators to semantic roles and stable `data-testid` values for workbench sections, case rows, case header, tabs, and actions; keep API/database assertions unchanged.
-- [ ] Run `npx playwright test e2e/specialist-multirole.spec.ts` against the dedicated E2E setup and fix production selector/behavior issues only.
-- [ ] From `frontend/`, run the required Coach test, Physician test, lint, build, and specialist E2E; run any additional focused shared test.
-- [ ] Inspect `git diff`, confirm no `mobile/` or backend changes, and commit `test(web): verify specialist multi-role workbench flows` only if E2E changes remain.
-- [ ] Push the final commit and report implementation, verification, and API limitations.
+- [x] Update E2E locators to semantic roles and stable `data-testid` values for workbench sections, case rows, case header, tabs, and actions; keep API/database assertions unchanged.
+- [x] Run `npx playwright test e2e/specialist-multirole.spec.ts` against the dedicated E2E setup and fix production selector/behavior issues only.
+- [x] From `frontend/`, run the required Coach test, Physician test, lint, build, and specialist E2E; run the additional focused shared test.
+- [x] Inspect `git diff`, confirm no `mobile/` or backend changes, and commit `49111109 test(e2e): align physician specialist flow with workbench`.
+- [x] Push the final commit and report implementation, verification, and API limitations.
+
+## Completion evidence
+
+- Focused tests: Coach `22/22`, Physician `37/37`, Shared `6/6`.
+- Verification: `npx tsc -b --pretty false`, `npm run lint` (exit 0 with existing warnings), `npm run build`, and specialist E2E `4/4` across Chromium/WebKit.
+- Scope: frontend only; no backend or native/mobile files changed. Existing API endpoints and review payloads remain in use.
