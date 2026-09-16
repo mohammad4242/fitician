@@ -1,7 +1,13 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
+from unittest.mock import Mock
 from uuid import UUID
 
+import pytest
+
+from app.config import Settings
+from app.media.public import PublicMediaReader
+from app.media.storage import ObjectStorage
 from app.nutrition.pdf import (
     _resolve_image_data_uri,
     build_nutrition_plan_html,
@@ -186,16 +192,23 @@ def test_build_nutrition_plan_html_includes_days_and_meals() -> None:
     assert "چربی ۲۶" in html
 
 
-def test_resolve_image_data_uri_handles_none_and_files(tmp_path: Path) -> None:
+def test_resolve_image_data_uri_handles_none_and_public_media(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     assert _resolve_image_data_uri(None) is None
     assert _resolve_image_data_uri("") is None
 
-    # Test valid image file
-    fake_img = tmp_path / "test.png"
+    settings = Settings(app_env="test", media_root=tmp_path / "media")
+    monkeypatch.setattr("app.nutrition.pdf.get_settings", lambda: settings)
+    fake_img = settings.media_root / "meal-catalogue" / "test.png"
+    fake_img.parent.mkdir(parents=True)
     fake_img.write_bytes(b"\x89PNG\r\n\x1a\nfake")
-    data_uri = _resolve_image_data_uri(str(fake_img))
+    data_uri = _resolve_image_data_uri("/media/meal-catalogue/test.png")
     assert data_uri is not None
     assert data_uri.startswith("data:image/png;base64,")
+    assert _resolve_image_data_uri(str(fake_img)) is None
+    assert _resolve_image_data_uri("/media/../private/photo.jpg") is None
 
 
 def test_render_nutrition_plan_pdf_generates_pdf_bytes() -> None:
@@ -203,3 +216,28 @@ def test_render_nutrition_plan_pdf_generates_pdf_bytes() -> None:
     pdf_bytes = render_nutrition_plan_pdf(plan)
     assert isinstance(pdf_bytes, bytes)
     assert pdf_bytes.startswith(b"%PDF-")
+
+
+def test_pdf_html_reuses_one_remote_catalogue_image(tmp_path: Path) -> None:
+    plan = _mock_plan()
+    path = "/media/meal-catalogue/shared.png"
+    for meal in plan.days[0].meals:
+        meal.image_url = path
+    settings = Settings(
+        app_env="test",
+        media_root=tmp_path / "media",
+        media_storage_backend="s3",
+        s3_endpoint="https://s3.example.test",
+        s3_bucket="fitician-media",
+        s3_access_key_id="access",
+        s3_secret_access_key="secret",
+        s3_region="ir-thr-at1",
+        media_public_base_url="https://media.example.test",
+    )
+    storage = Mock(spec=ObjectStorage)
+    storage.read.return_value = b"\x89PNG\r\n\x1a\nimage"
+
+    html = build_nutrition_plan_html(plan, PublicMediaReader(settings, storage))
+
+    assert html.count('src="data:image/png;base64,') == 2
+    storage.read.assert_called_once_with("public/meal-catalogue/shared.png")

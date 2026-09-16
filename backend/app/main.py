@@ -9,7 +9,6 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -54,6 +53,9 @@ from app.errors import (
     error_response,
 )
 from app.exercises.router import router as exercises_router
+from app.media.delivery import deliver_public_media
+from app.media.factory import build_s3_storage
+from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
 from app.nutrition.price_scheduler import scheduler_loop
 from app.nutrition.retention_scheduler import retention_scheduler_loop
@@ -72,10 +74,16 @@ from app.workouts.router import router as workout_plans_router
 logger = logging.getLogger(__name__)
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    public_media_storage: ObjectStorage | None = None,
+) -> FastAPI:
     active_settings = settings or get_settings()
     active_settings.media_root.mkdir(parents=True, exist_ok=True)
     mimetypes.add_type("image/webp", ".webp")
+    if active_settings.media_storage_backend == "s3" and public_media_storage is None:
+        public_media_storage = build_s3_storage(active_settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -335,11 +343,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(admin_ai_settings_router)
     app.include_router(body_analysis_review_router)
     app.include_router(body_analysis_admin_router)
-    app.mount(
-        active_settings.media_public_path,
-        StaticFiles(directory=active_settings.media_root),
-        name="exercise-media",
+
+    @app.api_route(
+        f"{active_settings.media_public_path.rstrip('/')}/{{media_path:path}}",
+        methods=["GET", "HEAD"],
+        name="public-media",
     )
+    async def public_media(media_path: str) -> Response:
+        return await deliver_public_media(
+            media_path,
+            settings=active_settings,
+            storage=public_media_storage,
+        )
+
     return app
 
 

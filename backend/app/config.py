@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     s3_access_key_id: SecretStr | None = Field(default=None, repr=False)
     s3_secret_access_key: SecretStr | None = Field(default=None, repr=False)
     s3_region: str | None = None
+    s3_public_object_acl: Literal["private", "public-read"] = "public-read"
     media_max_bytes: int = 20 * 1024 * 1024
     media_max_video_bytes: int = 64 * 1024 * 1024
     import_media_max_bytes: int = 24 * 1024 * 1024
@@ -230,7 +231,32 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def enforce_private_body_photo_storage(self) -> Self:
         if self.media_storage_backend == "s3":
-            raise ValueError("S3 media storage is not enabled until the storage adapter exists")
+            required = {
+                "S3 endpoint": self.s3_endpoint,
+                "S3 bucket": self.s3_bucket,
+                "S3 access key": (
+                    self.s3_access_key_id.get_secret_value() if self.s3_access_key_id else None
+                ),
+                "S3 secret key": (
+                    self.s3_secret_access_key.get_secret_value()
+                    if self.s3_secret_access_key
+                    else None
+                ),
+                "S3 region": self.s3_region,
+                "public media base URL": self.media_public_base_url,
+            }
+            missing = [name for name, value in required.items() if not value or not value.strip()]
+            if missing:
+                raise ValueError(f"S3 media storage requires {', '.join(missing)}")
+            for name, value in (
+                ("S3 endpoint", self.s3_endpoint),
+                ("public media base URL", self.media_public_base_url),
+            ):
+                parsed = urlsplit(value or "")
+                if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                    raise ValueError(f"{name} must be an HTTP(S) URL")
+                if parsed.username or parsed.password or parsed.query or parsed.fragment:
+                    raise ValueError(f"{name} must not contain credentials, query, or fragment")
         public_root = self.media_root.resolve()
         private_root = self.body_photo_storage_root.resolve()
         if private_root == public_root or private_root.is_relative_to(public_root):

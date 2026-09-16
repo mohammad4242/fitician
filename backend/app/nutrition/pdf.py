@@ -1,11 +1,14 @@
 import base64
 from html import escape
 from mimetypes import guess_type
-from pathlib import Path
 
 from weasyprint import HTML  # type: ignore[import-untyped]
 
 from app.config import get_settings
+from app.media.factory import build_s3_storage
+from app.media.object_keys import MediaObjectKeyError
+from app.media.public import PublicMediaReader
+from app.media.storage import ObjectStorageError
 from app.nutrition.schemas import WeeklyPlanDayResponse, WeeklyPlanMealResponse, WeeklyPlanResponse
 
 _PERSIAN_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
@@ -281,7 +284,16 @@ def _fa_number(val: int | float | str) -> str:
     return s.translate(_PERSIAN_DIGITS)
 
 
-def _resolve_image_data_uri(image_url: str | None) -> str | None:
+def _build_media_reader() -> PublicMediaReader:
+    settings = get_settings()
+    storage = build_s3_storage(settings) if settings.media_storage_backend == "s3" else None
+    return PublicMediaReader(settings, storage)
+
+
+def _resolve_image_data_uri(
+    image_url: str | None,
+    media_reader: PublicMediaReader | None = None,
+) -> str | None:
     if not image_url or not isinstance(image_url, str):
         return None
     image_str = image_url.strip()
@@ -289,38 +301,26 @@ def _resolve_image_data_uri(image_url: str | None) -> str | None:
         return image_str
 
     settings = get_settings()
-    # If it is a relative media path like /media/...
-    rel_path = image_str
-    if rel_path.startswith(settings.media_public_path):
-        rel_path = rel_path[len(settings.media_public_path) :].lstrip("/")
-
-    file_path = (settings.media_root / rel_path).resolve()
-    if file_path.is_file():
-        try:
-            content = file_path.read_bytes()
-            mime, _ = guess_type(file_path.name)
-            mime = mime or "image/jpeg"
-            encoded = base64.b64encode(content).decode("ascii")
-            return f"data:{mime};base64,{encoded}"
-        except OSError:
-            return None
-
-    direct_path = Path(image_str).resolve()
-    if direct_path.is_file():
-        try:
-            content = direct_path.read_bytes()
-            mime, _ = guess_type(direct_path.name)
-            mime = mime or "image/jpeg"
-            encoded = base64.b64encode(content).decode("ascii")
-            return f"data:{mime};base64,{encoded}"
-        except OSError:
-            return None
-
-    return None
+    if not image_str.startswith(f"{settings.media_public_path.rstrip('/')}/"):
+        return None
+    reader = media_reader or _build_media_reader()
+    try:
+        content = reader.read_public_path(image_str)
+    except (MediaObjectKeyError, ObjectStorageError):
+        return None
+    if content is None:
+        return None
+    mime, _ = guess_type(image_str)
+    encoded = base64.b64encode(content).decode("ascii")
+    return f"data:{mime or 'image/jpeg'};base64,{encoded}"
 
 
-def _render_meal_thumb(image_url: str | None, slot_label: str) -> str:
-    data_uri = _resolve_image_data_uri(image_url)
+def _render_meal_thumb(
+    image_url: str | None,
+    slot_label: str,
+    media_reader: PublicMediaReader,
+) -> str:
+    data_uri = _resolve_image_data_uri(image_url, media_reader)
     if data_uri:
         return f'<div class="meal-thumb"><img src="{data_uri}" alt="{escape(slot_label)}"/></div>'
     return (
@@ -328,10 +328,10 @@ def _render_meal_thumb(image_url: str | None, slot_label: str) -> str:
     )
 
 
-def _render_meal(meal: WeeklyPlanMealResponse) -> str:
+def _render_meal(meal: WeeklyPlanMealResponse, media_reader: PublicMediaReader) -> str:
     slot_label = _SLOT_ROLE_FA.get(meal.slot_role, meal.slot_role)
     meal_name = meal.name_fa.strip() if meal.name_fa and meal.name_fa.strip() else slot_label
-    thumb = _render_meal_thumb(meal.image_url, slot_label)
+    thumb = _render_meal_thumb(meal.image_url, slot_label, media_reader)
 
     food_items: list[str] = []
     for food in meal.foods:
@@ -369,7 +369,7 @@ def _render_meal(meal: WeeklyPlanMealResponse) -> str:
     """
 
 
-def _render_day(day: WeeklyPlanDayResponse) -> str:
+def _render_day(day: WeeklyPlanDayResponse, media_reader: PublicMediaReader) -> str:
     weekday_index = day.day_index % len(_WEEKDAY_NAMES_FA)
     weekday_name = _WEEKDAY_NAMES_FA[weekday_index]
     day_num = _fa_number(day.day_index + 1)
@@ -386,7 +386,7 @@ def _render_day(day: WeeklyPlanDayResponse) -> str:
         f'<span class="day-macro-item">چربی: {_fa_number(fat)}g</span>'
     )
 
-    meals_html = "".join(_render_meal(m) for m in day.meals)
+    meals_html = "".join(_render_meal(m, media_reader) for m in day.meals)
 
     date_str = escape(day.plan_date.isoformat())
     return f"""
@@ -402,13 +402,17 @@ def _render_day(day: WeeklyPlanDayResponse) -> str:
     """
 
 
-def build_nutrition_plan_html(plan: WeeklyPlanResponse) -> str:
+def build_nutrition_plan_html(
+    plan: WeeklyPlanResponse,
+    media_reader: PublicMediaReader | None = None,
+) -> str:
     status_label = "تأیید شده توسط پزشک" if plan.physician_approved else "نسخه اولیه برنامه"
     avg_cal = round(
         sum(d.nutrient_totals.get("energy_kcal", 0) for d in plan.days) / max(1, len(plan.days))
     )
 
-    days_html = "".join(_render_day(day) for day in plan.days)
+    reader = media_reader or _build_media_reader()
+    days_html = "".join(_render_day(day, reader) for day in plan.days)
 
     return f"""<!doctype html>
 <html lang="fa" dir="rtl">
@@ -436,7 +440,7 @@ def build_nutrition_plan_html(plan: WeeklyPlanResponse) -> str:
 
 
 def render_nutrition_plan_pdf(plan: WeeklyPlanResponse) -> bytes:
-    html = build_nutrition_plan_html(plan)
+    html = build_nutrition_plan_html(plan, _build_media_reader())
     content = HTML(string=html).write_pdf()
     if not isinstance(content, bytes):
         raise RuntimeError("WeasyPrint did not return PDF bytes")
