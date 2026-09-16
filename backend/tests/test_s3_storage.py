@@ -65,8 +65,10 @@ class FakeS3Client:
         key: str,
         *,
         ExtraArgs: dict[str, Any],
+        Config: Any | None = None,
     ) -> None:
         assert bucket == "fitician-media"
+        del Config
         self.upload_args = ExtraArgs
         self.objects[key] = {
             "body": Path(filename).read_bytes(),
