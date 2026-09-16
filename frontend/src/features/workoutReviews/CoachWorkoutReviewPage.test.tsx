@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -206,6 +206,23 @@ function renderPage() {
   );
 }
 
+async function openCoachSection(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(await screen.findByRole("tab", { name: new RegExp(`^${name}`) }));
+}
+
+async function startCoachReview(user: ReturnType<typeof userEvent.setup>) {
+  await openCoachSection(user, "صف بررسی");
+  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+}
+
+async function openCoachWorkoutTab(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("tab", { name: "برنامه تمرینی" }));
+}
+
+async function openCoachNotesTab(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("tab", { name: "یادداشت مربی" }));
+}
+
 it("keeps final coach actions in normal flow with mobile safe-area spacing", () => {
   const actionRule = coachWorkoutReviewStyles.match(/\.coach-review-actions\s*\{[^}]*\}/)?.[0] ?? "";
 
@@ -215,24 +232,115 @@ it("keeps final coach actions in normal flow with mobile safe-area spacing", () 
   expect(coachWorkoutReviewStyles).not.toMatch(/\.coach-review-actions[^}]*position:\s*(?:sticky|fixed)/);
 });
 
-it("shows the three review queues and claims a pending plan", async () => {
+it("opens on the dashboard and aggregates the three coach queues", async () => {
+  const approvedItem = {
+    ...queueItem,
+    id: "review-approved",
+    status: "approved" as const,
+    approved_at: "2026-09-13T08:00:00Z",
+  };
+  const mineItem = {
+    ...queueItem,
+    id: "review-mine",
+    status: "claimed" as const,
+    claimed_by_user_id: "coach-1",
+  };
+  api.listWorkoutReviews.mockImplementation(async (view) => {
+    if (view === "mine") return [mineItem];
+    if (view === "approved") return [approvedItem];
+    return [queueItem];
+  });
+
+  renderPage();
+
+  expect(await screen.findByRole("tab", { name: /^داشبورد/ })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("heading", { name: "نیاز به اقدام" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "فعالیت اخیر" })).toBeVisible();
+  expect(api.listWorkoutReviews).toHaveBeenCalledWith("pending");
+  expect(api.listWorkoutReviews).toHaveBeenCalledWith("mine");
+  expect(api.listWorkoutReviews).toHaveBeenCalledWith("approved");
+
+  const stats = screen.getByTestId("specialist-stats-grid");
+  expect(stats).toHaveTextContent("در انتظار بررسی");
+  expect(stats).toHaveTextContent("در حال بررسی من");
+  expect(stats).toHaveTextContent("تأییدشده امروز");
+});
+
+it("shows the queue, searches by member, and sorts newest or oldest", async () => {
+  const user = userEvent.setup();
+  const newer = { ...queueItem, id: "review-newer", member_display_name: "سارا", created_at: "2026-09-13T08:00:00Z" };
+  const older = { ...queueItem, id: "review-older", member_display_name: "رضا", created_at: "2026-08-09T08:00:00Z" };
+  api.listWorkoutReviews.mockResolvedValue([older, newer]);
+  renderPage();
+
+  await openCoachSection(user, "صف بررسی");
+
+  const list = screen.getByRole("list");
+  expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+  const search = screen.getByRole("searchbox", { name: "جست‌وجوی نام کاربر" });
+  await user.type(search, "سارا");
+  expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(1);
+  expect(screen.getByText("سارا")).toBeVisible();
+
+  await user.clear(search);
+  await user.selectOptions(screen.getByRole("combobox", { name: "مرتب‌سازی" }), "oldest");
+  const oldestRows = within(screen.getByRole("list")).getAllByRole("listitem");
+  expect(oldestRows[0]).toHaveTextContent("رضا");
+  await user.selectOptions(screen.getByRole("combobox", { name: "مرتب‌سازی" }), "newest");
+  const newestRows = within(screen.getByRole("list")).getAllByRole("listitem");
+  expect(newestRows[0]).toHaveTextContent("سارا");
+});
+
+it("switches between the four workbench sections and shows an empty queue state", async () => {
+  const user = userEvent.setup();
+  api.listWorkoutReviews.mockResolvedValue([]);
+  renderPage();
+
+  await openCoachSection(user, "صف بررسی");
+  expect(screen.getByText("صف بررسی خالی است")).toBeVisible();
+  await openCoachSection(user, "پرونده‌های من");
+  expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
+  await openCoachSection(user, "تاریخچه");
+  expect(screen.getByRole("tab", { name: /^تاریخچه/ })).toHaveAttribute("aria-selected", "true");
+  await openCoachSection(user, "داشبورد");
+  expect(screen.getByRole("heading", { name: "نیاز به اقدام" })).toBeVisible();
+});
+
+it("opens a separate case view with all coach case tabs", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  expect(await screen.findByRole("tab", { name: "در انتظار بررسی" })).toBeVisible();
-  expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toBeVisible();
-  expect(screen.getByRole("tab", { name: "تأییدشده" })).toBeVisible();
+  await startCoachReview(user);
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  expect(screen.getByRole("button", { name: "بازگشت به صف" })).toBeVisible();
+  expect(screen.getByRole("tab", { name: "خلاصه" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("heading", { name: "خلاصهٔ کاربر" })).toBeVisible();
+  for (const tabName of ["پروفایل و محدودیت‌ها", "برنامه تمرینی", "بازخورد و سوابق", "یادداشت مربی"]) {
+    await user.click(screen.getByRole("tab", { name: tabName }));
+    expect(screen.getByRole("tab", { name: tabName })).toHaveAttribute("aria-selected", "true");
+  }
+});
+
+it("shows the workbench navigation and claims a pending plan", async () => {
+  const user = userEvent.setup();
+  renderPage();
+
+  expect(await screen.findByRole("tab", { name: /^داشبورد/ })).toBeVisible();
+  expect(screen.getByRole("tab", { name: /^صف بررسی/ })).toBeVisible();
+  expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toBeVisible();
+  expect(screen.getByRole("tab", { name: /^تاریخچه/ })).toBeVisible();
+
+  await startCoachReview(user);
 
   expect(api.claimWorkoutReview).toHaveBeenCalledWith("review-1");
-  expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
+  await openCoachWorkoutTab(user);
   await user.click(screen.getByText("روز ۱"));
   await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   expect(await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱")).toBeEnabled();
 });
 
-it("groups queue items by sent date and shows the sent timestamp", async () => {
+it("shows compact queue rows with sent timestamps", async () => {
   const user = userEvent.setup();
   api.listWorkoutReviews.mockResolvedValue([
     queueItem,
@@ -245,17 +353,13 @@ it("groups queue items by sent date and shows the sent timestamp", async () => {
   ]);
   renderPage();
 
-  expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "۵ هفته قبل" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "این هفته" }).closest("details")).not.toHaveAttribute("open");
-  await user.click(screen.getByRole("heading", { name: "این هفته" }));
+  await openCoachSection(user, "صف بررسی");
+  expect(await screen.findByRole("heading", { name: "صف بررسی" })).toBeVisible();
   expect(screen.getByText(`ارسال‌شده: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
-
-  const groups = [...document.querySelectorAll<HTMLElement>("[data-queue-group-key]")];
-  expect(groups.map((group) => group.dataset.queueGroupKey)).toEqual(["week-0", "week-5"]);
+  expect(screen.getAllByTestId("coach-review-case-row")).toHaveLength(2);
 });
 
-it("groups approved cases by approval date and shows the approval timestamp", async () => {
+it("shows approval timestamps in history rows", async () => {
   const approvedItem = {
     ...queueItem,
     status: "approved" as const,
@@ -266,35 +370,28 @@ it("groups approved cases by approval date and shows the approval timestamp", as
   const user = userEvent.setup();
   renderPage();
 
-  await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
+  await openCoachSection(user, "تاریخچه");
 
-  expect(await screen.findByRole("heading", { name: "این هفته" })).toBeVisible();
-  await user.click(screen.getByRole("heading", { name: "این هفته" }));
-  expect(screen.getByText(`تاریخ تأیید: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "تاریخچه تأییدها" })).toBeVisible();
+  expect(screen.getByText(`تأییدشده: ${formatTehranDateTime("2026-09-13T08:00:00Z")}`)).toBeVisible();
 });
 
-it("keeps each coach queue group collapsed until its header opens", async () => {
+it("renders each queue case as a compact actionable row", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  const heading = await screen.findByRole("heading", { name: "۵ هفته قبل" });
-  const group = heading.closest("details");
-  const card = screen.getByRole("article");
-  expect(group).not.toBeNull();
-  expect(group).not.toHaveAttribute("open");
-  expect(card).not.toBeVisible();
-
-  await user.click(heading);
-
-  expect(group).toHaveAttribute("open");
-  expect(card).toBeVisible();
+  await openCoachSection(user, "صف بررسی");
+  const row = await screen.findByTestId("coach-review-case-row");
+  expect(row).toHaveAttribute("data-case-id", "review-1");
+  expect(row).toHaveTextContent("محمد");
+  expect(row).toHaveTextContent("در انتظار بررسی");
 });
 
 it("keeps detailed profile sections closed until the coach opens one", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
 
   expect(await screen.findByRole("heading", { name: "خلاصهٔ کاربر" })).toBeVisible();
   expect(screen.getByText("۱۷۸ سانتی‌متر")).toBeVisible();
@@ -322,7 +419,8 @@ it("keeps each workout day closed until the coach opens it", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachWorkoutTab(user);
 
   const daySummary = screen.getByText("روز ۱");
   expect(daySummary.closest("details")).not.toBeNull();
@@ -340,7 +438,8 @@ it("keeps each workout exercise closed until the coach opens it", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachWorkoutTab(user);
   await user.click(screen.getByText("روز ۱"));
 
   const exerciseDisclosure = document.querySelector<HTMLElement>("[data-review-disclosure='coach-workout-exercise']");
@@ -356,7 +455,8 @@ it("keeps each workout exercise closed until the coach opens it", async () => {
 it("lets the coach add, reorder, rename, and remove days and exercises", async () => {
   const user = userEvent.setup();
   renderPage();
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachWorkoutTab(user);
 
   await user.click(screen.getByRole("button", { name: "افزودن روز" }));
   expect(screen.getByText("روز ۲")).toBeVisible();
@@ -382,21 +482,20 @@ it("switches to review detail mode on narrow layouts and returns to the queue", 
   const user = userEvent.setup();
   renderPage();
 
-  const workspace = document.querySelector(".coach-review-workspace");
-  expect(workspace).not.toHaveClass("has-selected");
+  expect(screen.queryByTestId("coach-review-case")).not.toBeInTheDocument();
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
 
-  expect(workspace).toHaveClass("has-selected");
+  expect(screen.getByTestId("coach-review-case")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "بازگشت به صف" }));
-  expect(workspace).not.toHaveClass("has-selected");
+  expect(screen.queryByTestId("coach-review-case")).not.toBeInTheDocument();
 });
 
 it("shows the coach explanation and keeps score details collapsed", async () => {
   const user = userEvent.setup();
   renderPage();
 
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
 
   const rationaleSummary = await screen.findByText("علت انتخاب برنامه");
   expect(rationaleSummary).toBeVisible();
@@ -415,12 +514,14 @@ it("shows the coach explanation and keeps score details collapsed", async () => 
 it("saves permitted edits with the current revision", async () => {
   const user = userEvent.setup();
   renderPage();
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachWorkoutTab(user);
   await user.click(screen.getByText("روز ۱"));
   await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   const sets = await screen.findByLabelText("تعداد ست روز ۱ حرکت ۱");
   await user.clear(sets);
   await user.type(sets, "4");
+  await openCoachNotesTab(user);
   await user.type(screen.getByLabelText("یادداشت مربی برای کاربر"), "فرم را کنترل کن");
 
   await user.click(screen.getByRole("button", { name: "ذخیره پیش‌نویس" }));
@@ -442,13 +543,15 @@ it("saves permitted edits with the current revision", async () => {
 it("allows the coach to edit RIR and sends it with the draft", async () => {
   const user = userEvent.setup();
   renderPage();
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachWorkoutTab(user);
   await user.click(screen.getByText("روز ۱"));
   await user.click(screen.getByText("حرکت ۱ · پرس سینه"));
   const rir = await screen.findByLabelText("RIR روز ۱ حرکت ۱");
 
   await user.clear(rir);
   await user.type(rir, "4");
+  await openCoachNotesTab(user);
   await user.click(screen.getByRole("button", { name: "ذخیره پیش‌نویس" }));
 
   expect(api.saveWorkoutReviewDraft).toHaveBeenCalledWith(
@@ -470,19 +573,21 @@ it("submits the saved coach version and refreshes the mine queue", async () => {
     status: "awaiting_member_acceptance",
   });
   renderPage();
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachNotesTab(user);
 
   await user.click(screen.getByRole("button", { name: "ارسال برای تأیید کاربر" }));
 
   expect(api.approveWorkoutReview).toHaveBeenCalledWith("review-1", 1);
   expect(api.listWorkoutReviews).toHaveBeenLastCalledWith("mine");
-  expect(screen.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
 });
 
 it("requires an explanation before returning a plan for correction", async () => {
   const user = userEvent.setup();
   renderPage();
-  await user.click(await screen.findByRole("button", { name: "شروع بازبینی" }));
+  await startCoachReview(user);
+  await openCoachNotesTab(user);
 
   const reject = screen.getByRole("button", { name: "برگشت برای اصلاح" });
   expect(reject).toBeDisabled();
@@ -510,7 +615,7 @@ it("shows the member correction request when reopening a returned proposal", asy
   });
   renderPage();
 
-  await user.click(await screen.findByRole("tab", { name: "در حال بررسی من" }));
+  await openCoachSection(user, "پرونده‌های من");
   await user.click(await screen.findByRole("button", { name: "مشاهده پرونده" }));
 
   expect(await screen.findByText("درخواست اصلاح کاربر", { selector: ".coach-review-member-feedback strong" })).toBeVisible();
@@ -528,10 +633,10 @@ it("hides editing actions for an approved read-only review", async () => {
   api.getWorkoutReview.mockResolvedValue({ ...detail, status: "approved", approved_at: approvedItem.approved_at });
   renderPage();
 
-  await user.click(await screen.findByRole("tab", { name: "تأییدشده" }));
-  await user.click(await screen.findByRole("heading", { name: "این هفته" }));
+  await openCoachSection(user, "تاریخچه");
   await user.click(screen.getByRole("button", { name: "مشاهده پرونده" }));
 
+  await openCoachWorkoutTab(user);
   expect(await screen.findByText("نسخه تأییدشده")).toBeVisible();
   expect(screen.queryByRole("button", { name: "ذخیره پیش‌نویس" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "برگشت برای اصلاح" })).not.toBeInTheDocument();
