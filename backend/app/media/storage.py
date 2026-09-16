@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 from urllib.parse import quote
 
+from boto3.s3.transfer import TransferConfig  # type: ignore[import-untyped]
 from botocore.exceptions import BotoCoreError, ClientError  # type: ignore[import-untyped]
 
 
@@ -229,7 +230,14 @@ class LocalObjectStorage:
 class S3ObjectStorage:
     """S3-compatible storage with SHA-256 metadata and conflict protection."""
 
-    _SINGLE_PUT_MAX_BYTES = 64 * 1024 * 1024
+    _SINGLE_PUT_MAX_BYTES = 8 * 1024 * 1024
+
+    _TRANSFER_CONFIG = TransferConfig(
+        multipart_threshold=_SINGLE_PUT_MAX_BYTES,
+        multipart_chunksize=8 * 1024 * 1024,
+        max_concurrency=4,
+        use_threads=True,
+    )
 
     def __init__(
         self,
@@ -296,7 +304,13 @@ class S3ObjectStorage:
                         **extra,
                     )
             else:
-                self._client.upload_file(str(source), self._bucket, key, ExtraArgs=extra)
+                self._client.upload_file(
+                    str(source),
+                    self._bucket,
+                    key,
+                    ExtraArgs=extra,
+                    Config=self._TRANSFER_CONFIG,
+                )
         except (BotoCoreError, ClientError, OSError) as error:
             raise ObjectStorageError("S3 object upload failed") from error
         uploaded = self.head(key)
