@@ -176,12 +176,12 @@ test.describe("real specialist multi-role flows", () => {
       if (!review) throw new Error("Generated workout review was not in the coach queue");
 
       await coach.page.goto("/coach/workouts", { waitUntil: "networkidle" });
-      const caseCard = coach.page.locator(".coach-review-cases article").filter({ hasText: member.displayName });
+      await coach.page.getByRole("tab", { name: /^صف بررسی/ }).click();
+      const caseCard = coach.page.getByTestId("coach-review-case-row").filter({ hasText: member.displayName });
       await expect(caseCard).toHaveCount(1);
-      await caseCard.locator("xpath=ancestor::details").locator("[data-queue-group-header='true']").click();
       await expect(caseCard).toBeVisible();
       await caseCard.getByRole("button", { name: /شروع بازبینی|Start review/ }).click();
-      await expect(coach.page.locator(".coach-review-case-header")).toContainText(member.displayName);
+      await expect(coach.page.getByTestId("coach-review-case-header")).toContainText(member.displayName);
 
       const claimed = await apiJson<WorkoutReviewDetail>(
         coach.context,
@@ -203,13 +203,15 @@ test.describe("real specialist multi-role flows", () => {
       );
       expect(secondDetail.ok()).toBe(false);
 
-      await coach.page.locator(".coach-review-day").first().locator("summary").first().click();
-      await coach.page.locator(".coach-review-exercise").first().locator("summary").first().click();
+      await coach.page.getByRole("tab", { name: "برنامه تمرینی" }).click();
+      await coach.page.locator("[data-review-disclosure='coach-workout-day']").first().locator("summary").first().click();
+      await coach.page.locator("[data-review-disclosure='coach-workout-exercise']").first().locator("summary").first().click();
       const rirInput = coach.page.getByLabel(/RIR روز/).first();
       const initialRir = Number(await rirInput.inputValue());
       const changedRir = initialRir === 0 ? 1 : initialRir - 1;
       await rirInput.fill(String(changedRir));
       await expect(rirInput).toHaveValue(String(changedRir));
+      await coach.page.getByRole("tab", { name: "یادداشت مربی" }).click();
       await coach.page.getByLabel("یادداشت مربی برای کاربر").fill("برای شروع ایمن‌تر تنظیم شد");
       const draftResponsePromise = coach.page.waitForResponse((response) => (
         response.url().includes(`/api/v1/coach/workout-reviews/${review.id}/draft`)
@@ -233,7 +235,7 @@ test.describe("real specialist multi-role flows", () => {
       await expect.poll(async () => (
         await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
       ).status).toBe("awaiting_member_acceptance");
-      await expect(coach.page.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+      await expect(coach.page.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
 
       const submitted = await apiJson<WorkoutReviewDetail>(
         coach.context,
@@ -288,21 +290,19 @@ test.describe("real specialist multi-role flows", () => {
       });
 
       await coach.page.reload({ waitUntil: "networkidle" });
-      await coach.page.getByRole("tab", { name: "در حال بررسی من" }).click();
-      const returnedCase = coach.page.locator(".coach-review-cases article").filter({ hasText: member.displayName });
+      await coach.page.getByRole("tab", { name: /^پرونده‌های من/ }).click();
+      const returnedCase = coach.page.getByTestId("coach-review-case-row").filter({ hasText: member.displayName });
       await expect(returnedCase).toHaveCount(1);
-      const returnedGroup = returnedCase.locator("xpath=ancestor::details");
-      if ((await returnedGroup.getAttribute("open")) === null) {
-        await returnedGroup.locator("[data-queue-group-header='true']").click();
-      }
       await returnedCase.getByRole("button", { name: "مشاهده پرونده" }).click();
-      await expect(coach.page.locator(".coach-review-member-feedback")).toContainText("حرکت روز اول را ساده‌تر می‌خواهم");
+      await expect(coach.page.getByTestId("coach-review-case")).toContainText("حرکت روز اول را ساده‌تر می‌خواهم");
 
-      await coach.page.locator(".coach-review-day").first().locator("summary").first().click();
-      await coach.page.locator(".coach-review-exercise").first().locator("summary").first().click();
+      await coach.page.getByRole("tab", { name: "برنامه تمرینی" }).click();
+      await coach.page.locator("[data-review-disclosure='coach-workout-day']").first().locator("summary").first().click();
+      await coach.page.locator("[data-review-disclosure='coach-workout-exercise']").first().locator("summary").first().click();
       const resubmissionRir = changedRir === 0 ? 1 : changedRir - 1;
       const resubmissionRirInput = coach.page.getByLabel(/RIR روز/).first();
       await resubmissionRirInput.fill(String(resubmissionRir));
+      await coach.page.getByRole("tab", { name: "یادداشت مربی" }).click();
       await coach.page.getByLabel("یادداشت مربی برای کاربر").fill("نسخه اصلاح‌شده برای شروع ایمن‌تر تنظیم شد");
       await coach.page.getByRole("button", { name: "ذخیره پیش‌نویس" }).click();
       await expect.poll(async () => (
@@ -317,7 +317,7 @@ test.describe("real specialist multi-role flows", () => {
       await expect.poll(async () => (
         await apiJson<WorkoutReviewDetail>(coach.context, `/api/v1/coach/workout-reviews/${review.id}`)
       ).status).toBe("awaiting_member_acceptance");
-      await expect(coach.page.getByRole("tab", { name: "در حال بررسی من" })).toHaveAttribute("aria-selected", "true");
+      await expect(coach.page.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
 
       const resubmitted = await apiJson<WorkoutReviewDetail>(
         coach.context,
