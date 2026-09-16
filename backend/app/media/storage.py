@@ -285,7 +285,13 @@ class S3ObjectStorage:
             raise ObjectStorageError("Object source SHA-256 does not match")
         current = self.head(key)
         if current is not None:
-            if current.size_bytes != source.stat().st_size or current.sha256 != sha256:
+            remote_sha256 = current.sha256
+            if current.size_bytes == source.stat().st_size and remote_sha256 is None:
+                digest = hashlib.sha256()
+                for chunk in self.iter_bytes(key):
+                    digest.update(chunk)
+                remote_sha256 = digest.hexdigest()
+            if current.size_bytes != source.stat().st_size or remote_sha256 != sha256:
                 raise ObjectConflictError(f"Remote object differs or lacks SHA-256 metadata: {key}")
             return StoredObject(key, sha256, current.size_bytes, False)
         extra: dict[str, Any] = {"Metadata": {"sha256": sha256}}

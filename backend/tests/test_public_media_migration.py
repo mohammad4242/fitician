@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from app.media.public_migration import (
     upload_manifest,
     verify_manifest,
 )
-from app.media.storage import LocalObjectStorage, ObjectStorageError
+from app.media.storage import LocalObjectStorage, ObjectMetadata, ObjectStorageError
 
 
 def _media_tree(root: Path) -> None:
@@ -110,3 +111,21 @@ def test_upload_refuses_remote_conflict_or_unexpected_key(tmp_path: Path) -> Non
             state_path=tmp_path / "state.json",
             resume=False,
         )
+
+
+def test_plan_hashes_same_size_object_without_sha_metadata(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    _media_tree(media_root)
+    manifest = build_manifest(media_root, ("food-catalogue",))
+    bucket = tmp_path / "bucket"
+    LocalObjectStorage(bucket).put("public/food-catalogue/food.jpg", b"food")
+
+    class MetadataLessStorage(LocalObjectStorage):
+        def head(self, key: str) -> ObjectMetadata | None:
+            metadata = super().head(key)
+            return replace(metadata, sha256=None) if metadata is not None else None
+
+    storage = MetadataLessStorage(bucket)
+    plan = plan_remote(storage, manifest, workers=1)
+    assert plan.identical_objects == 1
+    assert plan.conflicting_objects == ()

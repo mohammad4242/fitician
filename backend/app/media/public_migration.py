@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import mimetypes
 import os
@@ -220,11 +221,21 @@ def plan_remote(
         for future in as_completed(futures):
             record = futures[future]
             remote = future.result()
-            if (
+            matches = (
                 remote is not None
                 and remote.size_bytes == record.size_bytes
                 and remote.sha256 == record.sha256
+            )
+            if (
+                remote is not None
+                and remote.size_bytes == record.size_bytes
+                and remote.sha256 is None
             ):
+                digest = hashlib.sha256()
+                for chunk in storage.iter_bytes(record.object_key):
+                    digest.update(chunk)
+                matches = digest.hexdigest() == record.sha256
+            if matches:
                 identical_objects += 1
                 identical_keys.append(record.object_key)
             else:

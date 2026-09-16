@@ -159,8 +159,14 @@ def test_s3_upload_skips_identical_and_rejects_conflicts(tmp_path: Path) -> None
     assert storage.put_file("public/food-catalogue/food.jpg", source, sha256=digest).created
     assert not storage.put_file("public/food-catalogue/food.jpg", source, sha256=digest).created
     client.objects["public/food-catalogue/food.jpg"]["metadata"] = {}
+    assert not storage.put_file("public/food-catalogue/food.jpg", source, sha256=digest).created
+    source.write_bytes(b"FOOD")
     with pytest.raises(ObjectConflictError, match="differs"):
-        storage.put_file("public/food-catalogue/food.jpg", source, sha256=digest)
+        storage.put_file(
+            "public/food-catalogue/food.jpg",
+            source,
+            sha256=sha256_file(source),
+        )
 
 
 def test_s3_upload_accepts_committed_object_when_put_response_is_lost(tmp_path: Path) -> None:
