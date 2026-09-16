@@ -2188,7 +2188,7 @@ def _food_photo_error(error: FoodPhotoError) -> HTTPException:
     )
     if error.code in {"INVALID_FOOD_PHOTO", "FOOD_PHOTO_TOO_LARGE"}:
         error_status = status.HTTP_422_UNPROCESSABLE_CONTENT
-    if error.code == "FOOD_PHOTO_PROVIDER_UNAVAILABLE":
+    if error.code in {"FOOD_PHOTO_PROVIDER_UNAVAILABLE", "FOOD_PHOTO_STORAGE_UNAVAILABLE"}:
         error_status = status.HTTP_503_SERVICE_UNAVAILABLE
     return HTTPException(status_code=error_status, detail={"code": error.code})
 

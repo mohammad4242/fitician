@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     auth_mobile_refresh_ip_limit: int = Field(default=60, ge=1, le=1000)
     media_root: Path = Path("var/media")
     media_public_path: str = "/media"
+    media_storage_backend: Literal["local", "s3"] = "local"
+    media_public_base_url: str | None = None
+    s3_endpoint: str | None = None
+    s3_bucket: str | None = None
+    s3_access_key_id: SecretStr | None = Field(default=None, repr=False)
+    s3_secret_access_key: SecretStr | None = Field(default=None, repr=False)
+    s3_region: str | None = None
     media_max_bytes: int = 20 * 1024 * 1024
     media_max_video_bytes: int = 64 * 1024 * 1024
     import_media_max_bytes: int = 24 * 1024 * 1024
@@ -222,6 +229,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def enforce_private_body_photo_storage(self) -> Self:
+        if self.media_storage_backend == "s3":
+            raise ValueError("S3 media storage is not enabled until the storage adapter exists")
         public_root = self.media_root.resolve()
         private_root = self.body_photo_storage_root.resolve()
         if private_root == public_root or private_root.is_relative_to(public_root):

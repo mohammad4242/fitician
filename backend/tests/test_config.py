@@ -56,6 +56,15 @@ def test_delivery_credentials_are_redacted() -> None:
     assert "otp-secret" not in rendered
 
 
+def test_s3_configuration_is_dormant_and_secrets_are_redacted() -> None:
+    settings = Settings(app_env="test", s3_access_key_id="access", s3_secret_access_key="secret")
+    assert settings.media_storage_backend == "local"
+    assert "secret" not in repr(settings)
+    assert "s3_access_key_id" not in repr(settings)
+    with pytest.raises(ValidationError, match="S3 media storage is not enabled"):
+        Settings(app_env="test", media_storage_backend="s3")
+
+
 def test_production_requires_google_identity_configuration() -> None:
     with pytest.raises(ValidationError, match="Google client ID"):
         Settings(

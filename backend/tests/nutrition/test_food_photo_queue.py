@@ -137,6 +137,28 @@ def _run_worker_once(db: Session, settings: Settings) -> int:
     return asyncio.run(execute())
 
 
+def test_missing_private_food_photo_returns_explicit_service_error(
+    client: TestClient,
+    db: Session,
+    test_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    estimate_id = _enqueue_photo(client, db, test_settings, tmp_path)
+    row = db.get(NutritionFoodPhotoEstimate, estimate_id)
+    assert row is not None
+    row.storage_key = "ff/missing-photo.jpg"
+    db.commit()
+
+    grant = client.post(
+        f"/api/v1/nutrition/tracking/photo-estimates/{estimate_id}/access-grant",
+        headers=ORIGIN,
+    )
+    assert grant.status_code == 200
+    response = client.get(grant.json()["access_url"])
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "FOOD_PHOTO_STORAGE_UNAVAILABLE"
+
+
 def test_food_photo_upload_commits_a_queued_job_without_running_ai(
     client: TestClient,
     db: Session,
@@ -356,10 +378,13 @@ def test_deleting_a_photo_removes_its_pending_job(
     )
 
     assert deleted.status_code == 204
-    assert db.scalar(
-        select(NutritionFoodPhotoAnalysisJob).where(
-            NutritionFoodPhotoAnalysisJob.estimate_id == estimate_id
+    assert (
+        db.scalar(
+            select(NutritionFoodPhotoAnalysisJob).where(
+                NutritionFoodPhotoAnalysisJob.estimate_id == estimate_id
+            )
         )
-    ) is None
+        is None
+    )
     estimate = db.get(NutritionFoodPhotoEstimate, estimate_id)
     assert estimate is not None and estimate.status == "deleted"

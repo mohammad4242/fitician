@@ -1,9 +1,9 @@
-import maleFrontAsset from "../../../../bodyanalysis/photo_2026-09-02_13-27-40.jpg";
-import maleSideAsset from "../../../../bodyanalysis/photo_2026-09-02_13-27-41 (2).jpg";
-import maleBackAsset from "../../../../bodyanalysis/photo_2026-09-02_13-27-39.jpg";
-import femaleFrontAsset from "../../../../bodyanalysis/photo_2026-09-02_13-54-09.jpg";
-import femaleSideAsset from "../../../../bodyanalysis/photo_2026-09-02_13-27-41.jpg";
-import femaleBackAsset from "../../../../bodyanalysis/photo_2026-09-02_13-27-42.jpg";
+import maleFrontAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-27-40.jpg";
+import maleSideAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-27-41 (2).jpg";
+import maleBackAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-27-39.jpg";
+import femaleFrontAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-54-09.jpg";
+import femaleSideAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-27-41.jpg";
+import femaleBackAsset from "../../assets/body-analysis/ghost-guides/photo_2026-09-02_13-27-42.jpg";
 
 import type { Sex } from "../profile/types";
 import type { BodyPhotoView } from "./types";

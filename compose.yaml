@@ -93,6 +93,7 @@ services:
       - fitician_exercise_media:/var/lib/fitician/media-legacy:ro
       - ./backend/var/media-migration:/app/var/media-migration
       - ./backend/var/media-migration-source:/var/lib/fitician/media-migration-source:ro
+      - ./frontend/public/exercises:/var/lib/fitician/seed-exercises:ro
     depends_on:
       db:
         condition: service_healthy
@@ -101,7 +102,7 @@ services:
     command:
       - sh
       - -c
-      - alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - alembic upgrade head && python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   food-photo-worker:
     build:
