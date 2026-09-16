@@ -7,6 +7,7 @@ import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
 import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard";
 import {
   SpecialistCaseHeader,
+  SpecialistCaseTabs,
   SpecialistStatusBadge,
 } from "../../shared/specialistWorkbench";
 import type { SupplementCatalogueItem, SupplementOrder } from "./api";
@@ -121,22 +122,16 @@ export function PhysicianReviewCase({
         />
       </div>
 
-      <nav aria-label={fa ? "بخش‌های پرونده تغذیه" : "Nutrition case sections"} className="physician-case-tabs" role="tablist">
-        {tabs.map((tab) => (
-          <button
-            aria-controls={`physician-case-panel-${tab.id}`}
-            aria-selected={activeTab === tab.id}
-            id={`physician-case-tab-${tab.id}`}
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            role="tab"
-            tabIndex={activeTab === tab.id ? 0 : -1}
-            type="button"
-          >
-            {tabTitle(tab.id)}
-          </button>
-        ))}
-      </nav>
+      <SpecialistCaseTabs
+        activeTab={activeTab}
+        ariaLabel={fa ? "بخش‌های پرونده تغذیه" : "Nutrition case sections"}
+        className="physician-case-tabs"
+        fa={fa}
+        onChange={setActiveTab}
+        panelIdPrefix="physician-case-panel"
+        tabIdPrefix="physician-case-tab"
+        tabs={tabs.map((tab) => ({ id: tab.id, label: tabTitle(tab.id) }))}
+      />
 
       <section
         aria-labelledby={`physician-case-tab-${activeTab}`}

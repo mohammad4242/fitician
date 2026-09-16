@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import {
   SpecialistCaseList,
+  SpecialistCaseTabs,
   SpecialistStatusBadge,
   SpecialistWorkbenchNav,
   SpecialistWorkbenchShell,
@@ -122,4 +123,39 @@ it("exports the navigation primitive as a shared component", () => {
   );
 
   expect(screen.getByRole("tab", { name: "History" })).toHaveAttribute("aria-selected", "true");
+});
+
+it("supports arrow-key navigation for case tabs", async () => {
+  const user = userEvent.setup();
+
+  function Harness() {
+    const [activeTab, setActiveTab] = useState("summary");
+    return (
+      <>
+        <SpecialistCaseTabs
+          activeTab={activeTab}
+          ariaLabel="Case sections"
+          fa={false}
+          onChange={setActiveTab}
+          panelIdPrefix="case-panel"
+          tabIdPrefix="case-tab"
+          tabs={[
+            { id: "summary", label: "Summary" },
+            { id: "plan", label: "Plan" },
+            { id: "notes", label: "Notes" },
+          ]}
+        />
+        <p>{activeTab}</p>
+      </>
+    );
+  }
+
+  render(<Harness />);
+  const summaryTab = screen.getByRole("tab", { name: "Summary" });
+  summaryTab.focus();
+  await user.keyboard("{ArrowRight}");
+
+  expect(screen.getByRole("tab", { name: "Plan" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByText("plan")).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Plan" })).toHaveFocus();
 });

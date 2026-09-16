@@ -5,6 +5,7 @@ import { ReviewProfileSummaryCard } from "../../shared/ReviewProfileSummaryCard"
 import { ProfilePhotoAvatar } from "../profile/ProfilePhoto";
 import {
   SpecialistCaseHeader,
+  SpecialistCaseTabs,
   SpecialistStatusBadge,
 } from "../../shared/specialistWorkbench";
 import type {
@@ -93,22 +94,16 @@ export function CoachReviewCase({
         />
       </div>
 
-      <nav aria-label={fa ? "بخش‌های پرونده تمرینی" : "Workout case sections"} className="coach-review-case-tabs" role="tablist">
-        {tabs.map((tab) => (
-          <button
-            aria-controls={`coach-case-panel-${tab.id}`}
-            aria-selected={activeTab === tab.id}
-            id={`coach-case-tab-${tab.id}`}
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            role="tab"
-            tabIndex={activeTab === tab.id ? 0 : -1}
-            type="button"
-          >
-            {fa ? tab.fa : tab.en}
-          </button>
-        ))}
-      </nav>
+      <SpecialistCaseTabs
+        activeTab={activeTab}
+        ariaLabel={fa ? "بخش‌های پرونده تمرینی" : "Workout case sections"}
+        className="coach-review-case-tabs"
+        fa={fa}
+        onChange={setActiveTab}
+        panelIdPrefix="coach-case-panel"
+        tabIdPrefix="coach-case-tab"
+        tabs={tabs.map((tab) => ({ id: tab.id, label: fa ? tab.fa : tab.en }))}
+      />
 
       <section
         aria-labelledby={`coach-case-tab-${activeTab}`}
@@ -483,4 +478,3 @@ function humanize(value: string | null, fa: boolean) {
 function faNumber(value: number) {
   return value.toLocaleString("fa-IR", { useGrouping: false });
 }
-
