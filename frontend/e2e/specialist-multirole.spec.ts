@@ -421,15 +421,12 @@ test.describe("real specialist multi-role flows", () => {
       if (!patientReview || !labReview) throw new Error("Generated nutrition reviews were not in the physician queue");
 
       await physician.page.goto("/physician/nutrition", { waitUntil: "networkidle" });
-      const patientCard = physician.page.locator(".physician-review-cases article").filter({ hasText: patient.displayName });
+      await physician.page.getByRole("tab", { name: /^صف بررسی/ }).click();
+      const patientCard = physician.page.getByTestId("physician-review-case-row").filter({ hasText: patient.displayName });
       await expect(patientCard).toHaveCount(1);
-      const patientGroup = patientCard.locator("xpath=ancestor::details");
-      if ((await patientGroup.getAttribute("open")) === null) {
-        await patientGroup.locator("[data-queue-group-header='true']").click();
-      }
       await expect(patientCard).toBeVisible();
       await patientCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
-      await expect(physician.page.locator(".physician-review-case-header")).toBeVisible();
+      await expect(physician.page.getByTestId("physician-review-case-header")).toBeVisible();
 
       const claimedReviews = await apiJson<NutritionReview[]>(
         physician.context,
@@ -483,8 +480,10 @@ test.describe("real specialist multi-role flows", () => {
 
       await physician.page.getByRole("tab", { name: "یادداشت‌ها" }).click();
       await physician.page.getByLabel("یادداشت قابل مشاهده برای کاربر").fill("نسخه با پایش منظم ادامه یابد");
-      await physician.page.getByRole("tab", { name: "بررسی برنامه" }).click();
-      await physician.page.getByRole("button", { name: "تأیید این نسخه" }).click();
+      await physician.page.getByRole("tab", { name: "مکمل‌ها" }).click();
+      await expect(physician.page.getByRole("heading", { name: "دستورهای مکمل" })).toBeVisible();
+      await physician.page.getByRole("tab", { name: "برنامه تغذیه" }).click();
+      await physician.page.getByRole("button", { name: "تأیید نسخه" }).click();
 
       await expect.poll(async () => (
         await apiJson<NutritionReview[]>(physician.context, "/api/v1/nutrition/physician/reviews?view=approved")
@@ -512,12 +511,9 @@ test.describe("real specialist multi-role flows", () => {
       await patient.page.goto("/nutrition-estimate", { waitUntil: "networkidle" });
       await expect(patient.page.locator(".weekly-plan__notice")).toContainText("نسخه با پایش منظم ادامه یابد");
 
-      const labCard = physician.page.locator(".physician-review-cases article").filter({ hasText: labPatient.displayName });
+      await physician.page.getByRole("button", { name: "بازگشت به صف" }).click();
+      const labCard = physician.page.getByTestId("physician-review-case-row").filter({ hasText: labPatient.displayName });
       await expect(labCard).toHaveCount(1);
-      const labGroup = labCard.locator("xpath=ancestor::details");
-      if ((await labGroup.getAttribute("open")) === null) {
-        await labGroup.locator("[data-queue-group-header='true']").click();
-      }
       await expect(labCard).toBeVisible();
       await labCard.getByRole("button", { name: /شروع بررسی|Claim and view revision/ }).click();
       await physician.page.getByRole("tab", { name: "آزمایش‌ها" }).click();
