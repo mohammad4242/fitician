@@ -425,8 +425,10 @@ it("lets a physician claim an exact revision and choose replacements from the ca
   vi.mocked(api.replacePhysicianFood).mockResolvedValue(physicianPlan);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
   await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
-  expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
+  expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: "Plan review" }));
   expect(screen.getByText("Nutrient validation")).toBeInTheDocument();
   await user.click(screen.getByText(/Day 1/));
   await user.click(screen.getByText("Lunch"));
@@ -449,6 +451,7 @@ it("presents physician lab request failures through the shared resolver", async 
   ));
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
   await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
   await user.click(await screen.findByRole("tab", { name: "Laboratory review" }));
   await user.type(screen.getByLabelText("Requested tests"), "CBC");
@@ -457,6 +460,106 @@ it("presents physician lab request failures through the shared resolver", async 
   const alert = await screen.findByRole("alert");
   expect(alert).toHaveTextContent("This review is no longer in an actionable state");
   expect(alert).not.toHaveTextContent("private workflow detail");
+});
+
+it("opens the physician workbench dashboard with aggregate queue counts and overdue attention", async () => {
+  const pending: api.PhysicianReviewQueueItem[] = [
+    { review_id: "pending-old", plan_id: "pending-old-plan", user_id: "pending-old-user", member_display_name: "Old Patient", status: "pending", priority: 1, physician_user_id: null, requested_at: new Date(Date.now() - 3 * 86400000).toISOString(), target_review_by: new Date(Date.now() - 86400000).toISOString(), reviewed_at: null, overdue: true },
+    { review_id: "pending-new", plan_id: "pending-new-plan", user_id: "pending-new-user", member_display_name: "New Patient", status: "pending", priority: 2, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
+  ];
+  const claimed: api.PhysicianReviewQueueItem[] = [
+    { review_id: "claimed-1", plan_id: "claimed-plan", user_id: "claimed-user", member_display_name: "Claimed Patient", status: "in_review", priority: 3, physician_user_id: "physician-1", requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
+  ];
+  const approved: api.PhysicianReviewQueueItem[] = [
+    { review_id: "approved-1", plan_id: "approved-plan", user_id: "approved-user", member_display_name: "Approved Patient", status: "approved", priority: 1, physician_user_id: "physician-1", requested_at: today, target_review_by: null, reviewed_at: today, overdue: false },
+  ];
+  vi.mocked(api.listPhysicianReviews).mockImplementation(async (view = "pending") => ({ pending, claimed, approved })[view]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  expect(await screen.findByTestId("physician-dashboard")).toBeInTheDocument();
+  expect(screen.getAllByText("Waiting for review").length).toBeGreaterThan(0);
+  expect(screen.getByText("In my review")).toBeInTheDocument();
+  expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
+  expect(screen.getByText("Approved today")).toBeInTheDocument();
+  expect(screen.getByText("Old Patient")).toBeInTheDocument();
+  expect(screen.getByText("Overdue")).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: /^Review queue/ })).toHaveTextContent("2");
+  expect(screen.getByRole("tab", { name: /^My cases/ })).toHaveTextContent("1");
+  expect(screen.getByRole("tab", { name: /^History/ })).toHaveTextContent("1");
+});
+
+it("switches physician sections and filters and sorts the compact queue client-side", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockImplementation(async (view = "pending") => view === "pending" ? [
+    { review_id: "new", plan_id: "new-plan", user_id: "new-user", member_display_name: "New Patient", status: "pending", priority: 1, physician_user_id: null, requested_at: new Date().toISOString(), target_review_by: null, reviewed_at: null, overdue: false },
+    { review_id: "old", plan_id: "old-plan", user_id: "old-user", member_display_name: "Old Patient", status: "pending", priority: 3, physician_user_id: null, requested_at: new Date(Date.now() - 86400000).toISOString(), target_review_by: null, reviewed_at: null, overdue: false },
+  ] : []);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  const rows = () => screen.getAllByTestId("physician-review-case-row");
+  expect(rows()[0]).toHaveTextContent("Old Patient");
+  await user.selectOptions(screen.getByLabelText("Sort cases"), "newest");
+  expect(rows()[0]).toHaveTextContent("New Patient");
+  await user.selectOptions(screen.getByLabelText("Sort cases"), "oldest");
+  expect(rows()[0]).toHaveTextContent("Old Patient");
+  await user.type(screen.getByLabelText("Search member"), "New");
+  expect(rows()).toHaveLength(1);
+  expect(rows()[0]).toHaveTextContent("New Patient");
+  await user.click(screen.getByRole("tab", { name: /^My cases/ }));
+  expect(screen.getByText("This queue is clear")).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: /^History/ }));
+  expect(screen.getByText("This queue is clear")).toBeInTheDocument();
+});
+
+it("opens a physician case view with five readable tabs and no raw status or JSON", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  await user.click(screen.getByRole("button", { name: "Claim and view revision" }));
+  expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Summary" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Plan review" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Laboratory review" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Supplements" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Notes" })).toBeInTheDocument();
+  expect(screen.getByText("Member profile summary")).toBeInTheDocument();
+  expect(screen.getByText("Input snapshot")).toBeInTheDocument();
+  expect(screen.queryByText("pending")).not.toBeInTheDocument();
+  expect(screen.queryByText("in_review")).not.toBeInTheDocument();
+  expect(screen.queryByRole("pre")).not.toBeInTheDocument();
+  expect(screen.queryByText(/"input_snapshot"/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Back to queue" }));
+  expect(screen.getByTestId("physician-review-queue")).toBeInTheDocument();
+});
+
+it("keeps physician final actions wired to approve, request changes, and reject", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listPhysicianReviews).mockResolvedValue([{ review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false }]);
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  vi.mocked(api.actOnPhysicianPlan).mockResolvedValue(physicianPlan);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  await user.click(screen.getByRole("button", { name: "Claim and view revision" }));
+  await user.click(await screen.findByRole("tab", { name: "Notes" }));
+  await user.type(screen.getByLabelText("User-visible note"), "Review note");
+  await user.click(screen.getByRole("button", { name: "Approve this revision" }));
+  await user.click(screen.getByRole("button", { name: "Request changes" }));
+  await user.click(screen.getByRole("button", { name: "Reject" }));
+
+  await waitFor(() => expect(api.actOnPhysicianPlan).toHaveBeenCalledWith("plan-1", "approve", "Review note", null));
+  expect(api.actOnPhysicianPlan).toHaveBeenCalledWith("plan-1", "request_changes", "Review note", null);
+  expect(api.actOnPhysicianPlan).toHaveBeenCalledWith("plan-1", "reject", "Review note", null);
 });
 
 it("keeps physician plan days and meals closed until opened", async () => {
@@ -468,6 +571,7 @@ it("keeps physician plan days and meals closed until opened", async () => {
   vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
   await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
 
   const profileSummary = screen.getByText("Body and training");
@@ -476,6 +580,7 @@ it("keeps physician plan days and meals closed until opened", async () => {
   await user.click(profileSummary);
   expect(screen.getByText("Gym")).toBeVisible();
 
+  await user.click(screen.getByRole("tab", { name: "Plan review" }));
   const daySummary = screen.getByText(/Day 1/);
   expect(daySummary.closest("details")).not.toBeNull();
   expect(daySummary.closest("details")).not.toHaveAttribute("open");
@@ -498,14 +603,14 @@ it("switches from the physician queue into the selected case", async () => {
   vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  const workspace = document.querySelector(".physician-review-workspace");
-  expect(workspace).not.toHaveClass("has-selected");
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  expect(screen.getByTestId("physician-review-queue")).toBeInTheDocument();
   await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
 
-  expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
-  expect(workspace).toHaveClass("has-selected");
+  expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
+  expect(screen.queryByTestId("physician-review-queue")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Back to queue" }));
-  expect(workspace).not.toHaveClass("has-selected");
+  expect(screen.getByTestId("physician-review-queue")).toBeInTheDocument();
 });
 
 it("separates physician queue views and keeps approved revisions read-only", async () => {
@@ -518,17 +623,18 @@ it("separates physician queue views and keeps approved revisions read-only", asy
   vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  expect(await screen.findByRole("tab", { name: /Approved \(1\)/ })).toBeInTheDocument();
-  await user.click(screen.getByRole("tab", { name: /Approved/ }));
+  expect(await screen.findByRole("tab", { name: /^History/ })).toHaveTextContent("1");
+  await user.click(screen.getByRole("tab", { name: /^History/ }));
   await user.click(screen.getByRole("button", { name: "View revision" }));
-  expect(await screen.findByText("Revision under review 1")).toBeInTheDocument();
+  expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Approve this revision" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: "Plan review" }));
   await user.click(screen.getByText(/Day 1/));
   await user.click(screen.getByText("Lunch"));
   expect(screen.getByRole("spinbutton", { name: "Chicken breast quantity" })).toBeDisabled();
 });
 
-it("groups physician cases by requested date in every queue view", async () => {
+it("sorts physician queue rows and keeps every workbench section available", async () => {
   const user = userEvent.setup();
   const newerRequestedAt = new Date().toISOString();
   const olderRequestedAt = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
@@ -549,51 +655,38 @@ it("groups physician cases by requested date in every queue view", async () => {
   vi.mocked(api.listPhysicianReviews).mockImplementation(async (view = "pending") => queues[view]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  expect(await screen.findByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "6 weeks ago" })).toBeInTheDocument();
-  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  const rows = () => screen.getAllByTestId("physician-review-case-row");
+  await user.selectOptions(screen.getByLabelText("Sort cases"), "newest");
+  expect(rows().map((row) => row.textContent)).toEqual([
     expect.stringContaining("New Member"),
     expect.stringContaining("Old Member"),
   ]);
-
-  await user.click(screen.getByRole("tab", { name: /Claimed/ }));
-  expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "6 weeks ago" })).toBeInTheDocument();
-  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
+  await user.click(screen.getByRole("tab", { name: /^My cases/ }));
+  expect(rows().map((row) => row.textContent)).toEqual([
     expect.stringContaining("New Member"),
     expect.stringContaining("Old Member"),
   ]);
-
-  await user.click(screen.getByRole("tab", { name: /Approved/ }));
-  expect(screen.getByRole("heading", { name: /Today/ })).toBeInTheDocument();
-  expect(screen.queryByRole("heading", { name: "6 weeks ago" })).not.toBeInTheDocument();
-  expect(screen.getAllByRole("article").map((article) => article.textContent)).toEqual([
-    expect.stringContaining("Old Member"),
+  await user.click(screen.getByRole("tab", { name: /^History/ }));
+  expect(rows().map((row) => row.textContent)).toEqual([
     expect.stringContaining("New Member"),
+    expect.stringContaining("Old Member"),
   ]);
 });
 
-it("keeps each physician queue group collapsed until its header opens", async () => {
+it("renders physician queues as compact rows without expandable date-card groups", async () => {
   const user = userEvent.setup();
   vi.mocked(api.listPhysicianReviews).mockResolvedValue([
     { review_id: "review-1", plan_id: "plan-1", user_id: "user-1", member_display_name: "Member One", status: "pending", priority: 1, physician_user_id: null, requested_at: today, target_review_by: null, reviewed_at: null, overdue: false },
   ]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  const heading = await screen.findByRole("heading", { name: /Today|امروز/ });
-  const group = heading.closest("details");
-  const card = screen.getByRole("article");
-  expect(group).not.toBeNull();
-  expect(group).not.toHaveAttribute("open");
-  expect(card).not.toBeVisible();
-
-  await user.click(heading);
-
-  expect(group).toHaveAttribute("open");
-  expect(card).toBeVisible();
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  expect(screen.getByTestId("physician-review-case-row")).toBeInTheDocument();
+  expect(screen.queryByTestId("physician-review-case-group")).not.toBeInTheDocument();
 });
 
-it("localizes physician recency group headings in Persian", async () => {
+it("localizes physician workbench navigation in Persian", async () => {
   await i18n.changeLanguage("fa");
   const now = new Date().toISOString();
   vi.mocked(api.listPhysicianReviews).mockResolvedValue([
@@ -602,8 +695,9 @@ it("localizes physician recency group headings in Persian", async () => {
   ]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  expect(await screen.findByRole("heading", { name: /امروز/ })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "۶ هفته قبل" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "میز کار پزشک" })).toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole("tab", { name: /^صف بررسی/ }));
+  expect(screen.getByRole("heading", { name: "صف بررسی" })).toBeInTheDocument();
 });
 
 it("lays out physician cases in a desk sidebar with clinical workspace tabs", async () => {
@@ -613,12 +707,14 @@ it("lays out physician cases in a desk sidebar with clinical workspace tabs", as
   ]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  expect(await screen.findByText("Physician desk")).toBeInTheDocument();
-  expect(screen.getByText("Member One").closest("aside")).toHaveClass("physician-review-queue");
+  expect(await screen.findByRole("heading", { name: "Physician workbench" })).toBeInTheDocument();
+  await user.click(screen.getByRole("tab", { name: /^Review queue/ }));
+  expect(screen.getByTestId("physician-review-queue")).toBeInTheDocument();
   vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
   vi.mocked(api.getPhysicianPlan).mockResolvedValue(physicianPlan);
   vi.mocked(api.listPhysicianLabs).mockResolvedValue([]);
   await user.click(screen.getByRole("button", { name: "Claim and view revision" }));
+  expect(screen.getByRole("tab", { name: "Summary" })).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Plan review" })).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Laboratory review" })).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Supplements" })).toBeInTheDocument();
@@ -639,18 +735,20 @@ it("resets case-scoped physician notes before requesting labs for another member
   vi.mocked(api.requestPhysicianLabs).mockResolvedValue({});
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  const firstCase = (await screen.findByText("Member One")).closest("article");
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  const firstCase = (await screen.findByText("Member One")).closest("li");
   expect(firstCase).not.toBeNull();
   if (!firstCase) throw new Error("Member One queue case was not rendered");
   await user.click(within(firstCase).getByRole("button", { name: "Claim and view revision" }));
   await user.click(await screen.findByRole("tab", { name: "Notes" }));
   await user.type(screen.getByLabelText("User-visible note"), "First member note");
 
-  const secondCase = (await screen.findByText("Member Two")).closest("article");
+  await user.click(screen.getByRole("button", { name: "Back to queue" }));
+  const secondCase = (await screen.findByText("Member Two")).closest("li");
   expect(secondCase).not.toBeNull();
   if (!secondCase) throw new Error("Member Two queue case was not rendered");
   await user.click(within(secondCase).getByRole("button", { name: "Claim and view revision" }));
-  expect(await screen.findByText("Revision under review 2")).toBeInTheDocument();
+  expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
   await user.click(screen.getByRole("tab", { name: "Notes" }));
   expect(screen.getByLabelText("User-visible note")).toHaveValue("");
   await user.click(screen.getByRole("tab", { name: "Laboratory review" }));

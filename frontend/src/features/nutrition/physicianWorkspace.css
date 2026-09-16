@@ -1,0 +1,420 @@
+.physician-review-back {
+  min-height: 2.7rem;
+  padding: .45rem .8rem;
+  border: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  border-radius: .7rem;
+  color: var(--fitician-ink, #e9f7f3);
+  background: transparent;
+  font: inherit;
+  font-size: .76rem;
+  cursor: pointer;
+}
+
+.physician-review-back:hover,
+.physician-review-back:focus-visible {
+  border-color: var(--fitician-aqua, #50dfce);
+  color: var(--fitician-aqua, #50dfce);
+}
+
+.physician-dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.physician-dashboard .specialist-stats {
+  margin: 0;
+}
+
+.physician-dashboard__section {
+  min-width: 0;
+  padding-block: .25rem 1rem;
+  border-bottom: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+}
+
+.physician-dashboard__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .55rem;
+}
+
+.physician-dashboard__section-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.physician-dashboard__section-heading button,
+.physician-dashboard__case button {
+  min-height: 2.5rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  border-radius: .65rem;
+  color: var(--fitician-aqua, #50dfce);
+  background: transparent;
+  font: inherit;
+  font-size: .72rem;
+  cursor: pointer;
+}
+
+.physician-dashboard__section-heading button:hover,
+.physician-dashboard__section-heading button:focus-visible,
+.physician-dashboard__case button:hover,
+.physician-dashboard__case button:focus-visible {
+  border-color: var(--fitician-aqua, #50dfce);
+  background: rgb(80 223 206 / 8%);
+}
+
+.physician-dashboard__case-list {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.physician-dashboard__case {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: .65rem;
+  padding: .55rem .65rem;
+  border-block: 1px solid transparent;
+  background: rgb(255 255 255 / 3%);
+}
+
+.physician-dashboard__case:hover { border-color: var(--fitician-line, rgb(234 244 241 / 12%)); }
+.physician-dashboard__case > div:nth-child(2) { min-width: 0; display: grid; gap: .12rem; }
+.physician-dashboard__case strong { overflow-wrap: anywhere; font-size: .8rem; }
+.physician-dashboard__case span,
+.physician-dashboard__case > small,
+.physician-dashboard__case-status > small { color: var(--fitician-muted, #91aaa5); font-size: .68rem; }
+.physician-dashboard__case-status { display: grid; justify-items: end; gap: .15rem; }
+.physician-dashboard__case > small { white-space: nowrap; }
+.physician-dashboard__empty,
+.physician-summary-muted,
+.physician-readable-muted { margin: 0; color: var(--fitician-muted, #91aaa5); font-size: .8rem; line-height: 1.7; }
+
+.physician-review-queue-view {
+  min-width: 0;
+}
+
+.physician-review-queue-view__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: .3rem .9rem;
+  border-bottom: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+}
+
+.physician-review-queue-view__eyebrow {
+  margin: 0 0 .2rem;
+  color: var(--fitician-aqua, #50dfce);
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.physician-review-queue-view__header h2 { margin: 0; font-size: 1.2rem; }
+.physician-review-queue-view__header > span { color: var(--fitician-muted, #91aaa5); font-size: .75rem; white-space: nowrap; }
+
+.physician-review-queue-view .specialist-case-list { padding-block: .8rem 0; }
+
+.physician-review-queue-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(11rem, 1.5fr) minmax(9rem, 1fr) minmax(7.5rem, .85fr) auto auto;
+  align-items: center;
+  gap: .75rem;
+  padding: .55rem .6rem;
+  border-block: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  background: rgb(255 255 255 / 2%);
+}
+
+.physician-review-queue-row:hover,
+.physician-review-queue-row.is-selected { background: rgb(80 223 206 / 6%); }
+.physician-review-queue-row.is-overdue { border-inline-start: .18rem solid #efba62; }
+.physician-review-queue-row__member,
+.physician-review-queue-row__time,
+.physician-review-queue-row__priority { min-width: 0; display: grid; gap: .15rem; }
+.physician-review-queue-row__member strong { overflow-wrap: anywhere; font-size: .8rem; }
+.physician-review-queue-row__member span,
+.physician-review-queue-row__time small,
+.physician-review-queue-row__time span,
+.physician-review-queue-row__priority span,
+.physician-review-queue-row__priority small { color: var(--fitician-muted, #91aaa5); font-size: .68rem; }
+.physician-review-queue-row__time span { overflow-wrap: anywhere; }
+.physician-review-queue-row__priority small { color: #efc778; }
+.physician-review-queue-row > button {
+  min-height: 2.55rem;
+  padding: .45rem .7rem;
+  border: 1px solid var(--fitician-line-strong, rgb(234 244 241 / 18%));
+  border-radius: .65rem;
+  color: var(--fitician-aqua, #50dfce);
+  background: transparent;
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.physician-review-queue-row > button:hover:not(:disabled),
+.physician-review-queue-row > button:focus-visible {
+  border-color: var(--fitician-aqua, #50dfce);
+  background: rgb(80 223 206 / 10%);
+}
+
+.physician-review-queue-row > button:disabled { cursor: wait; opacity: .55; }
+
+.physician-review-case {
+  min-width: 0;
+}
+
+.physician-review-case-header { min-width: 0; }
+.physician-case-tabs {
+  display: flex;
+  gap: .15rem;
+  overflow-x: auto;
+  margin-block: .8rem 0;
+  border-bottom: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  scrollbar-width: thin;
+}
+
+.physician-case-tabs button {
+  min-width: max-content;
+  min-height: 3rem;
+  padding: .5rem .75rem;
+  border: 0;
+  border-bottom: .16rem solid transparent;
+  color: var(--fitician-muted, #91aaa5);
+  background: transparent;
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.physician-case-tabs button:hover,
+.physician-case-tabs button:focus-visible { color: var(--fitician-ink, #e9f7f3); }
+.physician-case-tabs button[aria-selected="true"] { border-bottom-color: var(--fitician-aqua, #50dfce); color: var(--fitician-aqua, #50dfce); }
+.physician-review-case-panel { min-width: 0; padding-top: 1rem; }
+
+.physician-case-summary,
+.physician-review-section { display: grid; gap: 1rem; }
+
+.physician-summary-section {
+  min-width: 0;
+  padding-block: .8rem;
+  border-bottom: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+}
+
+.physician-summary-section header,
+.physician-labs-panel > header,
+.physician-supplements-panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.physician-summary-section h3,
+.physician-labs-panel h3,
+.physician-supplements-panel h3 { margin: 0; font-size: .95rem; }
+.physician-labs-panel > header span,
+.physician-supplements-panel > header span { color: var(--fitician-muted, #91aaa5); font-size: .7rem; }
+
+.physician-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .45rem;
+  margin: 0;
+}
+
+.physician-summary-grid > div {
+  min-width: 0;
+  padding: .65rem .7rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.physician-summary-grid dt { color: var(--fitician-muted, #91aaa5); font-size: .67rem; }
+.physician-summary-grid dd { margin: .2rem 0 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
+.physician-readable-list { display: grid; gap: .4rem; margin: 0; padding-inline-start: 1.1rem; color: var(--fitician-ink, #e9f7f3); font-size: .78rem; }
+.physician-readable-list li::marker { color: var(--fitician-aqua, #50dfce); }
+
+.physician-readable-evidence {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+
+.physician-evidence-block {
+  min-width: 0;
+  padding: .7rem;
+  border-inline-start: .18rem solid var(--fitician-line-strong, rgb(234 244 241 / 18%));
+  background: rgb(255 255 255 / 3%);
+}
+
+.physician-evidence-block h4 { margin: 0 0 .45rem; color: var(--fitician-muted, #91aaa5); font-size: .72rem; }
+.physician-readable-data { display: grid; gap: .35rem; margin: 0; }
+.physician-readable-data > div { min-width: 0; display: grid; grid-template-columns: minmax(6rem, .55fr) minmax(0, 1fr); gap: .55rem; padding-block: .2rem; border-bottom: 1px solid rgb(234 244 241 / 7%); }
+.physician-readable-data dt { color: var(--fitician-muted, #91aaa5); font-size: .68rem; overflow-wrap: anywhere; }
+.physician-readable-data dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--fitician-ink, #e9f7f3); font-size: .73rem; }
+.physician-readable-data .physician-readable-data { margin-top: .2rem; }
+.physician-readable-data .physician-readable-list { padding-inline-start: 1rem; font-size: .72rem; }
+.physician-readable-status { color: var(--fitician-aqua, #50dfce); font-size: .7rem; font-weight: 760; }
+
+.physician-review-section > .review-disclosure { background: rgb(255 255 255 / 2%); }
+.physician-review-section > .review-disclosure > .review-disclosure__body { padding-top: .8rem; }
+
+.physician-nutrient-list { display: grid; gap: .35rem; }
+.physician-nutrient-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .6rem; padding: .55rem .65rem; border-bottom: 1px solid rgb(234 244 241 / 8%); }
+.physician-nutrient-row > span:first-child { overflow-wrap: anywhere; color: var(--fitician-ink, #e9f7f3); font-size: .78rem; }
+.physician-nutrient-row strong { white-space: nowrap; font-size: .75rem; }
+
+.physician-plan-days { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-block: .2rem; }
+.physician-plan-day { min-width: 0; padding: 0; overflow: hidden; background: rgb(255 255 255 / 3%); }
+.physician-plan-day > summary { padding: .8rem; }
+.physician-plan-day > .review-disclosure__body { padding: 0 .8rem .8rem; }
+.physician-plan-meals { display: grid; gap: .6rem; }
+.physician-plan-meal { min-width: 0; background: rgb(3 28 27 / 52%); }
+.physician-plan-meal > summary { min-height: 3rem; padding: .6rem .75rem; }
+.physician-plan-meal > .review-disclosure__body { padding: 0 .75rem .75rem; }
+.physician-plan-foods { display: grid; gap: .45rem; }
+.physician-plan-foods > p { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: center; margin: 0; padding: .55rem 0; border-bottom: 1px solid rgb(234 244 241 / 8%); }
+.physician-plan-foods > p > span { overflow-wrap: anywhere; font-size: .78rem; }
+.physician-plan-foods > p > strong { white-space: nowrap; font-size: .75rem; }
+.physician-plan-foods input,
+.physician-plan-foods select,
+.physician-review-section input,
+.physician-review-section select,
+.physician-review-section textarea {
+  width: 100%;
+  min-height: 2.7rem;
+  padding: .55rem .65rem;
+  border: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  border-radius: .6rem;
+  color: var(--fitician-ink, #e9f7f3);
+  background: var(--fitician-surface-subtle, #050b0c);
+  font: inherit;
+}
+.physician-plan-foods input { grid-column: 2; min-width: 5rem; }
+.physician-plan-foods select { grid-column: 1 / -1; }
+.physician-review-section label { display: grid; gap: .35rem; color: var(--fitician-muted, #91aaa5); font-size: .75rem; }
+.physician-review-section textarea { min-height: 7rem; resize: vertical; }
+.physician-review-section input:focus-visible,
+.physician-review-section select:focus-visible,
+.physician-review-section textarea:focus-visible { border-color: var(--fitician-aqua, #50dfce); outline: 2px solid rgb(80 223 206 / 25%); outline-offset: 1px; }
+
+.physician-review-section button,
+.physician-supplement-list button,
+.physician-lab-list button {
+  min-height: 2.55rem;
+  width: fit-content;
+  padding: .5rem .75rem;
+  border: 1px solid var(--fitician-line-strong, rgb(234 244 241 / 18%));
+  border-radius: .65rem;
+  color: var(--fitician-aqua, #50dfce);
+  background: transparent;
+  font: inherit;
+  font-size: .72rem;
+  cursor: pointer;
+}
+
+.physician-review-section button:hover:not(:disabled),
+.physician-review-section button:focus-visible,
+.physician-supplement-list button:hover:not(:disabled),
+.physician-lab-list button:hover:not(:disabled) { border-color: var(--fitician-aqua, #50dfce); background: rgb(80 223 206 / 8%); }
+.physician-review-section button:disabled { cursor: not-allowed; opacity: .55; }
+
+.physician-lab-list,
+.physician-supplement-list { display: grid; gap: .45rem; }
+.physician-lab-list article,
+.physician-supplement-list article { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .7rem; padding: .65rem; border-bottom: 1px solid rgb(234 244 241 / 8%); }
+.physician-lab-list article > div,
+.physician-supplement-list article > div:first-child { min-width: 0; display: grid; gap: .18rem; }
+.physician-lab-list strong,
+.physician-supplement-list strong { overflow-wrap: anywhere; font-size: .78rem; }
+.physician-lab-list small,
+.physician-supplement-list small { overflow-wrap: anywhere; color: var(--fitician-muted, #91aaa5); font-size: .68rem; }
+.physician-inline-actions { display: flex; flex-wrap: wrap; gap: .3rem; }
+.physician-inline-actions button { margin: 0; }
+.physician-labs-note { margin: 0; color: var(--fitician-muted, #91aaa5); font-size: .75rem; line-height: 1.6; }
+
+.physician-supplement-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
+  margin: .6rem 0 0;
+  padding: .8rem;
+  border: 1px solid var(--fitician-line, rgb(234 244 241 / 12%));
+  border-radius: .8rem;
+}
+
+.physician-supplement-form legend { padding-inline: .35rem; color: var(--fitician-ink, #e9f7f3); font-size: .8rem; font-weight: 800; }
+.physician-supplement-form label:nth-of-type(7),
+.physician-supplement-form label:nth-of-type(8),
+.physician-supplement-form button { grid-column: 1 / -1; }
+
+.physician-review-actions {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fitician-line-strong, rgb(234 244 241 / 18%));
+}
+
+.physician-review-actions > div:first-child { min-width: 0; display: grid; gap: .2rem; }
+.physician-review-actions p { margin: 0; font-size: .9rem; font-weight: 820; }
+.physician-review-actions span { color: var(--fitician-muted, #91aaa5); font-size: .72rem; }
+.physician-review-actions__buttons { display: flex; flex-wrap: wrap; justify-content: end; gap: .45rem; }
+.physician-review-actions__buttons button { min-height: 2.8rem; padding: .55rem .8rem; border: 1px solid var(--fitician-line-strong, rgb(234 244 241 / 18%)); border-radius: .65rem; color: var(--fitician-ink, #e9f7f3); background: transparent; font: inherit; font-size: .74rem; font-weight: 780; cursor: pointer; }
+.physician-review-actions__buttons button:hover:not(:disabled),
+.physician-review-actions__buttons button:focus-visible { border-color: var(--fitician-aqua, #50dfce); background: rgb(80 223 206 / 9%); }
+.physician-review-actions__buttons button:first-child { border-color: var(--fitician-aqua, #50dfce); color: var(--fitician-aqua, #50dfce); }
+.physician-review-actions__buttons button.is-danger { border-color: rgb(255 102 82 / 45%); color: #ffb1a6; }
+.physician-review-actions__buttons button:disabled { cursor: not-allowed; opacity: .48; }
+
+@media (max-width: 820px) {
+  .physician-readable-evidence { grid-template-columns: 1fr; }
+  .physician-plan-days { grid-template-columns: 1fr; }
+  .physician-review-queue-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .physician-review-queue-row__time { grid-column: 2; }
+  .physician-review-queue-row__priority { grid-column: 3; grid-row: 1 / span 2; justify-items: end; }
+  .physician-review-queue-row > .specialist-status-badge { grid-column: 2; justify-self: start; }
+  .physician-review-queue-row > button { grid-column: 2 / -1; justify-self: stretch; width: 100%; }
+  .physician-review-actions { align-items: stretch; flex-direction: column; }
+  .physician-review-actions__buttons { justify-content: stretch; }
+  .physician-review-actions__buttons button { flex: 1 1 9rem; }
+}
+
+@media (max-width: 600px) {
+  .physician-dashboard__case { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .physician-dashboard__case-status { grid-column: 2; justify-items: start; }
+  .physician-dashboard__case > small { grid-column: 2; }
+  .physician-dashboard__case > button { grid-column: 2 / -1; width: 100%; }
+  .physician-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .physician-readable-data > div { grid-template-columns: minmax(5.5rem, .7fr) minmax(0, 1fr); }
+  .physician-nutrient-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .physician-nutrient-row .physician-readable-status { grid-column: 1 / -1; }
+  .physician-lab-list article,
+  .physician-supplement-list article { grid-template-columns: minmax(0, 1fr) auto; }
+  .physician-lab-list article > button,
+  .physician-supplement-list article > button { grid-column: 2; grid-row: 1; }
+  .physician-lab-list article > .specialist-status-badge,
+  .physician-supplement-list article > .specialist-status-badge { grid-column: 1; grid-row: 2; justify-self: start; }
+  .physician-inline-actions { grid-column: 1 / -1; }
+  .physician-supplement-form { grid-template-columns: 1fr; }
+  .physician-supplement-form label:nth-of-type(7),
+  .physician-supplement-form label:nth-of-type(8),
+  .physician-supplement-form button { grid-column: auto; }
+  .physician-review-actions__buttons { display: grid; grid-template-columns: 1fr; }
+  .physician-review-actions__buttons button { width: 100%; }
+}
+
+@media (max-width: 390px) {
+  .physician-summary-grid { grid-template-columns: 1fr; }
+}
