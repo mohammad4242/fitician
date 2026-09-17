@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +14,7 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Session
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+LANDING_SOURCE_ROOT = BACKEND_ROOT.parent / "frontend" / "src" / "assets" / "landing"
 DATABASE_NAME_PATTERN = re.compile(r"[A-Za-z0-9_]+_e2e\Z")
 
 
@@ -87,12 +89,30 @@ def _seed_catalogues(database_url: str) -> None:
         seed_nutrition_benchmark(db)
 
 
+def _seed_local_landing_media() -> None:
+    """Make local E2E media requests behave like the default local runtime."""
+    media_root = BACKEND_ROOT / "var" / "media" / "landing"
+    sources = [
+        (LANDING_SOURCE_ROOT / "body.png", media_root / "images" / "body.png"),
+        *(
+            (source, media_root / "videos" / source.name)
+            for source in sorted(LANDING_SOURCE_ROOT.glob("*.mp4"))
+        ),
+    ]
+    for source, destination in sources:
+        if not source.is_file():
+            raise RuntimeError(f"Missing E2E landing media source: {source}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+
+
 def main() -> None:
     database_url, parsed_url, database = _validated_database_url()
     _ensure_database(parsed_url, database)
     _reset_schema(database_url)
     _run_migrations(database_url)
     _seed_catalogues(database_url)
+    _seed_local_landing_media()
     print(f"Prepared isolated E2E database: {database}")
 
 
