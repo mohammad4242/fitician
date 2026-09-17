@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -307,17 +307,21 @@ describe("exercise detail content", () => {
 
     fireEvent.pointerDown(carousel, { clientX: 240, clientY: 140 });
     fireEvent.pointerUp(carousel, { clientX: 160, clientY: 140 });
-    expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
-      "src", "/media/male-second.mp4",
-    );
-    expect(screen.getByText("۲ / ۲")).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
+        "src", "/media/male-second.mp4",
+      );
+      expect(screen.getByText("۲ / ۲")).toBeVisible();
+    });
 
     fireEvent.pointerDown(carousel, { clientX: 160, clientY: 140 });
     fireEvent.pointerUp(carousel, { clientX: 240, clientY: 140 });
-    expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
-      "src", "/media/male.mp4",
-    );
-    expect(screen.getByText("۱ / ۲")).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
+        "src", "/media/male.mp4",
+      );
+      expect(screen.getByText("۱ / ۲")).toBeVisible();
+    });
   });
 
   it("deduplicates matching assets without adding legacy media", async () => {
