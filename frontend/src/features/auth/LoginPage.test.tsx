@@ -43,26 +43,29 @@ it("keeps the login form usable without promotional media", () => {
   );
 });
 
-it("keeps Google clickable while its client ID is not configured", async () => {
+it("disables Google when its client ID is not configured", async () => {
   vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
   vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(null, { status: 401 }));
-  const user = userEvent.setup();
+  const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
   renderPage();
   await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
 
-  await user.click(screen.getByRole("button", { name: "Google" }));
-
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "درخواست انجام نشد. دوباره تلاش کن.",
+  expect(screen.getByRole("button", { name: "Google" })).toBeDisabled();
+  expect(consoleError).toHaveBeenCalledWith(
+    "Google Sign-In is unavailable: VITE_GOOGLE_CLIENT_ID is not configured.",
   );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
 it("uses the Google Identity credential and reaches the authenticated flow", async () => {
   vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitician-client-id.apps.googleusercontent.com");
   let googleCallback: ((response: { credential: string }) => void) | undefined;
   const initialize = vi.fn(
-    (options: { callback: (response: { credential: string }) => void }) => {
+    (options: {
+      client_id: string;
+      callback: (response: { credential: string }) => void;
+    }) => {
       googleCallback = options.callback;
     },
   );
@@ -88,6 +91,9 @@ it("uses the Google Identity credential and reaches the authenticated flow", asy
 
   renderPage();
   await waitFor(() => expect(initialize).toHaveBeenCalledOnce());
+  expect(initialize).toHaveBeenCalledWith(
+    expect.objectContaining({ client_id: "fitician-client-id.apps.googleusercontent.com" }),
+  );
   expect(renderButton).toHaveBeenCalledOnce();
   await act(async () => {
     googleCallback?.({ credential: "signed-google-id-token" });

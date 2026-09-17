@@ -106,6 +106,11 @@ export function GoogleSignInButton({
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
   useEffect(() => {
+    if (clientId || !import.meta.env.DEV) return;
+    console.error("Google Sign-In is unavailable: VITE_GOOGLE_CLIENT_ID is not configured.");
+  }, [clientId]);
+
+  useEffect(() => {
     if (!clientId) return;
     let active = true;
     void loadGoogleIdentityServices()
@@ -140,8 +145,7 @@ export function GoogleSignInButton({
       <button
         className="google-sign-in-fallback"
         type="button"
-        onClick={() => onErrorRef.current()}
-        disabled={disabled}
+        disabled
       >
         <GoogleBrandIcon className="google-sign-in-fallback__icon" decorative />
         <span>Google</span>
