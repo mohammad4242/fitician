@@ -823,7 +823,7 @@ it("renders weekly weight rate card with requested, recommended, and applied rat
   render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: "تغذیه" })).toBeInTheDocument();
-  expect(screen.getByRole("region", { name: "نرخ تغییر وزن هفتگی" })).toBeInTheDocument();
+  expect(await screen.findByRole("region", { name: "نرخ تغییر وزن هفتگی" })).toBeInTheDocument();
   expect(screen.getByText("تنظیم‌شده برای ایمنی خودکار")).toBeInTheDocument();
   expect(screen.getByText("درخواست شما")).toBeInTheDocument();
   expect(screen.getByText("۱٫۸ کیلوگرم/هفته")).toBeInTheDocument();
@@ -851,7 +851,7 @@ it("renders weight rate card in user override mode with override badge", async (
   render(<MemoryRouter><NutritionEstimatePage /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: "تغذیه" })).toBeInTheDocument();
-  expect(screen.getByRole("region", { name: "نرخ تغییر وزن هفتگی" })).toBeInTheDocument();
+  expect(await screen.findByRole("region", { name: "نرخ تغییر وزن هفتگی" })).toBeInTheDocument();
   expect(screen.getByText("نرخ دلخواه من")).toBeInTheDocument();
   expect(screen.getByText("مقدار اعمال‌شده (نرخ مستقیم)")).toBeInTheDocument();
 });
