@@ -281,6 +281,21 @@ jobs:
           esac
           curl --fail --silent --show-error --head --max-time 20 \
             "${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4" >/dev/null
+      - name: Require Google web client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          if [ -z "$(printf '%s' "$GOOGLE_CLIENT_ID" | tr -d '[:space:]')" ]; then
+            echo "VITE_GOOGLE_CLIENT_ID is required for production Google Sign-In" >&2
+            exit 1
+          fi
+          case "$GOOGLE_CLIENT_ID" in
+            *.apps.googleusercontent.com) ;;
+            *)
+              echo "VITE_GOOGLE_CLIENT_ID must look like a Google OAuth client ID" >&2
+              exit 1
+              ;;
+          esac
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -296,19 +311,41 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:main
           cache-from: type=gha,scope=fitician-backend
           cache-to: type=gha,mode=max,scope=fitician-backend
-      - name: Build and push frontend image
+      - name: Build frontend image for verification
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./frontend/Dockerfile
-          push: true
+          load: true
           build-args: |
             VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:main
           cache-from: type=gha,scope=fitician-frontend
           cache-to: type=gha,mode=max,scope=fitician-frontend
+      - name: Check built frontend image contents
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID \
+            "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
+              test -f /usr/share/nginx/html/index.html
+              test -f /usr/share/nginx/html/exercises/exercise-placeholder.svg
+              test -f /usr/share/nginx/html/pwa/icon-192.png
+              test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
+              grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" /usr/share/nginx/html/assets >/dev/null
+            '
+      - name: Push verified frontend image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
+          docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
       - name: Build and push Agent Service image
         uses: docker/build-push-action@v6
         with:
@@ -320,14 +357,3 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:main
           cache-from: type=gha,scope=fitician-agent
           cache-to: type=gha,mode=max,scope=fitician-agent
-      - name: Check published frontend image contents
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker run --rm --entrypoint sh "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
-            test -f /usr/share/nginx/html/index.html
-            test -f /usr/share/nginx/html/exercises/exercise-placeholder.svg
-            test -f /usr/share/nginx/html/pwa/icon-192.png
-            test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
-          '
