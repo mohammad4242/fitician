@@ -178,6 +178,14 @@ class Settings(BaseSettings):
             return stripped or None
         return None if value is None else str(value)
 
+    @field_validator("apple_client_id", mode="before")
+    @classmethod
+    def normalize_empty_apple_client_id(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return value
+
     workout_prompt_version: str = "v1"
     workout_policy_version: str = "v1"
     workout_catalog_programming_version: str = "v1"
@@ -322,8 +330,6 @@ class Settings(BaseSettings):
             raise ValueError("Production requires a Faraz SMS pattern code")
         if not self.google_client_id:
             raise ValueError("Production requires a Google client ID")
-        if not self.apple_client_id:
-            raise ValueError("Production requires an Apple client ID")
         otp_secret = self.phone_otp_hmac_secret.get_secret_value()
         if otp_secret == "fitician-local-phone-otp-secret-change-me" or len(otp_secret) < 32:
             raise ValueError("Production requires a strong phone OTP HMAC secret")

@@ -17,7 +17,6 @@ PRODUCTION_AUTH_DELIVERY = {
     "farazsms_pattern_code": "SJ3FgPrE0C",
     "phone_otp_hmac_secret": "production-phone-otp-hmac-secret-for-tests",
     "google_client_id": "fitician-client-id.apps.googleusercontent.com",
-    "apple_client_id": "com.fitician.app",
 }
 
 
@@ -95,6 +94,24 @@ def test_production_requires_google_identity_configuration() -> None:
             farazsms_pattern_code="SJ3FgPrE0C",
             phone_otp_hmac_secret="production-phone-otp-hmac-secret-for-tests",
         )
+
+
+@pytest.mark.parametrize("apple_client_id", [None, "", "   "])
+def test_production_allows_missing_apple_identity_configuration(
+    apple_client_id: str | None,
+) -> None:
+    settings = Settings(
+        app_env="production",
+        frontend_origin="https://fitician.example",
+        cookie_secure=True,
+        session_cookie_name="__Host-fitician_session",
+        private_file_signing_key="production-private-file-signing-key-for-tests",
+        apple_client_id=apple_client_id,
+        **PRODUCTION_AUTH_DELIVERY,  # type: ignore[arg-type]
+    )
+
+    assert settings.app_env == "production"
+    assert settings.apple_client_id is None
 
 
 def test_production_rejects_fake_auth_delivery_providers() -> None:
