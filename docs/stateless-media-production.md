@@ -82,6 +82,31 @@ database and Agent Service, runs `alembic upgrade head` through the one-shot
 `migrations` service, waits for backend/frontend health checks, and rolls back
 to `PREVIOUS_IMAGE_TAG` if a pull, migration, or readiness check fails.
 
+## Database backups
+
+Provision a private S3 bucket dedicated to database backups, with a 30-day
+retention lifecycle. Install `age` and AWS CLI on the VPS. Keep the age identity
+needed for decryption offline; only its public recipient belongs on the VPS.
+Create `/opt/fitician/backup.env` with mode `0600` and these fields:
+
+```text
+DB_BACKUP_BUCKET=
+DB_BACKUP_AGE_RECIPIENT=
+S3_ENDPOINT=
+AWS_DEFAULT_REGION=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+```
+
+Copy `ops/backup-production.sh` to `/opt/fitician/backup-production.sh`.
+Install the two `ops/systemd/fitician-db-backup.*` units, enable the timer,
+and run the service once before relying on the schedule. The script streams
+`pg_dump` through `age`; only encrypted bytes touch VPS disk or the backup bucket.
+It verifies the uploaded object size and fails without uploading when dump or
+encryption fails. Run a monthly restore drill into a disposable database using
+the offline age identity, check the restored user count and Alembic revision,
+then remove that disposable database. Never restore over the live database.
+
 ## S3 boundaries
 
 - `fitician-media` contains only `public/` runtime objects.

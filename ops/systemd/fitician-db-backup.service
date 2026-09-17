@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up the Fitician production database to encrypted S3
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=COMPOSE_FILE=/opt/fitician/compose.prod.yaml
+EnvironmentFile=/opt/fitician/backup.env
+ExecStart=/usr/bin/bash /opt/fitician/backup-production.sh

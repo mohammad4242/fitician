@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Fitician database backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+Unit=fitician-db-backup.service
+
+[Install]
+WantedBy=timers.target
