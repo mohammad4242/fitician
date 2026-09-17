@@ -55,25 +55,32 @@ uv run python scripts/migrate_public_media_to_s3.py --verify --category food-cat
 Repeat upload and verification in this order: `food-catalogue`, `meal-catalogue`,
 `exercise-seed`, `exercises`. The command writes resumable manifests and state under the ignored
 `backend/var/media-s3-migration/` directory. It refuses conflicting content and unexpected keys,
-stores SHA-256 as object metadata, downloads every object during verification, and never deletes
-local or remote objects.
+stores SHA-256 as object metadata when the provider returns it, and hashes same-size remote content
+when a provider replica omits that metadata. Uploads use bounded multipart transfer for large files,
+and accept a lost upload response only after authenticated size/hash verification. Verification
+downloads every object and never deletes local or remote objects.
 
 ## Verified migration snapshot
+
+Verified against ArvanCloud on 2026-09-17. The 12 large exercise objects that had lost multipart
+responses were completed with an immutable transfer fallback and then verified by this tool.
 
 | Category | Objects | Bytes | SHA-256 verified | Public reads |
 | --- | ---: | ---: | ---: | ---: |
 | Food catalogue | 59 | 6,578,091 | 59 | 59 |
 | Meal catalogue | 39 | 4,612,176 | 39 | 39 |
 | Exercise seed | 17 | 8,545,365 | 17 | 17 |
-| Exercise media | 1,874 | 2,581,556,510 | Pending | Pending |
-| **Total** | **1,989** | **2,601,292,142** | **Pending** | **Pending** |
+| Exercise media | 1,874 | 2,581,556,510 | 1,874 | 1,874 |
+| **Total** | **1,989** | **2,601,292,142** | **1,989** | **1,989** |
 
-The local directories remain the rollback source after verification.
+The local directories remain the rollback source after verification. Existing administrative write
+routes still write to local media; a later dual-write step is required before all new public uploads
+are S3 native.
 
-Sixteen incomplete multipart upload sessions from interrupted early exercise attempts remain in the
-bucket. They are not completed objects and are outside the readable media namespace. They were not
-aborted because this migration is prohibited from deleting remote data. Review and abort them in a
-separate, explicitly authorized storage-maintenance task.
+35 incomplete multipart upload sessions from interrupted exercise attempts remain in the bucket. They
+are not completed objects and are outside the readable media namespace. They were not aborted because
+this migration is prohibited from deleting remote data. Review and abort them in a separate, explicitly
+authorized storage-maintenance task.
 
 ## Previous reconciliation commit size
 

@@ -60,7 +60,7 @@ fitician-media/
 
 The local `/media` URL and private authenticated API routes remain the current application contract. Public object keys are distinct from provider URLs. Private objects must remain behind authorization.
 
-The backend now defines provider-neutral public/private object-key helpers and an `ObjectStorage` protocol with a collision-safe local implementation. `MEDIA_STORAGE_BACKEND=local` remains mandatory. S3 endpoint, bucket, region, access-key, secret-key, and public-base-url settings are declared, with secrets redacted; selecting `s3` fails configuration until a real adapter is implemented and verified.
+The backend now defines provider-neutral public/private object-key helpers and an `ObjectStorage` protocol with collision-safe local and S3-compatible implementations. `MEDIA_STORAGE_BACKEND=local` remains the rollback default; `MEDIA_STORAGE_BACKEND=s3` is available for verified public delivery through `MEDIA_PUBLIC_BASE_URL`. Private media remains local and authenticated.
 
 ## Verification and open items
 
@@ -73,7 +73,6 @@ Validation completed on 2026-09-16:
 - Web focused media tests: 114 passed; build passed; lint passed with one existing warning.
 - Mobile focused Vitest: 76 passed; native Jest: 53 passed; typecheck and release validation passed.
 
-The canonical public exercise and catalogue collections are ready for a staged upload tool. The
-repository as a whole is not ready for an S3 upload because fourteen private body-photo files still
-have unknown ownership, the S3 adapter is deliberately disabled, and bucket credentials and access
-policy have not been verified in this no-upload phase.
+The canonical public exercise and catalogue collections are handled by the staged uploader described
+in `docs/public-media-s3-migration.md`. Fourteen private body-photo files still have unknown
+ownership and remain out of scope; no private object is uploaded by this workflow.
