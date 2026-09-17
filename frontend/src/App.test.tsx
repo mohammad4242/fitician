@@ -527,7 +527,7 @@ it("lets a signed-in member open plans before profile completion", async () => {
 
   renderRoute("/plans");
 
-  expect(await screen.findByRole("heading", { name: "پلن خودت را انتخاب کن" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "بسته مناسب خودت را انتخاب کن" })).toBeInTheDocument();
   fetchMock.mockRestore();
 });
 

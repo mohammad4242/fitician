@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -333,7 +333,9 @@ it("shows the workbench navigation and claims a pending plan", async () => {
   await startCoachReview(user);
 
   expect(api.claimWorkoutReview).toHaveBeenCalledWith("review-1");
-  expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
+  await waitFor(() => {
+    expect(screen.getByRole("tab", { name: /^پرونده‌های من/ })).toHaveAttribute("aria-selected", "true");
+  });
   await openCoachWorkoutTab(user);
   await user.click(screen.getByText("روز ۱"));
   await user.click(screen.getByText("حرکت ۱ · پرس سینه"));

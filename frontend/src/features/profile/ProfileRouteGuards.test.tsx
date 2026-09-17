@@ -182,7 +182,7 @@ describe("profile route matrix", () => {
     renderRoute("/physician/nutrition");
 
     expect(
-      await screen.findByRole("heading", { name: "صف بررسی برنامه‌های تغذیه" }),
+      await screen.findByRole("heading", { name: "میز کار پزشک" }),
     ).toBeVisible();
   });
 
