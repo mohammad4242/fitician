@@ -13,6 +13,7 @@ SCRIPT = ROOT / "ops/backup-production.sh"
 
 class BackupProductionTests(unittest.TestCase):
     def setUp(self) -> None:
+        (ROOT / ".codex-tmp").mkdir(exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp")
         self.addCleanup(self.temp.cleanup)
         self.workspace = Path(self.temp.name)

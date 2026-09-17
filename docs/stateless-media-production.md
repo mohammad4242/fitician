@@ -45,6 +45,7 @@ DOCKERHUB_USERNAME=
 IMAGE_TAG=
 FITICIAN_DOMAIN=
 POSTGRES_PASSWORD=
+DATABASE_URL=postgresql+psycopg://<user>:<URL-encoded-password>@db:5432/<database>
 FRONTEND_ORIGIN=https://<FITICIAN_DOMAIN>
 COOKIE_SECURE=true
 SESSION_COOKIE_NAME=__Host-fitician_session
@@ -66,21 +67,35 @@ the image, frontend bundle, repository, or workflow logs.
 The GitHub Actions deployment workflow requires these repository or production
 environment secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `VPS_HOST`,
 `VPS_USER`, `VPS_SSH_PRIVATE_KEY`, and `VPS_KNOWN_HOSTS`. Set the non-secret
-repository variable `VPS_APP_DIR` only when `/opt/fitician` is not used. The
-frontend build may use the non-secret `VITE_MEDIA_PUBLIC_BASE_URL` variable.
+repository variable `VPS_APP_DIR` only when `/opt/fitician` is not used. Set
+`VITE_MEDIA_PUBLIC_BASE_URL` to the HTTPS bucket base URL (without `/public`);
+CI verifies a public landing object before publishing the frontend image.
+Leave `PRODUCTION_DEPLOY_ENABLED` unset until the initial restore and manual
+deployment are verified, then set it to `true` for automatic deployment after
+every successful `main` CI run.
 
 ## Deployment and rollback
 
-`ops/deploy-production.sh` is an operator or CI helper. It is not a VPS
-source-checkout requirement. The VPS only needs `compose.prod.yaml`, `Caddyfile`, and `.env`
-under the application directory. Run the helper from a deployment host with
-`COMPOSE_FILE` pointing at that Compose file, or run the same Docker Compose
-commands from `/opt/fitician`.
+`ops/deploy-production.sh` is an operator or CI helper. The VPS needs
+`compose.prod.yaml`, `Caddyfile`, `backup-production.sh`, an operator `.env`,
+and an operator `backup.env` under `/opt/fitician`. The deployment helper keeps
+the deployed SHA in `.deployed-image-tag` and updates `IMAGE_TAG` in `.env` only
+after all health checks pass.
 
-The helper pulls immutable images, starts the dependency graph, waits for the
-database and Agent Service, runs `alembic upgrade head` through the one-shot
-`migrations` service, waits for backend/frontend health checks, and rolls back
-to `PREVIOUS_IMAGE_TAG` if a pull, migration, or readiness check fails.
+For the first cutover, stop writes on the source, take a custom-format dump,
+restore it into the fresh VPS PostgreSQL service, and check user and key table
+counts. Dispatch the deployment workflow for the already-green SHA with
+`initial_deploy=true`; it refuses an empty member database. Verify login,
+API, public and private media, workers, and HTTPS before setting
+`PRODUCTION_DEPLOY_ENABLED=true`.
+
+Later releases take an encrypted backup before pulling images. The helper
+compares the live Alembic revision with the candidate image and blocks an
+automatic release when a migration is pending. Review the migration and
+dispatch the workflow with `allow_schema_migrations=true` to apply it. For
+schema-neutral failures it restores the previous image and checks runtime
+health. A failed release after a schema change needs manual recovery using
+the encrypted backup; it never automatically downgrades the schema.
 
 ## Database backups
 
