@@ -78,7 +78,7 @@ verify_runtime() {
 if [ "$initial_deploy" != true ]; then
   COMPOSE_FILE="$compose_file" bash "$app_dir/backup-production.sh"
 else
-  compose up -d db
+  compose up -d --wait db
   restored_users=$(compose exec -T db sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM users"')
   if [ "$restored_users" -le 0 ]; then

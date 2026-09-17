@@ -34,6 +34,7 @@ case "$*" in
       exit 3
     fi
     ;;
+  *' exec '*'db '*'SELECT count(*) FROM users'*) printf '1\\n' ;;
   *' run '*'alembic heads'*) printf '%s (head)\\n' "${FAKE_SCHEMA_HEAD:-20260915_155}" ;;
   *' exec '*'db '* ) printf '20260915_155\\n' ;;
   *' exec '*'caddy '* ) printf 'example.com' ;;
@@ -90,6 +91,21 @@ esac
         self.assertIn("IMAGE_TAG=" + OLD_TAG, (self.workspace / ".env").read_text())
         calls = (self.workspace / "calls").read_text().splitlines()
         self.assertEqual(sum(" up " in call for call in calls), 2)
+
+    def test_initial_deploy_waits_for_database_health_before_checking_users(self) -> None:
+        (self.workspace / ".deployed-image-tag").unlink()
+        self.env["INITIAL_DEPLOY"] = "true"
+
+        result = self._run()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = (self.workspace / "calls").read_text().splitlines()
+        database_start = next(i for i, call in enumerate(calls) if " up " in call)
+        restored_users_check = next(
+            i for i, call in enumerate(calls) if "SELECT count(*) FROM users" in call
+        )
+        self.assertIn("up -d --wait db", calls[database_start])
+        self.assertLess(database_start, restored_users_check)
 
 
 if __name__ == "__main__":
