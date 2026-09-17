@@ -328,6 +328,7 @@ def verify_manifest(
     state_path: Path,
     check_public_read: bool = True,
     workers: int = 8,
+    resume: bool = False,
 ) -> VerificationSummary:
     failures: list[str] = []
     verified = 0
@@ -337,12 +338,17 @@ def verify_manifest(
     client = httpx.Client(timeout=30.0, follow_redirects=True, trust_env=False)
 
     def verify_one(record: PublicMediaRecord) -> tuple[PublicMediaRecord, int, bool]:
-        remote = storage.head(record.object_key)
+        previous = state.get(record.object_key)
         if (
-            remote is None
-            or remote.size_bytes != record.size_bytes
-            or remote.sha256 != record.sha256
+            resume
+            and previous is not None
+            and previous.get("status") == "verified"
+            and previous.get("sha256") == record.sha256
+            and previous.get("size_bytes") == record.size_bytes
         ):
+            return record, record.size_bytes, check_public_read
+        remote = storage.head(record.object_key)
+        if remote is None or remote.size_bytes != record.size_bytes:
             raise ObjectStorageError("metadata mismatch")
         digest = __import__("hashlib").sha256()
         downloaded = 0

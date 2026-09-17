@@ -14,6 +14,12 @@ from app.media.public_migration import (
 from app.media.storage import LocalObjectStorage, ObjectMetadata, ObjectStorageError
 
 
+class MetadataLessStorage(LocalObjectStorage):
+    def head(self, key: str) -> ObjectMetadata | None:
+        metadata = super().head(key)
+        return replace(metadata, sha256=None) if metadata is not None else None
+
+
 def _media_tree(root: Path) -> None:
     files = {
         "food-catalogue/food.jpg": b"food",
@@ -93,6 +99,16 @@ def test_upload_is_resumable_and_verifies_downloaded_sha256(tmp_path: Path) -> N
     assert upload_manifest(storage, media_root, manifest, state_path=state, resume=True) == (0, 4)
     assert all(path.is_file() for path in media_root.rglob("*") if path.suffix)
 
+    metadata_less = MetadataLessStorage(tmp_path / "bucket")
+    result = verify_manifest(
+        metadata_less,
+        manifest,
+        state_path=tmp_path / "state-2.json",
+        check_public_read=False,
+    )
+    assert result.sha256_verified == 4
+    assert result.failures == ()
+
 
 def test_upload_refuses_remote_conflict_or_unexpected_key(tmp_path: Path) -> None:
     media_root = tmp_path / "media"
@@ -119,11 +135,6 @@ def test_plan_hashes_same_size_object_without_sha_metadata(tmp_path: Path) -> No
     manifest = build_manifest(media_root, ("food-catalogue",))
     bucket = tmp_path / "bucket"
     LocalObjectStorage(bucket).put("public/food-catalogue/food.jpg", b"food")
-
-    class MetadataLessStorage(LocalObjectStorage):
-        def head(self, key: str) -> ObjectMetadata | None:
-            metadata = super().head(key)
-            return replace(metadata, sha256=None) if metadata is not None else None
 
     storage = MetadataLessStorage(bucket)
     plan = plan_remote(storage, manifest, workers=1)

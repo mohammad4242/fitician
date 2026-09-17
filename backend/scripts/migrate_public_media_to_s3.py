@@ -130,6 +130,7 @@ def main() -> None:
         state_path=state_path,
         check_public_read=not args.skip_public_read_check,
         workers=args.workers,
+        resume=args.resume,
     )
     print(f"SHA-256 verified: {result.sha256_verified}/{result.objects}")
     print(f"Verified bytes: {result.bytes}")
