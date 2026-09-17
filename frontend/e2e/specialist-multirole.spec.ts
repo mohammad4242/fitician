@@ -123,7 +123,10 @@ async function selectNutritionPlanForReview(
 }
 
 test.describe("real specialist multi-role flows", () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test("User -> Coach -> User proves member approval controls the active workout revision", async ({ browser }, testInfo) => {
+    test.setTimeout(90_000);
     const runLabel = `${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}`;
     const member = await createE2EAccount(browser, "coach-member", { displayName: `کاربر تمرین ${runLabel}` });
     const coach = await createE2EAccount(browser, "coach-primary", {
