@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 import re
-import tempfile
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -10,7 +8,7 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import UploadFile
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -21,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
 from app.config import Settings
+from app.media.private_storage import PrivateStorageError, build_private_storage
 from app.nutrition.enums import (
     NutritionLabRequestStatus,
     NutritionPlanReviewStatus,
@@ -49,6 +48,10 @@ PROFILE_PHOTO_SIGNATURES: dict[str, Callable[[bytes], bool]] = {
 _PROFILE_PHOTO_KEY_PATTERN = re.compile(
     r"^[a-f0-9]{2}/[A-Za-z0-9][A-Za-z0-9_-]*\.(jpg|png|webp)$"
 )
+
+
+def _profile_photo_mime(extension: str) -> str:
+    return {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}[extension]
 
 
 class ProfilePhotoValidationError(ValueError):
@@ -174,6 +177,7 @@ def validate_and_normalize_profile_photo(
 class ProfilePhotoStorage:
     def __init__(self, settings: Settings) -> None:
         self._root = settings.profile_photo_storage_root.resolve()
+        self._storage = build_private_storage(settings)
 
     def path_for(self, key: str) -> Path:
         if not isinstance(key, str) or not _PROFILE_PHOTO_KEY_PATTERN.fullmatch(key):
@@ -189,44 +193,24 @@ class ProfilePhotoStorage:
     def store(self, content: bytes, extension: str) -> StoredProfilePhoto:
         if extension not in {".jpg", ".png", ".webp"} or not content:
             raise ProfilePhotoStorageError("Invalid normalized profile photo")
-        identifier = uuid4().hex
-        key = f"{identifier[:2]}/{identifier}{extension}"
-        final_path = self.path_for(key)
-        final_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            os.chmod(final_path.parent, 0o755)
-        except OSError:
-            pass
-        temporary_path: Path | None = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="wb",
-                dir=final_path.parent,
-                prefix=".profile-photo-",
-                delete=False,
-            ) as temporary:
-                temporary_path = Path(temporary.name)
-                temporary.write(content)
-                temporary.flush()
-                os.fsync(temporary.fileno())
-            os.chmod(temporary_path, 0o644)
-            os.replace(temporary_path, final_path)
-        except OSError as error:
-            if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
-            raise ProfilePhotoStorageError("Private storage is temporarily unavailable") from error
-        return StoredProfilePhoto(key=key)
+            stored = self._storage.put(
+                "profile-photos", content, extension, _profile_photo_mime(extension)
+            )
+        except PrivateStorageError as error:
+            raise ProfilePhotoStorageError(str(error)) from error
+        return StoredProfilePhoto(key=stored.key)
 
     def open(self, key: str) -> BinaryIO:
         try:
-            return self.path_for(key).open("rb")
-        except (OSError, ProfilePhotoStorageError) as error:
+            return self._storage.open("profile-photos", key)
+        except (OSError, ProfilePhotoStorageError, PrivateStorageError) as error:
             raise ProfilePhotoStorageError("Private profile photo is unavailable") from error
 
     def delete(self, key: str) -> None:
         try:
-            self.path_for(key).unlink(missing_ok=True)
-        except (OSError, ProfilePhotoStorageError) as error:
+            self._storage.delete("profile-photos", key)
+        except (OSError, ProfilePhotoStorageError, PrivateStorageError) as error:
             raise ProfilePhotoStorageError("Private storage is temporarily unavailable") from error
 
 

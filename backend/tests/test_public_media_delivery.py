@@ -87,3 +87,17 @@ def test_s3_failure_without_local_copy_is_explicit(tmp_path: Path) -> None:
         response = client.get("/media/meal-catalogue/missing.webp")
 
     assert response.status_code == 503
+
+
+def test_s3_disabled_local_fallback_does_not_serve_local_copy(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.media_local_fallback_enabled = False
+    local = settings.media_root / "food-catalogue" / "food.jpg"
+    local.parent.mkdir(parents=True)
+    local.write_bytes(b"local")
+    app = create_app(settings, public_media_storage=StubStorage(exists=False))
+
+    with TestClient(app) as client:
+        response = client.get("/media/food-catalogue/food.jpg")
+
+    assert response.status_code == 404

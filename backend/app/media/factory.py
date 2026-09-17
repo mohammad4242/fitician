@@ -15,7 +15,7 @@ def build_s3_client(settings: Settings) -> Any:
     if not all(
         (
             settings.s3_endpoint,
-            settings.s3_bucket,
+            settings.s3_public_bucket or settings.s3_private_bucket or settings.s3_bucket,
             settings.s3_access_key_id,
             settings.s3_secret_access_key,
             settings.s3_region,
@@ -39,11 +39,25 @@ def build_s3_client(settings: Settings) -> Any:
 
 
 def build_s3_storage(settings: Settings, *, client: Any | None = None) -> S3ObjectStorage:
-    if not settings.s3_bucket or not settings.media_public_base_url:
+    bucket = settings.s3_public_bucket or settings.s3_bucket
+    if not bucket or not settings.media_public_base_url:
         raise ValueError("S3 bucket and public media base URL are required")
     return S3ObjectStorage(
         client or build_s3_client(settings),
-        bucket=settings.s3_bucket,
+        bucket=bucket,
         public_base_url=settings.media_public_base_url,
         public_acl=settings.s3_public_object_acl,
+        namespace="public",
+    )
+
+
+def build_private_s3_storage(settings: Settings, *, client: Any | None = None) -> S3ObjectStorage:
+    if not settings.s3_private_bucket:
+        raise ValueError("S3 private bucket is required")
+    return S3ObjectStorage(
+        client or build_s3_client(settings),
+        bucket=settings.s3_private_bucket,
+        public_base_url="",
+        public_acl="private",
+        namespace="private",
     )

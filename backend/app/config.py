@@ -90,9 +90,12 @@ class Settings(BaseSettings):
     media_root: Path = Path("var/media")
     media_public_path: str = "/media"
     media_storage_backend: Literal["local", "s3"] = "local"
+    media_local_fallback_enabled: bool = True
     media_public_base_url: str | None = None
     s3_endpoint: str | None = None
     s3_bucket: str | None = None
+    s3_public_bucket: str | None = None
+    s3_private_bucket: str | None = None
     s3_access_key_id: SecretStr | None = Field(default=None, repr=False)
     s3_secret_access_key: SecretStr | None = Field(default=None, repr=False)
     s3_region: str | None = None
@@ -231,9 +234,10 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def enforce_private_body_photo_storage(self) -> Self:
         if self.media_storage_backend == "s3":
+            public_bucket = self.s3_public_bucket or self.s3_bucket
             required = {
                 "S3 endpoint": self.s3_endpoint,
-                "S3 bucket": self.s3_bucket,
+                "S3 public bucket": public_bucket,
                 "S3 access key": (
                     self.s3_access_key_id.get_secret_value() if self.s3_access_key_id else None
                 ),
@@ -248,6 +252,11 @@ class Settings(BaseSettings):
             missing = [name for name, value in required.items() if not value or not value.strip()]
             if missing:
                 raise ValueError(f"S3 media storage requires {', '.join(missing)}")
+            if self.app_env == "production":
+                if not self.s3_private_bucket or not self.s3_private_bucket.strip():
+                    raise ValueError("Production S3 media storage requires S3 private bucket")
+                if self.media_local_fallback_enabled:
+                    raise ValueError("Production S3 media storage must disable local fallback")
             for name, value in (
                 ("S3 endpoint", self.s3_endpoint),
                 ("public media base URL", self.media_public_base_url),

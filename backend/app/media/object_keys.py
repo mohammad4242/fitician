@@ -39,5 +39,7 @@ def public_object_key(public_path: str) -> str:
 def private_object_key(scope: str, storage_key: str) -> str:
     if scope not in PRIVATE_SCOPES:
         raise MediaObjectKeyError("Unknown private media scope")
+    if storage_key.startswith(("public/", "private/")):
+        raise MediaObjectKeyError("Private storage keys must remain scope-relative")
     relative = _safe_relative_path(storage_key)
     return f"private/{scope}/{relative.as_posix()}"

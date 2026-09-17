@@ -48,6 +48,8 @@ class PublicMediaReader:
                     "Public media S3 read failed; using local fallback",
                     extra={"object_key": key, "error_type": type(error).__name__},
                 )
+                if not self._settings.media_local_fallback_enabled:
+                    raise
         if content is None:
             content = self._read_local(key)
         self._cache[key] = content

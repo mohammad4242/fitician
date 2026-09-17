@@ -17,6 +17,7 @@ from fastapi import UploadFile
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import delete, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app.ai.task_provider import ConfiguredAIProvider, build_task_provider
@@ -29,6 +30,8 @@ from app.body_analysis.providers.models import (
     StructuredGenerationRequest,
 )
 from app.config import Settings
+from app.media.private_storage import PrivateStorageError, build_private_storage
+from app.media.storage import ObjectNotFoundError
 from app.nutrition.enums import (
     EstimateConfidence,
     FoodVerificationStatus,
@@ -322,6 +325,15 @@ def _store(root: Path, content: bytes) -> str:
     return key
 
 
+def _store_private(settings: Settings, content: bytes) -> str:
+    try:
+        return build_private_storage(settings).put(
+            "food-photos", content, ".jpg", "image/jpeg"
+        ).key
+    except PrivateStorageError as error:
+        raise FoodPhotoError("FOOD_PHOTO_STORAGE_UNAVAILABLE") from error
+
+
 def _map_items(db: Session, output: FoodPhotoOutput) -> list[dict[str, object]]:
     foods = db.scalars(
         select(NutritionCatalogueFood)
@@ -447,7 +459,8 @@ async def enqueue_photo(
     if len(content) > settings.food_photo_max_bytes:
         raise FoodPhotoError("FOOD_PHOTO_TOO_LARGE")
     normalized, mime_type = _normalize_image(content, settings.food_photo_max_pixels)
-    key = _store(settings.food_photo_storage_root, normalized)
+    storage = build_private_storage(settings)
+    key = _store_private(settings, normalized)
     now = datetime.now(UTC)
     estimate_id = uuid4()
     provider_name = _food_photo_provider_name(config)
@@ -467,36 +480,44 @@ async def enqueue_photo(
         consented_at=now,
         expires_at=now + timedelta(days=settings.food_photo_retention_days),
     )
-    db.add(row)
-    db.flush()
-    db.add(
-        NutritionFoodPhotoAnalysisJob(
-            estimate_id=estimate_id,
-            status="queued",
-            available_at=now,
-            max_attempts=settings.food_photo_max_attempts,
-            execution_config=_food_photo_execution_config(config, language=language),
+    try:
+        db.add(row)
+        db.flush()
+        db.add(
+            NutritionFoodPhotoAnalysisJob(
+                estimate_id=estimate_id,
+                status="queued",
+                available_at=now,
+                max_attempts=settings.food_photo_max_attempts,
+                execution_config=_food_photo_execution_config(config, language=language),
+            )
         )
-    )
-    db.flush()
-    audit_security_event(
-        db,
-        actor_user_id=user_id,
-        owner_user_id=user_id,
-        event_type="food_photo_queued",
-        resource_type="food_photo_estimate",
-        resource_id=estimate_id,
-        metadata={"provider": provider_name, "byte_size": len(normalized)},
-    )
-    record_operational_event(
-        db,
-        category="ai",
-        event_name="food_photo_estimation",
-        status="queued",
-        provider=provider_name,
-        counters={"requests": 1, "queued": 1},
-    )
-    db.commit()
+        db.flush()
+        audit_security_event(
+            db,
+            actor_user_id=user_id,
+            owner_user_id=user_id,
+            event_type="food_photo_queued",
+            resource_type="food_photo_estimate",
+            resource_id=estimate_id,
+            metadata={"provider": provider_name, "byte_size": len(normalized)},
+        )
+        record_operational_event(
+            db,
+            category="ai",
+            event_name="food_photo_estimation",
+            status="queued",
+            provider=provider_name,
+            counters={"requests": 1, "queued": 1},
+        )
+        db.commit()
+    except SQLAlchemyError as error:
+        db.rollback()
+        try:
+            storage.delete("food-photos", key)
+        except (PrivateStorageError, ObjectNotFoundError):
+            logger.exception("Unable to clean up uncommitted food photo object")
+        raise FoodPhotoError("FOOD_PHOTO_STORAGE_UNAVAILABLE") from error
     db.refresh(row)
     return photo_response(row, db=db)
 
@@ -882,9 +903,7 @@ def delete_photo(db: Session, user_id: UUID, estimate_id: UUID, settings: Settin
     )
     if row is None:
         raise FoodPhotoError("FOOD_PHOTO_ESTIMATE_NOT_FOUND")
-    food_photo_storage_path(settings.food_photo_storage_root, row.storage_key).unlink(
-        missing_ok=True
-    )
+    storage = build_private_storage(settings)
     db.execute(
         delete(NutritionFoodPhotoAnalysisJob).where(
             NutritionFoodPhotoAnalysisJob.estimate_id == row.id
@@ -903,6 +922,10 @@ def delete_photo(db: Session, user_id: UUID, estimate_id: UUID, settings: Settin
         resource_id=row.id,
     )
     db.commit()
+    try:
+        storage.delete("food-photos", row.storage_key)
+    except (PrivateStorageError, ObjectNotFoundError):
+        logger.exception("Unable to clean up deleted food photo object")
 
 
 def authorize_photo_access(
@@ -925,9 +948,8 @@ def open_photo(
 ) -> tuple[BinaryIO, str]:
     row = authorize_photo_access(db, user_id, estimate_id)
     try:
-        path = food_photo_storage_path(settings.food_photo_storage_root, row.storage_key)
-        handle = path.open("rb")
-    except OSError as error:
+        handle = build_private_storage(settings).open("food-photos", row.storage_key)
+    except (OSError, PrivateStorageError, ObjectNotFoundError) as error:
         raise FoodPhotoError("FOOD_PHOTO_STORAGE_UNAVAILABLE") from error
     audit_security_event(
         db,

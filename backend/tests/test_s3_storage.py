@@ -214,3 +214,27 @@ def test_s3_private_object_never_receives_public_acl(tmp_path: Path) -> None:
 
     assert client.upload_args is not None
     assert "ACL" not in client.upload_args
+
+
+def test_s3_private_storage_rejects_public_namespace() -> None:
+    storage = S3ObjectStorage(
+        FakeS3Client(),
+        bucket="fitician-media",
+        public_base_url="https://media.example.test",
+        namespace="private",
+    )
+
+    with pytest.raises(ObjectStorageError, match="namespace"):
+        storage.head("public/landing/story.mp4")
+
+
+def test_s3_public_storage_rejects_private_namespace() -> None:
+    storage = S3ObjectStorage(
+        FakeS3Client(),
+        bucket="fitician-media",
+        public_base_url="https://media.example.test",
+        namespace="public",
+    )
+
+    with pytest.raises(ObjectStorageError, match="namespace"):
+        storage.head("private/body-photos/aa/photo.jpg")

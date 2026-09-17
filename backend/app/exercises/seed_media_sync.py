@@ -11,12 +11,36 @@ from pathlib import Path
 
 from app.config import get_settings
 from app.exercises.seed_data import EXERCISE_SEEDS
+from app.media.object_keys import public_object_key
+from app.media.storage import ObjectStorage
 
 SEED_PREFIX = "/media/exercises/seed/"
 
 
 class SeedMediaSyncError(RuntimeError):
     pass
+
+
+def validate_seed_media(public_paths: tuple[str, ...], storage: ObjectStorage) -> tuple[str, ...]:
+    """Validate approved seed objects in object storage without a source checkout."""
+    approved = {
+        seed.media_path
+        for seed in EXERCISE_SEEDS
+        if seed.media_path.startswith(SEED_PREFIX) and seed.media_path.endswith(".gif")
+    }
+    validated: list[str] = []
+    for public_path in dict.fromkeys(public_paths):
+        if public_path not in approved:
+            raise SeedMediaSyncError(f"{public_path} is not an approved seed GIF path")
+        try:
+            key = public_object_key(public_path)
+            remote = storage.head(key)
+        except Exception as error:
+            raise SeedMediaSyncError(f"Unable to validate {public_path}") from error
+        if remote is None:
+            raise SeedMediaSyncError(f"Missing object for {public_path}")
+        validated.append(public_path)
+    return tuple(validated)
 
 
 def _sha256(path: Path) -> str:

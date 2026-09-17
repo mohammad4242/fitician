@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import logging
 import os
 import tempfile
 from datetime import UTC, date, datetime, timedelta
@@ -12,12 +13,15 @@ from uuid import UUID, uuid4
 from fastapi import UploadFile
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import or_, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
 from app.config import Settings
+from app.media.private_storage import PrivateStorageError, build_private_storage
+from app.media.storage import ObjectNotFoundError
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.nutrition.enums import (
@@ -40,6 +44,8 @@ from app.nutrition.schemas import PhysicianQueueView
 from app.nutrition.security import audit_security_event
 from app.profile.models import UserProfile
 from app.profile.photo import authorized_profile_photo_url
+
+logger = logging.getLogger(__name__)
 
 
 class ClinicalError(Exception):
@@ -122,6 +128,15 @@ def _store(root: Path, content: bytes, extension: str) -> str:
     return key
 
 
+def _store_private(settings: Settings, content: bytes, extension: str, content_type: str) -> str:
+    try:
+        return build_private_storage(settings).put(
+            "nutrition-labs", content, extension, content_type
+        ).key
+    except PrivateStorageError as error:
+        raise ClinicalError("LAB_STORAGE_UNAVAILABLE") from error
+
+
 def lab_response(row: NutritionLabDocument) -> dict[str, object]:
     return {
         "id": row.id,
@@ -190,7 +205,8 @@ async def upload_lab(
         )
         if request is None:
             raise ClinicalError("LAB_REQUEST_NOT_FOUND")
-    key = _store(settings.nutrition_lab_storage_root, normalized, extension)
+    storage = build_private_storage(settings)
+    key = _store_private(settings, normalized, extension, content_type)
     row = NutritionLabDocument(
         user_id=user_id,
         storage_key=key,
@@ -207,20 +223,28 @@ async def upload_lab(
         assigned_physician_user_id=request.physician_user_id if request else None,
         retained_until=date.today() + timedelta(days=settings.nutrition_lab_retention_days),
     )
-    db.add(row)
-    if request:
-        request.status = NutritionLabRequestStatus.UPLOADED
-    db.flush()
-    audit_security_event(
-        db,
-        actor_user_id=user_id,
-        owner_user_id=user_id,
-        event_type="lab_uploaded",
-        resource_type="lab_document",
-        resource_id=row.id,
-        metadata={"content_type": content_type, "byte_size": len(normalized)},
-    )
-    db.commit()
+    try:
+        db.add(row)
+        if request:
+            request.status = NutritionLabRequestStatus.UPLOADED
+        db.flush()
+        audit_security_event(
+            db,
+            actor_user_id=user_id,
+            owner_user_id=user_id,
+            event_type="lab_uploaded",
+            resource_type="lab_document",
+            resource_id=row.id,
+            metadata={"content_type": content_type, "byte_size": len(normalized)},
+        )
+        db.commit()
+    except SQLAlchemyError as error:
+        db.rollback()
+        try:
+            storage.delete("nutrition-labs", key)
+        except (PrivateStorageError, ObjectNotFoundError):
+            logger.exception("Unable to clean up uncommitted nutrition lab object")
+        raise ClinicalError("LAB_STORAGE_UNAVAILABLE") from error
     db.refresh(row)
     return {**lab_response(row), "duplicate": False}
 
@@ -403,8 +427,8 @@ def open_lab(
 ) -> tuple[BinaryIO, str, str]:
     row = authorize_lab_access(db, actor_id, document_id)
     try:
-        handle = lab_storage_path(settings.nutrition_lab_storage_root, row.storage_key).open("rb")
-    except OSError as error:
+        handle = build_private_storage(settings).open("nutrition-labs", row.storage_key)
+    except (OSError, PrivateStorageError, ObjectNotFoundError) as error:
         raise ClinicalError("LAB_STORAGE_UNAVAILABLE") from error
     audit_security_event(
         db,
@@ -427,7 +451,7 @@ def delete_lab(db: Session, user_id: UUID, document_id: UUID, settings: Settings
     )
     if row is None:
         raise ClinicalError("LAB_DOCUMENT_NOT_FOUND")
-    lab_storage_path(settings.nutrition_lab_storage_root, row.storage_key).unlink(missing_ok=True)
+    storage = build_private_storage(settings)
     row.purged_at = datetime.now(UTC)
     audit_security_event(
         db,
@@ -438,6 +462,10 @@ def delete_lab(db: Session, user_id: UUID, document_id: UUID, settings: Settings
         resource_id=row.id,
     )
     db.commit()
+    try:
+        storage.delete("nutrition-labs", row.storage_key)
+    except (PrivateStorageError, ObjectNotFoundError):
+        logger.exception("Unable to clean up deleted nutrition lab object")
 
 
 def review_queue(

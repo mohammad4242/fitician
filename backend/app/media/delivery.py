@@ -59,6 +59,15 @@ async def deliver_public_media(
             },
         )
 
+        if not settings.media_local_fallback_enabled:
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_503_SERVICE_UNAVAILABLE
+                    if storage_error is not None
+                    else status.HTTP_404_NOT_FOUND
+                )
+            )
+
     local_path = local_public_media_path(settings, media_path)
     if local_path.is_file():
         headers = (

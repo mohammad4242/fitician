@@ -8,6 +8,7 @@ import shutil
 import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 from urllib.parse import quote
@@ -56,6 +57,14 @@ class ObjectStorage(Protocol):
         content_type: str | None = None,
     ) -> StoredObject: ...
 
+    def put(
+        self,
+        key: str,
+        content: bytes,
+        *,
+        content_type: str | None = None,
+    ) -> StoredObject: ...
+
     def iter_bytes(self, key: str) -> Iterator[bytes]: ...
 
     def read(self, key: str) -> bytes: ...
@@ -65,6 +74,8 @@ class ObjectStorage(Protocol):
     def delete(self, key: str) -> None: ...
 
     def public_url(self, key: str) -> str: ...
+
+    def presigned_get(self, key: str, *, expires_in: int = 300) -> str: ...
 
 
 def validate_object_key(key: str) -> PurePosixPath:
@@ -95,12 +106,21 @@ def sha256_file(path: Path) -> str:
 class LocalObjectStorage:
     """Bucket-shaped local storage with collision and traversal protection."""
 
-    def __init__(self, root: Path, *, public_base_url: str = "/media") -> None:
+    def __init__(
+        self,
+        root: Path,
+        *,
+        public_base_url: str = "/media",
+        namespace: str | None = None,
+    ) -> None:
         self._root = root.resolve()
         self._public_base_url = public_base_url.rstrip("/")
+        self._namespace = namespace
 
     def _path_for(self, key: str) -> Path:
         relative = validate_object_key(key)
+        if self._namespace is not None and relative.parts[0] != self._namespace:
+            raise ObjectStorageError("Object key is outside the configured namespace")
         path = self._root.joinpath(*relative.parts)
         if not path.resolve(strict=False).is_relative_to(self._root):
             raise ObjectStorageError("Object key escapes storage root")
@@ -226,6 +246,10 @@ class LocalObjectStorage:
             raise ObjectStorageError("Private objects do not have public URLs")
         return f"{self._public_base_url}/{quote('/'.join(relative.parts[1:]), safe='/')}"
 
+    def presigned_get(self, key: str, *, expires_in: int = 300) -> str:
+        del expires_in
+        raise ObjectStorageError("Local storage does not issue presigned URLs")
+
 
 class S3ObjectStorage:
     """S3-compatible storage with SHA-256 metadata and conflict protection."""
@@ -245,14 +269,22 @@ class S3ObjectStorage:
         bucket: str,
         public_base_url: str,
         public_acl: str = "public-read",
+        namespace: str | None = None,
     ) -> None:
         self._client = client
         self._bucket = bucket
         self._public_base_url = public_base_url.rstrip("/")
         self._public_acl = public_acl
+        self._namespace = namespace
+
+    def _key(self, key: str) -> str:
+        relative = validate_object_key(key)
+        if self._namespace is not None and relative.parts[0] != self._namespace:
+            raise ObjectStorageError("Object key is outside the configured namespace")
+        return relative.as_posix()
 
     def head(self, key: str) -> ObjectMetadata | None:
-        validate_object_key(key)
+        key = self._key(key)
         try:
             response = self._client.head_object(Bucket=self._bucket, Key=key)
         except ClientError as error:
@@ -278,6 +310,7 @@ class S3ObjectStorage:
         sha256: str,
         content_type: str | None = None,
     ) -> StoredObject:
+        key = self._key(key)
         relative = validate_object_key(key)
         if not source.is_file() or source.stat().st_size == 0:
             raise ObjectStorageError("Object source must be a non-empty file")
@@ -339,8 +372,34 @@ class S3ObjectStorage:
             raise ObjectStorageError(f"S3 object metadata verification failed: {key}")
         return StoredObject(key, sha256, uploaded.size_bytes, True)
 
+    def put(
+        self,
+        key: str,
+        content: bytes,
+        *,
+        content_type: str | None = None,
+    ) -> StoredObject:
+        if not content:
+            raise ObjectStorageError("Object content must not be empty")
+        staged: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix=".object-source-", delete=False) as handle:
+                staged = Path(handle.name)
+                handle.write(content)
+            return self.put_file(
+                key,
+                staged,
+                sha256=hashlib.sha256(content).hexdigest(),
+                content_type=content_type,
+            )
+        except OSError as error:
+            raise ObjectStorageError("S3 object staging failed") from error
+        finally:
+            if staged is not None:
+                staged.unlink(missing_ok=True)
+
     def iter_bytes(self, key: str) -> Iterator[bytes]:
-        validate_object_key(key)
+        key = self._key(key)
         body: Any | None = None
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
@@ -363,7 +422,7 @@ class S3ObjectStorage:
         return b"".join(self.iter_bytes(key))
 
     def list_keys(self, prefix: str) -> tuple[str, ...]:
-        validate_object_key(prefix.rstrip("/") + "/placeholder")
+        prefix = self._key(prefix.rstrip("/") + "/placeholder").removesuffix("placeholder")
         keys: list[str] = []
         try:
             paginator = self._client.get_paginator("list_objects_v2")
@@ -374,14 +433,34 @@ class S3ObjectStorage:
         return tuple(sorted(keys))
 
     def delete(self, key: str) -> None:
-        validate_object_key(key)
+        key = self._key(key)
         try:
             self._client.delete_object(Bucket=self._bucket, Key=key)
         except (BotoCoreError, ClientError) as error:
             raise ObjectStorageError("S3 object deletion failed") from error
 
     def public_url(self, key: str) -> str:
+        key = self._key(key)
         relative = validate_object_key(key)
         if relative.parts[0] != "public":
             raise ObjectStorageError("Private objects do not have public URLs")
         return f"{self._public_base_url}/{quote(key, safe='/')}"
+
+    def open(self, key: str) -> Any:
+        return BytesIO(self.read(key))
+
+    def presigned_get(self, key: str, *, expires_in: int = 300) -> str:
+        key = self._key(key)
+        relative = validate_object_key(key)
+        if relative.parts[0] != "private":
+            raise ObjectStorageError("Presigned URLs are only available for private objects")
+        try:
+            return str(
+                self._client.generate_presigned_url(
+                    "get_object",
+                    Params={"Bucket": self._bucket, "Key": key},
+                    ExpiresIn=expires_in,
+                )
+            )
+        except (BotoCoreError, ClientError) as error:
+            raise ObjectStorageError("Private object access URL generation failed") from error

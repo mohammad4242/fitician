@@ -22,8 +22,8 @@ from app.auth.security import verify_password
 from app.body_photos.models import BodyPhoto, BodyPhotoSession, BodyPhotoStorageCleanup
 from app.body_photos.storage import BodyPhotoStorage, BodyPhotoStorageError
 from app.config import Settings
-from app.nutrition.clinical_service import ClinicalError, lab_storage_path
-from app.nutrition.food_photo_service import FoodPhotoError, food_photo_storage_path
+from app.media.private_storage import PrivateStorageError, build_private_storage
+from app.media.storage import ObjectNotFoundError
 from app.nutrition.models import NutritionFoodPhotoEstimate, NutritionLabDocument
 from app.profile.models import UserProfilePhoto
 from app.profile.photo import ProfilePhotoStorage, ProfilePhotoStorageError
@@ -218,13 +218,13 @@ def _delete_private_files(db: Session, settings: Settings, user_id: UUID) -> Non
             NutritionFoodPhotoEstimate.user_id == user_id
         )
     ).all()
+    private_storage = build_private_storage(settings)
     for key in food_keys:
         try:
-            _unlink(
-                food_photo_storage_path(settings.food_photo_storage_root, key),
-                resource="food photo",
-            )
-        except FoodPhotoError as error:
+            private_storage.delete("food-photos", key)
+        except (PrivateStorageError, ObjectNotFoundError) as error:
+            if isinstance(error, ObjectNotFoundError):
+                continue
             raise AccountDeletionExecutionError("Invalid private food photo storage key") from error
 
     lab_keys = db.scalars(
@@ -232,8 +232,10 @@ def _delete_private_files(db: Session, settings: Settings, user_id: UUID) -> Non
     ).all()
     for key in lab_keys:
         try:
-            _unlink(lab_storage_path(settings.nutrition_lab_storage_root, key), resource="lab")
-        except ClinicalError as error:
+            private_storage.delete("nutrition-labs", key)
+        except (PrivateStorageError, ObjectNotFoundError) as error:
+            if isinstance(error, ObjectNotFoundError):
+                continue
             raise AccountDeletionExecutionError("Invalid private lab storage key") from error
 
 

@@ -4,6 +4,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from app.config import Settings
+from app.media.private_storage import PrivateStorageError, build_private_storage
 
 
 class PrivateMediaError(ValueError):
@@ -23,6 +24,7 @@ class PrivateMediaResolver:
     _FILENAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.(jpg|png|webp)$")
 
     def __init__(self, settings: Settings) -> None:
+        self._storage = build_private_storage(settings)
         self._roots = {
             "body": Path(settings.body_photo_storage_root).resolve(),
             "food": Path(settings.food_photo_storage_root).resolve(),
@@ -48,10 +50,18 @@ class PrivateMediaResolver:
             raise PrivateMediaError from error
 
     def read(self, scope: str, storage_key: str, expected_mime_type: str) -> bytes:
-        path = self.resolve(scope, storage_key, expected_mime_type)
+        suffix = self._MIME_SUFFIXES.get(expected_mime_type)
+        if suffix is None:
+            raise PrivateMediaError
+        parts = self._validated_parts(storage_key)
+        if not parts[1].endswith(suffix):
+            raise PrivateMediaError
         try:
-            return path.read_bytes()
-        except (OSError, RuntimeError) as error:
+            storage_scope = {"body": "body-photos", "food": "food-photos"}.get(scope)
+            if storage_scope is None:
+                raise PrivateMediaError
+            return self._storage.read(storage_scope, storage_key)
+        except (OSError, RuntimeError, PrivateStorageError) as error:
             raise PrivateMediaError from error
 
     @classmethod

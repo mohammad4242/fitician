@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.nutrition.clinical_service import lab_storage_path
-from app.nutrition.food_photo_service import food_photo_storage_path
+from app.media.private_storage import PrivateStorageError, build_private_storage
+from app.media.storage import ObjectNotFoundError
 from app.nutrition.models import NutritionFoodPhotoEstimate, NutritionLabDocument
 from app.nutrition.security import audit_security_event, record_operational_event
 
@@ -29,10 +29,13 @@ def cleanup_private_nutrition_files(
             NutritionFoodPhotoEstimate.deleted_at.is_(None),
         )
     ).all()
+    private_storage = build_private_storage(settings)
     for photo in photos:
-        food_photo_storage_path(settings.food_photo_storage_root, photo.storage_key).unlink(
-            missing_ok=True
-        )
+        try:
+            private_storage.delete("food-photos", photo.storage_key)
+        except (PrivateStorageError, ObjectNotFoundError) as error:
+            if isinstance(error, PrivateStorageError):
+                raise
         photo.status = "expired"
         photo.deleted_at = current
         photo.raw_estimate = {}
@@ -52,9 +55,11 @@ def cleanup_private_nutrition_files(
         )
     ).all()
     for lab in labs:
-        lab_storage_path(settings.nutrition_lab_storage_root, lab.storage_key).unlink(
-            missing_ok=True
-        )
+        try:
+            private_storage.delete("nutrition-labs", lab.storage_key)
+        except (PrivateStorageError, ObjectNotFoundError) as error:
+            if isinstance(error, PrivateStorageError):
+                raise
         lab.purged_at = current
         audit_security_event(
             db,

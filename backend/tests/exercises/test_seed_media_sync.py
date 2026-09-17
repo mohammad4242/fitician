@@ -45,3 +45,16 @@ def test_seed_sync_rejects_unapproved_or_missing_source(tmp_path: Path) -> None:
         sync_seed_media(
             ("/media/exercises/seed/cable-curl.gif",), source_root=source, media_root=tmp_path
         )
+
+
+def test_s3_seed_validation_does_not_require_frontend_source(tmp_path: Path) -> None:
+    from app.exercises.seed_data import EXERCISE_SEEDS
+    from app.exercises.seed_media_sync import validate_seed_media
+    from app.media.storage import LocalObjectStorage
+
+    paths = tuple(seed.media_path for seed in EXERCISE_SEEDS if seed.media_path.endswith(".gif"))
+    storage = LocalObjectStorage(tmp_path / "bucket")
+    for path in paths:
+        storage.put(f"public{path.removeprefix('/media')}", b"gif")
+
+    assert validate_seed_media(paths, storage) == paths

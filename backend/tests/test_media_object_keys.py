@@ -41,6 +41,8 @@ def test_private_key_rejects_unknown_scope_and_traversal() -> None:
         private_object_key("public", "aa/a.jpg")
     with pytest.raises(MediaObjectKeyError):
         private_object_key("body-photos", "../a.jpg")
+    with pytest.raises(MediaObjectKeyError):
+        private_object_key("body-photos", "private/body-photos/aa/a.jpg")
 
 
 def test_local_object_storage_uses_stable_keys_without_overwriting(tmp_path) -> None:  # type: ignore[no-untyped-def]
