@@ -192,8 +192,9 @@ it("shows duplicate slug and retryable API failures", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "این شناسه قبلاً استفاده شده است",
   );
-  await user.clear(screen.getByLabelText("شناسه پایدار"));
-  await user.type(screen.getByLabelText("شناسه پایدار"), "incline-push-up-2");
+  const slug = await screen.findByLabelText("شناسه پایدار");
+  await user.clear(slug);
+  await user.type(slug, "incline-push-up-2");
   await user.click(screen.getByRole("button", { name: "ذخیره حرکت" }));
   expect(await screen.findByRole("button", { name: "دوباره تلاش کنید" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
