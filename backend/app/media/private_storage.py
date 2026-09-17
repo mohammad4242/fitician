@@ -6,7 +6,7 @@ import io
 import os
 from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
-from typing import Protocol
+from typing import BinaryIO, Protocol
 from uuid import uuid4
 
 from app.config import Settings
@@ -34,7 +34,7 @@ class PrivateStorage(Protocol):
 
     def iter_bytes(self, scope: str, storage_key: str) -> Iterator[bytes]: ...
 
-    def open(self, scope: str, storage_key: str) -> io.BufferedIOBase | io.BytesIO: ...
+    def open(self, scope: str, storage_key: str) -> BinaryIO: ...
 
     def delete(self, scope: str, storage_key: str) -> None: ...
 
@@ -106,7 +106,7 @@ class LocalPrivateStorage:
         except OSError as error:
             raise PrivateStorageError("Private media read failed") from error
 
-    def open(self, scope: str, storage_key: str) -> io.BufferedIOBase:
+    def open(self, scope: str, storage_key: str) -> BinaryIO:
         try:
             return self._path(scope, storage_key).open("rb")
         except FileNotFoundError as error:
@@ -172,7 +172,7 @@ class S3PrivateStorage:
         except ObjectStorageError as error:
             raise PrivateStorageError("Private S3 read failed") from error
 
-    def open(self, scope: str, storage_key: str) -> io.BytesIO:
+    def open(self, scope: str, storage_key: str) -> BinaryIO:
         return io.BytesIO(self.read(scope, storage_key))
 
     def delete(self, scope: str, storage_key: str) -> None:
@@ -184,12 +184,20 @@ class S3PrivateStorage:
 
 def build_private_storage(settings: Settings) -> PrivateStorage:
     roots = {
-        "body-photos": settings.body_photo_storage_root,
-        "food-photos": settings.food_photo_storage_root,
-        "profile-photos": settings.profile_photo_storage_root,
-        "nutrition-labs": settings.nutrition_lab_storage_root,
+        "body-photos": Path(
+            getattr(settings, "body_photo_storage_root", Path("var/private/body-photos"))
+        ),
+        "food-photos": Path(
+            getattr(settings, "food_photo_storage_root", Path("var/private/food-photos"))
+        ),
+        "profile-photos": Path(
+            getattr(settings, "profile_photo_storage_root", Path("var/private/profile-photos"))
+        ),
+        "nutrition-labs": Path(
+            getattr(settings, "nutrition_lab_storage_root", Path("var/private/nutrition-labs"))
+        ),
     }
-    if settings.media_storage_backend == "s3":
+    if getattr(settings, "media_storage_backend", "local") == "s3":
         from app.media.factory import build_private_s3_storage
 
         return S3PrivateStorage(build_private_s3_storage(settings))

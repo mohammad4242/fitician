@@ -1,0 +1,86 @@
+name: Deploy Fitician production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable Git SHA image tag to deploy
+        required: true
+        type: string
+      previous_image_tag:
+        description: Previous immutable tag used for rollback
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitician-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy immutable images to VPS
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Pin VPS host key
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment inputs
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          if [ -n "$PREVIOUS_IMAGE_TAG" ]; then
+            printf '%s' "$PREVIOUS_IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          fi
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+
+      - name: Authenticate VPS Docker client
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+
+      - name: Copy deployment contract
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR'"
+          scp compose.prod.yaml "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/compose.prod.yaml"
+          scp ops/deploy-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/.deploy-production.sh"
+
+      - name: Pull, migrate, health-check, and rollback on failure
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"

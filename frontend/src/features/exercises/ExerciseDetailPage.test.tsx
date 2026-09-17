@@ -169,7 +169,7 @@ describe("exercise detail content", () => {
     expect(screen.getByText("Dumbbell Bench Press")).toHaveAttribute("dir", "ltr");
     expect(screen.getByRole("img", { name: "نمایش حرکت پرس سینه دمبل" })).toHaveAttribute(
       "src",
-      detail.media_path,
+      "/media/exercises/upper-body/chest/dumbbell-bench-press.gif",
     );
     const facts = screen.getByText("عضله اصلی").closest("dl");
     expect(facts).not.toBeNull();
@@ -287,7 +287,7 @@ describe("exercise detail content", () => {
     renderDetail();
 
     expect(await screen.findByRole("img", { name: "نمایش حرکت پرس سینه دمبل" })).toHaveAttribute(
-      "src", detail.media_path,
+      "src", "/media/exercises/upper-body/chest/dumbbell-bench-press.gif",
     );
   });
 
@@ -335,7 +335,7 @@ describe("exercise detail content", () => {
     expect(screen.getByText("۱ / ۲")).toBeVisible();
     expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
       "src",
-      detail.media_path,
+      "/media/exercises/upper-body/chest/dumbbell-bench-press.gif",
     );
 
     fireEvent.pointerDown(carousel, { clientX: 240, clientY: 140 });

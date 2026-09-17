@@ -1,0 +1,156 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitician}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-fitician}
+    volumes:
+      - fitician_prod_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  agent-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      HOME: /home/agent
+      AGENT_SHARED_PRIVATE_MEDIA_ROOT: /shared-private-media
+      AGENT_WORKSPACE_ROOT: /tmp/fitician-agent
+      AGENT_AUTH_SESSION_TTL_SECONDS: ${AGENT_AUTH_SESSION_TTL_SECONDS:-600}
+      AGENT_AUTH_MAX_OUTPUT_BYTES: ${AGENT_AUTH_MAX_OUTPUT_BYTES:-65536}
+      AGENT_ANTIGRAVITY_MODELS: ${AGENT_ANTIGRAVITY_MODELS:-[]}
+      AGENT_ANTIGRAVITY_SUPPORTS_IMAGE_INPUT: ${AGENT_ANTIGRAVITY_SUPPORTS_IMAGE_INPUT:-true}
+      AGENT_CODEX_MODELS: ${AGENT_CODEX_MODELS:-[]}
+      AGENT_CODEX_SUPPORTS_IMAGE_INPUT: ${AGENT_CODEX_SUPPORTS_IMAGE_INPUT:-true}
+      AGENT_CLAUDE_MODELS: ${AGENT_CLAUDE_MODELS:-[]}
+      AGENT_CLAUDE_SUPPORTS_IMAGE_INPUT: ${AGENT_CLAUDE_SUPPORTS_IMAGE_INPUT:-false}
+    expose:
+      - "9001"
+    volumes:
+      - fitician_agent_home:/home/agent
+    cap_drop:
+      - ALL
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  migrations:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fitician}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-fitician}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  backend:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fitician}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-fitician}
+      APP_ENV: production
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      PROFILE_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/profile-photos
+      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
+      NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
+      MEDIA_ROOT: /var/lib/fitician/media
+      AGENT_SERVICE_BASE_URL: http://agent-service:9001
+    expose:
+      - "8000"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      agent-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  food-photo-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fitician}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-fitician}
+      APP_ENV: production
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      AGENT_SERVICE_BASE_URL: http://agent-service:9001
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      agent-service:
+        condition: service_healthy
+    command: ["python", "-m", "app.nutrition.food_photo_worker"]
+    restart: unless-stopped
+
+  notification-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fitician}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-fitician}
+      APP_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.notifications.worker"]
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-frontend:${IMAGE_TAG:?IMAGE_TAG is required}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  fitician_prod_postgres_data:
+  fitician_agent_home:

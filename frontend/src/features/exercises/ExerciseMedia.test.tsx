@@ -28,7 +28,7 @@ describe("ExerciseMedia", () => {
       screen.getByRole("img", { name: "نمایش حرکت پرس سینه دمبل" }),
     ).toHaveAttribute(
       "src",
-      "/exercises/upper-body/chest/dumbbell-bench-press.gif",
+      "/media/exercises/upper-body/chest/dumbbell-bench-press.gif",
     );
   });
 

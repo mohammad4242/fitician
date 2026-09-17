@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -153,6 +154,13 @@ def create_app(
     app.state.google_identity_provider = build_google_identity_provider(active_settings)
     app.state.apple_identity_provider = build_apple_identity_provider(active_settings)
     app.dependency_overrides[get_settings] = lambda: active_settings
+
+    @app.get("/healthz", include_in_schema=False)
+    def healthz() -> dict[str, str]:
+        with Session(get_engine(active_settings.database_url)) as db:
+            db.execute(text("SELECT 1"))
+        return {"status": "ok"}
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(active_settings.allowed_frontend_origins),

@@ -25,6 +25,7 @@ from app.body_analysis.providers.models import (
     StructuredGenerationResponse,
     _ProviderCompletion,
 )
+from app.private_media import PrivateMediaError, PrivateMediaResolver
 
 _SAFE_MESSAGES: dict[ProviderErrorCode, str] = {
     ProviderErrorCode.NOT_CONFIGURED: "The Agent Service is not configured.",
@@ -80,6 +81,7 @@ class AgentServiceProvider:
         max_image_bytes: int = 8 * 1024 * 1024,
         max_images: int = 5,
         max_total_image_bytes: int = 20 * 1024 * 1024,
+        private_media_resolver: PrivateMediaResolver | None = None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
@@ -97,6 +99,7 @@ class AgentServiceProvider:
         self._max_image_bytes = max_image_bytes
         self._max_images = max_images
         self._max_total_image_bytes = max_total_image_bytes
+        self._private_media_resolver = private_media_resolver
 
     async def test_connection(self) -> ProviderConnectionResult:
         models = await self.list_models()
@@ -318,6 +321,30 @@ class AgentServiceProvider:
         metadata: dict[str, object],
         images: tuple[ImageInput, ...],
     ) -> dict[str, Any]:
+        if self._private_media_resolver is not None:
+            inline_images: list[ImageInput] = []
+            try:
+                for image in images:
+                    if image.storage_scope is None or image.storage_key is None:
+                        raise PrivateMediaError
+                    content = self._private_media_resolver.read(
+                        image.storage_scope,
+                        image.storage_key,
+                        image.mime_type,
+                    )
+                    inline_images.append(
+                        ImageInput(
+                            label=image.label,
+                            mime_type=image.mime_type,
+                            base64_data=base64.b64encode(content).decode("ascii"),
+                        )
+                    )
+            except (PrivateMediaError, OSError, ValueError) as error:
+                raise AIProviderError(
+                    ProviderErrorCode.PROVIDER_UNAVAILABLE,
+                    _SAFE_MESSAGES[ProviderErrorCode.PROVIDER_UNAVAILABLE],
+                ) from error
+            return await self._request_multipart(metadata, tuple(inline_images))
         references: list[dict[str, str]] = []
         for image in images:
             if image.storage_scope is None or image.storage_key is None:

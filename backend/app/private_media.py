@@ -15,6 +15,7 @@ class PrivateMediaError(ValueError):
 class PrivateMediaResolver:
     """Resolve Backend-owned private media keys beneath configured roots."""
 
+    DEFAULT_MAX_READ_BYTES = 8 * 1024 * 1024
     _MIME_SUFFIXES = {
         "image/jpeg": ".jpg",
         "image/png": ".png",
@@ -49,7 +50,16 @@ class PrivateMediaResolver:
         except (OSError, RuntimeError, ValueError) as error:
             raise PrivateMediaError from error
 
-    def read(self, scope: str, storage_key: str, expected_mime_type: str) -> bytes:
+    def read(
+        self,
+        scope: str,
+        storage_key: str,
+        expected_mime_type: str,
+        *,
+        max_bytes: int = DEFAULT_MAX_READ_BYTES,
+    ) -> bytes:
+        if max_bytes <= 0:
+            raise PrivateMediaError
         suffix = self._MIME_SUFFIXES.get(expected_mime_type)
         if suffix is None:
             raise PrivateMediaError
@@ -60,7 +70,14 @@ class PrivateMediaResolver:
             storage_scope = {"body": "body-photos", "food": "food-photos"}.get(scope)
             if storage_scope is None:
                 raise PrivateMediaError
-            return self._storage.read(storage_scope, storage_key)
+            chunks: list[bytes] = []
+            total_bytes = 0
+            for chunk in self._storage.iter_bytes(storage_scope, storage_key):
+                total_bytes += len(chunk)
+                if total_bytes > max_bytes:
+                    raise PrivateMediaError
+                chunks.append(chunk)
+            return b"".join(chunks)
         except (OSError, RuntimeError, PrivateStorageError) as error:
             raise PrivateMediaError from error
 

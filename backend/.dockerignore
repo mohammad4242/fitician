@@ -1,4 +1,5 @@
 .env
+.env.*
 .venv
 *.egg-info
 __pycache__
@@ -7,3 +8,13 @@ __pycache__
 .ruff_cache
 tests
 var/media
+var/private
+var/imports
+var/media-migration
+var/media-migration-source
+var/
+reports
+artifacts
+*.apk
+.codex-tmp
+.codex-debug

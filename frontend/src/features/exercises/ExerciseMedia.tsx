@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { MediaType } from "./types";
+import { publicMediaPath } from "../../shared/publicMedia";
 
 const placeholderPath = "/exercises/exercise-placeholder.svg";
 
@@ -14,15 +15,16 @@ type ExerciseMediaProps = {
 export function ExerciseMedia({ ambient = false, path, name, mediaType }: ExerciseMediaProps) {
   const [failed, setFailed] = useState(false);
   const alt = localizedAlt(name);
+  const resolvedPath = publicMediaPath(path);
 
-  if (mediaType === "placeholder" || failed || !path) {
+  if (mediaType === "placeholder" || failed || !resolvedPath) {
     return <img src={placeholderPath} alt={alt} />;
   }
 
   if (mediaType === "video") {
     return (
       <video
-        src={path}
+        src={resolvedPath}
         aria-label={alt}
         autoPlay={ambient}
         controls={!ambient}
@@ -35,7 +37,7 @@ export function ExerciseMedia({ ambient = false, path, name, mediaType }: Exerci
     );
   }
 
-  return <img src={path} alt={alt} onError={() => setFailed(true)} />;
+  return <img src={resolvedPath} alt={alt} onError={() => setFailed(true)} />;
 }
 
 function localizedAlt(name: string): string {

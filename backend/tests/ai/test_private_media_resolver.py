@@ -89,6 +89,21 @@ def test_resolver_rejects_mime_extension_mismatch(tmp_path: Path) -> None:
         resolver.resolve("body", "ab/abcdef0123456789abcdef0123456789.jpg", "image/png")
 
 
+def test_resolver_bounds_private_reads(tmp_path: Path) -> None:
+    resolver, body_root, _ = _resolver(tmp_path)
+    path = body_root / "ab/abcdef0123456789abcdef0123456789.jpg"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"0123456789")
+
+    with pytest.raises(PrivateMediaError, match="invalid private media reference"):
+        resolver.read(
+            "body",
+            "ab/abcdef0123456789abcdef0123456789.jpg",
+            "image/jpeg",
+            max_bytes=9,
+        )
+
+
 def test_resolver_rejects_symlink_escape(tmp_path: Path) -> None:
     resolver, body_root, _ = _resolver(tmp_path)
     outside = tmp_path / "outside.jpg"

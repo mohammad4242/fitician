@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { IRAN_TIME_ZONE, formatTehranDateForLocale, localIsoDate } from "@fitician/core";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { resolveWebAppError } from "../../shared/appError";
+import { publicMediaPath } from "../../shared/publicMedia";
 import { useAuth } from "../auth/AuthContext";
 import * as api from "./api";
 import type { AdminFoodCatalogueItem, AdminFoodCatalogueResponse, FoodCatalogueItem, FoodCatalogueResponse } from "./api";
@@ -258,7 +259,7 @@ function FoodImage({ food, language }: { food: FoodCatalogueItem; language: "fa"
   if (!food.image_url || failed) {
     return <div className="food-shelf-card__image food-shelf-card__image--fallback" role="img" aria-label={language === "fa" ? `تصویر پیش‌فرض ${food.name_fa}` : `Default image for ${food.name_en}`}><span aria-hidden="true">◇</span></div>;
   }
-  return <img className="food-shelf-card__image" src={food.image_url} alt={name} onError={() => setFailure({ imageUrl: food.image_url, failed: true })} />;
+  return <img className="food-shelf-card__image" src={publicMediaPath(food.image_url)} alt={name} onError={() => setFailure({ imageUrl: food.image_url, failed: true })} />;
 }
 
 function FoodDetails({ food, language, onClose }: { food: FoodCatalogueItem; language: "fa" | "en"; onClose: () => void }) {

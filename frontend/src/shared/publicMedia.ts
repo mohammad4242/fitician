@@ -18,3 +18,12 @@ export function publicMediaUrl(objectKey: string): string {
   if (base) return `${base}/${key}`;
   return `/media/${key.slice(PUBLIC_PREFIX.length)}`;
 }
+
+export function publicMediaPath(path: string): string {
+  if (!path || path === "/exercises/exercise-placeholder.svg") return path;
+  if (path.startsWith("/media/")) return publicMediaUrl(`public/${path.slice("/media/".length)}`);
+  if (path.startsWith("/exercises/")) {
+    return publicMediaUrl(`public/exercises/${path.slice("/exercises/".length)}`);
+  }
+  return path;
+}

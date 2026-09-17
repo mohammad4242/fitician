@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import "./MealThumbnail.css";
+import { publicMediaPath } from "./publicMedia";
 
 type Props = {
   imageUrl: string | null | undefined;
@@ -26,5 +27,12 @@ export function MealThumbnail({ imageUrl, alt, fallbackLabel, className = "" }: 
     );
   }
 
-  return <img alt={alt} className={classes} onError={() => setFailed(true)} src={imageUrl} />;
+  return (
+    <img
+      alt={alt}
+      className={classes}
+      onError={() => setFailed(true)}
+      src={publicMediaPath(imageUrl)}
+    />
+  );
 }

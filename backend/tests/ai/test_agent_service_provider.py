@@ -206,6 +206,39 @@ def test_analyze_stored_images_sends_only_json_storage_references() -> None:
     assert b"multipart/form-data" not in seen["body"]
 
 
+def test_s3_private_resolver_sends_bounded_inline_bytes_to_agent() -> None:
+    seen: dict[str, Any] = {}
+    image_bytes = b"s3-private-image"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        seen["body"] = request.content
+        return httpx.Response(200, json=_output())
+
+    class Resolver:
+        def read(self, scope: str, key: str, mime_type: str) -> bytes:
+            assert (scope, key, mime_type) == (
+                "body",
+                "ab/abcdef0123456789abcdef0123456789.jpg",
+                "image/jpeg",
+            )
+            return image_bytes
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    provider = AgentServiceProvider(
+        client,
+        base_url="http://agent-service:9001",
+        token="agent-service-test-token",
+        agent_name="antigravity",
+        private_media_resolver=Resolver(),  # type: ignore[arg-type]
+    )
+    _run(provider.analyze_images(_request(), images=(_stored_image(),)))
+
+    assert seen["url"] == "http://agent-service:9001/v1/analyze-images"
+    assert image_bytes in seen["body"]
+    assert b"analyze-stored-images" not in seen["body"]
+
+
 def test_analyze_images_rejects_mixed_inline_and_stored_sources() -> None:
     inline = ImageInput(label="side", mime_type="image/jpeg", base64_data="c2lkZQ==")
 
