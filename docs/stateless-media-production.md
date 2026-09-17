@@ -16,9 +16,9 @@ convenience tag and is never the deployment identifier.
 
 ## VPS contract
 
-The application directory contains only the production Compose file and an
+The application directory contains the production Compose file, `Caddyfile`, and an
 operator-managed `.env` file. The Compose file creates named Docker volumes
-for PostgreSQL and the Agent Service home. There are no source, media, upload,
+for PostgreSQL, Caddy certificates, and the Agent Service home. There are no source, media, upload,
 import, report, or build-artifact bind mounts.
 
 The backend and frontend images contain no runtime public/private media
@@ -29,7 +29,9 @@ Missing S3 objects produce real storage errors rather than reading local disk.
 
 `compose.prod.yaml` runs PostgreSQL, one-shot Alembic migrations, the backend,
 food-photo and notification workers, the Agent Service, and the static frontend
-container. The frontend container proxies `/api/` and `/media/` to the backend.
+container. Caddy owns public ports 80 and 443, obtains HTTPS certificates for
+`FITICIAN_DOMAIN`, and routes `/api/` and `/media/` directly to the backend.
+The frontend and backend containers have no published host ports.
 The Agent Service receives bounded in-memory image bytes from the backend when
 private media is S3-backed, so it has no private-media mount.
 
@@ -41,7 +43,11 @@ plus:
 ```text
 DOCKERHUB_USERNAME=
 IMAGE_TAG=
+FITICIAN_DOMAIN=
 POSTGRES_PASSWORD=
+FRONTEND_ORIGIN=https://<FITICIAN_DOMAIN>
+COOKIE_SECURE=true
+SESSION_COOKIE_NAME=__Host-fitician_session
 MEDIA_STORAGE_BACKEND=s3
 MEDIA_LOCAL_FALLBACK_ENABLED=false
 S3_ENDPOINT=
@@ -66,7 +72,7 @@ frontend build may use the non-secret `VITE_MEDIA_PUBLIC_BASE_URL` variable.
 ## Deployment and rollback
 
 `ops/deploy-production.sh` is an operator or CI helper. It is not a VPS
-source-checkout requirement. The VPS only needs `compose.prod.yaml` and `.env`
+source-checkout requirement. The VPS only needs `compose.prod.yaml`, `Caddyfile`, and `.env`
 under the application directory. Run the helper from a deployment host with
 `COMPOSE_FILE` pointing at that Compose file, or run the same Docker Compose
 commands from `/opt/fitician`.

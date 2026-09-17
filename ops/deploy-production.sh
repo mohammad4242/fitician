@@ -42,4 +42,12 @@ if ! compose exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null; the
   exit 1
 fi
 
+domain=$(compose exec -T caddy sh -c 'printf %s "$FITICIAN_DOMAIN"')
+if [ -z "$domain" ] || ! curl --fail --silent --show-error \
+  --resolve "$domain:443:127.0.0.1" "https://$domain/healthz" >/dev/null; then
+  echo "HTTPS ingress readiness check failed" >&2
+  rollback
+  exit 1
+fi
+
 echo "Production deployment verified for immutable image tag ${image_tag}"

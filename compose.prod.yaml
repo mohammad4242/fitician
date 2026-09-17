@@ -78,6 +78,8 @@ services:
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
     expose:
       - "8000"
+    command:
+      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
     depends_on:
@@ -142,8 +144,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz"]
       interval: 10s
@@ -151,6 +153,24 @@ services:
       retries: 12
     restart: unless-stopped
 
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      FITICIAN_DOMAIN: ${FITICIAN_DOMAIN:?FITICIAN_DOMAIN is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - fitician_caddy_data:/data
+      - fitician_caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   fitician_prod_postgres_data:
   fitician_agent_home:
+  fitician_caddy_data:
+  fitician_caddy_config:
