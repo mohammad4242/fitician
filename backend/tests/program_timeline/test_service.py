@@ -233,6 +233,7 @@ def test_legacy_cycle_is_neutral_and_cycle_completed_is_explicit(db: Session) ->
         workout_plan_id=plan.id,
         duration_weeks=4,
         started_at=datetime(2026, 9, 13, tzinfo=UTC),
+        start_date=date(2026, 9, 13),
     )
     db.add(legacy)
     db.flush()
