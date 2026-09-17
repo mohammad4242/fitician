@@ -74,13 +74,15 @@ responses were completed with an immutable transfer fallback and then verified b
 | **Total** | **1,989** | **2,601,292,142** | **1,989** | **1,989** |
 
 The local directories remain the rollback source after verification. Existing administrative write
-routes still write to local media; a later dual-write step is required before all new public uploads
-are S3 native.
+routes use the same provider-neutral storage abstraction. With `MEDIA_STORAGE_BACKEND=s3`, admin
+exercise, food-catalogue, and meal-catalogue uploads write to the approved `public/` object key,
+verify the remote size and SHA-256, and retain the local copy for fallback. Database commits happen
+before replacement cleanup, and shared old image objects are retained. `local` keeps the original
+local-only behavior.
 
-35 incomplete multipart upload sessions from interrupted exercise attempts remain in the bucket. They
-are not completed objects and are outside the readable media namespace. They were not aborted because
-this migration is prohibited from deleting remote data. Review and abort them in a separate, explicitly
-authorized storage-maintenance task.
+The 35 incomplete multipart upload sessions from interrupted exercise attempts were confirmed to be
+the approved migration keys (`public/exercises/...`) and aborted explicitly after migration. No
+unrelated multipart sessions remained. No completed object or local file was deleted.
 
 ## Previous reconciliation commit size
 
