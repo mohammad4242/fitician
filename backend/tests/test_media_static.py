@@ -9,6 +9,15 @@ from app.config import Settings
 from app.main import create_app
 
 
+def test_public_media_delivery_is_not_in_openapi(test_settings: Settings) -> None:
+    app = create_app(test_settings)
+
+    assert "/media/{media_path}" not in app.openapi()["paths"]
+    assert any(
+        getattr(route, "path", None) == "/media/{media_path:path}" for route in app.routes
+    )
+
+
 def test_static_media_serves_webp_with_explicit_content_type(
     test_settings: Settings,
     monkeypatch: pytest.MonkeyPatch,

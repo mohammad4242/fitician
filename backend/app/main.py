@@ -356,6 +356,7 @@ def create_app(
         f"{active_settings.media_public_path.rstrip('/')}/{{media_path:path}}",
         methods=["GET", "HEAD"],
         name="public-media",
+        include_in_schema=False,
     )
     async def public_media(media_path: str) -> Response:
         return await deliver_public_media(
