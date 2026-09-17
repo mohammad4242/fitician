@@ -9,6 +9,7 @@ from app.auth.models import User
 from app.config import Settings
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
+from tests.admin.test_public_media_s3_writes import FakePublicStorage
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
@@ -204,6 +205,53 @@ def test_admin_uploads_and_replaces_food_image_without_exposing_price_to_member(
     member = next(item for item in member_items if item["slug"] == "chicken-breast")
     assert member["image_url"] == second.json()["image_url"]
     assert "price" not in member
+
+
+def test_admin_food_image_s3_upload_and_replace_are_provider_neutral(
+    client: TestClient,
+    db: Session,
+    test_settings: Settings,
+    monkeypatch,
+) -> None:
+    _register_with_mode(
+        client,
+        db,
+        email="admin-catalogue-s3-image@example.com",
+        mode=ProductMode.NUTRITION,
+        admin=True,
+    )
+    storage = FakePublicStorage()
+    monkeypatch.setattr("app.admin.media.build_s3_storage", lambda settings: storage)
+    test_settings.media_storage_backend = "s3"
+    test_settings.media_public_base_url = "https://media.example.test"
+    test_settings.s3_endpoint = "https://s3.example.test"
+    test_settings.s3_bucket = "fitician-media"
+    test_settings.s3_access_key_id = "access"
+    test_settings.s3_secret_access_key = "secret"
+    test_settings.s3_region = "ir-thr-at1"
+
+    first = client.post(
+        "/api/v1/nutrition/admin/foods/chicken-breast/image",
+        headers=ORIGIN,
+        files={"file": ("chicken.png", PNG_BYTES, "image/png")},
+    )
+    assert first.status_code == 200
+    first_url = first.json()["image_url"]
+    first_key = f"public/{first_url.removeprefix('/media/')}"
+    assert first_key in storage.objects
+    assert first_url.startswith("/media/food-catalogue/")
+
+    second = client.post(
+        "/api/v1/nutrition/admin/foods/chicken-breast/image",
+        headers=ORIGIN,
+        files={"file": ("replacement.png", PNG_BYTES + b"replacement", "image/png")},
+    )
+    assert second.status_code == 200
+    second_url = second.json()["image_url"]
+    assert second_url != first_url
+    assert first_key in storage.deleted
+    assert first_key not in storage.objects
+    assert f"public/{second_url.removeprefix('/media/')}" in storage.objects
 
 
 def test_food_image_upload_requires_admin_and_trusted_origin(

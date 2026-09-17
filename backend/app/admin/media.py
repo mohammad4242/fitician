@@ -17,6 +17,9 @@ from app.exercises.media_storage import (
     ensure_exercise_video_poster,
     publish_exercise_media,
 )
+from app.media.factory import build_s3_storage
+from app.media.object_keys import MediaObjectKeyError, public_object_key
+from app.media.storage import ObjectStorage, ObjectStorageError, sha256_file
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +44,20 @@ class MediaValidationError(ValueError):
     pass
 
 
+class MediaStorageError(RuntimeError):
+    """Raised when a validated public-media storage operation fails."""
+
+
 @dataclass(frozen=True)
 class StoredMedia:
     public_path: str
     media_type: MediaType
     absolute_path: Path
     created: bool = True
+    object_key: str | None = None
+    storage: ObjectStorage | None = None
+    remote_created: bool = False
+    remote_object_keys: tuple[str, ...] = ()
 
 
 def _validate_filename(filename: str | None) -> tuple[str, str, MediaType]:
@@ -157,6 +168,59 @@ def _publish_temporary(
     raise MediaValidationError("Could not allocate a unique media filename")
 
 
+def _public_storage(settings: Settings) -> ObjectStorage | None:
+    if settings.media_storage_backend != "s3":
+        return None
+    try:
+        return build_s3_storage(settings)
+    except (ObjectStorageError, ValueError) as error:
+        raise MediaStorageError("Public media storage is not configured") from error
+
+
+def _upload_public_object(
+    storage: ObjectStorage,
+    public_path: str,
+    source: Path,
+    *,
+    content_type: str,
+) -> tuple[str, bool]:
+    try:
+        key = public_object_key(public_path)
+        digest = sha256_file(source)
+    except (MediaObjectKeyError, OSError) as error:
+        raise MediaStorageError("Public media upload failed") from error
+    try:
+        stored = storage.put_file(
+            key,
+            source,
+            sha256=digest,
+            content_type=content_type,
+        )
+    except ObjectStorageError as error:
+        raise MediaStorageError("Public media upload failed") from error
+    try:
+        remote = storage.head(key)
+    except ObjectStorageError as error:
+        if stored.created:
+            _cleanup_remote_objects(storage, (key,))
+        raise MediaStorageError("Public media upload verification failed") from error
+    if remote is None or remote.size_bytes != source.stat().st_size or remote.sha256 != digest:
+        if stored.created:
+            _cleanup_remote_objects(storage, (key,))
+        raise MediaStorageError("Public media upload verification failed")
+    return key, stored.created
+
+
+def _cleanup_remote_objects(storage: ObjectStorage | None, keys: tuple[str, ...]) -> None:
+    if storage is None:
+        return
+    for key in keys:
+        try:
+            storage.delete(key)
+        except ObjectStorageError:
+            logger.error("Unable to clean up public media object", extra={"object_key": key})
+
+
 def store_upload(
     upload: UploadFile,
     settings: Settings,
@@ -177,7 +241,10 @@ def store_upload(
             else settings.media_max_bytes
         ),
     )
+    storage: ObjectStorage | None = None
+    remote_keys: list[str] = []
     try:
+        storage = _public_storage(settings)
         with temporary_path.open("rb") as file_handle:
             detected_extension = _signature_extension(file_handle.read(64))
         if detected_extension != extension and not (
@@ -200,15 +267,36 @@ def store_upload(
             raise MediaValidationError(str(error)) from error
         if media_type is MediaType.VIDEO:
             try:
-                ensure_exercise_video_poster(published.public_path, settings=settings)
+                poster = ensure_exercise_video_poster(published.public_path, settings=settings)
+                if storage is not None and poster.absolute_path.is_file():
+                    poster_key, poster_created = _upload_public_object(
+                        storage,
+                        poster.public_path,
+                        poster.absolute_path,
+                        content_type="image/webp",
+                    )
+                    if poster_created:
+                        remote_keys.append(poster_key)
             except ExerciseMediaStorageError:
                 logger.warning(
                     "Exercise video stored without poster: %s",
                     published.public_path,
                     exc_info=True,
                 )
+        if storage is not None:
+            media_key, media_created = _upload_public_object(
+                storage,
+                published.public_path,
+                published.absolute_path,
+                content_type=expected_content_type,
+            )
+            if media_created:
+                remote_keys.append(media_key)
         temporary_path.unlink(missing_ok=True)
     except Exception:
+        _cleanup_remote_objects(storage, tuple(remote_keys))
+        if "published" in locals() and published.created:
+            published.absolute_path.unlink(missing_ok=True)
         temporary_path.unlink(missing_ok=True)
         raise
 
@@ -216,12 +304,18 @@ def store_upload(
         public_path=published.public_path,
         media_type=media_type,
         absolute_path=published.absolute_path,
-        created=published.created,
+        created=published.created or bool(remote_keys),
+        object_key=remote_keys[0] if remote_keys else None,
+        storage=storage,
+        remote_created=bool(remote_keys),
+        remote_object_keys=tuple(remote_keys),
     )
 
 
 def discard_media(media: StoredMedia) -> None:
-    if media.created:
+    if media.remote_created:
+        _cleanup_remote_objects(media.storage, media.remote_object_keys)
+    if media.created and media.absolute_path is not None:
         media.absolute_path.unlink(missing_ok=True)
 
 
@@ -234,11 +328,7 @@ def discard_managed_media_file(public_path: str | None, settings: Settings) -> N
     relative_path = public_path.removeprefix(expected_prefix)
     if not relative_path:
         return
-    media_root = settings.media_root.resolve()
-    target = (media_root / relative_path).resolve()
-    if target == media_root or media_root not in target.parents:
-        return
-    target.unlink(missing_ok=True)
+    _discard_public_path(public_path, settings, relative_path)
 
 
 def store_image_upload(
@@ -266,7 +356,10 @@ def store_image_upload(
 
     storage_root = settings.media_root / subdirectory
     temporary_path = _write_temporary(upload, settings, storage_root)
+    storage: ObjectStorage | None = None
+    remote_keys: list[str] = []
     try:
+        storage = _public_storage(settings)
         with temporary_path.open("rb") as file_handle:
             detected_extension = _signature_extension(file_handle.read(64))
         if detected_extension != extension and not (
@@ -274,7 +367,19 @@ def store_image_upload(
         ):
             raise MediaValidationError("Image signature does not match its extension")
         final_path = _publish_temporary(temporary_path, extension, storage_root)
+        if storage is not None:
+            remote_key, remote_created = _upload_public_object(
+                storage,
+                f"{settings.media_public_path.rstrip('/')}/{subdirectory}/{final_path.name}",
+                final_path,
+                content_type=expected_content_type,
+            )
+            if remote_created:
+                remote_keys.append(remote_key)
     except Exception:
+        _cleanup_remote_objects(storage, tuple(remote_keys))
+        if "final_path" in locals() and final_path.exists():
+            final_path.unlink(missing_ok=True)
         temporary_path.unlink(missing_ok=True)
         raise
 
@@ -283,6 +388,11 @@ def store_image_upload(
         public_path=f"{public_root}/{subdirectory}/{final_path.name}",
         media_type=MediaType.IMAGE,
         absolute_path=final_path,
+        created=True,
+        object_key=remote_keys[0] if remote_keys else None,
+        storage=storage,
+        remote_created=bool(remote_keys),
+        remote_object_keys=tuple(remote_keys),
     )
 
 
@@ -302,4 +412,19 @@ def discard_managed_media_path(
     managed_root = (settings.media_root / subdirectory).resolve()
     target = (managed_root / filename).resolve()
     if target.parent == managed_root:
-        target.unlink(missing_ok=True)
+        _discard_public_path(public_path, settings, f"{subdirectory}/{filename}")
+
+
+def _discard_public_path(public_path: str, settings: Settings, relative_path: str) -> None:
+    media_root = settings.media_root.resolve()
+    target = (media_root / relative_path).resolve()
+    if target == media_root or media_root not in target.parents:
+        return
+    if settings.media_storage_backend == "s3":
+        try:
+            storage = _public_storage(settings)
+            if storage is not None:
+                storage.delete(public_object_key(public_path))
+        except (MediaObjectKeyError, MediaStorageError, ObjectStorageError) as error:
+            raise MediaStorageError("Public media delete failed") from error
+    target.unlink(missing_ok=True)

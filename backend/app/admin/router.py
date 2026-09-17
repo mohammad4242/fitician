@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from app.admin.dependencies import require_admin
 from app.admin.exceptions import DuplicateExerciseSlugError
 from app.admin.media import (
+    MediaStorageError,
     MediaValidationError,
     StoredMedia,
     discard_managed_media_file,
@@ -101,6 +102,17 @@ def _validation_error(
             "fields": [{"field": field, "code": "invalid"}],
         },
     )
+
+
+def _media_storage_error(error: MediaStorageError) -> HTTPException:
+    message = str(error).casefold()
+    if "delete" in message:
+        code = "MEDIA_DELETE_FAILED"
+    elif "verification" in message:
+        code = "MEDIA_UPLOAD_VERIFICATION_FAILED"
+    else:
+        code = "MEDIA_UPLOAD_FAILED"
+    return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail={"code": code})
 
 
 def _structure_write_error(error: StructureWriteError) -> HTTPException:
@@ -729,6 +741,11 @@ def update_exercise(
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
         raise _validation_error("media") from None
+    except MediaStorageError as error:
+        if stored_media is not None:
+            discard_media(stored_media)
+        _discard_media_assets(stored_media_assets)
+        raise _media_storage_error(error) from None
     except ValueError:
         if stored_media is not None:
             discard_media(stored_media)
@@ -813,6 +830,11 @@ def create_exercise(
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
         raise _validation_error("media") from None
+    except MediaStorageError as error:
+        if stored_media is not None:
+            discard_media(stored_media)
+        _discard_media_assets(stored_media_assets)
+        raise _media_storage_error(error) from None
     except ValueError:
         if stored_media is not None:
             discard_media(stored_media)

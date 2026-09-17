@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.admin.dependencies import AdminUser
 from app.admin.media import (
+    MediaStorageError,
     MediaValidationError,
     discard_managed_media_path,
     discard_media,
@@ -386,6 +387,64 @@ def _nutrition_media_error(error: MediaValidationError) -> HTTPException:
     )
 
 
+def _nutrition_storage_error(error: MediaStorageError) -> HTTPException:
+    message = str(error).casefold()
+    code = (
+        "MEDIA_DELETE_FAILED"
+        if "delete" in message
+        else "MEDIA_UPLOAD_VERIFICATION_FAILED"
+        if "verification" in message
+        else "MEDIA_UPLOAD_FAILED"
+    )
+    return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail={"code": code})
+
+
+def _discard_food_image_if_unreferenced(
+    db: DatabaseSession,
+    image_path: str | None,
+    food_id: UUID,
+    settings: AppSettings,
+) -> None:
+    if image_path is None:
+        return
+    references = (
+        db.scalar(
+            select(func.count())
+            .select_from(NutritionCatalogueFood)
+            .where(
+                NutritionCatalogueFood.image_path == image_path,
+                NutritionCatalogueFood.id != food_id,
+            )
+        )
+        or 0
+    )
+    if references == 0:
+        discard_managed_media_path(image_path, settings, "food-catalogue")
+
+
+def _discard_meal_image_if_unreferenced(
+    db: DatabaseSession,
+    image_path: str | None,
+    meal_id: UUID,
+    settings: AppSettings,
+) -> None:
+    if image_path is None:
+        return
+    references = (
+        db.scalar(
+            select(func.count())
+            .select_from(NutritionCatalogueMeal)
+            .where(
+                NutritionCatalogueMeal.image_path == image_path,
+                NutritionCatalogueMeal.id != meal_id,
+            )
+        )
+        or 0
+    )
+    if references == 0:
+        discard_managed_media_path(image_path, settings, "meal-catalogue")
+
+
 @router.get("/foods", response_model=list[CatalogueFoodResponse])
 def read_verified_foods(db: DatabaseSession, user: CurrentUser) -> list[CatalogueFoodResponse]:
     return list_verified_foods(db)
@@ -474,6 +533,8 @@ def upload_catalogue_food_image(
         stored = store_image_upload(file, settings, "food-catalogue")
     except MediaValidationError as error:
         raise _nutrition_media_error(error) from None
+    except MediaStorageError as error:
+        raise _nutrition_storage_error(error) from None
     previous_path = food.image_path
     try:
         food.image_path = stored.public_path
@@ -482,7 +543,10 @@ def upload_catalogue_food_image(
         db.rollback()
         discard_media(stored)
         raise
-    discard_managed_media_path(previous_path, settings, "food-catalogue")
+    try:
+        _discard_food_image_if_unreferenced(db, previous_path, food.id, settings)
+    except MediaStorageError as error:
+        raise _nutrition_storage_error(error) from None
     return FoodCatalogueImageResponse(image_url=stored.public_path)
 
 
@@ -817,6 +881,8 @@ def upload_catalogue_meal_image(
         stored = store_image_upload(file, settings, "meal-catalogue")
     except MediaValidationError as error:
         raise _nutrition_media_error(error) from None
+    except MediaStorageError as error:
+        raise _nutrition_storage_error(error) from None
     previous_path = meal.image_path
     try:
         meal.image_path = stored.public_path
@@ -825,7 +891,10 @@ def upload_catalogue_meal_image(
         db.rollback()
         discard_media(stored)
         raise
-    discard_managed_media_path(previous_path, settings, "meal-catalogue")
+    try:
+        _discard_meal_image_if_unreferenced(db, previous_path, meal.id, settings)
+    except MediaStorageError as error:
+        raise _nutrition_storage_error(error) from None
     return CatalogueMealImageResponse(image_url=stored.public_path)
 
 
@@ -855,7 +924,10 @@ def remove_catalogue_meal(
             detail={"code": "meal_referenced"},
         ) from exc
     if image_path:
-        discard_managed_media_path(image_path, settings, "meal-catalogue")
+        try:
+            _discard_meal_image_if_unreferenced(db, image_path, meal_id, settings)
+        except MediaStorageError as error:
+            raise _nutrition_storage_error(error) from None
 
 
 @router.get(

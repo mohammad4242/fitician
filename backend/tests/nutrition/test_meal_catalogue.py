@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.models import User
 from app.config import Settings
+from tests.admin.test_public_media_s3_writes import FakePublicStorage
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
@@ -284,6 +285,56 @@ def test_admin_uploads_and_replaces_meal_catalogue_image(
     listed = client.get("/api/v1/nutrition/admin/meals?category=lunch").json()["items"]
     saved_meal = next(item for item in listed if item["id"] == str(meal.id))
     assert saved_meal["image_url"] == second.json()["image_url"]
+
+
+def test_admin_meal_image_s3_upload_and_replace_are_provider_neutral(
+    client: TestClient,
+    db: Session,
+    test_settings: Settings,
+    monkeypatch,
+) -> None:
+    from app.nutrition.food_catalogue import seed_base_iranian_food_catalogue
+    from app.nutrition.meal_catalogue import seed_meal_catalogue
+    from app.nutrition.models import NutritionCatalogueMeal
+
+    seed_base_iranian_food_catalogue(db)
+    _add_required_imported_foods(db)
+    seed_meal_catalogue(db)
+    _register_admin(client, db)
+    meal = db.scalar(select(NutritionCatalogueMeal).where(NutritionCatalogueMeal.code == "LU01"))
+    assert meal is not None
+
+    storage = FakePublicStorage()
+    monkeypatch.setattr("app.admin.media.build_s3_storage", lambda settings: storage)
+    test_settings.media_storage_backend = "s3"
+    test_settings.media_public_base_url = "https://media.example.test"
+    test_settings.s3_endpoint = "https://s3.example.test"
+    test_settings.s3_bucket = "fitician-media"
+    test_settings.s3_access_key_id = "access"
+    test_settings.s3_secret_access_key = "secret"
+    test_settings.s3_region = "ir-thr-at1"
+
+    first = client.post(
+        f"/api/v1/nutrition/admin/meals/{meal.id}/image",
+        headers=ORIGIN,
+        files={"file": ("meal.png", PNG_BYTES, "image/png")},
+    )
+    assert first.status_code == 200
+    first_url = first.json()["image_url"]
+    first_key = f"public/{first_url.removeprefix('/media/')}"
+    assert first_key in storage.objects
+
+    second = client.post(
+        f"/api/v1/nutrition/admin/meals/{meal.id}/image",
+        headers=ORIGIN,
+        files={"file": ("replacement.png", PNG_BYTES + b"replacement", "image/png")},
+    )
+    assert second.status_code == 200
+    second_url = second.json()["image_url"]
+    assert second_url != first_url
+    assert first_key in storage.deleted
+    assert first_key not in storage.objects
+    assert f"public/{second_url.removeprefix('/media/')}" in storage.objects
 
 
 def test_admin_rejects_verified_meal_with_draft_food_or_invalid_bounds(
