@@ -71,7 +71,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
           if [ -n "$PREVIOUS_IMAGE_TAG" ]; then
@@ -97,7 +97,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR'"
           scp compose.prod.yaml "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/compose.prod.yaml"
@@ -109,7 +109,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
             "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
