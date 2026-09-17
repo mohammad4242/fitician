@@ -69,12 +69,16 @@ jobs:
 
       - name: Validate deployment inputs
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
           if [ -n "$PREVIOUS_IMAGE_TAG" ]; then
             printf '%s' "$PREVIOUS_IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
           fi
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
           printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
 
       - name: Authenticate VPS Docker client
@@ -82,7 +86,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_USER: ${{ vars.VPS_USER }}
         run: |
           test -n "$DOCKERHUB_USERNAME"
           test -n "$DOCKERHUB_TOKEN"
@@ -92,7 +96,7 @@ jobs:
       - name: Copy deployment contract
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR'"
@@ -104,7 +108,7 @@ jobs:
       - name: Pull, migrate, health-check, and rollback on failure
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
