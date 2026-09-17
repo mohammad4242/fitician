@@ -281,6 +281,10 @@ jobs:
           esac
           curl --fail --silent --show-error --head --max-time 20 \
             "${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4" >/dev/null
+      - name: Mask Google web client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: echo "::add-mask::$GOOGLE_CLIENT_ID"
       - name: Require Google web client ID
         env:
           GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
