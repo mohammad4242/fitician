@@ -110,6 +110,41 @@ it("uses the Google Identity credential and reaches the authenticated flow", asy
   expect(await screen.findByText("dashboard reached")).toBeVisible();
 });
 
+it("shows the Google-specific message for a backend authentication error", async () => {
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fitician-client-id.apps.googleusercontent.com");
+  let googleCallback: ((response: { credential: string }) => void) | undefined;
+  const initialize = vi.fn(
+    (options: {
+      client_id: string;
+      callback: (response: { credential: string }) => void;
+    }) => {
+      googleCallback = options.callback;
+    },
+  );
+  Object.defineProperty(window, "google", {
+    configurable: true,
+    value: { accounts: { id: { initialize, renderButton: vi.fn() } } },
+  });
+  vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ detail: { code: "AUTH_GOOGLE_FAILED" } }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+  renderPage();
+  await waitFor(() => expect(initialize).toHaveBeenCalledOnce());
+  await act(async () => {
+    googleCallback?.({ credential: "signed-google-id-token" });
+  });
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
+  );
+});
+
 it("shows a clear message for invalid credentials", async () => {
   vi.spyOn(globalThis, "fetch")
     .mockResolvedValueOnce(new Response(null, { status: 401 }))
