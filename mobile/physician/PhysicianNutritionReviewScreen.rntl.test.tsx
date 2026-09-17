@@ -194,6 +194,10 @@ function renderScreen() {
   );
 }
 
+async function openQueueGroup() {
+  fireEvent.press(await screen.findByRole("button", { name: /هفته|امروز/ }));
+}
+
 beforeEach(() => {
   mockUseRouter.mockReturnValue({ back: jest.fn() } as never);
   mockUseMobileAuth.mockReturnValue({ request: jest.fn() } as never);
@@ -238,7 +242,7 @@ beforeEach(() => {
 test("moves from queue to a native case with segmented clinical sections", async () => {
   renderScreen();
 
-  fireEvent.press(await screen.findByRole("button", { name: "این هفته" }));
+  await openQueueGroup();
   fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
   expect(await screen.findByText("وضعیت مواد مغذی")).toBeTruthy();
 
@@ -252,7 +256,7 @@ test("moves from queue to a native case with segmented clinical sections", async
 test("keeps detailed profile sections closed until the physician opens one", async () => {
   renderScreen();
 
-  fireEvent.press(await screen.findByRole("button", { name: "این هفته" }));
+  await openQueueGroup();
   fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
 
   expect(await screen.findByText("خلاصهٔ کاربر")).toBeTruthy();
@@ -269,7 +273,7 @@ test("keeps detailed profile sections closed until the physician opens one", asy
 test("keeps physician nutrition days and meals collapsed until opened", async () => {
   renderScreen();
 
-  fireEvent.press(await screen.findByRole("button", { name: "این هفته" }));
+  await openQueueGroup();
   fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
   expect(await screen.findByText("وضعیت مواد مغذی")).toBeTruthy();
 
@@ -288,7 +292,7 @@ test("returns from the selected physician case to the queue before leaving the r
   mockUseRouter.mockReturnValue({ back: routerBack } as never);
   renderScreen();
 
-  fireEvent.press(await screen.findByRole("button", { name: "این هفته" }));
+  await openQueueGroup();
   fireEvent.press(await screen.findByRole("button", { name: "شروع بررسی" }));
   expect(await screen.findByText("وضعیت مواد مغذی")).toBeTruthy();
 

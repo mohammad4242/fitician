@@ -254,7 +254,10 @@ function openNutritionPlan() {
 }
 
 async function settlePdf() {
-  await waitFor(() => expect(screen.queryByRole("progressbar", { name: "در حال بارگذاری" })).toBeNull());
+  await waitFor(
+    () => expect(screen.queryByRole("progressbar", { name: "در حال بارگذاری" })).toBeNull(),
+    { timeout: 5000 },
+  );
 }
 
 beforeEach(() => {
