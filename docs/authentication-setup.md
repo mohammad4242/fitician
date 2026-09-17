@@ -5,11 +5,20 @@ authentication all create the same `User` and `AuthSession`, then use the existi
 
 ## Configuration boundary
 
-Backend values belong in `backend/.env`. Never expose SMTP passwords, Faraz SMS API keys, OTP
-HMAC secrets, session settings, or other backend secrets through Vite or browser code.
+Backend values belong in the backend runtime environment. Never expose SMTP passwords, Faraz SMS
+API keys, OTP HMAC secrets, session settings, or other backend secrets through Vite or browser code.
 
-The only authentication value intended for the frontend is the public Google client ID:
-`VITE_GOOGLE_CLIENT_ID` in `frontend/.env`.
+Production has two different configuration points for the same public Google Web Client ID:
+
+```text
+Production backend runtime:  GOOGLE_CLIENT_ID
+Production frontend build:   VITE_GOOGLE_CLIENT_ID
+```
+
+`GOOGLE_CLIENT_ID` is read by the backend at runtime. `VITE_GOOGLE_CLIENT_ID` is read by Vite
+during the frontend Docker image build and is embedded in the public static JavaScript bundle.
+These two values must be exactly identical. The frontend value is public configuration; it is not
+a client secret.
 
 Start from the examples:
 
@@ -96,13 +105,15 @@ In Google Cloud:
 
 1. Create an OAuth 2.0 **Web application** client ID.
 2. Add `http://localhost:5173` to its authorized JavaScript origins for local development.
-3. Add the final HTTPS Fitician origin, for example `https://fitician.ir`, to the authorized JavaScript
-   origins for production.
+3. Add `https://fitician.fit` to the authorized JavaScript origins for production. If the production
+   site also serves `www`, add `https://www.fitician.fit` as a separate origin.
 4. Set the same client ID in backend `GOOGLE_CLIENT_ID` and frontend `VITE_GOOGLE_CLIENT_ID`.
 
 Fitician uses Google Identity Services to receive an ID token and verifies that token on the backend.
 It requests identity only; it does not request Gmail mailbox access or require a Google client
-secret. Keep the Google client ID consistent across each allowed frontend origin. See Google's
+secret. This web flow uses the GIS credential callback; it does not use a redirect URI, so do not
+add a fabricated redirect URI. Keep the Google client ID consistent across each allowed frontend
+origin. See Google's
 [ID-token verification guidance](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token).
 
 ## Production checklist
@@ -111,13 +122,25 @@ Use a real HTTPS origin and the production cookie contract:
 
 ```env
 APP_ENV=production
-FRONTEND_ORIGIN=https://fitician.ir
+FRONTEND_ORIGIN=https://fitician.fit
 COOKIE_SECURE=true
 SESSION_COOKIE_NAME=__Host-fitician_session
 EMAIL_PROVIDER=smtp
 SMS_PROVIDER=farazsms
 GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
 ```
+
+The production frontend image must be built with the matching public value:
+
+```text
+VITE_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+```
+
+For the GitHub Actions production image job, create the repository variable
+`VITE_GOOGLE_CLIENT_ID` under **Settings → Secrets and variables → Actions → Variables**. Do not
+hard-code the real value in this repository. Changing `VITE_GOOGLE_CLIENT_ID` in a server `.env`
+file alone does not change an existing static frontend bundle; rebuild and redeploy the frontend
+image after changing it.
 
 Also set strong, backend-only values for `PHONE_OTP_HMAC_SECRET` and
 `PRIVATE_FILE_SIGNING_KEY`. Configure `FRONTEND_ORIGINS` only when additional trusted browser
