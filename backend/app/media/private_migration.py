@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -117,9 +118,7 @@ def verify_private_manifest(
     storage: S3ObjectStorage,
     records: tuple[PrivateMediaRecord, ...],
 ) -> tuple[int, int]:
-    verified = 0
-    total_bytes = 0
-    for record in records:
+    def verify_one(record: PrivateMediaRecord) -> int:
         remote = storage.head(record.object_key)
         if remote is None or remote.size_bytes != record.size_bytes:
             raise ObjectStorageError("Private object metadata verification failed")
@@ -130,9 +129,13 @@ def verify_private_manifest(
             digest.update(chunk)
         if downloaded != record.size_bytes or digest.hexdigest() != record.sha256:
             raise ObjectStorageError("Private object content verification failed")
-        verified += 1
-        total_bytes += downloaded
-    return verified, total_bytes
+        return downloaded
+
+    if not records:
+        return 0, 0
+    with ThreadPoolExecutor(max_workers=min(8, len(records))) as executor:
+        verified_bytes = tuple(executor.map(verify_one, records))
+    return len(verified_bytes), sum(verified_bytes)
 
 
 def _content_type(path: Path) -> str:
