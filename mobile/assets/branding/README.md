@@ -1,8 +1,16 @@
 # Fitician release artwork
 
-These SVG files are the source artwork for the Android icon, adaptive-icon
-foreground, and splash screen. They reuse the existing Fitician mark: an aqua
-ring on the petrol canvas with the coral pulse line.
+The canonical source for the current installed and launcher icon is the
+repository-root `../../../logo.jpg`. It contains the full Fitician mark,
+wordmark, and `Fit with Science` slogan on a dark square background.
 
-The release PNGs are generated from these sources and are intentionally kept
-free of product screenshots, user data, and third-party marks.
+The PNGs used by `mobile/app.config.ts` are generated from that source:
+
+- `fitician-icon.png` preserves the full square composition.
+- `fitician-adaptive-foreground.png` preserves the same composition inside a
+  centered safe area for Android launcher masks.
+
+The existing SVG files are legacy vector references and are not the current Expo
+input. `fitician-splash.png` remains unchanged because this rollout changes
+installed and launcher icons only. The release PNGs remain free of product
+screenshots, user data, and third-party marks.
