@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.database.session import get_engine
 from app.media.factory import build_s3_storage
 from app.media.public_migration import (
+    ALL_PUBLIC_CATEGORIES,
     PUBLIC_CATEGORIES,
     build_manifest,
     category_mapping,
@@ -70,17 +71,24 @@ def main() -> None:
     parser.add_argument(
         "--category",
         action="append",
-        choices=PUBLIC_CATEGORIES,
+        choices=ALL_PUBLIC_CATEGORIES,
         dest="categories",
     )
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--landing-root",
+        type=Path,
+        default=Path("../frontend/src/assets/landing"),
+        help="Source directory for landing images/videos",
+    )
     parser.add_argument("--workers", type=int, default=8, choices=range(1, 33))
     parser.add_argument("--skip-public-read-check", action="store_true")
     args = parser.parse_args()
 
     settings = get_settings()
     categories = tuple(args.categories or PUBLIC_CATEGORIES)
-    manifest = build_manifest(settings.media_root, categories)
+    landing_root = args.landing_root.resolve()
+    manifest = build_manifest(settings.media_root, categories, landing_root=landing_root)
     report_root = Path("var/media-s3-migration")
     label = "-".join(categories)
     manifest_path = report_root / f"manifest-{label}.json"
@@ -89,7 +97,9 @@ def main() -> None:
     print(f"Manifest: {len(manifest.records)} objects, {manifest.total_bytes} bytes")
     print(f"Categories: {', '.join(categories)}")
     for category in categories:
-        source, prefix = category_mapping(settings.media_root, category)
+        source, prefix = category_mapping(
+            settings.media_root, category, landing_root=landing_root
+        )
         print(f"Mapping: {source} -> {prefix}/")
 
     if args.dry_run or args.upload:
@@ -118,6 +128,11 @@ def main() -> None:
             storage,
             settings.media_root,
             manifest,
+            source_roots={
+                category: landing_root
+                for category in categories
+                if category.startswith("landing-")
+            },
             state_path=state_path,
             resume=args.resume,
             workers=args.workers,

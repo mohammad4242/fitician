@@ -24,6 +24,14 @@ PUBLIC_CATEGORIES = (
     "exercise-seed",
     "exercises",
 )
+LANDING_CATEGORIES = (
+    "landing-images",
+    "landing-videos",
+)
+ALL_PUBLIC_CATEGORIES = PUBLIC_CATEGORIES + LANDING_CATEGORIES
+LANDING_IMAGE_MIN_BYTES = 250 * 1024
+LANDING_VIDEO_SUFFIXES = frozenset({".mp4", ".webm", ".mov", ".m4v", ".avi"})
+LANDING_IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".avif"})
 
 
 @dataclass(frozen=True)
@@ -72,17 +80,32 @@ class VerificationSummary:
     unexpected_objects: tuple[str, ...]
 
 
-def _category_source(media_root: Path, category: str) -> tuple[Path, str]:
+def _category_source(
+    media_root: Path,
+    category: str,
+    *,
+    landing_root: Path | None = None,
+) -> tuple[Path, str]:
     if category == "exercise-seed":
         return media_root / "exercises" / "seed", "public/exercises/seed"
     if category in {"food-catalogue", "meal-catalogue", "exercises"}:
         return media_root / category, f"public/{category}"
+    if category in {"landing-images", "landing-videos"}:
+        if landing_root is None:
+            raise ValueError("Landing media categories require --landing-root")
+        suffix = "images" if category == "landing-images" else "videos"
+        return landing_root, f"public/landing/{suffix}"
     raise ValueError(f"Unsupported public media category: {category}")
 
 
-def category_mapping(media_root: Path, category: str) -> tuple[Path, str]:
+def category_mapping(
+    media_root: Path,
+    category: str,
+    *,
+    landing_root: Path | None = None,
+) -> tuple[Path, str]:
     """Return the approved local source and stable object-key prefix."""
-    return _category_source(media_root, category)
+    return _category_source(media_root, category, landing_root=landing_root)
 
 
 def missing_database_targets(
@@ -118,15 +141,23 @@ def missing_database_targets(
     return tuple(sorted(missing))
 
 
-def build_manifest(media_root: Path, categories: Iterable[str]) -> MigrationManifest:
+def build_manifest(
+    media_root: Path,
+    categories: Iterable[str],
+    *,
+    landing_root: Path | None = None,
+    landing_image_min_bytes: int = LANDING_IMAGE_MIN_BYTES,
+) -> MigrationManifest:
     media_root = media_root.resolve()
     selected = tuple(dict.fromkeys(categories))
-    if not selected or any(category not in PUBLIC_CATEGORIES for category in selected):
+    if not selected or any(category not in ALL_PUBLIC_CATEGORIES for category in selected):
         raise ValueError("At least one approved public media category is required")
     records: list[PublicMediaRecord] = []
     keys: set[str] = set()
     for category in selected:
-        source_root, object_prefix = _category_source(media_root, category)
+        source_root, object_prefix = _category_source(
+            media_root, category, landing_root=landing_root
+        )
         if not source_root.is_dir():
             raise FileNotFoundError(f"Missing public media source directory: {category}")
         category_start = len(records)
@@ -138,6 +169,13 @@ def build_manifest(media_root: Path, categories: Iterable[str]) -> MigrationMani
             relative = source.relative_to(source_root)
             if category == "exercises" and relative.parts[0] == "seed":
                 continue
+            if category == "landing-videos" and source.suffix.lower() not in LANDING_VIDEO_SUFFIXES:
+                continue
+            if category == "landing-images":
+                if source.suffix.lower() not in LANDING_IMAGE_SUFFIXES:
+                    continue
+                if source.stat().st_size < landing_image_min_bytes:
+                    continue
             resolved = source.resolve()
             if not resolved.is_relative_to(source_root.resolve()):
                 raise ValueError(f"Public media source escapes its category: {source.name}")
@@ -152,7 +190,11 @@ def build_manifest(media_root: Path, categories: Iterable[str]) -> MigrationMani
             records.append(
                 PublicMediaRecord(
                     category=category,
-                    source_path=source.relative_to(media_root).as_posix(),
+                    source_path=(
+                        source.relative_to(source_root).as_posix()
+                        if category.startswith("landing-")
+                        else source.relative_to(media_root).as_posix()
+                    ),
                     object_key=key,
                     size_bytes=size,
                     sha256=sha256_file(source),
@@ -184,7 +226,7 @@ def write_json_atomic(path: Path, value: dict[str, Any]) -> None:
 
 
 def _remote_keys_for_category(storage: ObjectStorage, category: str) -> set[str]:
-    _, prefix = _category_source(Path("."), category)
+    _, prefix = _category_source(Path("."), category, landing_root=Path("."))
     keys = set(storage.list_keys(f"{prefix}/"))
     if category == "exercises":
         keys = {key for key in keys if not key.startswith("public/exercises/seed/")}
@@ -266,6 +308,7 @@ def upload_manifest(
     media_root: Path,
     manifest: MigrationManifest,
     *,
+    source_roots: dict[str, Path] | None = None,
     state_path: Path,
     resume: bool,
     workers: int = 8,
@@ -280,7 +323,8 @@ def upload_manifest(
     identical_keys = frozenset(remote_plan.identical_keys)
 
     def upload_one(record: PublicMediaRecord) -> tuple[PublicMediaRecord, bool]:
-        source = media_root / record.source_path
+        source_root = (source_roots or {}).get(record.category, media_root)
+        source = source_root / record.source_path
         if record.object_key in identical_keys:
             return record, False
         stored = storage.put_file(

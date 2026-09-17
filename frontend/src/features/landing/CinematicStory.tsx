@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import foodPhoto from "../../assets/landing/food.webp";
-import landingFilm from "../../assets/landing/landfilm.mp4";
 import landingPoster from "../../assets/landing/landfilm-poster.webp";
+import { publicMediaUrl } from "../../shared/publicMedia";
 import { useScrollProgress } from "./useScrollProgress";
 
 export function CinematicStory({ reducedMotion }: { reducedMotion: boolean }) {
@@ -16,7 +16,7 @@ export function CinematicStory({ reducedMotion }: { reducedMotion: boolean }) {
         <video
           className="cinematic-story__film"
           data-testid="landing-film"
-          src={landingFilm}
+          src={publicMediaUrl("public/landing/videos/landfilm.mp4")}
           poster={landingPoster}
           autoPlay={!reducedMotion}
           muted

@@ -1,9 +1,7 @@
 import heroFallback from "../../assets/landing/hero-strength-fallback.jpg";
-import heroVideo from "../../assets/landing/hero-strength.mp4";
 import planFallback from "../../assets/landing/plan-focus-fallback.jpg";
-import planVideo from "../../assets/landing/plan-focus.mp4";
 import progressFallback from "../../assets/landing/progress-drive-fallback.jpg";
-import progressVideo from "../../assets/landing/progress-drive.mp4";
+import { publicMediaUrl } from "../../shared/publicMedia";
 
 export type LandingScene = {
   id: "strength" | "plan" | "progress";
@@ -21,7 +19,7 @@ export const landingScenes = [
     eyebrow: "فیتیشن، مسیر شخصی تو",
     title: "از امروز، قوی‌تر.",
     body: "برنامه‌ای روشن برای شروعی که واقعاً ادامه پیدا می‌کند.",
-    videoSrc: heroVideo,
+    videoSrc: publicMediaUrl("public/landing/videos/hero-strength.mp4"),
     fallbackSrc: heroFallback,
     preload: "metadata",
   },
@@ -30,7 +28,7 @@ export const landingScenes = [
     eyebrow: "تمرین، متناسب با تو",
     title: "بدون حدس، با برنامه.",
     body: "هر جلسه با هدف، زمان و سطح آمادگی تو هماهنگ می‌شود.",
-    videoSrc: planVideo,
+    videoSrc: publicMediaUrl("public/landing/videos/plan-focus.mp4"),
     fallbackSrc: planFallback,
     preload: "none",
   },
@@ -39,7 +37,7 @@ export const landingScenes = [
     eyebrow: "پیشرفت قابل دیدن",
     title: "هر تکرار، نزدیک‌تر.",
     body: "روندت را ببین، تمرینت را ادامه بده و نسخهٔ قوی‌تر خودت را بساز.",
-    videoSrc: progressVideo,
+    videoSrc: publicMediaUrl("public/landing/videos/progress-drive.mp4"),
     fallbackSrc: progressFallback,
     preload: "none",
   },

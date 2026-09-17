@@ -59,6 +59,53 @@ def test_manifest_rejects_an_empty_approved_category(tmp_path: Path) -> None:
         build_manifest(media_root, ("food-catalogue",))
 
 
+def test_manifest_maps_large_landing_media_to_remote_prefix(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    landing_root = tmp_path / "landing"
+    _media_tree(media_root)
+    landing_root.mkdir()
+    (landing_root / "story.mp4").write_bytes(b"video")
+    (landing_root / "hero.png").write_bytes(b"large-image")
+    (landing_root / "icon.png").write_bytes(b"tiny")
+
+    manifest = build_manifest(
+        media_root,
+        ("landing-videos", "landing-images"),
+        landing_root=landing_root,
+        landing_image_min_bytes=5,
+    )
+
+    assert {record.object_key for record in manifest.records} == {
+        "public/landing/videos/story.mp4",
+        "public/landing/images/hero.png",
+    }
+
+
+def test_landing_upload_uses_the_landing_source_root(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    landing_root = tmp_path / "landing"
+    _media_tree(media_root)
+    landing_root.mkdir()
+    (landing_root / "story.mp4").write_bytes(b"video")
+
+    manifest = build_manifest(
+        media_root,
+        ("landing-videos",),
+        landing_root=landing_root,
+    )
+    storage = LocalObjectStorage(tmp_path / "bucket")
+
+    assert upload_manifest(
+        storage,
+        media_root,
+        manifest,
+        source_roots={"landing-videos": landing_root},
+        state_path=tmp_path / "state.json",
+        resume=False,
+    ) == (1, 0)
+    assert storage.read("public/landing/videos/story.mp4") == b"video"
+
+
 def test_manifest_detects_missing_selected_database_targets(tmp_path: Path) -> None:
     media_root = tmp_path / "media"
     _media_tree(media_root)

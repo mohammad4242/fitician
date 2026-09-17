@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import analysisPhoto from "../../assets/landing/analyze.webp";
-import bodyFallback from "../../assets/landing/body.png";
 import bodyImage from "../../assets/landing/body.webp";
+import { publicMediaUrl } from "../../shared/publicMedia";
 import { useScrollProgress } from "./useScrollProgress";
 
 const muscles = ["shoulders", "back"] as const;
@@ -59,7 +59,7 @@ export function BodyIntelligence({ reducedMotion }: { reducedMotion: boolean }) 
           <source srcSet={bodyImage} type="image/webp" />
           <img
             data-testid="fitician-body-intelligence"
-            src={bodyFallback}
+            src={publicMediaUrl("public/landing/images/body.png")}
             alt={t("landing.intelligence.imageAlt")}
             width="1024"
             height="1536"
