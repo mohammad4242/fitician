@@ -48,7 +48,8 @@ rollback() {
 }
 
 verify_runtime() {
-  if ! compose exec -T backend curl -fsS http://127.0.0.1:8000/healthz >/dev/null; then
+  if ! compose exec -T backend python -c \
+    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()" >/dev/null; then
     echo "Backend readiness check failed" >&2
     return 1
   fi

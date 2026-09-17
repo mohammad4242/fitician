@@ -70,6 +70,7 @@ esac
         self.assertEqual((self.workspace / ".deployed-image-tag").read_text(), NEW_TAG + "\n")
         self.assertIn("OTHER_VALUE=keep", (self.workspace / ".env").read_text())
         self.assertIn("IMAGE_TAG=" + NEW_TAG, (self.workspace / ".env").read_text())
+        self.assertTrue(any(" exec -T backend python -c " in call for call in calls))
 
     def test_pending_schema_change_blocks_automatic_rollout_after_backup(self) -> None:
         self.env["FAKE_SCHEMA_HEAD"] = "20260918_156"
