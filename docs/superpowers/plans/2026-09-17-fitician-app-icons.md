@@ -95,7 +95,7 @@ Run this exact one-time generator from the repository root. It preserves ordinar
 Run:
 
     file frontend/public/pwa/icon-192.png frontend/public/pwa/icon-512.png frontend/public/pwa/icon-maskable-512.png frontend/public/pwa/apple-touch-icon.png mobile/assets/branding/fitician-icon.png mobile/assets/branding/fitician-adaptive-foreground.png
-    test -s frontend/public/pwa/icon-192.png frontend/public/pwa/icon-512.png frontend/public/pwa/icon-maskable-512.png frontend/public/pwa/apple-touch-icon.png mobile/assets/branding/fitician-icon.png mobile/assets/branding/fitician-adaptive-foreground.png
+    for path in frontend/public/pwa/icon-192.png frontend/public/pwa/icon-512.png frontend/public/pwa/icon-maskable-512.png frontend/public/pwa/apple-touch-icon.png mobile/assets/branding/fitician-icon.png mobile/assets/branding/fitician-adaptive-foreground.png; do test -s "$path" || exit 1; done
 
 Expected: 192x192, 512x512, 512x512, 180x180, 1024x1024, and 1024x1024; all are non-empty PNGs.
 
