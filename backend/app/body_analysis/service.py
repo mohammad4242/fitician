@@ -60,6 +60,7 @@ from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import enqueue_specialist_notification
 from app.profile.enums import FitnessGoal, Sex
 from app.profile.models import BodyMeasurement, UserProfile
+from app.resilience.policy import bounded_backoff_seconds
 
 
 class BodyAnalysisNotFoundError(LookupError):
@@ -800,7 +801,11 @@ class BodyAnalysisService:
             ):
                 analysis.status = BodyAnalysisStatus.QUEUED
                 analysis.available_at = now + timedelta(
-                    seconds=self._retry_delay(execution_config, analysis.attempt_count)
+                    seconds=self._retry_delay(
+                        execution_config,
+                        analysis.attempt_count,
+                        jitter_key=str(analysis.id),
+                    )
                 )
                 analysis.completed_at = None
                 analysis.session.state = BodyPhotoSessionState.QUEUED
@@ -1183,8 +1188,15 @@ class BodyAnalysisService:
         return analysis.started_at <= datetime.now(UTC) - timedelta(seconds=config.timeout_seconds)
 
     @staticmethod
-    def _retry_delay(config: AnalysisExecutionConfig, attempt_count: int) -> int:
-        exponent = max(0, attempt_count - 1)
-        delay = int(config.retry_base_seconds) * (2**exponent)
-        maximum = int(config.retry_max_seconds)
-        return maximum if delay > maximum else delay
+    def _retry_delay(
+        config: AnalysisExecutionConfig,
+        attempt_count: int,
+        *,
+        jitter_key: str | None = None,
+    ) -> int:
+        return bounded_backoff_seconds(
+            config.retry_base_seconds,
+            config.retry_max_seconds,
+            attempt_count,
+            jitter_key=jitter_key,
+        )

@@ -316,8 +316,9 @@ jobs:
         run: |
           uv run ruff check \
             app/infrastructure app/cache app/body_analysis app/scheduler app/observability \
-            tests/cache/test_service.py tests/infrastructure tests/observability/test_logging.py
-          uv run mypy app/infrastructure app/cache app/body_analysis app/scheduler app/observability
+            app/resilience tests/cache/test_service.py tests/infrastructure \
+            tests/observability/test_logging.py tests/resilience/test_policy.py
+          uv run mypy app/infrastructure app/cache app/body_analysis app/scheduler app/observability app/resilience
       - name: Validate migrations and worker imports
         run: |
           uv run python -m alembic heads

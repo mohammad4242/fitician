@@ -21,6 +21,7 @@ from app.database.session import get_engine
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.observability.logging import configure_structured_logging, log_event
+from app.resilience.policy import bounded_backoff_seconds
 
 from . import food_photo_service
 from .models import NutritionFoodPhotoAnalysisJob, NutritionFoodPhotoEstimate
@@ -107,14 +108,13 @@ def _safe_message(code: ProviderErrorCode) -> str:
     )
 
 
-def _retry_delay(settings: Settings, attempt_count: int) -> int:
-    exponent = attempt_count - 1
-    if exponent < 0:
-        exponent = 0
-    retry_max = int(settings.food_photo_retry_max_seconds)
-    retry_base = int(settings.food_photo_retry_base_seconds)
-    delay = retry_base * (2**exponent)
-    return retry_max if delay > retry_max else delay
+def _retry_delay(settings: Settings, attempt_count: int, *, jitter_key: str | None = None) -> int:
+    return bounded_backoff_seconds(
+        settings.food_photo_retry_base_seconds,
+        settings.food_photo_retry_max_seconds,
+        attempt_count,
+        jitter_key=jitter_key,
+    )
 
 
 def _config_float(config: dict[str, object], key: str, default: float) -> float:
@@ -193,7 +193,9 @@ def _record_failure(
         estimate.error_code = code.value
         estimate.error_message = message
         job.status = "queued"
-        job.available_at = now + timedelta(seconds=_retry_delay(settings, job.attempt_count))
+        job.available_at = now + timedelta(
+            seconds=_retry_delay(settings, job.attempt_count, jitter_key=str(job.id))
+        )
         job.locked_at = None
         job.locked_by = None
         record_operational_event(
