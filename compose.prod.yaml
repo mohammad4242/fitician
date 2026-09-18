@@ -149,6 +149,29 @@ services:
     command: ["python", "-m", "app.nutrition.food_photo_worker"]
     restart: unless-stopped
 
+  body-analysis-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      APP_ENV: production
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      AGENT_SERVICE_BASE_URL: http://agent-service:9001
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      agent-service:
+        condition: service_healthy
+    command: ["python", "-m", "app.body_analysis.worker"]
+    restart: unless-stopped
+
   notification-worker:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
     env_file:

@@ -162,6 +162,36 @@ services:
       - alembic upgrade head && python -m app.nutrition.food_photo_worker
     restart: unless-stopped
 
+  body-analysis-worker:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
+      APP_ENV: local
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      BODY_ANALYSIS_WORKER_BATCH_SIZE: ${BODY_ANALYSIS_WORKER_BATCH_SIZE:-1}
+      BODY_ANALYSIS_WORKER_POLL_SECONDS: ${BODY_ANALYSIS_WORKER_POLL_SECONDS:-3}
+      BODY_ANALYSIS_WORKER_LEASE_SECONDS: ${BODY_ANALYSIS_WORKER_LEASE_SECONDS:-900}
+      AGENT_SERVICE_BASE_URL: http://agent-service:9001
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-}
+      NO_PROXY: agent-service,db,localhost,127.0.0.1
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/var/private/body-photos:/var/lib/fitician/private/body-photos:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      agent-service:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && python -m app.body_analysis.worker
+    restart: unless-stopped
+
   notification-worker:
     build:
       context: ./backend
