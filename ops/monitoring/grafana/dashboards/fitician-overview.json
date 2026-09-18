@@ -1,0 +1,60 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "fitician-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "title": "HTTP request rate",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(fitician_http_requests_total[5m]))", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "fitician-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "title": "HTTP latency",
+      "type": "timeseries",
+      "targets": [{"expr": "sum(rate(fitician_http_request_duration_seconds[5m])) / clamp_min(sum(rate(fitician_http_requests_total[5m])), 1)", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "fitician-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "id": 3,
+      "title": "Queue depth",
+      "type": "timeseries",
+      "targets": [{"expr": "fitician_queue_depth", "legendFormat": "{{queue}}", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "fitician-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "id": 4,
+      "title": "Database pool checked out",
+      "type": "timeseries",
+      "targets": [{"expr": "fitician_db_pool_checked_out", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "fitician-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "id": 5,
+      "title": "Redis availability",
+      "type": "stat",
+      "targets": [{"expr": "min(fitician_redis_available)", "refId": "A"}]
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["fitician", "scalability"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "Fitician overview",
+  "uid": "fitician-overview",
+  "version": 1
+}
+

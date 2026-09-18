@@ -1,0 +1,32 @@
+groups:
+  - name: fitician-scalability
+    rules:
+      - alert: FiticianBackendHigh5xx
+        expr: sum(rate(fitician_http_requests_total{status=~"5.."}[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fitician backend 5xx rate is elevated
+      - alert: FiticianQueueBacklog
+        expr: max(fitician_queue_depth) > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fitician durable queue backlog is growing
+      - alert: FiticianRedisUnavailable
+        expr: min(fitician_redis_available) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fitician Redis is unavailable to at least one backend
+      - alert: FiticianDatabasePoolPressure
+        expr: max(fitician_db_pool_checked_out / clamp_min(fitician_db_pool_size, 1)) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Fitician database pool is near exhaustion
+
