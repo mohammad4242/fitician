@@ -15,12 +15,15 @@ from sqlalchemy.orm import Session, selectinload
 from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
 from app.body_analysis.providers import (
+    LOCAL_FAKE_PROVIDER_NAME,
     AIProvider,
     AIProviderError,
     ImageInput,
+    LocalFakeBodyAnalysisProvider,
     ProviderErrorCode,
     StructuredGenerationRequest,
     StructuredGenerationResponse,
+    local_fake_provider_allowed,
 )
 from app.body_analysis.runtime import build_body_analysis_runtime
 from app.body_analysis.service import BodyAnalysisService
@@ -168,13 +171,19 @@ async def process_body_analysis_job(
 
     try:
         try:
-            runtime = build_body_analysis_runtime(
-                db,
-                settings,
-                ai_http_client=ai_http_client,
-                agent_http_client=agent_http_client,
-            )
-            provider: AIProvider = runtime.provider
+            provider: AIProvider
+            if analysis.provider == LOCAL_FAKE_PROVIDER_NAME:
+                if not local_fake_provider_allowed(settings):
+                    raise ValueError("local fake provider is disabled")
+                provider = LocalFakeBodyAnalysisProvider.from_model_id(analysis.model_id)
+            else:
+                runtime = build_body_analysis_runtime(
+                    db,
+                    settings,
+                    ai_http_client=ai_http_client,
+                    agent_http_client=agent_http_client,
+                )
+                provider = runtime.provider
         except (ValueError, RuntimeError) as error:
             logger.warning(
                 "Body analysis provider configuration unavailable for %s: %s",

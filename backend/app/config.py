@@ -160,6 +160,7 @@ class Settings(BaseSettings):
     body_analysis_worker_batch_size: int = Field(default=1, ge=1, le=20)
     body_analysis_worker_poll_seconds: float = Field(default=3.0, gt=0, le=60)
     body_analysis_worker_lease_seconds: int = Field(default=900, ge=60, le=3600)
+    body_analysis_local_fake_provider_enabled: bool = False
     body_analysis_retry_base_seconds: int = Field(default=30, ge=1, le=3600)
     body_analysis_retry_max_seconds: int = Field(default=900, ge=1, le=86400)
     job_heartbeat_path: Path = Path("/tmp/fitician-health/heartbeat.json")
@@ -388,6 +389,12 @@ class Settings(BaseSettings):
             and not self.account_deletion_legal_approval
         ):
             raise ValueError("Production account deletion requires recorded legal approval")
+        return self
+
+    @model_validator(mode="after")
+    def reject_local_fake_provider_in_production(self) -> Self:
+        if self.app_env == "production" and self.body_analysis_local_fake_provider_enabled:
+            raise ValueError("Production cannot enable the local fake body analysis provider")
         return self
 
 
