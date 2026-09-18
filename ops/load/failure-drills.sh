@@ -135,6 +135,22 @@ wait_for_body_terminal() {
   return 1
 }
 
+wait_for_body_reclaim() {
+  local analysis_id=$1 old_worker_id=$2
+  reset_deadline
+  while (( SECONDS < deadline )); do
+    payload=$(fixture inspect-body --analysis-id "$analysis_id")
+    if PAYLOAD="$payload" OLD_WORKER_ID="$old_worker_id" python3 -c \
+      'import json,os,sys; d=json.loads(os.environ["PAYLOAD"]); sys.exit(not d.get("locked_by") or d.get("locked_by") == os.environ["OLD_WORKER_ID"] or d.get("status") != "analyzing" or d.get("attempt_count") != 2)'; then
+      printf '%s\n' "$payload"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "deadline exceeded waiting for replacement worker reclaim" >&2
+  return 1
+}
+
 wait_for_batch_drain() {
   local batch_id=$1 expected=$2 drain_deadline=$((SECONDS + backlog_max_drain_seconds))
   while (( SECONDS < drain_deadline )); do
@@ -152,7 +168,11 @@ wait_for_batch_drain() {
 
 cleanup_member_id=""
 cleanup_batch_id=""
+worker_container_id=""
 cleanup() {
+  if [[ -n "$worker_container_id" ]]; then
+    docker update --restart=unless-stopped "$worker_container_id" >/dev/null 2>&1 || true
+  fi
   "${compose[@]}" start db redis backend backend-2 body-analysis-worker >/dev/null 2>&1 || true
   [[ -z "$cleanup_member_id" ]] || fixture cleanup-member --user-id "$cleanup_member_id" >/dev/null 2>&1 || true
   [[ -z "$cleanup_batch_id" ]] || fixture cleanup-batch --batch-id "$cleanup_batch_id" >/dev/null 2>&1 || true
@@ -206,19 +226,32 @@ drill_worker() {
   analysis_id=$(SEED="$seed" python3 -c 'import json,os; print(json.loads(os.environ["SEED"])["analysis_ids"][0])')
   batch_id=$(printf '%s' "$seed" | json_value batch_id)
   cleanup_batch_id=$batch_id
-  wait_for_body_claim "$analysis_id" >/dev/null
+  worker_container_id=$("${compose[@]}" ps -q body-analysis-worker)
+  claimed=$(wait_for_body_claim "$analysis_id")
+  old_worker_id=$(printf '%s' "$claimed" | json_value locked_by)
+  docker update --restart=no "$worker_container_id" >/dev/null
   "${compose[@]}" kill -s SIGKILL body-analysis-worker >/dev/null
+  reset_deadline
+  while (( SECONDS < deadline )); do
+    worker_state=$(docker inspect --format '{{.State.Status}}' "$worker_container_id" 2>/dev/null || true)
+    [[ "$worker_state" == exited ]] && break
+    sleep 1
+  done
+  [[ "${worker_state:-}" == exited ]] || { echo "worker did not remain stopped after SIGKILL" >&2; return 1; }
   durable=$(fixture inspect-body --analysis-id "$analysis_id")
   PAYLOAD="$durable" python3 -c \
     'import json,os,sys; d=json.loads(os.environ["PAYLOAD"]); sys.exit(not d.get("locked_by") or d.get("result_version_count") != 0)'
   fixture expire-body-lease --analysis-id "$analysis_id" >/dev/null
+  docker update --restart=unless-stopped "$worker_container_id" >/dev/null
   "${compose[@]}" start body-analysis-worker >/dev/null
   wait_for_service_health body-analysis-worker
+  reclaimed=$(wait_for_body_reclaim "$analysis_id" "$old_worker_id")
   terminal=$(wait_for_body_terminal "$analysis_id")
   fixture cleanup-batch --batch-id "$batch_id" >/dev/null
   cleanup_batch_id=""
-  printf '%s\n' "$terminal" | python3 -c \
-    'import json,sys; d=json.load(sys.stdin); assert d["attempt_count"] == 2; print(json.dumps({"drill":"worker-killed-mid-job","durable":True,"reclaimed":True,"attempt_count":d["attempt_count"],"terminal":d["status"],"result_version_count":d["result_version_count"]}, separators=(",",":")))'
+  printf '%s\n' "$terminal" | RECLAIMED="$reclaimed" OLD_WORKER_ID="$old_worker_id" python3 -c \
+    'import json,os,sys; d=json.load(sys.stdin); reclaimed=json.loads(os.environ["RECLAIMED"]); assert reclaimed["locked_by"] != os.environ["OLD_WORKER_ID"]; assert d["attempt_count"] == 2; print(json.dumps({"drill":"worker-killed-mid-job","durable":True,"reclaimed":True,"old_worker_id":os.environ["OLD_WORKER_ID"],"replacement_worker_id":reclaimed["locked_by"],"attempt_count":d["attempt_count"],"terminal":d["status"],"result_version_count":d["result_version_count"]}, separators=(",",":")))'
+  worker_container_id=""
 }
 
 drill_backend_replica() {
