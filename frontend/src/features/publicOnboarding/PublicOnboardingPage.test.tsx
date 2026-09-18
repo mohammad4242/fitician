@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -81,6 +81,18 @@ async function choosePersianBirthDate(user: ReturnType<typeof userEvent.setup>) 
   await user.click(screen.getByRole("button", { name: "انتخاب" }));
 }
 
+async function goToBirthDateQuestion(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "برنامه تمرینی" }));
+  await user.type(screen.getByLabelText("نام نمایشی"), "سارا");
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+}
+
+async function setEnglishBirthDate(value: string) {
+  await i18n.changeLanguage("en");
+  fireEvent.change(screen.getByLabelText("Birth date"), { target: { value } });
+  await i18n.changeLanguage("fa");
+}
+
 it("uses English on the first public onboarding screen when English is selected", async () => {
   await i18n.changeLanguage("en");
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
@@ -135,6 +147,83 @@ it("groups height and weight with the selected valid ranges and auto-advances se
   expect(screen.getByRole("button", { name: "عضله‌سازی 💪" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "چربی‌سوزی + عضله‌سازی 🔥💪" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "ادامه" })).not.toBeInTheDocument();
+});
+
+it("keeps an under-18 user on the birth-date question with an actionable error", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await setEnglishBirthDate("2009-09-18");
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("heading", { name: "چه تاریخی به دنیا آمدی؟" })).toBeInTheDocument();
+  expect(screen.getByText("برای استفاده از فیتیشن باید حداقل ۱۸ سال داشته باشی.")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "جنسیتت چیست؟" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "هدف اصلی تو چیست؟" })).not.toBeInTheDocument();
+});
+
+it("shows the invalid birth-date error before leaving the birth-date question", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("heading", { name: "چه تاریخی به دنیا آمدی؟" })).toBeInTheDocument();
+  expect(screen.getByText("تاریخ تولد معتبر نیست.")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "جنسیتت چیست؟" })).not.toBeInTheDocument();
+});
+
+it("accepts an exact 18th birthday before advancing to sex", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await setEnglishBirthDate("2008-09-18");
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("heading", { name: "جنسیتت چیست؟" })).toBeInTheDocument();
+});
+
+it("accepts an exact 100th birthday before advancing to sex", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await setEnglishBirthDate("1926-09-18");
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("heading", { name: "جنسیتت چیست؟" })).toBeInTheDocument();
+});
+
+it("keeps an over-100 user on the birth-date question with an out-of-range error", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await setEnglishBirthDate("1925-09-18");
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("heading", { name: "چه تاریخی به دنیا آمدی؟" })).toBeInTheDocument();
+  expect(screen.getByText("تاریخ تولد واردشده خارج از بازه پشتیبانی فیتیشن است.")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "جنسیتت چیست؟" })).not.toBeInTheDocument();
+});
+
+it("shows only bounded Jalali years for the birth-date question", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  await goToBirthDateQuestion(user);
+  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
+
+  const options = Array.from(
+    screen.getByRole("combobox", { name: "تاریخ تولد - سال" }).querySelectorAll("option"),
+  ).map((option) => option.value);
+  expect(options).not.toContain("1300");
+  expect(options).not.toContain("1500");
+  expect(Number(options[0])).toBeGreaterThan(1300);
+  expect(Number(options.at(-1))).toBeLessThan(1500);
 });
 
 it("auto-advances on fitness goal and completes shared profile flow", async () => {

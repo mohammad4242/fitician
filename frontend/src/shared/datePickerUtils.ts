@@ -56,18 +56,27 @@ export function jalaliYearOptions(
   min: string | undefined,
   max: string | undefined,
 ): number[] {
-  const boundaryYears = [selected.year, 1300, 1500];
-  for (const value of [min, max]) {
-    if (!value) continue;
-    try {
-      boundaryYears.push(isoDateToJalaliParts(value).year);
-    } catch {
-      continue;
-    }
+  const minimumBound = min ? parseJalaliYear(min) : undefined;
+  const maximumBound = max ? parseJalaliYear(max) : undefined;
+
+  if (minimumBound === undefined && maximumBound === undefined) {
+    const minimum = Math.min(selected.year, 1300);
+    const maximum = Math.max(selected.year, 1500);
+    return Array.from({ length: maximum - minimum + 1 }, (_, index) => minimum + index);
   }
-  const minimum = Math.min(...boundaryYears);
-  const maximum = Math.max(...boundaryYears);
+
+  const minimum = minimumBound ?? 1300;
+  const maximum = maximumBound ?? 1500;
+  if (minimum > maximum) return [];
   return Array.from({ length: maximum - minimum + 1 }, (_, index) => minimum + index);
+}
+
+function parseJalaliYear(value: string): number | undefined {
+  try {
+    return isoDateToJalaliParts(value).year;
+  } catch {
+    return undefined;
+  }
 }
 
 export function dateOnlyIsInRange(value: string, min?: string, max?: string): boolean {

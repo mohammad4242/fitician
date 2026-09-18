@@ -4,6 +4,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type { NutritionProfile } from "@fitician/core/nutrition";
 import type { Profile, SharedProfile } from "@fitician/core/profile";
+import { isoDateToJalaliParts } from "@fitician/core/iran-calendar";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
@@ -178,6 +180,24 @@ test("renders the Web profile summary before the native section editor", async (
   expect(screen.getByRole("button", { name: "ویرایش پروفایل" })).toBeTruthy();
   expect(screen.getByRole("header", { name: "آخرین اندازه‌گیری وزن" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "مشاهده روند بدن" })).toBeTruthy();
+});
+
+test("bounds the profile birth-date picker with the Core age policy", async () => {
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  fireEvent.press(screen.getByTestId("profile-birth-date-trigger"));
+
+  const bounds = getProfileBirthDateBounds(new Date());
+  const minYear = isoDateToJalaliParts(bounds.min).year;
+  const maxYear = isoDateToJalaliParts(bounds.max).year;
+  const years = screen.getAllByTestId(/profile-birth-date-option-year-/);
+
+  expect(years).toHaveLength(maxYear - minYear + 1);
+  expect(screen.getByTestId(`profile-birth-date-option-year-${minYear}`)).toBeTruthy();
+  expect(screen.getByTestId(`profile-birth-date-option-year-${maxYear}`)).toBeTruthy();
+  expect(screen.queryByTestId("profile-birth-date-option-year-1300")).toBeNull();
+  expect(screen.queryByTestId("profile-birth-date-option-year-1500")).toBeNull();
 });
 
 test("keeps profile edits sectioned and routes body progress through the member flow", async () => {

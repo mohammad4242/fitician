@@ -40,10 +40,39 @@ export type ProfileValidationErrors = Partial<
   Record<keyof ProfileFormValues, ProfileValidationCode>
 >;
 
+export const PROFILE_MIN_AGE = 18;
+export const PROFILE_MAX_AGE = 100;
+
+export type ProfileBirthDateBounds = {
+  min: string;
+  max: string;
+};
+
 export type BodyAnalysisMeasurementValues = MeasurementFormValues;
 export type BodyAnalysisMeasurementErrors = Partial<
   Record<MeasurementField, ProfileValidationCode>
 >;
+
+function daysInGregorianMonth(year: number, month: number): number {
+  const lastDay = new Date(0);
+  lastDay.setUTCFullYear(year, month + 1, 0);
+  lastDay.setUTCHours(0, 0, 0, 0);
+  return lastDay.getUTCDate();
+}
+
+function yearsBefore(today: Date, years: number): string {
+  const year = today.getUTCFullYear() - years;
+  const month = today.getUTCMonth();
+  const day = Math.min(today.getUTCDate(), daysInGregorianMonth(year, month));
+  return `${String(year).padStart(4, "0")}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export function getProfileBirthDateBounds(today: Date): ProfileBirthDateBounds {
+  return {
+    min: yearsBefore(today, PROFILE_MAX_AGE),
+    max: yearsBefore(today, PROFILE_MIN_AGE),
+  };
+}
 
 function parseBirthDate(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -97,7 +126,7 @@ function validateStepOne(
     const birthDate = parseBirthDate(values.birth_date);
     if (birthDate === null) {
       errors.birth_date = "birthDateInvalid";
-    } else if (ageOn(birthDate, today) < 18 || ageOn(birthDate, today) > 100) {
+    } else if (ageOn(birthDate, today) < PROFILE_MIN_AGE || ageOn(birthDate, today) > PROFILE_MAX_AGE) {
       errors.birth_date = "ageRange";
     }
   }

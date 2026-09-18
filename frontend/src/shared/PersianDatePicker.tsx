@@ -29,6 +29,8 @@ export type PersianDatePickerProps = {
   label?: string;
   ariaLabel?: string;
   error?: string;
+  minError?: string;
+  maxError?: string;
   allowClear?: boolean;
 };
 
@@ -138,6 +140,8 @@ export function PersianDatePicker({
   label,
   ariaLabel,
   error,
+  minError,
+  maxError,
   allowClear = true,
 }: PersianDatePickerProps) {
   const { i18n } = useTranslation();
@@ -164,7 +168,18 @@ export function PersianDatePicker({
   function confirm() {
     try {
       const nextValue = jalaliPartsToIsoDate(draft);
-      if (!dateOnlyIsInRange(nextValue, min, max)) throw new RangeError(copy.invalid);
+      if (min !== undefined && min !== "" && nextValue < min) {
+        setValidationError(minError ?? copy.invalid);
+        return;
+      }
+      if (max !== undefined && max !== "" && nextValue > max) {
+        setValidationError(maxError ?? copy.invalid);
+        return;
+      }
+      if (!dateOnlyIsInRange(nextValue, min, max)) {
+        setValidationError(copy.invalid);
+        return;
+      }
       onChange(nextValue);
       setOpen(false);
       setValidationError(null);

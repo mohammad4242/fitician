@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 
 import {
+  getProfileBirthDateBounds,
+  PROFILE_MAX_AGE,
+  PROFILE_MIN_AGE,
   toProfileInput,
   validateStep,
 } from "./profile-validation.js";
@@ -107,4 +110,35 @@ it("requires an exact preferred weekday count while keeping empty legacy fallbac
   });
   expect(validateStep({ ...baseValues, training_days_per_week: "4", preferred_weekdays: [0, 1, 3, 4] }, 3, today)).toEqual({});
   expect(validateStep({ ...baseValues, preferred_weekdays: [] }, 3, today)).toEqual({});
+});
+
+it("exports the canonical supported profile age policy", () => {
+  expect(PROFILE_MIN_AGE).toBe(18);
+  expect(PROFILE_MAX_AGE).toBe(100);
+});
+
+it("accepts exact age boundaries and rejects dates outside them", () => {
+  expect(validateStep({ ...baseValues, birth_date: "2008-09-12" }, 1, today)).toEqual({});
+  expect(validateStep({ ...baseValues, birth_date: "2008-09-13" }, 1, today)).toEqual({
+    birth_date: "ageRange",
+  });
+  expect(validateStep({ ...baseValues, birth_date: "1926-09-12" }, 1, today)).toEqual({});
+  expect(validateStep({ ...baseValues, birth_date: "1925-09-12" }, 1, today)).toEqual({
+    birth_date: "ageRange",
+  });
+});
+
+it("returns exact UTC birth-date bounds for a fixed date", () => {
+  expect(getProfileBirthDateBounds(new Date("2026-09-18T12:00:00Z"))).toEqual({
+    min: "1926-09-18",
+    max: "2008-09-18",
+  });
+});
+
+it("clamps leap-day year subtraction without moving into March", () => {
+  expect(getProfileBirthDateBounds(new Date("2028-02-29T12:00:00Z"))).toEqual({
+    min: "1928-02-29",
+    max: "2010-02-28",
+  });
+  expect(validateStep({ ...baseValues, birth_date: "2010-02-28" }, 1, new Date("2028-02-29T12:00:00Z"))).toEqual({});
 });

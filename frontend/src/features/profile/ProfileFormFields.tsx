@@ -8,6 +8,7 @@ import {
   isTrainingWeekdayPreset,
   homeTrainingSetups,
 } from "@fitician/core/profile";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
@@ -122,6 +123,7 @@ export function PersonalFields({
   onChange,
 }: FieldGroupProps) {
   const { t } = useTranslation();
+  const birthDateBounds = getProfileBirthDateBounds(new Date());
   return (
     <fieldset className="profile-fieldset" disabled={disabled}>
       <FieldLegend icon="profile">{t("onboarding.steps.personal")}</FieldLegend>
@@ -153,6 +155,10 @@ export function PersonalFields({
         <PersianDatePicker
           ariaLabel={t("onboarding.fields.birthDate")}
           id="profile-birth-date"
+          max={birthDateBounds.max}
+          maxError={t("onboarding.validation.birthDateUnder18")}
+          min={birthDateBounds.min}
+          minError={t("onboarding.validation.birthDateOutOfRange")}
           onChange={(value) => onChange("birth_date", value)}
           value={values.birth_date}
         />

@@ -1,8 +1,10 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 
 import { AppIcon } from "../../shared/AppIcon";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
+import type { ProfileValidationErrors } from "../profile/profileValidation";
 import type { ProfileFormValues } from "../profile/types";
 import { useAutoAdvance } from "./useAutoAdvance";
 
@@ -10,7 +12,7 @@ type Props = {
   values: ProfileFormValues;
   onChange: (field: keyof ProfileFormValues, value: string) => void;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (values: ProfileFormValues) => ProfileValidationErrors | void;
 };
 
 const sexes = ["female", "male"] as const;
@@ -22,14 +24,22 @@ const goals = [
   ["body_recomposition", "🔥💪"],
 ] as const;
 
+function parseIsoDate(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
+}
+
 export function GuidedSharedProfileQuestions({ values, onChange, onBack, onComplete }: Props) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const [question, setQuestion] = useState(0);
+  const [birthError, setBirthError] = useState<string | null>(null);
   const [showBodyConfirmation, setShowBodyConfirmation] = useState(false);
   const [bodyValuesConfirmed, setBodyValuesConfirmed] = useState(false);
   const { selectAndAdvance, resetAdvancing } = useAutoAdvance();
   const onCompleteRef = useRef(onComplete);
+  const birthDateBounds = getProfileBirthDateBounds(new Date());
   useEffect(() => {
     onCompleteRef.current = onComplete;
   });
@@ -43,7 +53,7 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
   const stages = language === "en" ? ["Personal", "Body", "Goal"] : ["شخصی", "بدن", "هدف"];
   const ready = [
     values.display_name.trim().length >= 2,
-    values.birth_date !== "",
+    true,
     values.sex !== "",
     Number(values.height_cm) >= 120 && Number(values.height_cm) <= 230
       && Number(values.current_weight_kg) >= 35 && Number(values.current_weight_kg) <= 300,
@@ -54,12 +64,32 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (question === 1) {
+      const birthError = getBirthDateError(values.birth_date);
+      setBirthError(birthError);
+      if (birthError !== null) return;
+    }
     if (question === 3 && needsBodyConfirmation && !bodyValuesConfirmed) {
       setShowBodyConfirmation(true);
       return;
     }
-    if (question === labels.length - 1) onComplete();
-    else setQuestion((current) => current + 1);
+    if (question === labels.length - 1) {
+      const completionErrors = onCompleteRef.current(values);
+      if (completionErrors?.birth_date !== undefined) {
+        setBirthError(getBirthDateError(values.birth_date) ?? t("onboarding.validation.birthDateInvalid"));
+        setQuestion(1);
+      }
+      return;
+    }
+    setQuestion((current) => current + 1);
+  }
+
+  function getBirthDateError(value: string): string | null {
+    const trimmedValue = value.trim();
+    if (parseIsoDate(trimmedValue) === null) return t("onboarding.validation.birthDateInvalid");
+    if (trimmedValue > birthDateBounds.max) return t("onboarding.validation.birthDateUnder18");
+    if (trimmedValue < birthDateBounds.min) return t("onboarding.validation.birthDateOutOfRange");
+    return null;
   }
 
   function handleBack() {
@@ -101,7 +131,15 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
             <PersianDatePicker
               ariaLabel={t("onboarding.fields.birthDate")}
               label={t("onboarding.fields.birthDate")}
-              onChange={(value) => onChange("birth_date", value)}
+              max={birthDateBounds.max}
+              maxError={t("onboarding.validation.birthDateUnder18")}
+              min={birthDateBounds.min}
+              minError={t("onboarding.validation.birthDateOutOfRange")}
+              onChange={(value) => {
+                setBirthError(null);
+                onChange("birth_date", value);
+              }}
+              error={birthError ?? undefined}
               value={values.birth_date}
             />
           </div>
@@ -142,7 +180,13 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
                 type="button"
                 onClick={() => selectAndAdvance(
                   () => onChange("fitness_goal", goal),
-                  () => onCompleteRef.current(),
+                  () => {
+                    const completionErrors = onCompleteRef.current({ ...values, fitness_goal: goal });
+                    if (completionErrors?.birth_date !== undefined) {
+                      setBirthError(getBirthDateError(values.birth_date) ?? t("onboarding.validation.birthDateInvalid"));
+                      setQuestion(1);
+                    }
+                  },
                 )}
               >
                 {t(`onboarding.options.fitnessGoal.${goal}`)} {emoji}

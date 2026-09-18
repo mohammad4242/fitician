@@ -11,7 +11,9 @@ import {
 import { useRouter } from "expo-router";
 
 import { ApiError, FITICIAN_WEEKDAY_LABELS_FA, formatTehranDateTime } from "@fitician/core";
+import fa from "@fitician/core/i18n/fa";
 import type { NutritionProfile } from "@fitician/core/nutrition";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 import {
   equipmentForHomeTrainingSetup,
   getPrimaryTrainingWeekdayPreset,
@@ -582,6 +584,8 @@ function PersonalSection({
   readonly values: ProfileFormValues;
   readonly onChange: (field: keyof ProfileFormValues, value: ProfileFormValues[keyof ProfileFormValues]) => void;
 }) {
+  const birthDateBounds = getProfileBirthDateBounds(new Date());
+  const birthDateCopy = fa.translation.onboarding.validation;
   return (
     <View style={styles.formGroups}>
       <ProfileFormGroup icon="profile" title="مشخصات فردی">
@@ -596,6 +600,10 @@ function PersonalSection({
           accessibilityLabel="تاریخ تولد"
           error={errors.birth_date}
           label="تاریخ تولد"
+          max={birthDateBounds.max}
+          maxError={birthDateCopy.birthDateUnder18}
+          min={birthDateBounds.min}
+          minError={birthDateCopy.birthDateOutOfRange}
           onChange={(value) => onChange("birth_date", value)}
           testID="profile-birth-date"
           value={values.birth_date}

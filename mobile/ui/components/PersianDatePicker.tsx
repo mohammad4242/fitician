@@ -25,7 +25,9 @@ export interface PersianDatePickerProps {
   readonly error?: string;
   readonly label?: string;
   readonly max?: string;
+  readonly maxError?: string;
   readonly min?: string;
+  readonly minError?: string;
   readonly onChange: (isoDate: string) => void;
   readonly testID?: string;
   readonly value: string;
@@ -111,21 +113,26 @@ function optionValues(part: DatePart, parts: JalaliDateParts, min?: string, max?
   if (part === "day") return Array.from({ length: daysInJalaliMonth(parts.year, parts.month) }, (_, index) => index + 1);
   if (part === "month") return Array.from({ length: 12 }, (_, index) => index + 1);
 
-  let first = DEFAULT_MIN_YEAR;
-  let last = DEFAULT_MAX_YEAR;
-  for (const [boundary, fallback] of [[min, "first"], [max, "last"]] as const) {
-    if (boundary === undefined) continue;
-    try {
-      const year = isoDateToJalaliParts(boundary).year;
-      if (fallback === "first") first = Math.min(first, year);
-      else last = Math.max(last, year);
-    } catch {
-      // Keep the broad supported Jalali range.
-    }
+  const minimumBound = min ? parseJalaliYear(min) : undefined;
+  const maximumBound = max ? parseJalaliYear(max) : undefined;
+  if (minimumBound === undefined && maximumBound === undefined) {
+    const first = Math.min(DEFAULT_MIN_YEAR, parts.year);
+    const last = Math.max(DEFAULT_MAX_YEAR, parts.year);
+    return Array.from({ length: last - first + 1 }, (_, index) => first + index);
   }
-  first = Math.min(first, parts.year);
-  last = Math.max(last, parts.year);
+
+  const first = minimumBound ?? DEFAULT_MIN_YEAR;
+  const last = maximumBound ?? DEFAULT_MAX_YEAR;
+  if (first > last) return [];
   return Array.from({ length: last - first + 1 }, (_, index) => first + index);
+}
+
+function parseJalaliYear(value: string): number | undefined {
+  try {
+    return isoDateToJalaliParts(value).year;
+  } catch {
+    return undefined;
+  }
 }
 
 function optionLabel(part: DatePart, value: number): string {
@@ -212,7 +219,9 @@ export function PersianDatePicker({
   error,
   label,
   max,
+  maxError,
   min,
+  minError,
   onChange,
   testID = "persian-date-picker",
   value,
@@ -235,7 +244,19 @@ export function PersianDatePicker({
 
   function confirm(): void {
     const isoDate = candidateIsoDate(draft);
-    if (isoDate === null || !isoDateInRange(isoDate, min, max)) {
+    if (isoDate === null) {
+      setValidationError("تاریخ انتخاب‌شده معتبر نیست.");
+      return;
+    }
+    if (min !== undefined && min !== "" && isoDate < min) {
+      setValidationError(minError ?? "تاریخ انتخاب‌شده معتبر نیست.");
+      return;
+    }
+    if (max !== undefined && max !== "" && isoDate > max) {
+      setValidationError(maxError ?? "تاریخ انتخاب‌شده معتبر نیست.");
+      return;
+    }
+    if (!isoDateInRange(isoDate, min, max)) {
       setValidationError("تاریخ انتخاب‌شده معتبر نیست.");
       return;
     }

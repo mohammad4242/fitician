@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { ApiError, FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
+import fa from "@fitician/core/i18n/fa";
 import type { NutritionProfileInput, SafetyProfileInput, StructuredExerciseInput } from "@fitician/core/nutrition";
 import { getOnboardingSteps } from "@fitician/core/onboarding";
 import type { NutritionBasicsDraft, OnboardingState } from "@fitician/core/onboarding";
@@ -23,7 +24,7 @@ import {
   type ProfileInput,
   type ProductMode,
 } from "@fitician/core/profile";
-import { validateStep } from "@fitician/core/profile-validation";
+import { getProfileBirthDateBounds, validateStep } from "@fitician/core/profile-validation";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import {
@@ -1324,6 +1325,10 @@ function ControlledPersianDatePicker<TFieldValues extends FieldValues>({
   readonly label: string;
   readonly name: FieldPath<TFieldValues>;
 }) {
+  const birthDateBounds = String(name) === "birth_date"
+    ? getProfileBirthDateBounds(new Date())
+    : undefined;
+  const birthDateCopy = fa.translation.onboarding.validation;
   return (
     <Controller
       control={control}
@@ -1333,6 +1338,10 @@ function ControlledPersianDatePicker<TFieldValues extends FieldValues>({
           accessibilityLabel={label}
           error={fieldState.error?.message}
           label={label}
+          max={birthDateBounds?.max}
+          maxError={birthDateBounds === undefined ? undefined : birthDateCopy.birthDateUnder18}
+          min={birthDateBounds?.min}
+          minError={birthDateBounds === undefined ? undefined : birthDateCopy.birthDateOutOfRange}
           onChange={field.onChange}
           testID={`onboarding-${String(name)}`}
           value={String(field.value ?? "")}

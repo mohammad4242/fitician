@@ -216,10 +216,11 @@ function TrainingDraftFlow({ onExit, onComplete }: { onExit: () => void; onCompl
     onComplete(toProfileInput(values));
   }
 
-  function completeSharedQuestions() {
-    const nextErrors = { ...validateStep(values, 1, new Date()), ...validateStep(values, 2, new Date()) };
+  function completeSharedQuestions(nextValues: ProfileFormValues = values): ProfileValidationErrors {
+    const nextErrors = { ...validateStep(nextValues, 1, new Date()), ...validateStep(nextValues, 2, new Date()) };
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length === 0) setStep(3);
+    return nextErrors;
   }
 
   if (step === 1) {

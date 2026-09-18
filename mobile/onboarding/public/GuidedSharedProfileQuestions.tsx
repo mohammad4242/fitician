@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
+import fa from "@fitician/core/i18n/fa";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 import type { ProfileFormValues } from "@fitician/core/profile";
 
 import { AppIcon, Button, PersianDatePicker, TextField } from "../../ui/components";
@@ -41,31 +43,14 @@ const goalOptions = [
   { label: "چربی‌سوزی + عضله‌سازی 🔥💪", value: "body_recomposition" },
 ] as const;
 
-function ageOn(birthDate: Date, today: Date): number {
-  return today.getUTCFullYear()
-    - birthDate.getUTCFullYear()
-    - (today.getUTCMonth() < birthDate.getUTCMonth()
-      || (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() < birthDate.getUTCDate())
-      ? 1
-      : 0);
-}
-
-function validBirthDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+function parseIsoDate(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return null;
   const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return false;
-  return ageOn(date, new Date()) >= 18
-    && ageOn(date, new Date()) <= 100;
-}
-
-function birthDateIsPresent(value: string): boolean {
-  return value.trim().length > 0;
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date;
 }
 
 /* The form/API contract stays Gregorian ISO; only the picker presentation is Jalali. */
-function validBirthDateForForm(value: string): boolean {
-  return validBirthDate(value);
-}
+const birthDateCopy = fa.translation.onboarding.validation;
 
 export function GuidedSharedProfileQuestions({
   onBack,
@@ -80,6 +65,7 @@ export function GuidedSharedProfileQuestions({
   const [bodyValuesConfirmed, setBodyValuesConfirmed] = useState(false);
   const { resetAdvancing, selectAndAdvance } = usePublicAutoAdvance();
   const onCompleteRef = useRef(onComplete);
+  const birthDateBounds = getProfileBirthDateBounds(new Date());
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -92,7 +78,7 @@ export function GuidedSharedProfileQuestions({
     || Number(values.current_weight_kg) > 180;
   const ready = [
     values.display_name.trim().length >= 2 && values.display_name.trim().length <= 80,
-    birthDateIsPresent(values.birth_date),
+    true,
     values.sex !== "",
     Number.isFinite(Number(values.height_cm))
       && Number(values.height_cm) >= 120
@@ -105,11 +91,9 @@ export function GuidedSharedProfileQuestions({
 
   function submit() {
     if (question === 1) {
-      if (!validBirthDateForForm(values.birth_date)) {
-        setBirthError("تاریخ تولد باید معتبر باشد و سن بین ۱۸ تا ۱۰۰ سال باشد.");
-        return;
-      }
-      setBirthError(null);
+      const nextBirthError = birthDateError(values.birth_date);
+      setBirthError(nextBirthError);
+      if (nextBirthError !== null) return;
     }
     if (question === 3 && needsBodyConfirmation && !bodyValuesConfirmed) {
       setShowBodyConfirmation(true);
@@ -117,6 +101,14 @@ export function GuidedSharedProfileQuestions({
     }
     if (question === titles.length - 1) onCompleteRef.current(values);
     else setQuestion((current) => current + 1);
+  }
+
+  function birthDateError(value: string): string | null {
+    const trimmedValue = value.trim();
+    if (parseIsoDate(trimmedValue) === null) return birthDateCopy.birthDateInvalid;
+    if (trimmedValue > birthDateBounds.max) return birthDateCopy.birthDateUnder18;
+    if (trimmedValue < birthDateBounds.min) return birthDateCopy.birthDateOutOfRange;
+    return null;
   }
 
   function handleBack() {
@@ -168,6 +160,10 @@ export function GuidedSharedProfileQuestions({
             accessibilityLabel="تاریخ تولد"
             error={birthError ?? undefined}
             label="تاریخ تولد"
+            max={birthDateBounds.max}
+            maxError={birthDateCopy.birthDateUnder18}
+            min={birthDateBounds.min}
+            minError={birthDateCopy.birthDateOutOfRange}
             onChange={(value) => {
               setBirthError(null);
               onChange("birth_date", value);

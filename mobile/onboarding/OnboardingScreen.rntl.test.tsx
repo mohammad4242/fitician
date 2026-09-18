@@ -14,7 +14,10 @@ jest.mock("../ui/navigation/RouteGuards", () => ({
 }));
 
 import { TrainingProfileStage } from "./OnboardingScreen";
+import { SharedProfileStage } from "./OnboardingScreen";
 import { emptyProfileFormValues } from "./onboardingForms";
+import { isoDateToJalaliParts } from "@fitician/core/iran-calendar";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 
 test("sets the primary preset after training-day selection and supports custom Friday", () => {
   const values = emptyProfileFormValues();
@@ -70,4 +73,32 @@ test("resets the weekday selection to the primary preset when the count changes"
 
   expect(screen.getByRole("radio", { name: "شنبه · دوشنبه · چهارشنبه" }).props.accessibilityState)
     .toMatchObject({ selected: true });
+});
+
+test("bounds the authenticated onboarding birth-date picker with the Core policy", () => {
+  const values = emptyProfileFormValues();
+  values.birth_date = "1992-05-12";
+  values.display_name = "سارا";
+  values.sex = "female";
+
+  render(
+    <SharedProfileStage
+      busy={false}
+      initialValues={values}
+      onBack={jest.fn(() => true)}
+      onSubmit={jest.fn()}
+    />,
+  );
+
+  fireEvent.press(screen.getByTestId("onboarding-birth_date-trigger"));
+  const bounds = getProfileBirthDateBounds(new Date());
+  const minYear = isoDateToJalaliParts(bounds.min).year;
+  const maxYear = isoDateToJalaliParts(bounds.max).year;
+  const years = screen.getAllByTestId(/onboarding-birth_date-option-year-/);
+
+  expect(years).toHaveLength(maxYear - minYear + 1);
+  expect(screen.getByTestId(`onboarding-birth_date-option-year-${minYear}`)).toBeTruthy();
+  expect(screen.getByTestId(`onboarding-birth_date-option-year-${maxYear}`)).toBeTruthy();
+  expect(screen.queryByTestId("onboarding-birth_date-option-year-1300")).toBeNull();
+  expect(screen.queryByTestId("onboarding-birth_date-option-year-1500")).toBeNull();
 });

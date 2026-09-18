@@ -8,7 +8,9 @@ jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 
 import { emptyProfileFormValues, profileInputForOnboarding } from "../onboardingForms";
+import { isoDateToJalaliParts } from "@fitician/core/iran-calendar";
 import type { ProfileFormValues } from "@fitician/core/profile";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 import { GuidedSharedProfileQuestions } from "./GuidedSharedProfileQuestions";
 import { GuidedTrainingQuestions } from "./GuidedTrainingQuestions";
 
@@ -25,8 +27,16 @@ function renderWithSafeArea(element: React.ReactElement) {
   );
 }
 
-function SharedHarness({ onComplete, onBack }: { onComplete?: () => void; onBack?: () => void }) {
-  const [values, setValues] = useState(emptyProfileFormValues);
+function SharedHarness({
+  initialValues,
+  onComplete,
+  onBack,
+}: {
+  initialValues?: ProfileFormValues;
+  onComplete?: (values: ProfileFormValues) => void;
+  onBack?: () => void;
+}) {
+  const [values, setValues] = useState(initialValues ?? emptyProfileFormValues());
   return (
     <GuidedSharedProfileQuestions
       onBack={onBack ?? jest.fn()}
@@ -111,6 +121,79 @@ test("requires Web unusual-value confirmation before leaving the body question",
   expect(screen.getByRole("header", { name: "هدف اصلی تو چیست؟" })).toBeTruthy();
 });
 
+test("keeps an under-18 user on the birth-date question with a clear error", () => {
+  const initialValues = emptyProfileFormValues();
+  initialValues.birth_date = "2009-09-18";
+  renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
+
+  fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("header", { name: "چه تاریخی به دنیا آمدی؟" })).toBeTruthy();
+  expect(screen.getByText("برای استفاده از فیتیشن باید حداقل ۱۸ سال داشته باشی.")).toBeTruthy();
+  expect(screen.queryByRole("header", { name: "جنسیتت چیست؟" })).toBeNull();
+});
+
+test("shows the invalid birth-date error before leaving the birth-date question", () => {
+  renderWithSafeArea(<SharedHarness />);
+
+  fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("header", { name: "چه تاریخی به دنیا آمدی؟" })).toBeTruthy();
+  expect(screen.getByText("تاریخ تولد معتبر نیست.")).toBeTruthy();
+  expect(screen.queryByRole("header", { name: "جنسیتت چیست؟" })).toBeNull();
+});
+
+test("accepts exact 18 and 100 year birth-date boundaries", () => {
+  for (const birthDate of ["2008-09-18", "1926-09-18"]) {
+    const initialValues = emptyProfileFormValues();
+    initialValues.birth_date = birthDate;
+    const rendered = renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
+
+    fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
+    fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+    fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+
+    expect(screen.getByRole("header", { name: "جنسیتت چیست؟" })).toBeTruthy();
+    rendered.unmount();
+  }
+});
+
+test("keeps an over-100 user on the birth-date question with a range error", () => {
+  const initialValues = emptyProfileFormValues();
+  initialValues.birth_date = "1925-09-18";
+  renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
+
+  fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+
+  expect(screen.getByRole("header", { name: "چه تاریخی به دنیا آمدی؟" })).toBeTruthy();
+  expect(screen.getByText("تاریخ تولد واردشده خارج از بازه پشتیبانی فیتیشن است.")).toBeTruthy();
+  expect(screen.queryByRole("header", { name: "جنسیتت چیست؟" })).toBeNull();
+});
+
+test("shows only Core-bounded Jalali years for public birth dates", () => {
+  renderWithSafeArea(<SharedHarness />);
+
+  fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByTestId("public-birth-date-trigger"));
+
+  const bounds = getProfileBirthDateBounds(new Date());
+  const minYear = isoDateToJalaliParts(bounds.min).year;
+  const maxYear = isoDateToJalaliParts(bounds.max).year;
+  const years = screen.getAllByTestId(/public-birth-date-option-year-/);
+  expect(years).toHaveLength(maxYear - minYear + 1);
+  expect(screen.getByTestId(`public-birth-date-option-year-${minYear}`)).toBeTruthy();
+  expect(screen.getByTestId(`public-birth-date-option-year-${maxYear}`)).toBeTruthy();
+  expect(screen.queryByTestId("public-birth-date-option-year-1300")).toBeNull();
+  expect(screen.queryByTestId("public-birth-date-option-year-1500")).toBeNull();
+});
+
 test("shared back returns to the previous question and exits from question one", () => {
   const onBack = jest.fn();
   renderWithSafeArea(<SharedHarness onBack={onBack} />);
@@ -154,9 +237,9 @@ test("uses the Web gender card scale, body range hints, and goal labels", () => 
 
 function chooseBirthDate() {
   fireEvent.press(screen.getByTestId("public-birth-date-trigger"));
-  fireEvent.press(screen.getByTestId("public-birth-date-option-day-22"));
-  fireEvent.press(screen.getByTestId("public-birth-date-option-month-2"));
   fireEvent.press(screen.getByTestId("public-birth-date-option-year-1371"));
+  fireEvent.press(screen.getByTestId("public-birth-date-option-month-2"));
+  fireEvent.press(screen.getByTestId("public-birth-date-option-day-22"));
   fireEvent.press(screen.getByRole("button", { name: "انتخاب" }));
 }
 

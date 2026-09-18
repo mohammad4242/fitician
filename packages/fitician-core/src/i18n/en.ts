@@ -683,6 +683,8 @@ const en = {
         required: "This field is required.",
         displayNameLength: "Display name must be between 2 and 80 characters.",
         birthDateInvalid: "Enter a valid birth date.",
+        birthDateUnder18: "You must be at least 18 years old to use Fitician.",
+        birthDateOutOfRange: "The entered birth date is outside Fitician's supported range.",
         ageRange: "Age must be between 18 and 100.",
         heightRange: "Height must be between 120 and 230 centimeters.",
         weightRange: "Weight must be between 35 and 300 kilograms.",
