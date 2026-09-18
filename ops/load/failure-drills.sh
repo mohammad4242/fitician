@@ -273,9 +273,7 @@ drill_backend_replica() {
   before=$(wait_for_two_instances | tr '\n' ',' | sed 's/,$//')
   failed_instance=$(curl --silent --dump-header - --output /dev/null --max-time 3 http://127.0.0.1:8002/livez | awk -F': ' 'tolower($1)=="x-fitician-instance" {gsub("\r", "", $2); print $2}')
   "${compose[@]}" stop backend-2 >/dev/null
-  wait_for_status "$base_url/livez" 200
-  surviving=$(collect_instances 25)
-  if printf '%s\n' "$surviving" | grep -Fxq "$failed_instance"; then echo "Caddy routed to stopped backend-2" >&2; return 1; fi
+  surviving=$(wait_for_upstream_removed "$failed_instance")
   "${compose[@]}" start backend-2 >/dev/null
   wait_for_status http://127.0.0.1:8002/readyz 200
   after=$(wait_for_two_instances | tr '\n' ',' | sed 's/,$//')

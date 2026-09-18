@@ -48,6 +48,10 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("redis_has_key 'fitician:rate:v1:auth:*'", script)
         self.assertIn("wait_for_two_instances", script)
         self.assertIn("wait_for_upstream_removed", script)
+        self.assertIn(
+            'surviving=$(wait_for_upstream_removed "$failed_instance")',
+            script,
+        )
         self.assertIn("SIGKILL body-analysis-worker", script)
         self.assertIn("docker update --restart=no", script)
         self.assertIn("wait_for_body_reclaim", script)
