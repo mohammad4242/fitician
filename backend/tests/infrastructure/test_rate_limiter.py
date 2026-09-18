@@ -4,11 +4,14 @@ import asyncio
 from datetime import UTC, datetime
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.config import Settings
 from app.infrastructure.rate_limiter import (
     RedisRateLimiter,
     RedisRateLimitUnavailable,
 )
+from app.main import create_app
 
 
 class FakeRedis:
@@ -93,3 +96,25 @@ def test_redis_rate_limiter_redacts_redis_failures() -> None:
         )
 
     assert "secret" not in repr(error.value)
+
+
+def test_app_exposes_shared_rate_limiter(monkeypatch: object) -> None:
+    settings = Settings(
+        _env_file=None,
+        app_env="test",
+        cookie_secure=False,
+        session_cookie_name="fitician_session",
+    )
+    redis = FakeRedis()
+
+    class StubService:
+        client = redis
+
+        async def close(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.main.create_redis_service", lambda _: StubService())
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        assert isinstance(client.app.state.rate_limiter, RedisRateLimiter)

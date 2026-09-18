@@ -55,6 +55,7 @@ from app.errors import (
     error_response,
 )
 from app.exercises.router import router as exercises_router
+from app.infrastructure.rate_limiter import RedisRateLimiter
 from app.infrastructure.redis import create_redis_service
 from app.media.delivery import deliver_public_media
 from app.media.factory import build_s3_storage
@@ -89,6 +90,10 @@ def create_app(
         public_media_storage = build_s3_storage(active_settings)
     redis_service = create_redis_service(active_settings)
     cache_service = CacheService(redis_service, active_settings)
+    rate_limiter = RedisRateLimiter(
+        redis_service,
+        key_secret=active_settings.phone_otp_hmac_secret.get_secret_value(),
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -116,6 +121,7 @@ def create_app(
             app.state.food_price_http_client = food_price_client
             app.state.redis = redis_service
             app.state.cache = cache_service
+            app.state.rate_limiter = rate_limiter
             background_tasks: list[asyncio.Task[None]] = []
             if active_settings.app_env != "test":
                 try:

@@ -45,6 +45,7 @@ _MESSAGES = {
     "AUTHENTICATION_REQUIRED": "برای ادامه دوباره وارد حساب شوید.",
     "BEARER_AUTHENTICATION_REQUIRED": "برای ادامه باید وارد حساب شوید.",
     "AUTH_RATE_LIMITED": "درخواست‌های ورود زیاد است. کمی بعد دوباره تلاش کنید.",
+    "RATE_LIMIT_UNAVAILABLE": "کنترل درخواست موقتاً در دسترس نیست. دوباره تلاش کنید.",
     "AUTH_GOOGLE_FAILED": "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
     "AUTH_APPLE_FAILED": "ورود با اپل انجام نشد. دوباره تلاش کنید.",
     "AUTH_APPLE_ACCOUNT_CONFLICT": "این حساب اپل به حساب دیگری متصل است.",

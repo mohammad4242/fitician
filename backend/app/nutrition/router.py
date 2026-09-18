@@ -19,6 +19,7 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app.admin.dependencies import AdminUser
@@ -37,6 +38,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import require_entitlement
+from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 from app.nutrition.adherence_service import (
     AdherenceError,
     adaptive_preferences,
@@ -440,6 +442,57 @@ async def _invalidate_nutrition_cache(request: Request, *namespaces: str) -> Non
             await invalidate(namespace)
         except Exception:
             continue
+
+
+async def _consume_nutrition_rate_limit(
+    request: Request,
+    db: Session,
+    user_id: UUID,
+    settings: Settings,
+    *,
+    operation: str,
+    limit: int,
+) -> None:
+    rate_limiter = getattr(request.app.state, "rate_limiter", None)
+    if rate_limiter is not None:
+        try:
+            result = await rate_limiter.consume(
+                namespace="nutrition",
+                actor=f"user:{user_id}",
+                operation=operation,
+                limit=limit,
+                window_seconds=settings.nutrition_upload_rate_window_seconds,
+            )
+        except RedisRateLimitUnavailable:
+            pass
+        else:
+            if not result.allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail={"code": "RATE_LIMIT_EXCEEDED"},
+                    headers={"Retry-After": str(result.retry_after_seconds)},
+                )
+            return
+    try:
+        consume_rate_limit(
+            db,
+            actor_user_id=user_id,
+            operation=operation,
+            limit=limit,
+            window_seconds=settings.nutrition_upload_rate_window_seconds,
+        )
+    except RateLimitExceeded as error:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"code": "RATE_LIMIT_EXCEEDED"},
+            headers={"Retry-After": str(error.retry_after_seconds)},
+        ) from None
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "RATE_LIMIT_UNAVAILABLE"},
+        ) from None
 
 
 def _discard_food_image_if_unreferenced(
@@ -2401,6 +2454,7 @@ def _food_photo_error(error: FoodPhotoError) -> HTTPException:
 async def create_food_photo_estimate(
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
     settings: AppSettings,
     file: Annotated[UploadFile, File()],
     consent: Annotated[bool, Header(alias="X-Fitician-Food-Photo-Consent")],
@@ -2415,12 +2469,13 @@ async def create_food_photo_estimate(
         replayed = replay_idempotent_photo(db, user.id, idempotency_key)
         if replayed is not None:
             return replayed
-        consume_rate_limit(
+        await _consume_nutrition_rate_limit(
+            request,
             db,
-            actor_user_id=user.id,
+            user.id,
+            settings,
             operation="food_photo_estimation",
             limit=settings.food_photo_rate_limit,
-            window_seconds=settings.nutrition_upload_rate_window_seconds,
         )
         resolved_lang = (
             "en"
@@ -2654,6 +2709,7 @@ def _clinical_error(error: ClinicalError) -> HTTPException:
 async def create_lab_document(
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
     settings: AppSettings,
     file: Annotated[UploadFile, File()],
     test_date: Annotated[date | None, Form()] = None,
@@ -2664,12 +2720,13 @@ async def create_lab_document(
 ) -> NutritionLabUploadResponse:
     require_entitlement(db, user.id, EntitlementCode.NUTRITION_LABS_MANAGE)
     try:
-        consume_rate_limit(
+        await _consume_nutrition_rate_limit(
+            request,
             db,
-            actor_user_id=user.id,
+            user.id,
+            settings,
             operation="nutrition_lab_upload",
             limit=settings.nutrition_lab_upload_rate_limit,
-            window_seconds=settings.nutrition_upload_rate_window_seconds,
         )
         return await upload_lab(
             db,

@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from google.auth.exceptions import GoogleAuthError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.auth.cookies import (
@@ -73,6 +74,7 @@ from app.auth.service import (
 )
 from app.config import Settings, get_settings
 from app.database.session import get_db
+from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -165,7 +167,16 @@ def _client_actor(request: Request) -> str:
     return request.client.host if request.client is not None else "unknown"
 
 
-def _consume_limit(
+def _auth_rate_limited(retry_after_seconds: int) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail={"code": "AUTH_RATE_LIMITED"},
+        headers={"Retry-After": str(retry_after_seconds)},
+    )
+
+
+async def _consume_limit(
+    request: Request,
     db: Session,
     settings: Settings,
     *,
@@ -173,6 +184,22 @@ def _consume_limit(
     operation: str,
     limit: int,
 ) -> None:
+    rate_limiter = getattr(request.app.state, "rate_limiter", None)
+    if rate_limiter is not None:
+        try:
+            result = await rate_limiter.consume(
+                namespace="auth",
+                actor=actor,
+                operation=operation,
+                limit=limit,
+                window_seconds=settings.auth_rate_limit_window_seconds,
+            )
+        except RedisRateLimitUnavailable:
+            pass
+        else:
+            if not result.allowed:
+                raise _auth_rate_limited(result.retry_after_seconds)
+            return
     try:
         consume_auth_rate_limit(
             db,
@@ -183,10 +210,12 @@ def _consume_limit(
             hmac_secret=settings.phone_otp_hmac_secret.get_secret_value(),
         )
     except AuthRateLimitError as error:
+        raise _auth_rate_limited(error.retry_after_seconds) from None
+    except SQLAlchemyError:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"code": "AUTH_RATE_LIMITED"},
-            headers={"Retry-After": str(error.retry_after_seconds)},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "RATE_LIMIT_UNAVAILABLE"},
         ) from None
 
 
@@ -237,12 +266,29 @@ def register(
     response_model=UserResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def login(
+async def login(
     payload: LoginRequest,
+    request: Request,
     response: Response,
     db: DatabaseSession,
     settings: AppSettings,
 ) -> UserResponse:
+    await _consume_limit(
+        request,
+        db,
+        settings,
+        actor=f"ip:{_client_actor(request)}",
+        operation="password-ip",
+        limit=settings.auth_password_ip_limit,
+    )
+    await _consume_limit(
+        request,
+        db,
+        settings,
+        actor=f"email:{normalize_email(str(payload.email))}",
+        operation="password-email",
+        limit=settings.auth_password_identifier_limit,
+    )
     try:
         result = login_user(db, payload, settings.session_ttl_seconds)
     except InvalidCredentialsError:
@@ -258,20 +304,22 @@ def login(
     "/mobile/password",
     response_model=MobileAuthResponse,
 )
-def mobile_password_login(
+async def mobile_password_login(
     payload: MobilePasswordLoginRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
 ) -> MobileAuthResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
         operation="mobile-password-ip",
         limit=settings.auth_mobile_password_ip_limit,
     )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"email:{normalize_email(str(payload.email))}",
@@ -308,7 +356,7 @@ def mobile_password_login(
     response_model=UserResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def google_auth(
+async def google_auth(
     payload: GoogleAuthRequest,
     request: Request,
     response: Response,
@@ -316,7 +364,8 @@ def google_auth(
     settings: AppSettings,
     provider: GoogleIdentityDelivery,
 ) -> UserResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
@@ -346,14 +395,15 @@ def google_auth(
     "/mobile/google",
     response_model=MobileAuthResponse,
 )
-def mobile_google_auth(
+async def mobile_google_auth(
     payload: MobileGoogleLoginRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
     provider: GoogleIdentityDelivery,
 ) -> MobileAuthResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
@@ -394,7 +444,7 @@ def mobile_google_auth(
     response_model=UserResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def apple_auth(
+async def apple_auth(
     payload: AppleAuthRequest,
     request: Request,
     response: Response,
@@ -402,7 +452,8 @@ def apple_auth(
     settings: AppSettings,
     provider: AppleIdentityDelivery,
 ) -> UserResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
@@ -431,7 +482,7 @@ def apple_auth(
     "/mobile/apple",
     response_model=MobileAuthResponse,
 )
-def mobile_apple_auth(
+async def mobile_apple_auth(
     payload: MobileAppleLoginRequest,
     request: Request,
     db: DatabaseSession,
@@ -443,7 +494,8 @@ def mobile_apple_auth(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "AUTH_APPLE_PLATFORM_UNSUPPORTED"},
         )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
@@ -483,21 +535,23 @@ def mobile_apple_auth(
     response_model=PhoneOtpSentResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-def mobile_phone_send_otp(
+async def mobile_phone_send_otp(
     payload: MobilePhoneSendOtpRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
     sms_provider: SmsDelivery,
 ) -> PhoneOtpSentResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
         operation="mobile-phone-otp-ip",
         limit=settings.auth_phone_otp_ip_limit,
     )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"phone:{payload.phone_number}",
@@ -554,13 +608,14 @@ def mobile_phone_verify_otp(
     "/mobile/refresh",
     response_model=MobileAuthResponse,
 )
-def mobile_refresh(
+async def mobile_refresh(
     payload: MobileRefreshRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
 ) -> MobileAuthResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
@@ -610,21 +665,23 @@ def mobile_logout_all(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def forgot_password(
+async def forgot_password(
     payload: ForgotPasswordRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
     email_provider: EmailDelivery,
 ) -> GenericMessageResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
         operation="forgot-password-ip",
         limit=settings.auth_forgot_password_ip_limit,
     )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"email:{normalize_email(str(payload.email))}",
@@ -663,21 +720,23 @@ def reset_password_endpoint(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def email_send_verification(
+async def email_send_verification(
     request: Request,
     user: CurrentUser,
     db: DatabaseSession,
     settings: AppSettings,
     email_provider: EmailDelivery,
 ) -> GenericMessageResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
         operation="email-verification-ip",
         limit=settings.auth_email_verification_ip_limit,
     )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"user:{user.id}",
@@ -717,21 +776,23 @@ def email_verify(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def phone_send_otp(
+async def phone_send_otp(
     payload: PhoneSendOtpRequest,
     request: Request,
     db: DatabaseSession,
     settings: AppSettings,
     sms_provider: SmsDelivery,
 ) -> PhoneOtpSentResponse:
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"ip:{_client_actor(request)}",
         operation="phone-otp-ip",
         limit=settings.auth_phone_otp_ip_limit,
     )
-    _consume_limit(
+    await _consume_limit(
+        request,
         db,
         settings,
         actor=f"phone:{payload.phone_number}",
