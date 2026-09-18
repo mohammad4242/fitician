@@ -39,6 +39,27 @@ Confirm the release has:
 - enough VPS memory for the configured replica/worker topology;
 - no pending schema migration unless the reviewed migration flag is enabled.
 
+Run both capacity preflights for the fixed two-replica topology:
+
+```bash
+python3 ops/check-db-connection-budget.py --replicas 2
+python3 ops/check-runtime-capacity.py --replicas 2
+```
+
+The default 2-vCPU/4-GiB envelope assigns 3296 MiB of container memory limits
+and leaves 800 MiB for Linux, Docker, filesystem cache, and operational bursts.
+It deliberately supports exactly two API replicas. Worker concurrency remains
+one process per queue; scale API pools or workers only after changing the
+environment limits and passing both preflights again.
+
+The monitoring overlay is optional and is not part of this normal envelope.
+On the 4-GiB VPS, enabling its default 512-MiB budget fails the headroom gate;
+run monitoring elsewhere, lower its retention/limits with measured evidence,
+or resize the VPS. Tune service limits through the `*_MEMORY_LIMIT` and
+`*_CPU_LIMIT` operator variables. Keep their matching `*_MEMORY_MIB` and
+`*_CPUS` preflight values identical so the rendered Compose contract test
+continues to prove the configured topology.
+
 ## Deploy and observe
 
 Use the existing `.github/workflows/deploy-production.yml` workflow. Never edit

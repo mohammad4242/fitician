@@ -12,6 +12,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-320m}
+    cpus: ${POSTGRES_CPU_LIMIT:-0.35}
     restart: unless-stopped
 
   redis:
@@ -32,7 +34,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    mem_limit: 192m
+    mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
+    cpus: ${REDIS_CPU_LIMIT:-0.10}
     restart: unless-stopped
 
   agent-service:
@@ -66,6 +69,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    mem_limit: ${AGENT_MEMORY_LIMIT:-448m}
+    cpus: ${AGENT_CPU_LIMIT:-0.40}
     restart: unless-stopped
 
   migrations:
@@ -128,6 +133,8 @@ services:
       timeout: 5s
       retries: 12
     stop_grace_period: 45s
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-704m}
+    cpus: ${BACKEND_CPU_LIMIT:-0.40}
     restart: unless-stopped
 
   backend-2:
@@ -169,6 +176,8 @@ services:
       retries: 3
       start_period: 15s
     stop_grace_period: 450s
+    mem_limit: ${FOOD_PHOTO_WORKER_MEMORY_LIMIT:-192m}
+    cpus: ${FOOD_PHOTO_WORKER_CPU_LIMIT:-0.20}
     restart: unless-stopped
 
   body-analysis-worker:
@@ -207,6 +216,8 @@ services:
       retries: 3
       start_period: 15s
     stop_grace_period: 450s
+    mem_limit: ${BODY_ANALYSIS_WORKER_MEMORY_LIMIT:-384m}
+    cpus: ${BODY_ANALYSIS_WORKER_CPU_LIMIT:-0.35}
     restart: unless-stopped
 
   scheduler:
@@ -244,6 +255,8 @@ services:
       retries: 3
       start_period: 15s
     stop_grace_period: 60s
+    mem_limit: ${SCHEDULER_MEMORY_LIMIT:-128m}
+    cpus: ${SCHEDULER_CPU_LIMIT:-0.15}
     restart: unless-stopped
 
   notification-worker:
@@ -274,6 +287,8 @@ services:
       retries: 3
       start_period: 15s
     stop_grace_period: 30s
+    mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-96m}
+    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.10}
     restart: unless-stopped
 
   frontend:
@@ -290,6 +305,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-64m}
+    cpus: ${FRONTEND_CPU_LIMIT:-0.05}
     restart: unless-stopped
 
   caddy:
@@ -306,6 +323,8 @@ services:
     depends_on:
       frontend:
         condition: service_healthy
+    mem_limit: ${CADDY_MEMORY_LIMIT:-64m}
+    cpus: ${CADDY_CPU_LIMIT:-0.10}
     restart: unless-stopped
 
 volumes:
