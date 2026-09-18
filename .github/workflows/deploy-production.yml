@@ -98,9 +98,10 @@ jobs:
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
-          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR'"
+          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR/ops/redis'"
           scp compose.prod.yaml "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/compose.prod.yaml"
           scp Caddyfile "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/Caddyfile"
+          scp ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/redis/redis.conf"
           scp ops/backup-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/backup-production.sh"
           scp ops/deploy-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/.deploy-production.sh"
 

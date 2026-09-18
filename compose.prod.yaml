@@ -14,6 +14,27 @@ services:
       retries: 20
     restart: unless-stopped
 
+  redis:
+    image: redis:8.10.1-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$${REDIS_PASSWORD}"
+    expose:
+      - "6379"
+    volumes:
+      - fitician_prod_redis_data:/data
+      - ./ops/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 192m
+    restart: unless-stopped
+
   agent-service:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${IMAGE_TAG:?IMAGE_TAG is required}
     environment:
@@ -171,6 +192,7 @@ services:
 
 volumes:
   fitician_prod_postgres_data:
+  fitician_prod_redis_data:
   fitician_agent_home:
   fitician_caddy_data:
   fitician_caddy_config:
