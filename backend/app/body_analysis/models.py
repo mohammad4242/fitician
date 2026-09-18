@@ -12,6 +12,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -39,6 +40,12 @@ def enum_values(members: type[StrEnum]) -> list[str]:
 class BodyAnalysis(Base):
     __tablename__ = "body_analyses"
     __table_args__ = (
+        Index(
+            "ix_body_analyses_queue_claim",
+            "status",
+            "available_at",
+            "locked_at",
+        ),
         UniqueConstraint("session_id", "revision", name="uq_body_analyses_session_revision"),
         CheckConstraint("revision > 0", name="ck_body_analyses_revision_positive"),
         CheckConstraint("attempt_count >= 0", name="ck_body_analyses_attempt_count_nonnegative"),
@@ -102,6 +109,11 @@ class BodyAnalysis(Base):
     attempt_count: Mapped[int] = mapped_column(
         Integer, default=0, server_default=text("0"), nullable=False
     )
+    available_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_by: Mapped[str | None] = mapped_column(String(80))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
