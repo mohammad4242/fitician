@@ -13,6 +13,7 @@ from app.entitlements.models import UserAccessGrant
 from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     EstimateConfidence,
+    FoodItemKind,
     FoodRole,
     FoodVerificationStatus,
     MealCategory,
@@ -27,6 +28,7 @@ from app.nutrition.models import (
     NutritionCatalogueMeal,
     NutritionCatalogueMealItem,
     NutritionFoodComposition,
+    NutritionFoodItem,
     NutritionFoodPriceReference,
     NutritionPlanGeneration,
     NutritionPlanPhysicianReview,
@@ -358,6 +360,39 @@ def test_generation_returns_visible_seven_day_draft_and_creates_review(
         for day in body["plan"]["days"]
         for meal in day["meals"]
     )
+
+
+def test_plan_reports_preference_refresh_after_profile_preference_changes(
+    client: TestClient, db: Session
+) -> None:
+    email = "weekly-plan-preference-refresh@example.com"
+    _register_and_estimate(client, email, meals=2, snacks=1)
+    _seed_foods_and_prices(db)
+
+    generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+
+    assert generated.status_code == 201, generated.text
+    assert generated.json()["plan"]["preference_refresh_required"] is False
+    user = db.scalar(select(User).where(User.email == email))
+    food = db.scalar(
+        select(NutritionCatalogueFood).where(NutritionCatalogueFood.slug == "task6-chicken")
+    )
+    assert user is not None and food is not None
+    db.add(
+        NutritionFoodItem(
+            user_id=user.id,
+            catalogue_food_id=food.id,
+            kind=FoodItemKind.FAVOURITE,
+            name=food.name_fa,
+            normalized_name=food.name_fa,
+        )
+    )
+    db.flush()
+
+    latest = client.get("/api/v1/nutrition/plans/latest", headers=ORIGIN)
+
+    assert latest.status_code == 200, latest.text
+    assert latest.json()["preference_refresh_required"] is True
 
 
 def test_base_nutrition_activates_without_physician_review(

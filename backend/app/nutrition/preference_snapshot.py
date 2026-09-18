@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
+from hashlib import sha256
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -47,6 +49,22 @@ class PreferenceSnapshot:
     intolerance_meal_ids: tuple[str, ...] = ()
     historical_meal_adherence: tuple[tuple[str, Decimal], ...] = ()
     data_sufficient: bool = False
+
+
+def preference_snapshot_signature(food_items: Iterable[NutritionFoodItem]) -> str:
+    """Return a stable identity for profile preferences used by plan generation."""
+    rows = sorted(
+        (
+            item.kind.value,
+            str(item.catalogue_food_id) if item.catalogue_food_id is not None else None,
+            str(item.catalogue_meal_id) if item.catalogue_meal_id is not None else None,
+            item.normalized_name,
+            item.details,
+        )
+        for item in food_items
+    )
+    payload = json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+    return sha256(payload.encode("utf-8")).hexdigest()
 
 
 def build_preference_snapshot(

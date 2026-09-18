@@ -30,6 +30,7 @@ function plan(overrides: Partial<NutritionPlan> = {}): NutritionPlan {
     is_user_visible: true,
     lifecycle_status: "active",
     nutrients: {},
+    preference_refresh_required: false,
     physician_approved: true,
     physician_approved_at: "2026-09-07T00:00:00Z",
     physician_review_required: true,

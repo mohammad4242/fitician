@@ -347,6 +347,14 @@ function PlanArea({
     const activeBudgetPlan = budgetPlan ?? plan;
     return (
       <div className="weekly-plan-area-container">
+        {plan.preference_refresh_required && (
+          <p className="weekly-plan__preference-refresh" role="status">
+            {l(
+              "ترجیحات غذایی تغییر کرده؛ برای اعمال آن‌ها برنامه را دوباره بساز.",
+              "Your nutrition preferences changed. Rebuild the plan to apply them.",
+            )}
+          </p>
+        )}
         {timeline?.plan_id === plan.id && timeline.state === "scheduled_start" && timeline.start_date && (
           <p className="weekly-plan-scheduled-start" role="status">
             {l(

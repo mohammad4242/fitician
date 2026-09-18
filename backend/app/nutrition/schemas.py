@@ -1304,6 +1304,7 @@ class WeeklyPlanResponse(BaseModel):
     budget_status: str
     warning_codes: list[str]
     explanation_codes: list[str]
+    preference_refresh_required: bool = False
     input_snapshot: dict[str, object]
     price_snapshot: dict[str, object]
     food_data_manifest: dict[str, object]

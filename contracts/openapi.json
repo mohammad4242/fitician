@@ -24298,6 +24298,11 @@
             "title": "Planner Version",
             "type": "string"
           },
+          "preference_refresh_required": {
+            "default": false,
+            "title": "Preference Refresh Required",
+            "type": "boolean"
+          },
           "price_snapshot": {
             "additionalProperties": true,
             "title": "Price Snapshot",

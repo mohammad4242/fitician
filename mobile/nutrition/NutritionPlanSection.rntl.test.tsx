@@ -118,6 +118,7 @@ const activePlan: WeeklyPlan = {
     carbohydrate: { data_confidence: "high", difference_from_limit: null, difference_from_preferred: 0, explanation_codes: [], minimum_or_maximum: null, nutrient_code: "carbohydrate", planned: 220, preferred: 220, reason_codes: [], reference_kind: "target", status: "within_target", unit: "g/day" },
     total_fat: { data_confidence: "high", difference_from_limit: null, difference_from_preferred: 0, explanation_codes: [], minimum_or_maximum: null, nutrient_code: "total_fat", planned: 65, preferred: 65, reason_codes: [], reference_kind: "target", status: "within_target", unit: "g/day" },
   },
+  preference_refresh_required: false,
   physician_approved: true,
   physician_approved_at: "2026-09-07T00:00:00Z",
   physician_review_required: true,

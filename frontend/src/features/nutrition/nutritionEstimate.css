@@ -287,6 +287,7 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
 .weekly-plan__meta-tag { display: inline-block; padding: .1rem .45rem; border-radius: 999px; background: rgb(128 255 232 / 12%); color: var(--fitician-aqua); font-size: .72rem; font-weight: 600; }
 .weekly-plan__notice, .weekly-plan__confirm, .weekly-plan__shopping, .weekly-plan__history { margin-top: 1rem; padding: 1.2rem; border: 1px solid rgb(234 244 241 / 12%); border-radius: 1.2rem; background: rgb(3 28 27 / 64%); }
 .weekly-plan__notice p { margin-bottom: 0; color: rgb(234 244 241 / 72%); }
+.weekly-plan__preference-refresh { width: min(100% - 2rem, 76rem); margin: 1rem auto; padding: 1rem 1.2rem; border: 1px solid rgb(255 215 152 / 34%); border-radius: 1rem; background: rgb(255 177 70 / 10%); color: #ffd798; line-height: 1.7; }
 .weekly-plan__error, .weekly-plan__warning { color: #ffd798; }
 .weekly-plan__ledger {
   display: grid;

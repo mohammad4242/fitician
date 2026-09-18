@@ -444,6 +444,9 @@ function NutritionPlanCard({
       {!historical && !canManagePlan ? (
         <Notice message="دسترسی مدیریت نسخه فعلی منقضی یا غیرفعال است؛ محتوای برنامه و تاریخچه همچنان قابل مشاهده‌اند." variant="warning" />
       ) : null}
+      {!historical && currentPlan.preference_refresh_required ? (
+        <Notice message="ترجیحات غذایی تغییر کرده؛ برای اعمال آن‌ها برنامه را دوباره بساز." variant="warning" />
+      ) : null}
       <NutritionPlanExecutionCard
         historical={historical}
         nutritionStartDate={nutritionStartDate}

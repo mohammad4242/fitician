@@ -106,6 +106,7 @@ from app.nutrition.planner_policy import (
 from app.nutrition.preference_snapshot import (
     PreferenceSnapshot,
     load_preference_snapshot,
+    preference_snapshot_signature,
 )
 from app.nutrition.prepared_recipe import (
     PreparedRecipeDefinition,
@@ -583,6 +584,7 @@ def generate_weekly_plan(
         "feedback_excluded_meal_ids": list(preference_snapshot.feedback_excluded_meal_ids),
         "hard_excluded_food_ids": list(preference_snapshot.hard_excluded_food_ids),
         "hard_excluded_meal_ids": list(preference_snapshot.hard_excluded_meal_ids),
+        "preference_snapshot_signature": preference_snapshot_signature(food_items),
         "historical_meal_adherence": [
             [meal_id, str(score)]
             for meal_id, score in preference_snapshot.historical_meal_adherence
@@ -2468,6 +2470,15 @@ def weekly_plan_response(
 ) -> WeeklyPlanResponse:
     review_status = plan.review.status.value if plan.review else "missing"
     plan_role = plan.generation.plan_role if plan.generation else None
+    preference_refresh_required = False
+    expected_preference_signature = plan.input_snapshot.get("preference_snapshot_signature")
+    if db is not None and isinstance(expected_preference_signature, str):
+        current_food_items = db.scalars(
+            select(NutritionFoodItem).where(NutritionFoodItem.user_id == plan.user_id)
+        ).all()
+        preference_refresh_required = (
+            preference_snapshot_signature(current_food_items) != expected_preference_signature
+        )
     return WeeklyPlanResponse(
         id=plan.id,
         revision=plan.revision,
@@ -2509,6 +2520,7 @@ def weekly_plan_response(
         budget_status=plan.budget_status.value,
         warning_codes=plan.warning_codes,
         explanation_codes=plan.explanation_codes,
+        preference_refresh_required=preference_refresh_required,
         input_snapshot=plan.input_snapshot,
         price_snapshot=plan.price_snapshot,
         food_data_manifest=plan.food_data_manifest,

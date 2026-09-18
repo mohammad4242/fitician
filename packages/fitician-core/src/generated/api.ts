@@ -11890,6 +11890,11 @@ export type components = {
             planner_policy_version: string;
             /** Planner Version */
             planner_version: string;
+            /**
+             * Preference Refresh Required
+             * @default false
+             */
+            preference_refresh_required: boolean;
             /** Price Snapshot */
             price_snapshot: {
                 [key: string]: unknown;

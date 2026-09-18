@@ -202,6 +202,7 @@ export type WeeklyPlan = {
   budget_status: string;
   warning_codes: string[];
   explanation_codes: string[];
+  preference_refresh_required?: boolean;
   input_snapshot: Record<string, unknown>;
   price_snapshot: Record<string, unknown>;
   food_data_manifest: Record<string, unknown>;
