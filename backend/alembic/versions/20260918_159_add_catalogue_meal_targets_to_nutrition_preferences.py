@@ -48,11 +48,13 @@ def upgrade() -> None:
         UPDATE nutrition_food_items AS item
         SET catalogue_food_id = NULL
         WHERE item.catalogue_food_id IS NOT NULL
-          AND item.id NOT IN (
-              SELECT min(kept.id)
+          AND EXISTS (
+              SELECT 1
               FROM nutrition_food_items AS kept
-              WHERE kept.catalogue_food_id IS NOT NULL
-              GROUP BY kept.user_id, kept.kind, kept.catalogue_food_id
+              WHERE kept.user_id = item.user_id
+                AND kept.kind = item.kind
+                AND kept.catalogue_food_id = item.catalogue_food_id
+                AND kept.id < item.id
           )
         """
     )
