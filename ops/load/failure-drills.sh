@@ -180,7 +180,7 @@ cleanup() {
 trap cleanup EXIT
 
 drill_redis() {
-  local actor="redis-drill-$PPID-$SECONDS@example.invalid"
+  local actor="redis-drill-$PPID-$SECONDS@example.com"
   member=$(fixture seed-catalogue-member)
   member_id=$(printf '%s' "$member" | json_value user_id)
   cleanup_member_id=$member_id
@@ -209,7 +209,7 @@ drill_redis() {
   curl --fail --silent --show-error --max-time 5 --cookie "$cookie_name=$session_token" \
     "$base_url/api/v1/nutrition/foods" >/dev/null
   redis_has_key 'fitician:cache:v1:*'
-  recovery_actor="redis-recovery-$PPID-$SECONDS@example.invalid"
+  recovery_actor="redis-recovery-$PPID-$SECONDS@example.com"
   curl --silent --output /dev/null --max-time 5 \
     -H 'Content-Type: application/json' -H 'Origin: http://localhost:5173' \
     --data "{\"email\":\"$recovery_actor\",\"password\":\"wrong password\"}" \
