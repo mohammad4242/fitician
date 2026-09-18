@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 from uuid import UUID, uuid4
@@ -19,6 +20,7 @@ from app.body_analysis.admin_config.enums import (
 )
 from app.body_analysis.admin_config.models import AITaskConfig
 from app.body_analysis.models import BodyAnalysis
+from app.body_analysis.worker import run_body_analysis_once
 from app.body_photos.enums import BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
 from app.config import Settings
@@ -197,6 +199,22 @@ def test_body_analysis_agent_service_e2e_uses_current_images_and_normalizes_v4(
             select(BodyAnalysis).join(BodyPhotoSession).where(BodyAnalysis.session_id == session_id)
         )
         assert analysis is not None
+        assert analysis.status.value == "queued"
+        processed = asyncio.run(
+            run_body_analysis_once(
+                db,
+                settings=test_settings,
+                ai_http_client=client.app.state.ai_http_client,
+                agent_http_client=client.app.state.agent_http_client,
+                worker_id="body-analysis-e2e-worker",
+            )
+        )
+        assert processed == 1
+        db.expire_all()
+        analysis = db.scalar(
+            select(BodyAnalysis).join(BodyPhotoSession).where(BodyAnalysis.session_id == session_id)
+        )
+        assert analysis is not None
         assert analysis.status.value == "review_pending"
         assert analysis.provider == "agent_service:antigravity"
         assert analysis.schema_version == "4.0"
@@ -210,8 +228,6 @@ def test_body_analysis_agent_service_e2e_uses_current_images_and_normalizes_v4(
         assert len(calls) == 1
         assert all(path == "/v1/analyze-stored-images" for path, _ in calls)
     finally:
-        import asyncio
-
         asyncio.run(client.app.state.agent_http_client.aclose())
         asyncio.run(client.app.state.ai_http_client.aclose())
         client.app.state.agent_http_client = old_agent
