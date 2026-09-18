@@ -77,6 +77,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  migrations:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
   backend:
     build:
       context: ./backend
@@ -126,10 +142,12 @@ services:
         condition: service_healthy
       agent-service:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     command:
       - sh
       - -c
-      - alembic upgrade head && python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips "$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}"
+      - python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips "$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}"
     healthcheck:
       test:
         [
@@ -176,10 +194,12 @@ services:
         condition: service_healthy
       agent-service:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     command:
       - sh
       - -c
-      - alembic upgrade head && exec python -m app.nutrition.food_photo_worker
+      - exec python -m app.nutrition.food_photo_worker
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
@@ -221,10 +241,12 @@ services:
         condition: service_healthy
       agent-service:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     command:
       - sh
       - -c
-      - alembic upgrade head && exec python -m app.body_analysis.worker
+      - exec python -m app.body_analysis.worker
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
@@ -265,10 +287,12 @@ services:
         condition: service_healthy
       agent-service:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     command:
       - sh
       - -c
-      - alembic upgrade head && exec python -m app.scheduler.worker
+      - exec python -m app.scheduler.worker
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
@@ -300,10 +324,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     command:
       - sh
       - -c
-      - alembic upgrade head && exec python -m app.notifications.worker
+      - exec python -m app.notifications.worker
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:

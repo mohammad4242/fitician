@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 CI = ROOT / ".github/workflows/ci.yml"
@@ -44,6 +44,29 @@ class ScalabilityContractTests(unittest.TestCase):
         for compose_name in ("compose.yaml", "compose.prod.yaml"):
             compose = (ROOT / compose_name).read_text()
             self.assertIn("http://127.0.0.1:8000/readyz", compose)
+
+    def test_local_services_share_one_completed_migration_gate(self) -> None:
+        compose = (ROOT / "compose.yaml").read_text()
+
+        self.assertIn("  migrations:\n", compose)
+        self.assertIn('command: ["alembic", "upgrade", "head"]', compose)
+        self.assertNotIn("alembic upgrade head &&", compose)
+        for service_name in (
+            "backend",
+            "food-photo-worker",
+            "body-analysis-worker",
+            "scheduler",
+            "notification-worker",
+        ):
+            match = re.search(
+                rf"^  {re.escape(service_name)}:.*?(?=^  [A-Za-z0-9-]+:|\Z)",
+                compose,
+                flags=re.MULTILINE | re.DOTALL,
+            )
+            self.assertIsNotNone(match)
+            service_block = match.group(0)
+            self.assertIn("migrations:", service_block)
+            self.assertIn("service_completed_successfully", service_block)
 
     def test_normal_ci_runs_short_real_multi_replica_smoke(self) -> None:
         workflow = CI.read_text()
