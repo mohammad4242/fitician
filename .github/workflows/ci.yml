@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: fitician
           POSTGRES_PASSWORD: fitician
@@ -30,6 +30,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:8.10.1-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -70,9 +79,9 @@ jobs:
       - name: Migrate benchmark databases
         run: |
           DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician \
-            uv run alembic upgrade head
+            uv run python -m alembic upgrade head
           DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_nutrition_audit \
-            uv run alembic upgrade head
+            uv run python -m alembic upgrade head
       - name: Seed nutrition benchmark database
         run: |
           DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_nutrition_audit \
@@ -114,7 +123,7 @@ jobs:
       E2E_DATABASE_URL: postgresql+psycopg://fitician:fitician@127.0.0.1:5432/fitician_e2e
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: fitician
           POSTGRES_PASSWORD: fitician
@@ -254,6 +263,89 @@ jobs:
           bash -n ops/backup-production.sh
           python3 -m unittest discover -s ops/tests -p 'test_*.py' -v
 
+  scalability-contract:
+    name: Scalability foundation contract checks
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8.10.1-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: latest
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --extra dev
+      - name: Verify Redis service
+        run: |
+          uv run python - <<'PY'
+          import asyncio
+          import redis.asyncio as redis
+
+          async def main() -> None:
+              client = redis.Redis(host="127.0.0.1", port=6379)
+              try:
+                  assert await client.ping() is True
+              finally:
+                  await client.aclose()
+
+          asyncio.run(main())
+          PY
+      - name: Run fast distributed-foundation tests
+        run: |
+          uv run pytest \
+            tests/cache/test_service.py \
+            tests/infrastructure/test_redis.py \
+            tests/infrastructure/test_rate_limiter.py \
+            tests/observability/test_logging.py -q
+      - name: Validate typed scalability modules
+        run: |
+          uv run ruff check \
+            app/infrastructure app/cache app/body_analysis app/scheduler app/observability \
+            tests/cache/test_service.py tests/infrastructure tests/observability/test_logging.py
+          uv run mypy app/infrastructure app/cache app/body_analysis app/scheduler app/observability
+      - name: Validate migrations and worker imports
+        run: |
+          uv run python -m alembic heads
+          uv run python -m compileall -q \
+            app/body_analysis/worker.py \
+            app/nutrition/food_photo_worker.py \
+            app/notifications/worker.py \
+            app/scheduler/worker.py
+          uv run python -c "import app.body_analysis.worker, app.nutrition.food_photo_worker, app.notifications.worker, app.scheduler.worker"
+      - name: Validate local and production topology contracts
+        working-directory: .
+        run: |
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > backend/.env
+          trap 'rm -f backend/.env .env' EXIT
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > .env
+          docker compose -f compose.yaml -f compose.multi.yaml config --quiet
+          DOCKERHUB_USERNAME=example \
+          IMAGE_TAG=0000000000000000000000000000000000000000 \
+          POSTGRES_PASSWORD=placeholder \
+          REDIS_PASSWORD=placeholder \
+          AGENT_SERVICE_TOKEN=placeholder \
+          FITICIAN_DOMAIN=example.com \
+            docker compose -f compose.prod.yaml config --quiet
+          docker run --rm \
+            -v "$PWD/Caddyfile.multi.yaml:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
+          python3 -m unittest discover -s ops/tests -p 'test_*.py' -v
+
   container-images:
     name: Build and publish immutable production images
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -266,6 +358,7 @@ jobs:
       - dependencies
       - secrets
       - production-contract
+      - scalability-contract
     runs-on: ubuntu-latest
     permissions:
       contents: read
