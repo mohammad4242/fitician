@@ -86,6 +86,8 @@ services:
       - ./.env
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       APP_ENV: production
@@ -140,6 +142,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       MEDIA_STORAGE_BACKEND: s3
       MEDIA_LOCAL_FALLBACK_ENABLED: "false"
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
@@ -162,6 +166,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       MEDIA_STORAGE_BACKEND: s3
       MEDIA_LOCAL_FALLBACK_ENABLED: "false"
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
@@ -185,6 +191,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       MEDIA_STORAGE_BACKEND: s3
       MEDIA_LOCAL_FALLBACK_ENABLED: "false"
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
@@ -207,6 +215,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
     depends_on:
       db:
         condition: service_healthy

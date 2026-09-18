@@ -84,6 +84,8 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:-fitician-redis-local-change-me}
       FRONTEND_ORIGIN: http://localhost:5173
@@ -139,6 +141,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
       FOOD_PHOTO_WORKER_BATCH_SIZE: ${FOOD_PHOTO_WORKER_BATCH_SIZE:-5}
       FOOD_PHOTO_WORKER_POLL_SECONDS: ${FOOD_PHOTO_WORKER_POLL_SECONDS:-3}
@@ -172,6 +176,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
       BODY_ANALYSIS_WORKER_BATCH_SIZE: ${BODY_ANALYSIS_WORKER_BATCH_SIZE:-1}
       BODY_ANALYSIS_WORKER_POLL_SECONDS: ${BODY_ANALYSIS_WORKER_POLL_SECONDS:-3}
@@ -202,6 +208,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
       NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
@@ -231,6 +239,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
       APP_ENV: local
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
       NOTIFICATION_WORKER_BATCH_SIZE: ${NOTIFICATION_WORKER_BATCH_SIZE:-100}
       NOTIFICATION_WORKER_POLL_SECONDS: ${NOTIFICATION_WORKER_POLL_SECONDS:-5}
       NOTIFICATION_WORKER_LEASE_SECONDS: ${NOTIFICATION_WORKER_LEASE_SECONDS:-60}

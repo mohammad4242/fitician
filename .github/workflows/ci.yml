@@ -321,6 +321,7 @@ jobs:
       - name: Validate migrations and worker imports
         run: |
           uv run python -m alembic heads
+          python3 ../ops/check-db-connection-budget.py --replicas 2
           uv run python -m compileall -q \
             app/body_analysis/worker.py \
             app/nutrition/food_photo_worker.py \
