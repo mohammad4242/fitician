@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.database.session import get_engine
+from app.jobs.runtime import wait_for_stop
 from app.nutrition.models import NutritionOperationalEvent
 from app.nutrition.retention import cleanup_private_nutrition_files
 
@@ -36,11 +37,15 @@ def trigger_retention_cleanup(settings: Settings, *, now: datetime | None = None
             connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": _LOCK_KEY})
 
 
-async def retention_scheduler_loop(settings: Settings) -> None:
-    while True:
+async def retention_scheduler_loop(
+    settings: Settings,
+    stop_event: asyncio.Event | None = None,
+) -> None:
+    requested_stop = stop_event or asyncio.Event()
+    while not requested_stop.is_set():
         try:
             trigger_retention_cleanup(settings)
         except Exception:
             # The next hourly attempt retries safely; previous private records remain intact.
             pass
-        await asyncio.sleep(3600)
+        await wait_for_stop(requested_stop, 3600)

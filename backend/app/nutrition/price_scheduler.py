@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.database.session import get_engine
+from app.jobs.runtime import wait_for_stop
 from app.nutrition.enums import PriceUpdateTriggerKind
 from app.nutrition.models import NutritionFoodPriceUpdateRun
 from app.nutrition.price_execution import resolve_price_update_execution
@@ -114,8 +115,10 @@ async def scheduler_loop(
     settings: Settings,
     client: httpx.AsyncClient,
     agent_http_client: httpx.AsyncClient | None = None,
+    stop_event: asyncio.Event | None = None,
 ) -> None:
-    while True:
+    requested_stop = stop_event or asyncio.Event()
+    while not requested_stop.is_set():
         try:
             await trigger_scheduled_update(
                 settings,
@@ -125,4 +128,4 @@ async def scheduler_loop(
         except Exception:
             # Observability is persisted by the run/service; never crash the API process for the scheduler.
             pass
-        await asyncio.sleep(60)
+        await wait_for_stop(requested_stop, 60)

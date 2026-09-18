@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import socket
-import time
+import threading
 from collections.abc import Collection, Mapping
 from datetime import UTC, datetime, timedelta
 from importlib import import_module
@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.jobs.runtime import install_sync_signal_handlers
 from app.observability.logging import configure_structured_logging
 
 from .apns import ApnsConfigurationError, build_apns_provider
@@ -408,9 +409,15 @@ def _close_provider(provider: NotificationProvider) -> None:
         close()
 
 
-def run_worker(settings: Settings) -> None:
+def run_worker(
+    settings: Settings,
+    *,
+    stop_event: threading.Event | None = None,
+) -> None:
     configure_structured_logging()
     worker_id = _worker_id()
+    requested_stop = stop_event or threading.Event()
+    restore_signals = install_sync_signal_handlers(requested_stop) if stop_event is None else None
     engine = get_engine(settings)
     providers: dict[NotificationProviderName, NotificationProvider] = {}
     try:
@@ -426,7 +433,7 @@ def run_worker(settings: Settings) -> None:
                 providers["apns"] = apns_provider
         except ApnsConfigurationError:
             logger.exception("APNs provider configuration is invalid")
-        while True:
+        while not requested_stop.is_set():
             try:
                 with Session(engine) as db:
                     run_notification_once(
@@ -441,10 +448,12 @@ def run_worker(settings: Settings) -> None:
                     )
             except Exception:
                 logger.exception("Notification worker iteration failed")
-            time.sleep(settings.notification_worker_poll_seconds)
+            requested_stop.wait(settings.notification_worker_poll_seconds)
     finally:
         for provider in providers.values():
             _close_provider(provider)
+        if restore_signals is not None:
+            restore_signals()
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ from app.body_analysis.providers.models import (
 )
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.observability.logging import configure_structured_logging, log_event
@@ -460,9 +461,16 @@ def _worker_id() -> str:
     return f"{socket.gethostname()}:{uuid4()}"
 
 
-async def run_worker(settings: Settings) -> None:
+async def run_worker(
+    settings: Settings,
+    *,
+    stop_event: asyncio.Event | None = None,
+) -> None:
     configure_structured_logging()
     worker_id = _worker_id()
+    requested_stop = stop_event or asyncio.Event()
+    if stop_event is None:
+        install_async_signal_handlers(requested_stop)
     engine = get_engine(settings)
     ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)
     agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
@@ -474,7 +482,7 @@ async def run_worker(settings: Settings) -> None:
         ) as ai_client,
         httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_http_client,
     ):
-        while True:
+        while not requested_stop.is_set():
             try:
                 with Session(engine) as db:
                     await run_food_photo_analysis_once(
@@ -486,7 +494,7 @@ async def run_worker(settings: Settings) -> None:
                     )
             except Exception:
                 logger.exception("Food photo worker iteration failed")
-            await asyncio.sleep(settings.food_photo_worker_poll_seconds)
+            await wait_for_stop(requested_stop, settings.food_photo_worker_poll_seconds)
 
 
 if __name__ == "__main__":

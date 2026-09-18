@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.account_deletion.service import execute_due_account_deletions
 from app.config import Settings
 from app.database.session import get_engine
+from app.jobs.runtime import wait_for_stop
 
 _LOCK_KEY = 58421093
 
@@ -28,11 +29,15 @@ def trigger_account_deletions(settings: Settings, *, now: datetime | None = None
             connection.commit()
 
 
-async def account_deletion_scheduler_loop(settings: Settings) -> None:
-    while True:
+async def account_deletion_scheduler_loop(
+    settings: Settings,
+    stop_event: asyncio.Event | None = None,
+) -> None:
+    requested_stop = stop_event or asyncio.Event()
+    while not requested_stop.is_set():
         try:
             trigger_account_deletions(settings)
         except Exception:
             # The next attempt retries safely; a failed deletion remains pending.
             pass
-        await asyncio.sleep(settings.account_deletion_worker_interval_seconds)
+        await wait_for_stop(requested_stop, settings.account_deletion_worker_interval_seconds)
