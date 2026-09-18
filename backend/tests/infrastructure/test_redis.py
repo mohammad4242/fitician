@@ -100,8 +100,11 @@ def test_api_health_remains_available_when_redis_is_unavailable(monkeypatch: Any
     app = create_app(settings)
     with TestClient(app) as client:
         response = client.get("/healthz")
+        readiness = client.get("/readyz")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-    assert service._client.ping_calls == 0
+    assert readiness.status_code == 200
+    assert readiness.json()["checks"]["redis"] == "degraded"
+    assert service._client.ping_calls == 1
     assert service._client.close_calls == 1

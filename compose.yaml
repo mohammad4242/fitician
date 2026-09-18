@@ -124,14 +124,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       agent-service:
         condition: service_healthy
     command:
       - sh
       - -c
       - alembic upgrade head && python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips "$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=2).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     stop_grace_period: 45s
 
   food-photo-worker:

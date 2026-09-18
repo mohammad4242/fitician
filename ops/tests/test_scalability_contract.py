@@ -33,7 +33,17 @@ class ScalabilityContractTests(unittest.TestCase):
         self.assertIn('127.0.0.1:8002:8000', compose)
         self.assertIn("ports: !override", compose)
         self.assertIn("backend:8000 backend-2:8000", caddy)
-        self.assertIn("health_uri /healthz", caddy)
+        self.assertIn("health_uri /readyz", caddy)
+
+    def test_caddy_and_backend_healthchecks_use_readiness(self) -> None:
+        for caddy_name in ("Caddyfile", "Caddyfile.multi.yaml"):
+            caddy = (ROOT / caddy_name).read_text()
+            self.assertNotIn("health_uri /healthz", caddy)
+            self.assertIn("health_uri /readyz", caddy)
+
+        for compose_name in ("compose.yaml", "compose.prod.yaml"):
+            compose = (ROOT / compose_name).read_text()
+            self.assertIn("http://127.0.0.1:8000/readyz", compose)
 
 
 if __name__ == "__main__":

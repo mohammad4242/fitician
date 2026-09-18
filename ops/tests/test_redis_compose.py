@@ -88,6 +88,26 @@ class RedisComposeContractTests(unittest.TestCase):
         self.assertIn("maxmemory 128mb", config)
         self.assertIn("maxmemory-policy noeviction", config)
 
+    def test_backends_do_not_wait_for_optional_redis_health(self) -> None:
+        local = self._compose_config("compose.yaml")
+        production = self._compose_config(
+            "compose.prod.yaml",
+            DOCKERHUB_USERNAME="example",
+            IMAGE_TAG="0" * 40,
+            POSTGRES_PASSWORD="postgres-test-password",
+            DATABASE_URL="postgresql+psycopg://fitician:secret@db:5432/fitician",
+            FITICIAN_DOMAIN="fitician.example",
+            REDIS_PASSWORD="redis-test-password",
+            AGENT_SERVICE_TOKEN="agent-test-token",
+        )
+
+        for config in (local, production):
+            for service_name in ("backend", "backend-2"):
+                if service_name not in config["services"]:
+                    continue
+                dependencies = config["services"][service_name].get("depends_on", {})
+                self.assertNotIn("redis", dependencies)
+
 
 if __name__ == "__main__":
     unittest.main()
