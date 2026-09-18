@@ -7,7 +7,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/check-runtime-capacity.py"
 
@@ -93,15 +92,41 @@ class RuntimeCapacityTests(unittest.TestCase):
             if name != "migrations"
         )
         cpus = sum(
-            float(config["cpus"])
-            for name, config in services.items()
-            if name != "migrations"
+            float(config["cpus"]) for name, config in services.items() if name != "migrations"
         )
         preflight = self._run()
         payload = json.loads(preflight.stdout)
 
         self.assertEqual(memory_mib, payload["memory_limit_total_mib"])
         self.assertAlmostEqual(cpus, payload["cpu_limit_total"])
+
+    def test_preflight_reads_non_default_limits_from_rendered_compose(self) -> None:
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "DOCKERHUB_USERNAME": "example",
+                "IMAGE_TAG": "0" * 40,
+                "POSTGRES_PASSWORD": "placeholder",
+                "DATABASE_URL": "postgresql+psycopg://fitician:placeholder@db:5432/fitician",
+                "AGENT_SERVICE_TOKEN": "placeholder",
+                "REDIS_PASSWORD": "placeholder",
+                "FITICIAN_DOMAIN": "example.com",
+                "BACKEND_MEMORY_LIMIT": "100m",
+                "BACKEND_CPU_LIMIT": "0.05",
+            }
+        )
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "--replicas", "2", "--compose-file", "compose.prod.yaml"],
+            cwd=ROOT,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["services"]["backend"]["memory_mib_each"], 100)
+        self.assertEqual(payload["services"]["backend"]["cpus_each"], 0.05)
 
 
 if __name__ == "__main__":

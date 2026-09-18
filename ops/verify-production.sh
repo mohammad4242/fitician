@@ -57,7 +57,7 @@ for command in docker curl python3; do
 done
 
 python3 "$app_dir/ops/check-db-connection-budget.py" --replicas 2 >/dev/null
-python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2 >/dev/null
+python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2 --compose-file "$compose_file" >/dev/null
 
 for service in agent-service backend backend-2 food-photo-worker body-analysis-worker notification-worker scheduler frontend; do
   require_image_tag "$service"
