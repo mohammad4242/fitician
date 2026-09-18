@@ -5,6 +5,7 @@ import socket
 import time
 from collections.abc import Collection, Mapping
 from datetime import UTC, datetime, timedelta
+from importlib import import_module
 from typing import cast
 from uuid import UUID, uuid4
 
@@ -27,6 +28,8 @@ from .models import (
 )
 from .provider import NotificationProvider, NotificationProviderName, NotificationSendOutcome
 from .reminders import enqueue_due_cycle_reminders
+
+import_module("app.main")  # Ensure all SQLAlchemy models and relationships are registered
 
 logger = logging.getLogger(__name__)
 
