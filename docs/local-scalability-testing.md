@@ -26,4 +26,7 @@ bash ops/load/failure-drills.sh all
 ```
 
 The scripts refuse non-local targets unless an explicit operator override is
-provided. They never remove volumes.
+provided. They never remove volumes. `compose.multi.yaml` explicitly enables the deterministic
+local Body Analysis provider for the API fixture and worker; production settings reject it.
+Every drill has a deadline and emits one JSON evidence record only after the required degraded
+and recovered states have both been observed.

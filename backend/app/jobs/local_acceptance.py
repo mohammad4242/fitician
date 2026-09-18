@@ -16,7 +16,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 import app.main  # noqa: F401  # register all models before CLI queries
-from app.auth.models import User
+from app.auth.models import AuthSession, User
+from app.auth.security import make_session_token
 from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
 from app.body_analysis.providers import (
@@ -121,6 +122,39 @@ def seed_body_jobs(
     return {"batch_id": str(batch_id), "analysis_ids": analysis_ids, "count": count}
 
 
+def seed_catalogue_member(db: Session, settings: Settings) -> dict[str, Any]:
+    """Create an isolated local member session for authenticated cache drills."""
+    _require_fixture_mode(settings)
+    user = User(
+        id=uuid4(),
+        email=f"local-acceptance-catalogue-{uuid4()}@example.invalid",
+        password_hash="local-acceptance-fixture",
+    )
+    raw_token, token_hash = make_session_token()
+    db.add(user)
+    db.flush()
+    db.add(
+        AuthSession(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=datetime.now(UTC) + timedelta(minutes=15),
+        )
+    )
+    db.commit()
+    return {
+        "user_id": str(user.id),
+        "session_cookie_name": settings.session_cookie_name,
+        "session_token": raw_token,
+    }
+
+
+def cleanup_member(db: Session, user_id: UUID) -> dict[str, Any]:
+    user_exists = db.get(User, user_id) is not None
+    db.execute(delete(User).where(User.id == user_id))
+    db.commit()
+    return {"user_id": str(user_id), "deleted_users": int(user_exists)}
+
+
 def inspect_body(db: Session, analysis_id: UUID) -> dict[str, Any]:
     analysis = db.scalar(
         select(BodyAnalysis)
@@ -212,6 +246,9 @@ def _parser() -> argparse.ArgumentParser:
     batch.add_argument("--batch-id", type=UUID, required=True)
     cleanup = commands.add_parser("cleanup-batch")
     cleanup.add_argument("--batch-id", type=UUID, required=True)
+    commands.add_parser("seed-catalogue-member")
+    cleanup_user = commands.add_parser("cleanup-member")
+    cleanup_user.add_argument("--user-id", type=UUID, required=True)
     return parser
 
 
@@ -230,6 +267,10 @@ def main(argv: list[str] | None = None) -> int:
             result = expire_body_lease(db, settings, arguments.analysis_id)
         elif arguments.command == "inspect-batch":
             result = inspect_batch(db, arguments.batch_id)
+        elif arguments.command == "seed-catalogue-member":
+            result = seed_catalogue_member(db, settings)
+        elif arguments.command == "cleanup-member":
+            result = cleanup_member(db, arguments.user_id)
         else:
             result = cleanup_batch(db, arguments.batch_id)
     print(json.dumps(result, sort_keys=True))

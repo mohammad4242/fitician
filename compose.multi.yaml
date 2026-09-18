@@ -1,10 +1,20 @@
 services:
+  backend:
+    environment:
+      BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED: "true"
+
   backend-2:
     extends:
       file: ./compose.yaml
       service: backend
     ports: !override
       - "127.0.0.1:8002:8000"
+
+  body-analysis-worker:
+    environment:
+      BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED: "true"
+      BODY_ANALYSIS_WORKER_BATCH_SIZE: "10"
+      BODY_ANALYSIS_WORKER_POLL_SECONDS: "0.2"
 
   caddy:
     image: caddy:2.10.2-alpine

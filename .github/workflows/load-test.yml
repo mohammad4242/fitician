@@ -28,6 +28,7 @@ jobs:
             'SESSION_COOKIE_NAME=fitician_session' \
             'EMAIL_PROVIDER=fake' \
             'SMS_PROVIDER=fake' \
+            'BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED=true' \
             > backend/.env
       - name: Start two-replica local topology
         run: docker compose -f compose.yaml -f compose.multi.yaml up -d --build --wait
@@ -39,7 +40,8 @@ jobs:
             bash ops/load/run.sh catalogue | tee artifacts/scalability/catalogue.json
       - name: Run bounded failure drills
         run: |
-          BASE_URL=http://127.0.0.1:8080 FAILURE_DRILL_DEADLINE_SECONDS=90 \
+          BASE_URL=http://127.0.0.1:8080 FAILURE_DRILL_DEADLINE_SECONDS=150 \
+            FAILURE_DRILL_BACKLOG_MAX_DRAIN_SECONDS=90 \
             bash ops/load/failure-drills.sh all | tee artifacts/scalability/failure-drills.jsonl
       - name: Capture topology evidence
         if: always()
@@ -57,4 +59,3 @@ jobs:
       - name: Stop local topology without deleting volumes
         if: always()
         run: docker compose -f compose.yaml -f compose.multi.yaml down
-

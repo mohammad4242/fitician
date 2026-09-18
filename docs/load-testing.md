@@ -31,3 +31,11 @@ bash ops/load/failure-drills.sh queue
 bash ops/load/failure-drills.sh database
 bash ops/load/failure-drills.sh caddy
 ```
+
+The worker drill seeds one durable fake-provider Body Analysis, kills the worker only after
+the claim is visible, expires the abandoned lease through the local fixture, and requires the
+replacement worker to finish on attempt two with exactly one result version. The Redis drill
+uses an authenticated cached nutrition-catalogue request and proves PostgreSQL cache and
+rate-limit fallbacks before Redis recovery. The backlog drill seeds 50 durable fake jobs and
+must drain them within 90 seconds by default while reporting queue depth and oldest-job age.
+All limits are configurable through the `FAILURE_DRILL_*` environment variables.

@@ -8,18 +8,28 @@ import pytest
 from pydantic import SecretStr
 from sqlalchemy import select
 
+from app.auth.models import User
+from app.auth.service import session_for_token
+from app.body_analysis.models import BodyAnalysis
 from app.body_analysis.providers.local_fake import (
     LocalFakeBodyAnalysisProvider,
     local_fake_provider_allowed,
 )
 from app.body_analysis.worker import run_body_analysis_once
-from app.jobs.local_acceptance import cleanup_batch, inspect_body, seed_body_jobs
 from app.config import Settings
-from app.body_analysis.models import BodyAnalysis
+from app.jobs.local_acceptance import (
+    cleanup_batch,
+    cleanup_member,
+    inspect_body,
+    seed_body_jobs,
+    seed_catalogue_member,
+)
 
 
 def test_local_fake_provider_is_rejected_outside_explicit_local_mode() -> None:
-    assert local_fake_provider_allowed(Settings(app_env="local", body_analysis_local_fake_provider_enabled=True))
+    assert local_fake_provider_allowed(
+        Settings(app_env="local", body_analysis_local_fake_provider_enabled=True)
+    )
     assert not local_fake_provider_allowed(
         Settings(app_env="test", body_analysis_local_fake_provider_enabled=False)
     )
@@ -97,3 +107,20 @@ def test_fixture_job_is_durable_and_finalized_once(db, test_settings: Settings) 
     assert db.scalar(select(BodyAnalysis.id).where(BodyAnalysis.id == analysis_id)) is not None
     cleanup = cleanup_batch(db, UUID(batch_id))
     assert cleanup["deleted_analyses"] == 1
+
+
+def test_catalogue_member_fixture_creates_and_cleans_isolated_session(
+    db, test_settings: Settings
+) -> None:
+    test_settings.body_analysis_local_fake_provider_enabled = True
+
+    seeded = seed_catalogue_member(db, test_settings)
+
+    user_id = UUID(seeded["user_id"])
+    assert seeded["session_cookie_name"] == test_settings.session_cookie_name
+    assert session_for_token(db, seeded["session_token"]).user_id == user_id
+
+    result = cleanup_member(db, user_id)
+    assert result["deleted_users"] == 1
+    assert db.get(User, user_id) is None
+    assert session_for_token(db, seeded["session_token"]) is None

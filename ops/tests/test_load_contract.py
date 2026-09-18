@@ -33,8 +33,23 @@ class LoadContractTests(unittest.TestCase):
         script = (ROOT / "ops/load/failure-drills.sh").read_text()
         self.assertIn("FITICIAN_ALLOW_PRODUCTION_FAILURE_DRILL", script)
         self.assertIn("deadline", script.lower())
+        self.assertIn("expire-body-lease", script)
+        self.assertIn("result_version_count", script)
+        self.assertIn(
+            'BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED: "true"',
+            (ROOT / "compose.multi.yaml").read_text(),
+        )
+        self.assertIn("seed-catalogue-member", script)
+        self.assertIn("/api/v1/nutrition/foods", script)
+        self.assertIn("fitician_queue_oldest_job_age_seconds", script)
+        self.assertIn("/readyz\" 503", script)
+        self.assertIn("redis_has_key 'fitician:cache:v1:*'", script)
+        self.assertIn("redis_has_key 'fitician:rate:v1:auth:*'", script)
+        self.assertIn("wait_for_two_instances", script)
+        self.assertIn("SIGKILL body-analysis-worker", script)
         self.assertNotIn("down -v", script)
         self.assertNotIn("docker volume rm", script)
+        self.assertNotIn("openrouter", script.lower())
 
 
 if __name__ == "__main__":
