@@ -24,9 +24,19 @@ on:
         required: false
         type: boolean
         default: false
+      first_scalability_release_approved:
+        description: Approve the first scalability rollout after reviewing all acceptance evidence
+        required: false
+        type: boolean
+        default: false
+      heavy_evidence_run_id:
+        description: Successful recent Fitician local scalability checks run for this exact SHA
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: fitician-production
@@ -48,10 +58,37 @@ jobs:
       PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag || '' }}
       INITIAL_DEPLOY: ${{ inputs.initial_deploy || 'false' }}
       ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations || 'false' }}
+      FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved || 'false' }}
+      SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.heavy_evidence_run_id || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.IMAGE_TAG }}
+
+      - name: Verify first scalability acceptance evidence
+        if: github.event_name == 'workflow_dispatch' && inputs.first_scalability_release_approved
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$SCALABILITY_EVIDENCE_RUN_ID" | grep -Eq '^[0-9]+$'
+          repository="repos/${GITHUB_REPOSITORY}"
+          workflow_name=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.name')
+          conclusion=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.conclusion')
+          evidence_sha=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.head_sha')
+          created_at=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.created_at')
+          test "$workflow_name" = "Fitician local scalability checks"
+          test "$conclusion" = success
+          test "$evidence_sha" = "$IMAGE_TAG"
+          python3 - "$created_at" <<'PY'
+          from datetime import UTC, datetime, timedelta
+          import sys
+
+          created = datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
+          if created < datetime.now(UTC) - timedelta(days=14):
+              raise SystemExit("Heavy scalability evidence is older than 14 days")
+          PY
+          gh api "$repository/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=100" \
+            --jq '.workflow_runs[].head_sha' | grep -Fx "$IMAGE_TAG"
 
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -115,4 +152,4 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
-            "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
+            "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"

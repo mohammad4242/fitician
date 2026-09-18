@@ -6,9 +6,13 @@ image_tag=${IMAGE_TAG:?IMAGE_TAG is required}
 previous_image_tag=${PREVIOUS_IMAGE_TAG:-}
 initial_deploy=${INITIAL_DEPLOY:-false}
 allow_schema_migrations=${ALLOW_SCHEMA_MIGRATIONS:-false}
+first_scalability_release_approved=${FIRST_SCALABILITY_RELEASE_APPROVED:-false}
+scalability_evidence_run_id=${SCALABILITY_EVIDENCE_RUN_ID:-}
 app_dir=$(dirname "$compose_file")
 marker="$app_dir/.deployed-image-tag"
+scalability_marker="$app_dir/.scalability-foundation-accepted"
 schema_changed=false
+first_scalability_release=false
 
 printf '%s' "$image_tag" | grep -Eq '^[0-9a-f]{40}$' || {
   echo "IMAGE_TAG must be a full Git SHA" >&2
@@ -25,6 +29,20 @@ if [ "$initial_deploy" = true ]; then
 elif [ -z "$previous_image_tag" ]; then
   echo "Initial database restore and manual deployment are required" >&2
   exit 1
+fi
+
+if [ ! -f "$scalability_marker" ]; then
+  first_scalability_release=true
+  if [ "$first_scalability_release_approved" != true ]; then
+    echo "First scalability release requires explicit acceptance approval" >&2
+    exit 1
+  fi
+  printf '%s' "$scalability_evidence_run_id" | grep -Eq '^[0-9]+$' || {
+    echo "First scalability release requires a valid heavy evidence run ID" >&2
+    exit 1
+  }
+  python3 "$app_dir/ops/check-db-connection-budget.py" --replicas 2
+  python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2
 fi
 
 compose() {
@@ -106,5 +124,10 @@ mv "$next_env" "$env_file"
 next_marker=$(mktemp "$app_dir/.deployed-image-tag.XXXXXXXX")
 printf '%s\n' "$image_tag" > "$next_marker"
 mv "$next_marker" "$marker"
+if [ "$first_scalability_release" = true ]; then
+  next_scalability_marker=$(mktemp "$app_dir/.scalability-foundation-accepted.XXXXXXXX")
+  printf '%s\n' "$scalability_evidence_run_id" > "$next_scalability_marker"
+  mv "$next_scalability_marker" "$scalability_marker"
+fi
 
 echo "Production deployment verified for immutable image tag ${image_tag}"

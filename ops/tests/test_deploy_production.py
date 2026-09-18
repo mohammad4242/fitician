@@ -21,9 +21,13 @@ class DeployProductionTests(unittest.TestCase):
         self.workspace = Path(self.temp.name)
         self.bin = self.workspace / "bin"
         self.bin.mkdir()
+        (self.workspace / "calls").touch()
         (self.workspace / "compose.prod.yaml").touch()
         (self.workspace / ".env").write_text(f"IMAGE_TAG={OLD_TAG}\nOTHER_VALUE=keep\n")
         (self.workspace / ".deployed-image-tag").write_text(f"{OLD_TAG}\n")
+        (self.workspace / ".scalability-foundation-accepted").write_text(
+            "accepted\n"
+        )
         self._command(
             "docker",
             """#!/bin/sh
@@ -48,6 +52,10 @@ esac
         )
         ops = self.workspace / "ops"
         ops.mkdir()
+        for name in ("check-db-connection-budget.py", "check-runtime-capacity.py"):
+            script = ops / name
+            script.write_text("#!/usr/bin/env python3\nraise SystemExit(0)\n")
+            script.chmod(0o755)
         (ops / "verify-production.sh").write_text(
             '#!/bin/sh\nprintf "verify-production\\n" >> "$FAKE_STATE_DIR/calls"\n'
         )
@@ -112,6 +120,26 @@ esac
         )
         self.assertIn("up -d --wait db", calls[database_start])
         self.assertLess(database_start, restored_users_check)
+
+    def test_first_scalability_release_is_blocked_without_acceptance_evidence(self) -> None:
+        (self.workspace / ".scalability-foundation-accepted").unlink()
+
+        result = self._run()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("First scalability release requires", result.stderr)
+        self.assertNotIn("backup", (self.workspace / "calls").read_text())
+
+    def test_approved_first_scalability_release_persists_acceptance_marker(self) -> None:
+        marker = self.workspace / ".scalability-foundation-accepted"
+        marker.unlink()
+        self.env["FIRST_SCALABILITY_RELEASE_APPROVED"] = "true"
+        self.env["SCALABILITY_EVIDENCE_RUN_ID"] = "123456"
+
+        result = self._run()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(marker.read_text(), "123456\n")
 
 
 if __name__ == "__main__":

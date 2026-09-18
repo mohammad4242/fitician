@@ -10,13 +10,16 @@ DEPLOY_WORKFLOW = ROOT / ".github/workflows/deploy-production.yml"
 
 
 class DeployWorkflowTests(unittest.TestCase):
-    def test_successful_main_push_ci_always_triggers_deploy(self) -> None:
+    def test_main_ci_triggers_cd_but_first_scalability_release_requires_evidence(self) -> None:
         workflow = DEPLOY_WORKFLOW.read_text()
 
         self.assertIn("github.event.workflow_run.conclusion == 'success'", workflow)
         self.assertIn("github.event.workflow_run.event == 'push'", workflow)
         self.assertIn("github.event.workflow_run.head_branch == 'main'", workflow)
-        self.assertNotIn("PRODUCTION_DEPLOY_ENABLED", workflow)
+        self.assertIn("first_scalability_release_approved", workflow)
+        self.assertIn("heavy_evidence_run_id", workflow)
+        self.assertIn("Verify first scalability acceptance evidence", workflow)
+        self.assertIn("actions: read", workflow)
 
     def test_google_client_id_is_masked_before_validation_and_build(self) -> None:
         workflow = CI_WORKFLOW.read_text()
