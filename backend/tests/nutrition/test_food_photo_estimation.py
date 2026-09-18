@@ -221,8 +221,10 @@ def test_photo_estimate_maps_catalogue_and_writes_only_after_confirmation(
     db: Session,
     monkeypatch: pytest.MonkeyPatch,
     test_settings: Settings,
+    tmp_path: Path,
 ) -> None:
     test_settings.food_photo_rate_limit = 1
+    test_settings.food_photo_storage_root = tmp_path / "food-photos"
     _register(client)
     _seed_foods_and_prices(db)
     db.add(
