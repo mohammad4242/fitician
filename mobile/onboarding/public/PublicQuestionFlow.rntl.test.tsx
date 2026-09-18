@@ -145,8 +145,8 @@ test("uses the Web gender card scale, body range hints, and goal labels", () => 
   fireEvent.changeText(screen.getByLabelText("وزن فعلی (کیلوگرم)"), "64");
   fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
 
-  expect(screen.getByRole("radio", { name: "کاهش وزن 🔻⬆️" })).toBeTruthy();
-  expect(screen.getByRole("radio", { name: "افزایش وزن 🔺️⬇️" })).toBeTruthy();
+  expect(screen.getByRole("radio", { name: "کاهش وزن 🔻" })).toBeTruthy();
+  expect(screen.getByRole("radio", { name: "افزایش وزن 🔺️" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "چربی‌سوزی 🔥" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "عضله‌سازی 💪" })).toBeTruthy();
   expect(screen.getByRole("radio", { name: "چربی‌سوزی + عضله‌سازی 🔥💪" })).toBeTruthy();

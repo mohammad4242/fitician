@@ -34,8 +34,8 @@ const sexOptions = [
 ] as const;
 
 const goalOptions = [
-  { label: "کاهش وزن 🔻⬆️", value: "lose_weight" },
-  { label: "افزایش وزن 🔺️⬇️", value: "gain_weight" },
+  { label: "کاهش وزن 🔻", value: "lose_weight" },
+  { label: "افزایش وزن 🔺️", value: "gain_weight" },
   { label: "چربی‌سوزی 🔥", value: "fat_loss" },
   { label: "عضله‌سازی 💪", value: "build_muscle" },
   { label: "چربی‌سوزی + عضله‌سازی 🔥💪", value: "body_recomposition" },
