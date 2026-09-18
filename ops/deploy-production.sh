@@ -31,7 +31,39 @@ elif [ -z "$previous_image_tag" ]; then
   exit 1
 fi
 
-if [ ! -f "$scalability_marker" ]; then
+validate_scalability_marker() {
+  python3 - "$scalability_marker" <<'PY'
+import re
+import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+path = Path(sys.argv[1])
+values: dict[str, str] = {}
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    key, separator, value = raw_line.partition("=")
+    if not separator or not key or key in values:
+        raise SystemExit("invalid scalability acceptance marker")
+    values[key] = value
+required = {"foundation_version", "image_tag", "evidence_run_id", "accepted_at"}
+if set(values) != required or values["foundation_version"] != "1":
+    raise SystemExit("invalid scalability acceptance marker")
+if re.fullmatch(r"[0-9a-f]{40}", values["image_tag"]) is None:
+    raise SystemExit("invalid scalability acceptance marker")
+if re.fullmatch(r"[0-9]+", values["evidence_run_id"]) is None:
+    raise SystemExit("invalid scalability acceptance marker")
+try:
+    accepted_at = datetime.fromisoformat(values["accepted_at"].replace("Z", "+00:00"))
+except ValueError as error:
+    raise SystemExit("invalid scalability acceptance marker") from error
+if accepted_at.tzinfo is None or accepted_at > datetime.now(UTC) + timedelta(minutes=5):
+    raise SystemExit("invalid scalability acceptance marker")
+PY
+}
+
+if [ -f "$scalability_marker" ]; then
+  validate_scalability_marker
+else
   first_scalability_release=true
   if [ "$first_scalability_release_approved" != true ]; then
     echo "First scalability release requires explicit acceptance approval" >&2
@@ -42,7 +74,7 @@ if [ ! -f "$scalability_marker" ]; then
     exit 1
   }
   python3 "$app_dir/ops/check-db-connection-budget.py" --replicas 2
-  python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2
+  python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2 --compose-file "$compose_file"
 fi
 
 compose() {
@@ -126,7 +158,9 @@ printf '%s\n' "$image_tag" > "$next_marker"
 mv "$next_marker" "$marker"
 if [ "$first_scalability_release" = true ]; then
   next_scalability_marker=$(mktemp "$app_dir/.scalability-foundation-accepted.XXXXXXXX")
-  printf '%s\n' "$scalability_evidence_run_id" > "$next_scalability_marker"
+  printf 'foundation_version=1\nimage_tag=%s\nevidence_run_id=%s\naccepted_at=%s\n' \
+    "$image_tag" "$scalability_evidence_run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "$next_scalability_marker"
   mv "$next_scalability_marker" "$scalability_marker"
 fi
 

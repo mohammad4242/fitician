@@ -26,7 +26,10 @@ class DeployProductionTests(unittest.TestCase):
         (self.workspace / ".env").write_text(f"IMAGE_TAG={OLD_TAG}\nOTHER_VALUE=keep\n")
         (self.workspace / ".deployed-image-tag").write_text(f"{OLD_TAG}\n")
         (self.workspace / ".scalability-foundation-accepted").write_text(
-            "accepted\n"
+            "foundation_version=1\n"
+            f"image_tag={OLD_TAG}\n"
+            "evidence_run_id=123456\n"
+            "accepted_at=2026-09-18T00:00:00Z\n"
         )
         self._command(
             "docker",
@@ -130,6 +133,15 @@ esac
         self.assertIn("First scalability release requires", result.stderr)
         self.assertNotIn("backup", (self.workspace / "calls").read_text())
 
+    def test_malformed_scalability_marker_is_blocked(self) -> None:
+        (self.workspace / ".scalability-foundation-accepted").write_text("accepted\n")
+
+        result = self._run()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid scalability acceptance marker", result.stderr)
+        self.assertNotIn("backup", (self.workspace / "calls").read_text())
+
     def test_approved_first_scalability_release_persists_acceptance_marker(self) -> None:
         marker = self.workspace / ".scalability-foundation-accepted"
         marker.unlink()
@@ -139,7 +151,9 @@ esac
         result = self._run()
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(marker.read_text(), "123456\n")
+        self.assertIn("foundation_version=1\n", marker.read_text())
+        self.assertIn(f"image_tag={NEW_TAG}\n", marker.read_text())
+        self.assertIn("evidence_run_id=123456\n", marker.read_text())
 
 
 if __name__ == "__main__":
