@@ -20,7 +20,21 @@
   background: linear-gradient(180deg, rgb(2 11 12 / 48%), transparent);
 }
 
-.landing-header .brand-mark { color: var(--fitician-mist); }
+.landing-brand-logo {
+  display: block;
+  width: clamp(4.5rem, 6vw, 5.25rem);
+  flex: 0 0 auto;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.landing-brand-logo__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
 
 .landing-header__nav {
   display: flex;
@@ -173,6 +187,7 @@
 @media (max-width: 650px) {
   .public-landing { --landing-header-height: 4.7rem; }
   .landing-header { padding-inline: 0.8rem; }
+  .landing-brand-logo { width: clamp(4rem, 18vw, 4.5rem); }
   .landing-header .language-switcher { min-height: 2.55rem; padding-inline: 0.75rem; font-size: 0.75rem; }
   .landing-primary-cta { min-height: 3.45rem; margin-top: 1.1rem; }
   .landing-final { min-height: 48svh; padding-block: 3.5rem; }

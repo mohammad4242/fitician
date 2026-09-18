@@ -26,6 +26,7 @@ afterEach(() => {
 it("leads with the cinematic Fitician film and a focused Persian promise", () => {
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
+  expect(screen.getByTestId("landing-brand-logo")).toBeInTheDocument();
   const hero = screen.getByRole("region", { name: "هر بدن، برنامه خودش را می‌خواهد." });
   expect(within(hero).getByRole("heading", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeInTheDocument();
   expect(screen.getAllByRole("link", { name: "برنامه من را بساز" })[0]).toHaveAttribute("href", "/get-started");
