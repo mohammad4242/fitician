@@ -132,6 +132,12 @@ class MetricsRegistry:
                 "# TYPE fitician_rate_limit_allowed_total counter",
                 "# TYPE fitician_rate_limit_blocked_total counter",
                 "# TYPE fitician_rate_limit_redis_unavailable_total counter",
+                "# TYPE fitician_queue_depth gauge",
+                "# TYPE fitician_queue_queued_jobs gauge",
+                "# TYPE fitician_queue_processing_jobs gauge",
+                "# TYPE fitician_queue_failed_jobs gauge",
+                "# TYPE fitician_queue_retry_attempts gauge",
+                "# TYPE fitician_queue_oldest_job_age_seconds gauge",
             ]
         )
         for namespace, count in sorted(cache_hits.items()):

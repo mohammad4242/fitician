@@ -4,6 +4,7 @@ import socket
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -195,33 +196,92 @@ def create_app(
             metrics.set_gauge("fitician_redis_ping_latency_ms", redis_result.latency_ms)
         try:
             from app.body_analysis.models import BodyAnalysis
-            from app.notifications.models import NotificationOutboxEvent
+            from app.notifications.models import NotificationEventDelivery
             from app.nutrition.models import NutritionFoodPhotoAnalysisJob
 
             with Session(get_engine(active_settings)) as db:
-                queue_counts = {
-                    "body_analysis": db.scalar(
-                        select(func.count()).select_from(BodyAnalysis).where(
-                            BodyAnalysis.status.in_(("queued", "analyzing"))
-                        )
+                queue_specs = (
+                    (
+                        "body_analysis",
+                        BodyAnalysis,
+                        "queued",
+                        "analyzing",
+                        "failed",
+                        BodyAnalysis.attempt_count,
                     ),
-                    "food_photo": db.scalar(
-                        select(func.count()).select_from(NutritionFoodPhotoAnalysisJob).where(
-                            NutritionFoodPhotoAnalysisJob.status.in_(("queued", "processing"))
-                        )
+                    (
+                        "food_photo",
+                        NutritionFoodPhotoAnalysisJob,
+                        "queued",
+                        "processing",
+                        "failed",
+                        NutritionFoodPhotoAnalysisJob.attempt_count,
                     ),
-                    "notification_outbox": db.scalar(
-                        select(func.count()).select_from(NotificationOutboxEvent).where(
-                            NotificationOutboxEvent.status.in_(("pending", "processing"))
-                        )
+                    (
+                        "notification_delivery",
+                        NotificationEventDelivery,
+                        "pending",
+                        "processing",
+                        "dead_letter",
+                        NotificationEventDelivery.attempt_count,
                     ),
-                }
-            for queue, count in queue_counts.items():
-                metrics.set_labeled_gauge(
-                    "fitician_queue_depth",
-                    {"queue": queue},
-                    float(count or 0),
                 )
+                now = datetime.now(UTC)
+                for queue_spec in queue_specs:
+                    (
+                        queue,
+                        model,
+                        queued_status,
+                        processing_status,
+                        failed_status,
+                        attempts_column,
+                    ) = queue_spec
+                    queued = db.scalar(
+                        select(func.count()).select_from(model).where(model.status == queued_status)
+                    )
+                    processing = db.scalar(
+                        select(func.count())
+                        .select_from(model)
+                        .where(model.status == processing_status)
+                    )
+                    failed = db.scalar(
+                        select(func.count()).select_from(model).where(model.status == failed_status)
+                    )
+                    oldest = db.scalar(
+                        select(func.min(model.created_at)).where(
+                            model.status.in_((queued_status, processing_status))
+                        )
+                    )
+                    retries = (
+                        db.scalar(
+                            select(func.coalesce(func.sum(attempts_column), 0)).where(
+                                model.status.in_((queued_status, processing_status, failed_status))
+                            )
+                        )
+                        if attempts_column is not None
+                        else 0
+                    )
+                    labels = {"queue": queue}
+                    depth = (queued or 0) + (processing or 0)
+                    metrics.set_labeled_gauge("fitician_queue_depth", labels, float(depth))
+                    metrics.set_labeled_gauge(
+                        "fitician_queue_queued_jobs", labels, float(queued or 0)
+                    )
+                    metrics.set_labeled_gauge(
+                        "fitician_queue_processing_jobs", labels, float(processing or 0)
+                    )
+                    metrics.set_labeled_gauge(
+                        "fitician_queue_failed_jobs", labels, float(failed or 0)
+                    )
+                    metrics.set_labeled_gauge(
+                        "fitician_queue_retry_attempts", labels, float(retries or 0)
+                    )
+                    age_seconds = (
+                        max(0.0, (now - oldest).total_seconds()) if oldest is not None else 0.0
+                    )
+                    metrics.set_labeled_gauge(
+                        "fitician_queue_oldest_job_age_seconds", labels, age_seconds
+                    )
         except SQLAlchemyError:
             metrics.set_gauge("fitician_queue_metrics_available", 0)
         return Response(metrics.render(), media_type="text/plain; version=0.0.4")
