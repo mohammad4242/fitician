@@ -1968,6 +1968,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/nutrition/catalogue-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Catalogue Options */
+        get: operations["read_catalogue_options_api_v1_nutrition_catalogue_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/nutrition/estimates": {
         parameters: {
             query?: never;
@@ -8412,6 +8429,104 @@ export type components = {
          * @enum {string}
          */
         NutritionBudgetTier: "economy" | "normal" | "varied";
+        /** NutritionCatalogueConstraintInput */
+        NutritionCatalogueConstraintInput: {
+            /** Details */
+            details?: string | null;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "food" | "meal";
+        };
+        /** NutritionCatalogueConstraintResponse */
+        NutritionCatalogueConstraintResponse: {
+            /** Category */
+            category: string | null;
+            /** Details */
+            details: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "food" | "meal";
+        };
+        /** NutritionCatalogueOption */
+        NutritionCatalogueOption: {
+            /** Category */
+            category: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "food" | "meal";
+        };
+        /** NutritionCatalogueOptionPageResponse */
+        NutritionCatalogueOptionPageResponse: {
+            /** Items */
+            items: components["schemas"]["NutritionCatalogueOption"][];
+        };
+        /** NutritionCatalogueTargetInput */
+        NutritionCatalogueTargetInput: {
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "food" | "meal";
+        };
+        /** NutritionCatalogueTargetResponse */
+        NutritionCatalogueTargetResponse: {
+            /** Category */
+            category: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "food" | "meal";
+        };
         /**
          * NutritionConsumptionSource
          * @enum {string}
@@ -8787,8 +8902,13 @@ export type components = {
              * @default true
              */
             accepts_leftovers: boolean;
-            /** Allergies */
+            /**
+             * Allergies
+             * @deprecated
+             */
             allergies?: components["schemas"]["FoodConstraintInput"][];
+            /** Allergy Catalogue Items */
+            allergy_catalogue_items?: components["schemas"]["NutritionCatalogueConstraintInput"][];
             budget_style: components["schemas"]["BudgetStyle"];
             /** Cooking Equipment */
             cooking_equipment?: components["schemas"]["CookingEquipment"][];
@@ -8803,9 +8923,19 @@ export type components = {
             /** Daily Check In Enabled */
             daily_check_in_enabled: boolean;
             dietary_pattern: components["schemas"]["DietaryPattern"];
-            /** Disliked Foods */
+            /** Disliked Catalogue Items */
+            disliked_catalogue_items?: components["schemas"]["NutritionCatalogueTargetInput"][];
+            /**
+             * Disliked Foods
+             * @deprecated
+             */
             disliked_foods?: string[];
-            /** Favourite Foods */
+            /** Favourite Catalogue Items */
+            favourite_catalogue_items?: components["schemas"]["NutritionCatalogueTargetInput"][];
+            /**
+             * Favourite Foods
+             * @deprecated
+             */
             favourite_foods?: string[];
             /** Foods Available At Home */
             foods_available_at_home?: string[];
@@ -8816,7 +8946,12 @@ export type components = {
             freezer_access: boolean;
             /** Individual Monthly Food Budget Irr */
             individual_monthly_food_budget_irr: number;
-            /** Intolerances */
+            /** Intolerance Catalogue Items */
+            intolerance_catalogue_items?: components["schemas"]["NutritionCatalogueConstraintInput"][];
+            /**
+             * Intolerances
+             * @deprecated
+             */
             intolerances?: components["schemas"]["FoodConstraintInput"][];
             main_meal_count_bucket?: components["schemas"]["MainMealCountBucket"] | null;
             /**
@@ -8881,8 +9016,13 @@ export type components = {
              * @default true
              */
             accepts_leftovers: boolean;
-            /** Allergies */
+            /**
+             * Allergies
+             * @deprecated
+             */
             allergies?: components["schemas"]["FoodConstraintInput"][];
+            /** Allergy Catalogue Items */
+            allergy_catalogue_items: components["schemas"]["NutritionCatalogueConstraintResponse"][];
             budget_style: components["schemas"]["BudgetStyle"];
             /** Cooking Equipment */
             cooking_equipment?: components["schemas"]["CookingEquipment"][];
@@ -8904,13 +9044,23 @@ export type components = {
             /** Daily Check In Enabled */
             daily_check_in_enabled: boolean;
             dietary_pattern: components["schemas"]["DietaryPattern"];
-            /** Disliked Foods */
+            /** Disliked Catalogue Items */
+            disliked_catalogue_items: components["schemas"]["NutritionCatalogueTargetResponse"][];
+            /**
+             * Disliked Foods
+             * @deprecated
+             */
             disliked_foods?: string[];
             /** Effective Main Meal Slots */
             effective_main_meal_slots: number;
             /** Effective Snack Slots */
             effective_snack_slots: number;
-            /** Favourite Foods */
+            /** Favourite Catalogue Items */
+            favourite_catalogue_items: components["schemas"]["NutritionCatalogueTargetResponse"][];
+            /**
+             * Favourite Foods
+             * @deprecated
+             */
             favourite_foods?: string[];
             /** Foods Available At Home */
             foods_available_at_home?: string[];
@@ -8921,7 +9071,12 @@ export type components = {
             freezer_access: boolean;
             /** Individual Monthly Food Budget Irr */
             individual_monthly_food_budget_irr: number;
-            /** Intolerances */
+            /** Intolerance Catalogue Items */
+            intolerance_catalogue_items: components["schemas"]["NutritionCatalogueConstraintResponse"][];
+            /**
+             * Intolerances
+             * @deprecated
+             */
             intolerances?: components["schemas"]["FoodConstraintInput"][];
             main_meal_count_bucket?: components["schemas"]["MainMealCountBucket"] | null;
             /**
@@ -16997,6 +17152,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NutritionSupplementCatalogueResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_catalogue_options_api_v1_nutrition_catalogue_options_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NutritionCatalogueOptionPageResponse"];
                 };
             };
             /** @description Validation Error */

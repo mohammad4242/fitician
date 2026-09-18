@@ -18,6 +18,8 @@ export type CatalogueFoodResponse = components["schemas"]["CatalogueFoodResponse
 export type FoodPriceOverrideInput = components["schemas"]["FoodPriceOverrideInput"];
 export type SingleFoodPriceResearchQuote = components["schemas"]["SingleFoodPriceResearchQuoteResponse"];
 export type SingleFoodPriceResearchResponse = components["schemas"]["SingleFoodPriceResearchResponse"];
+export type NutritionCatalogueOption = components["schemas"]["NutritionCatalogueOption"];
+export type NutritionCatalogueOptionsResponse = components["schemas"]["NutritionCatalogueOptionPageResponse"];
 
 export type FoodCatalogueWriteInput = Omit<
   components["schemas"]["CatalogueFoodWrite"],
@@ -82,11 +84,17 @@ export type FoodCatalogueQuery = {
   readonly query?: string;
 };
 
+export type NutritionCatalogueOptionsQuery = {
+  readonly query?: string;
+  readonly limit?: number;
+};
+
 export type AuthenticatedNutritionUpload = <TResponse>(
   request: MultipartUploadRequest,
 ) => Promise<TResponse>;
 
 export interface NutritionCatalogueApi {
+  getOptions(input?: NutritionCatalogueOptionsQuery): Promise<NutritionCatalogueOptionsResponse>;
   getFoodCatalogue(input?: FoodCatalogueQuery): Promise<FoodCataloguePage>;
   getAdminFoodCatalogue(input?: FoodCatalogueQuery): Promise<AdminFoodCataloguePage>;
   saveCatalogueFood(input: FoodCatalogueWriteInput): Promise<CatalogueFoodResponse>;
@@ -134,6 +142,17 @@ export function createNutritionCatalogueApi(
   upload?: AuthenticatedNutritionUpload,
 ): NutritionCatalogueApi {
   return {
+    getOptions: (input = {}) => {
+      const parameters = new URLSearchParams();
+      if (input.query) parameters.set("q", input.query);
+      if (input.limit !== undefined) parameters.set("limit", String(input.limit));
+      const query = parameters.toString();
+      return request<NutritionCatalogueOptionsResponse>({
+        method: "GET",
+        path: `${nutritionPath}/catalogue-options${query ? `?${query}` : ""}`,
+      });
+    },
+
     getFoodCatalogue: (input = {}) => cataloguePath<FoodCataloguePage>(request, "food-catalogue", input),
 
     getAdminFoodCatalogue: (input = {}) => cataloguePath<AdminFoodCataloguePage>(

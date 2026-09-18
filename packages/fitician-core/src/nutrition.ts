@@ -42,6 +42,31 @@ export type SafetyDecision = {
 
 export type SafetyEvaluation = Omit<SafetyDecision, "id" | "created_at">;
 
+export type NutritionCatalogueTargetType = "food" | "meal";
+
+export type NutritionCatalogueTarget = {
+  target_type: NutritionCatalogueTargetType;
+  target_id: string;
+  name_fa: string;
+  name_en: string;
+  category: string | null;
+  image_url: string | null;
+};
+
+export type NutritionCatalogueTargetInput = Pick<
+  NutritionCatalogueTarget,
+  "target_type" | "target_id"
+>;
+
+export type NutritionCatalogueConstraint = NutritionCatalogueTarget & {
+  details: string | null;
+};
+
+export type NutritionCatalogueConstraintInput = NutritionCatalogueTargetInput & {
+  details: string | null;
+};
+
+/** Deprecated compatibility shape for legacy physician or cultural text. */
 export type FoodConstraint = { name: string; details: string | null };
 
 export type TrainingIntensity = "light" | "moderate" | "vigorous";
@@ -382,9 +407,17 @@ export type NutritionProfileInput = {
   maximum_meal_repetition_per_week?: number;
   accepts_leftovers?: boolean;
   accepts_batch_cooking?: boolean;
+  favourite_catalogue_items: NutritionCatalogueTargetInput[];
+  disliked_catalogue_items: NutritionCatalogueTargetInput[];
+  allergy_catalogue_items: NutritionCatalogueConstraintInput[];
+  intolerance_catalogue_items: NutritionCatalogueConstraintInput[];
+  /** @deprecated Use favourite_catalogue_items. */
   favourite_foods: string[];
+  /** @deprecated Use disliked_catalogue_items. */
   disliked_foods: string[];
+  /** @deprecated Use allergy_catalogue_items. */
   allergies: FoodConstraint[];
+  /** @deprecated Use intolerance_catalogue_items. */
   intolerances: FoodConstraint[];
   dietary_pattern: "omnivore" | "vegetarian" | "vegan";
   religious_cultural_exclusions: string[];
@@ -393,7 +426,17 @@ export type NutritionProfileInput = {
   preferred_check_in_time: string | null;
 };
 
-export type NutritionProfile = NutritionProfileInput & {
+export type NutritionProfile = Omit<
+  NutritionProfileInput,
+  | "favourite_catalogue_items"
+  | "disliked_catalogue_items"
+  | "allergy_catalogue_items"
+  | "intolerance_catalogue_items"
+> & {
+  favourite_catalogue_items: NutritionCatalogueTarget[];
+  disliked_catalogue_items: NutritionCatalogueTarget[];
+  allergy_catalogue_items: NutritionCatalogueConstraint[];
+  intolerance_catalogue_items: NutritionCatalogueConstraint[];
   user_id: string;
   onboarding_status: "in_progress" | "completed";
   currency: "IRR";

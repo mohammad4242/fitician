@@ -19,7 +19,9 @@ const LEGACY_HYDRATED_ACCOUNT_EVENT = "fitsho:profile-hydrated";
 
 export type PreAccountNutritionBasics = Pick<
   NutritionProfileInput,
-  "daily_activity_level" | "individual_monthly_food_budget_irr" | "budget_style" | "plan_style" | "allergies" | "intolerances" | "dietary_pattern"
+  "daily_activity_level" | "individual_monthly_food_budget_irr" | "budget_style" | "plan_style"
+  | "favourite_catalogue_items" | "disliked_catalogue_items" | "allergy_catalogue_items"
+  | "intolerance_catalogue_items" | "allergies" | "intolerances" | "dietary_pattern"
 > & {
   target_weight_change_kg_per_week?: number | null;
   weight_rate_mode?: "safe" | "user_override";

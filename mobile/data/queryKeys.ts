@@ -58,6 +58,7 @@ export const nutritionKeys = {
   latestBundle: () => ["nutrition", "plan-bundle", "latest"] as const,
   mealFeedback: (planId: string) => ["nutrition", "meal-feedback", planId] as const,
   profile: () => ["nutrition", "profile"] as const,
+  catalogueOptions: (query: string) => ["nutrition", "catalogue-options", query] as const,
   reviewRequirement: () => ["nutrition", "review-requirement"] as const,
   safety: () => ["nutrition", "safety"] as const,
   structuredExercise: () => ["nutrition", "structured-exercise"] as const,

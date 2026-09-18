@@ -17,9 +17,33 @@ import type {
   WeeklyPlanHistoryItem,
   MealFeedbackType,
   PlanBundleSelectResponse,
+  NutritionCatalogueTarget,
 } from "./types";
 
 const nutritionPath = "/api/v1/nutrition";
+
+export type NutritionCatalogueOptionsQuery = {
+  query?: string;
+  limit?: number;
+};
+
+export type NutritionCatalogueOptionsResponse = {
+  items: NutritionCatalogueTarget[];
+};
+
+export function getNutritionCatalogueOptions(
+  input: NutritionCatalogueOptionsQuery = {},
+  signal?: AbortSignal,
+): Promise<NutritionCatalogueOptionsResponse> {
+  const parameters = new URLSearchParams();
+  if (input.query) parameters.set("q", input.query);
+  if (input.limit !== undefined) parameters.set("limit", String(input.limit));
+  const query = parameters.toString();
+  return request<NutritionCatalogueOptionsResponse>(
+    `${nutritionPath}/catalogue-options${query ? `?${query}` : ""}`,
+    signal === undefined ? undefined : { signal },
+  );
+}
 
 export type FoodCatalogueNutrient = {
   nutrient_code: string;

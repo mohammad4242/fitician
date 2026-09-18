@@ -13881,6 +13881,265 @@
         "title": "NutritionBudgetTier",
         "type": "string"
       },
+      "NutritionCatalogueConstraintInput": {
+        "additionalProperties": false,
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "food",
+              "meal"
+            ],
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id"
+        ],
+        "title": "NutritionCatalogueConstraintInput",
+        "type": "object"
+      },
+      "NutritionCatalogueConstraintResponse": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "food",
+              "meal"
+            ],
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id",
+          "name_fa",
+          "name_en",
+          "category",
+          "image_url",
+          "details"
+        ],
+        "title": "NutritionCatalogueConstraintResponse",
+        "type": "object"
+      },
+      "NutritionCatalogueOption": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "food",
+              "meal"
+            ],
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id",
+          "name_fa",
+          "name_en",
+          "category",
+          "image_url"
+        ],
+        "title": "NutritionCatalogueOption",
+        "type": "object"
+      },
+      "NutritionCatalogueOptionPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueOption"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "NutritionCatalogueOptionPageResponse",
+        "type": "object"
+      },
+      "NutritionCatalogueTargetInput": {
+        "additionalProperties": false,
+        "properties": {
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "food",
+              "meal"
+            ],
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id"
+        ],
+        "title": "NutritionCatalogueTargetInput",
+        "type": "object"
+      },
+      "NutritionCatalogueTargetResponse": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_type": {
+            "enum": [
+              "food",
+              "meal"
+            ],
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_type",
+          "target_id",
+          "name_fa",
+          "name_en",
+          "category",
+          "image_url"
+        ],
+        "title": "NutritionCatalogueTargetResponse",
+        "type": "object"
+      },
       "NutritionConsumptionSource": {
         "enum": [
           "planned_confirmed",
@@ -14918,11 +15177,20 @@
             "type": "boolean"
           },
           "allergies": {
+            "deprecated": true,
             "items": {
               "$ref": "#/components/schemas/FoodConstraintInput"
             },
             "maxItems": 100,
             "title": "Allergies",
+            "type": "array"
+          },
+          "allergy_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueConstraintInput"
+            },
+            "maxItems": 100,
+            "title": "Allergy Catalogue Items",
             "type": "array"
           },
           "budget_style": {
@@ -14957,7 +15225,16 @@
           "dietary_pattern": {
             "$ref": "#/components/schemas/DietaryPattern"
           },
+          "disliked_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueTargetInput"
+            },
+            "maxItems": 100,
+            "title": "Disliked Catalogue Items",
+            "type": "array"
+          },
           "disliked_foods": {
+            "deprecated": true,
             "items": {
               "type": "string"
             },
@@ -14965,7 +15242,16 @@
             "title": "Disliked Foods",
             "type": "array"
           },
+          "favourite_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueTargetInput"
+            },
+            "maxItems": 100,
+            "title": "Favourite Catalogue Items",
+            "type": "array"
+          },
           "favourite_foods": {
+            "deprecated": true,
             "items": {
               "type": "string"
             },
@@ -14992,7 +15278,16 @@
             "title": "Individual Monthly Food Budget Irr",
             "type": "integer"
           },
+          "intolerance_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueConstraintInput"
+            },
+            "maxItems": 100,
+            "title": "Intolerance Catalogue Items",
+            "type": "array"
+          },
           "intolerances": {
+            "deprecated": true,
             "items": {
               "$ref": "#/components/schemas/FoodConstraintInput"
             },
@@ -15203,11 +15498,19 @@
             "type": "boolean"
           },
           "allergies": {
+            "deprecated": true,
             "items": {
               "$ref": "#/components/schemas/FoodConstraintInput"
             },
             "maxItems": 100,
             "title": "Allergies",
+            "type": "array"
+          },
+          "allergy_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueConstraintResponse"
+            },
+            "title": "Allergy Catalogue Items",
             "type": "array"
           },
           "budget_style": {
@@ -15251,7 +15554,15 @@
           "dietary_pattern": {
             "$ref": "#/components/schemas/DietaryPattern"
           },
+          "disliked_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueTargetResponse"
+            },
+            "title": "Disliked Catalogue Items",
+            "type": "array"
+          },
           "disliked_foods": {
+            "deprecated": true,
             "items": {
               "type": "string"
             },
@@ -15267,7 +15578,15 @@
             "title": "Effective Snack Slots",
             "type": "integer"
           },
+          "favourite_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueTargetResponse"
+            },
+            "title": "Favourite Catalogue Items",
+            "type": "array"
+          },
           "favourite_foods": {
+            "deprecated": true,
             "items": {
               "type": "string"
             },
@@ -15294,7 +15613,15 @@
             "title": "Individual Monthly Food Budget Irr",
             "type": "integer"
           },
+          "intolerance_catalogue_items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionCatalogueConstraintResponse"
+            },
+            "title": "Intolerance Catalogue Items",
+            "type": "array"
+          },
           "intolerances": {
+            "deprecated": true,
             "items": {
               "$ref": "#/components/schemas/FoodConstraintInput"
             },
@@ -15502,6 +15829,10 @@
           "individual_monthly_food_budget_irr",
           "budget_style",
           "preferred_plan_start_day",
+          "favourite_catalogue_items",
+          "disliked_catalogue_items",
+          "allergy_catalogue_items",
+          "intolerance_catalogue_items",
           "dietary_pattern",
           "daily_check_in_enabled",
           "user_id",
@@ -33701,6 +34032,62 @@
           }
         ],
         "summary": "Update Supplement Catalogue",
+        "tags": [
+          "nutrition"
+        ]
+      }
+    },
+    "/api/v1/nutrition/catalogue-options": {
+      "get": {
+        "operationId": "read_catalogue_options_api_v1_nutrition_catalogue_options_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 160,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NutritionCatalogueOptionPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Catalogue Options",
         "tags": [
           "nutrition"
         ]
