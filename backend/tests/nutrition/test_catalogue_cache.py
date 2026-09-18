@@ -173,4 +173,5 @@ def test_admin_food_retirement_invalidates_member_catalogue_caches(
         "nutrition_foods",
         "nutrition_food_catalogue",
         "nutrition_meals",
+        "nutrition_catalogue_options",
     ]
