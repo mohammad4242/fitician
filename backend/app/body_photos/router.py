@@ -9,6 +9,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Request,
     UploadFile,
     status,
 )
@@ -43,6 +44,12 @@ from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import require_quota_available
+from app.rate_limits.dependency import (
+    DistributedRateLimitUnavailable,
+    enforce_distributed_rate_limit,
+    rate_limit_http_exception,
+)
+from app.rate_limits.service import DistributedRateLimitExceeded
 
 router = APIRouter(prefix="/api/v1/body-photo-sessions", tags=["body-photos"])
 
@@ -166,15 +173,26 @@ def get_session(
     response_model=BodyPhotoSessionResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def upload_photo(
+async def upload_photo(
     session_id: UUID,
     view: BodyPhotoView,
     db: DatabaseSession,
     user: CurrentUser,
     settings: AppSettings,
+    request: Request,
     file: Annotated[UploadFile, File()],
 ) -> BodyPhotoSessionResponse:
     try:
+        await enforce_distributed_rate_limit(
+            request,
+            db,
+            settings,
+            namespace="application",
+            operation="body_photo_upload",
+            limit=settings.body_photo_upload_rate_limit,
+            window_seconds=settings.application_rate_limit_window_seconds,
+            user_id=user.id,
+        )
         session = BodyPhotoService(db, settings).upload_standardized_photo(
             session_id,
             user.id,
@@ -199,6 +217,8 @@ def upload_photo(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
+    except (DistributedRateLimitExceeded, DistributedRateLimitUnavailable) as error:
+        raise rate_limit_http_exception(error) from None
 
 
 @router.post(

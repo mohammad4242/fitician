@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.ai.schemas import ProviderErrorCode
 from app.auth.cookies import require_trusted_origin
 from app.auth.models import User
+from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import (
@@ -22,6 +23,12 @@ from app.exercises.media_resolver import resolve_primary_media
 from app.exercises.models import Exercise
 from app.exercises.schemas import ExerciseSummary
 from app.profile.models import UserProfile
+from app.rate_limits.dependency import (
+    DistributedRateLimitUnavailable,
+    enforce_distributed_rate_limit,
+    rate_limit_http_exception,
+)
+from app.rate_limits.service import DistributedRateLimitExceeded
 from app.workout_reviews.enums import WorkoutReviewStatus
 from app.workouts.dependencies import WorkoutGenerationServiceDependency
 from app.workouts.enums import WorkoutPlanStatus
@@ -64,6 +71,7 @@ from app.workouts.service import (
 router = APIRouter(prefix="/api/v1/workout-plans", tags=["workout-plans"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(require_completed_profile)]
+AppSettings = Annotated[Settings, Depends(get_settings)]
 
 BODYWEIGHT_GENERATION_MESSAGES = {
     "BODYWEIGHT_ONLY_LEVEL_NOT_SUPPORTED": (
@@ -110,8 +118,23 @@ async def generate_plan(
     service: WorkoutGenerationServiceDependency,
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
+    settings: AppSettings,
     payload: ProgramGenerationOverrides | None = None,
 ) -> WorkoutPlanGenerateResponse:
+    try:
+        await enforce_distributed_rate_limit(
+            request,
+            db,
+            settings,
+            namespace="application",
+            operation="workout_generation",
+            limit=settings.workout_generation_rate_limit,
+            window_seconds=settings.application_rate_limit_window_seconds,
+            user_id=user.id,
+        )
+    except (DistributedRateLimitExceeded, DistributedRateLimitUnavailable) as error:
+        raise rate_limit_http_exception(error) from None
     access = require_entitlement(db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE)
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
     if profile is not None and profile.plan_duration_weeks is not None:

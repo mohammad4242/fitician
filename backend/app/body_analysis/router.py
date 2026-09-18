@@ -38,9 +38,16 @@ from app.body_analysis.service import (
     BodyAnalysisStateError,
     ReviewSubmission,
 )
+from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import require_entitlement
+from app.rate_limits.dependency import (
+    DistributedRateLimitUnavailable,
+    enforce_distributed_rate_limit,
+    rate_limit_http_exception,
+)
+from app.rate_limits.service import DistributedRateLimitExceeded
 
 router = APIRouter(prefix="/api/v1/body-photo-sessions", tags=["body-analysis"])
 review_router = APIRouter(
@@ -56,6 +63,7 @@ admin_router = APIRouter(
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
+AppSettings = Annotated[Settings, Depends(get_settings)]
 
 
 def _not_found() -> HTTPException:
@@ -199,16 +207,27 @@ def get_session_analysis(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def start_session_analysis(
+async def start_session_analysis(
     session_id: UUID,
     db: DatabaseSession,
     user: CurrentUser,
     request: Request,
     runtime: BodyAnalysisRuntimeDependency,
+    settings: AppSettings,
     payload: BodyAnalysisStartRequest,
 ) -> BodyAnalysisResponse:
-    require_entitlement(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
     try:
+        await enforce_distributed_rate_limit(
+            request,
+            db,
+            settings,
+            namespace="application",
+            operation="body_analysis_create",
+            limit=settings.body_analysis_rate_limit,
+            window_seconds=settings.application_rate_limit_window_seconds,
+            user_id=user.id,
+        )
+        require_entitlement(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
         service = BodyAnalysisService(db)
         analysis = service.queue(
             session_id,
@@ -227,6 +246,8 @@ def start_session_analysis(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "BODY_ANALYSIS_NOT_READY"},
         ) from None
+    except (DistributedRateLimitExceeded, DistributedRateLimitUnavailable) as error:
+        raise rate_limit_http_exception(error) from None
     return _response(db, analysis)
 
 
@@ -236,16 +257,27 @@ def start_session_analysis(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def retry_session_analysis(
+async def retry_session_analysis(
     session_id: UUID,
     db: DatabaseSession,
     user: CurrentUser,
     request: Request,
     runtime: BodyAnalysisRuntimeDependency,
+    settings: AppSettings,
     payload: BodyAnalysisStartRequest | None = None,
 ) -> BodyAnalysisResponse:
     service = BodyAnalysisService(db)
     try:
+        await enforce_distributed_rate_limit(
+            request,
+            db,
+            settings,
+            namespace="application",
+            operation="body_analysis_retry",
+            limit=settings.body_analysis_rate_limit,
+            window_seconds=settings.application_rate_limit_window_seconds,
+            user_id=user.id,
+        )
         latest = service.latest_for_session(session_id, user.id)
         if latest is None:
             raise BodyAnalysisNotFoundError
@@ -275,6 +307,8 @@ def retry_session_analysis(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "BODY_ANALYSIS_STATE_INVALID"},
         ) from None
+    except (DistributedRateLimitExceeded, DistributedRateLimitUnavailable) as error:
+        raise rate_limit_http_exception(error) from None
     return _response(db, analysis)
 
 

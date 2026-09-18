@@ -312,14 +312,15 @@ jobs:
             tests/infrastructure/test_redis.py \
             tests/infrastructure/test_rate_limiter.py \
             tests/observability/test_logging.py \
-            tests/test_observability.py -q
+            tests/test_observability.py \
+            tests/rate_limits/test_service.py -q
       - name: Validate typed scalability modules
         run: |
           uv run ruff check \
-            app/infrastructure app/cache app/body_analysis app/scheduler app/observability \
+            app/infrastructure app/cache app/rate_limits app/body_analysis app/scheduler app/observability \
             app/resilience tests/cache/test_service.py tests/infrastructure \
             tests/observability/test_logging.py tests/resilience/test_policy.py
-          uv run mypy app/infrastructure app/cache app/body_analysis app/scheduler app/observability app/resilience
+          uv run mypy app/infrastructure app/cache app/rate_limits app/body_analysis app/scheduler app/observability app/resilience
       - name: Validate migrations and worker imports
         run: |
           uv run python -m alembic heads
