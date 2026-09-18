@@ -300,6 +300,9 @@ def save_nutrition_profile(
             "Vegetarian and vegan dietary patterns are not supported in V1."
         )
 
+    # Resolve and validate every target before mutating the profile or deleting its rows.
+    resolved_food_items = _food_items(db, user_id, payload)
+
     profile = db.get(NutritionProfile, user_id)
     scalar_values = payload.model_dump(
         exclude={
@@ -376,7 +379,7 @@ def save_nutrition_profile(
         db.flush()
         # Cooking/preparation data is legacy-only and is deliberately not rewritten.
         db.execute(delete(NutritionFoodItem).where(NutritionFoodItem.user_id == user_id))
-        db.add_all(_food_items(db, user_id, payload))
+        db.add_all(resolved_food_items)
         db.commit()
     except SQLAlchemyError:
         db.rollback()
