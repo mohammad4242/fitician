@@ -272,6 +272,7 @@ def test_v4_queue_captures_profile_measurement_and_photo_snapshot(db: Session) -
         "side",
         "back",
     }
+    assert analysis.raw_result["execution_config"] == _v4_config().model_dump(mode="json")
 
 
 @pytest.mark.parametrize(
@@ -857,7 +858,7 @@ def test_provider_change_reopens_retry_budget_for_same_stored_photos(db: Session
     assert retried.replaces_analysis_id == failed.id
     assert retried.provider == "agent_service:codex"
     assert retried.model_id == "gpt-5.6-luna"
-    assert retried.raw_result == failed.raw_result
+    assert retried.raw_result["execution_config"]["provider_name"] == "agent_service:codex"
 
 
 def test_low_confidence_and_cost_limited_results_fail_safely(db: Session) -> None:

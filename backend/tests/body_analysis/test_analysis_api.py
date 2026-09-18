@@ -55,6 +55,31 @@ def _v4_runtime_override(client: TestClient) -> None:
     )
 
 
+def test_start_only_enqueues_and_does_not_execute_provider(
+    client: TestClient, db: Session
+) -> None:
+    provider = _Provider()
+    client.app.dependency_overrides[get_body_analysis_runtime] = lambda: BodyAnalysisRuntime(
+        provider=provider,
+        config=_config(),
+    )
+    email = f"enqueue-only-{uuid4()}@example.com"
+    _register(client, email)
+    owner = db.scalar(select(User).where(User.email == email))
+    assert owner is not None
+    _, photo_session = _submitted_session(db, owner)
+
+    response = client.post(
+        f"/api/v1/body-photo-sessions/{photo_session.id}/analysis",
+        headers=ORIGIN,
+        json={"confirm_measurements_current": True},
+    )
+
+    assert response.status_code == 202, response.text
+    assert provider.calls == 0
+    assert response.json()["status"] == "queued"
+
+
 def test_analysis_result_api_is_owner_only_and_hides_provider_envelopes(
     client: TestClient, db: Session
 ) -> None:

@@ -584,6 +584,11 @@ class BodyAnalysisService:
             )
             + 1
         )
+        raw_result: dict[str, object] = {
+            "execution_config": config.model_dump(mode="json"),
+        }
+        if input_snapshot is not None:
+            raw_result["input_snapshot"] = input_snapshot.model_dump(mode="json")
         analysis = BodyAnalysis(
             cycle_id=photo_session.cycle_id,
             session_id=photo_session.id,
@@ -595,11 +600,7 @@ class BodyAnalysisService:
             prompt_version=config.prompt_version,
             schema_version=config.schema_version,
             status=BodyAnalysisStatus.QUEUED,
-            raw_result=(
-                {"input_snapshot": input_snapshot.model_dump(mode="json")}
-                if input_snapshot is not None
-                else None
-            ),
+            raw_result=raw_result,
         )
         photo_session.state = BodyPhotoSessionState.QUEUED
         self._db.add(analysis)
@@ -610,6 +611,24 @@ class BodyAnalysisService:
             self._db.rollback()
             raise
         return analysis
+
+    @staticmethod
+    def execution_config_for_analysis(analysis: BodyAnalysis) -> AnalysisExecutionConfig:
+        raw_result = analysis.raw_result
+        if isinstance(raw_result, dict):
+            raw_config = raw_result.get("execution_config")
+            if isinstance(raw_config, dict):
+                try:
+                    return AnalysisExecutionConfig.model_validate(raw_config)
+                except ValidationError:
+                    pass
+        return AnalysisExecutionConfig(
+            provider_name=analysis.provider,
+            primary_model=analysis.model_id,
+            fallback_models=(analysis.fallback_model_id,) if analysis.fallback_model_id else (),
+            prompt_version=analysis.prompt_version,
+            schema_version=analysis.schema_version,
+        )
 
     async def execute(
         self,

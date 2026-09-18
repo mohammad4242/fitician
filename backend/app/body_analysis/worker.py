@@ -1,13 +1,57 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from uuid import UUID
+import asyncio
+import logging
+import socket
+from datetime import UTC, datetime, timedelta
+from importlib import import_module
+from typing import cast
+from uuid import UUID, uuid4
 
+import httpx
 from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
+from app.body_analysis.providers import (
+    AIProvider,
+    AIProviderError,
+    ImageInput,
+    ProviderErrorCode,
+    StructuredGenerationRequest,
+    StructuredGenerationResponse,
+)
+from app.body_analysis.runtime import build_body_analysis_runtime
+from app.body_analysis.service import BodyAnalysisService
+from app.config import Settings, get_settings
+from app.database.session import get_engine
+
+import_module("app.main")  # Ensure all SQLAlchemy models and relationships are registered
+
+logger = logging.getLogger(__name__)
+
+
+class _UnavailableProvider:
+    async def analyze_images(
+        self,
+        request: StructuredGenerationRequest,
+        *,
+        images: tuple[ImageInput, ...],
+    ) -> StructuredGenerationResponse:
+        del request, images
+        raise AIProviderError(
+            ProviderErrorCode.NOT_CONFIGURED,
+            "The body analysis provider is not configured.",
+        )
+
+    def normalize_error(self, error: Exception) -> AIProviderError:
+        if isinstance(error, AIProviderError):
+            return error
+        return AIProviderError(
+            ProviderErrorCode.NOT_CONFIGURED,
+            "The body analysis provider is not configured.",
+        )
 
 
 def claim_body_analysis_jobs(
@@ -57,3 +101,162 @@ def claim_body_analysis_jobs(
         analysis.locked_by = worker_id
     db.commit()
     return [analysis.id for analysis in analyses]
+
+
+def _locked_body_analysis(
+    db: Session,
+    analysis_id: UUID,
+    *,
+    worker_id: str,
+) -> BodyAnalysis | None:
+    analysis = db.scalar(
+        select(BodyAnalysis)
+        .where(
+            BodyAnalysis.id == analysis_id,
+            BodyAnalysis.status == BodyAnalysisStatus.QUEUED,
+            BodyAnalysis.locked_by == worker_id,
+        )
+        .options(selectinload(BodyAnalysis.session))
+        .with_for_update()
+    )
+    if analysis is None:
+        db.rollback()
+    return analysis
+
+
+def _release_body_analysis_lease(
+    db: Session,
+    analysis_id: UUID,
+    *,
+    worker_id: str,
+) -> None:
+    analysis = db.scalar(
+        select(BodyAnalysis)
+        .where(
+            BodyAnalysis.id == analysis_id,
+            BodyAnalysis.locked_by == worker_id,
+        )
+        .with_for_update()
+    )
+    if analysis is None:
+        db.rollback()
+        return
+    analysis.locked_at = None
+    analysis.locked_by = None
+    db.commit()
+
+
+async def process_body_analysis_job(
+    db: Session,
+    analysis_id: UUID,
+    *,
+    worker_id: str,
+    settings: Settings,
+    ai_http_client: httpx.AsyncClient,
+    agent_http_client: httpx.AsyncClient,
+    now: datetime | None = None,
+) -> bool:
+    """Execute one claimed analysis and release only the owning lease."""
+    analysis = _locked_body_analysis(db, analysis_id, worker_id=worker_id)
+    if analysis is None:
+        return False
+    execution_config = BodyAnalysisService.execution_config_for_analysis(analysis)
+    db.commit()  # Release the claim row lock before the provider call.
+
+    try:
+        try:
+            runtime = build_body_analysis_runtime(
+                db,
+                settings,
+                ai_http_client=ai_http_client,
+                agent_http_client=agent_http_client,
+            )
+            provider: AIProvider = runtime.provider
+        except (ValueError, RuntimeError) as error:
+            logger.warning(
+                "Body analysis provider configuration unavailable for %s: %s",
+                analysis_id,
+                type(error).__name__,
+            )
+            provider = cast(AIProvider, _UnavailableProvider())
+        await BodyAnalysisService(db).execute(
+            analysis_id,
+            provider,
+            execution_config,
+        )
+    except Exception:
+        db.rollback()
+        logger.exception("Body analysis worker execution failed for %s", analysis_id)
+        return False
+
+    _release_body_analysis_lease(db, analysis_id, worker_id=worker_id)
+    return True
+
+
+async def run_body_analysis_once(
+    db: Session,
+    *,
+    settings: Settings,
+    ai_http_client: httpx.AsyncClient,
+    agent_http_client: httpx.AsyncClient,
+    worker_id: str,
+    now: datetime | None = None,
+) -> int:
+    current = now or datetime.now(UTC)
+    analysis_ids = claim_body_analysis_jobs(
+        db,
+        worker_id=worker_id,
+        now=current,
+        lease_seconds=settings.body_analysis_worker_lease_seconds,
+        batch_size=settings.body_analysis_worker_batch_size,
+    )
+    processed = 0
+    for analysis_id in analysis_ids:
+        processed += int(
+            await process_body_analysis_job(
+                db,
+                analysis_id,
+                worker_id=worker_id,
+                settings=settings,
+                ai_http_client=ai_http_client,
+                agent_http_client=agent_http_client,
+                now=current,
+            )
+        )
+    return processed
+
+
+def _worker_id() -> str:
+    return f"{socket.gethostname()}:{uuid4()}"
+
+
+async def run_worker(settings: Settings) -> None:
+    worker_id = _worker_id()
+    engine = get_engine(settings.database_url)
+    ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)
+    agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
+    async with (
+        httpx.AsyncClient(
+            timeout=ai_timeout,
+            proxy=settings.openrouter_proxy_url or None,
+            trust_env=False,
+        ) as ai_client,
+        httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_http_client,
+    ):
+        while True:
+            try:
+                with Session(engine) as db:
+                    await run_body_analysis_once(
+                        db,
+                        settings=settings,
+                        ai_http_client=ai_client,
+                        agent_http_client=agent_http_client,
+                        worker_id=worker_id,
+                    )
+            except Exception:
+                logger.exception("Body analysis worker iteration failed")
+            await asyncio.sleep(settings.body_analysis_worker_poll_seconds)
+
+
+if __name__ == "__main__":
+    asyncio.run(run_worker(get_settings()))

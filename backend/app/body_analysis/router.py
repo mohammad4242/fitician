@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -193,18 +193,6 @@ def get_session_analysis(
     return _response(db, analysis) if analysis else None
 
 
-async def _execute_background(
-    service: BodyAnalysisService,
-    analysis_id: UUID,
-    runtime: BodyAnalysisRuntimeDependency,
-) -> None:
-    await service.execute(
-        analysis_id,
-        runtime.provider,
-        runtime.config,
-    )
-
-
 @router.post(
     "/{session_id}/analysis",
     response_model=BodyAnalysisResponse,
@@ -213,7 +201,6 @@ async def _execute_background(
 )
 def start_session_analysis(
     session_id: UUID,
-    background_tasks: BackgroundTasks,
     db: DatabaseSession,
     user: CurrentUser,
     runtime: BodyAnalysisRuntimeDependency,
@@ -238,7 +225,6 @@ def start_session_analysis(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "BODY_ANALYSIS_NOT_READY"},
         ) from None
-    background_tasks.add_task(_execute_background, service, analysis.id, runtime)
     return _response(db, analysis)
 
 
@@ -250,7 +236,6 @@ def start_session_analysis(
 )
 def retry_session_analysis(
     session_id: UUID,
-    background_tasks: BackgroundTasks,
     db: DatabaseSession,
     user: CurrentUser,
     runtime: BodyAnalysisRuntimeDependency,
@@ -286,7 +271,6 @@ def retry_session_analysis(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "BODY_ANALYSIS_STATE_INVALID"},
         ) from None
-    background_tasks.add_task(_execute_background, service, analysis.id, runtime)
     return _response(db, analysis)
 
 
@@ -298,7 +282,6 @@ def retry_session_analysis(
 )
 def retry_analysis_as_admin(
     analysis_id: UUID,
-    background_tasks: BackgroundTasks,
     db: DatabaseSession,
     _admin: AdminUser,
     runtime: BodyAnalysisRuntimeDependency,
@@ -327,7 +310,6 @@ def retry_analysis_as_admin(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "BODY_ANALYSIS_STATE_INVALID"},
         ) from None
-    background_tasks.add_task(_execute_background, BodyAnalysisService(db), queued.id, runtime)
     return _response(db, queued)
 
 

@@ -6,6 +6,7 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.ai.task_provider import build_task_provider
 from app.auth.dependencies import AppSettings, DatabaseSession
@@ -17,6 +18,7 @@ from app.body_analysis.admin_config.service import (
 )
 from app.body_analysis.providers import AIProvider
 from app.body_analysis.service import AnalysisExecutionConfig
+from app.config import Settings
 
 
 @dataclass(frozen=True)
@@ -30,49 +32,62 @@ def get_body_analysis_runtime(
     db: DatabaseSession,
     settings: AppSettings,
 ) -> BodyAnalysisRuntime:
-    task = db.scalar(
-        select(AITaskConfig).where(AITaskConfig.task_type == AITaskType.BODY_PHOTO_ANALYSIS)
-    )
-    if task is None or not task.enabled:
+    ai_client = getattr(request.app.state, "ai_http_client", None)
+    agent_client = getattr(request.app.state, "agent_http_client", None)
+    if not isinstance(ai_client, httpx.AsyncClient) or not isinstance(
+        agent_client, httpx.AsyncClient
+    ):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
         )
     try:
-        backend = AIExecutionBackend(task.execution_backend)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
-        ) from None
-    try:
-        client_name = (
-            "ai_http_client" if backend is AIExecutionBackend.API else "agent_http_client"
+        return build_body_analysis_runtime(
+            db,
+            settings,
+            ai_http_client=ai_client,
+            agent_http_client=agent_client,
         )
-        client = getattr(request.app.state, client_name, None)
-        if not isinstance(client, httpx.AsyncClient):
-            raise ValueError("AI HTTP client is unavailable")
-        key = (
-            decrypted_key(db, provider=task.provider, settings=settings)
-            if backend is AIExecutionBackend.API
-            else None
-        )
-        configured = build_task_provider(
-            task,
-            settings=settings,
-            http_client=client,
-            agent_http_client=(
-                client if backend is AIExecutionBackend.AGENT_SERVICE else None
-            ),
-            api_key=key,
-        )
-        if configured.supports_cost_accounting:
-            _validate_budget_preflight(db, task)
     except (AIConfigError, ValueError) as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "BODY_ANALYSIS_PROVIDER_UNAVAILABLE"},
         ) from error
+
+
+def build_body_analysis_runtime(
+    db: Session,
+    settings: Settings,
+    *,
+    ai_http_client: httpx.AsyncClient,
+    agent_http_client: httpx.AsyncClient,
+) -> BodyAnalysisRuntime:
+    task = db.scalar(
+        select(AITaskConfig).where(AITaskConfig.task_type == AITaskType.BODY_PHOTO_ANALYSIS)
+    )
+    if task is None or not task.enabled:
+        raise ValueError("body analysis task is not enabled")
+    try:
+        backend = AIExecutionBackend(task.execution_backend)
+    except ValueError as error:
+        raise ValueError("body analysis execution backend is invalid") from error
+    client = ai_http_client if backend is AIExecutionBackend.API else agent_http_client
+    key = (
+        decrypted_key(db, provider=task.provider, settings=settings)
+        if backend is AIExecutionBackend.API
+        else None
+    )
+    configured = build_task_provider(
+        task,
+        settings=settings,
+        http_client=client,
+        agent_http_client=(
+            agent_http_client if backend is AIExecutionBackend.AGENT_SERVICE else None
+        ),
+        api_key=key,
+    )
+    if configured.supports_cost_accounting:
+        _validate_budget_preflight(db, task)
     return BodyAnalysisRuntime(
         provider=configured.provider,
         config=AnalysisExecutionConfig(
@@ -100,7 +115,7 @@ def get_body_analysis_runtime(
 BodyAnalysisRuntimeDependency = Annotated[BodyAnalysisRuntime, Depends(get_body_analysis_runtime)]
 
 
-def _validate_budget_preflight(db: DatabaseSession, task: AITaskConfig) -> None:
+def _validate_budget_preflight(db: Session, task: AITaskConfig) -> None:
     if task.max_cost_per_request is None or task.max_cost_per_request == 0:
         return
     model_ids = (task.primary_model_id, *task.fallback_model_ids)
