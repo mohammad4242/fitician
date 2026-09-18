@@ -334,6 +334,22 @@ def _preference_penalty(
             ),
             ZERO,
         )
+    for day in result.days:
+        for meal in day.meals:
+            for food in meal.foods:
+                if food.food_id in snapshot.liked_food_ids:
+                    penalty -= Decimal("0.5")
+                if food.food_id in snapshot.disliked_food_ids:
+                    penalty += Decimal("2")
+                if food.recipe_snapshot is not None:
+                    selected = food.recipe_snapshot.get("selected_ingredient_grams", {})
+                    if isinstance(selected, dict):
+                        penalty -= Decimal("0.5") * len(
+                            set(selected).intersection(snapshot.liked_food_ids)
+                        )
+                        penalty += Decimal("2") * len(
+                            set(selected).intersection(snapshot.disliked_food_ids)
+                        )
     return penalty
 
 

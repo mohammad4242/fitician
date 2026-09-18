@@ -147,6 +147,129 @@ def test_preference_exclusion_reports_infeasibility_when_it_removes_all_meals() 
     assert result.reason_codes == ("PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN",)
 
 
+def test_disliked_food_is_removed_before_template_ranking() -> None:
+    from app.nutrition.planner_engine import (
+        PlannerMealIngredient,
+        PlannerMealTemplate,
+        _eligible_templates,
+    )
+
+    templates = tuple(
+        PlannerMealTemplate(
+            meal_id=meal_id,
+            name_fa=meal_id,
+            name_en=meal_id,
+            category="main",
+            items=(
+                PlannerMealIngredient(
+                    food_id=food_id,
+                    reference_grams=Decimal("100"),
+                    min_grams=Decimal("50"),
+                    max_grams=Decimal("200"),
+                    is_required=True,
+                    functional_role="main_protein",
+                ),
+            ),
+        )
+        for meal_id, food_id in (("disliked-meal", "disliked-food"), ("safe-meal", "safe-food"))
+    )
+
+    eligible = _eligible_templates(
+        _input(disliked_food_ids=("disliked-food",)),
+        (
+            _food("disliked-food", ("main_protein",), kcal="200"),
+            _food("safe-food", ("main_protein",), kcal="200"),
+        ),
+        templates,
+    )
+
+    assert [candidate.template.meal_id for candidate in eligible] == ["safe-meal"]
+
+
+def test_liked_meal_has_stronger_rank_than_an_equivalent_meal() -> None:
+    from app.nutrition.planner_engine import (
+        PlannerMealIngredient,
+        PlannerMealTemplate,
+        _eligible_templates,
+        _rank_templates,
+    )
+    from app.nutrition.planner_policy import DEFAULT_POLICY
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    templates = tuple(
+        PlannerMealTemplate(
+            meal_id=meal_id,
+            name_fa=meal_id,
+            name_en=meal_id,
+            category="main",
+            items=(
+                PlannerMealIngredient(
+                    food_id="food",
+                    reference_grams=Decimal("100"),
+                    min_grams=Decimal("50"),
+                    max_grams=Decimal("200"),
+                    is_required=True,
+                    functional_role="main_protein",
+                ),
+            ),
+        )
+        for meal_id in ("ordinary-meal", "liked-meal")
+    )
+    eligible = _eligible_templates(
+        _input(preference_snapshot=PreferenceSnapshot(liked_meal_ids=("liked-meal",))),
+        (_food("food", ("main_protein",), kcal="200"),),
+        templates,
+    )
+
+    ranked = _rank_templates(
+        _input(preference_snapshot=PreferenceSnapshot(liked_meal_ids=("liked-meal",))),
+        eligible,
+        DEFAULT_POLICY,
+    )
+
+    assert ranked[0].template.meal_id == "liked-meal"
+
+
+def test_meal_allergy_blocks_only_the_exact_meal_not_its_ingredients() -> None:
+    from app.nutrition.planner_engine import (
+        PlannerMealIngredient,
+        PlannerMealTemplate,
+        _eligible_templates,
+    )
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    food = _food("shared-food", ("main_protein",), kcal="200")
+    templates = tuple(
+        PlannerMealTemplate(
+            meal_id=meal_id,
+            name_fa=meal_id,
+            name_en=meal_id,
+            category="main",
+            items=(
+                PlannerMealIngredient(
+                    food_id=food.food_id,
+                    reference_grams=Decimal("100"),
+                    min_grams=Decimal("50"),
+                    max_grams=Decimal("200"),
+                    is_required=True,
+                    functional_role="main_protein",
+                ),
+            ),
+        )
+        for meal_id in ("allergic-meal", "same-food-safe-meal")
+    )
+
+    eligible = _eligible_templates(
+        _input(
+            preference_snapshot=PreferenceSnapshot(hard_excluded_meal_ids=("allergic-meal",))
+        ),
+        (food,),
+        templates,
+    )
+
+    assert [candidate.template.meal_id for candidate in eligible] == ["same-food-safe-meal"]
+
+
 def test_prepared_recipe_optimizer_changes_raw_inputs_but_returns_cooked_dish() -> None:
     from app.nutrition.planner_engine import PlannerPreparedRecipe, optimize_prepared_recipe
     from app.nutrition.prepared_recipe import (

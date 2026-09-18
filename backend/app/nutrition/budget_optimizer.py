@@ -761,17 +761,31 @@ def _template_reference_cost(candidate: EligibleMealTemplate) -> Decimal:
 def _template_is_safe(candidate: EligibleMealTemplate, inputs: PlannerInput) -> bool:
     if candidate.template.verification_status != "verified":
         return False
+    disliked_meal_ids = _preference_ids(inputs, "disliked_meal_ids")
+    hard_excluded_meal_ids = _preference_ids(inputs, "hard_excluded_meal_ids")
+    feedback_excluded_meal_ids = _preference_ids(inputs, "feedback_excluded_meal_ids")
+    if inputs.preference_snapshot is not None:
+        feedback_excluded_meal_ids.update(inputs.preference_snapshot.excluded_meal_ids)
+    if candidate.template.meal_id in (
+        disliked_meal_ids | hard_excluded_meal_ids | feedback_excluded_meal_ids
+    ):
+        return False
     if any(not _food_is_safe(food, inputs) for _item, food in candidate.items):
         return False
     return all(_food_is_safe(food, inputs) for _food_id, food in candidate.prepared_recipe_foods)
 
 
 def _food_is_safe(food: PlannerFood, inputs: PlannerInput) -> bool:
+    if food.food_id in _preference_ids(inputs, "disliked_food_ids"):
+        return False
+    if food.food_id in _preference_ids(inputs, "hard_excluded_food_ids"):
+        return False
     if getattr(inputs, "food_constraints", ()):
         from app.nutrition.food_constraints import evaluate_food_constraints
 
         decision = evaluate_food_constraints(
             constraints=inputs.food_constraints,
+            food_id=food.food_id,
             slug=food.slug,
             name_fa=food.name_fa,
             name_en=food.name_en,
@@ -824,13 +838,27 @@ def _repetition_penalty(days: tuple[PlannedDay, ...], inputs: PlannerInput) -> i
 
 def _preference_penalty(days: tuple[PlannedDay, ...], inputs: PlannerInput) -> int:
     penalty = 0
-    liked = set(inputs.liked_food_ids)
-    disliked = set(inputs.disliked_food_ids)
+    liked = _preference_ids(inputs, "liked_food_ids")
+    disliked = _preference_ids(inputs, "disliked_food_ids")
+    liked_meals = _preference_ids(inputs, "liked_meal_ids")
+    prefer_more_often_meals = _preference_ids(inputs, "prefer_more_often_meal_ids")
     for day in days:
         for meal in day.meals:
+            if meal.template_id in liked_meals:
+                penalty -= 3
+            if meal.template_id in prefer_more_often_meals:
+                penalty -= 2
             for food in meal.foods:
                 if food.food_id in liked:
                     penalty -= 1
                 if food.food_id in disliked:
                     penalty += 1
     return penalty
+
+
+def _preference_ids(inputs: PlannerInput, field_name: str) -> set[str]:
+    values = set(getattr(inputs, field_name))
+    snapshot = inputs.preference_snapshot
+    if snapshot is not None:
+        values.update(getattr(snapshot, field_name))
+    return values

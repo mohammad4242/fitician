@@ -35,6 +35,12 @@ class SubstitutionContext:
     maximum_repetition: int = 7
     liked_food_ids: tuple[str, ...] = ()
     disliked_food_ids: tuple[str, ...] = ()
+    liked_meal_ids: tuple[str, ...] = ()
+    disliked_meal_ids: tuple[str, ...] = ()
+    prefer_more_often_meal_ids: tuple[str, ...] = ()
+    hard_excluded_food_ids: tuple[str, ...] = ()
+    hard_excluded_meal_ids: tuple[str, ...] = ()
+    feedback_excluded_meal_ids: tuple[str, ...] = ()
     day_index: int | None = None
     role: str | None = None
     slot_index: int | None = None
@@ -90,6 +96,7 @@ def rank_template_substitutes(
             usage,
             context.maximum_repetition,
             context.food_constraints,
+            context=context,
         )
     ]
     if not candidates:
@@ -102,6 +109,7 @@ def rank_template_substitutes(
                 usage,
                 context.maximum_repetition,
                 context.food_constraints,
+                context=context,
                 ignore_repetition=True,
             )
         ]
@@ -193,6 +201,7 @@ def _is_eligible_for_slot(
     constraints: tuple[NormalizedFoodConstraint, ...] = (),
     *,
     ignore_repetition: bool = False,
+    context: SubstitutionContext | None = None,
 ) -> bool:
     if getattr(candidate.template, "verification_status", "verified") != "verified":
         return False
@@ -200,10 +209,24 @@ def _is_eligible_for_slot(
         return False
     if not ignore_repetition and usage.get(candidate.template.meal_id, 0) >= maximum_repetition:
         return False
+    if context is not None:
+        excluded_meals = (
+            set(context.disliked_meal_ids)
+            | set(context.hard_excluded_meal_ids)
+            | set(context.feedback_excluded_meal_ids)
+        )
+        if candidate.template.meal_id in excluded_meals:
+            return False
+        excluded_foods = set(context.disliked_food_ids) | set(context.hard_excluded_food_ids)
+        if any(item.food_id in excluded_foods for item, _food in candidate.items):
+            return False
+        if any(food_id in excluded_foods for food_id, _food in candidate.prepared_recipe_foods):
+            return False
     if constraints:
         for _item, food in candidate.items:
             decision = evaluate_food_constraints(
                 constraints=constraints,
+                food_id=food.food_id,
                 slug=food.slug,
                 name_fa=food.name_fa,
                 name_en=food.name_en,
@@ -215,6 +238,7 @@ def _is_eligible_for_slot(
         for _food_id, recipe_food in candidate.prepared_recipe_foods:
             decision = evaluate_food_constraints(
                 constraints=constraints,
+                food_id=recipe_food.food_id,
                 slug=recipe_food.slug,
                 name_fa=recipe_food.name_fa,
                 name_en=recipe_food.name_en,
@@ -262,6 +286,12 @@ def _candidate_metrics(
     nutrients: dict[str, Decimal] = {}
     cost = ZERO
     preference_penalty = 0
+    if candidate.template.meal_id in context.liked_meal_ids:
+        preference_penalty -= 3
+    if candidate.template.meal_id in context.prefer_more_often_meal_ids:
+        preference_penalty -= 2
+    if candidate.template.meal_id in context.disliked_meal_ids:
+        preference_penalty += 3
     for item, food in candidate.items:
         grams = item.reference_grams
         for code, value in food.nutrients_per_100g.items():
@@ -274,6 +304,7 @@ def _candidate_metrics(
         if context.food_constraints:
             decision = evaluate_food_constraints(
                 constraints=context.food_constraints,
+                food_id=food.food_id,
                 slug=food.slug,
                 name_fa=food.name_fa,
                 name_en=food.name_en,
@@ -299,6 +330,7 @@ def _candidate_metrics(
             if context.food_constraints:
                 decision = evaluate_food_constraints(
                     constraints=context.food_constraints,
+                    food_id=recipe_food.food_id,
                     slug=recipe_food.slug,
                     name_fa=recipe_food.name_fa,
                     name_en=recipe_food.name_en,

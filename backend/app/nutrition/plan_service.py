@@ -463,7 +463,14 @@ def generate_weekly_plan(
         select(NutritionFoodItem).where(NutritionFoodItem.user_id == user_id)
     ).all()
     raw_constraints = [
-        {"kind": item.kind.value, "term": item.name, "details": item.details} for item in food_items
+        {
+            "kind": item.kind.value,
+            "term": item.name,
+            "details": item.details,
+            "catalogue_food_id": item.catalogue_food_id,
+            "catalogue_meal_id": item.catalogue_meal_id,
+        }
+        for item in food_items
     ]
     normalized_constraints = normalize_food_constraints(raw_constraints)
     unresolved_hard = tuple(
@@ -490,9 +497,13 @@ def generate_weekly_plan(
     preference_snapshot = load_preference_snapshot(db, user_id, food_items)
     exclusions = tuple(
         item.normalized_name for item in food_items if item.kind in _HARD_EXCLUSION_KINDS
+        and item.catalogue_food_id is None
+        and item.catalogue_meal_id is None
     )
     liked_food_ids = preference_snapshot.liked_food_ids
     disliked_food_ids = preference_snapshot.disliked_food_ids
+    liked_meal_ids = preference_snapshot.liked_meal_ids
+    disliked_meal_ids = preference_snapshot.disliked_meal_ids
     foods, price_snapshot, food_manifest = _planner_foods(db)
     meal_templates, meal_manifest = _planner_meal_templates(db)
     programs = list_programs(db)
@@ -569,6 +580,9 @@ def generate_weekly_plan(
         "disliked_meal_ids": list(preference_snapshot.disliked_meal_ids),
         "prefer_more_often_meal_ids": list(preference_snapshot.prefer_more_often_meal_ids),
         "excluded_meal_ids": list(preference_snapshot.excluded_meal_ids),
+        "feedback_excluded_meal_ids": list(preference_snapshot.feedback_excluded_meal_ids),
+        "hard_excluded_food_ids": list(preference_snapshot.hard_excluded_food_ids),
+        "hard_excluded_meal_ids": list(preference_snapshot.hard_excluded_meal_ids),
         "historical_meal_adherence": [
             [meal_id, str(score)]
             for meal_id, score in preference_snapshot.historical_meal_adherence
@@ -606,6 +620,12 @@ def generate_weekly_plan(
         excluded_terms=exclusions,
         liked_food_ids=liked_food_ids,
         disliked_food_ids=disliked_food_ids,
+        liked_meal_ids=liked_meal_ids,
+        disliked_meal_ids=disliked_meal_ids,
+        prefer_more_often_meal_ids=preference_snapshot.prefer_more_often_meal_ids,
+        hard_excluded_food_ids=preference_snapshot.hard_excluded_food_ids,
+        hard_excluded_meal_ids=preference_snapshot.hard_excluded_meal_ids,
+        feedback_excluded_meal_ids=preference_snapshot.feedback_excluded_meal_ids,
         dietary_pattern=profile.dietary_pattern.value,
         maximum_meal_repetition_per_week=profile.maximum_meal_repetition_per_week,
         preference_snapshot=preference_snapshot,

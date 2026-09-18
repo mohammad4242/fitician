@@ -1,3 +1,4 @@
+from dataclasses import replace
 from decimal import Decimal
 
 from app.nutrition.budget_optimizer import BudgetRepairAction, optimize_weekly_budget
@@ -218,6 +219,34 @@ def test_optimizer_does_not_use_incompatible_or_invalid_price_templates() -> Non
             _eligible(invalid_price, invalid_price_food),
         ),
         policy=PlannerPolicy(maximum_budget_repair_iterations=2),
+    )
+
+    assert result.failure_code == "STRICT_BUDGET_NO_FEASIBLE_REPAIR"
+    assert all(
+        meal.template_id == expensive.meal_id
+        for day in result.days
+        for meal in day.meals
+        if meal.foods
+    )
+
+
+def test_budget_repair_does_not_reintroduce_disliked_food() -> None:
+    expensive_food = _food("expensive-food", price="100")
+    disliked_cheap_food = _food("disliked-cheap-food", price="1")
+    expensive = _template("expensive-template", expensive_food.food_id)
+    disliked_cheap = _template("disliked-cheap-template", disliked_cheap_food.food_id)
+
+    result = optimize_weekly_budget(
+        days=_days(expensive, expensive_food),
+        inputs=replace(
+            _input(budget=10_000),
+            disliked_food_ids=(disliked_cheap_food.food_id,),
+        ),
+        eligible_templates=(
+            _eligible(expensive, expensive_food),
+            _eligible(disliked_cheap, disliked_cheap_food),
+        ),
+        policy=PlannerPolicy(maximum_budget_repair_iterations=10),
     )
 
     assert result.failure_code == "STRICT_BUDGET_NO_FEASIBLE_REPAIR"

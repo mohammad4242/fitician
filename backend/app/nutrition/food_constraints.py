@@ -22,6 +22,7 @@ class NormalizedFoodConstraint:
     severity: ConstraintSeverity
     source: str
     raw_label: str | None = None
+    canonical_food_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,6 +196,7 @@ def normalize_food_constraints(
     disliked_foods: tuple[str, ...] = (),
 ) -> tuple[NormalizedFoodConstraint, ...]:
     """Normalize user-declared dietary restrictions and preferences."""
+    results: list[NormalizedFoodConstraint] = []
     if raw_constraints is not None:
         allergy_list = list(allergies)
         intolerance_list = list(intolerances)
@@ -206,15 +208,42 @@ def normalize_food_constraints(
             kind = getattr(item, "kind", None) or (
                 item.get("kind") if isinstance(item, dict) else None
             )
+            kind_str = str(kind.value if hasattr(kind, "value") else kind).lower()
+            if kind_str in {"favourite", "disliked", "available_at_home"}:
+                continue
             term = (
                 getattr(item, "term", None)
                 or getattr(item, "name", None)
                 or (item.get("term") if isinstance(item, dict) else None)
                 or (item.get("name") if isinstance(item, dict) else None)
             )
+            canonical_food_id = getattr(item, "catalogue_food_id", None) or (
+                item.get("catalogue_food_id") if isinstance(item, dict) else None
+            )
+            canonical_meal_id = getattr(item, "catalogue_meal_id", None) or (
+                item.get("catalogue_meal_id") if isinstance(item, dict) else None
+            )
+            if canonical_food_id is not None and kind_str in {
+                "allergy",
+                "intolerance",
+                "never_suggest",
+                "refused",
+                "religious_cultural_exclusion",
+            }:
+                results.append(
+                    NormalizedFoodConstraint(
+                        code="CANONICAL_FOOD_ID",
+                        canonical_food_id=str(canonical_food_id),
+                        severity=ConstraintSeverity.HARD,
+                        source=kind_str,
+                        raw_label=str(term) if term else None,
+                    )
+                )
+                continue
+            if canonical_meal_id is not None:
+                continue
             if not term:
                 continue
-            kind_str = str(kind.value if hasattr(kind, "value") else kind).lower()
             if kind_str == "allergy":
                 allergy_list.append(str(term))
             elif kind_str == "intolerance":
@@ -235,8 +264,6 @@ def normalize_food_constraints(
         never_suggest_foods = tuple(never_list)
         refused_foods = tuple(refused_list)
         disliked_foods = tuple(dislike_list)
-
-    results: list[NormalizedFoodConstraint] = []
 
     # 1. Allergies (HARD)
     for raw in allergies:
@@ -366,6 +393,7 @@ def evaluate_food_constraints(
     slug: str | None = None,
     name_fa: str | None = None,
     name_en: str | None = None,
+    food_id: str | None = None,
 ) -> FoodConstraintDecision:
     """Evaluate whether a food item satisfies all constraints and calculate penalties."""
     tags = allergen_tags if allergen_tags is not None else food_allergen_tags
@@ -376,6 +404,14 @@ def evaluate_food_constraints(
     normalized_tags = {tag.strip().casefold() for tag in tags if tag.strip()}
 
     for constraint in constraints:
+        if constraint.canonical_food_id is not None:
+            matched = food_id is not None and str(food_id) == constraint.canonical_food_id
+            if matched:
+                if constraint.severity == ConstraintSeverity.HARD:
+                    hard_reasons.append("EXCLUDED_BY_CANONICAL_FOOD_ID")
+                else:
+                    soft_penalties.append("PENALIZED_FOR_CANONICAL_FOOD_ID")
+            continue
         if constraint.code == "UNRESOLVED_HARD_FOOD_CONSTRAINT":
             hard_reasons.append("UNRESOLVED_HARD_FOOD_CONSTRAINT")
             continue

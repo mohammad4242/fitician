@@ -33,3 +33,25 @@ def test_preference_snapshot_is_deterministic_and_adherence_neutral_without_data
     assert first == second
     assert first.data_sufficient is False
     assert first.historical_meal_adherence == ()
+
+
+def test_snapshot_combines_profile_meal_preferences_and_feedback_without_losing_categories(
+) -> None:
+    snapshot = build_preference_snapshot(
+        liked_meal_ids=(UUID(int=20),),
+        disliked_meal_ids=(UUID(int=21),),
+        feedback=(
+            PreferenceFeedback(UUID(int=20), "prefer_more_often"),
+            PreferenceFeedback(UUID(int=22), "do_not_suggest_again"),
+        ),
+        hard_excluded_food_ids=(UUID(int=30),),
+        hard_excluded_meal_ids=(UUID(int=31),),
+    )
+
+    assert snapshot.liked_meal_ids == (str(UUID(int=20)),)
+    assert snapshot.disliked_meal_ids == (str(UUID(int=21)),)
+    assert snapshot.prefer_more_often_meal_ids == (str(UUID(int=20)),)
+    assert snapshot.feedback_excluded_meal_ids == (str(UUID(int=22)),)
+    assert snapshot.excluded_meal_ids == (str(UUID(int=22)),)
+    assert snapshot.hard_excluded_food_ids == (str(UUID(int=30)),)
+    assert snapshot.hard_excluded_meal_ids == (str(UUID(int=31)),)

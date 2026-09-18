@@ -1,5 +1,6 @@
 from app.nutrition.food_constraints import (
     ConstraintSeverity,
+    NormalizedFoodConstraint,
     evaluate_food_constraints,
     normalize_food_constraints,
 )
@@ -122,3 +123,30 @@ def test_gluten_allergy_excludes_wheat_tagged_food() -> None:
     )
     assert not decision.allowed
     assert "EXCLUDED_BY_GLUTEN" in decision.hard_reason_codes
+
+
+def test_canonical_food_id_is_authoritative_over_display_text() -> None:
+    constraint = NormalizedFoodConstraint(
+        code="CANONICAL_FOOD_ID",
+        canonical_food_id="food-peanut",
+        severity=ConstraintSeverity.HARD,
+        source="allergy",
+        raw_label="بادام زمینی",
+    )
+
+    matching = evaluate_food_constraints(
+        constraints=(constraint,),
+        food_id="food-peanut",
+        food_slug="peanut-free-label",
+        food_name_fa="نام متفاوت",
+    )
+    non_matching = evaluate_food_constraints(
+        constraints=(constraint,),
+        food_id="other-food",
+        food_slug="food-peanut",
+        food_name_fa="بادام زمینی",
+    )
+
+    assert matching.allowed is False
+    assert "EXCLUDED_BY_CANONICAL_FOOD_ID" in matching.hard_reason_codes
+    assert non_matching.allowed is True

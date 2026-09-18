@@ -132,6 +132,12 @@ class PlannerInput:
     excluded_terms: tuple[str, ...] = ()
     liked_food_ids: tuple[str, ...] = ()
     disliked_food_ids: tuple[str, ...] = ()
+    liked_meal_ids: tuple[str, ...] = ()
+    disliked_meal_ids: tuple[str, ...] = ()
+    prefer_more_often_meal_ids: tuple[str, ...] = ()
+    hard_excluded_food_ids: tuple[str, ...] = ()
+    hard_excluded_meal_ids: tuple[str, ...] = ()
+    feedback_excluded_meal_ids: tuple[str, ...] = ()
     dietary_pattern: str = "omnivore"
     maximum_meal_repetition_per_week: int = 7
     template_schedule: tuple[tuple[tuple[str, str | None, str], ...], ...] | None = None
@@ -281,13 +287,14 @@ def plan_week(
         policy,
     )
     if not main_templates or (inputs.snacks_per_day and not snack_templates):
-        if inputs.preference_snapshot is not None and inputs.preference_snapshot.excluded_meal_ids:
-            excluded = set(inputs.preference_snapshot.excluded_meal_ids)
-            if any(template.meal_id in excluded for template in meal_templates):
-                return _failure(
-                    GenerationOutcome.INFEASIBLE,
-                    "PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN",
-                )
+        if (
+            _hard_excluded_food_ids(inputs)
+            or _hard_excluded_meal_ids(inputs)
+            or _disliked_food_ids(inputs)
+            or _disliked_meal_ids(inputs)
+            or _feedback_excluded_meal_ids(inputs)
+        ):
+            return _failure(GenerationOutcome.INFEASIBLE, _preference_avoidance_reason(inputs))
         return _failure(GenerationOutcome.LIVE_PRICE_UNAVAILABLE, "INSUFFICIENT_PRICE_COVERAGE")
 
     weekly_budget_cap = _weekly_budget_cap(inputs, policy)
@@ -315,22 +322,24 @@ def plan_week(
                 all_foods_by_id={food.food_id: food for food in foods},
             )
     except NoCompatibleTemplateSubstituteError as error:
-        if inputs.preference_snapshot is not None and inputs.preference_snapshot.excluded_meal_ids:
-            if error.requested_template_id in set(inputs.preference_snapshot.excluded_meal_ids):
-                return _failure(
-                    GenerationOutcome.INFEASIBLE,
-                    "PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN",
-                )
+        if (
+            error.requested_template_id in _hard_excluded_meal_ids(inputs)
+            or error.requested_template_id in _disliked_meal_ids(inputs)
+            or error.requested_template_id in _feedback_excluded_meal_ids(inputs)
+        ):
+            return _failure(GenerationOutcome.INFEASIBLE, _preference_avoidance_reason(inputs))
         return PlannerResult(
             outcome=GenerationOutcome.INFEASIBLE,
             reason_codes=("NO_COMPATIBLE_TEMPLATE_SUBSTITUTE",),
             substitution_diagnostics=error.diagnostics,
         )
     except ScheduledTemplateUnavailableError as error:
-        if inputs.preference_snapshot is not None and error.meal_id in set(
-            inputs.preference_snapshot.excluded_meal_ids
+        if (
+            error.meal_id in _hard_excluded_meal_ids(inputs)
+            or error.meal_id in _disliked_meal_ids(inputs)
+            or error.meal_id in _feedback_excluded_meal_ids(inputs)
         ):
-            return _failure(GenerationOutcome.INFEASIBLE, "PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN")
+            return _failure(GenerationOutcome.INFEASIBLE, _preference_avoidance_reason(inputs))
         return _failure(GenerationOutcome.INFEASIBLE, "SCHEDULED_TEMPLATE_UNAVAILABLE")
 
     foods_by_id = {food.food_id: food for food in eligible}
@@ -549,6 +558,23 @@ def _evaluate_built_days(
     else:
         budget_status = "unconstrained"
 
+    preference_failure = _final_preference_failure(days, inputs)
+    if preference_failure is not None:
+        return PlannerResult(
+            outcome=GenerationOutcome.INFEASIBLE,
+            reason_codes=(preference_failure,),
+            days=days,
+            weekly_cost_irr=cost,
+            budget_status=budget_status,
+            nutrient_comparisons=comparisons,
+            repair_actions=repairs,
+            substitution_actions=substitution_actions,
+            budget_repair_actions=budget_result.repair_actions if budget_result is not None else (),
+            budget_diagnostics=budget_result.diagnostics if budget_result is not None else None,
+            portion_adjustment_actions=tuple(portion_actions),
+            minimum_feasible_weekly_cost_irr=min_feasible_cost,
+        )
+
     warning_codes = _warning_codes(
         inputs,
         daily_average,
@@ -571,6 +597,34 @@ def _evaluate_built_days(
         portion_adjustment_actions=tuple(portion_actions),
         minimum_feasible_weekly_cost_irr=min_feasible_cost,
     )
+
+
+def _final_preference_failure(
+    days: tuple[PlannedDay, ...],
+    inputs: PlannerInput,
+) -> str | None:
+    hard_food_ids = _hard_excluded_food_ids(inputs)
+    disliked_food_ids = _disliked_food_ids(inputs)
+    hard_meal_ids = _hard_excluded_meal_ids(inputs)
+    disliked_meal_ids = _disliked_meal_ids(inputs)
+    feedback_meal_ids = _feedback_excluded_meal_ids(inputs)
+    for day in days:
+        for meal in day.meals:
+            if meal.template_id in hard_meal_ids or meal.template_id in disliked_meal_ids:
+                return "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+            if meal.template_id in feedback_meal_ids:
+                return "PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN"
+            for food in meal.foods:
+                if food.food_id in hard_food_ids or food.food_id in disliked_food_ids:
+                    return "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+                if food.recipe_snapshot is None:
+                    continue
+                selected = food.recipe_snapshot.get("selected_ingredient_grams", {})
+                if not isinstance(selected, dict):
+                    continue
+                if set(selected).intersection(hard_food_ids | disliked_food_ids):
+                    return "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+    return None
 
 
 def _failure_variant_key(variant: _EvaluatedVariant) -> tuple[object, ...]:
@@ -633,12 +687,59 @@ def _excluded(food: PlannerFood, excluded_terms: tuple[str, ...]) -> bool:
     return any(term.strip().casefold() in haystack for term in excluded_terms if term.strip())
 
 
+def _preference_ids(inputs: PlannerInput, field_name: str) -> frozenset[str]:
+    values = set(getattr(inputs, field_name))
+    snapshot = inputs.preference_snapshot
+    if snapshot is not None:
+        values.update(getattr(snapshot, field_name))
+    return frozenset(values)
+
+
+def _hard_excluded_food_ids(inputs: PlannerInput) -> frozenset[str]:
+    return _preference_ids(inputs, "hard_excluded_food_ids")
+
+
+def _disliked_food_ids(inputs: PlannerInput) -> frozenset[str]:
+    return _preference_ids(inputs, "disliked_food_ids")
+
+
+def _hard_excluded_meal_ids(inputs: PlannerInput) -> frozenset[str]:
+    return _preference_ids(inputs, "hard_excluded_meal_ids")
+
+
+def _disliked_meal_ids(inputs: PlannerInput) -> frozenset[str]:
+    return _preference_ids(inputs, "disliked_meal_ids")
+
+
+def _feedback_excluded_meal_ids(inputs: PlannerInput) -> frozenset[str]:
+    values = set(inputs.feedback_excluded_meal_ids)
+    snapshot = inputs.preference_snapshot
+    if snapshot is not None:
+        values.update(snapshot.feedback_excluded_meal_ids)
+        values.update(snapshot.excluded_meal_ids)
+    return frozenset(values)
+
+
+def _preference_avoidance_reason(inputs: PlannerInput) -> str:
+    if _hard_excluded_food_ids(inputs) or _hard_excluded_meal_ids(inputs):
+        return "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+    if _disliked_food_ids(inputs) or _disliked_meal_ids(inputs):
+        return "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+    return "PREFERENCE_EXCLUSION_NO_FEASIBLE_PLAN"
+
+
 def _is_food_blocked(food: PlannerFood, inputs: PlannerInput) -> bool:
     if _excluded(food, inputs.excluded_terms):
+        return True
+    if (
+        food.food_id in _hard_excluded_food_ids(inputs)
+        or food.food_id in _disliked_food_ids(inputs)
+    ):
         return True
     if inputs.food_constraints:
         decision = evaluate_food_constraints(
             constraints=inputs.food_constraints,
+            food_id=food.food_id,
             slug=food.slug,
             name_fa=food.name_fa,
             name_en=food.name_en,
@@ -665,12 +766,15 @@ def _rank_candidates(
             ),
             ZERO,
         )
-        preference = (Decimal("1") if food.food_id in inputs.liked_food_ids else ZERO) - (
-            Decimal("1") if food.food_id in inputs.disliked_food_ids else ZERO
+        preference = (
+            Decimal("1") if food.food_id in _preference_ids(inputs, "liked_food_ids") else ZERO
+        ) - (
+            Decimal("1") if food.food_id in _disliked_food_ids(inputs) else ZERO
         )
         if inputs.food_constraints:
             decision = evaluate_food_constraints(
                 constraints=inputs.food_constraints,
+                food_id=food.food_id,
                 slug=food.slug,
                 name_fa=food.name_fa,
                 name_en=food.name_en,
@@ -697,17 +801,23 @@ def _eligible_templates(
 ) -> tuple[EligibleMealTemplate, ...]:
     foods_by_id = {food.food_id: food for food in foods}
     eligible: list[EligibleMealTemplate] = []
+    blocked_food_ids = _hard_excluded_food_ids(inputs) | _disliked_food_ids(inputs)
+    blocked_meal_ids = (
+        _hard_excluded_meal_ids(inputs)
+        | _disliked_meal_ids(inputs)
+        | _feedback_excluded_meal_ids(inputs)
+    )
     for template in sorted(templates, key=lambda item: (item.category, item.meal_id)):
         if template.verification_status != "verified":
             continue
-        if (
-            inputs.preference_snapshot is not None
-            and template.meal_id in inputs.preference_snapshot.excluded_meal_ids
-        ):
+        if template.meal_id in blocked_meal_ids:
             continue
         items: list[tuple[PlannerMealIngredient, PlannerFood]] = []
         missing_required = False
         for item in template.items:
+            if item.food_id in blocked_food_ids:
+                missing_required = True
+                break
             if not _valid_portion_bounds(
                 item.min_grams,
                 item.reference_grams,
@@ -726,6 +836,9 @@ def _eligible_templates(
         recipe_foods: list[tuple[str, PlannerFood]] = []
         if template.prepared_recipe is not None:
             for ingredient in template.prepared_recipe.definition.ingredients:
+                if str(ingredient.food_id) in blocked_food_ids:
+                    missing_required = True
+                    break
                 food = foods_by_id.get(str(ingredient.food_id))
                 if food is None:
                     missing_required = True
@@ -780,13 +893,21 @@ def _rank_templates(
         nutrients: dict[str, Decimal] = {}
         cost = ZERO
         preference = ZERO
+        liked_food_ids = _preference_ids(inputs, "liked_food_ids")
+        disliked_food_ids = _disliked_food_ids(inputs)
+        liked_meal_ids = _preference_ids(inputs, "liked_meal_ids")
+        prefer_more_often_meal_ids = _preference_ids(inputs, "prefer_more_often_meal_ids")
         for item, food in candidate.items:
             for code, value in food.nutrients_per_100g.items():
                 nutrients[code] = nutrients.get(code, ZERO) + value * item.reference_grams / HUNDRED
             cost += food.price_irr_per_gram * item.reference_grams
-            preference += (Decimal("1") if food.food_id in inputs.liked_food_ids else ZERO) - (
-                Decimal("1") if food.food_id in inputs.disliked_food_ids else ZERO
+            preference += (Decimal("1") if food.food_id in liked_food_ids else ZERO) - (
+                Decimal("1") if food.food_id in disliked_food_ids else ZERO
             )
+        if candidate.template.meal_id in liked_meal_ids:
+            preference += Decimal("3")
+        if candidate.template.meal_id in prefer_more_often_meal_ids:
+            preference += Decimal("2")
         if candidate.template.prepared_recipe is not None:
             calculation = calculate_prepared_recipe(
                 candidate.template.prepared_recipe.definition,
@@ -803,6 +924,11 @@ def _rank_templates(
             for code, value in calculation.total_nutrients:
                 nutrients[code] = nutrients.get(code, ZERO) + value
             cost += calculation.total_cost_irr
+            for food_id, _food in candidate.prepared_recipe_foods:
+                if food_id in liked_food_ids:
+                    preference += Decimal("1")
+                if food_id in disliked_food_ids:
+                    preference -= Decimal("1")
         micronutrient_adequacy = sum(
             (
                 min(nutrients.get(code, ZERO) / target, Decimal("1"))
@@ -886,9 +1012,21 @@ def _determine_substitution_reason(
     requested: PlannerMealTemplate | None,
     all_foods_by_id: dict[str, PlannerFood],
     constraints: tuple[NormalizedFoodConstraint, ...],
+    preference_snapshot: PreferenceSnapshot | None = None,
+    liked_food_ids: frozenset[str] = frozenset(),
+    disliked_food_ids: frozenset[str] = frozenset(),
+    liked_meal_ids: frozenset[str] = frozenset(),
+    disliked_meal_ids: frozenset[str] = frozenset(),
 ) -> str:
     if requested is None:
         return "SCHEDULED_TEMPLATE_UNAVAILABLE"
+    if requested.meal_id in disliked_meal_ids:
+        return "PROFILE_DISLIKED_MEAL"
+    if preference_snapshot is not None:
+        if requested.meal_id in preference_snapshot.allergy_meal_ids:
+            return "PROFILE_ALLERGY_MEAL"
+        if requested.meal_id in preference_snapshot.intolerance_meal_ids:
+            return "PROFILE_INTOLERANCE_MEAL"
     if constraints:
         for item in requested.items:
             food = all_foods_by_id.get(item.food_id)
@@ -898,6 +1036,7 @@ def _determine_substitution_reason(
                         decision = evaluate_food_constraints(
                             constraints=(constraint,),
                             slug=food.slug,
+                            food_id=food.food_id,
                             name_fa=food.name_fa,
                             name_en=food.name_en,
                             allergen_tags=food.allergen_tags,
@@ -905,8 +1044,12 @@ def _determine_substitution_reason(
                         )
                         if decision.is_hard_blocked:
                             if constraint.source == "allergy":
+                                if constraint.canonical_food_id is not None:
+                                    return "PROFILE_ALLERGY_FOOD"
                                 return "MEAL_SUBSTITUTED_FOR_ALLERGY"
                             if constraint.source == "intolerance":
+                                if constraint.canonical_food_id is not None:
+                                    return "PROFILE_INTOLERANCE_FOOD"
                                 return "MEAL_SUBSTITUTED_FOR_INTOLERANCE"
                             return "MEAL_SUBSTITUTED_FOR_HARD_EXCLUSION"
         if requested.prepared_recipe is not None:
@@ -917,6 +1060,7 @@ def _determine_substitution_reason(
                         if constraint.severity == ConstraintSeverity.HARD:
                             decision = evaluate_food_constraints(
                                 constraints=(constraint,),
+                                food_id=recipe_food.food_id,
                                 slug=recipe_food.slug,
                                 name_fa=recipe_food.name_fa,
                                 name_en=recipe_food.name_en,
@@ -925,10 +1069,22 @@ def _determine_substitution_reason(
                             )
                             if decision.is_hard_blocked:
                                 if constraint.source == "allergy":
+                                    if constraint.canonical_food_id is not None:
+                                        return "PROFILE_ALLERGY_FOOD"
                                     return "MEAL_SUBSTITUTED_FOR_ALLERGY"
                                 if constraint.source == "intolerance":
+                                    if constraint.canonical_food_id is not None:
+                                        return "PROFILE_INTOLERANCE_FOOD"
                                     return "MEAL_SUBSTITUTED_FOR_INTOLERANCE"
                                 return "MEAL_SUBSTITUTED_FOR_HARD_EXCLUSION"
+    if requested is not None:
+        if any(item.food_id in disliked_food_ids for item in requested.items):
+            return "PROFILE_DISLIKED_FOOD"
+        if requested.prepared_recipe is not None and any(
+            str(ingredient.food_id) in disliked_food_ids
+            for ingredient in requested.prepared_recipe.definition.ingredients
+        ):
+            return "PROFILE_DISLIKED_FOOD"
     return "SCHEDULED_TEMPLATE_UNAVAILABLE"
 
 
@@ -1054,8 +1210,16 @@ def _build_scheduled_day_variants(
                     target_protein=target_protein,
                     template_usage=tuple(sorted(usage.items())),
                     maximum_repetition=inputs.maximum_meal_repetition_per_week,
-                    liked_food_ids=inputs.liked_food_ids,
-                    disliked_food_ids=inputs.disliked_food_ids,
+                    liked_food_ids=tuple(sorted(_preference_ids(inputs, "liked_food_ids"))),
+                    disliked_food_ids=tuple(sorted(_disliked_food_ids(inputs))),
+                    liked_meal_ids=tuple(sorted(_preference_ids(inputs, "liked_meal_ids"))),
+                    disliked_meal_ids=tuple(sorted(_disliked_meal_ids(inputs))),
+                    prefer_more_often_meal_ids=tuple(
+                        sorted(_preference_ids(inputs, "prefer_more_often_meal_ids"))
+                    ),
+                    hard_excluded_food_ids=tuple(sorted(_hard_excluded_food_ids(inputs))),
+                    hard_excluded_meal_ids=tuple(sorted(_hard_excluded_meal_ids(inputs))),
+                    feedback_excluded_meal_ids=tuple(sorted(_feedback_excluded_meal_ids(inputs))),
                     day_index=day_index,
                     role=role,
                     slot_index=slot_index,
@@ -1096,6 +1260,11 @@ def _build_scheduled_day_variants(
                         requested=requested_by_id.get(requested_id or ""),
                         all_foods_by_id=all_foods,
                         constraints=inputs.food_constraints,
+                        preference_snapshot=inputs.preference_snapshot,
+                        liked_food_ids=_preference_ids(inputs, "liked_food_ids"),
+                        disliked_food_ids=_disliked_food_ids(inputs),
+                        liked_meal_ids=_preference_ids(inputs, "liked_meal_ids"),
+                        disliked_meal_ids=_disliked_meal_ids(inputs),
                     )
                     action = SubstitutionAction(
                         day_index=day_index,

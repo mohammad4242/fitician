@@ -10,6 +10,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
+from app.nutrition.enums import FoodItemKind
 from app.nutrition.models import (
     NutritionConsumptionEntry,
     NutritionFoodItem,
@@ -37,6 +38,13 @@ class PreferenceSnapshot:
     disliked_meal_ids: tuple[str, ...] = ()
     prefer_more_often_meal_ids: tuple[str, ...] = ()
     excluded_meal_ids: tuple[str, ...] = ()
+    feedback_excluded_meal_ids: tuple[str, ...] = ()
+    hard_excluded_food_ids: tuple[str, ...] = ()
+    hard_excluded_meal_ids: tuple[str, ...] = ()
+    allergy_food_ids: tuple[str, ...] = ()
+    intolerance_food_ids: tuple[str, ...] = ()
+    allergy_meal_ids: tuple[str, ...] = ()
+    intolerance_meal_ids: tuple[str, ...] = ()
     historical_meal_adherence: tuple[tuple[str, Decimal], ...] = ()
     data_sufficient: bool = False
 
@@ -45,7 +53,17 @@ def build_preference_snapshot(
     *,
     liked_food_ids: Iterable[UUID | str] = (),
     disliked_food_ids: Iterable[UUID | str] = (),
+    liked_meal_ids: Iterable[UUID | str] = (),
+    disliked_meal_ids: Iterable[UUID | str] = (),
     feedback: Iterable[PreferenceFeedback] = (),
+    prefer_more_often_meal_ids: Iterable[UUID | str] = (),
+    feedback_excluded_meal_ids: Iterable[UUID | str] = (),
+    hard_excluded_food_ids: Iterable[UUID | str] = (),
+    hard_excluded_meal_ids: Iterable[UUID | str] = (),
+    allergy_food_ids: Iterable[UUID | str] = (),
+    intolerance_food_ids: Iterable[UUID | str] = (),
+    allergy_meal_ids: Iterable[UUID | str] = (),
+    intolerance_meal_ids: Iterable[UUID | str] = (),
     historical_meal_adherence: Iterable[tuple[UUID | str, Decimal]] = (),
     data_sufficient: bool | None = None,
 ) -> PreferenceSnapshot:
@@ -57,14 +75,30 @@ def build_preference_snapshot(
     def ids_for(kind: str) -> tuple[str, ...]:
         return tuple(sorted(meal_id for meal_id, kinds in grouped.items() if kind in kinds))
 
+    liked_meals = _sorted_ids((*liked_meal_ids, *ids_for("liked")))
+    disliked_meals = _sorted_ids((*disliked_meal_ids, *ids_for("disliked")))
+    prefer_more_often = _sorted_ids(
+        (*prefer_more_often_meal_ids, *ids_for("prefer_more_often"))
+    )
+    feedback_excluded = _sorted_ids(
+        (*feedback_excluded_meal_ids, *ids_for("do_not_suggest_again"))
+    )
+
     adherence = tuple(sorted((str(meal_id), score) for meal_id, score in historical_meal_adherence))
     return PreferenceSnapshot(
         liked_food_ids=_sorted_ids(liked_food_ids),
         disliked_food_ids=_sorted_ids(disliked_food_ids),
-        liked_meal_ids=ids_for("liked"),
-        disliked_meal_ids=ids_for("disliked"),
-        prefer_more_often_meal_ids=ids_for("prefer_more_often"),
-        excluded_meal_ids=ids_for("do_not_suggest_again"),
+        liked_meal_ids=liked_meals,
+        disliked_meal_ids=disliked_meals,
+        prefer_more_often_meal_ids=prefer_more_often,
+        excluded_meal_ids=feedback_excluded,
+        feedback_excluded_meal_ids=feedback_excluded,
+        hard_excluded_food_ids=_sorted_ids(hard_excluded_food_ids),
+        hard_excluded_meal_ids=_sorted_ids(hard_excluded_meal_ids),
+        allergy_food_ids=_sorted_ids(allergy_food_ids),
+        intolerance_food_ids=_sorted_ids(intolerance_food_ids),
+        allergy_meal_ids=_sorted_ids(allergy_meal_ids),
+        intolerance_meal_ids=_sorted_ids(intolerance_meal_ids),
         historical_meal_adherence=adherence,
         data_sufficient=bool(adherence) if data_sufficient is None else data_sufficient,
     )
@@ -91,13 +125,45 @@ def load_preference_snapshot(
     liked_food_ids = tuple(
         item.catalogue_food_id
         for item in food_items
-        if item.catalogue_food_id is not None and item.kind.value == "favourite"
+        if item.catalogue_food_id is not None and item.kind is FoodItemKind.FAVOURITE
     )
     disliked_food_ids = tuple(
         item.catalogue_food_id
         for item in food_items
-        if item.catalogue_food_id is not None and item.kind.value == "disliked"
+        if item.catalogue_food_id is not None and item.kind is FoodItemKind.DISLIKED
     )
+    liked_meal_ids = tuple(
+        item.catalogue_meal_id
+        for item in food_items
+        if item.catalogue_meal_id is not None and item.kind is FoodItemKind.FAVOURITE
+    )
+    disliked_meal_ids = tuple(
+        item.catalogue_meal_id
+        for item in food_items
+        if item.catalogue_meal_id is not None and item.kind is FoodItemKind.DISLIKED
+    )
+    allergy_food_ids = tuple(
+        item.catalogue_food_id
+        for item in food_items
+        if item.catalogue_food_id is not None and item.kind is FoodItemKind.ALLERGY
+    )
+    intolerance_food_ids = tuple(
+        item.catalogue_food_id
+        for item in food_items
+        if item.catalogue_food_id is not None and item.kind is FoodItemKind.INTOLERANCE
+    )
+    allergy_meal_ids = tuple(
+        item.catalogue_meal_id
+        for item in food_items
+        if item.catalogue_meal_id is not None and item.kind is FoodItemKind.ALLERGY
+    )
+    intolerance_meal_ids = tuple(
+        item.catalogue_meal_id
+        for item in food_items
+        if item.catalogue_meal_id is not None and item.kind is FoodItemKind.INTOLERANCE
+    )
+    hard_excluded_food_ids = (*allergy_food_ids, *intolerance_food_ids)
+    hard_excluded_meal_ids = (*allergy_meal_ids, *intolerance_meal_ids)
     planned = {
         str(meal_id): int(count)
         for meal_id, count in db.execute(
@@ -145,7 +211,15 @@ def load_preference_snapshot(
     return build_preference_snapshot(
         liked_food_ids=liked_food_ids,
         disliked_food_ids=disliked_food_ids,
+        liked_meal_ids=liked_meal_ids,
+        disliked_meal_ids=disliked_meal_ids,
         feedback=feedback,
+        hard_excluded_food_ids=hard_excluded_food_ids,
+        hard_excluded_meal_ids=hard_excluded_meal_ids,
+        allergy_food_ids=allergy_food_ids,
+        intolerance_food_ids=intolerance_food_ids,
+        allergy_meal_ids=allergy_meal_ids,
+        intolerance_meal_ids=intolerance_meal_ids,
         historical_meal_adherence=historical,
         data_sufficient=sum(consumed.values()) >= 3,
     )
