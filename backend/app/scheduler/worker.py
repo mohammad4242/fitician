@@ -12,6 +12,7 @@ from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.service import sync_agent_service_proxy
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import cancel_tasks, install_async_signal_handlers
 from app.nutrition.price_scheduler import scheduler_loop
 from app.nutrition.retention_scheduler import retention_scheduler_loop
@@ -33,6 +34,11 @@ async def run_scheduler(
     agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
     food_price_timeout = httpx.Timeout(settings.food_price_provider_timeout_seconds)
     async with (
+        async_heartbeat(
+            settings.job_heartbeat_path,
+            service="scheduler",
+            interval_seconds=settings.job_heartbeat_interval_seconds,
+        ),
         httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_client,
         httpx.AsyncClient(timeout=food_price_timeout, trust_env=False) as food_price_client,
     ):

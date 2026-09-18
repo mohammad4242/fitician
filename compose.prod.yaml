@@ -149,6 +149,10 @@ services:
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: food-photo-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
     depends_on:
       db:
         condition: service_healthy
@@ -157,6 +161,14 @@ services:
       agent-service:
         condition: service_healthy
     command: ["python", "-m", "app.nutrition.food_photo_worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   body-analysis-worker:
@@ -174,6 +186,10 @@ services:
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
       BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: body-analysis-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
     depends_on:
       db:
         condition: service_healthy
@@ -182,6 +198,14 @@ services:
       agent-service:
         condition: service_healthy
     command: ["python", "-m", "app.body_analysis.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   scheduler:
@@ -198,6 +222,10 @@ services:
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
       S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: scheduler
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
     depends_on:
       db:
         condition: service_healthy
@@ -206,6 +234,14 @@ services:
       agent-service:
         condition: service_healthy
     command: ["python", "-m", "app.scheduler.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   notification-worker:
@@ -217,12 +253,24 @@ services:
       APP_ENV: production
       DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
       DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: notification-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
     depends_on:
       db:
         condition: service_healthy
       migrations:
         condition: service_completed_successfully
     command: ["python", "-m", "app.notifications.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   frontend:

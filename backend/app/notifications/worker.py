@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.jobs.heartbeat import threaded_heartbeat
 from app.jobs.runtime import install_sync_signal_handlers
 from app.observability.logging import configure_structured_logging
 
@@ -421,34 +422,39 @@ def run_worker(
     engine = get_engine(settings)
     providers: dict[NotificationProviderName, NotificationProvider] = {}
     try:
-        try:
-            fcm_provider = build_fcm_provider(settings)
-            if fcm_provider is not None:
-                providers["fcm"] = fcm_provider
-        except FcmConfigurationError:
-            logger.exception("FCM provider configuration is invalid")
-        try:
-            apns_provider = build_apns_provider(settings)
-            if apns_provider is not None:
-                providers["apns"] = apns_provider
-        except ApnsConfigurationError:
-            logger.exception("APNs provider configuration is invalid")
-        while not requested_stop.is_set():
+        with threaded_heartbeat(
+            settings.job_heartbeat_path,
+            service="notification-worker",
+            interval_seconds=settings.job_heartbeat_interval_seconds,
+        ):
             try:
-                with Session(engine) as db:
-                    run_notification_once(
-                        db,
-                        worker_id=worker_id,
-                        provider=providers or None,
-                        lease_seconds=settings.notification_worker_lease_seconds,
-                        batch_size=settings.notification_worker_batch_size,
-                        max_attempts=settings.notification_max_delivery_attempts,
-                        retry_base_seconds=settings.notification_retry_base_seconds,
-                        retry_max_seconds=settings.notification_retry_max_seconds,
-                    )
-            except Exception:
-                logger.exception("Notification worker iteration failed")
-            requested_stop.wait(settings.notification_worker_poll_seconds)
+                fcm_provider = build_fcm_provider(settings)
+                if fcm_provider is not None:
+                    providers["fcm"] = fcm_provider
+            except FcmConfigurationError:
+                logger.exception("FCM provider configuration is invalid")
+            try:
+                apns_provider = build_apns_provider(settings)
+                if apns_provider is not None:
+                    providers["apns"] = apns_provider
+            except ApnsConfigurationError:
+                logger.exception("APNs provider configuration is invalid")
+            while not requested_stop.is_set():
+                try:
+                    with Session(engine) as db:
+                        run_notification_once(
+                            db,
+                            worker_id=worker_id,
+                            provider=providers or None,
+                            lease_seconds=settings.notification_worker_lease_seconds,
+                            batch_size=settings.notification_worker_batch_size,
+                            max_attempts=settings.notification_max_delivery_attempts,
+                            retry_base_seconds=settings.notification_retry_base_seconds,
+                            retry_max_seconds=settings.notification_retry_max_seconds,
+                        )
+                except Exception:
+                    logger.exception("Notification worker iteration failed")
+                requested_stop.wait(settings.notification_worker_poll_seconds)
     finally:
         for provider in providers.values():
             _close_provider(provider)

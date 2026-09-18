@@ -18,6 +18,7 @@ from app.body_analysis.providers.models import (
 )
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
@@ -475,6 +476,11 @@ async def run_worker(
     ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)
     agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
     async with (
+        async_heartbeat(
+            settings.job_heartbeat_path,
+            service="food-photo-worker",
+            interval_seconds=settings.job_heartbeat_interval_seconds,
+        ),
         httpx.AsyncClient(
             timeout=ai_timeout,
             proxy=settings.openrouter_proxy_url or None,
