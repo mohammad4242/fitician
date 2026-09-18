@@ -48,40 +48,7 @@ rollback() {
 }
 
 verify_runtime() {
-  running_services=$(compose ps --status running --services)
-  for service in backend backend-2 redis food-photo-worker body-analysis-worker notification-worker scheduler frontend caddy; do
-    if ! printf '%s\n' "$running_services" | grep -Fxq "$service"; then
-      echo "Required service is not running: $service" >&2
-      return 1
-    fi
-  done
-  for backend_service in backend backend-2; do
-    if ! compose exec -T "$backend_service" python -c \
-      "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()" >/dev/null; then
-      echo "Backend readiness check failed: $backend_service" >&2
-      return 1
-    fi
-  done
-  if ! compose exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null; then
-    echo "Frontend readiness check failed" >&2
-    return 1
-  fi
-  domain=$(compose exec -T caddy sh -c 'printf %s "$FITICIAN_DOMAIN"')
-  if [ -z "$domain" ]; then
-    echo "HTTPS ingress domain is missing" >&2
-    return 1
-  fi
-  attempt=0
-  while [ "$attempt" -lt 12 ]; do
-    if curl --fail --silent --show-error --max-time 5 \
-      --resolve "$domain:443:127.0.0.1" "https://$domain/healthz" >/dev/null 2>&1; then
-      return 0
-    fi
-    attempt=$((attempt + 1))
-    sleep 5
-  done
-  echo "HTTPS ingress readiness check failed" >&2
-  return 1
+  COMPOSE_FILE="$compose_file" IMAGE_TAG="$image_tag" sh "$app_dir/ops/verify-production.sh"
 }
 
 if [ "$initial_deploy" != true ]; then

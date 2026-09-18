@@ -28,6 +28,13 @@ class DeployWorkflowTests(unittest.TestCase):
         self.assertLess(mask_step, validation_step)
         self.assertLess(mask_step, frontend_build_step)
 
+    def test_deployment_copies_complete_production_verifier(self) -> None:
+        workflow = DEPLOY_WORKFLOW.read_text()
+
+        self.assertIn("ops/verify-production.sh", workflow)
+        self.assertIn("ops/check-db-connection-budget.py", workflow)
+        self.assertIn("ops/check-runtime-capacity.py", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
