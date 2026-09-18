@@ -48,11 +48,20 @@ rollback() {
 }
 
 verify_runtime() {
-  if ! compose exec -T backend python -c \
-    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()" >/dev/null; then
-    echo "Backend readiness check failed" >&2
-    return 1
-  fi
+  running_services=$(compose ps --status running --services)
+  for service in backend backend-2 redis food-photo-worker body-analysis-worker notification-worker scheduler frontend caddy; do
+    if ! printf '%s\n' "$running_services" | grep -Fxq "$service"; then
+      echo "Required service is not running: $service" >&2
+      return 1
+    fi
+  done
+  for backend_service in backend backend-2; do
+    if ! compose exec -T "$backend_service" python -c \
+      "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()" >/dev/null; then
+      echo "Backend readiness check failed: $backend_service" >&2
+      return 1
+    fi
+  done
   if ! compose exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null; then
     echo "Frontend readiness check failed" >&2
     return 1

@@ -29,6 +29,7 @@ class DeployProductionTests(unittest.TestCase):
             """#!/bin/sh
 printf '%s\\n' "$*" >> "$FAKE_STATE_DIR/calls"
 case "$*" in
+  *' ps --status running --services'*) printf '%s\n' backend backend-2 redis food-photo-worker body-analysis-worker notification-worker scheduler frontend caddy ;;
   *' up '*)
     if [ "${FAKE_UP_FAIL_NEW:-}" = true ] && [ "$IMAGE_TAG" = "${FAKE_NEW_TAG}" ]; then
       exit 3
@@ -72,6 +73,7 @@ esac
         self.assertIn("OTHER_VALUE=keep", (self.workspace / ".env").read_text())
         self.assertIn("IMAGE_TAG=" + NEW_TAG, (self.workspace / ".env").read_text())
         self.assertTrue(any(" exec -T backend python -c " in call for call in calls))
+        self.assertTrue(any(" exec -T backend-2 python -c " in call for call in calls))
 
     def test_pending_schema_change_blocks_automatic_rollout_after_backup(self) -> None:
         self.env["FAKE_SCHEMA_HEAD"] = "20260918_156"

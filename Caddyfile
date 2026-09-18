@@ -1,4 +1,12 @@
 {$FITICIAN_DOMAIN} {
+	handle /healthz {
+		reverse_proxy backend:8000 backend-2:8000 {
+			health_uri /healthz
+			health_interval 10s
+			health_timeout 2s
+		}
+	}
+
 	 handle /api/* {
 		reverse_proxy backend:8000 backend-2:8000 {
 			health_uri /healthz
