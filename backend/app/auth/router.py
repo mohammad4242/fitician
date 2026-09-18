@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -74,6 +75,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_db
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -84,6 +86,45 @@ FORGOT_PASSWORD_MESSAGE = "If the account exists, a reset link has been sent."
 PHONE_OTP_MESSAGE = "If the number can receive messages, an OTP has been sent."
 EMAIL_VERIFICATION_MESSAGE = "If verification is available, an email has been sent."
 AUTH_RATE_LIMIT_MESSAGE = "Too many authentication requests"
+
+
+def _google_verification_failure_reason(error: Exception) -> str:
+    message = str(error).casefold()
+    if "not configured" in message:
+        return "provider-not-configured"
+    if "audience" in message:
+        return "wrong-audience"
+    if "expired" in message:
+        return "expired-token"
+    if "too early" in message:
+        return "token-not-yet-valid"
+    if "signature" in message:
+        return "invalid-signature"
+    if "issuer" in message:
+        return "invalid-issuer"
+    if "subject" in message:
+        return "invalid-subject"
+    if any(
+        marker in message
+        for marker in ("segment", "required claim", "certificate for key id")
+    ):
+        return "malformed-token"
+    return "verification-rejected"
+
+
+def _log_google_verification_failure(error: Exception, request: Request) -> None:
+    reason = _google_verification_failure_reason(error)
+    logger.warning(
+        "Google ID token verification failed: exception_class=%s reason=%s request_path=%s",
+        type(error).__name__,
+        reason,
+        request.url.path,
+        extra={
+            "google_error_class": type(error).__name__,
+            "google_error_reason": reason,
+            "request_path": request.url.path,
+        },
+    )
 
 
 def get_email_provider(request: Request) -> EmailProvider:
@@ -284,7 +325,8 @@ def google_auth(
     )
     try:
         identity = provider.verify(payload.credential)
-    except (GoogleAuthError, ValueError):
+    except (GoogleAuthError, ValueError) as error:
+        _log_google_verification_failure(error, request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "AUTH_GOOGLE_FAILED"},
@@ -320,7 +362,8 @@ def mobile_google_auth(
     )
     try:
         identity = provider.verify(payload.credential)
-    except (GoogleAuthError, ValueError):
+    except (GoogleAuthError, ValueError) as error:
+        _log_google_verification_failure(error, request)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "AUTH_GOOGLE_FAILED"},

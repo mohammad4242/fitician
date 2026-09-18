@@ -1,7 +1,12 @@
+import logging
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from google.auth.exceptions import GoogleAuthError
+from httpx import Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -38,12 +43,16 @@ class StubGoogleIdentityProvider:
         return self.identity
 
 
-def _google_login(client: TestClient, provider: StubGoogleIdentityProvider):
+def _google_login(client: TestClient, provider: StubGoogleIdentityProvider) -> Response:
+    assert isinstance(client.app, FastAPI)
     client.app.state.google_identity_provider = provider
-    return client.post(
-        "/api/v1/auth/google",
-        headers=ORIGIN,
-        json={"credential": "signed-google-id-token"},
+    return cast(
+        Response,
+        client.post(
+            "/api/v1/auth/google",
+            headers=ORIGIN,
+            json={"credential": "signed-google-id-token"},
+        ),
     )
 
 
@@ -212,6 +221,53 @@ def test_invalid_google_tokens_use_one_safe_error(
         retryable=False,
     )
     assert "signed-google-id-token" not in response.text
+
+
+@pytest.mark.parametrize(
+    "provider_error",
+    [
+        ValueError("wrong audience for signed-google-id-token and member@example.com"),
+        GoogleAuthError(  # type: ignore[no-untyped-call]
+            "wrong audience for signed-google-id-token and member@example.com"
+        ),
+    ],
+)
+def test_google_verification_failure_logs_only_safe_diagnostics(
+    client: TestClient,
+    caplog: pytest.LogCaptureFixture,
+    provider_error: Exception,
+) -> None:
+    caplog.set_level(logging.WARNING, logger="app.auth.router")
+
+    response = _google_login(
+        client,
+        StubGoogleIdentityProvider(error=provider_error),
+    )
+
+    assert response.status_code == 401
+    assert_standard_error(
+        response.json()["detail"],
+        code="AUTH_GOOGLE_FAILED",
+        message="ورود با گوگل انجام نشد. دوباره تلاش کنید.",
+        retryable=False,
+    )
+    assert "signed-google-id-token" not in response.text
+    assert "member@example.com" not in response.text
+    assert "wrong-audience" not in response.text
+
+    [record] = [
+        record
+        for record in caplog.records
+        if record.getMessage().startswith("Google ID token verification failed:")
+    ]
+    assert record.__dict__["google_error_class"] == type(provider_error).__name__
+    assert record.__dict__["google_error_reason"] == "wrong-audience"
+    assert record.__dict__["request_path"] == "/api/v1/auth/google"
+    assert f"exception_class={type(provider_error).__name__}" in caplog.text
+    assert "reason=wrong-audience" in caplog.text
+    assert "request_path=/api/v1/auth/google" in caplog.text
+    assert "signed-google-id-token" not in caplog.text
+    assert "member@example.com" not in caplog.text
 
 
 def test_google_auth_requires_trusted_origin(client: TestClient) -> None:
