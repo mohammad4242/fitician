@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
@@ -8,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -58,6 +59,7 @@ from app.media.factory import build_s3_storage
 from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
 from app.nutrition.router import router as nutrition_router
+from app.observability.metrics import MetricsRegistry
 from app.profile.router import router as profile_router
 from app.program_timeline.router import router as program_timeline_router
 from app.workout_cycles.router import router as workout_cycles_router
@@ -88,6 +90,7 @@ def create_app(
         redis_service,
         key_secret=active_settings.phone_otp_hmac_secret.get_secret_value(),
     )
+    metrics = MetricsRegistry()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -122,6 +125,7 @@ def create_app(
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
+    app.state.metrics = metrics
     app.state.billing_providers = build_payment_providers(active_settings)
     app.state.email_provider = build_email_provider(active_settings)
     app.state.sms_provider = build_sms_provider(active_settings)
@@ -134,6 +138,73 @@ def create_app(
         with Session(get_engine(active_settings)) as db:
             db.execute(text("SELECT 1"))
         return {"status": "ok"}
+
+    @app.get("/livez", include_in_schema=False)
+    def livez() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/readyz", include_in_schema=False)
+    async def readyz() -> JSONResponse:
+        checks: dict[str, str] = {}
+        try:
+            with Session(get_engine(active_settings)) as db:
+                db.execute(text("SELECT 1"))
+            checks["database"] = "ok"
+        except SQLAlchemyError:
+            checks["database"] = "failed"
+        redis_result = await redis_service.ping()
+        checks["redis"] = "ok" if redis_result.available else "degraded"
+        metrics.set_gauge("fitician_redis_available", float(redis_result.available))
+        ready = checks["database"] == "ok"
+        return JSONResponse(
+            status_code=status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "ok" if ready else "not_ready", "checks": checks},
+        )
+
+    @app.get("/metrics", include_in_schema=False)
+    async def metrics_endpoint() -> Response:
+        pool = get_engine(active_settings).pool
+        metrics.set_gauge(
+            "fitician_db_pool_checked_out",
+            float(getattr(pool, "checkedout", lambda: 0)()),
+        )
+        metrics.set_gauge("fitician_db_pool_size", float(getattr(pool, "size", lambda: 0)()))
+        metrics.set_gauge(
+            "fitician_db_pool_overflow",
+            float(getattr(pool, "overflow", lambda: 0)()),
+        )
+        redis_result = await redis_service.ping()
+        metrics.set_gauge("fitician_redis_available", float(redis_result.available))
+        if redis_result.latency_ms is not None:
+            metrics.set_gauge("fitician_redis_ping_latency_ms", redis_result.latency_ms)
+        try:
+            from app.body_analysis.models import BodyAnalysis
+            from app.notifications.models import NotificationOutboxEvent
+            from app.nutrition.models import NutritionFoodPhotoAnalysisJob
+
+            with Session(get_engine(active_settings)) as db:
+                queue_counts = {
+                    "body_analysis": db.scalar(
+                        select(func.count()).select_from(BodyAnalysis).where(
+                            BodyAnalysis.status.in_(("queued", "analyzing"))
+                        )
+                    ),
+                    "food_photo": db.scalar(
+                        select(func.count()).select_from(NutritionFoodPhotoAnalysisJob).where(
+                            NutritionFoodPhotoAnalysisJob.status.in_(("queued", "processing"))
+                        )
+                    ),
+                    "notification_outbox": db.scalar(
+                        select(func.count()).select_from(NotificationOutboxEvent).where(
+                            NotificationOutboxEvent.status.in_(("pending", "processing"))
+                        )
+                    ),
+                }
+            for queue, count in queue_counts.items():
+                metrics.set_gauge(f"fitician_queue_depth{{queue=\"{queue}\"}}", float(count or 0))
+        except SQLAlchemyError:
+            metrics.set_gauge("fitician_queue_metrics_available", 0)
+        return Response(metrics.render(), media_type="text/plain; version=0.0.4")
 
     app.add_middleware(
         CORSMiddleware,
@@ -169,6 +240,30 @@ def create_app(
             logger.exception("Unhandled request exception", extra={"request_id": request_id})
             raise
         response.headers[CORRELATION_ID_HEADER] = request_id
+        return response
+
+    @app.middleware("http")
+    async def metrics_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        started = time.perf_counter()
+        metrics.begin_request()
+        try:
+            response = await call_next(request)
+        except Exception:
+            metrics.finish_failed_request(
+                method=request.method,
+                path=request.url.path,
+                duration_seconds=time.perf_counter() - started,
+            )
+            raise
+        metrics.observe_http(
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_seconds=time.perf_counter() - started,
+        )
         return response
 
     def request_id(request: Request) -> str:
