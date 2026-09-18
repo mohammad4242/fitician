@@ -1,11 +1,63 @@
+import asyncio
+from collections.abc import Iterator
+from contextlib import contextmanager
 from types import SimpleNamespace
+from typing import Any
 
 from fastapi.testclient import TestClient
 
+from app.auth.router import _consume_limit
 from app.config import Settings
+from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
+
+
+def test_auth_database_fallback_never_commits_request_session(
+    monkeypatch: Any,
+    test_settings: Settings,
+) -> None:
+    class UnavailableLimiter:
+        async def consume(self, **_: object) -> None:
+            raise RedisRateLimitUnavailable
+
+    class RequestSession:
+        def commit(self) -> None:
+            raise AssertionError("request-owned session was committed")
+
+        def rollback(self) -> None:
+            raise AssertionError("request-owned session was rolled back")
+
+    fallback_session = SimpleNamespace()
+
+    @contextmanager
+    def fallback_session_context(
+        _: Settings, *, session_factory: object = None
+    ) -> Iterator[SimpleNamespace]:
+        yield fallback_session
+
+    calls: list[object] = []
+    monkeypatch.setattr("app.auth.router.isolated_session", fallback_session_context)
+    monkeypatch.setattr(
+        "app.auth.router.consume_auth_rate_limit",
+        lambda db, **_: calls.append(db),
+    )
+    state = SimpleNamespace(rate_limiter=UnavailableLimiter())
+    request = SimpleNamespace(app=SimpleNamespace(state=state))
+
+    asyncio.run(
+        _consume_limit(
+            request,  # type: ignore[arg-type]
+            RequestSession(),  # type: ignore[arg-type]
+            test_settings,
+            actor="ip:127.0.0.1",
+            operation="login",
+            limit=5,
+        )
+    )
+
+    assert calls == [fallback_session]
 
 
 def test_forgot_password_rate_limit_is_generic(

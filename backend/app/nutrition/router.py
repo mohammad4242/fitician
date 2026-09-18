@@ -35,7 +35,7 @@ from app.auth.dependencies import get_current_user
 from app.auth.models import User
 from app.cache.service import CacheResult
 from app.config import Settings, get_settings
-from app.database.session import get_db
+from app.database.session import get_db, isolated_session
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import require_entitlement
 from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
@@ -474,13 +474,15 @@ async def _consume_nutrition_rate_limit(
                 )
             return
     try:
-        consume_rate_limit(
-            db,
-            actor_user_id=user_id,
-            operation=operation,
-            limit=limit,
-            window_seconds=settings.nutrition_upload_rate_window_seconds,
-        )
+        session_factory = getattr(request.app.state, "rate_limit_session_factory", None)
+        with isolated_session(settings, session_factory=session_factory) as fallback_db:
+            consume_rate_limit(
+                fallback_db,
+                actor_user_id=user_id,
+                operation=operation,
+                limit=limit,
+                window_seconds=settings.nutrition_upload_rate_window_seconds,
+            )
     except RateLimitExceeded as error:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -488,7 +490,6 @@ async def _consume_nutrition_rate_limit(
             headers={"Retry-After": str(error.retry_after_seconds)},
         ) from None
     except SQLAlchemyError:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "RATE_LIMIT_UNAVAILABLE"},

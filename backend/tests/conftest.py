@@ -74,6 +74,10 @@ def client(db: Session, test_settings: Settings) -> Iterator[TestClient]:
 
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_settings] = lambda: test_settings
+    app.state.rate_limit_session_factory = lambda: Session(
+        bind=db.connection(),
+        join_transaction_mode="create_savepoint",
+    )
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

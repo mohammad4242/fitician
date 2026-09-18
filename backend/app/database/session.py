@@ -1,4 +1,5 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from functools import lru_cache
 
 from fastapi import Depends
@@ -50,4 +51,16 @@ def _get_engine(
 
 def get_db(settings: Settings = Depends(get_settings)) -> Iterator[Session]:  # noqa: B008
     with Session(get_engine(settings)) as session:
+        yield session
+
+
+@contextmanager
+def isolated_session(
+    settings: Settings,
+    *,
+    session_factory: Callable[[], Session] | None = None,
+) -> Iterator[Session]:
+    """Create a transaction boundary that is never owned by an API request."""
+    factory = session_factory or (lambda: Session(get_engine(settings)))
+    with factory() as session:
         yield session

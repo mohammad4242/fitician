@@ -73,7 +73,7 @@ from app.auth.service import (
     verify_phone_otp,
 )
 from app.config import Settings, get_settings
-from app.database.session import get_db
+from app.database.session import get_db, isolated_session
 from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -201,18 +201,19 @@ async def _consume_limit(
                 raise _auth_rate_limited(result.retry_after_seconds)
             return
     try:
-        consume_auth_rate_limit(
-            db,
-            actor=actor,
-            operation=operation,
-            limit=limit,
-            window_seconds=settings.auth_rate_limit_window_seconds,
-            hmac_secret=settings.phone_otp_hmac_secret.get_secret_value(),
-        )
+        session_factory = getattr(request.app.state, "rate_limit_session_factory", None)
+        with isolated_session(settings, session_factory=session_factory) as fallback_db:
+            consume_auth_rate_limit(
+                fallback_db,
+                actor=actor,
+                operation=operation,
+                limit=limit,
+                window_seconds=settings.auth_rate_limit_window_seconds,
+                hmac_secret=settings.phone_otp_hmac_secret.get_secret_value(),
+            )
     except AuthRateLimitError as error:
         raise _auth_rate_limited(error.retry_after_seconds) from None
     except SQLAlchemyError:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "RATE_LIMIT_UNAVAILABLE"},
