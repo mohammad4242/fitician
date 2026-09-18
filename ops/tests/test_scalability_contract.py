@@ -45,6 +45,21 @@ class ScalabilityContractTests(unittest.TestCase):
             compose = (ROOT / compose_name).read_text()
             self.assertIn("http://127.0.0.1:8000/readyz", compose)
 
+    def test_normal_ci_runs_short_real_multi_replica_smoke(self) -> None:
+        workflow = CI.read_text()
+        script = (ROOT / "ops/load/ci-multi-replica-smoke.sh").read_text()
+
+        self.assertIn("multi-replica-smoke:", workflow)
+        self.assertIn("ci-multi-replica-smoke.sh", workflow)
+        self.assertIn("backend backend-2 caddy", workflow)
+        self.assertIn("upload-artifact", workflow)
+        self.assertIn("multi-replica-smoke", workflow[workflow.index("container-images:") :])
+        self.assertIn("wait_for_two_instances", script)
+        self.assertIn("stop backend-2", script)
+        self.assertIn("start backend-2", script)
+        self.assertIn("FITICIAN_ALLOW_PRODUCTION_FAILURE_DRILL", script)
+        self.assertNotIn("compose.prod.yaml", script)
+
 
 if __name__ == "__main__":
     unittest.main()

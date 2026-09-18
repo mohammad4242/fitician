@@ -356,6 +356,49 @@ jobs:
             caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
           python3 -m unittest discover -s ops/tests -p 'test_*.py' -v
 
+  multi-replica-smoke:
+    name: Short two-replica runtime smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: scalability-contract
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare provider-free local configuration
+        run: |
+          mkdir -p artifacts/scalability
+          printf '%s\n' \
+            'DATABASE_URL=postgresql+psycopg://fitician:fitician@db:5432/fitician' \
+            'APP_ENV=local' \
+            'COOKIE_SECURE=false' \
+            'SESSION_COOKIE_NAME=fitician_session' \
+            'EMAIL_PROVIDER=fake' \
+            'SMS_PROVIDER=fake' \
+            'BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED=true' \
+            > backend/.env
+      - name: Start required two-replica topology
+        run: >-
+          docker compose -f compose.yaml -f compose.multi.yaml up -d --build --wait
+          db redis agent-service backend backend-2 caddy
+      - name: Prove distribution and one-replica survival
+        run: bash ops/load/ci-multi-replica-smoke.sh | tee artifacts/scalability/ci-multi-replica-smoke.json
+      - name: Capture runtime evidence
+        if: always()
+        run: |
+          docker compose -f compose.yaml -f compose.multi.yaml ps > artifacts/scalability/ci-compose-ps.txt
+          docker compose -f compose.yaml -f compose.multi.yaml logs --no-color \
+            backend backend-2 caddy > artifacts/scalability/ci-compose.log
+      - name: Upload multi-replica smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-ci-multi-replica-${{ github.run_id }}
+          path: artifacts/scalability
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop local topology without deleting volumes
+        if: always()
+        run: docker compose -f compose.yaml -f compose.multi.yaml down
+
   container-images:
     name: Build and publish immutable production images
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -369,6 +412,7 @@ jobs:
       - secrets
       - production-contract
       - scalability-contract
+      - multi-replica-smoke
     runs-on: ubuntu-latest
     permissions:
       contents: read
