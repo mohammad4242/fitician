@@ -178,6 +178,18 @@ class _FailingProvider(_Provider):
         )
 
 
+class _TransientProvider(_Provider):
+    def __init__(self) -> None:
+        super().__init__()
+        self.failures = 0
+
+    async def analyze_images(self, request: object, *, images: tuple[object, ...]) -> object:
+        if self.failures == 0:
+            self.failures += 1
+            raise AIProviderError(ProviderErrorCode.TIMEOUT, "upstream timed out")
+        return await super().analyze_images(request, images=images)
+
+
 def _submitted_session(db: Session, user: User | None = None) -> tuple[User, BodyPhotoSession]:
     user = user or User(
         id=uuid4(), email=f"analysis-{uuid4()}@example.com", password_hash="not-used"
@@ -891,6 +903,38 @@ def test_unauthorized_provider_error_tells_admin_to_update_configured_credential
         failed.error_message
         == "The configured AI provider credential was rejected. Update it in Admin AI settings."
     )
+
+
+def test_transient_provider_error_is_requeued_before_terminal_failure(db: Session) -> None:
+    user, session = _submitted_session(db)
+    service = BodyAnalysisService(db)
+    config = _config().model_copy(
+        update={"retry_limit": 1, "retry_base_seconds": 1, "retry_max_seconds": 2}
+    )
+    analysis = service.queue(session.id, user.id, config)
+    provider = _TransientProvider()
+
+    queued = asyncio.run(service.execute(analysis.id, provider, config))
+
+    assert queued.status is BodyAnalysisStatus.QUEUED
+    assert queued.attempt_count == 1
+    assert queued.error_code == ProviderErrorCode.TIMEOUT.value
+    assert queued.completed_at is None
+    assert queued.available_at > datetime.now(UTC)
+    assert db.scalar(
+        select(NotificationOutboxEvent).where(
+            NotificationOutboxEvent.event_type == "body_analysis_failed",
+            NotificationOutboxEvent.user_id == user.id,
+        )
+    ) is None
+
+    queued.available_at = datetime.now(UTC)
+    db.commit()
+    completed = asyncio.run(service.execute(analysis.id, provider, config))
+
+    assert completed.status is BodyAnalysisStatus.REVIEW_PENDING
+    assert completed.attempt_count == 2
+    assert provider.calls == 1
 
 
 def test_invalid_model_output_tells_admin_how_to_correct_the_ai_task(db: Session) -> None:

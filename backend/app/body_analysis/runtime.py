@@ -99,6 +99,8 @@ def build_body_analysis_runtime(
             temperature=task.temperature,
             max_output_tokens=task.max_output_tokens,
             timeout_seconds=task.timeout_seconds,
+            retry_base_seconds=settings.body_analysis_retry_base_seconds,
+            retry_max_seconds=settings.body_analysis_retry_max_seconds,
             minimum_confidence=task.minimum_confidence,
             max_cost_per_request=(
                 task.max_cost_per_request

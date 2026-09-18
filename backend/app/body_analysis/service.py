@@ -132,6 +132,8 @@ class AnalysisExecutionConfig(BaseModel):
     max_output_tokens: int = Field(default=4096, ge=1, le=65_536)
     timeout_seconds: int = Field(default=420, ge=1, le=600)
     retry_limit: int = Field(default=2, ge=0, le=5)
+    retry_base_seconds: int = Field(default=30, ge=1, le=3600)
+    retry_max_seconds: int = Field(default=900, ge=1, le=86400)
     minimum_confidence: float = Field(default=0.7, ge=0, le=1)
     max_cost_per_request: Decimal | None = Field(default=None, ge=0)
     routing_preferences: ProviderRoutingPreferences = Field(
@@ -171,6 +173,16 @@ class EffectiveBodyAnalysisResult:
         if self.doctor_approved:
             return "doctor_reviewed"
         return "ai_only"
+
+
+_RETRYABLE_PROVIDER_ERRORS = frozenset(
+    {
+        ProviderErrorCode.TIMEOUT,
+        ProviderErrorCode.CONNECTION_FAILURE,
+        ProviderErrorCode.RATE_LIMITED,
+        ProviderErrorCode.PROVIDER_UNAVAILABLE,
+    }
+)
 
 
 _ANALYSIS_PROMPT = """You are Fitician's conservative visual physique-development assessor.
@@ -768,24 +780,36 @@ class BodyAnalysisService:
                 analysis.input_tokens = response.input_tokens
                 analysis.output_tokens = response.output_tokens
                 analysis.request_cost = response.cost
-            analysis.status = BodyAnalysisStatus.FAILED
-            analysis.error_code = provider_error.code.value
-            analysis.error_message = self._safe_failure_message(provider_error.code)
             if provider_error.provider_request_id is not None:
                 analysis.provider_request_id = provider_error.provider_request_id
-            analysis.completed_at = datetime.now(UTC)
-            analysis.session.state = self._session_state_after_failure(analysis)
-            enqueue_notification_event(
-                self._db,
-                user_id=analysis.session.user_id,
-                event_type="body_analysis_failed",
-                category="body_analysis",
-                deduplication_key=f"body-analysis:{analysis.id}:failed",
-                payload=build_notification_payload(
-                    "body_analysis_failed",
-                    data={"analysis_id": analysis.id},
-                ),
-            )
+            now = datetime.now(UTC)
+            analysis.error_code = provider_error.code.value
+            analysis.error_message = self._safe_failure_message(provider_error.code)
+            if (
+                provider_error.code in _RETRYABLE_PROVIDER_ERRORS
+                and analysis.attempt_count <= execution_config.retry_limit
+            ):
+                analysis.status = BodyAnalysisStatus.QUEUED
+                analysis.available_at = now + timedelta(
+                    seconds=self._retry_delay(execution_config, analysis.attempt_count)
+                )
+                analysis.completed_at = None
+                analysis.session.state = BodyPhotoSessionState.QUEUED
+            else:
+                analysis.status = BodyAnalysisStatus.FAILED
+                analysis.completed_at = now
+                analysis.session.state = self._session_state_after_failure(analysis)
+                enqueue_notification_event(
+                    self._db,
+                    user_id=analysis.session.user_id,
+                    event_type="body_analysis_failed",
+                    category="body_analysis",
+                    deduplication_key=f"body-analysis:{analysis.id}:failed",
+                    payload=build_notification_payload(
+                        "body_analysis_failed",
+                        data={"analysis_id": analysis.id},
+                    ),
+                )
             self._db.commit()
         return self._analysis(analysis_id)
 
@@ -1147,3 +1171,10 @@ class BodyAnalysisService:
                 seconds=config.timeout_seconds
             )
         return analysis.started_at <= datetime.now(UTC) - timedelta(seconds=config.timeout_seconds)
+
+    @staticmethod
+    def _retry_delay(config: AnalysisExecutionConfig, attempt_count: int) -> int:
+        exponent = max(0, attempt_count - 1)
+        delay = int(config.retry_base_seconds) * (2**exponent)
+        maximum = int(config.retry_max_seconds)
+        return maximum if delay > maximum else delay
