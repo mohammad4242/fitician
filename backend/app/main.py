@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import mimetypes
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -16,7 +15,6 @@ from sqlalchemy.orm import Session
 from app.access_management.exceptions import AccessManagementError
 from app.access_management.router import router as access_management_router
 from app.account_deletion.router import router as account_deletion_router
-from app.account_deletion.scheduler import account_deletion_scheduler_loop
 from app.admin.router import router as admin_router
 from app.admin_audit.router import router as admin_audit_router
 from app.auth.providers import (
@@ -30,9 +28,7 @@ from app.billing.admin_router import router as billing_admin_router
 from app.billing.exceptions import BillingError
 from app.billing.providers import build_payment_providers
 from app.billing.router import router as billing_router
-from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.router import router as admin_ai_settings_router
-from app.body_analysis.admin_config.service import sync_agent_service_proxy
 from app.body_analysis.comparison_router import router as body_progress_comparison_router
 from app.body_analysis.history_router import router as body_progress_history_router
 from app.body_analysis.router import admin_router as body_analysis_admin_router
@@ -61,8 +57,6 @@ from app.media.delivery import deliver_public_media
 from app.media.factory import build_s3_storage
 from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
-from app.nutrition.price_scheduler import scheduler_loop
-from app.nutrition.retention_scheduler import retention_scheduler_loop
 from app.nutrition.router import router as nutrition_router
 from app.profile.router import router as profile_router
 from app.program_timeline.router import router as program_timeline_router
@@ -122,42 +116,9 @@ def create_app(
             app.state.redis = redis_service
             app.state.cache = cache_service
             app.state.rate_limiter = rate_limiter
-            background_tasks: list[asyncio.Task[None]] = []
-            if active_settings.app_env != "test":
-                try:
-                    with Session(get_engine(active_settings.database_url)) as db:
-                        await sync_agent_service_proxy(
-                            db,
-                            client=agent_client,
-                            settings=active_settings,
-                        )
-                except (CredentialEncryptionError, SQLAlchemyError) as error:
-                    logger.warning("Agent Service proxy startup sync failed: %s", error)
-                background_tasks.append(
-                    asyncio.create_task(
-                        scheduler_loop(
-                            active_settings,
-                            food_price_client,
-                            agent_http_client=agent_client,
-                        )
-                    )
-                )
-                background_tasks.append(
-                    asyncio.create_task(retention_scheduler_loop(active_settings))
-                )
-                if active_settings.account_deletion_enabled:
-                    background_tasks.append(
-                        asyncio.create_task(account_deletion_scheduler_loop(active_settings))
-                    )
             try:
                 yield
             finally:
-                for task in background_tasks:
-                    task.cancel()
-                try:
-                    await asyncio.gather(*background_tasks)
-                except asyncio.CancelledError:
-                    pass
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
