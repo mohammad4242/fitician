@@ -1,0 +1,60 @@
+name: Fitician local scalability checks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * 6"
+
+permissions:
+  contents: read
+
+jobs:
+  local-resilience:
+    name: Local multi-replica load and failure drills
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare local-only configuration
+        run: |
+          mkdir -p artifacts/scalability
+          printf '%s\n' \
+            'DATABASE_URL=postgresql+psycopg://fitician:fitician@db:5432/fitician' \
+            'APP_ENV=local' \
+            'COOKIE_SECURE=false' \
+            'SESSION_COOKIE_NAME=fitician_session' \
+            'EMAIL_PROVIDER=fake' \
+            'SMS_PROVIDER=fake' \
+            > backend/.env
+      - name: Start two-replica local topology
+        run: docker compose -f compose.yaml -f compose.multi.yaml up -d --build --wait
+      - name: Run percentile smoke scenarios
+        run: |
+          BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=100 LOAD_CONCURRENCY=10 \
+            bash ops/load/run.sh health | tee artifacts/scalability/health.json
+          BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=200 LOAD_CONCURRENCY=20 \
+            bash ops/load/run.sh catalogue | tee artifacts/scalability/catalogue.json
+      - name: Run bounded failure drills
+        run: |
+          BASE_URL=http://127.0.0.1:8080 FAILURE_DRILL_DEADLINE_SECONDS=90 \
+            bash ops/load/failure-drills.sh all | tee artifacts/scalability/failure-drills.jsonl
+      - name: Capture topology evidence
+        if: always()
+        run: |
+          docker compose -f compose.yaml -f compose.multi.yaml ps > artifacts/scalability/ps.txt
+          docker compose -f compose.yaml -f compose.multi.yaml logs --no-color > artifacts/scalability/compose.log
+      - name: Upload scalability evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-scalability-${{ github.run_id }}
+          path: artifacts/scalability
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop local topology without deleting volumes
+        if: always()
+        run: docker compose -f compose.yaml -f compose.multi.yaml down
+
