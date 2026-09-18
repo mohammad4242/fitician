@@ -1,4 +1,9 @@
 from app.body_analysis.providers.agent_service import AgentServiceProvider
+from app.body_analysis.providers.local_fake import (
+    LOCAL_FAKE_PROVIDER_NAME,
+    LocalFakeBodyAnalysisProvider,
+    local_fake_provider_allowed,
+)
 from app.body_analysis.providers.models import (
     AIProviderError,
     ImageInput,
@@ -13,11 +18,6 @@ from app.body_analysis.providers.models import (
 )
 from app.body_analysis.providers.openrouter import OpenRouterProvider
 from app.body_analysis.providers.protocol import AIProvider
-from app.body_analysis.providers.local_fake import (
-    LOCAL_FAKE_PROVIDER_NAME,
-    LocalFakeBodyAnalysisProvider,
-    local_fake_provider_allowed,
-)
 
 __all__ = [
     "AIProvider",
