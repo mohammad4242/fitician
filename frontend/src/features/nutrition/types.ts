@@ -392,10 +392,10 @@ export type NutritionProfileInput = {
   maximum_meal_repetition_per_week?: number;
   accepts_leftovers?: boolean;
   accepts_batch_cooking?: boolean;
-  favourite_catalogue_items: NutritionCatalogueTargetInput[];
-  disliked_catalogue_items: NutritionCatalogueTargetInput[];
-  allergy_catalogue_items: NutritionCatalogueConstraintInput[];
-  intolerance_catalogue_items: NutritionCatalogueConstraintInput[];
+  favourite_catalogue_items?: NutritionCatalogueTargetInput[];
+  disliked_catalogue_items?: NutritionCatalogueTargetInput[];
+  allergy_catalogue_items?: NutritionCatalogueConstraintInput[];
+  intolerance_catalogue_items?: NutritionCatalogueConstraintInput[];
   /** @deprecated Use favourite_catalogue_items. */
   favourite_foods: string[];
   /** @deprecated Use disliked_catalogue_items. */
@@ -418,10 +418,10 @@ export type NutritionProfile = Omit<
   | "allergy_catalogue_items"
   | "intolerance_catalogue_items"
 > & {
-  favourite_catalogue_items: NutritionCatalogueTarget[];
-  disliked_catalogue_items: NutritionCatalogueTarget[];
-  allergy_catalogue_items: NutritionCatalogueConstraint[];
-  intolerance_catalogue_items: NutritionCatalogueConstraint[];
+  favourite_catalogue_items?: NutritionCatalogueTarget[];
+  disliked_catalogue_items?: NutritionCatalogueTarget[];
+  allergy_catalogue_items?: NutritionCatalogueConstraint[];
+  intolerance_catalogue_items?: NutritionCatalogueConstraint[];
   user_id: string;
   onboarding_status: "in_progress" | "completed";
   currency: "IRR";

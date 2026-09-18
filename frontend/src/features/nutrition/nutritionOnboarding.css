@@ -3,6 +3,233 @@
   gap: 0.7rem;
 }
 
+.catalogue-target-picker {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+  position: relative;
+}
+
+.catalogue-target-picker__label {
+  color: var(--fitician-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.catalogue-target-picker__selected {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogue-target-picker__chip {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.35rem 0.45rem 0.35rem 0.7rem;
+  border: 1px solid rgb(80 223 206 / 40%);
+  border-radius: 999px;
+  color: var(--fitician-ink);
+  background: rgb(80 223 206 / 10%);
+}
+
+.catalogue-target-picker__chip-text {
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+.catalogue-target-picker__chip-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalogue-target-picker__chip-text small,
+.catalogue-target-picker__type-badge {
+  flex: 0 0 auto;
+  padding: 0.12rem 0.35rem;
+  border: 1px solid rgb(245 158 11 / 30%);
+  border-radius: 999px;
+  color: #fbbf24;
+  background: rgb(245 158 11 / 10%);
+  font-size: 0.62rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.catalogue-target-picker__remove {
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--fitician-ink);
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.catalogue-target-picker__remove:hover,
+.catalogue-target-picker__remove:focus-visible {
+  color: #fff;
+  background: rgb(255 255 255 / 12%);
+}
+
+.catalogue-target-picker__control {
+  min-width: 0;
+  display: flex;
+}
+
+.catalogue-target-picker__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.1rem;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: 0.8rem;
+  color: var(--fitician-ink);
+  background: var(--fitician-canvas);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.catalogue-target-picker__input:focus-visible {
+  outline: 2px solid var(--fitician-aqua);
+  outline-offset: 2px;
+  border-color: var(--fitician-aqua);
+}
+
+.catalogue-target-picker__menu {
+  z-index: 10;
+  min-width: 0;
+  max-height: min(21rem, 45vh);
+  overflow-y: auto;
+  padding: 0.35rem;
+  border: 1px solid rgb(80 223 206 / 32%);
+  border-radius: 0.8rem;
+  background: var(--fitician-surface);
+  box-shadow: 0 0.8rem 1.8rem rgb(0 0 0 / 26%);
+}
+
+.catalogue-target-picker__options {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogue-target-picker__option {
+  width: 100%;
+  min-height: 3.4rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  color: var(--fitician-ink);
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.catalogue-target-picker__option:hover,
+.catalogue-target-picker__option.is-active,
+.catalogue-target-picker__option.is-selected {
+  border-color: rgb(80 223 206 / 32%);
+  background: rgb(80 223 206 / 10%);
+}
+
+.catalogue-target-picker__option > img {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  background: rgb(255 255 255 / 7%);
+}
+
+.catalogue-target-picker__option-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.catalogue-target-picker__option-copy strong,
+.catalogue-target-picker__option-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalogue-target-picker__option-copy strong {
+  font-size: 0.84rem;
+}
+
+.catalogue-target-picker__option-copy small {
+  color: rgb(234 244 241 / 62%);
+  font-size: 0.7rem;
+}
+
+.catalogue-target-picker__state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.75rem;
+  color: rgb(234 244 241 / 72%);
+  font-size: 0.78rem;
+}
+
+.catalogue-target-picker__state--error {
+  color: #fecaca;
+}
+
+.catalogue-target-picker__state button {
+  min-height: 2.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgb(80 223 206 / 35%);
+  border-radius: 0.5rem;
+  color: var(--fitician-aqua);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 650px) {
+  .catalogue-target-picker__input,
+  .catalogue-target-picker__remove,
+  .catalogue-target-picker__state button {
+    min-height: 3rem;
+  }
+
+  .catalogue-target-picker__remove {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  .catalogue-target-picker__option {
+    min-height: 3.7rem;
+  }
+}
+
 .nutrition-option {
   min-width: 0;
   min-height: 3.8rem;

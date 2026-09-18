@@ -14,12 +14,17 @@ import type { ProductMode, Profile, ProfileFormValue, ProfileFormValues, Profile
 import * as nutritionApi from "./api";
 import type {
   MedicalConditionCode,
+  NutritionCatalogueConstraint,
+  NutritionCatalogueConstraintInput,
+  NutritionCatalogueTarget,
+  NutritionCatalogueTargetInput,
   NutritionProfileInput,
   NutritionProfile,
   SafetyDecision,
   SafetyEvaluation,
   SafetyProfileInput,
 } from "./types";
+import { CatalogueTargetMultiSelect } from "./CatalogueTargetMultiSelect";
 import type { OnboardingDraft, PreAccountNutritionBasics } from "../publicOnboarding/onboardingDraft";
 import { GuidedSharedProfileQuestions } from "../publicOnboarding/GuidedSharedProfileQuestions";
 import { GuidedTrainingQuestions } from "../publicOnboarding/GuidedTrainingQuestions";
@@ -132,6 +137,29 @@ const conditionOptions: Array<[MedicalConditionCode, string, string]> = [
 
 const splitNames = (value: string) => value.split(/[،,\n]/).map((item) => item.trim()).filter(Boolean);
 
+function targetFromInput(target: NutritionCatalogueTargetInput): NutritionCatalogueTarget {
+  return {
+    target_type: target.target_type,
+    target_id: target.target_id,
+    name_fa: target.target_id,
+    name_en: target.target_id,
+    category: null,
+    image_url: null,
+  };
+}
+
+function constraintFromInput(target: NutritionCatalogueConstraintInput): NutritionCatalogueConstraint {
+  return { ...targetFromInput(target), details: target.details };
+}
+
+function targetInput(target: NutritionCatalogueTarget): NutritionCatalogueTargetInput {
+  return { target_type: target.target_type, target_id: target.target_id };
+}
+
+function constraintInput(target: NutritionCatalogueConstraint): NutritionCatalogueConstraintInput {
+  return { ...targetInput(target), details: target.details };
+}
+
 const flowCopy = {
   fa: {
     loading: "در حال آماده‌کردن مسیرت…", eyebrow: "مسیر تغذیه با مربی فیتیشن", progress: "پیشرفت تکمیل پروفایل",
@@ -196,12 +224,15 @@ export function NutritionOnboardingFlow({
   const [snackCount, setSnackCount] = useState("1");
   const [startDay, setStartDay] = useState<NutritionProfileInput["preferred_plan_start_day"]>("saturday");
   const planStyle = initialNutritionBasics?.plan_style ?? "balanced";
-  const [foods, setFoods] = useState<FoodsState>({
-    favourites: "", disliked: "",
-    allergies: initialNutritionBasics?.allergies.map((item) => item.name).join(", ") ?? "", intolerances: initialNutritionBasics?.intolerances.map((item) => item.name).join(", ") ?? "", cultural: "", workContext: "",
+  const [foods, setFoods] = useState<FoodsState>(() => ({
+    favourites: (initialNutritionBasics?.favourite_catalogue_items ?? []).map(targetFromInput),
+    disliked: (initialNutritionBasics?.disliked_catalogue_items ?? []).map(targetFromInput),
+    allergies: (initialNutritionBasics?.allergy_catalogue_items ?? []).map(constraintFromInput),
+    intolerances: (initialNutritionBasics?.intolerance_catalogue_items ?? []).map(constraintFromInput),
+    cultural: "", workContext: "",
     dietaryPattern: initialNutritionBasics?.dietary_pattern ?? "omnivore",
     checkIn: false, checkInTime: "21:00",
-  });
+  }));
 
   const isWeightLoss = values.fitness_goal === "lose_weight" || values.fitness_goal === "fat_loss";
   const isWeightGain = values.fitness_goal === "gain_weight" || values.fitness_goal === "build_muscle";
@@ -278,10 +309,10 @@ export function NutritionOnboardingFlow({
     setSnackCount(String(nutrition.effective_snack_slots ?? nutrition.snacks_per_day));
     setStartDay(nutrition.preferred_plan_start_day);
     setFoods({
-      favourites: nutrition.favourite_foods.join(", "),
-      disliked: nutrition.disliked_foods.join(", "),
-      allergies: nutrition.allergies.map((item) => item.name).join(", "),
-      intolerances: nutrition.intolerances.map((item) => item.name).join(", "),
+      favourites: nutrition.favourite_catalogue_items ?? [],
+      disliked: nutrition.disliked_catalogue_items ?? [],
+      allergies: nutrition.allergy_catalogue_items ?? [],
+      intolerances: nutrition.intolerance_catalogue_items ?? [],
       cultural: nutrition.religious_cultural_exclusions.join(", "),
       workContext: nutrition.work_shift_context ?? "",
       dietaryPattern: nutrition.dietary_pattern,
@@ -398,10 +429,14 @@ export function NutritionOnboardingFlow({
       meals_per_day: Number(mealCount),
       snacks_per_day: Number(snackCount),
       preferred_plan_start_day: startDay,
-      favourite_foods: splitNames(foods.favourites),
-      disliked_foods: splitNames(foods.disliked),
-      allergies: splitNames(foods.allergies).map((name) => ({ name, details: null })),
-      intolerances: splitNames(foods.intolerances).map((name) => ({ name, details: null })),
+      favourite_catalogue_items: foods.favourites.map(targetInput),
+      disliked_catalogue_items: foods.disliked.map(targetInput),
+      allergy_catalogue_items: foods.allergies.map(constraintInput),
+      intolerance_catalogue_items: foods.intolerances.map(constraintInput),
+      favourite_foods: [],
+      disliked_foods: [],
+      allergies: [],
+      intolerances: [],
       dietary_pattern: foods.dietaryPattern,
       religious_cultural_exclusions: splitNames(foods.cultural),
       work_shift_context: foods.workContext.trim() || null,
@@ -545,6 +580,7 @@ export function NutritionOnboardingFlow({
       )}
       {step === "safety" && (
         <SafetyForm
+          language={language}
           busy={busy}
           conditions={conditions}
           flags={safetyFlags}
@@ -570,7 +606,13 @@ export function NutritionOnboardingFlow({
         onBack={() => setStep("training")}
         onComplete={() => onDraftComplete?.({ safety: safetyInput(), structuredExercise, nutritionBasics: {
           daily_activity_level: dailyActivityLevel, individual_monthly_food_budget_irr: tomanToIrr(budget), budget_style: budgetStyle, plan_style: planStyle,
-          allergies: splitNames(foods.allergies).map((name) => ({ name, details: null })), intolerances: splitNames(foods.intolerances).map((name) => ({ name, details: null })), dietary_pattern: foods.dietaryPattern,
+          favourite_catalogue_items: foods.favourites.map(targetInput),
+          disliked_catalogue_items: foods.disliked.map(targetInput),
+          allergy_catalogue_items: foods.allergies.map(constraintInput),
+          intolerance_catalogue_items: foods.intolerances.map(constraintInput),
+          allergies: [],
+          intolerances: [],
+          dietary_pattern: foods.dietaryPattern,
         } })}
       />}
       {step === "training" && (
@@ -619,7 +661,7 @@ export function NutritionOnboardingFlow({
             )}
             <span>{language === "en" ? `${mealCount} meals and ${snackCount} snacks per day` : `${mealCount} وعده اصلی و ${snackCount} میان‌وعده در روز`}</span>
             <span>{language === "en" ? "Safety policy" : "سیاست ایمنی"}: {decision?.policy_version}</span>
-            <span>{language === "en" ? `Allergies: ${splitNames(foods.allergies).join(", ") || "None"}` : `حساسیت ثبت‌شده: ${splitNames(foods.allergies).join("، ") || "ندارد"}`}</span>
+            <span>{language === "en" ? `Allergies: ${foods.allergies.map((item) => item.name_en).join(", ") || "None"}` : `حساسیت ثبت‌شده: ${foods.allergies.map((item) => item.name_fa).join("، ") || "ندارد"}`}</span>
           </div>
           <Actions busy={busy} onBack={() => setStep("budget")} nextLabel={language === "en" ? "Save nutrition profile" : "ثبت پروفایل تغذیه"} />
         </form>
@@ -912,8 +954,36 @@ function PostAccountNutritionDetails(props: {
             </span>
             <span>{l("ترجیحات غذایی", "Food preferences")}</span>
           </legend>
-          <TextArea icon="heart" label={l("غذاهایی که دوست داری (اختیاری)", "Foods you like (optional)")} value={props.foods.favourites} onChange={(favourites) => props.onFoods({ ...props.foods, favourites })} />
-          <TextArea icon="shield" label={l("غذاهایی که دوست نداری (اختیاری)", "Foods you dislike (optional)")} value={props.foods.disliked} onChange={(disliked) => props.onFoods({ ...props.foods, disliked })} />
+          <CatalogueTargetMultiSelect
+            label={l("غذاهایی که دوست داری (اختیاری)", "Foods you like (optional)")}
+            value={props.foods.favourites}
+            onChange={(favourites) => props.onFoods({ ...props.foods, favourites })}
+            language={props.language}
+            disabled={props.busy}
+          />
+          <CatalogueTargetMultiSelect
+            label={l("غذاهایی که دوست نداری (اختیاری)", "Foods you dislike (optional)")}
+            value={props.foods.disliked}
+            onChange={(disliked) => props.onFoods({ ...props.foods, disliked })}
+            language={props.language}
+            disabled={props.busy}
+          />
+          <CatalogueTargetMultiSelect
+            label={l("حساسیت‌های غذایی (اختیاری)", "Food allergies (optional)")}
+            value={props.foods.allergies}
+            onChange={(allergies) => props.onFoods({ ...props.foods, allergies })}
+            language={props.language}
+            includeDetails
+            disabled={props.busy}
+          />
+          <CatalogueTargetMultiSelect
+            label={l("عدم‌تحمل‌های غذایی (اختیاری)", "Food intolerances (optional)")}
+            value={props.foods.intolerances}
+            onChange={(intolerances) => props.onFoods({ ...props.foods, intolerances })}
+            language={props.language}
+            includeDetails
+            disabled={props.busy}
+          />
           <TextArea icon="document" label={l("محدودیت مذهبی یا فرهنگی (اختیاری)", "Religious or cultural exclusions (optional)")} value={props.foods.cultural} onChange={(cultural) => props.onFoods({ ...props.foods, cultural })} />
         </fieldset>
         <AppErrorNotice
@@ -1033,6 +1103,7 @@ function NutritionQuestionFrame(props: {
 }
 
 function SafetyForm(props: {
+  language: "fa" | "en";
   busy: boolean; conditions: MedicalConditionCode[]; flags: Flags; medications: string;
   physicianRestrictions: string; otherCondition: string; foods: FoodsState;
   onConditions: (value: MedicalConditionCode[]) => void; onFlags: (value: Flags) => void;
@@ -1078,7 +1149,24 @@ function SafetyForm(props: {
         {question === 2 && <TextArea label={l("داروهای فعلی (اختیاری، هر دارو یک خط)", "Current medications (optional, one per line)")} value={props.medications} onChange={props.onMedications} />}
         {question === 3 && <TextArea label={l("محدودیت غذایی تجویزشده توسط پزشک (اختیاری)", "Physician-prescribed dietary restrictions (optional)")} value={props.physicianRestrictions} onChange={props.onPhysicianRestrictions} />}
         {question === 4 && <TextArea label={l("شرایط مرتبط دیگر (اختیاری)", "Other relevant conditions (optional)")} value={props.otherCondition} onChange={props.onOtherCondition} />}
-        {question === 5 && <div className="nutrition-allergy-fields"><TextArea label={l("حساسیت‌های غذایی (اختیاری، با ویرگول جدا کن)", "Food allergies (optional, comma separated)")} value={props.foods.allergies} onChange={(allergies) => props.onFoods({ ...props.foods, allergies })} /><TextArea label={l("عدم‌تحمل‌های غذایی (اختیاری، با ویرگول جدا کن)", "Food intolerances (optional, comma separated)")} value={props.foods.intolerances} onChange={(intolerances) => props.onFoods({ ...props.foods, intolerances })} /></div>}
+        {question === 5 && <div className="nutrition-allergy-fields">
+          <CatalogueTargetMultiSelect
+            label={l("حساسیت‌های غذایی (اختیاری)", "Food allergies (optional)")}
+            value={props.foods.allergies}
+            onChange={(allergies) => props.onFoods({ ...props.foods, allergies })}
+            language={props.language}
+            includeDetails
+            disabled={props.busy}
+          />
+          <CatalogueTargetMultiSelect
+            label={l("عدم‌تحمل‌های غذایی (اختیاری)", "Food intolerances (optional)")}
+            value={props.foods.intolerances}
+            onChange={(intolerances) => props.onFoods({ ...props.foods, intolerances })}
+            language={props.language}
+            includeDetails
+            disabled={props.busy}
+          />
+        </div>}
     </NutritionQuestionFrame>
   );
 }
@@ -1365,8 +1453,9 @@ function BudgetForm(props: {
 }
 
 type FoodsState = {
-  favourites: string; disliked: string;
-  allergies: string; intolerances: string; cultural: string; workContext: string;
+  favourites: NutritionCatalogueTarget[]; disliked: NutritionCatalogueTarget[];
+  allergies: NutritionCatalogueConstraint[]; intolerances: NutritionCatalogueConstraint[];
+  cultural: string; workContext: string;
   dietaryPattern: NutritionProfileInput["dietary_pattern"];
   checkIn: boolean; checkInTime: string;
 };

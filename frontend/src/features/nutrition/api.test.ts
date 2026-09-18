@@ -12,6 +12,7 @@ import {
   getMealFeedback,
   getMealReplacementOptions,
   getFoodReplacementOptions,
+  getNutritionCatalogueOptions,
   getFoodPhotoEstimate,
   getMealCatalogue,
   getSafetyDecision,
@@ -42,6 +43,8 @@ const nutritionInput = {
   supplied_meals_per_week: 0, supplied_meal_source: null, foods_available_at_home: [],
   favourite_foods: [], disliked_foods: [], never_suggest_foods: [], refused_foods: [],
   allergies: [], intolerances: [], dietary_pattern: "omnivore", religious_cultural_exclusions: [],
+  favourite_catalogue_items: [], disliked_catalogue_items: [], allergy_catalogue_items: [],
+  intolerance_catalogue_items: [],
   preferred_variety: "medium", maximum_meal_repetition_per_week: 2,
   accepts_leftovers: true, accepts_batch_cooking: true, work_shift_context: null,
   daily_check_in_enabled: false, preferred_check_in_time: null,
@@ -175,6 +178,20 @@ it("fetches the member meal catalogue without category filter", async () => {
   expect(result).toEqual(fakeResponse);
   expect(fetch).toHaveBeenCalledWith(
     "/api/v1/nutrition/meal-catalogue",
+    expect.objectContaining({ credentials: "include" }),
+  );
+});
+
+it("searches the public combined nutrition catalogue options", async () => {
+  const response = { items: [{
+    target_type: "food", target_id: "food-1", name_fa: "مرغ", name_en: "Chicken",
+    category: "poultry", image_url: null,
+  }] };
+  vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json(response));
+
+  await expect(getNutritionCatalogueOptions({ query: "مرغ", limit: 20 })).resolves.toEqual(response);
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/v1/nutrition/catalogue-options?q=%D9%85%D8%B1%D8%BA&limit=20",
     expect.objectContaining({ credentials: "include" }),
   );
 });

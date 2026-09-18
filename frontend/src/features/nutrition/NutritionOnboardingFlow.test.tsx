@@ -316,8 +316,8 @@ it("resumes moved safety and allergy questions after registration", async () => 
   await user.click(screen.getByRole("button", { name: "رد کردن این سؤال" }));
 
   expect(await screen.findByRole("heading", { name: "حساسیت یا عدم‌تحمل غذایی داری؟" })).toBeInTheDocument();
-  expect(screen.getByLabelText(/حساسیت‌های غذایی/)).toHaveClass("nutrition-question__textarea");
-  expect(screen.getByLabelText(/عدم‌تحمل‌های غذایی/)).toHaveClass("nutrition-question__textarea");
+  expect(screen.getByLabelText(/حساسیت‌های غذایی/)).toHaveClass("catalogue-target-picker__input");
+  expect(screen.getByLabelText(/عدم‌تحمل‌های غذایی/)).toHaveClass("catalogue-target-picker__input");
 });
 
 it("shows essential and remaining nutrition details together after account creation", async () => {
