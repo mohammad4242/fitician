@@ -11,10 +11,15 @@ it("uses member-only food and meal catalogue read endpoints", async () => {
     return {} as TResponse;
   });
 
+  await api.getOptions({ query: "مرغ", limit: 20 });
   await api.getFoodCatalogue({ category: "grain", page: 2, pageSize: 12, query: "rice" });
   await api.getMealCatalogue("breakfast");
 
   expect(requests).toEqual([
+    {
+      method: "GET",
+      path: "/api/v1/nutrition/catalogue-options?q=%D9%85%D8%B1%D8%BA&limit=20",
+    },
     {
       method: "GET",
       path: "/api/v1/nutrition/food-catalogue?q=rice&category=grain&page=2&page_size=12",

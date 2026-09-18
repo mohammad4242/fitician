@@ -149,16 +149,16 @@ export function nutritionFormsForProfile(profile: NutritionProfile): NutritionEd
     ? ""
     : String(profile.target_weight_change_kg_per_week);
   basics.weight_rate_mode = profile.weight_rate_mode ?? "safe";
-  basics.allergies = profile.allergies.map((item) => item.name).join("، ");
-  basics.intolerances = profile.intolerances.map((item) => item.name).join("، ");
+  basics.allergies = profile.allergy_catalogue_items ?? [];
+  basics.intolerances = profile.intolerance_catalogue_items ?? [];
   basics.dietary_pattern = profile.dietary_pattern;
 
   const preferences = emptyNutritionPreferencesFormValues();
   preferences.meals_per_day = String(profile.effective_main_meal_slots ?? profile.meals_per_day);
   preferences.snacks_per_day = String(profile.effective_snack_slots ?? profile.snacks_per_day);
   preferences.preferred_plan_start_day = profile.preferred_plan_start_day;
-  preferences.favourite_foods = profile.favourite_foods.join("، ");
-  preferences.disliked_foods = profile.disliked_foods.join("، ");
+  preferences.favourite_foods = profile.favourite_catalogue_items ?? [];
+  preferences.disliked_foods = profile.disliked_catalogue_items ?? [];
   preferences.religious_cultural_exclusions = profile.religious_cultural_exclusions.join("، ");
   preferences.work_shift_context = profile.work_shift_context ?? "";
   preferences.daily_check_in_enabled = profile.daily_check_in_enabled;
@@ -175,7 +175,8 @@ export function nutritionInputForEdit(
   return {
     accepts_batch_cooking: profile.accepts_batch_cooking,
     accepts_leftovers: profile.accepts_leftovers,
-    allergies: edited.allergies,
+    allergy_catalogue_items: edited.allergy_catalogue_items ?? [],
+    allergies: [],
     budget_style: edited.budget_style,
     cooking_equipment: profile.cooking_equipment,
     cooking_frequency_per_week: profile.cooking_frequency_per_week,
@@ -183,11 +184,14 @@ export function nutritionInputForEdit(
     daily_activity_level: edited.daily_activity_level,
     daily_check_in_enabled: edited.daily_check_in_enabled,
     dietary_pattern: edited.dietary_pattern,
-    disliked_foods: edited.disliked_foods,
-    favourite_foods: edited.favourite_foods,
+    disliked_catalogue_items: edited.disliked_catalogue_items ?? [],
+    disliked_foods: [],
+    favourite_catalogue_items: edited.favourite_catalogue_items ?? [],
+    favourite_foods: [],
     foods_available_at_home: profile.foods_available_at_home,
     individual_monthly_food_budget_irr: edited.individual_monthly_food_budget_irr,
-    intolerances: edited.intolerances,
+    intolerance_catalogue_items: edited.intolerance_catalogue_items ?? [],
+    intolerances: [],
     main_meal_count_bucket: edited.main_meal_count_bucket,
     maximum_cooking_time_minutes: profile.maximum_cooking_time_minutes,
     maximum_meal_repetition_per_week: profile.maximum_meal_repetition_per_week,

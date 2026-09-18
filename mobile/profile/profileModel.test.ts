@@ -47,6 +47,7 @@ const nutrition = {
   accepts_batch_cooking: true,
   accepts_leftovers: true,
   allergies: [{ details: null, name: "بادام" }],
+  allergy_catalogue_items: [{ target_type: "food", target_id: "food-almond", name_fa: "بادام", name_en: "Almond", category: "nuts", image_url: null, details: null }],
   budget_style: "flexible",
   cooking_equipment: [],
   cooking_frequency_per_week: 0,
@@ -57,10 +58,13 @@ const nutrition = {
   daily_check_in_enabled: true,
   dietary_pattern: "omnivore",
   disliked_foods: ["کرفس"],
+  disliked_catalogue_items: [{ target_type: "food", target_id: "food-celery", name_fa: "کرفس", name_en: "Celery", category: "vegetable", image_url: null }],
   favourite_foods: ["برنج"],
+  favourite_catalogue_items: [{ target_type: "food", target_id: "food-rice", name_fa: "برنج", name_en: "Rice", category: "grain", image_url: null }],
   foods_available_at_home: ["تخم‌مرغ"],
   individual_monthly_food_budget_irr: 123_450,
   intolerances: [],
+  intolerance_catalogue_items: [],
   main_meal_count_bucket: "three_main_meals",
   maximum_meal_repetition_per_week: 3,
   maximum_cooking_time_minutes: 0,
@@ -173,12 +177,18 @@ it("round-trips editable nutrition preferences without dropping backend fields",
   expect(forms.preferences.preferred_check_in_time).toBe("21:00");
 
   forms.basics.monthly_food_budget_toman = "20,000";
-  forms.preferences.favourite_foods = "ماست، برنج";
+  forms.preferences.favourite_foods = [
+    { target_type: "food", target_id: "food-yogurt", name_fa: "ماست", name_en: "Yogurt", category: "dairy", image_url: null },
+    { target_type: "food", target_id: "food-rice", name_fa: "برنج", name_en: "Rice", category: "grain", image_url: null },
+  ];
   forms.preferences.daily_check_in_enabled = false;
 
   const input = nutritionInputForEdit(nutrition, forms.basics, forms.preferences);
   expect(input.individual_monthly_food_budget_irr).toBe(200_000);
-  expect(input.favourite_foods).toEqual(["ماست", "برنج"]);
+  expect(input.favourite_catalogue_items).toEqual([
+    { target_type: "food", target_id: "food-yogurt" },
+    { target_type: "food", target_id: "food-rice" },
+  ]);
   expect(input.preferred_check_in_time).toBeNull();
   expect(input.foods_available_at_home).toEqual(["تخم‌مرغ"]);
   expect(input.never_suggest_foods).toEqual(["سیر"]);

@@ -1,6 +1,9 @@
 import type {
-  FoodConstraint,
   MedicalConditionCode,
+  NutritionCatalogueConstraint,
+  NutritionCatalogueConstraintInput,
+  NutritionCatalogueTarget,
+  NutritionCatalogueTargetInput,
   NutritionProfileInput,
   StructuredExerciseInput,
   StructuredExerciseType,
@@ -51,8 +54,8 @@ export type NutritionBasicsFormValues = {
   budget_style: NutritionProfileInput["budget_style"];
   target_weight_change_kg_per_week: string;
   weight_rate_mode: NonNullable<NutritionProfileInput["weight_rate_mode"]>;
-  allergies: string;
-  intolerances: string;
+  allergies: NutritionCatalogueConstraint[];
+  intolerances: NutritionCatalogueConstraint[];
   dietary_pattern: NutritionProfileInput["dietary_pattern"];
 };
 
@@ -60,8 +63,8 @@ export type NutritionPreferencesFormValues = {
   meals_per_day: string;
   snacks_per_day: string;
   preferred_plan_start_day: NutritionProfileInput["preferred_plan_start_day"];
-  favourite_foods: string;
-  disliked_foods: string;
+  favourite_foods: NutritionCatalogueTarget[];
+  disliked_foods: NutritionCatalogueTarget[];
   religious_cultural_exclusions: string;
   work_shift_context: string;
   daily_check_in_enabled: boolean;
@@ -101,8 +104,8 @@ export function emptyNutritionBasicsFormValues(): NutritionBasicsFormValues {
     budget_style: "strict",
     target_weight_change_kg_per_week: "",
     weight_rate_mode: "safe",
-    allergies: "",
-    intolerances: "",
+    allergies: [],
+    intolerances: [],
     dietary_pattern: "omnivore",
   };
 }
@@ -112,8 +115,8 @@ export function emptyNutritionPreferencesFormValues(): NutritionPreferencesFormV
     meals_per_day: "3",
     snacks_per_day: "1",
     preferred_plan_start_day: "saturday",
-    favourite_foods: "",
-    disliked_foods: "",
+    favourite_foods: [],
+    disliked_foods: [],
     religious_cultural_exclusions: "",
     work_shift_context: "",
     daily_check_in_enabled: false,
@@ -137,12 +140,25 @@ function splitValues(value: string): string[] {
     .filter((item, index, values) => item !== "" && values.indexOf(item) === index);
 }
 
-function constraintsFromText(value: string): FoodConstraint[] {
-  return splitValues(value).map((name) => ({ details: null, name }));
-}
-
 function numberFromText(value: string): number {
   return Number(normalizeOnboardingDigits(value.trim()));
+}
+
+export function catalogueTargetForInput(target: NutritionCatalogueTargetInput): NutritionCatalogueTarget {
+  return {
+    target_type: target.target_type,
+    target_id: target.target_id,
+    name_fa: target.target_id,
+    name_en: target.target_id,
+    category: null,
+    image_url: null,
+  };
+}
+
+export function catalogueConstraintForInput(
+  target: NutritionCatalogueConstraintInput,
+): NutritionCatalogueConstraint {
+  return { ...catalogueTargetForInput(target), details: target.details };
 }
 
 export function safetyInputFromForm(values: SafetyFormValues) {
@@ -185,8 +201,18 @@ export function nutritionBasicsFromForm(values: NutritionBasicsFormValues) {
       target_weight_change_kg_per_week: numberFromText(targetRate),
     }),
     weight_rate_mode: values.weight_rate_mode,
-    allergies: constraintsFromText(values.allergies),
-    intolerances: constraintsFromText(values.intolerances),
+    allergy_catalogue_items: values.allergies.map((item): NutritionCatalogueConstraintInput => ({
+      target_type: item.target_type,
+      target_id: item.target_id,
+      details: item.details,
+    })),
+    intolerance_catalogue_items: values.intolerances.map((item): NutritionCatalogueConstraintInput => ({
+      target_type: item.target_type,
+      target_id: item.target_id,
+      details: item.details,
+    })),
+    allergies: [],
+    intolerances: [],
     dietary_pattern: values.dietary_pattern,
   };
 }
@@ -215,8 +241,16 @@ export function nutritionInputFromForms(
     meals_per_day: meals,
     snacks_per_day: snacks,
     preferred_plan_start_day: preferences.preferred_plan_start_day,
-    favourite_foods: splitValues(preferences.favourite_foods),
-    disliked_foods: splitValues(preferences.disliked_foods),
+    favourite_catalogue_items: preferences.favourite_foods.map((item): NutritionCatalogueTargetInput => ({
+      target_type: item.target_type,
+      target_id: item.target_id,
+    })),
+    disliked_catalogue_items: preferences.disliked_foods.map((item): NutritionCatalogueTargetInput => ({
+      target_type: item.target_type,
+      target_id: item.target_id,
+    })),
+    favourite_foods: [],
+    disliked_foods: [],
     religious_cultural_exclusions: splitValues(preferences.religious_cultural_exclusions),
     work_shift_context: preferences.work_shift_context.trim() || null,
     daily_check_in_enabled: preferences.daily_check_in_enabled,

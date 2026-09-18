@@ -53,6 +53,8 @@ import {
   type NutritionSafetyResult,
 } from "./onboardingController";
 import { createOnboardingApi } from "./onboardingApi";
+import { createNutritionCatalogueApi, type NutritionCatalogueApi } from "../nutrition/nutritionCatalogueApi";
+import { CatalogueTargetPicker } from "../nutrition/CatalogueTargetPicker";
 import { NativeOnboardingDraftStore } from "./nativeOnboardingDraftStore";
 import { PUBLIC_ONBOARDING_SOURCE } from "../auth/authRoute";
 import { hydratePublicOnboardingState } from "./publicOnboardingHandoff";
@@ -75,6 +77,8 @@ import {
   emptyExerciseFormValues,
   emptyNutritionBasicsFormValues,
   emptyNutritionPreferencesFormValues,
+  catalogueConstraintForInput,
+  catalogueTargetForInput,
   emptySafetyFormValues,
   exerciseInputFromForm,
   normalizeOnboardingDigits,
@@ -251,6 +255,7 @@ export function OnboardingScreen() {
   const refreshProfileStatus = useRefreshMobileProfileStatus();
   const userId = auth.user?.id ?? null;
   const api = useMemo(() => createOnboardingApi(auth.request), [auth.request]);
+  const catalogueApi = useMemo(() => createNutritionCatalogueApi(auth.request), [auth.request]);
   const publicDraftStore = useMemo(() => new SecurePublicOnboardingDraftStore(), []);
   const publicOnboardingSource = firstParam(params.source);
   const [controller, setController] = useState<NativeOnboardingController | null>(null);
@@ -492,6 +497,7 @@ export function OnboardingScreen() {
       {state.step === "nutrition_basics" ? (
         <NutritionBasicsStage
           busy={busy}
+          searchOptions={catalogueApi.getOptions}
           initialValues={nutritionBasicsFormValuesForState(state.nutritionBasics)}
           onBack={goBack}
           onSubmit={saveBasics}
@@ -501,6 +507,7 @@ export function OnboardingScreen() {
         <NutritionPreferencesStage
           basics={state.nutritionBasics}
           busy={busy}
+          searchOptions={catalogueApi.getOptions}
           initialValues={nutritionPreferencesFormValuesForState(state.nutrition)}
           onBack={goBack}
           onSubmit={saveNutrition}
@@ -940,11 +947,13 @@ export function NutritionBasicsStage({
   initialValues,
   onBack,
   onSubmit,
+  searchOptions,
 }: {
   readonly busy: boolean;
   readonly initialValues: NutritionBasicsFormValues;
   readonly onBack: () => boolean;
   readonly onSubmit: (basics: NutritionBasicsDraft) => void;
+  readonly searchOptions: NutritionCatalogueApi["getOptions"];
 }) {
   const { control, getValues, setError } = useForm<NutritionBasicsFormValues>({ defaultValues: initialValues });
   const submit = () => {
@@ -996,8 +1005,32 @@ export function NutritionBasicsStage({
               name="dietary_pattern"
               options={dietaryOptions}
             />
-            <ControlledTextField control={control} label="حساسیت‌های غذایی" name="allergies" />
-            <ControlledTextField control={control} label="عدم تحمل غذایی" name="intolerances" />
+            <Controller
+              control={control}
+              name="allergies"
+              render={({ field }) => (
+                <CatalogueTargetPicker
+                  includeDetails
+                  label="حساسیت‌های غذایی"
+                  onChange={field.onChange}
+                  searchOptions={searchOptions}
+                  value={field.value}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="intolerances"
+              render={({ field }) => (
+                <CatalogueTargetPicker
+                  includeDetails
+                  label="عدم تحمل غذایی"
+                  onChange={field.onChange}
+                  searchOptions={searchOptions}
+                  value={field.value}
+                />
+              )}
+            />
           </View>,
         ]}
       </GuidedQuestionFlow>
@@ -1011,12 +1044,14 @@ export function NutritionPreferencesStage({
   initialValues,
   onBack,
   onSubmit,
+  searchOptions,
 }: {
   readonly basics: NutritionBasicsDraft | null;
   readonly busy: boolean;
   readonly initialValues: NutritionPreferencesFormValues;
   readonly onBack: () => boolean;
   readonly onSubmit: (nutrition: NutritionProfileInput) => void;
+  readonly searchOptions: NutritionCatalogueApi["getOptions"];
 }) {
   const { control, getValues, setError } = useForm<NutritionPreferencesFormValues>({ defaultValues: initialValues });
   const checkIn = useWatch({ control, name: "daily_check_in_enabled" });
@@ -1044,8 +1079,8 @@ export function NutritionPreferencesStage({
         ? ""
         : String(basics.target_weight_change_kg_per_week),
       weight_rate_mode: basics.weight_rate_mode ?? "safe",
-      allergies: basics.allergies.map((item) => item.name).join(", "),
-      intolerances: basics.intolerances.map((item) => item.name).join(", "),
+      allergies: (basics.allergy_catalogue_items ?? []).map(catalogueConstraintForInput),
+      intolerances: (basics.intolerance_catalogue_items ?? []).map(catalogueConstraintForInput),
       dietary_pattern: basics.dietary_pattern,
     }, values));
   };
@@ -1085,8 +1120,30 @@ export function NutritionPreferencesStage({
             />
           </View>,
           <View key="preferences" style={styles.formStack}>
-            <ControlledTextField control={control} label="غذاهای مورد علاقه" name="favourite_foods" />
-            <ControlledTextField control={control} label="غذاهای نامطلوب" name="disliked_foods" />
+            <Controller
+              control={control}
+              name="favourite_foods"
+              render={({ field }) => (
+                <CatalogueTargetPicker
+                  label="غذاهای مورد علاقه"
+                  onChange={field.onChange}
+                  searchOptions={searchOptions}
+                  value={field.value}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="disliked_foods"
+              render={({ field }) => (
+                <CatalogueTargetPicker
+                  label="غذاهای نامطلوب"
+                  onChange={field.onChange}
+                  searchOptions={searchOptions}
+                  value={field.value}
+                />
+              )}
+            />
             <ControlledTextField control={control} label="محدودیت فرهنگی یا مذهبی" name="religious_cultural_exclusions" />
             <ControlledTextField control={control} label="شرایط کاری یا شیفت (اختیاری)" name="work_shift_context" />
           </View>,
@@ -1613,8 +1670,8 @@ export function nutritionBasicsFormValuesForState(basics: NutritionBasicsDraft |
       ? ""
       : String(basics.target_weight_change_kg_per_week),
     weight_rate_mode: basics.weight_rate_mode ?? "safe",
-    allergies: basics.allergies.map((item) => item.name).join(", "),
-    intolerances: basics.intolerances.map((item) => item.name).join(", "),
+    allergies: (basics.allergy_catalogue_items ?? []).map(catalogueConstraintForInput),
+    intolerances: (basics.intolerance_catalogue_items ?? []).map(catalogueConstraintForInput),
     dietary_pattern: basics.dietary_pattern,
   };
 }
@@ -1627,8 +1684,8 @@ export function nutritionPreferencesFormValuesForState(
     meals_per_day: String(nutrition.meals_per_day),
     snacks_per_day: String(nutrition.snacks_per_day),
     preferred_plan_start_day: nutrition.preferred_plan_start_day,
-    favourite_foods: nutrition.favourite_foods.join(", "),
-    disliked_foods: nutrition.disliked_foods.join(", "),
+    favourite_foods: (nutrition.favourite_catalogue_items ?? []).map(catalogueTargetForInput),
+    disliked_foods: (nutrition.disliked_catalogue_items ?? []).map(catalogueTargetForInput),
     religious_cultural_exclusions: nutrition.religious_cultural_exclusions.join(", "),
     work_shift_context: nutrition.work_shift_context ?? "",
     daily_check_in_enabled: nutrition.daily_check_in_enabled,

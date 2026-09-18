@@ -53,6 +53,8 @@ import { formatPersianNumber } from "../ui/locale";
 import { useMobileRouteSnapshot, useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
 import { profileValidationMessage } from "../onboarding/onboardingModel";
 import { createProfileApi } from "./profileApi";
+import { createNutritionCatalogueApi, type NutritionCatalogueApi } from "../nutrition/nutritionCatalogueApi";
+import { CatalogueTargetPicker } from "../nutrition/CatalogueTargetPicker";
 import { ProfilePhotoControl } from "./ProfilePhotoControl";
 import { AccountPrivacyLinks } from "../accountDeletion/AccountPrivacyLinks";
 import {
@@ -210,6 +212,7 @@ export function ProfileScreen() {
   const snapshot = useMobileRouteSnapshot();
   const refreshProfileStatus = useRefreshMobileProfileStatus();
   const api = useMemo(() => createProfileApi(auth.request), [auth.request]);
+  const catalogueApi = useMemo(() => createNutritionCatalogueApi(auth.request), [auth.request]);
   const mode = snapshot.profile.productMode;
   const [loaded, setLoaded] = useState<LoadedProfile | null>(null);
   const [values, setValues] = useState<ProfileFormValues | null>(null);
@@ -299,7 +302,7 @@ export function ProfileScreen() {
 
   function updateNutritionBasics(
     field: keyof NutritionEditForms["basics"],
-    value: string,
+    value: NutritionEditForms["basics"][keyof NutritionEditForms["basics"]],
   ) {
     setNutritionForms((current) => current === null
       ? current
@@ -314,7 +317,7 @@ export function ProfileScreen() {
 
   function updateNutritionPreference(
     field: keyof NutritionEditForms["preferences"],
-    value: string | boolean,
+    value: NutritionEditForms["preferences"][keyof NutritionEditForms["preferences"]],
   ) {
     setNutritionForms((current) => current === null
       ? current
@@ -470,6 +473,7 @@ export function ProfileScreen() {
           basics={nutritionForms.basics}
           errors={fieldErrors}
           preferences={nutritionForms.preferences}
+          searchOptions={catalogueApi.getOptions}
           onBasicsChange={updateNutritionBasics}
           onPreferencesChange={updateNutritionPreference}
         />
@@ -832,16 +836,21 @@ function NutritionSection({
   basics,
   errors,
   preferences,
+  searchOptions,
   onBasicsChange,
   onPreferencesChange,
 }: {
   readonly basics: NutritionEditForms["basics"];
   readonly errors: ProfileFieldErrors;
   readonly preferences: NutritionEditForms["preferences"];
-  readonly onBasicsChange: (field: keyof NutritionEditForms["basics"], value: string) => void;
+  readonly searchOptions: NutritionCatalogueApi["getOptions"];
+  readonly onBasicsChange: (
+    field: keyof NutritionEditForms["basics"],
+    value: NutritionEditForms["basics"][keyof NutritionEditForms["basics"]],
+  ) => void;
   readonly onPreferencesChange: (
     field: keyof NutritionEditForms["preferences"],
-    value: string | boolean,
+    value: NutritionEditForms["preferences"][keyof NutritionEditForms["preferences"]],
   ) => void;
 }) {
   return (
@@ -889,14 +898,18 @@ function NutritionSection({
         selected={basics.dietary_pattern}
         onSelect={(value) => onBasicsChange("dietary_pattern", value)}
       />
-      <TextField
+      <CatalogueTargetPicker
+        includeDetails
         label="حساسیت‌های غذایی"
-        onChangeText={(value) => onBasicsChange("allergies", value)}
+        onChange={(value) => onBasicsChange("allergies", value)}
+        searchOptions={searchOptions}
         value={basics.allergies}
       />
-      <TextField
+      <CatalogueTargetPicker
+        includeDetails
         label="عدم‌تحمل‌های غذایی"
-        onChangeText={(value) => onBasicsChange("intolerances", value)}
+        onChange={(value) => onBasicsChange("intolerances", value)}
+        searchOptions={searchOptions}
         value={basics.intolerances}
       />
       <ChoiceField
@@ -919,14 +932,16 @@ function NutritionSection({
         selected={preferences.preferred_plan_start_day}
         onSelect={(value) => onPreferencesChange("preferred_plan_start_day", value)}
       />
-      <TextField
+      <CatalogueTargetPicker
         label="غذاهای مورد علاقه"
-        onChangeText={(value) => onPreferencesChange("favourite_foods", value)}
+        onChange={(value) => onPreferencesChange("favourite_foods", value)}
+        searchOptions={searchOptions}
         value={preferences.favourite_foods}
       />
-      <TextField
+      <CatalogueTargetPicker
         label="غذاهای نامطلوب"
-        onChangeText={(value) => onPreferencesChange("disliked_foods", value)}
+        onChange={(value) => onPreferencesChange("disliked_foods", value)}
+        searchOptions={searchOptions}
         value={preferences.disliked_foods}
       />
       <TextField
