@@ -127,6 +127,45 @@ class FoodConstraintInput(BaseModel):
     _normalize_text = field_validator("name", "details", mode="before")(normalize_optional_text)
 
 
+class NutritionCatalogueTargetInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    target_type: Literal["food", "meal"]
+    target_id: UUID
+
+
+class NutritionCatalogueConstraintInput(NutritionCatalogueTargetInput):
+    details: str | None = Field(default=None, max_length=500)
+
+    _normalize_details = field_validator("details", mode="before")(normalize_optional_text)
+
+
+class NutritionCatalogueTargetResponse(BaseModel):
+    target_type: Literal["food", "meal"]
+    target_id: UUID
+    name_fa: str
+    name_en: str
+    category: str | None
+    image_url: str | None
+
+
+class NutritionCatalogueConstraintResponse(NutritionCatalogueTargetResponse):
+    details: str | None
+
+
+class NutritionCatalogueOption(BaseModel):
+    target_type: Literal["food", "meal"]
+    target_id: UUID
+    name_fa: str
+    name_en: str
+    category: str | None
+    image_url: str | None
+
+
+class NutritionCatalogueOptionPageResponse(BaseModel):
+    items: list[NutritionCatalogueOption]
+
+
 class NutritionProfileInput(BaseModel):
     daily_activity_level: DailyActivityLevel
     metabolic_basis: MetabolicBasis | None = None
@@ -150,12 +189,40 @@ class NutritionProfileInput(BaseModel):
     supplied_meals_per_week: int = Field(default=0, ge=0, le=35)
     supplied_meal_source: str | None = Field(default=None, max_length=300)
     foods_available_at_home: list[str] = Field(default_factory=list, max_length=100)
-    favourite_foods: list[str] = Field(default_factory=list, max_length=100)
-    disliked_foods: list[str] = Field(default_factory=list, max_length=100)
+    favourite_foods: list[str] = Field(
+        default_factory=list,
+        max_length=100,
+        deprecated="Use favourite_catalogue_items instead.",
+    )
+    disliked_foods: list[str] = Field(
+        default_factory=list,
+        max_length=100,
+        deprecated="Use disliked_catalogue_items instead.",
+    )
     never_suggest_foods: list[str] = Field(default_factory=list, max_length=100)
     refused_foods: list[str] = Field(default_factory=list, max_length=100)
-    allergies: list[FoodConstraintInput] = Field(default_factory=list, max_length=100)
-    intolerances: list[FoodConstraintInput] = Field(default_factory=list, max_length=100)
+    allergies: list[FoodConstraintInput] = Field(
+        default_factory=list,
+        max_length=100,
+        deprecated="Use allergy_catalogue_items instead.",
+    )
+    intolerances: list[FoodConstraintInput] = Field(
+        default_factory=list,
+        max_length=100,
+        deprecated="Use intolerance_catalogue_items instead.",
+    )
+    favourite_catalogue_items: list[NutritionCatalogueTargetInput] = Field(
+        default_factory=list, max_length=100
+    )
+    disliked_catalogue_items: list[NutritionCatalogueTargetInput] = Field(
+        default_factory=list, max_length=100
+    )
+    allergy_catalogue_items: list[NutritionCatalogueConstraintInput] = Field(
+        default_factory=list, max_length=100
+    )
+    intolerance_catalogue_items: list[NutritionCatalogueConstraintInput] = Field(
+        default_factory=list, max_length=100
+    )
     dietary_pattern: DietaryPattern
     religious_cultural_exclusions: list[str] = Field(default_factory=list, max_length=100)
     preferred_variety: PreferredVariety = PreferredVariety.MEDIUM
@@ -221,6 +288,10 @@ class NutritionProfileInput(BaseModel):
 
 
 class NutritionProfileResponse(NutritionProfileInput):
+    favourite_catalogue_items: list[NutritionCatalogueTargetResponse]  # type: ignore[assignment]
+    disliked_catalogue_items: list[NutritionCatalogueTargetResponse]  # type: ignore[assignment]
+    allergy_catalogue_items: list[NutritionCatalogueConstraintResponse]  # type: ignore[assignment]
+    intolerance_catalogue_items: list[NutritionCatalogueConstraintResponse]  # type: ignore[assignment]
     user_id: UUID
     onboarding_status: NutritionOnboardingStatus
     currency: str

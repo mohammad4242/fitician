@@ -77,7 +77,7 @@ def test_legacy_cooking_values_do_not_rewrite_existing_profile(client, db: Sessi
     assert profile.cooking_frequency_per_week == 2
 
 
-def test_ordinary_preferences_resolve_only_exact_canonical_food_aliases(
+def test_ordinary_preferences_persist_only_canonical_food_targets(
     client,
     db: Session,
 ) -> None:
@@ -90,8 +90,15 @@ def test_ordinary_preferences_resolve_only_exact_canonical_food_aliases(
         user_id,
         NutritionProfileInput(
             **profile_payload(
-                favourite_foods=["فیله مرغ", "ترکیب ناشناخته"],
-                disliked_foods=["سینه مرغ"],
+                favourite_catalogue_items=[
+                    {"target_type": "food", "target_id": str(chicken.id)}
+                ],
+                disliked_catalogue_items=[
+                    {
+                        "target_type": "food",
+                        "target_id": str(next(food for food in foods if food.slug == "celery").id),
+                    }
+                ],
             )
         ),
     )
@@ -104,9 +111,7 @@ def test_ordinary_preferences_resolve_only_exact_canonical_food_aliases(
         )
         .order_by(NutritionFoodItem.name)
     ).all()
-    resolved = {item.name: getattr(item, "catalogue_food_id", None) for item in items}
-    assert resolved == {
-        "ترکیب ناشناخته": None,
-        "سینه مرغ": chicken.id,
-        "فیله مرغ": chicken.id,
+    assert {(item.kind, item.catalogue_food_id) for item in items} == {
+        (FoodItemKind.FAVOURITE, chicken.id),
+        (FoodItemKind.DISLIKED, next(food for food in foods if food.slug == "celery").id),
     }

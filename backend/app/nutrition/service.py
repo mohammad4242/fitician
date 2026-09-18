@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -21,6 +22,7 @@ from app.nutrition.enums import (
 )
 from app.nutrition.exceptions import (
     DietaryPatternNotSupportedV1Error,
+    NutritionCatalogueTargetError,
     NutritionOnboardingBlockedError,
     NutritionProfileNotFoundError,
     SafetyDecisionNotFoundError,
@@ -30,6 +32,7 @@ from app.nutrition.exceptions import (
 from app.nutrition.food_catalogue import normalize_food_alias
 from app.nutrition.models import (
     NutritionCatalogueFood,
+    NutritionCatalogueMeal,
     NutritionCookingEquipment,
     NutritionFoodItem,
     NutritionMedicalCondition,
@@ -43,6 +46,10 @@ from app.nutrition.models import (
 from app.nutrition.safety import SafetyAnswers, evaluate_safety
 from app.nutrition.schemas import (
     FoodConstraintInput,
+    NutritionCatalogueConstraintInput,
+    NutritionCatalogueConstraintResponse,
+    NutritionCatalogueTargetInput,
+    NutritionCatalogueTargetResponse,
     NutritionProfileInput,
     NutritionProfileResponse,
     PhysicianReviewRequirementResponse,
@@ -60,6 +67,15 @@ class NutritionSnapshot:
     equipment: tuple[NutritionCookingEquipment, ...]
     foods: tuple[NutritionFoodItem, ...]
     safety: NutritionSafetyDecision
+    catalogue_foods: dict[UUID, NutritionCatalogueFood]
+    catalogue_meals: dict[UUID, NutritionCatalogueMeal]
+
+
+@dataclass(frozen=True)
+class _PreferenceTarget:
+    target_type: str
+    target_id: UUID
+    details: str | None = None
 
 
 _SAFETY_MESSAGES = {
@@ -304,6 +320,10 @@ def save_nutrition_profile(
             "refused_foods",
             "allergies",
             "intolerances",
+            "favourite_catalogue_items",
+            "disliked_catalogue_items",
+            "allergy_catalogue_items",
+            "intolerance_catalogue_items",
             "religious_cultural_exclusions",
             "preferred_variety",
             "maximum_meal_repetition_per_week",
@@ -370,39 +390,204 @@ def _food_items(
     payload: NutritionProfileInput,
 ) -> list[NutritionFoodItem]:
     items: list[NutritionFoodItem] = []
-    canonical_foods = db.scalars(
-        select(NutritionCatalogueFood).options(selectinload(NutritionCatalogueFood.aliases))
-    ).all()
-    candidates: dict[str, set[UUID]] = {}
-    for food in canonical_foods:
-        catalogue_names = (
-            food.name_fa,
-            food.name_en,
-            food.slug,
-            *(alias.alias for alias in food.aliases),
-        )
-        for value in catalogue_names:
-            candidates.setdefault(normalize_food_alias(value), set()).add(food.id)
-    resolved_food_ids = {
-        key: next(iter(food_ids)) for key, food_ids in candidates.items() if len(food_ids) == 1
+    explicit_inputs = (
+        *payload.favourite_catalogue_items,
+        *payload.disliked_catalogue_items,
+        *payload.allergy_catalogue_items,
+        *payload.intolerance_catalogue_items,
+    )
+    food_rows = {
+        row.id: row
+        for row in db.scalars(
+            select(NutritionCatalogueFood).where(NutritionCatalogueFood.id.in_(
+                [item.target_id for item in explicit_inputs if item.target_type == "food"]
+            ))
+        ).all()
     }
+    meal_rows = {
+        row.id: row
+        for row in db.scalars(
+            select(NutritionCatalogueMeal).where(NutritionCatalogueMeal.id.in_(
+                [item.target_id for item in explicit_inputs if item.target_type == "meal"]
+            ))
+        ).all()
+    }
+    all_legacy_values = [
+        *payload.favourite_foods,
+        *payload.disliked_foods,
+        *(item.name for item in payload.allergies),
+        *(item.name for item in payload.intolerances),
+    ]
+    legacy_matches = _legacy_catalogue_matches(db) if all_legacy_values else {}
+
+    def resolve(
+        explicit: list[NutritionCatalogueTargetInput] | list[NutritionCatalogueConstraintInput],
+        legacy_values: list[str],
+        *,
+        details: list[str | None] | None = None,
+    ) -> list[_PreferenceTarget]:
+        resolved: list[_PreferenceTarget] = []
+        for item in explicit:
+            resolved.append(
+                _validate_explicit_target(
+                    item.target_type,
+                    item.target_id,
+                    food_rows,
+                    meal_rows,
+                    db,
+                    item.details if isinstance(item, NutritionCatalogueConstraintInput) else None,
+                )
+            )
+        for index, name in enumerate(legacy_values):
+            matches = legacy_matches.get(normalize_food_alias(name), frozenset())
+            if len(matches) == 0:
+                raise NutritionCatalogueTargetError(
+                    "NUTRITION_CATALOGUE_TARGET_NOT_FOUND",
+                    "The nutrition preference is not a verified catalogue target.",
+                )
+            if len(matches) > 1:
+                raise NutritionCatalogueTargetError(
+                    "NUTRITION_CATALOGUE_TARGET_AMBIGUOUS",
+                    "The nutrition preference matches more than one catalogue target.",
+                )
+            target_type, target_id = next(iter(matches))
+            resolved.append(
+                _PreferenceTarget(
+                    target_type=target_type,
+                    target_id=target_id,
+                    details=details[index] if details is not None else None,
+                )
+            )
+        return resolved
+
     string_collections = {
         FoodItemKind.FAVOURITE: payload.favourite_foods,
         FoodItemKind.DISLIKED: payload.disliked_foods,
         FoodItemKind.RELIGIOUS_CULTURAL_EXCLUSION: payload.religious_cultural_exclusions,
     }
+    favourite = resolve(payload.favourite_catalogue_items, payload.favourite_foods)
+    disliked = resolve(payload.disliked_catalogue_items, payload.disliked_foods)
+    allergy = resolve(
+        payload.allergy_catalogue_items,
+        [item.name for item in payload.allergies],
+        details=[item.details for item in payload.allergies],
+    )
+    intolerance = resolve(
+        payload.intolerance_catalogue_items,
+        [item.name for item in payload.intolerances],
+        details=[item.details for item in payload.intolerances],
+    )
+    _reject_preference_conflicts((*favourite, *disliked, *allergy, *intolerance),
+        (len(favourite), len(disliked), len(allergy), len(intolerance)))
+    for kind, targets in (
+        (FoodItemKind.FAVOURITE, favourite),
+        (FoodItemKind.DISLIKED, disliked),
+        (FoodItemKind.ALLERGY, allergy),
+        (FoodItemKind.INTOLERANCE, intolerance),
+    ):
+        for target in targets:
+            record = (
+                food_rows.get(target.target_id)
+                if target.target_type == "food"
+                else meal_rows.get(target.target_id)
+            )
+            if record is None:
+                record = cast(
+                    NutritionCatalogueFood | NutritionCatalogueMeal | None,
+                    db.get(
+                        NutritionCatalogueFood
+                        if target.target_type == "food"
+                        else NutritionCatalogueMeal,
+                        target.target_id,
+                    ),
+                )
+            assert record is not None
+            name = record.name_fa
+            items.append(
+                NutritionFoodItem(
+                    user_id=user_id,
+                    kind=kind,
+                    name=name,
+                    normalized_name=normalize_food_alias(name),
+                    details=target.details,
+                    catalogue_food_id=target.target_id if target.target_type == "food" else None,
+                    catalogue_meal_id=target.target_id if target.target_type == "meal" else None,
+                )
+            )
     for kind, names in string_collections.items():
-        items.extend(_named_items(user_id, kind, names, resolved_food_ids))
-    items.extend(_constraint_items(user_id, FoodItemKind.ALLERGY, payload.allergies))
-    items.extend(_constraint_items(user_id, FoodItemKind.INTOLERANCE, payload.intolerances))
+        if kind is FoodItemKind.RELIGIOUS_CULTURAL_EXCLUSION:
+            items.extend(_named_items(user_id, kind, names))
     return items
+
+
+def _legacy_catalogue_matches(
+    db: Session,
+) -> dict[str, frozenset[tuple[str, UUID]]]:
+    matches: dict[str, set[tuple[str, UUID]]] = {}
+    foods = db.scalars(
+        select(NutritionCatalogueFood)
+        .where(NutritionCatalogueFood.verification_status == "verified")
+        .options(selectinload(NutritionCatalogueFood.aliases))
+    ).all()
+    meals = db.scalars(
+        select(NutritionCatalogueMeal).where(
+            NutritionCatalogueMeal.verification_status == "verified"
+        )
+    ).all()
+    for food in foods:
+        values = (food.name_fa, food.name_en, food.slug, *(alias.alias for alias in food.aliases))
+        for value in values:
+            matches.setdefault(normalize_food_alias(value), set()).add(("food", food.id))
+    for meal in meals:
+        for value in (meal.name_fa, meal.name_en, meal.code):
+            matches.setdefault(normalize_food_alias(value), set()).add(("meal", meal.id))
+    return {key: frozenset(value) for key, value in matches.items()}
+
+
+def _validate_explicit_target(
+    target_type: str,
+    target_id: UUID,
+    food_rows: dict[UUID, NutritionCatalogueFood],
+    meal_rows: dict[UUID, NutritionCatalogueMeal],
+    db: Session,
+    details: str | None,
+) -> _PreferenceTarget:
+    rows = food_rows if target_type == "food" else meal_rows
+    row = rows.get(target_id)
+    if row is None:
+        other_model = NutritionCatalogueMeal if target_type == "food" else NutritionCatalogueFood
+        if db.scalar(select(other_model.id).where(other_model.id == target_id)) is not None:
+            raise NutritionCatalogueTargetError(
+                "NUTRITION_CATALOGUE_TARGET_TYPE_MISMATCH",
+                "The nutrition catalogue target type does not match the database target.",
+            )
+        raise NutritionCatalogueTargetError(
+            "NUTRITION_CATALOGUE_TARGET_NOT_FOUND",
+            "The nutrition preference is not a verified catalogue target.",
+        )
+    if row.verification_status.value != "verified":
+        raise NutritionCatalogueTargetError(
+            "NUTRITION_CATALOGUE_TARGET_NOT_VERIFIED",
+            "The nutrition catalogue target is not verified.",
+        )
+    return _PreferenceTarget(target_type=target_type, target_id=target_id, details=details)
+
+
+def _reject_preference_conflicts(
+    entries: tuple[_PreferenceTarget, ...],
+    collection_sizes: tuple[int, int, int, int],
+) -> None:
+    if len({(entry.target_type, entry.target_id) for entry in entries}) != len(entries):
+        raise NutritionCatalogueTargetError(
+            "NUTRITION_PREFERENCE_CONFLICT",
+            "A nutrition catalogue target cannot be repeated across preference categories.",
+        )
 
 
 def _named_items(
     user_id: UUID,
     kind: FoodItemKind,
     names: list[str],
-    resolved_food_ids: dict[str, UUID],
 ) -> list[NutritionFoodItem]:
     return [
         NutritionFoodItem(
@@ -410,11 +595,6 @@ def _named_items(
             kind=kind,
             name=name,
             normalized_name=normalize_food_alias(name),
-            catalogue_food_id=(
-                resolved_food_ids.get(normalize_food_alias(name))
-                if kind in {FoodItemKind.FAVOURITE, FoodItemKind.DISLIKED}
-                else None
-            ),
         )
         for name in names
     ]
@@ -455,11 +635,25 @@ def get_nutrition_profile(db: Session, user_id: UUID) -> NutritionSnapshot:
             .order_by(NutritionFoodItem.kind, NutritionFoodItem.normalized_name)
         ).all()
     )
+    food_ids = {item.catalogue_food_id for item in foods if item.catalogue_food_id is not None}
+    meal_ids = {item.catalogue_meal_id for item in foods if item.catalogue_meal_id is not None}
     return NutritionSnapshot(
         profile=profile,
         equipment=equipment,
         foods=foods,
         safety=current_safety_decision(db, user_id),
+        catalogue_foods={
+            item.id: item
+            for item in db.scalars(
+                select(NutritionCatalogueFood).where(NutritionCatalogueFood.id.in_(food_ids))
+            ).all()
+        },
+        catalogue_meals={
+            item.id: item
+            for item in db.scalars(
+                select(NutritionCatalogueMeal).where(NutritionCatalogueMeal.id.in_(meal_ids))
+            ).all()
+        },
     )
 
 
@@ -473,6 +667,38 @@ def nutrition_profile_response(snapshot: NutritionSnapshot) -> NutritionProfileR
 
     def constraints(kind: FoodItemKind) -> list[FoodConstraintInput]:
         return [FoodConstraintInput(name=item.name, details=item.details) for item in grouped[kind]]
+
+    def target(item: NutritionFoodItem) -> NutritionCatalogueTargetResponse | None:
+        catalogue: NutritionCatalogueFood | NutritionCatalogueMeal | None
+        if item.catalogue_food_id is not None:
+            catalogue = snapshot.catalogue_foods.get(item.catalogue_food_id)
+            target_type = "food"
+        elif item.catalogue_meal_id is not None:
+            catalogue = snapshot.catalogue_meals.get(item.catalogue_meal_id)
+            target_type = "meal"
+        else:
+            return None
+        if catalogue is None:
+            return None
+        if target_type == "food":
+            category = catalogue.category
+        else:
+            assert isinstance(catalogue, NutritionCatalogueMeal)
+            category = catalogue.category.value
+        return NutritionCatalogueTargetResponse(
+            target_type=target_type,
+            target_id=catalogue.id,
+            name_fa=catalogue.name_fa,
+            name_en=catalogue.name_en,
+            category=category,
+            image_url=catalogue.image_path,
+        )
+
+    def constraint_target(item: NutritionFoodItem) -> NutritionCatalogueConstraintResponse | None:
+        base = target(item)
+        if base is None:
+            return None
+        return NutritionCatalogueConstraintResponse(**base.model_dump(), details=item.details)
 
     profile = snapshot.profile
     return NutritionProfileResponse(
@@ -506,6 +732,26 @@ def nutrition_profile_response(snapshot: NutritionSnapshot) -> NutritionProfileR
         refused_foods=names(FoodItemKind.REFUSED),
         allergies=constraints(FoodItemKind.ALLERGY),
         intolerances=constraints(FoodItemKind.INTOLERANCE),
+        favourite_catalogue_items=[
+            resolved
+            for item in grouped[FoodItemKind.FAVOURITE]
+            if (resolved := target(item)) is not None
+        ],
+        disliked_catalogue_items=[
+            resolved
+            for item in grouped[FoodItemKind.DISLIKED]
+            if (resolved := target(item)) is not None
+        ],
+        allergy_catalogue_items=[
+            resolved
+            for item in grouped[FoodItemKind.ALLERGY]
+            if (resolved := constraint_target(item)) is not None
+        ],
+        intolerance_catalogue_items=[
+            resolved
+            for item in grouped[FoodItemKind.INTOLERANCE]
+            if (resolved := constraint_target(item)) is not None
+        ],
         dietary_pattern=profile.dietary_pattern,
         religious_cultural_exclusions=names(FoodItemKind.RELIGIOUS_CULTURAL_EXCLUSION),
         preferred_variety=profile.preferred_variety,

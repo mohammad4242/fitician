@@ -51,6 +51,7 @@ from app.nutrition.ai_price_research import (
     canonical_source_domain,
     median_band_indices,
 )
+from app.nutrition.catalogue_options import search_catalogue_options
 from app.nutrition.catalogue_view import admin_food_catalogue, member_food_catalogue
 from app.nutrition.clinical_service import (
     ClinicalError,
@@ -86,6 +87,7 @@ from app.nutrition.estimate_service import (
 from app.nutrition.exceptions import (
     DietaryPatternNotSupportedV1Error,
     GoalReselectionRequiredDomainError,
+    NutritionCatalogueTargetError,
     NutritionEstimateBlockedError,
     NutritionEstimateNotFoundError,
     NutritionOnboardingBlockedError,
@@ -227,6 +229,7 @@ from app.nutrition.schemas import (
     MealReplacementPreviewResponse,
     NutritionAdaptivePreferencesResponse,
     NutritionAdherenceResponse,
+    NutritionCatalogueOptionPageResponse,
     NutritionDailyTrackingResponse,
     NutritionEstimateResponse,
     NutritionFoodPhotoConfirmationResponse,
@@ -341,6 +344,7 @@ AppSettings = Annotated[Settings, Depends(get_settings)]
 _NUTRITION_FOODS_CACHE = "nutrition_foods"
 _NUTRITION_FOOD_CATALOGUE_CACHE = "nutrition_food_catalogue"
 _NUTRITION_MEALS_CACHE = "nutrition_meals"
+_NUTRITION_CATALOGUE_OPTIONS_CACHE = "nutrition_catalogue_options"
 
 
 def _domain_error(code: str, message: str) -> HTTPException:
@@ -565,6 +569,29 @@ async def read_verified_foods(
 
 
 @router.get(
+    "/catalogue-options",
+    response_model=NutritionCatalogueOptionPageResponse,
+)
+async def read_catalogue_options(
+    db: DatabaseSession,
+    request: Request,
+    settings: AppSettings,
+    q: str = Query(default="", max_length=160),
+    limit: int = Query(default=20, ge=1, le=20),
+) -> NutritionCatalogueOptionPageResponse:
+    normalized_query = " ".join(q.strip().casefold().split())
+    return await _cached_catalogue_read(
+        request,
+        _NUTRITION_CATALOGUE_OPTIONS_CACHE,
+        {"q": normalized_query, "limit": limit},
+        lambda: search_catalogue_options(db, normalized_query, limit),
+        ttl_seconds=settings.cache_default_ttl_seconds,
+        serialize=lambda value: value.model_dump(mode="json"),
+        deserialize=NutritionCatalogueOptionPageResponse.model_validate,
+    )
+
+
+@router.get(
     "/food-catalogue",
     response_model=FoodCataloguePageResponse,
 )
@@ -638,6 +665,7 @@ async def create_or_update_catalogue_food(
         _NUTRITION_FOODS_CACHE,
         _NUTRITION_FOOD_CATALOGUE_CACHE,
         _NUTRITION_MEALS_CACHE,
+        _NUTRITION_CATALOGUE_OPTIONS_CACHE,
     )
     return response
 
@@ -681,6 +709,7 @@ async def upload_catalogue_food_image(
         _NUTRITION_FOODS_CACHE,
         _NUTRITION_FOOD_CATALOGUE_CACHE,
         _NUTRITION_MEALS_CACHE,
+        _NUTRITION_CATALOGUE_OPTIONS_CACHE,
     )
     try:
         _discard_food_image_if_unreferenced(db, previous_path, food.id, settings)
@@ -998,7 +1027,9 @@ async def create_catalogue_meal(
         meal = create_meal(db, payload)
     except ValueError as error:
         raise _nutrition_value_error(error, "MEAL_CATALOGUE_INVALID") from None
-    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
+    await _invalidate_nutrition_cache(
+        request, _NUTRITION_MEALS_CACHE, _NUTRITION_CATALOGUE_OPTIONS_CACHE
+    )
     return meal_response(meal, db)
 
 
@@ -1024,7 +1055,9 @@ async def replace_catalogue_meal(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "MEAL_NOT_FOUND"},
         )
-    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
+    await _invalidate_nutrition_cache(
+        request, _NUTRITION_MEALS_CACHE, _NUTRITION_CATALOGUE_OPTIONS_CACHE
+    )
     return meal_response(meal, db)
 
 
@@ -1062,7 +1095,9 @@ async def upload_catalogue_meal_image(
         db.rollback()
         discard_media(stored)
         raise
-    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
+    await _invalidate_nutrition_cache(
+        request, _NUTRITION_MEALS_CACHE, _NUTRITION_CATALOGUE_OPTIONS_CACHE
+    )
     try:
         _discard_meal_image_if_unreferenced(db, previous_path, meal.id, settings)
     except MediaStorageError as error:
@@ -1096,7 +1131,9 @@ async def remove_catalogue_meal(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "meal_referenced"},
         ) from exc
-    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
+    await _invalidate_nutrition_cache(
+        request, _NUTRITION_MEALS_CACHE, _NUTRITION_CATALOGUE_OPTIONS_CACHE
+    )
     if image_path:
         try:
             _discard_meal_image_if_unreferenced(db, image_path, meal_id, settings)
@@ -1247,6 +1284,7 @@ async def retire_food(
         _NUTRITION_FOODS_CACHE,
         _NUTRITION_FOOD_CATALOGUE_CACHE,
         _NUTRITION_MEALS_CACHE,
+        _NUTRITION_CATALOGUE_OPTIONS_CACHE,
     )
 
 
@@ -1548,6 +1586,11 @@ def update_nutrition_profile(
         raise _domain_error(
             "NUTRITION_ONBOARDING_BLOCKED",
             "برای حفظ ایمنی، ادامه این مسیر فقط با بررسی پزشک ممکن است.",
+        ) from None
+    except NutritionCatalogueTargetError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": error.code, "message": error.message},
         ) from None
 
 

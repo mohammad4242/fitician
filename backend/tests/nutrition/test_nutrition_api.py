@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.nutrition.models import (
     MedicalConditionPolicy,
+    NutritionCatalogueFood,
+    NutritionCatalogueMeal,
     NutritionFoodItem,
     NutritionMedicalCondition,
     NutritionMedication,
@@ -88,12 +90,12 @@ def nutrition_payload() -> dict[str, object]:
         "supplied_meals_per_week": 2,
         "supplied_meal_source": "محل کار",
         "foods_available_at_home": ["برنج", "عدس"],
-        "favourite_foods": ["مرغ"],
-        "disliked_foods": ["کرفس"],
+        "favourite_foods": [],
+        "disliked_foods": [],
         "never_suggest_foods": ["دل و جگر"],
         "refused_foods": ["سیرابی"],
-        "allergies": [{"name": "بادام زمینی", "details": "واکنش شدید"}],
-        "intolerances": [{"name": "لاکتوز", "details": None}],
+        "allergies": [],
+        "intolerances": [],
         "dietary_pattern": "omnivore",
         "religious_cultural_exclusions": ["الکل"],
         "preferred_variety": "medium",
@@ -311,7 +313,7 @@ def test_nutrition_profile_persists_budget_and_normalized_food_constraints(
     response = client.put(
         "/api/v1/nutrition/profile",
         headers=ORIGIN,
-        json=nutrition_payload(),
+        json=_canonical_profile_payload(db),
     )
 
     assert response.status_code == 200
@@ -320,16 +322,164 @@ def test_nutrition_profile_persists_budget_and_normalized_food_constraints(
     assert body["daily_activity_level"] == "moderate"
     assert body["individual_monthly_food_budget_irr"] == 13_000_000
     assert body["weekly_budget_irr"] == 3_000_000
-    assert body["allergies"] == [{"name": "بادام زمینی", "details": "واکنش شدید"}]
+    assert body["allergies"] == []
     assert db.get(NutritionProfile, user_id) is not None
     items = db.scalars(select(NutritionFoodItem).where(NutritionFoodItem.user_id == user_id)).all()
-    assert {item.kind.value for item in items} >= {"allergy", "intolerance", "favourite"}
+    assert {item.kind.value for item in items} >= {"favourite", "disliked"}
 
     saved = client.get("/api/v1/nutrition/profile")
     assert saved.status_code == 200
     assert saved.json() == body
     status_response = client.get("/api/v1/profile/status")
     assert status_response.json()["completion_state"] == "nutrition_draft_ready"
+
+
+def _canonical_preference_target_rows(db: Session) -> tuple[NutritionCatalogueFood, NutritionCatalogueMeal]:
+    food = NutritionCatalogueFood(
+        id=UUID(int=1001),
+        slug="canonical-chicken",
+        name_fa="مرغ canonical",
+        name_en="Canonical chicken",
+        verification_status="verified",
+        source_name="test",
+        source_reference="test://catalogue",
+        category="protein",
+        measurement_basis="raw",
+        canonical_quantity=100,
+        canonical_unit="g",
+        edible_portion=1,
+        data_version="test-v1",
+        dietary_patterns=["omnivore"],
+        allergen_tags=[],
+        allergen_metadata_verified=False,
+    )
+    meal = NutritionCatalogueMeal(
+        id=UUID(int=1002),
+        code="CANONICAL-MEAL",
+        name_fa="عدسی canonical",
+        name_en="Canonical lentil meal",
+        category="lunch",
+        verification_status="verified",
+    )
+    db.add_all([food, meal])
+    db.flush()
+    return food, meal
+
+
+def _canonical_profile_payload(
+    db: Session,
+    *,
+    favourite: list[dict[str, str]] | None = None,
+    disliked: list[dict[str, str]] | None = None,
+    allergies: list[dict[str, object]] | None = None,
+    intolerances: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    food = db.query(NutritionCatalogueFood).filter(NutritionCatalogueFood.slug == "canonical-chicken").one_or_none()
+    meal = db.query(NutritionCatalogueMeal).filter(NutritionCatalogueMeal.code == "CANONICAL-MEAL").one_or_none()
+    if food is None or meal is None:
+        food, meal = _canonical_preference_target_rows(db)
+    payload = nutrition_payload()
+    payload.update(
+        {
+            "favourite_foods": [],
+            "disliked_foods": [],
+            "allergies": [],
+            "intolerances": [],
+            "favourite_catalogue_items": favourite
+            if favourite is not None
+            else [{"target_type": "food", "target_id": str(food.id)}],
+            "disliked_catalogue_items": disliked
+            if disliked is not None
+            else [{"target_type": "meal", "target_id": str(meal.id)}],
+            "allergy_catalogue_items": allergies or [],
+            "intolerance_catalogue_items": intolerances or [],
+        }
+    )
+    return payload
+
+
+def test_canonical_food_and_meal_preferences_are_persisted_and_projected(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = create_shared_and_safety(client, "canonical-preferences@example.com")
+    payload = _canonical_profile_payload(db)
+
+    response = client.put("/api/v1/nutrition/profile", headers=ORIGIN, json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["favourite_catalogue_items"][0]["target_type"] == "food"
+    assert body["favourite_catalogue_items"][0]["name_fa"] == "مرغ canonical"
+    assert body["disliked_catalogue_items"][0]["target_type"] == "meal"
+    assert body["disliked_catalogue_items"][0]["name_fa"] == "عدسی canonical"
+    rows = db.query(NutritionFoodItem).filter(NutritionFoodItem.user_id == user_id).all()
+    canonical_rows = [
+        row for row in rows if row.catalogue_food_id is not None or row.catalogue_meal_id is not None
+    ]
+    assert len(canonical_rows) == 2
+    assert all(
+        (row.catalogue_food_id is None) != (row.catalogue_meal_id is None)
+        for row in canonical_rows
+    )
+
+
+@pytest.mark.parametrize(
+    ("target", "code"),
+    [
+        ({"target_type": "food", "target_id": "00000000-0000-0000-0000-000000009999"}, "NUTRITION_CATALOGUE_TARGET_NOT_FOUND"),
+        ({"target_type": "food", "target_id": str(UUID(int=1002))}, "NUTRITION_CATALOGUE_TARGET_TYPE_MISMATCH"),
+    ],
+)
+def test_canonical_preference_targets_are_database_validated(
+    client: TestClient,
+    db: Session,
+    target: dict[str, str],
+    code: str,
+) -> None:
+    create_shared_and_safety(client, f"invalid-target-{code}@example.com")
+    payload = _canonical_profile_payload(db, favourite=[target])
+
+    response = client.put("/api/v1/nutrition/profile", headers=ORIGIN, json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == code
+
+
+def test_arbitrary_legacy_preference_text_is_rejected(client: TestClient, db: Session) -> None:
+    create_shared_and_safety(client, "arbitrary-preference@example.com")
+    payload = _canonical_profile_payload(db)
+    payload.update(
+        {
+            "favourite_catalogue_items": [],
+            "disliked_catalogue_items": [],
+            "favourite_foods": ["پیتزای مخصوص محمد"],
+        }
+    )
+
+    response = client.put("/api/v1/nutrition/profile", headers=ORIGIN, json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "NUTRITION_CATALOGUE_TARGET_NOT_FOUND"
+
+
+def test_duplicate_and_cross_kind_canonical_targets_are_rejected(
+    client: TestClient,
+    db: Session,
+) -> None:
+    create_shared_and_safety(client, "conflicting-preferences@example.com")
+    _canonical_preference_target_rows(db)
+    food = db.query(NutritionCatalogueFood).filter(NutritionCatalogueFood.slug == "canonical-chicken").one()
+    payload = _canonical_profile_payload(
+        db,
+        favourite=[{"target_type": "food", "target_id": str(food.id)}],
+        disliked=[{"target_type": "food", "target_id": str(food.id)}],
+    )
+
+    response = client.put("/api/v1/nutrition/profile", headers=ORIGIN, json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "NUTRITION_PREFERENCE_CONFLICT"
 
 
 def test_nutrition_profile_requires_completed_standard_or_reviewable_safety(

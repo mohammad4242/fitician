@@ -48,7 +48,7 @@ Run both capacity preflights for the fixed two-replica topology:
 
 ```bash
 python3 ops/check-db-connection-budget.py --replicas 2
-python3 ops/check-runtime-capacity.py --replicas 2
+python3 ops/check-runtime-capacity.py --replicas 2 --compose-file compose.prod.yaml
 ```
 
 The default 2-vCPU/4-GiB envelope assigns 3296 MiB of container memory limits

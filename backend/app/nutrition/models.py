@@ -1307,16 +1307,43 @@ class NutritionCookingEquipment(Base):
 class NutritionFoodItem(Base):
     __tablename__ = "nutrition_food_items"
     __table_args__ = (
-        UniqueConstraint(
-            "user_id", "kind", "normalized_name", name="uq_nutrition_food_items_user_kind_name"
-        ),
         CheckConstraint(
             "char_length(btrim(name)) BETWEEN 1 AND 120", name="ck_nutrition_food_items_name"
         ),
         CheckConstraint(
             "details IS NULL OR char_length(details) <= 500", name="ck_nutrition_food_items_details"
         ),
+        CheckConstraint(
+            "catalogue_food_id IS NULL OR catalogue_meal_id IS NULL",
+            name="ck_nutrition_food_items_single_catalogue_target",
+        ),
         Index("ix_nutrition_food_items_kind_name", "kind", "normalized_name"),
+        Index(
+            "uq_nutrition_food_items_user_kind_food",
+            "user_id",
+            "kind",
+            "catalogue_food_id",
+            unique=True,
+            postgresql_where=sql_text("catalogue_food_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_nutrition_food_items_user_kind_meal",
+            "user_id",
+            "kind",
+            "catalogue_meal_id",
+            unique=True,
+            postgresql_where=sql_text("catalogue_meal_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_nutrition_food_items_user_kind_legacy_name",
+            "user_id",
+            "kind",
+            "normalized_name",
+            unique=True,
+            postgresql_where=sql_text(
+                "catalogue_food_id IS NULL AND catalogue_meal_id IS NULL"
+            ),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -1328,12 +1355,23 @@ class NutritionFoodItem(Base):
         nullable=True,
         index=True,
     )
+    catalogue_meal_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("nutrition_catalogue_meals.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     kind: Mapped[FoodItemKind] = mapped_column(
         enum_column(FoodItemKind, "ck_nutrition_food_items_kind_values"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(120), nullable=False)
     details: Mapped[str | None] = mapped_column(String(500))
+    catalogue_food: Mapped[NutritionCatalogueFood | None] = relationship(
+        foreign_keys=[catalogue_food_id]
+    )
+    catalogue_meal: Mapped[NutritionCatalogueMeal | None] = relationship(
+        foreign_keys=[catalogue_meal_id]
+    )
 
 
 class NutritionPlannerPolicyVersion(Base):
