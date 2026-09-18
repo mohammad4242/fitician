@@ -9,7 +9,7 @@ gate, health verification, and schema-aware rollback behavior.
 Run from the repository root:
 
 ```bash
-cd backend && uv run pytest
+cd backend && for shard in 0 1 2 3; do uv run python ../ops/run-backend-test-shard.py --total 4 --index "$shard"; done
 cd backend && uv run ruff check app/infrastructure app/cache app/rate_limits app/jobs app/observability app/resilience
 cd backend && uv run python -m alembic heads
 cd .. && python3 -m unittest discover -s ops/tests -p 'test_*.py' -v
@@ -28,7 +28,12 @@ providers.
 Require a successful GitHub Actions `Fitician CI` run for the exact commit.
 The image publication job is downstream of backend, frontend, mobile, secret,
 Compose/Caddy, Redis, rate-limit, queue, worker, scheduler, and monitoring
-contract checks.
+contract checks. Backend CI runs four sequential fresh-process shards. Every
+collected test is assigned by collection position and the shards validate a
+shared normalized collection manifest; time-varying parameter values cannot
+silently create overlap or omission. All four shard results are required. The
+unsharded local run reached 38% and was killed with exit 137 at 10.4 GiB peak
+RSS, so it is not accepted as a pass.
 
 Confirm the release has:
 
@@ -56,9 +61,9 @@ The monitoring overlay is optional and is not part of this normal envelope.
 On the 4-GiB VPS, enabling its default 512-MiB budget fails the headroom gate;
 run monitoring elsewhere, lower its retention/limits with measured evidence,
 or resize the VPS. Tune service limits through the `*_MEMORY_LIMIT` and
-`*_CPU_LIMIT` operator variables. Keep their matching `*_MEMORY_MIB` and
-`*_CPUS` preflight values identical so the rendered Compose contract test
-continues to prove the configured topology.
+`*_CPU_LIMIT` operator variables. The production preflight renders the selected
+Compose file and calculates its actual `mem_limit`/`cpus` values, so an override
+cannot bypass the capacity check.
 
 ## Deploy and observe
 

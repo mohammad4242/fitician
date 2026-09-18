@@ -94,7 +94,15 @@ jobs:
             uv run python -m scripts.seed_benchmark_catalog
           DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician \
             uv run python -m app.training_templates.seed
-      - run: uv run pytest
+      - name: Run complete backend suite in fresh-process shards
+        run: |
+          mkdir -p ../artifacts/scalability
+          rm -f ../artifacts/scalability/backend-test-manifest.txt
+          for shard in 0 1 2 3; do
+            uv run python ../ops/run-backend-test-shard.py \
+              --total 4 --index "$shard" \
+              --manifest ../artifacts/scalability/backend-test-manifest.txt
+          done
         env:
           DATABASE_URL: postgresql+psycopg://fitician:fitician@localhost:5432/fitician
           TEST_DATABASE_URL: postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test
