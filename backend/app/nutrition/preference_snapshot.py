@@ -53,7 +53,7 @@ class PreferenceSnapshot:
 
 def preference_snapshot_signature(food_items: Iterable[NutritionFoodItem]) -> str:
     """Return a stable identity for profile preferences used by plan generation."""
-    rows = sorted(
+    rows = [
         (
             item.kind.value,
             str(item.catalogue_food_id) if item.catalogue_food_id is not None else None,
@@ -62,7 +62,8 @@ def preference_snapshot_signature(food_items: Iterable[NutritionFoodItem]) -> st
             item.details,
         )
         for item in food_items
-    )
+    ]
+    rows.sort(key=lambda row: tuple("" if value is None else value for value in row))
     payload = json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
     return sha256(payload.encode("utf-8")).hexdigest()
 

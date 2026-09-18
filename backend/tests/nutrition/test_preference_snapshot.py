@@ -1,8 +1,11 @@
 from uuid import UUID
 
+from app.nutrition.enums import FoodItemKind
+from app.nutrition.models import NutritionFoodItem
 from app.nutrition.preference_snapshot import (
     PreferenceFeedback,
     build_preference_snapshot,
+    preference_snapshot_signature,
 )
 
 
@@ -33,6 +36,29 @@ def test_preference_snapshot_is_deterministic_and_adherence_neutral_without_data
     assert first == second
     assert first.data_sufficient is False
     assert first.historical_meal_adherence == ()
+
+
+def test_preference_snapshot_signature_handles_legacy_nullable_targets() -> None:
+    legacy_item = NutritionFoodItem(
+        user_id=UUID(int=1),
+        kind=FoodItemKind.ALLERGY,
+        name="بادام زمینی",
+        normalized_name="بادام زمینی",
+        details=None,
+    )
+    canonical_item = NutritionFoodItem(
+        user_id=UUID(int=1),
+        kind=FoodItemKind.FAVOURITE,
+        name="مرغ",
+        normalized_name="مرغ",
+        details="بدون پوست",
+        catalogue_food_id=UUID(int=2),
+    )
+
+    first = preference_snapshot_signature((legacy_item, canonical_item))
+    second = preference_snapshot_signature((canonical_item, legacy_item))
+
+    assert first == second
 
 
 def test_snapshot_combines_profile_meal_preferences_and_feedback_without_losing_categories(
