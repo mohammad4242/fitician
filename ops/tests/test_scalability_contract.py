@@ -50,6 +50,8 @@ class ScalabilityContractTests(unittest.TestCase):
 
         self.assertIn("  migrations:\n", compose)
         self.assertIn('command: ["alembic", "upgrade", "head"]', compose)
+        self.assertIn("      APP_ENV: local", compose)
+        self.assertIn('    restart: "no"', compose)
         self.assertNotIn("alembic upgrade head &&", compose)
         for service_name in (
             "backend",

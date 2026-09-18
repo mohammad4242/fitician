@@ -10,6 +10,11 @@ docker compose -f compose.yaml -f compose.multi.yaml up -d --build --wait
 bash ops/load/run.sh health
 ```
 
+The local stack runs Alembic through one completed `migrations` service before
+starting either backend replica or any worker. After changing migrations, use
+the `up -d --build --wait` command above (not only `docker compose restart`) so
+the one-shot migration service is recreated and rerun.
+
 For distribution evidence, repeat requests through Caddy and inspect the
 opt-in local header:
 

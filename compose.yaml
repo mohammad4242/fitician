@@ -84,6 +84,7 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://fitician:fitician@db:5432/fitician
+      APP_ENV: local
     volumes:
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
