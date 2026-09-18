@@ -103,6 +103,7 @@ class BodyAnalysis(Base):
     error_code: Mapped[str | None] = mapped_column(String(80))
     error_message: Mapped[str | None] = mapped_column(String(500))
     provider_request_id: Mapped[str | None] = mapped_column(String(160))
+    correlation_id: Mapped[str | None] = mapped_column(String(128), index=True)
     input_tokens: Mapped[int | None] = mapped_column(Integer)
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     request_cost: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))

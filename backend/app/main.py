@@ -59,6 +59,7 @@ from app.media.factory import build_s3_storage
 from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
 from app.nutrition.router import router as nutrition_router
+from app.observability.logging import configure_structured_logging, log_event
 from app.observability.metrics import MetricsRegistry
 from app.profile.router import router as profile_router
 from app.program_timeline.router import router as program_timeline_router
@@ -80,6 +81,7 @@ def create_app(
     public_media_storage: ObjectStorage | None = None,
 ) -> FastAPI:
     active_settings = settings or get_settings()
+    configure_structured_logging()
     active_settings.media_root.mkdir(parents=True, exist_ok=True)
     mimetypes.add_type("image/webp", ".webp")
     if active_settings.media_storage_backend == "s3" and public_media_storage is None:
@@ -252,6 +254,13 @@ def create_app(
         try:
             response = await call_next(request)
         except Exception:
+            log_event(
+                logger,
+                "http request failed",
+                request_id=getattr(request.state, "request_id", None),
+                status="error",
+                duration_ms=round((time.perf_counter() - started) * 1000, 2),
+            )
             metrics.finish_failed_request(
                 method=request.method,
                 path=request.url.path,
@@ -263,6 +272,13 @@ def create_app(
             path=request.url.path,
             status_code=response.status_code,
             duration_seconds=time.perf_counter() - started,
+        )
+        log_event(
+            logger,
+            "http request completed",
+            request_id=getattr(request.state, "request_id", None),
+            status=response.status_code,
+            duration_ms=round((time.perf_counter() - started) * 1000, 2),
         )
         return response
 

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.observability.logging import configure_structured_logging
 
 from .apns import ApnsConfigurationError, build_apns_provider
 from .content import PREFERENCE_FIELDS
@@ -408,6 +409,7 @@ def _close_provider(provider: NotificationProvider) -> None:
 
 
 def run_worker(settings: Settings) -> None:
+    configure_structured_logging()
     worker_id = _worker_id()
     engine = get_engine(settings)
     providers: dict[NotificationProviderName, NotificationProvider] = {}

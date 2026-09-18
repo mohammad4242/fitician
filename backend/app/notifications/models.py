@@ -189,6 +189,7 @@ class NotificationOutboxEvent(Base):
     category: Mapped[str] = mapped_column(String(40), nullable=False)
     deduplication_key: Mapped[str] = mapped_column(String(200), nullable=False)
     payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    correlation_id: Mapped[str | None] = mapped_column(String(128), index=True)
     status: Mapped[str] = mapped_column(
         String(16), default="pending", server_default="pending", nullable=False
     )

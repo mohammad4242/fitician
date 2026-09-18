@@ -2490,6 +2490,7 @@ async def create_food_photo_estimate(
             settings,
             idempotency_key,
             language=resolved_lang,
+            correlation_id=getattr(request.state, "request_id", None),
         )
     except RateLimitExceeded as error:
         raise HTTPException(

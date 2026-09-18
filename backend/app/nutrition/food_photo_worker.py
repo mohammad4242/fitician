@@ -20,6 +20,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
+from app.observability.logging import configure_structured_logging, log_event
 
 from . import food_photo_service
 from .models import NutritionFoodPhotoAnalysisJob, NutritionFoodPhotoEstimate
@@ -240,6 +241,17 @@ def _record_failure(
             "food_photo_analysis_failed",
             data={"estimate_id": estimate.id},
         ),
+        correlation_id=job.correlation_id,
+    )
+    log_event(
+        logger,
+        "food photo job failed",
+        request_id=job.correlation_id,
+        job_id=str(job.id),
+        worker_id=worker_id,
+        attempt=job.attempt_count,
+        error_code=code.value,
+        status=job.status,
     )
     db.commit()
     return True
@@ -395,6 +407,16 @@ async def process_food_photo_job(
             "food_photo_analysis_completed",
             data={"estimate_id": estimate.id},
         ),
+        correlation_id=job.correlation_id,
+    )
+    log_event(
+        logger,
+        "food photo job completed",
+        request_id=job.correlation_id,
+        job_id=str(job.id),
+        worker_id=worker_id,
+        attempt=job.attempt_count,
+        status=job.status,
     )
     db.commit()
     return True
@@ -437,6 +459,7 @@ def _worker_id() -> str:
 
 
 async def run_worker(settings: Settings) -> None:
+    configure_structured_logging()
     worker_id = _worker_id()
     engine = get_engine(settings)
     ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)

@@ -26,6 +26,7 @@ from app.body_analysis.runtime import build_body_analysis_runtime
 from app.body_analysis.service import BodyAnalysisService
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.observability.logging import configure_structured_logging, log_event
 
 import_module("app.main")  # Ensure all SQLAlchemy models and relationships are registered
 
@@ -189,6 +190,15 @@ async def process_body_analysis_job(
         logger.exception("Body analysis worker execution failed for %s", analysis_id)
         return False
 
+    log_event(
+        logger,
+        "body analysis job processed",
+        request_id=analysis.correlation_id,
+        job_id=str(analysis.id),
+        worker_id=worker_id,
+        attempt=analysis.attempt_count,
+        status=analysis.status.value,
+    )
     _release_body_analysis_lease(db, analysis_id, worker_id=worker_id)
     return True
 
@@ -231,6 +241,7 @@ def _worker_id() -> str:
 
 
 async def run_worker(settings: Settings) -> None:
+    configure_structured_logging()
     worker_id = _worker_id()
     engine = get_engine(settings)
     ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)

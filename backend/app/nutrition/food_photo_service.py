@@ -443,6 +443,7 @@ async def enqueue_photo(
     settings: Settings,
     idempotency_key: str | None = None,
     language: str = "fa",
+    correlation_id: str | None = None,
 ) -> dict[str, object]:
     if not consent:
         raise FoodPhotoError("THIRD_PARTY_PROCESSING_CONSENT_REQUIRED")
@@ -490,6 +491,7 @@ async def enqueue_photo(
                 available_at=now,
                 max_attempts=settings.food_photo_max_attempts,
                 execution_config=_food_photo_execution_config(config, language=language),
+                correlation_id=correlation_id,
             )
         )
         db.flush()

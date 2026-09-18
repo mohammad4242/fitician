@@ -44,6 +44,7 @@ def enqueue_specialist_notification(
     event_type: str,
     deduplication_key: str,
     data: dict[str, object],
+    correlation_id: str | None = None,
 ) -> int:
     count = 0
     for user_id, role in specialist_user_roles(db, roles):
@@ -57,6 +58,7 @@ def enqueue_specialist_notification(
             category="required_reviews",
             deduplication_key=deduplication_key,
             payload=build_notification_payload(event_type, data=notification_data),
+            correlation_id=correlation_id,
         )
         count += 1
     return count

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -203,6 +203,7 @@ def start_session_analysis(
     session_id: UUID,
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
     runtime: BodyAnalysisRuntimeDependency,
     payload: BodyAnalysisStartRequest,
 ) -> BodyAnalysisResponse:
@@ -215,6 +216,7 @@ def start_session_analysis(
             runtime.config,
             confirm_measurements_current=payload.confirm_measurements_current,
             charge_quota=True,
+            correlation_id=getattr(request.state, "request_id", None),
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None
@@ -238,6 +240,7 @@ def retry_session_analysis(
     session_id: UUID,
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
     runtime: BodyAnalysisRuntimeDependency,
     payload: BodyAnalysisStartRequest | None = None,
 ) -> BodyAnalysisResponse:
@@ -261,6 +264,7 @@ def retry_session_analysis(
                 payload.confirm_measurements_current if payload is not None else False
             ),
             charge_quota=True,
+            correlation_id=getattr(request.state, "request_id", None),
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None
@@ -284,6 +288,7 @@ def retry_analysis_as_admin(
     analysis_id: UUID,
     db: DatabaseSession,
     _admin: AdminUser,
+    request: Request,
     runtime: BodyAnalysisRuntimeDependency,
 ) -> BodyAnalysisResponse:
     analysis = db.scalar(
@@ -300,6 +305,7 @@ def retry_analysis_as_admin(
             analysis.id,
             analysis.session.user_id,
             runtime.config,
+            correlation_id=getattr(request.state, "request_id", None),
         )
     except BodyAnalysisNotFoundError:
         raise _not_found() from None

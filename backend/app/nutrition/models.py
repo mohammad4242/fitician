@@ -1992,6 +1992,7 @@ class NutritionFoodPhotoAnalysisJob(Base):
         Integer, default=3, server_default="3", nullable=False
     )
     execution_config: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    correlation_id: Mapped[str | None] = mapped_column(String(128), index=True)
     last_error_code: Mapped[str | None] = mapped_column(String(80))
     last_error_message: Mapped[str | None] = mapped_column(String(300))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

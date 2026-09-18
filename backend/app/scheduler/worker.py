@@ -15,11 +15,13 @@ from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.nutrition.price_scheduler import scheduler_loop
 from app.nutrition.retention_scheduler import retention_scheduler_loop
+from app.observability.logging import configure_structured_logging
 
 logger = logging.getLogger(__name__)
 
 
 async def run_scheduler(settings: Settings) -> None:
+    configure_structured_logging()
     """Run all periodic loops in one independently deployable process."""
     agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
     food_price_timeout = httpx.Timeout(settings.food_price_provider_timeout_seconds)

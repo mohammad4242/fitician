@@ -296,6 +296,7 @@ class BodyAnalysisService:
         *,
         confirm_measurements_current: bool = False,
         charge_quota: bool = False,
+        correlation_id: str | None = None,
     ) -> BodyAnalysis:
         photo_session = self._owner_photo_session(session_id, user_id, lock=True)
         if photo_session.state not in {
@@ -330,6 +331,7 @@ class BodyAnalysisService:
             config,
             replaces=latest,
             input_snapshot=input_snapshot,
+            correlation_id=correlation_id,
         )
 
     def retry(
@@ -340,6 +342,7 @@ class BodyAnalysisService:
         *,
         confirm_measurements_current: bool = False,
         charge_quota: bool = False,
+        correlation_id: str | None = None,
     ) -> BodyAnalysis:
         previous = self.get_analysis(analysis_id, user_id)
         photo_session = self._owner_photo_session(previous.session_id, user_id, lock=True)
@@ -367,6 +370,7 @@ class BodyAnalysisService:
                     "body_analysis_failed",
                     data={"analysis_id": latest.id},
                 ),
+                correlation_id=latest.correlation_id,
             )
             self._db.commit()
         elif latest.status is not BodyAnalysisStatus.FAILED:
@@ -390,6 +394,7 @@ class BodyAnalysisService:
             config,
             replaces=latest,
             input_snapshot=input_snapshot,
+            correlation_id=correlation_id,
         )
 
     def _snapshot_for_creation(
@@ -584,6 +589,7 @@ class BodyAnalysisService:
         *,
         replaces: BodyAnalysis | None,
         input_snapshot: BodyAnalysisInputSnapshot | None,
+        correlation_id: str | None = None,
     ) -> BodyAnalysis:
         revision = (
             int(
@@ -613,6 +619,7 @@ class BodyAnalysisService:
             schema_version=config.schema_version,
             status=BodyAnalysisStatus.QUEUED,
             raw_result=raw_result,
+            correlation_id=correlation_id,
         )
         photo_session.state = BodyPhotoSessionState.QUEUED
         self._db.add(analysis)
@@ -747,6 +754,7 @@ class BodyAnalysisService:
                     "body_analysis_completed",
                     data={"analysis_id": analysis.id},
                 ),
+                correlation_id=analysis.correlation_id,
             )
             enqueue_specialist_notification(
                 self._db,
@@ -754,6 +762,7 @@ class BodyAnalysisService:
                 event_type="body_analysis_review_required",
                 deduplication_key=f"body-analysis:{analysis.id}:review-required",
                 data={"analysis_id": analysis.id},
+                correlation_id=analysis.correlation_id,
             )
             self._db.commit()
             result_version = self._current_version(analysis.id)
@@ -809,6 +818,7 @@ class BodyAnalysisService:
                         "body_analysis_failed",
                         data={"analysis_id": analysis.id},
                     ),
+                    correlation_id=analysis.correlation_id,
                 )
             self._db.commit()
         return self._analysis(analysis_id)

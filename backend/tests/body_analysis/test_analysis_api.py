@@ -71,13 +71,16 @@ def test_start_only_enqueues_and_does_not_execute_provider(
 
     response = client.post(
         f"/api/v1/body-photo-sessions/{photo_session.id}/analysis",
-        headers=ORIGIN,
+        headers={**ORIGIN, "X-Correlation-ID": "body-queue-request-1"},
         json={"confirm_measurements_current": True},
     )
 
     assert response.status_code == 202, response.text
     assert provider.calls == 0
     assert response.json()["status"] == "queued"
+    analysis = db.scalar(select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id))
+    assert analysis is not None
+    assert analysis.correlation_id == "body-queue-request-1"
 
 
 def test_analysis_result_api_is_owner_only_and_hides_provider_envelopes(
