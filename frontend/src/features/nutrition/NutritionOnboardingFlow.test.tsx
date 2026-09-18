@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { ApiError } from "@fitician/core";
 import * as profileApi from "../profile/api";
 import * as nutritionApi from "./api";
-import type { SafetyDecision } from "./types";
+import type { NutritionProfile, SafetyDecision } from "./types";
+import type { SharedProfile } from "../profile/types";
 import i18n from "../../i18n";
 
 vi.mock("../profile/api", () => ({
@@ -34,6 +35,58 @@ const standardDecision: SafetyDecision = {
   message: "عالی، می‌توانیم اطلاعات تغذیه‌ات را کامل کنیم.",
   created_at: "2026-08-05T12:00:00Z",
 };
+
+const makeSharedProfile = (fitnessGoal: SharedProfile["fitness_goal"]): SharedProfile => ({
+  user_id: "user-1", product_mode: "nutrition", display_name: "سارا",
+  birth_date: "2000-05-14", sex: "female", height_cm: 165,
+  current_weight_kg: 62.5, fitness_goal: fitnessGoal,
+  weight_measured_at: "2026-08-05T12:00:00Z",
+});
+
+const makeNutritionProfile = (overrides: Partial<NutritionProfile> = {}): NutritionProfile => ({
+  daily_activity_level: "moderate",
+  individual_monthly_food_budget_irr: 13_000_000,
+  target_weight_change_kg_per_week: 0.5,
+  weight_rate_mode: "safe",
+  budget_style: "strict",
+  meals_per_day: 3,
+  snacks_per_day: 1,
+  preferred_plan_start_day: "saturday",
+  favourite_foods: [],
+  disliked_foods: [],
+  allergies: [],
+  intolerances: [],
+  dietary_pattern: "omnivore",
+  religious_cultural_exclusions: [],
+  work_shift_context: null,
+  daily_check_in_enabled: false,
+  preferred_check_in_time: null,
+  user_id: "user-1",
+  onboarding_status: "completed",
+  currency: "IRR",
+  weekly_budget_irr: 3_000_000,
+  physician_review_required: false,
+  created_at: "2026-08-05T12:00:00Z",
+  updated_at: "2026-08-05T12:00:00Z",
+  ...overrides,
+});
+
+async function renderExistingNutrition(
+  fitnessGoal: SharedProfile["fitness_goal"] = "fat_loss",
+  nutritionOverrides: Partial<NutritionProfile> = {},
+) {
+  vi.mocked(profileApi.getSharedProfile).mockResolvedValue(makeSharedProfile(fitnessGoal));
+  vi.mocked(nutritionApi.getNutritionProfile).mockResolvedValue(makeNutritionProfile(nutritionOverrides));
+  render(
+    <NutritionOnboardingFlow
+      productMode="nutrition"
+      editExisting
+      onCreateTrainingProfile={vi.fn()}
+      onComplete={vi.fn()}
+    />,
+  );
+  await screen.findByRole("heading", { name: "اطلاعات تغذیه‌ای" });
+}
 
 beforeEach(async () => {
   await i18n.changeLanguage("fa");
@@ -377,6 +430,100 @@ it("shows warning when target weight change rate is above 1.0 kg/week", async ()
 
   expect(await screen.findByRole("heading", { name: "اطلاعات تغذیه‌ای" })).toBeInTheDocument();
   expect(screen.getByText("نرخ بالای ۱.۰ کیلوگرم در هفته پیشنهاد نمی‌شود.")).toBeInTheDocument();
+});
+
+it("renders the authenticated nutrition information page with the goal-aware rate title", async () => {
+  await renderExistingNutrition();
+
+  expect(screen.getByRole("heading", { name: "نرخ کاهش وزن هفتگی" })).toBeInTheDocument();
+  expect(screen.getByText("تنظیم ایمن پیشنهادی")).toBeInTheDocument();
+  expect(screen.getByText("اعمال نرخ دلخواه من")).toBeInTheDocument();
+});
+
+it("selects weight-rate modes as accessible cards without changing their backend values", async () => {
+  const user = userEvent.setup();
+  await renderExistingNutrition();
+
+  const safe = screen.getByRole("radio", { name: /تنظیم ایمن پیشنهادی/ });
+  const override = screen.getByRole("radio", { name: /اعمال نرخ دلخواه من/ });
+  expect(safe).toHaveAttribute("aria-checked", "true");
+  expect(override).toHaveAttribute("aria-checked", "false");
+
+  await user.click(override);
+  expect(override).toHaveAttribute("aria-checked", "true");
+  expect(safe).toHaveAttribute("aria-checked", "false");
+
+  await user.click(safe);
+  expect(safe).toHaveAttribute("aria-checked", "true");
+  expect(override).toHaveAttribute("aria-checked", "false");
+});
+
+it("opens a custom rate listbox with every backend-supported value and closes after selection", async () => {
+  const user = userEvent.setup();
+  await renderExistingNutrition();
+
+  const trigger = screen.getByRole("button", { name: /۰٫۵ کیلوگرم در هفته/ });
+  await user.click(trigger);
+
+  const listbox = screen.getByRole("listbox");
+  expect(listbox).toBeInTheDocument();
+  expect(within(listbox).getAllByRole("option")).toHaveLength(18);
+  expect(within(listbox).getByRole("option", { name: /۰٫۳ کیلوگرم در هفته/ })).toBeInTheDocument();
+  expect(within(listbox).getByRole("option", { name: /۲٫۰ کیلوگرم در هفته/ })).toHaveTextContent("بالا");
+
+  await user.click(within(listbox).getByRole("option", { name: /۰٫۸ کیلوگرم در هفته/ }));
+  expect(screen.getByRole("button", { name: /۰٫۸ کیلوگرم در هفته/ })).toBeInTheDocument();
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+});
+
+it("saves the selected safe rate through the existing nutrition payload", async () => {
+  const user = userEvent.setup();
+  vi.mocked(nutritionApi.saveNutritionProfile).mockResolvedValue(makeNutritionProfile());
+  await renderExistingNutrition("fat_loss", { target_weight_change_kg_per_week: 0.5, weight_rate_mode: "safe" });
+
+  await user.click(screen.getByRole("button", { name: "ذخیره اطلاعات" }));
+
+  await waitFor(() => expect(nutritionApi.saveNutritionProfile).toHaveBeenCalledOnce());
+  expect(nutritionApi.saveNutritionProfile).toHaveBeenCalledWith(expect.objectContaining({
+    target_weight_change_kg_per_week: 0.5,
+    weight_rate_mode: "safe",
+  }));
+});
+
+it("saves a direct override rate through the existing nutrition payload", async () => {
+  const user = userEvent.setup();
+  vi.mocked(nutritionApi.saveNutritionProfile).mockResolvedValue(makeNutritionProfile());
+  await renderExistingNutrition("fat_loss", { target_weight_change_kg_per_week: 0.5, weight_rate_mode: "safe" });
+
+  await user.click(screen.getByRole("radio", { name: /اعمال نرخ دلخواه من/ }));
+  await user.click(screen.getByRole("button", { name: /۰٫۵ کیلوگرم در هفته/ }));
+  await user.click(screen.getByRole("option", { name: /۱٫۵ کیلوگرم در هفته/ }));
+  await user.click(screen.getByRole("button", { name: "ذخیره اطلاعات" }));
+
+  await waitFor(() => expect(nutritionApi.saveNutritionProfile).toHaveBeenCalledOnce());
+  expect(nutritionApi.saveNutritionProfile).toHaveBeenCalledWith(expect.objectContaining({
+    target_weight_change_kg_per_week: 1.5,
+    weight_rate_mode: "user_override",
+  }));
+});
+
+it("restores a saved rate and override mode when authenticated nutrition details reopen", async () => {
+  await renderExistingNutrition("fat_loss", {
+    target_weight_change_kg_per_week: 0.8,
+    weight_rate_mode: "user_override",
+  });
+
+  expect(screen.getByRole("button", { name: /۰٫۸ کیلوگرم در هفته/ })).toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: /اعمال نرخ دلخواه من/ })).toHaveAttribute("aria-checked", "true");
+});
+
+it("uses the gain title for a gain-weight authenticated profile", async () => {
+  await renderExistingNutrition("gain_weight", {
+    target_weight_change_kg_per_week: 0.3,
+  });
+
+  expect(screen.getByRole("heading", { name: "نرخ افزایش وزن هفتگی" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "نرخ کاهش وزن هفتگی" })).not.toBeInTheDocument();
 });
 
 it("advances to account creation when selecting omnivore on the last pre-account question", async () => {

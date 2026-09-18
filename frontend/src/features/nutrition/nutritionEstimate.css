@@ -237,27 +237,6 @@ html[dir="rtl"] .nutrition-estimate-hero h1 { letter-spacing: 0; }
   }
 }
 
-/* Onboarding & Settings Rate Card */
-.nutrition-rate-setting-box { padding: .75rem .9rem; background: rgb(255 255 255 / 3%); border: 1px solid rgb(234 244 241 / 10%); border-radius: .85rem; display: flex; flex-direction: column; gap: .6rem; margin-bottom: .6rem; }
-.nutrition-rate-setting-box__header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; }
-.nutrition-rate-setting-box__title { display: flex; align-items: center; gap: .5rem; font-size: .88rem; font-weight: 600; color: var(--fitician-mist); }
-.nutrition-rate-setting-box__select { max-width: 14rem; padding: .4rem .65rem; border-radius: .6rem; border: 1px solid var(--fitician-line); background: var(--fitician-canvas); color: var(--fitician-ink); font-size: .82rem; }
-.nutrition-rate-setting-box__modes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
-@media (max-width: 520px) { .nutrition-rate-setting-box__modes { grid-template-columns: 1fr; } }
-.nutrition-rate-mode-option { padding: .55rem .75rem; border-radius: .65rem; text-align: start; cursor: pointer; border: 1px solid rgb(234 244 241 / 8%); background: rgb(0 0 0 / 20%); transition: all .2s ease; display: flex; flex-direction: column; gap: .2rem; font-family: inherit; }
-.nutrition-rate-mode-option:hover { background: rgb(255 255 255 / 4%); border-color: rgb(234 244 241 / 18%); }
-.nutrition-rate-mode-option.is-selected { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 8%); }
-.nutrition-rate-mode-option.is-selected.is-override { border-color: #f59e0b; background: rgb(245 158 11 / 8%); }
-.nutrition-rate-mode-option__head { display: flex; align-items: center; gap: .4rem; }
-.nutrition-rate-mode-option__radio { width: .85rem; height: .85rem; border-radius: 50%; border: 1.5px solid rgb(234 244 241 / 35%); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio { border-color: var(--fitician-aqua); }
-.nutrition-rate-mode-option.is-selected .nutrition-rate-mode-option__radio::after { content: ""; width: .45rem; height: .45rem; border-radius: 50%; background: var(--fitician-aqua); }
-.nutrition-rate-mode-option.is-selected.is-override .nutrition-rate-mode-option__radio { border-color: #f59e0b; }
-.nutrition-rate-mode-option.is-selected.is-override .nutrition-rate-mode-option__radio::after { background: #f59e0b; }
-.nutrition-rate-mode-option strong { font-size: .8rem; color: var(--fitician-ink); font-weight: 700; }
-.nutrition-rate-mode-option p { margin: 0; font-size: .7rem; color: rgb(234 244 241 / 55%); line-height: 1.35; }
-.nutrition-rate-override-notice { display: flex; align-items: center; gap: .4rem; padding: .35rem .6rem; border-radius: .5rem; background: rgb(245 158 11 / 10%); border: 1px solid rgb(245 158 11 / 25%); color: #fbbf24; font-size: .72rem; }
-
 .nutrition-target-card { min-height: 9rem; display: flex; flex-direction: column; justify-content: space-between; padding: 1.2rem; }
 .nutrition-target-card span, .nutrition-target-card small { color: rgb(234 244 241 / 66%); }
 .nutrition-target-card strong { font-family: "Sora Variable", sans-serif; font-size: clamp(1.3rem, 2.5vw, 2rem); }

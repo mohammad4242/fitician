@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { FITICIAN_WEEKDAY_LABELS_FA } from "@fitician/core";
@@ -634,23 +634,84 @@ export function NutritionOnboardingFlow({
   );
 }
 
+type WeightRateOption = { value: string; label: string; isHigh: boolean };
+type NutritionLocalizer = (fa: string, en: string) => string;
+
+function formatPersianRate(value: string) {
+  return new Intl.NumberFormat("fa-IR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Number(value));
+}
+
+function createWeightRateOptions(l: NutritionLocalizer): WeightRateOption[] {
+  const options: WeightRateOption[] = [];
+  for (let r = 3; r <= 20; r += 1) {
+    const value = (r / 10).toFixed(1);
+    options.push({
+      value,
+      label: l(`${formatPersianRate(value)} کیلوگرم در هفته`, `${value} kg/week`),
+      isHigh: r > 10,
+    });
+  }
+  return options;
+}
+
 function WeightRateSettingBox(props: {
   isLoss: boolean;
   rate: string;
   mode: "safe" | "user_override";
-  rateOptions: Array<{ value: string; label: string; isHigh: boolean }>;
+  rateOptions: WeightRateOption[];
   onRate: (value: string) => void;
   onMode: (mode: "safe" | "user_override") => void;
-  l: (fa: string, en: string) => string;
+  l: NutritionLocalizer;
 }) {
   const { isLoss, rate, mode, rateOptions, onRate, onMode, l } = props;
-  const currentRateNum = Number(rate || (isLoss ? "0.5" : "0.3"));
+  const defaultRate = isLoss ? "0.5" : "0.3";
+  const selectedRate = rate || defaultRate;
+  const currentRateNum = Number(selectedRate);
   const isHigh = currentRateNum > 1.0;
+  const selectedOption = rateOptions.find((option) => option.value === selectedRate) ?? {
+    value: selectedRate,
+    label: l(`${formatPersianRate(selectedRate)} کیلوگرم در هفته`, `${selectedRate} kg/week`),
+    isHigh,
+  };
+  const [isRateListOpen, setIsRateListOpen] = useState(false);
+  const settingBoxRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const listboxId = useId();
+
+  useEffect(() => {
+    if (!isRateListOpen) return undefined;
+
+    const closeWhenClickedOutside = (event: PointerEvent) => {
+      if (!settingBoxRef.current?.contains(event.target as Node)) setIsRateListOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setIsRateListOpen(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeWhenClickedOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeWhenClickedOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isRateListOpen]);
+
+  const focusOption = (index: number) => {
+    const nextIndex = (index + rateOptions.length) % rateOptions.length;
+    optionRefs.current[nextIndex]?.focus();
+  };
 
   return (
-    <div className="nutrition-rate-setting-box">
+    <div ref={settingBoxRef} className="nutrition-rate-setting-box">
       <div className="nutrition-rate-setting-box__header">
-        <div className="nutrition-rate-setting-box__title">
+        <h3 className="nutrition-rate-setting-box__title">
           <span className="profile-field__icon-badge" aria-hidden="true">
             <AppIcon name="target" />
           </span>
@@ -659,57 +720,114 @@ function WeightRateSettingBox(props: {
               ? l("نرخ کاهش وزن هفتگی", "Weekly weight loss rate")
               : l("نرخ افزایش وزن هفتگی", "Weekly weight gain rate")}
           </span>
-        </div>
-        <select
-          className="nutrition-rate-setting-box__select"
-          value={rate || (isLoss ? "0.5" : "0.3")}
-          onChange={(event) => onRate(event.target.value)}
-        >
-          {rateOptions.map((opt) => (
-            <option
-              key={opt.value}
-              value={opt.value}
-              style={opt.isHigh ? { color: "#dc2626", fontWeight: 600 } : undefined}
-            >
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        </h3>
       </div>
 
-      <div className="nutrition-rate-setting-box__modes">
+      <div
+        className="nutrition-rate-setting-box__modes"
+        role="radiogroup"
+        aria-label={l("حالت نرخ تغییر وزن", "Weight-rate mode")}
+      >
         <button
           type="button"
-          className={`nutrition-rate-mode-option ${mode !== "user_override" ? "is-selected" : ""}`}
+          role="radio"
+          aria-checked={mode === "safe"}
+          className={`nutrition-rate-mode-option ${mode === "safe" ? "is-selected" : ""}`}
           onClick={() => onMode("safe")}
         >
           <div className="nutrition-rate-mode-option__head">
             <span className="nutrition-rate-mode-option__radio" aria-hidden="true" />
-            <strong>{l("تنظیم ایمن پیشنهادی", "Safe Recommended")}</strong>
+            <strong>{l("تنظیم ایمن پیشنهادی", "Safe recommended")}</strong>
           </div>
-          <p>{l("تنظیم ایمن کالری برای حفظ عضله و سلامت متابولیک", "Smart deficit adjustment to protect muscle and health")}</p>
+          <p>{l("فیتیشن نرخ انتخابی را در محدوده ایمن تنظیم می‌کند تا از کسری یا مازاد کالری بیش‌ازحد جلوگیری شود.", "Fitician keeps the selected rate within a safe range to avoid an excessive calorie deficit or surplus.")}</p>
+          <small className="nutrition-rate-mode-option__helper">{l("اگر نرخ انتخابی بیش از محدوده ایمن باشد، فیتیشن آن را به مقدار ایمن تنظیم می‌کند.", "If the selected rate exceeds the safe range, Fitician adjusts it to a safe value.")}</small>
         </button>
         <button
           type="button"
+          role="radio"
+          aria-checked={mode === "user_override"}
           className={`nutrition-rate-mode-option ${mode === "user_override" ? "is-selected is-override" : ""}`}
           onClick={() => onMode("user_override")}
         >
           <div className="nutrition-rate-mode-option__head">
             <span className="nutrition-rate-mode-option__radio" aria-hidden="true" />
-            <strong>{l("اعمال نرخ دلخواه من", "Custom Override")}</strong>
+            <strong>{l("اعمال نرخ دلخواه من", "Custom override")}</strong>
           </div>
-          <p>{l("اعمال مستقیم نرخ انتخابی با رعایت حداقل‌های بقا", "Directly applies your rate within biological floor")}</p>
+          <p>{l("نرخ انتخابی تو مستقیماً اعمال می‌شود؛ حتی اگر بالاتر از نرخ پیشنهادی فیتیشن باشد.", "Your selected rate is applied directly, even if it is above Fitician's recommendation.")}</p>
+          <small className="nutrition-rate-mode-option__helper">{l("نرخ انتخابی مستقیماً اعمال می‌شود و ممکن است از نرخ پیشنهادی فیتیشن بیشتر باشد.", "The selected rate is applied directly and may exceed Fitician's recommendation.")}</small>
         </button>
       </div>
 
+      <div className="nutrition-rate-setting-box__rate">
+        <span className="nutrition-rate-setting-box__rate-label">{l("نرخ هفتگی", "Weekly rate")}</span>
+        <button
+          ref={triggerRef}
+          type="button"
+          className="nutrition-rate-setting-box__trigger"
+          aria-haspopup="listbox"
+          aria-expanded={isRateListOpen}
+          aria-controls={listboxId}
+          onClick={() => setIsRateListOpen((current) => !current)}
+        >
+          <span>{selectedOption.label}</span>
+          <AppIcon className="nutrition-rate-setting-box__chevron" name="chevron" />
+        </button>
+        {isRateListOpen && (
+          <div
+            id={listboxId}
+            className="nutrition-rate-setting-box__options"
+            role="listbox"
+            aria-label={l("نرخ تغییر وزن هفتگی", "Weekly weight change rate")}
+          >
+            {rateOptions.map((option, index) => (
+              <button
+                ref={(element) => { optionRefs.current[index] = element; }}
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={option.value === selectedRate}
+                className={`nutrition-rate-setting-box__option ${option.value === selectedRate ? "is-selected" : ""}`}
+                onClick={() => {
+                  onRate(option.value);
+                  setIsRateListOpen(false);
+                  triggerRef.current?.focus();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    focusOption(index + 1);
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    focusOption(index - 1);
+                  } else if (event.key === "Home") {
+                    event.preventDefault();
+                    focusOption(0);
+                  } else if (event.key === "End") {
+                    event.preventDefault();
+                    focusOption(rateOptions.length - 1);
+                  }
+                }}
+              >
+                <span className="nutrition-rate-setting-box__option-label">{option.label}</span>
+                {option.isHigh && <span className="nutrition-rate-setting-box__badge">{l("بالا", "High")}</span>}
+                {option.value === selectedRate && <span className="nutrition-rate-setting-box__check" aria-hidden="true">✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {isHigh && mode === "user_override" && (
-        <div className="nutrition-rate-override-notice">
-          <span>⚠️</span>
-          <span>{l("نرخ بالای ۱.۰ کیلوگرم با انتخاب مستقیم شما اعمال می‌شود.", "Rates above 1.0 kg/week are applied per your choice.")}</span>
+        <div className="nutrition-rate-override-notice" role="status">
+          <span aria-hidden="true">⚠</span>
+          <span>
+            <strong>{l("نرخ بالای ۱ کیلوگرم در هفته انتخاب شده است.", "A rate above 1 kg/week is selected.")}</strong>
+            <small>{l("این نرخ به انتخاب مستقیم تو اعمال می‌شود.", "This rate is applied directly by your choice.")}</small>
+          </span>
         </div>
       )}
       {isHigh && mode === "safe" && (
-        <small style={{ color: "#ef4444", display: "block", fontSize: "0.74rem" }}>
+        <small className="nutrition-rate-safe-notice">
           {l("نرخ بالای ۱.۰ کیلوگرم در هفته پیشنهاد نمی‌شود.", "Rates above 1.0 kg/week are not recommended.")}
         </small>
       )}
@@ -750,19 +868,7 @@ function PostAccountNutritionDetails(props: {
   const isRecomp = props.fitnessGoal === "body_recomposition";
   const isWeightChangeGoal = isLoss || isGain;
 
-  const rateOptions: Array<{ value: string; label: string; isHigh: boolean }> = [];
-  for (let r = 3; r <= 20; r += 1) {
-    const v = (r / 10).toFixed(1);
-    const isHigh = r > 10;
-    rateOptions.push({
-      value: v,
-      label: l(
-        `${v} کیلوگرم در هفته${isHigh ? " (پیشنهاد نمی‌شود)" : ""}`,
-        `${v} kg/week${isHigh ? " (not recommended)" : ""}`,
-      ),
-      isHigh,
-    });
-  }
+  const rateOptions = createWeightRateOptions(l);
 
   return (
     <section className="nutrition-step profile-details-page" dir={props.language === "fa" ? "rtl" : "ltr"}>
@@ -1148,19 +1254,7 @@ function BudgetForm(props: {
   const isGain = props.fitnessGoal === "gain_weight" || props.fitnessGoal === "build_muscle";
   const isWeightChangeGoal = isLoss || isGain;
 
-  const rateOptions: Array<{ value: string; label: string; isHigh: boolean }> = [];
-  for (let r = 3; r <= 20; r += 1) {
-    const v = (r / 10).toFixed(1);
-    const isHigh = r > 10;
-    rateOptions.push({
-      value: v,
-      label: l(
-        `${v} کیلوگرم در هفته${isHigh ? " (پیشنهاد نمی‌شود)" : ""}`,
-        `${v} kg/week${isHigh ? " (not recommended)" : ""}`,
-      ),
-      isHigh,
-    });
-  }
+  const rateOptions = createWeightRateOptions(l);
 
   const questionsList: Array<{
     id: "budget" | "budget_style" | "weight_rate" | "meals" | "snacks" | "start_day";
