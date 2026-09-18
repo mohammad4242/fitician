@@ -1,7 +1,8 @@
 import io
+from collections.abc import Awaitable, Callable
 from datetime import date
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID
 
 from fastapi import (
@@ -31,6 +32,7 @@ from app.admin.media import (
 from app.auth.cookies import require_trusted_origin
 from app.auth.dependencies import get_current_user
 from app.auth.models import User
+from app.cache.service import CacheResult
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
@@ -334,6 +336,10 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
 
+_NUTRITION_FOODS_CACHE = "nutrition_foods"
+_NUTRITION_FOOD_CATALOGUE_CACHE = "nutrition_food_catalogue"
+_NUTRITION_MEALS_CACHE = "nutrition_meals"
+
 
 def _domain_error(code: str, message: str) -> HTTPException:
     return HTTPException(
@@ -399,6 +405,43 @@ def _nutrition_storage_error(error: MediaStorageError) -> HTTPException:
     return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail={"code": code})
 
 
+async def _cached_catalogue_read[CacheValue](
+    request: Request,
+    namespace: str,
+    identity: object,
+    loader: Callable[[], CacheValue],
+    *,
+    ttl_seconds: int,
+    serialize: Callable[[CacheValue], object],
+    deserialize: Callable[[object], CacheValue],
+) -> CacheValue:
+    cache = getattr(request.app.state, "cache", None)
+    get_or_load = getattr(cache, "get_or_load", None)
+    if not callable(get_or_load):
+        return loader()
+    result = await cast(Callable[..., Awaitable[CacheResult[Any]]], get_or_load)(
+        namespace,
+        identity,
+        loader,
+        ttl_seconds=ttl_seconds,
+        serialize=serialize,
+        deserialize=deserialize,
+    )
+    return cast(CacheValue, result.value)
+
+
+async def _invalidate_nutrition_cache(request: Request, *namespaces: str) -> None:
+    cache = getattr(request.app.state, "cache", None)
+    invalidate = getattr(cache, "invalidate", None)
+    if not callable(invalidate):
+        return
+    for namespace in namespaces:
+        try:
+            await invalidate(namespace)
+        except Exception:
+            continue
+
+
 def _discard_food_image_if_unreferenced(
     db: DatabaseSession,
     image_path: str | None,
@@ -446,17 +489,36 @@ def _discard_meal_image_if_unreferenced(
 
 
 @router.get("/foods", response_model=list[CatalogueFoodResponse])
-def read_verified_foods(db: DatabaseSession, user: CurrentUser) -> list[CatalogueFoodResponse]:
-    return list_verified_foods(db)
+async def read_verified_foods(
+    db: DatabaseSession,
+    user: CurrentUser,
+    request: Request,
+    settings: AppSettings,
+) -> list[CatalogueFoodResponse]:
+    del user
+    return await _cached_catalogue_read(
+        request,
+        _NUTRITION_FOODS_CACHE,
+        {"kind": "verified"},
+        lambda: list_verified_foods(db),
+        ttl_seconds=settings.cache_default_ttl_seconds,
+        serialize=lambda value: [item.model_dump(mode="json") for item in value],
+        deserialize=lambda value: [
+            CatalogueFoodResponse.model_validate(item)
+            for item in cast(list[object], value)
+        ],
+    )
 
 
 @router.get(
     "/food-catalogue",
     response_model=FoodCataloguePageResponse,
 )
-def read_member_food_catalogue(
+async def read_member_food_catalogue(
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
+    settings: AppSettings,
     q: str | None = Query(default=None, max_length=160),
     category: str | None = Query(default=None, max_length=64),
     page: int = Query(default=1, ge=1),
@@ -468,12 +530,20 @@ def read_member_food_catalogue(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "NUTRITION_PRODUCT_MODE_REQUIRED"},
         )
-    return member_food_catalogue(
-        db,
-        query=q,
-        category=category,
-        page=page,
-        page_size=page_size,
+    return await _cached_catalogue_read(
+        request,
+        _NUTRITION_FOOD_CATALOGUE_CACHE,
+        {"q": q, "category": category, "page": page, "page_size": page_size},
+        lambda: member_food_catalogue(
+            db,
+            query=q,
+            category=category,
+            page=page,
+            page_size=page_size,
+        ),
+        ttl_seconds=settings.cache_default_ttl_seconds,
+        serialize=lambda value: value.model_dump(mode="json"),
+        deserialize=FoodCataloguePageResponse.model_validate,
     )
 
 
@@ -498,16 +568,24 @@ def read_admin_food_catalogue(
     response_model=CatalogueFoodResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def create_or_update_catalogue_food(
+async def create_or_update_catalogue_food(
     payload: CatalogueFoodWrite,
     db: DatabaseSession,
     admin: AdminUser,
+    request: Request,
 ) -> CatalogueFoodResponse:
     del admin
     try:
-        return save_catalogue_food(db, payload)
+        response = save_catalogue_food(db, payload)
     except ValueError as error:
         raise _nutrition_value_error(error, "FOOD_CATALOGUE_INVALID") from None
+    await _invalidate_nutrition_cache(
+        request,
+        _NUTRITION_FOODS_CACHE,
+        _NUTRITION_FOOD_CATALOGUE_CACHE,
+        _NUTRITION_MEALS_CACHE,
+    )
+    return response
 
 
 @router.post(
@@ -515,11 +593,12 @@ def create_or_update_catalogue_food(
     response_model=FoodCatalogueImageResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def upload_catalogue_food_image(
+async def upload_catalogue_food_image(
     slug: str,
     db: DatabaseSession,
     admin: AdminUser,
     settings: AppSettings,
+    request: Request,
     file: Annotated[UploadFile, File()],
 ) -> FoodCatalogueImageResponse:
     del admin
@@ -543,6 +622,12 @@ def upload_catalogue_food_image(
         db.rollback()
         discard_media(stored)
         raise
+    await _invalidate_nutrition_cache(
+        request,
+        _NUTRITION_FOODS_CACHE,
+        _NUTRITION_FOOD_CATALOGUE_CACHE,
+        _NUTRITION_MEALS_CACHE,
+    )
     try:
         _discard_food_image_if_unreferenced(db, previous_path, food.id, settings)
     except MediaStorageError as error:
@@ -740,9 +825,11 @@ async def research_single_food_price(
     "/meal-catalogue",
     response_model=SharedCatalogueMealPageResponse,
 )
-def read_shared_meal_catalogue(
+async def read_shared_meal_catalogue(
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
+    settings: AppSettings,
     category: MealCategory | None = None,
     status_filter: Literal["published", "draft", "all"] = "published",
 ) -> SharedCatalogueMealPageResponse:
@@ -757,10 +844,34 @@ def read_shared_meal_catalogue(
     else:
         target_status = FoodVerificationStatus.VERIFIED
 
-    meals = list_catalogue_meals(db, category=category, verification_status=target_status)
-    return SharedCatalogueMealPageResponse(
-        items=[meal_summary_response(meal) for meal in meals],
-        categories=list(CATEGORY_ORDER),
+    if user.is_admin:
+        meals = list_catalogue_meals(db, category=category, verification_status=target_status)
+        return SharedCatalogueMealPageResponse(
+            items=[meal_summary_response(meal) for meal in meals],
+            categories=list(CATEGORY_ORDER),
+        )
+
+    return await _cached_catalogue_read(
+        request,
+        _NUTRITION_MEALS_CACHE,
+        {
+            "category": category.value if category is not None else None,
+            "visibility": "verified",
+        },
+        lambda: SharedCatalogueMealPageResponse(
+            items=[
+                meal_summary_response(meal)
+                for meal in list_catalogue_meals(
+                    db,
+                    category=category,
+                    verification_status=FoodVerificationStatus.VERIFIED,
+                )
+            ],
+            categories=list(CATEGORY_ORDER),
+        ),
+        ttl_seconds=settings.cache_default_ttl_seconds,
+        serialize=lambda value: value.model_dump(mode="json"),
+        deserialize=SharedCatalogueMealPageResponse.model_validate,
     )
 
 
@@ -822,16 +933,19 @@ def read_catalogue_meal(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def create_catalogue_meal(
+async def create_catalogue_meal(
     payload: CatalogueMealWrite,
     db: DatabaseSession,
     admin: AdminUser,
+    request: Request,
 ) -> CatalogueMealResponse:
     del admin
     try:
-        return meal_response(create_meal(db, payload), db)
+        meal = create_meal(db, payload)
     except ValueError as error:
         raise _nutrition_value_error(error, "MEAL_CATALOGUE_INVALID") from None
+    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
+    return meal_response(meal, db)
 
 
 @router.put(
@@ -839,11 +953,12 @@ def create_catalogue_meal(
     response_model=CatalogueMealResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def replace_catalogue_meal(
+async def replace_catalogue_meal(
     meal_id: UUID,
     payload: CatalogueMealWrite,
     db: DatabaseSession,
     admin: AdminUser,
+    request: Request,
 ) -> CatalogueMealResponse:
     del admin
     try:
@@ -855,6 +970,7 @@ def replace_catalogue_meal(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "MEAL_NOT_FOUND"},
         )
+    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
     return meal_response(meal, db)
 
 
@@ -863,11 +979,12 @@ def replace_catalogue_meal(
     response_model=CatalogueMealImageResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
-def upload_catalogue_meal_image(
+async def upload_catalogue_meal_image(
     meal_id: UUID,
     db: DatabaseSession,
     admin: AdminUser,
     settings: AppSettings,
+    request: Request,
     file: Annotated[UploadFile, File()],
 ) -> CatalogueMealImageResponse:
     del admin
@@ -891,6 +1008,7 @@ def upload_catalogue_meal_image(
         db.rollback()
         discard_media(stored)
         raise
+    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
     try:
         _discard_meal_image_if_unreferenced(db, previous_path, meal.id, settings)
     except MediaStorageError as error:
@@ -903,11 +1021,12 @@ def upload_catalogue_meal_image(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_trusted_origin)],
 )
-def remove_catalogue_meal(
+async def remove_catalogue_meal(
     meal_id: UUID,
     db: DatabaseSession,
     admin: AdminUser,
     settings: AppSettings,
+    request: Request,
 ) -> None:
     del admin
     meal = db.get(NutritionCatalogueMeal, meal_id)
@@ -923,6 +1042,7 @@ def remove_catalogue_meal(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "meal_referenced"},
         ) from exc
+    await _invalidate_nutrition_cache(request, _NUTRITION_MEALS_CACHE)
     if image_path:
         try:
             _discard_meal_image_if_unreferenced(db, image_path, meal_id, settings)
@@ -1054,10 +1174,11 @@ def restore_nutrition_program(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_trusted_origin)],
 )
-def retire_food(
+async def retire_food(
     slug: str,
     db: DatabaseSession,
     admin: AdminUser,
+    request: Request,
 ) -> None:
     del admin
     try:
@@ -1067,6 +1188,12 @@ def retire_food(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "FOOD_NOT_FOUND"},
         ) from error
+    await _invalidate_nutrition_cache(
+        request,
+        _NUTRITION_FOODS_CACHE,
+        _NUTRITION_FOOD_CATALOGUE_CACHE,
+        _NUTRITION_MEALS_CACHE,
+    )
 
 
 def _monitoring_toman(value: Decimal | None) -> str | None:
