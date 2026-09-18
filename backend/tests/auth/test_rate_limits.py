@@ -111,7 +111,12 @@ def test_web_password_login_rate_limit_is_shared_with_the_api(
     client: TestClient,
     test_settings: Settings,
 ) -> None:
+    class UnavailableLimiter:
+        async def consume(self, **_: object) -> None:
+            raise RedisRateLimitUnavailable
+
     test_settings.auth_password_ip_limit = 1
+    client.app.state.rate_limiter = UnavailableLimiter()
 
     first = client.post(
         "/api/v1/auth/login",
