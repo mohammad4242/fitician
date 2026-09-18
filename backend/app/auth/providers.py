@@ -123,6 +123,7 @@ class SmtpEmailProvider:
         )
         self._from_address = settings.smtp_from_address
         self._use_tls = settings.smtp_use_tls
+        self._timeout = settings.smtp_timeout_seconds
 
     def _send(self, recipient: str, subject: str, body: str) -> None:
         message = EmailMessage()
@@ -130,7 +131,7 @@ class SmtpEmailProvider:
         message["To"] = recipient
         message["Subject"] = subject
         message.set_content(body)
-        with smtplib.SMTP(self._host, self._port, timeout=10) as smtp:
+        with smtplib.SMTP(self._host, self._port, timeout=self._timeout) as smtp:
             if self._use_tls:
                 smtp.starttls()
             if self._username is not None and self._password is not None:

@@ -33,6 +33,9 @@ def build_s3_client(settings: Settings) -> Any:
         config=Config(
             signature_version="s3v4",
             max_pool_connections=64,
+            connect_timeout=settings.s3_connect_timeout_seconds,
+            read_timeout=settings.s3_read_timeout_seconds,
+            retries={"max_attempts": settings.s3_max_attempts, "mode": "standard"},
             s3={"addressing_style": "virtual"},
         ),
     )

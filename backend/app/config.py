@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = Field(default=None, repr=False)
     smtp_from_address: str | None = None
     smtp_use_tls: bool = True
+    smtp_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     password_reset_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     email_verification_ttl_seconds: int = Field(default=86400, ge=300, le=604800)
     sms_provider: Literal["fake", "farazsms"] = "fake"
@@ -125,6 +126,9 @@ class Settings(BaseSettings):
     s3_access_key_id: SecretStr | None = Field(default=None, repr=False)
     s3_secret_access_key: SecretStr | None = Field(default=None, repr=False)
     s3_region: str | None = None
+    s3_connect_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
+    s3_read_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
+    s3_max_attempts: int = Field(default=3, ge=1, le=10)
     s3_public_object_acl: Literal["private", "public-read"] = "public-read"
     media_max_bytes: int = 20 * 1024 * 1024
     media_max_video_bytes: int = 64 * 1024 * 1024
