@@ -20,6 +20,7 @@ dependencies = [
   "pwdlib[argon2]>=0.2,<1",
   "pydantic-settings>=2,<3",
   "python-multipart>=0.0.18,<1",
+  "redis[hiredis]>=6,<7",
   "requests>=2,<3",
   "sqlalchemy>=2,<3",
   "uvicorn[standard]>=0.30,<1",

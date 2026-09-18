@@ -54,6 +54,7 @@ from app.errors import (
     error_response,
 )
 from app.exercises.router import router as exercises_router
+from app.infrastructure.redis import create_redis_service
 from app.media.delivery import deliver_public_media
 from app.media.factory import build_s3_storage
 from app.media.storage import ObjectStorage
@@ -85,6 +86,7 @@ def create_app(
     mimetypes.add_type("image/webp", ".webp")
     if active_settings.media_storage_backend == "s3" and public_media_storage is None:
         public_media_storage = build_s3_storage(active_settings)
+    redis_service = create_redis_service(active_settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -110,6 +112,7 @@ def create_app(
             app.state.ai_http_client = ai_client
             app.state.agent_http_client = agent_client
             app.state.food_price_http_client = food_price_client
+            app.state.redis = redis_service
             background_tasks: list[asyncio.Task[None]] = []
             if active_settings.app_env != "test":
                 try:
@@ -146,6 +149,7 @@ def create_app(
                     await asyncio.gather(*background_tasks)
                 except asyncio.CancelledError:
                     pass
+                await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
     app.state.billing_providers = build_payment_providers(active_settings)
