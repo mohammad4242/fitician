@@ -101,6 +101,21 @@ wait_for_two_instances() {
   return 1
 }
 
+wait_for_upstream_removed() {
+  local failed_instance=$1 routed
+  reset_deadline
+  while (( SECONDS < deadline )); do
+    routed=$(collect_instances 20 || true)
+    if [[ -n "$routed" ]] && ! printf '%s\n' "$routed" | grep -Fxq "$failed_instance"; then
+      printf '%s\n' "$routed"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "deadline exceeded waiting for Caddy to remove unavailable upstream" >&2
+  return 1
+}
+
 fixture() { "${compose[@]}" exec -T backend python -m app.jobs.local_acceptance "$@"; }
 
 wait_for_body_claim() {
@@ -299,8 +314,7 @@ drill_queue() {
 drill_caddy() {
   failed_instance=$(curl --silent --dump-header - --output /dev/null --max-time 3 http://127.0.0.1:8002/livez | awk -F': ' 'tolower($1)=="x-fitician-instance" {gsub("\r", "", $2); print $2}')
   "${compose[@]}" stop backend-2 >/dev/null
-  routed=$(collect_instances 40)
-  if printf '%s\n' "$routed" | grep -Fxq "$failed_instance"; then echo "unavailable Caddy upstream still received traffic" >&2; return 1; fi
+  routed=$(wait_for_upstream_removed "$failed_instance")
   "${compose[@]}" start backend-2 >/dev/null
   wait_for_status http://127.0.0.1:8002/readyz 200
   wait_for_two_instances >/dev/null
