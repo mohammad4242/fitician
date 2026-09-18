@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     frontend_origins: str | None = None
     app_env: Literal["local", "test", "production"] = "local"
+    instance_header_enabled: bool = False
+    instance_id: str | None = Field(default=None, max_length=120)
     cookie_secure: bool = True
     session_cookie_name: str = "__Host-fitician_session"
     session_ttl_seconds: int = 60 * 60 * 24 * 7

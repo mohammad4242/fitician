@@ -89,6 +89,7 @@ services:
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       APP_ENV: production
+      INSTANCE_HEADER_ENABLED: "false"
       MEDIA_STORAGE_BACKEND: s3
       MEDIA_LOCAL_FALLBACK_ENABLED: "false"
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}

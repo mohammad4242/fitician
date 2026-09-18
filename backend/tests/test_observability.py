@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.main import create_app
+
 
 def test_liveness_and_readiness_are_separate(client: TestClient) -> None:
     live = client.get("/livez")
@@ -26,3 +28,12 @@ def test_metrics_are_prometheus_compatible_and_do_not_include_request_content(
     assert "fitician_http_requests_total" in response.text
     assert 'route=\"/livez\"' in response.text
     assert "password" not in response.text.lower()
+
+
+def test_instance_header_is_opt_in_for_local_replica_smoke(test_settings) -> None:
+    test_settings.instance_header_enabled = True
+    test_settings.instance_id = "backend-test"
+    with TestClient(create_app(test_settings)) as client:
+        response = client.get("/livez")
+
+    assert response.headers["X-Fitician-Instance"] == "backend-test"

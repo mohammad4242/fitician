@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+import socket
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -82,6 +83,7 @@ def create_app(
 ) -> FastAPI:
     active_settings = settings or get_settings()
     configure_structured_logging()
+    instance_id = active_settings.instance_id or socket.gethostname()
     active_settings.media_root.mkdir(parents=True, exist_ok=True)
     mimetypes.add_type("image/webp", ".webp")
     if active_settings.media_storage_backend == "s3" and public_media_storage is None:
@@ -242,6 +244,8 @@ def create_app(
             logger.exception("Unhandled request exception", extra={"request_id": request_id})
             raise
         response.headers[CORRELATION_ID_HEADER] = request_id
+        if active_settings.instance_header_enabled:
+            response.headers["X-Fitician-Instance"] = instance_id
         return response
 
     @app.middleware("http")

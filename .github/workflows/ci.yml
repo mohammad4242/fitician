@@ -327,6 +327,8 @@ jobs:
             app/notifications/worker.py \
             app/scheduler/worker.py
           uv run python -c "import app.body_analysis.worker, app.nutrition.food_photo_worker, app.notifications.worker, app.scheduler.worker"
+          bash -n ../ops/load/run.sh ../ops/load/failure-drills.sh
+          python3 -m py_compile ../ops/load/http_smoke.py
       - name: Validate local and production topology contracts
         working-directory: .
         run: |
