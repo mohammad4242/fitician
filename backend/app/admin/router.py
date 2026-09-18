@@ -8,6 +8,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
@@ -88,6 +89,17 @@ router = APIRouter(
 
 def _not_found(code: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"code": code})
+
+
+async def _invalidate_exercise_cache(request: Request) -> None:
+    cache = getattr(request.app.state, "cache", None)
+    invalidate = getattr(cache, "invalidate", None)
+    if not callable(invalidate):
+        return
+    try:
+        await invalidate("exercises")
+    except Exception:
+        return
 
 
 def _validation_error(
@@ -693,11 +705,12 @@ def read_admin_exercise(
     response_model=AdminExerciseDetail,
     dependencies=[Depends(require_trusted_origin)],
 )
-def update_exercise(
+async def update_exercise(
     exercise_id: UUID,
     payload: Annotated[str, Form()],
     db: DatabaseSession,
     settings: AppSettings,
+    request: Request,
     media: Annotated[UploadFile | None, File()] = None,
     media_male_video: Annotated[UploadFile | None, File()] = None,
     media_female_video: Annotated[UploadFile | None, File()] = None,
@@ -766,6 +779,7 @@ def update_exercise(
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
         raise
+    await _invalidate_exercise_cache(request)
     return _detail(exercise)
 
 
@@ -774,14 +788,16 @@ def update_exercise(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_trusted_origin)],
 )
-def delete_exercise(
+async def delete_exercise(
     exercise_id: UUID,
     db: DatabaseSession,
     settings: AppSettings,
+    request: Request,
 ) -> None:
     media_paths = delete_admin_exercise(db, exercise_id)
     if media_paths is None:
         raise _not_found("EXERCISE_NOT_FOUND")
+    await _invalidate_exercise_cache(request)
     for media_path in media_paths:
         discard_managed_media_file(media_path, settings)
 
@@ -792,10 +808,11 @@ def delete_exercise(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def create_exercise(
+async def create_exercise(
     payload: Annotated[str, Form()],
     db: DatabaseSession,
     settings: AppSettings,
+    request: Request,
     media: Annotated[UploadFile | None, File()] = None,
     media_male_video: Annotated[UploadFile | None, File()] = None,
     media_female_video: Annotated[UploadFile | None, File()] = None,
@@ -853,4 +870,5 @@ def create_exercise(
             discard_media(stored_media)
         _discard_media_assets(stored_media_assets)
         raise
+    await _invalidate_exercise_cache(request)
     return _detail(exercise)

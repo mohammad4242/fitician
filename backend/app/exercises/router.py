@@ -1,8 +1,10 @@
-from typing import Annotated
+from collections.abc import Awaitable, Callable
+from typing import Annotated, Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from app.auth.dependencies import DatabaseSession
+from app.auth.dependencies import AppSettings, DatabaseSession
+from app.cache.service import CacheResult
 from app.exercises.dependencies import CurrentUser, require_completed_profile
 from app.exercises.enums import BodyRegion, MediaPresentation, MuscleGroup
 from app.exercises.media_resolver import (
@@ -183,39 +185,82 @@ def categories() -> ExerciseCategories:
 
 
 @router.get("/exercises", response_model=PaginatedExercises)
-def read_exercises(
+async def read_exercises(
     filters: Annotated[ExerciseFilters, Query()],
     db: DatabaseSession,
+    request: Request,
+    settings: AppSettings,
 ) -> PaginatedExercises:
-    exercises, total = list_exercises(db, filters)
-    total_pages = (total + filters.page_size - 1) // filters.page_size
-    return PaginatedExercises(
-        items=[_summary(exercise) for exercise in exercises],
-        page=filters.page,
-        page_size=filters.page_size,
-        total=total,
-        total_pages=total_pages,
+    def load() -> PaginatedExercises:
+        exercises, total = list_exercises(db, filters)
+        total_pages = (total + filters.page_size - 1) // filters.page_size
+        return PaginatedExercises(
+            items=[_summary(exercise) for exercise in exercises],
+            page=filters.page,
+            page_size=filters.page_size,
+            total=total,
+            total_pages=total_pages,
+        )
+
+    cache = getattr(request.app.state, "cache", None)
+    get_or_load = getattr(cache, "get_or_load", None)
+    if not callable(get_or_load):
+        return load()
+    result = await cast(Callable[..., Awaitable[CacheResult[Any]]], get_or_load)(
+        "exercises",
+        {"kind": "list", "filters": filters.model_dump(mode="json")},
+        load,
+        ttl_seconds=settings.cache_default_ttl_seconds,
+        serialize=lambda value: value.model_dump(mode="json"),
+        deserialize=PaginatedExercises.model_validate,
     )
+    return cast(PaginatedExercises, result.value)
 
 
 @router.get("/exercises/{slug}", response_model=ExerciseDetail)
-def read_exercise(
+async def read_exercise(
     slug: str,
     db: DatabaseSession,
     user: CurrentUser,
+    request: Request,
+    settings: AppSettings,
     presentation: Annotated[MediaPresentation | None, Query()] = None,
 ) -> ExerciseDetail:
-    exercise = get_active_exercise_by_slug(db, slug)
-    if exercise is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "EXERCISE_NOT_FOUND"},
-        )
-    profile = db.get(UserProfile, user.id)
     profile_presentation = None
+    if presentation is None:
+        profile = db.get(UserProfile, user.id)
+    else:
+        profile = None
     if presentation is None and profile is not None and profile.sex is not None:
         try:
             profile_presentation = MediaPresentation(profile.sex.value)
         except ValueError:
             profile_presentation = None
-    return _detail(exercise, presentation or profile_presentation, filter_media=True)
+    selected_presentation = presentation or profile_presentation
+
+    def load() -> ExerciseDetail:
+        exercise = get_active_exercise_by_slug(db, slug)
+        if exercise is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "EXERCISE_NOT_FOUND"},
+            )
+        return _detail(exercise, selected_presentation, filter_media=True)
+
+    cache = getattr(request.app.state, "cache", None)
+    get_or_load = getattr(cache, "get_or_load", None)
+    if not callable(get_or_load):
+        return load()
+    result = await cast(Callable[..., Awaitable[CacheResult[Any]]], get_or_load)(
+        "exercises",
+        {
+            "kind": "detail",
+            "slug": slug,
+            "presentation": selected_presentation.value if selected_presentation else None,
+        },
+        load,
+        ttl_seconds=settings.cache_detail_ttl_seconds,
+        serialize=lambda value: value.model_dump(mode="json"),
+        deserialize=ExerciseDetail.model_validate,
+    )
+    return cast(ExerciseDetail, result.value)
