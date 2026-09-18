@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.observability.metrics import MetricsRegistry
 
 
 def test_liveness_and_readiness_are_separate(client: TestClient) -> None:
@@ -48,3 +49,19 @@ def test_readiness_and_health_stop_accepting_traffic_during_drain(client: TestCl
     assert ready.status_code == 503
     assert ready.json()["status"] == "not_ready"
     assert health.status_code == 503
+
+
+def test_metrics_registry_exposes_bounded_cache_and_queue_labels() -> None:
+    metrics = MetricsRegistry()
+    metrics.record_cache(namespace="exercises", hit=True, redis_available=True)
+    metrics.record_cache(namespace="exercises", hit=False, redis_available=False)
+    metrics.record_rate_limit(namespace="auth", operation="login", allowed=False, available=True)
+    metrics.set_labeled_gauge("fitician_queue_depth", {"queue": "body_analysis"}, 3)
+
+    rendered = metrics.render()
+
+    assert 'fitician_cache_hits_total{namespace="exercises"} 1' in rendered
+    assert 'fitician_cache_misses_total{namespace="exercises"} 1' in rendered
+    assert 'fitician_cache_redis_unavailable_total{namespace="exercises"} 1' in rendered
+    assert 'fitician_rate_limit_blocked_total{namespace="auth",operation="login"} 1' in rendered
+    assert 'fitician_queue_depth{queue="body_analysis"} 3' in rendered

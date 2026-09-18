@@ -35,8 +35,9 @@ class CacheResult[T]:
 
 
 class CacheService:
-    def __init__(self, redis_service: Any, settings: Settings) -> None:
+    def __init__(self, redis_service: Any, settings: Settings, metrics: Any | None = None) -> None:
         self._redis = redis_service.client
+        self._metrics = metrics
         self._default_ttl_seconds = settings.cache_default_ttl_seconds
         self._lock_ttl_seconds = settings.cache_lock_ttl_seconds
         self._lock_wait_seconds = settings.cache_lock_wait_ms / 1000
@@ -61,6 +62,7 @@ class CacheService:
         key = cache_key(namespace, identity, generation=generation)
         cached = await self._get_decoded(key, decode)
         if cached is not _MISSING:
+            self._record_cache(namespace, hit=True, redis_available=redis_available)
             return CacheResult(cast(T, cached), True, redis_available, ttl)
 
         lock_key = f"{key}:lock"
@@ -70,20 +72,29 @@ class CacheService:
             try:
                 value = await _resolve(loader)
                 await self.set_raw(key, encode(value), ttl_seconds=ttl)
+                self._record_cache(namespace, hit=False, redis_available=redis_available)
                 return CacheResult(value, False, redis_available, ttl)
             finally:
                 await self.release_lock(lock_key, owner)
         if acquired is None:
             value = await _resolve(loader)
+            self._record_cache(namespace, hit=False, redis_available=False)
             return CacheResult(value, False, False, ttl)
 
         await asyncio.sleep(self._lock_wait_seconds)
         cached_after_wait = await self._get_decoded(key, decode)
         if cached_after_wait is not _MISSING:
+            self._record_cache(namespace, hit=True, redis_available=True)
             return CacheResult(cast(T, cached_after_wait), True, True, ttl)
         value = await _resolve(loader)
         await self.set_raw(key, encode(value), ttl_seconds=ttl)
+        self._record_cache(namespace, hit=False, redis_available=True)
         return CacheResult(value, False, True, ttl)
+
+    def _record_cache(self, namespace: str, *, hit: bool, redis_available: bool) -> None:
+        recorder = getattr(self._metrics, "record_cache", None)
+        if recorder is not None:
+            recorder(namespace=namespace, hit=hit, redis_available=redis_available)
 
     async def set_raw(self, key: str, value: object, *, ttl_seconds: int) -> bool:
         try:

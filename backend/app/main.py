@@ -89,13 +89,13 @@ def create_app(
     if active_settings.media_storage_backend == "s3" and public_media_storage is None:
         public_media_storage = build_s3_storage(active_settings)
     redis_service = create_redis_service(active_settings)
-    cache_service = CacheService(redis_service, active_settings)
+    metrics = MetricsRegistry()
+    cache_service = CacheService(redis_service, active_settings, metrics)
     rate_limiter = RedisRateLimiter(
         redis_service,
         key_secret=active_settings.phone_otp_hmac_secret.get_secret_value(),
+        metrics=metrics,
     )
-    metrics = MetricsRegistry()
-
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         zen_timeout = httpx.Timeout(active_settings.opencode_zen_timeout_seconds)
@@ -217,7 +217,11 @@ def create_app(
                     ),
                 }
             for queue, count in queue_counts.items():
-                metrics.set_gauge(f"fitician_queue_depth{{queue=\"{queue}\"}}", float(count or 0))
+                metrics.set_labeled_gauge(
+                    "fitician_queue_depth",
+                    {"queue": queue},
+                    float(count or 0),
+                )
         except SQLAlchemyError:
             metrics.set_gauge("fitician_queue_metrics_available", 0)
         return Response(metrics.render(), media_type="text/plain; version=0.0.4")
