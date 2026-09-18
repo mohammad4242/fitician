@@ -59,6 +59,18 @@ Observe for at least 30 minutes:
 The optional monitoring overlay is private and loopback-bound. Use an SSH
 tunnel or an approved private admin network; never publish ports 9090/3000.
 
+## Shutdown and leases
+
+Body Analysis and Food Photo workers receive 450 seconds to finish an already
+claimed provider call before Docker sends SIGKILL. Their provider timeout is
+bounded at 420 seconds; their durable leases are 900 and 600 seconds,
+respectively. Notification delivery receives 30 seconds for its 15-second
+provider timeout and 60-second lease. The scheduler receives 60 seconds, and
+API replicas receive 45 seconds to drain requests. A forced kill remains safe:
+the replacement worker reclaims the durable row only after its lease becomes
+stale, and owner-checked finalization prevents an old worker from finalizing a
+reclaimed job.
+
 ## Rollback
 
 If runtime verification or the observation gate fails, keep the previous SHA and
@@ -66,4 +78,3 @@ run the existing rollback path. App images may roll back only when the schema
 is unchanged. If a schema migration ran, stop automatic rollback and restore
 from the encrypted backup using the reviewed recovery procedure; never perform
 an unsafe automatic database downgrade.
-

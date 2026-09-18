@@ -129,6 +129,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+    stop_grace_period: 45s
     restart: unless-stopped
 
   backend-2:
@@ -169,6 +170,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    stop_grace_period: 450s
     restart: unless-stopped
 
   body-analysis-worker:
@@ -206,6 +208,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    stop_grace_period: 450s
     restart: unless-stopped
 
   scheduler:
@@ -242,6 +245,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    stop_grace_period: 60s
     restart: unless-stopped
 
   notification-worker:
@@ -271,6 +275,7 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    stop_grace_period: 30s
     restart: unless-stopped
 
   frontend:
