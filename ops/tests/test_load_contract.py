@@ -41,6 +41,7 @@ class LoadContractTests(unittest.TestCase):
         )
         self.assertIn("seed-catalogue-member", script)
         self.assertIn("/api/v1/nutrition/foods", script)
+        self.assertIn("/api/v1/products", script)
         self.assertIn("fitician_queue_oldest_job_age_seconds", script)
         self.assertIn("/readyz\" 503", script)
         self.assertIn("redis_has_key 'fitician:cache:v1:*'", script)

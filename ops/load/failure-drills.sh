@@ -273,7 +273,7 @@ drill_database() {
   wait_for_status "$direct_backend_url/livez" 200
   "${compose[@]}" start db >/dev/null
   wait_for_status "$direct_backend_url/readyz" 200
-  wait_for_status "$base_url/api/v1/exercise-categories" 200
+  wait_for_status "$base_url/api/v1/products" 200
   printf '%s\n' '{"drill":"database-unavailable","readiness_failed":true,"liveness_ok":true,"recovered":true}'
 }
 
