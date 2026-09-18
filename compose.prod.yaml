@@ -99,10 +99,11 @@ services:
       NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
       MEDIA_ROOT: /var/lib/fitician/media
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}
     expose:
       - "8000"
     command:
-      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+      ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}\""]
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
     depends_on:

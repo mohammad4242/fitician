@@ -327,6 +327,12 @@ def test_settings_accept_an_explicit_zen_proxy_url() -> None:
     assert settings.opencode_zen_proxy_url == "socks5://127.0.0.1:10808"
 
 
+def test_trusted_proxy_ips_have_a_private_network_default() -> None:
+    settings = Settings(_env_file=None)
+
+    assert settings.trusted_proxy_ips == "127.0.0.1,::1,172.16.0.0/12"
+
+
 def test_food_price_api_credentials_are_disabled_and_redacted_by_default() -> None:
     settings = Settings(
         food_price_persianapi_api_key="persian-secret",

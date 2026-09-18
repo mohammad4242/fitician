@@ -102,6 +102,7 @@ services:
       NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
       AGENT_SERVICE_BASE_URL: http://agent-service:9001
       AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:-}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}
       NO_PROXY: agent-service,db,localhost,127.0.0.1
     ports:
       - "8001:8000"
@@ -127,7 +128,7 @@ services:
     command:
       - sh
       - -c
-      - alembic upgrade head && python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - alembic upgrade head && python -m app.exercises.seed_media_sync --source-root /var/lib/fitician/seed-exercises && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips "$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}"
 
   food-photo-worker:
     build:

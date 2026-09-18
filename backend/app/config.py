@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     db_pool_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
     db_pool_recycle_seconds: int = Field(default=1800, ge=60, le=86400)
     db_statement_timeout_ms: int = Field(default=30000, ge=0, le=600000)
+    trusted_proxy_ips: str = "127.0.0.1,::1,172.16.0.0/12"
     redis_host: str = "localhost"
     redis_port: int = Field(default=6379, ge=1, le=65535)
     redis_db: int = Field(default=0, ge=0, le=15)
