@@ -126,9 +126,11 @@ def create_app(
             try:
                 yield
             finally:
+                app.state.draining = True
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
+    app.state.draining = False
     app.state.metrics = metrics
     app.state.billing_providers = build_payment_providers(active_settings)
     app.state.email_provider = build_email_provider(active_settings)
@@ -139,6 +141,11 @@ def create_app(
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:
+        if app.state.draining:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": "SERVICE_UNAVAILABLE"},
+            )
         with Session(get_engine(active_settings)) as db:
             db.execute(text("SELECT 1"))
         return {"status": "ok"}
@@ -150,6 +157,11 @@ def create_app(
     @app.get("/readyz", include_in_schema=False)
     async def readyz() -> JSONResponse:
         checks: dict[str, str] = {}
+        if app.state.draining:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"status": "not_ready", "checks": {"draining": "true"}},
+            )
         try:
             with Session(get_engine(active_settings)) as db:
                 db.execute(text("SELECT 1"))

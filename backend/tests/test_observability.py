@@ -37,3 +37,14 @@ def test_instance_header_is_opt_in_for_local_replica_smoke(test_settings) -> Non
         response = client.get("/livez")
 
     assert response.headers["X-Fitician-Instance"] == "backend-test"
+
+
+def test_readiness_and_health_stop_accepting_traffic_during_drain(client: TestClient) -> None:
+    client.app.state.draining = True
+
+    ready = client.get("/readyz")
+    health = client.get("/healthz")
+
+    assert ready.status_code == 503
+    assert ready.json()["status"] == "not_ready"
+    assert health.status_code == 503
