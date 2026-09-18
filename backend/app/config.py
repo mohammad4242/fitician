@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = Field(default=1.0, gt=0, le=30)
     redis_socket_timeout_seconds: float = Field(default=2.0, gt=0, le=60)
     redis_health_check_interval_seconds: int = Field(default=15, ge=0, le=3600)
+    cache_default_ttl_seconds: int = Field(default=300, ge=1, le=86400)
+    cache_detail_ttl_seconds: int = Field(default=600, ge=1, le=86400)
+    cache_lock_ttl_seconds: int = Field(default=5, ge=1, le=60)
+    cache_lock_wait_ms: int = Field(default=50, ge=0, le=50)
     frontend_origin: str = "http://localhost:5173"
     frontend_origins: str | None = None
     app_env: Literal["local", "test", "production"] = "local"

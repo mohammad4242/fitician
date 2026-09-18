@@ -39,6 +39,7 @@ from app.body_analysis.router import admin_router as body_analysis_admin_router
 from app.body_analysis.router import review_router as body_analysis_review_router
 from app.body_analysis.router import router as body_analysis_router
 from app.body_photos.router import router as body_photo_router
+from app.cache.service import CacheService
 from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.entitlements.exceptions import (
@@ -87,6 +88,7 @@ def create_app(
     if active_settings.media_storage_backend == "s3" and public_media_storage is None:
         public_media_storage = build_s3_storage(active_settings)
     redis_service = create_redis_service(active_settings)
+    cache_service = CacheService(redis_service, active_settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -113,6 +115,7 @@ def create_app(
             app.state.agent_http_client = agent_client
             app.state.food_price_http_client = food_price_client
             app.state.redis = redis_service
+            app.state.cache = cache_service
             background_tasks: list[asyncio.Task[None]] = []
             if active_settings.app_env != "test":
                 try:
