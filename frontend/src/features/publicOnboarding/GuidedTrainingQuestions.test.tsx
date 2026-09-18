@@ -34,6 +34,7 @@ function TrainingHarness({ allowNoTraining = false, onNoTraining = vi.fn() }: { 
     <output data-testid="home-state">
       {formValues.home_training_setup}:{formValues.available_equipment?.join(",")}
     </output>
+    <output data-testid="session-duration">{formValues.session_duration_minutes}</output>
     {formValues.training_cautions !== null && <p>cautions-set</p>}
     {completed && <p>completed</p>}
   </>;
@@ -68,10 +69,13 @@ it("uses fixed experience, weekly-day, and workout-time choices with auto-advanc
 
   // duration auto-advances to intensity
   expect(await screen.findByRole("heading", { name: "برای هر جلسه چقدر زمان داری؟" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "۲۰ تا ۳۰ دقیقه" })).toBeInTheDocument();
+  for (const label of ["۳۰ دقیقه", "۴۵ دقیقه", "۶۰ دقیقه", "۷۵ دقیقه", "۹۰ دقیقه", "بیش از ۹۰ دقیقه"]) {
+    expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+  }
   expect(screen.getByRole("button", { name: "بیش از ۹۰ دقیقه" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "ادامه" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "۴۵ تا ۶۰ دقیقه" }));
+  await user.click(screen.getByRole("button", { name: "۴۵ دقیقه" }));
+  expect(screen.getByTestId("session-duration")).toHaveTextContent("45");
 
   // intensity auto-advances to priority
   expect(await screen.findByRole("heading", { name: "شدت معمول تمرینت چقدر است؟" })).toBeInTheDocument();
@@ -96,6 +100,37 @@ it("uses fixed experience, weekly-day, and workout-time choices with auto-advanc
   await user.click(screen.getByRole("button", { name: "۴ هفته" }));
 
   expect(await screen.findByText("completed")).toBeInTheDocument();
+});
+
+it("stores 120 when the user chooses more than 90 minutes", async () => {
+  await i18n.changeLanguage("fa");
+  const user = userEvent.setup();
+  render(<TrainingHarness />);
+
+  await user.click(screen.getByRole("button", { name: "مبتدی (زیر ۶ ماه)" }));
+  await user.click(await screen.findByRole("button", { name: "ادامه" }));
+  await user.click(await screen.findByRole("button", { name: "۳ روز در هفته" }));
+  await user.click(await screen.findByRole("button", { name: "باشگاه" }));
+  await user.click(await screen.findByRole("button", { name: "بیش از ۹۰ دقیقه" }));
+
+  expect(screen.getByTestId("session-duration")).toHaveTextContent("120");
+});
+
+it("uses canonical English session-duration labels", async () => {
+  await i18n.changeLanguage("en");
+  const user = userEvent.setup();
+  render(<TrainingHarness />);
+
+  await user.click(screen.getByRole("button", { name: "Beginner (under 6 months)" }));
+  await user.type(await screen.findByLabelText("Training history in months"), "24");
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+  await user.click(await screen.findByRole("button", { name: "3 days per week" }));
+  await user.click(await screen.findByRole("button", { name: "Gym" }));
+
+  await screen.findByRole("button", { name: "30 minutes" });
+  for (const label of ["30 minutes", "45 minutes", "60 minutes", "75 minutes", "90 minutes", "More than 90 minutes"]) {
+    expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+  }
 });
 
 it("renders all home presets and synchronizes setup and inventory", async () => {
@@ -149,7 +184,7 @@ it("cautions allows multiple selections without auto-advancing", async () => {
   await user.click(await screen.findByRole("button", { name: "ادامه" }));
   await user.click(await screen.findByRole("button", { name: "۳ روز در هفته" }));
   await user.click(await screen.findByRole("button", { name: "باشگاه" }));
-  await user.click(await screen.findByRole("button", { name: "۴۵ تا ۶۰ دقیقه" }));
+  await user.click(await screen.findByRole("button", { name: "۶۰ دقیقه" }));
   await user.click(await screen.findByRole("button", { name: "متوسط" }));
   await user.click(await screen.findByRole("button", { name: "تمرکز ویژه‌ای ندارم" }));
 

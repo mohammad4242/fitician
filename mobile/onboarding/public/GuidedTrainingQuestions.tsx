@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import {
   equipmentForHomeTrainingSetup,
   homeTrainingSetups,
+  sessionDurations,
   userSelectablePriorityMuscles,
   type HomeTrainingSetup,
   type ProfileFormValues,
@@ -58,14 +59,6 @@ const experienceOptions = [
   ["beginner", "مبتدی (زیر ۶ ماه)"],
   ["intermediate", "متوسط (۶ ماه تا ۲ سال)"],
   ["advanced", "پیشرفته (بیش از ۲ سال)"],
-] as const;
-const durationOptions = [
-  ["30", "۲۰ تا ۳۰ دقیقه"],
-  ["45", "۳۰ تا ۴۵ دقیقه"],
-  ["60", "۴۵ تا ۶۰ دقیقه"],
-  ["75", "۶۰ تا ۷۵ دقیقه"],
-  ["90", "۷۵ تا ۹۰ دقیقه"],
-  ["120", "بیش از ۹۰ دقیقه"],
 ] as const;
 const intensityOptions = [
   ["light", "سبک"],
@@ -307,18 +300,22 @@ export function GuidedTrainingQuestions({
       ) : null}
       {question === "duration" ? (
         <View style={styles.choiceGrid}>
-          {durationOptions.map(([value, label]) => (
-            <PublicChoiceCard
-              label={label}
-              key={value}
-              onPress={() => selectAndAdvance(
-                () => onChange("session_duration_minutes", value),
-                () => setIndex((current) => current + 1),
-              )}
-              selected={values.session_duration_minutes === value}
-              value={value}
-            />
-          ))}
+          {sessionDurations.map((duration) => {
+            const value = String(duration);
+            const label = duration === 120 ? "بیش از ۹۰ دقیقه" : `${faNumber(duration)} دقیقه`;
+            return (
+              <PublicChoiceCard
+                label={label}
+                key={value}
+                onPress={() => selectAndAdvance(
+                  () => onChange("session_duration_minutes", value),
+                  () => setIndex((current) => current + 1),
+                )}
+                selected={values.session_duration_minutes === value}
+                value={value}
+              />
+            );
+          })}
         </View>
       ) : null}
       {question === "intensity" ? (

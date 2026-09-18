@@ -243,6 +243,9 @@ test("edits home training through four canonical presets", async () => {
   await screen.findByRole("header", { name: "پروفایل ورزشی" });
   fireEvent.press(screen.getByRole("radio", { name: "تمرینی" }));
 
+  for (const label of ["۳۰ دقیقه", "۴۵ دقیقه", "۶۰ دقیقه", "۷۵ دقیقه", "۹۰ دقیقه", "بیش از ۹۰ دقیقه"]) {
+    expect(screen.getByRole("radio", { name: label })).toBeTruthy();
+  }
   for (const label of ["وزن بدن", "دمبل", "کش", "دمبل + کش"]) {
     expect(screen.getByRole("radio", { name: label })).toBeTruthy();
   }

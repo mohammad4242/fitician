@@ -5,6 +5,7 @@ import { AppIcon } from "../../shared/AppIcon";
 import {
   equipmentForHomeTrainingSetup,
   homeTrainingSetups,
+  sessionDurations,
 } from "@fitician/core/profile";
 import {
   userSelectablePriorityMuscles,
@@ -216,14 +217,7 @@ export function GuidedTrainingQuestions({ values, onChange, onBack, onComplete, 
         )}
         {question === "duration" && (
           <div className="guided-choice-grid">
-            {([
-              [30, language === "en" ? "20–30 minutes" : "۲۰ تا ۳۰ دقیقه"],
-              [45, language === "en" ? "30–45 minutes" : "۳۰ تا ۴۵ دقیقه"],
-              [60, language === "en" ? "45–60 minutes" : "۴۵ تا ۶۰ دقیقه"],
-              [75, language === "en" ? "60–75 minutes" : "۶۰ تا ۷۵ دقیقه"],
-              [90, language === "en" ? "75–90 minutes" : "۷۵ تا ۹۰ دقیقه"],
-              [120, language === "en" ? "More than 90 minutes" : "بیش از ۹۰ دقیقه"],
-            ] as const).map(([value, label]) => (
+            {sessionDurations.map((value) => (
               <button
                 className={values.session_duration_minutes === String(value) ? "is-selected" : ""}
                 key={value}
@@ -233,7 +227,7 @@ export function GuidedTrainingQuestions({ values, onChange, onBack, onComplete, 
                   () => setIndex((current) => current + 1),
                 )}
               >
-                {label}
+                {t(`onboarding.options.sessionDuration.${value}`)}
               </button>
             ))}
           </div>

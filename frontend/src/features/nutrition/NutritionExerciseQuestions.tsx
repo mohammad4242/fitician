@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { AppIcon } from "../../shared/AppIcon";
 import { useAutoAdvance } from "../publicOnboarding/useAutoAdvance";
+import { sessionDurations } from "@fitician/core/profile";
 import type {
   StructuredExerciseInput,
   StructuredExerciseType,
@@ -24,10 +25,8 @@ type TrainingDraft = {
   intensity: TrainingIntensity | null;
 };
 
-const durationOptions = [30, 45, 60, 75, 90, 120] as const;
-
 export function NutritionExerciseQuestions({ initialValue, fitnessGoal, onBack, onComplete }: Props) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const initialTraining = initialValue?.trains === true ? initialValue : undefined;
   const [index, setIndex] = useState(0);
@@ -158,9 +157,7 @@ export function NutritionExerciseQuestions({ initialValue, fitnessGoal, onBack, 
               {l(`${new Intl.NumberFormat("fa-IR").format(value)} روز در هفته`, `${value} days per week`)}
             </button>
           ))}
-          {question === "duration" && durationOptions.map((value, optionIndex) => {
-            const labels = [l("۲۰–۳۰ دقیقه", "20–30 minutes"), l("۳۰–۴۵ دقیقه", "30–45 minutes"), l("۴۵–۶۰ دقیقه", "45–60 minutes"), l("۶۰–۷۵ دقیقه", "60–75 minutes"), l("۷۵–۹۰ دقیقه", "75–90 minutes"), l("بیش از ۹۰ دقیقه", "More than 90 minutes")];
-            return (
+          {question === "duration" && sessionDurations.map((value) => (
               <button
                 key={value}
                 className={draft.minutes === value ? "is-selected" : ""}
@@ -170,10 +167,9 @@ export function NutritionExerciseQuestions({ initialValue, fitnessGoal, onBack, 
                   () => setIndex((current) => current + 1),
                 )}
               >
-                {labels[optionIndex]}
+                {t(`onboarding.options.sessionDuration.${value}`)}
               </button>
-            );
-          })}
+          ))}
           {question === "intensity" && ([
             ["light", l("سبک", "Light")],
             ["moderate", l("متوسط", "Moderate")],
@@ -206,4 +202,3 @@ export function NutritionExerciseQuestions({ initialValue, fitnessGoal, onBack, 
     </section>
   );
 }
-

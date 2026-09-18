@@ -18,6 +18,7 @@ import {
   equipmentForHomeTrainingSetup,
   getPrimaryTrainingWeekdayPreset,
   homeTrainingSetups,
+  sessionDurations,
 } from "@fitician/core/profile";
 import type {
   FitnessGoal,
@@ -48,6 +49,7 @@ import {
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
+import { formatPersianNumber } from "../ui/locale";
 import { useMobileRouteSnapshot, useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
 import { profileValidationMessage } from "../onboarding/onboardingModel";
 import { createProfileApi } from "./profileApi";
@@ -120,14 +122,10 @@ const intensityOptions = [
   { label: "پرتوان", value: "vigorous" },
 ] as const;
 
-const durationOptions = [
-  { label: "۳۰ دقیقه", value: "30" },
-  { label: "۴۵ دقیقه", value: "45" },
-  { label: "۶۰ دقیقه", value: "60" },
-  { label: "۷۵ دقیقه", value: "75" },
-  { label: "۹۰ دقیقه", value: "90" },
-  { label: "۱۲۰ دقیقه", value: "120" },
-] as const;
+const durationOptions = sessionDurations.map((duration) => ({
+  label: duration === 120 ? "بیش از ۹۰ دقیقه" : `${formatPersianNumber(duration)} دقیقه`,
+  value: String(duration),
+}));
 
 const planDurationOptions = [
   { label: "۴ هفته", value: "4" },

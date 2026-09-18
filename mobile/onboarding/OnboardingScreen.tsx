@@ -19,6 +19,7 @@ import {
   equipmentForHomeTrainingSetup,
   getPrimaryTrainingWeekdayPreset,
   homeTrainingSetups,
+  sessionDurations,
   type HomeTrainingSetup,
   type ProfileFormValues,
   type ProfileInput,
@@ -43,6 +44,7 @@ import {
   TextField,
   TrainingWeekdaySelector,
 } from "../ui/components";
+import { formatPersianNumber } from "../ui/locale";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
@@ -155,13 +157,10 @@ const planStartDayOptions: readonly ChoiceOption[] = planStartDayValues.map((val
   value,
 }));
 
-const sessionDurationOptions: readonly ChoiceOption[] = [
-  { label: "۳۰ دقیقه", value: "30" },
-  { label: "۴۵ دقیقه", value: "45" },
-  { label: "۶۰ دقیقه", value: "60" },
-  { label: "۷۵ دقیقه", value: "75" },
-  { label: "۹۰ دقیقه", value: "90" },
-];
+const sessionDurationOptions: readonly ChoiceOption[] = sessionDurations.map((duration) => ({
+  label: duration === 120 ? "بیش از ۹۰ دقیقه" : `${formatPersianNumber(duration)} دقیقه`,
+  value: String(duration),
+}));
 
 const planDurationOptions: readonly ChoiceOption[] = [
   { label: "۴ هفته", value: "4" },

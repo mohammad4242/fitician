@@ -75,6 +75,36 @@ test("resets the weekday selection to the primary preset when the count changes"
     .toMatchObject({ selected: true });
 });
 
+test("uses all canonical session-duration choices in authenticated onboarding", () => {
+  const values = emptyProfileFormValues();
+  values.experience_level = "beginner";
+  values.training_days_per_week = "3";
+  values.training_location = "gym";
+  values.session_duration_minutes = "45";
+  values.training_intensity = "moderate";
+  values.training_cautions = [];
+  values.plan_duration_weeks = "4";
+
+  render(
+    <TrainingProfileStage
+      busy={false}
+      initialValues={values}
+      onBack={jest.fn(() => true)}
+      onSubmit={jest.fn()}
+    />,
+  );
+
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+
+  for (const label of ["۳۰ دقیقه", "۴۵ دقیقه", "۶۰ دقیقه", "۷۵ دقیقه", "۹۰ دقیقه", "بیش از ۹۰ دقیقه"]) {
+    expect(screen.getByRole("radio", { name: label })).toBeTruthy();
+  }
+  fireEvent.press(screen.getByRole("radio", { name: "بیش از ۹۰ دقیقه" }));
+  expect(screen.getByRole("radio", { name: "بیش از ۹۰ دقیقه" }).props.accessibilityState)
+    .toMatchObject({ selected: true });
+});
+
 test("bounds the authenticated onboarding birth-date picker with the Core policy", () => {
   const values = emptyProfileFormValues();
   values.birth_date = "1992-05-12";

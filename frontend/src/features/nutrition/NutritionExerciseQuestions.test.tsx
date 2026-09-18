@@ -16,7 +16,11 @@ it("collects only minimum structured exercise details for nutrition-only members
 
   await user.click(await screen.findByRole("button", { name: "Mixed training" }));
   await user.click(await screen.findByRole("button", { name: "4 days per week" }));
-  await user.click(await screen.findByRole("button", { name: "45–60 minutes" }));
+  await screen.findByRole("button", { name: "30 minutes" });
+  for (const label of ["30 minutes", "45 minutes", "60 minutes", "75 minutes", "90 minutes", "More than 90 minutes"]) {
+    expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+  }
+  await user.click(await screen.findByRole("button", { name: "45 minutes" }));
   await user.click(await screen.findByRole("button", { name: "Moderate" }));
 
   await vi.waitFor(() => {
@@ -24,11 +28,28 @@ it("collects only minimum structured exercise details for nutrition-only members
       trains: true,
       exercise_type: "mixed",
       days_per_week: 4,
-      minutes_per_session: 60,
+      minutes_per_session: 45,
       intensity: "moderate",
     });
   });
   expect(screen.queryByText("Where will you train?")).not.toBeInTheDocument();
+});
+
+it("maps more than 90 minutes to 120 minutes per session", async () => {
+  await i18n.changeLanguage("en");
+  const user = userEvent.setup();
+  const onComplete = vi.fn();
+  render(<NutritionExerciseQuestions onBack={vi.fn()} onComplete={onComplete} />);
+
+  await user.click(screen.getByRole("button", { name: "I train regularly" }));
+  await user.click(await screen.findByRole("button", { name: "Mixed training" }));
+  await user.click(await screen.findByRole("button", { name: "3 days per week" }));
+  await user.click(await screen.findByRole("button", { name: "More than 90 minutes" }));
+  await user.click(await screen.findByRole("button", { name: "Moderate" }));
+
+  await vi.waitFor(() => {
+    expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({ minutes_per_session: 120 }));
+  });
 });
 
 it("skips every exercise detail when a nutrition-only member does not train", async () => {

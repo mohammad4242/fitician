@@ -10,12 +10,14 @@ import type {
   TrainingIntensity,
 } from "@fitician/core/nutrition";
 import type { NutritionBasicsDraft, OnboardingState } from "@fitician/core/onboarding";
+import { sessionDurations } from "@fitician/core/profile";
 import type { ProductMode, ProfileFormValues, ProfileInput } from "@fitician/core/profile";
 import { irrToToman, tomanToIrr } from "@fitician/core/formatters";
 import { profileInputForOnboarding, profileFormValuesForSharedProfile, profileFormValuesForTrainingProfile, emptyProfileFormValues } from "../onboardingForms";
 import { normalizeOnboardingDigits } from "../onboardingModel";
 import { Button, TextField } from "../../ui/components";
 import { fiticianTokens } from "../../ui/tokens";
+import { formatPersianNumber } from "../../ui/locale";
 import { PublicChoiceCard, PublicQuestionFrame } from "./PublicQuestionFrame";
 import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
 import { usePublicAutoAdvance } from "./usePublicAutoAdvance";
@@ -481,25 +483,21 @@ function PublicNutritionExerciseQuestions({
       ) : null}
       {question === "duration" ? (
         <View style={styles.choiceGrid}>
-          {([
-            [30, "۲۰–۳۰ دقیقه"],
-            [45, "۳۰–۴۵ دقیقه"],
-            [60, "۴۵–۶۰ دقیقه"],
-            [75, "۶۰–۷۵ دقیقه"],
-            [90, "۷۵–۹۰ دقیقه"],
-            [120, "بیش از ۹۰ دقیقه"],
-          ] as const).map(([value, label]) => (
-            <PublicChoiceCard
-              label={label}
-              key={value}
-              onPress={() => selectAndAdvance(
-                () => setDraft((current) => ({ ...current, minutes: value })),
-                () => setIndex((current) => current + 1),
-              )}
-              selected={draft.minutes === value}
-              value={String(value)}
-            />
-          ))}
+          {sessionDurations.map((duration) => {
+            const label = duration === 120 ? "بیش از ۹۰ دقیقه" : `${formatPersianNumber(duration)} دقیقه`;
+            return (
+              <PublicChoiceCard
+                label={label}
+                key={duration}
+                onPress={() => selectAndAdvance(
+                  () => setDraft((current) => ({ ...current, minutes: duration })),
+                  () => setIndex((current) => current + 1),
+                )}
+                selected={draft.minutes === duration}
+                value={String(duration)}
+              />
+            );
+          })}
         </View>
       ) : null}
       {question === "intensity" ? (

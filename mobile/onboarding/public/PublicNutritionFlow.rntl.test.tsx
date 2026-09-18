@@ -106,7 +106,7 @@ test("keeps the Web nutrition exercise choices and structured payload", () => {
   }
   fireEvent.press(screen.getByRole("radio", { name: "۳ روز در هفته" }));
   act(() => jest.advanceTimersByTime(140));
-  fireEvent.press(screen.getByRole("radio", { name: "۶۰–۷۵ دقیقه" }));
+  fireEvent.press(screen.getByRole("radio", { name: "۴۵ دقیقه" }));
   act(() => jest.advanceTimersByTime(140));
   fireEvent.press(screen.getByRole("radio", { name: "شدید" }));
   act(() => jest.advanceTimersByTime(140));
@@ -125,9 +125,37 @@ test("keeps the Web nutrition exercise choices and structured payload", () => {
       trains: true,
       exercise_type: "mixed",
       days_per_week: 3,
-      minutes_per_session: 75,
+      minutes_per_session: 45,
       intensity: "vigorous",
     },
+  }));
+});
+
+test("maps more than 90 minutes to 120 in the nutrition exercise payload", () => {
+  const onComplete = jest.fn();
+  renderFlow(onComplete);
+
+  fireEvent.press(screen.getByRole("radio", { name: "منظم تمرین می‌کنم" }));
+  act(() => jest.advanceTimersByTime(140));
+  fireEvent.press(screen.getByRole("radio", { name: "تمرین ترکیبی" }));
+  act(() => jest.advanceTimersByTime(140));
+  fireEvent.press(screen.getByRole("radio", { name: "۳ روز در هفته" }));
+  act(() => jest.advanceTimersByTime(140));
+  fireEvent.press(screen.getByRole("radio", { name: "بیش از ۹۰ دقیقه" }));
+  act(() => jest.advanceTimersByTime(140));
+  fireEvent.press(screen.getByRole("radio", { name: "شدید" }));
+  act(() => jest.advanceTimersByTime(140));
+
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("radio", { name: "فعالیت متوسط" }));
+  act(() => jest.advanceTimersByTime(140));
+  fireEvent.changeText(screen.getByLabelText("بودجه ماهانه غذا (تومان)"), "5000000");
+  fireEvent.press(screen.getByRole("button", { name: "ادامه" }));
+  fireEvent.press(screen.getByRole("radio", { name: "همه‌چیزخوار" }));
+  act(() => jest.advanceTimersByTime(140));
+
+  expect(onComplete).toHaveBeenCalledWith(expect.objectContaining({
+    structuredExercise: expect.objectContaining({ minutes_per_session: 120 }),
   }));
 });
 

@@ -307,7 +307,7 @@ test("home inserts the home-equipment question and cautions keep skip behavior",
   expect(screen.getByRole("radio", { name: "دمبل + کش" })).toBeTruthy();
   fireEvent.press(screen.getByRole("radio", { name: "وزن بدن" }));
   advance();
-  expect(screen.getByText("۲۰ تا ۳۰ دقیقه")).toBeTruthy();
+  expect(screen.getByText("۳۰ دقیقه")).toBeTruthy();
 });
 
 test("each home preset synchronizes its setup and canonical equipment", () => {
@@ -346,7 +346,8 @@ test("each home preset synchronizes its setup and canonical equipment", () => {
 
 test("keeps Web duration, intensity, priority, caution, and week choices", () => {
   const onComplete = jest.fn();
-  renderWithSafeArea(<TrainingHarness onComplete={onComplete} />);
+  const changes: Array<[string, unknown]> = [];
+  renderWithSafeArea(<TrainingHarness onChange={(field, value) => changes.push([field, value])} onComplete={onComplete} />);
 
   fireEvent.press(screen.getByRole("radio", { name: "مبتدی (زیر ۶ ماه)" }));
   advance();
@@ -356,10 +357,16 @@ test("keeps Web duration, intensity, priority, caution, and week choices", () =>
   fireEvent.press(screen.getByRole("radio", { name: "باشگاه" }));
   advance();
 
-  for (const label of ["۲۰ تا ۳۰ دقیقه", "۳۰ تا ۴۵ دقیقه", "۴۵ تا ۶۰ دقیقه", "۶۰ تا ۷۵ دقیقه", "۷۵ تا ۹۰ دقیقه", "بیش از ۹۰ دقیقه"]) {
+  for (const label of ["۳۰ دقیقه", "۴۵ دقیقه", "۶۰ دقیقه", "۷۵ دقیقه", "۹۰ دقیقه", "بیش از ۹۰ دقیقه"]) {
     expect(screen.getByRole("radio", { name: label })).toBeTruthy();
   }
-  fireEvent.press(screen.getByRole("radio", { name: "۳۰ تا ۴۵ دقیقه" }));
+  fireEvent.press(screen.getByRole("radio", { name: "۴۵ دقیقه" }));
+  expect(changes.at(-1)).toEqual(["session_duration_minutes", "45"]);
+  advance();
+  fireEvent.press(screen.getByRole("button", { name: "بازگشت" }));
+  expect(screen.getByRole("header", { name: "برای هر جلسه چقدر زمان داری؟" })).toBeTruthy();
+  fireEvent.press(screen.getByRole("radio", { name: "بیش از ۹۰ دقیقه" }));
+  expect(changes.at(-1)).toEqual(["session_duration_minutes", "120"]);
   advance();
   for (const label of ["سبک", "متوسط", "شدید"]) {
     expect(screen.getByRole("radio", { name: label })).toBeTruthy();
@@ -407,7 +414,7 @@ test("maps home equipment before the final public training submission", () => {
   advance();
   fireEvent.press(screen.getByRole("radio", { name: "وزن بدن" }));
   advance();
-  fireEvent.press(screen.getByRole("radio", { name: "۳۰ تا ۴۵ دقیقه" }));
+  fireEvent.press(screen.getByRole("radio", { name: "۴۵ دقیقه" }));
   advance();
   fireEvent.press(screen.getByRole("radio", { name: "متوسط" }));
   advance();
