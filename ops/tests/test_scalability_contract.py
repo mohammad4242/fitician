@@ -30,6 +30,8 @@ class ScalabilityContractTests(unittest.TestCase):
 
         self.assertIn("backend-2:", compose)
         self.assertIn('127.0.0.1:8080:80', compose)
+        self.assertIn('127.0.0.1:8002:8000', compose)
+        self.assertIn("ports: !override", compose)
         self.assertIn("backend:8000 backend-2:8000", caddy)
         self.assertIn("health_uri /healthz", caddy)
 

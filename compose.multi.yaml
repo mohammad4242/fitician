@@ -3,7 +3,8 @@ services:
     extends:
       file: ./compose.yaml
       service: backend
-    ports: []
+    ports: !override
+      - "127.0.0.1:8002:8000"
 
   caddy:
     image: caddy:2.10.2-alpine
