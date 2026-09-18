@@ -67,7 +67,7 @@ async def trigger_scheduled_update(
         return False
     current = now or datetime.now(UTC)
     due_slot = most_recent_due_slot(current, settings)
-    with get_engine(settings.database_url).connect() as connection:
+    with get_engine(settings).connect() as connection:
         if not connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": _LOCK_KEY}):
             return False
         try:

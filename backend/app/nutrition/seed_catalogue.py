@@ -11,7 +11,7 @@ from app.nutrition.seed_program_catalogue import seed_program_catalogue
 
 def main() -> None:
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         seed_base_iranian_food_catalogue(db, commit=False)
         seed_meal_catalogue(db, commit=False)
         seed_program_catalogue(db)

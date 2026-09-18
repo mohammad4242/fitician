@@ -23,7 +23,7 @@ def main() -> None:
     else:
         source_root = Path(__file__).resolve().parents[3] / "frontend/public/exercises"
         sync_seed_media(paths, source_root=source_root, media_root=settings.media_root)
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         result = seed_exercises(db)
     print(format_seed_result(result))
 

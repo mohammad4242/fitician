@@ -28,7 +28,7 @@ async def main(*, catch_up: bool = False) -> None:
         if catch_up:
             await trigger_scheduled_update(settings, client, agent_http_client=agent_client)
             return
-        with Session(get_engine(settings.database_url)) as db:
+        with Session(get_engine(settings)) as db:
             execution = resolve_price_update_execution(
                 db,
                 settings=settings,

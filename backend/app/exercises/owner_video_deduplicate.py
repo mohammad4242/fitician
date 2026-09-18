@@ -208,7 +208,7 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         report = merge_duplicate_exercises(db, apply=args.apply)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report.as_dict(), ensure_ascii=False, indent=2) + "\n")

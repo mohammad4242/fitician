@@ -136,7 +136,7 @@ def _program_day(
 
 def main() -> None:
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         seed_program_catalogue(db)
 
 

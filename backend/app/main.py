@@ -131,7 +131,7 @@ def create_app(
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:
-        with Session(get_engine(active_settings.database_url)) as db:
+        with Session(get_engine(active_settings)) as db:
             db.execute(text("SELECT 1"))
         return {"status": "ok"}
 

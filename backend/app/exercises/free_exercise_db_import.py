@@ -1235,7 +1235,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     settings = get_settings()
     translator = None if args.dry_run else CuratedExerciseTranslator(CURATED_TRANSLATIONS)
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         report = FreeExerciseDbImporter(
             db,
             settings=settings,

@@ -77,7 +77,7 @@ class BodyPhotoService:
         self.storage = storage or BodyPhotoStorage(settings)
         self._settings = settings
         self._cleanup_session_factory = cleanup_session_factory or (
-            lambda: Session(get_engine(settings.database_url))
+            lambda: Session(get_engine(settings))
         )
 
     def _owner_session(

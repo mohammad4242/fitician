@@ -28,7 +28,7 @@ async def run_scheduler(settings: Settings) -> None:
         httpx.AsyncClient(timeout=food_price_timeout, trust_env=False) as food_price_client,
     ):
         try:
-            with Session(get_engine(settings.database_url)) as db:
+            with Session(get_engine(settings)) as db:
                 await sync_agent_service_proxy(
                     db,
                     client=agent_client,

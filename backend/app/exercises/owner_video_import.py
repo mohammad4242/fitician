@@ -546,7 +546,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     settings = get_settings()
     analyzer = CodexCliExerciseAnalyzer(settings)
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         report = OwnerVideoImporter(
             db,
             settings=settings,

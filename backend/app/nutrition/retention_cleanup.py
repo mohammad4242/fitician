@@ -7,7 +7,7 @@ from app.nutrition.retention import cleanup_private_nutrition_files
 
 def main() -> None:
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         result = cleanup_private_nutrition_files(db, settings)
     print(
         f"food_photos_purged={result.food_photos_purged} "

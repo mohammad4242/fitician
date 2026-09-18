@@ -409,7 +409,7 @@ def _close_provider(provider: NotificationProvider) -> None:
 
 def run_worker(settings: Settings) -> None:
     worker_id = _worker_id()
-    engine = get_engine(settings.database_url)
+    engine = get_engine(settings)
     providers: dict[NotificationProviderName, NotificationProvider] = {}
     try:
         try:

@@ -70,7 +70,7 @@ def _parser() -> argparse.ArgumentParser:
 def main() -> int:
     arguments = _parser().parse_args()
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         report = audit_catalogue(db)
     summary = {
         "total": report.total,

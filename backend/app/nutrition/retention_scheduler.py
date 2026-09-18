@@ -16,7 +16,7 @@ _LOCK_KEY = 58421092
 
 def trigger_retention_cleanup(settings: Settings, *, now: datetime | None = None) -> bool:
     current = now or datetime.now(UTC)
-    with get_engine(settings.database_url).connect() as connection:
+    with get_engine(settings).connect() as connection:
         if not connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": _LOCK_KEY}):
             return False
         try:

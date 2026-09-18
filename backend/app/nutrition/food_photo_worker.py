@@ -438,7 +438,7 @@ def _worker_id() -> str:
 
 async def run_worker(settings: Settings) -> None:
     worker_id = _worker_id()
-    engine = get_engine(settings.database_url)
+    engine = get_engine(settings)
     ai_timeout = httpx.Timeout(settings.openrouter_timeout_seconds)
     agent_timeout = httpx.Timeout(settings.agent_service_connect_timeout_seconds)
     async with (

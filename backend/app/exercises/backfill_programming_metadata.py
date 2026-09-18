@@ -35,7 +35,7 @@ def main() -> None:
     args = parser.parse_args()
     dry_run = not args.apply
     settings = get_settings()
-    with Session(get_engine(settings.database_url)) as db:
+    with Session(get_engine(settings)) as db:
         report = backfill_programming_metadata(db, dry_run=dry_run)
     print(format_backfill_report(report, dry_run=dry_run))
 

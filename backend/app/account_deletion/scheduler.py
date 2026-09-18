@@ -17,7 +17,7 @@ def trigger_account_deletions(settings: Settings, *, now: datetime | None = None
     if not settings.account_deletion_enabled:
         return 0
     current = now or datetime.now(UTC)
-    with get_engine(settings.database_url).connect() as connection:
+    with get_engine(settings).connect() as connection:
         if not connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": _LOCK_KEY}):
             return 0
         try:
