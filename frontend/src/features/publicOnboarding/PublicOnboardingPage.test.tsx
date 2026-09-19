@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
+import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 
 const auth = vi.hoisted(() => ({
   register: vi.fn(),
@@ -93,6 +94,12 @@ async function setEnglishBirthDate(value: string) {
   await i18n.changeLanguage("fa");
 }
 
+function shiftIsoDate(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 it("uses English on the first public onboarding screen when English is selected", async () => {
   await i18n.changeLanguage("en");
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
@@ -154,7 +161,7 @@ it("keeps an under-18 user on the birth-date question with an actionable error",
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
 
   await goToBirthDateQuestion(user);
-  await setEnglishBirthDate("2009-09-18");
+  await setEnglishBirthDate(shiftIsoDate(getProfileBirthDateBounds(new Date()).max, 1));
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   expect(screen.getByRole("heading", { name: "چه تاریخی به دنیا آمدی؟" })).toBeInTheDocument();
@@ -180,7 +187,7 @@ it("accepts an exact 18th birthday before advancing to sex", async () => {
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
 
   await goToBirthDateQuestion(user);
-  await setEnglishBirthDate("2008-09-18");
+  await setEnglishBirthDate(getProfileBirthDateBounds(new Date()).max);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   expect(screen.getByRole("heading", { name: "جنسیتت چیست؟" })).toBeInTheDocument();
@@ -191,7 +198,7 @@ it("accepts an exact 100th birthday before advancing to sex", async () => {
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
 
   await goToBirthDateQuestion(user);
-  await setEnglishBirthDate("1926-09-18");
+  await setEnglishBirthDate(getProfileBirthDateBounds(new Date()).min);
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   expect(screen.getByRole("heading", { name: "جنسیتت چیست؟" })).toBeInTheDocument();
@@ -202,7 +209,7 @@ it("keeps an over-100 user on the birth-date question with an out-of-range error
   render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
 
   await goToBirthDateQuestion(user);
-  await setEnglishBirthDate("1925-09-18");
+  await setEnglishBirthDate(shiftIsoDate(getProfileBirthDateBounds(new Date()).min, -1));
   await user.click(screen.getByRole("button", { name: "ادامه" }));
 
   expect(screen.getByRole("heading", { name: "چه تاریخی به دنیا آمدی؟" })).toBeInTheDocument();

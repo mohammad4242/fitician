@@ -53,6 +53,12 @@ function advance() {
   });
 }
 
+function shiftIsoDate(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
 });
@@ -123,7 +129,7 @@ test("requires Web unusual-value confirmation before leaving the body question",
 
 test("keeps an under-18 user on the birth-date question with a clear error", () => {
   const initialValues = emptyProfileFormValues();
-  initialValues.birth_date = "2009-09-18";
+  initialValues.birth_date = shiftIsoDate(getProfileBirthDateBounds(new Date()).max, 1);
   renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
 
   fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");
@@ -148,7 +154,8 @@ test("shows the invalid birth-date error before leaving the birth-date question"
 });
 
 test("accepts exact 18 and 100 year birth-date boundaries", () => {
-  for (const birthDate of ["2008-09-18", "1926-09-18"]) {
+  const bounds = getProfileBirthDateBounds(new Date());
+  for (const birthDate of [bounds.max, bounds.min]) {
     const initialValues = emptyProfileFormValues();
     initialValues.birth_date = birthDate;
     const rendered = renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
@@ -164,7 +171,7 @@ test("accepts exact 18 and 100 year birth-date boundaries", () => {
 
 test("keeps an over-100 user on the birth-date question with a range error", () => {
   const initialValues = emptyProfileFormValues();
-  initialValues.birth_date = "1925-09-18";
+  initialValues.birth_date = shiftIsoDate(getProfileBirthDateBounds(new Date()).min, -1);
   renderWithSafeArea(<SharedHarness initialValues={initialValues} />);
 
   fireEvent.changeText(screen.getByLabelText("نام نمایشی"), "سارا");

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
@@ -73,7 +73,7 @@ def test_current_cycle_returns_the_authenticated_users_active_cycle(
         db,
         user_id=user_id,
         workout_plan_id=plan.id,
-        start_date=date(2026, 9, 12),
+        start_date=datetime.now(UTC).date(),
         timezone_name="UTC",
     )
 
