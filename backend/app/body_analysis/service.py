@@ -75,6 +75,10 @@ class BodyAnalysisInputError(ValueError):
     pass
 
 
+class BodyAnalysisLeaseLost(RuntimeError):
+    """The worker no longer owns the durable analysis lease."""
+
+
 class BodyAnalysisRequirementsError(BodyAnalysisInputError):
     def __init__(self, missing_fields: tuple[str, ...]) -> None:
         self.missing_fields = missing_fields
@@ -655,8 +659,14 @@ class BodyAnalysisService:
         analysis_id: UUID,
         provider: AIProvider,
         config: AnalysisExecutionConfig | None = None,
+        *,
+        worker_id: str | None = None,
     ) -> BodyAnalysis:
-        analysis = self._analysis(analysis_id, lock=True)
+        analysis = (
+            self._analysis_for_worker(analysis_id, worker_id, status=BodyAnalysisStatus.QUEUED)
+            if worker_id is not None
+            else self._analysis(analysis_id, lock=True)
+        )
         if analysis.status is not BodyAnalysisStatus.QUEUED:
             return analysis
         execution_config = config or AnalysisExecutionConfig(
@@ -718,6 +728,12 @@ class BodyAnalysisService:
                     "analysis confidence is below the configured threshold"
                 )
             self._validate_response_cost(response, execution_config)
+            if worker_id is not None:
+                analysis = self._analysis_for_worker(
+                    analysis_id,
+                    worker_id,
+                    status=BodyAnalysisStatus.ANALYZING,
+                )
             analysis.raw_result = self._raw_result_with(
                 analysis,
                 analysis=response.payload,
@@ -777,9 +793,20 @@ class BodyAnalysisService:
                     # Comparisons are optional history. A comparison failure must
                     # never discard a valid analysis or prevent plan generation.
                     self._db.rollback()
+        except BodyAnalysisLeaseLost:
+            self._db.rollback()
+            raise
         except Exception as error:
             self._db.rollback()
-            analysis = self._analysis(analysis_id, lock=True)
+            analysis = (
+                self._analysis_for_worker(
+                    analysis_id,
+                    worker_id,
+                    status=BodyAnalysisStatus.ANALYZING,
+                )
+                if worker_id is not None
+                else self._analysis(analysis_id, lock=True)
+            )
             provider_error = self._safe_provider_error(provider, error)
             if response is not None:
                 # Preserve provider accounting even if output validation or a
@@ -976,6 +1003,29 @@ class BodyAnalysisService:
         analysis = self._db.scalar(statement)
         if analysis is None:
             raise BodyAnalysisNotFoundError
+        return analysis
+
+    def _analysis_for_worker(
+        self,
+        analysis_id: UUID,
+        worker_id: str,
+        *,
+        status: BodyAnalysisStatus,
+    ) -> BodyAnalysis:
+        analysis = self._db.scalar(
+            select(BodyAnalysis)
+            .where(
+                BodyAnalysis.id == analysis_id,
+                BodyAnalysis.locked_by == worker_id,
+                BodyAnalysis.status == status,
+            )
+            .options(selectinload(BodyAnalysis.session))
+            .execution_options(populate_existing=True)
+            .with_for_update()
+        )
+        if analysis is None:
+            self._db.rollback()
+            raise BodyAnalysisLeaseLost
         return analysis
 
     def _latest_analysis(self, session_id: UUID) -> BodyAnalysis | None:

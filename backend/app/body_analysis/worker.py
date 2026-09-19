@@ -26,7 +26,7 @@ from app.body_analysis.providers import (
     local_fake_provider_allowed,
 )
 from app.body_analysis.runtime import build_body_analysis_runtime
-from app.body_analysis.service import BodyAnalysisService
+from app.body_analysis.service import BodyAnalysisLeaseLost, BodyAnalysisService
 from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.jobs.heartbeat import async_heartbeat
@@ -195,7 +195,18 @@ async def process_body_analysis_job(
             analysis_id,
             provider,
             execution_config,
+            worker_id=worker_id,
         )
+    except BodyAnalysisLeaseLost:
+        db.rollback()
+        log_event(
+            logger,
+            "body analysis lease lost",
+            job_id=str(analysis_id),
+            worker_id=worker_id,
+            status="lease_lost",
+        )
+        return False
     except Exception:
         db.rollback()
         logger.exception("Body analysis worker execution failed for %s", analysis_id)
