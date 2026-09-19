@@ -19,6 +19,9 @@ class DeployWorkflowTests(unittest.TestCase):
         self.assertIn("first_scalability_release_approved", workflow)
         self.assertIn("heavy_evidence_run_id", workflow)
         self.assertIn("Verify first scalability acceptance evidence", workflow)
+        self.assertIn("Check automatic first scalability gate", workflow)
+        self.assertIn(".scalability-foundation-accepted", workflow)
+        self.assertIn("automatic_deploy_gate", workflow)
         self.assertIn("actions: read", workflow)
 
     def test_google_client_id_is_masked_before_validation_and_build(self) -> None:

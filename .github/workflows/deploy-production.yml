@@ -43,14 +43,76 @@ concurrency:
   queue: max
 
 jobs:
+  automatic_deploy_gate:
+    name: Check automatic first scalability gate
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      deploy: ${{ steps.check-marker.outputs.deploy }}
+    steps:
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Pin VPS host key
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+
+      - name: Validate VPS marker target
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+
+      - name: Check scalability acceptance marker
+        id: check-marker
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          set +e
+          ssh -o BatchMode=yes "$VPS_USER@$VPS_HOST" \
+            "test -f '$VPS_APP_DIR/.scalability-foundation-accepted'"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          elif [ "$status" -eq 1 ]; then
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+            echo 'First scalability release is not approved; automatic deployment is skipped.'
+          else
+            echo "Unable to inspect the scalability acceptance marker (ssh status $status)" >&2
+            exit "$status"
+          fi
+
   deploy:
     name: Deploy immutable images to VPS
+    needs: [automatic_deploy_gate]
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        needs.automatic_deploy_gate.result == 'success' &&
+        needs.automatic_deploy_gate.outputs.deploy == 'true'))
     runs-on: ubuntu-latest
     environment: production
     env:
