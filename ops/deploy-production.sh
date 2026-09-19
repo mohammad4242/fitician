@@ -74,7 +74,8 @@ else
     exit 1
   }
   python3 "$app_dir/ops/check-db-connection-budget.py" --replicas 2
-  python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2 --compose-file "$compose_file"
+  python3 "$app_dir/ops/check-runtime-capacity.py" --replicas 2 \
+    --compose-file "$compose_file" --env-file "$app_dir/.env"
 fi
 
 compose() {

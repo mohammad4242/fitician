@@ -6,7 +6,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/deploy-production.sh"
 OLD_TAG = "a" * 40
@@ -57,7 +56,13 @@ esac
         ops.mkdir()
         for name in ("check-db-connection-budget.py", "check-runtime-capacity.py"):
             script = ops / name
-            script.write_text("#!/usr/bin/env python3\nraise SystemExit(0)\n")
+            script.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, sys\n"
+                "with open(os.environ['FAKE_STATE_DIR'] + '/calls', 'a') as stream:\n"
+                "    stream.write(sys.argv[0].split('/')[-1] + ' ' + ' '.join(sys.argv[1:]) + '\\n')\n"
+                "raise SystemExit(0)\n"
+            )
             script.chmod(0o755)
         (ops / "verify-production.sh").write_text(
             '#!/bin/sh\nprintf "verify-production\\n" >> "$FAKE_STATE_DIR/calls"\n'
@@ -77,7 +82,13 @@ esac
         path.chmod(0o755)
 
     def _run(self) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(["sh", str(SCRIPT)], env=self.env, capture_output=True, text=True)
+        return subprocess.run(
+            ["sh", str(SCRIPT)],
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
     def test_backup_precedes_rollout_and_success_persists_its_tag(self) -> None:
         result = self._run()
@@ -154,6 +165,20 @@ esac
         self.assertIn("foundation_version=1\n", marker.read_text())
         self.assertIn(f"image_tag={NEW_TAG}\n", marker.read_text())
         self.assertIn("evidence_run_id=123456\n", marker.read_text())
+
+    def test_first_scalability_preflight_uses_production_env_file(self) -> None:
+        (self.workspace / ".scalability-foundation-accepted").unlink()
+        self.env["FIRST_SCALABILITY_RELEASE_APPROVED"] = "true"
+        self.env["SCALABILITY_EVIDENCE_RUN_ID"] = "123456"
+
+        result = self._run()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            f"check-runtime-capacity.py --replicas 2 --compose-file "
+            f"{self.workspace / 'compose.prod.yaml'} --env-file {self.workspace / '.env'}",
+            (self.workspace / "calls").read_text(),
+        )
 
 
 if __name__ == "__main__":

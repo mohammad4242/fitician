@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -127,6 +128,30 @@ class RuntimeCapacityTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["services"]["backend"]["memory_mib_each"], 100)
         self.assertEqual(payload["services"]["backend"]["cpus_each"], 0.05)
+
+    def test_rendered_preflight_loads_required_values_from_explicit_env_file(self) -> None:
+        with tempfile.NamedTemporaryFile("w", dir=ROOT / ".codex-tmp") as env_file:
+            env_file.write(
+                "DOCKERHUB_USERNAME=example\n"
+                f"IMAGE_TAG={'0' * 40}\n"
+                "POSTGRES_PASSWORD=placeholder\n"
+                "DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n"
+                "AGENT_SERVICE_TOKEN=placeholder\n"
+                "REDIS_PASSWORD=placeholder\n"
+                "FITICIAN_DOMAIN=example.com\n"
+            )
+            env_file.flush()
+
+            result = self._run(
+                "--replicas",
+                "2",
+                "--compose-file",
+                "compose.prod.yaml",
+                "--env-file",
+                env_file.name,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

@@ -76,8 +76,10 @@ def monitoring_budgets() -> tuple[ServiceBudget, ...]:
 
 def memory_limit_mib(value: object) -> int:
     if isinstance(value, (int, float)):
-        return int(round(float(value) / (1024 * 1024)))
-    match = re.fullmatch(r"\s*([0-9]+(?:\.[0-9]+)?)([kmgt]?i?b?)?\s*", str(value), re.I)
+        return round(float(value) / (1024 * 1024))
+    match = re.fullmatch(
+        r"\s*([0-9]+(?:\.[0-9]+)?)([kmgt]?i?b?)?\s*", str(value), re.IGNORECASE
+    )
     if match is None:
         raise ValueError(f"unsupported Compose memory limit: {value!r}")
     amount = float(match.group(1))
@@ -104,14 +106,20 @@ def memory_limit_mib(value: object) -> int:
     }
     if suffix not in multipliers:
         raise ValueError(f"unsupported Compose memory suffix: {suffix!r}")
-    return int(round(amount * multipliers[suffix] / (1024 * 1024)))
+    return round(amount * multipliers[suffix] / (1024 * 1024))
 
 
-def rendered_budgets(compose_file: str, replicas: int) -> tuple[ServiceBudget, ...]:
+def rendered_budgets(
+    compose_file: str, replicas: int, env_file: str | None = None
+) -> tuple[ServiceBudget, ...]:
     if shutil.which("docker") is None:
         raise RuntimeError("docker is required when --compose-file is used")
+    compose_command = ["docker", "compose"]
+    if env_file is not None:
+        compose_command.extend(("--env-file", env_file))
+    compose_command.extend(("-f", compose_file, "config", "--format", "json"))
     result = subprocess.run(
-        ["docker", "compose", "-f", compose_file, "config", "--format", "json"],
+        compose_command,
         capture_output=True,
         text=True,
         check=False,
@@ -177,13 +185,14 @@ def main() -> int:
     )
     parser.add_argument("--include-monitoring", action="store_true")
     parser.add_argument("--compose-file")
+    parser.add_argument("--env-file")
     args = parser.parse_args()
     if args.replicas < 1 or args.host_memory_mib < 1 or args.host_cpus <= 0:
         parser.error("replicas and host capacity must be positive")
 
     try:
         budgets = (
-            rendered_budgets(args.compose_file, args.replicas)
+            rendered_budgets(args.compose_file, args.replicas, args.env_file)
             if args.compose_file
             else normal_budgets(args.replicas)
         )
