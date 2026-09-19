@@ -395,6 +395,7 @@ jobs:
       - name: Prepare provider-free local configuration
         run: |
           mkdir -p artifacts/scalability
+          docker volume create fitician_fitician_postgres_data
           printf '%s\n' \
             'DATABASE_URL=postgresql+psycopg://fitician:fitician@db:5432/fitician' \
             'APP_ENV=local' \
