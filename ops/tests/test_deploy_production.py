@@ -43,8 +43,14 @@ case "$*" in
     fi
     ;;
   *' exec '*'db '*'SELECT count(*) FROM users'*) printf '1\\n' ;;
-  *' run '*'alembic heads'*) printf '%s (head)\\n' "${FAKE_SCHEMA_HEAD:-20260915_155}" ;;
-  *' exec '*'db '* ) printf '20260915_155\\n' ;;
+  *' run '*'alembic heads'*)
+    if [ "$IMAGE_TAG" = "${FAKE_OLD_TAG}" ] && [ -n "${FAKE_PREVIOUS_SCHEMA_HEAD:-}" ]; then
+      printf '%s (head)\\n' "$FAKE_PREVIOUS_SCHEMA_HEAD"
+    else
+      printf '%s (head)\\n' "${FAKE_SCHEMA_HEAD:-20260915_155}"
+    fi
+    ;;
+  *' exec '*'db '* ) printf '%s\\n' "${FAKE_CURRENT_SCHEMA:-20260915_155}" ;;
   *' exec '*'caddy '* ) printf 'example.com' ;;
 esac
 """,
@@ -75,6 +81,7 @@ esac
             "IMAGE_TAG": NEW_TAG,
             "FAKE_STATE_DIR": str(self.workspace),
             "FAKE_NEW_TAG": NEW_TAG,
+            "FAKE_OLD_TAG": OLD_TAG,
         }
 
     def _command(self, name: str, body: str) -> None:
@@ -120,6 +127,19 @@ esac
         self.assertIn("IMAGE_TAG=" + OLD_TAG, (self.workspace / ".env").read_text())
         calls = (self.workspace / "calls").read_text().splitlines()
         self.assertEqual(sum(" up " in call for call in calls), 2)
+
+    def test_failed_rollout_refuses_schema_incompatible_previous_image(self) -> None:
+        self.env["FAKE_UP_FAIL_NEW"] = "true"
+        self.env["FAKE_CURRENT_SCHEMA"] = "20260918_159"
+        self.env["FAKE_SCHEMA_HEAD"] = "20260918_159"
+        self.env["FAKE_PREVIOUS_SCHEMA_HEAD"] = "20260915_155"
+
+        result = self._run()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Rollback image schema is incompatible", result.stderr)
+        calls = (self.workspace / "calls").read_text().splitlines()
+        self.assertEqual(sum(" up " in call for call in calls), 1)
 
     def test_initial_deploy_waits_for_database_health_before_checking_users(self) -> None:
         (self.workspace / ".deployed-image-tag").unlink()

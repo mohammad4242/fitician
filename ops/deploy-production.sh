@@ -106,10 +106,24 @@ rollback() {
     return 1
   fi
   echo "Rolling back to previous immutable image tag"
+  rollback_current_revision=$(compose exec -T db sh -c \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version"')
   image_tag="$previous_image_tag"
   compose pull
+  rollback_target_revision=$(compose run --rm --no-deps migrations alembic heads | \
+    awk 'NR == 1 {print $1}')
+  if [ -z "$rollback_current_revision" ] || \
+    [ "$rollback_current_revision" != "$rollback_target_revision" ]; then
+    echo "Rollback image schema is incompatible with the current database" >&2
+    return 1
+  fi
   compose up -d --wait --remove-orphans
   verify_runtime
+}
+
+capture_failure_diagnostics() {
+  compose ps || true
+  compose logs --no-color --tail=200 scheduler migrations || true
 }
 
 verify_runtime() {
@@ -151,11 +165,13 @@ if [ "$initial_deploy" != true ]; then
 fi
 
 if ! compose up -d --wait --remove-orphans; then
+  capture_failure_diagnostics
   rollback || true
   exit 1
 fi
 
 if ! verify_runtime; then
+  capture_failure_diagnostics
   rollback || true
   exit 1
 fi
