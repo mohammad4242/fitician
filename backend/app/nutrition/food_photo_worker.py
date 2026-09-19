@@ -29,8 +29,6 @@ from . import food_photo_service
 from .models import NutritionFoodPhotoAnalysisJob, NutritionFoodPhotoEstimate
 from .security import audit_security_event, record_operational_event
 
-import_module("app.main")  # Ensure all SQLAlchemy models and relationships are registered
-
 logger = logging.getLogger(__name__)
 
 _RETRYABLE_ERRORS = frozenset(
@@ -488,6 +486,7 @@ async def run_worker(
         ) as ai_client,
         httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_http_client,
     ):
+        import_module("app.main")
         while not requested_stop.is_set():
             try:
                 with Session(engine) as db:

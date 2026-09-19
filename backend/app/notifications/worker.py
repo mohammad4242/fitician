@@ -32,8 +32,6 @@ from .models import (
 from .provider import NotificationProvider, NotificationProviderName, NotificationSendOutcome
 from .reminders import enqueue_due_cycle_reminders
 
-import_module("app.main")  # Ensure all SQLAlchemy models and relationships are registered
-
 logger = logging.getLogger(__name__)
 
 NotificationProviders = NotificationProvider | Mapping[
@@ -427,6 +425,7 @@ def run_worker(
             service="notification-worker",
             interval_seconds=settings.job_heartbeat_interval_seconds,
         ):
+            import_module("app.main")
             try:
                 fcm_provider = build_fcm_provider(settings)
                 if fcm_provider is not None:
