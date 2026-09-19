@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -178,6 +179,29 @@ esac
             f"check-runtime-capacity.py --replicas 2 --compose-file "
             f"{self.workspace / 'compose.prod.yaml'} --env-file {self.workspace / '.env'}",
             (self.workspace / "calls").read_text(),
+        )
+
+    def test_missing_redis_password_is_generated_once_without_changing_other_values(self) -> None:
+        first = self._run()
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        first_env = (self.workspace / ".env").read_text()
+        generated = re.search(r"^REDIS_PASSWORD=([-_A-Za-z0-9]+)$", first_env, re.MULTILINE)
+        self.assertIsNotNone(generated)
+        self.assertGreaterEqual(len(generated.group(1)), 48)
+        self.assertIn("OTHER_VALUE=keep", first_env)
+
+        second = self._run()
+
+        self.assertEqual(second.returncode, 0, second.stderr)
+        passwords = re.findall(
+            r"^REDIS_PASSWORD=([-_A-Za-z0-9]+)$",
+            (self.workspace / ".env").read_text(),
+            re.MULTILINE,
+        )
+        self.assertEqual(
+            passwords,
+            [generated.group(1)],
         )
 
 

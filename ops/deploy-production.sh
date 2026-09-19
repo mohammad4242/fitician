@@ -9,10 +9,22 @@ allow_schema_migrations=${ALLOW_SCHEMA_MIGRATIONS:-false}
 first_scalability_release_approved=${FIRST_SCALABILITY_RELEASE_APPROVED:-false}
 scalability_evidence_run_id=${SCALABILITY_EVIDENCE_RUN_ID:-}
 app_dir=$(dirname "$compose_file")
+env_file="$app_dir/.env"
 marker="$app_dir/.deployed-image-tag"
 scalability_marker="$app_dir/.scalability-foundation-accepted"
 schema_changed=false
 first_scalability_release=false
+
+ensure_redis_password() {
+  if grep -Eq '^REDIS_PASSWORD=.+$' "$env_file"; then
+    return
+  fi
+  generated_password=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
+  next_env=$(mktemp "$app_dir/.env.XXXXXXXX")
+  cp "$env_file" "$next_env"
+  printf '\nREDIS_PASSWORD=%s\n' "$generated_password" >> "$next_env"
+  mv "$next_env" "$env_file"
+}
 
 printf '%s' "$image_tag" | grep -Eq '^[0-9a-f]{40}$' || {
   echo "IMAGE_TAG must be a full Git SHA" >&2
@@ -30,6 +42,8 @@ elif [ -z "$previous_image_tag" ]; then
   echo "Initial database restore and manual deployment are required" >&2
   exit 1
 fi
+
+ensure_redis_password
 
 validate_scalability_marker() {
   python3 - "$scalability_marker" <<'PY'
@@ -146,7 +160,6 @@ if ! verify_runtime; then
   exit 1
 fi
 
-env_file="$app_dir/.env"
 next_env=$(mktemp "$app_dir/.env.XXXXXXXX")
 awk -v tag="$image_tag" '
   /^IMAGE_TAG=/ {print "IMAGE_TAG=" tag; found=1; next}
