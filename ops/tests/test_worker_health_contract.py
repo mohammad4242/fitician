@@ -29,6 +29,7 @@ class WorkerHealthContractTests(unittest.TestCase):
                 self.assertIn("tmpfs:", service_block)
                 if compose_name == "compose.prod.yaml":
                     self.assertIn("timeout: 10s", service_block)
+                    self.assertIn("start_period: 90s", service_block)
 
 
 if __name__ == "__main__":
