@@ -16,6 +16,7 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("failure-drills.sh all", workflow)
         self.assertIn("upload-artifact", workflow)
         self.assertIn("docker volume create fitician_fitician_postgres_data", workflow)
+        self.assertIn("AGENT_SERVICE_TOKEN=fitician-ci-agent-token-placeholder-000000", workflow)
         self.assertLess(
             workflow.index("docker volume create fitician_fitician_postgres_data"),
             workflow.index("Start two-replica local topology"),
