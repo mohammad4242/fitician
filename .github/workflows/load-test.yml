@@ -34,14 +34,33 @@ jobs:
             > backend/.env
       - name: Start two-replica local topology
         run: docker compose -f compose.yaml -f compose.multi.yaml up -d --build --wait
+      - name: Seed authenticated catalogue smoke member
+        run: |
+          member=$(docker compose -f compose.yaml -f compose.multi.yaml exec -T backend \
+            python -m app.jobs.local_acceptance seed-catalogue-member)
+          member_id=$(MEMBER="$member" python3 -c 'import json, os; print(json.loads(os.environ["MEMBER"])["user_id"])')
+          cookie_name=$(MEMBER="$member" python3 -c 'import json, os; print(json.loads(os.environ["MEMBER"])["session_cookie_name"])')
+          session_token=$(MEMBER="$member" python3 -c 'import json, os; print(json.loads(os.environ["MEMBER"])["session_token"])')
+          echo "::add-mask::$session_token"
+          printf 'LOAD_MEMBER_ID=%s\n' "$member_id" >> "$GITHUB_ENV"
+          printf 'LOAD_COOKIE=%s=%s\n' "$cookie_name" "$session_token" >> "$GITHUB_ENV"
       - name: Run percentile smoke scenarios
         run: |
+          set -euo pipefail
           BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=100 LOAD_CONCURRENCY=10 \
             bash ops/load/run.sh health | tee artifacts/scalability/health.json
           BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=200 LOAD_CONCURRENCY=20 \
             bash ops/load/run.sh catalogue | tee artifacts/scalability/catalogue.json
+      - name: Clean up authenticated catalogue smoke member
+        if: always()
+        run: |
+          if [ -n "${LOAD_MEMBER_ID:-}" ]; then
+            docker compose -f compose.yaml -f compose.multi.yaml exec -T backend \
+              python -m app.jobs.local_acceptance cleanup-member --user-id "$LOAD_MEMBER_ID" || true
+          fi
       - name: Run bounded failure drills
         run: |
+          set -euo pipefail
           BASE_URL=http://127.0.0.1:8080 FAILURE_DRILL_DEADLINE_SECONDS=150 \
             FAILURE_DRILL_BACKLOG_MAX_DRAIN_SECONDS=90 \
             bash ops/load/failure-drills.sh all | tee artifacts/scalability/failure-drills.jsonl

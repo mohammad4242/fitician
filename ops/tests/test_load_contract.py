@@ -3,7 +3,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -17,6 +16,10 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("upload-artifact", workflow)
         self.assertIn("docker volume create fitician_fitician_postgres_data", workflow)
         self.assertIn("AGENT_SERVICE_TOKEN=fitician-ci-agent-token-placeholder-000000", workflow)
+        self.assertIn("seed-catalogue-member", workflow)
+        self.assertIn("LOAD_COOKIE", workflow)
+        self.assertIn("set -euo pipefail", workflow)
+        self.assertIn("cleanup-member", workflow)
         self.assertLess(
             workflow.index("docker volume create fitician_fitician_postgres_data"),
             workflow.index("Start two-replica local topology"),
@@ -31,6 +34,8 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("FITICIAN_ALLOW_PRODUCTION_LOAD", runner)
         self.assertIn("127.0.0.1", runner)
         self.assertIn("p95", smoke)
+        self.assertIn('"Cookie"', smoke)
+        self.assertIn("LOAD_COOKIE", smoke)
         self.assertNotIn("openrouter", runner.lower())
         self.assertNotIn("sms", runner.lower())
         self.assertNotIn("smtp", runner.lower())

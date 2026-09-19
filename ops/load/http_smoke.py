@@ -30,10 +30,13 @@ def percentile(values: list[float], ratio: float) -> float:
     return round(ordered[index], 2)
 
 
-def request_once(url: str, timeout: float) -> Result:
+def request_once(url: str, timeout: float, cookie: str | None) -> Result:
     started = time.perf_counter()
     try:
-        request = Request(url, headers={"Accept": "application/json"})
+        headers = {"Accept": "application/json"}
+        if cookie:
+            headers["Cookie"] = cookie
+        request = Request(url, headers=headers)
         with urlopen(request, timeout=timeout) as response:  # noqa: S310
             response.read(1024)
             status = int(response.status)
@@ -48,6 +51,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default=os.environ.get("BASE_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--path", default=os.environ.get("LOAD_PATH", "/livez"))
+    parser.add_argument("--cookie", default=os.environ.get("LOAD_COOKIE"))
     parser.add_argument("--requests", type=int, default=int(os.environ.get("LOAD_REQUESTS", "100")))
     parser.add_argument(
         "--concurrency", type=int, default=int(os.environ.get("LOAD_CONCURRENCY", "10"))
@@ -67,7 +71,10 @@ def main() -> int:
     url = f"{args.base_url.rstrip('/')}/{args.path.lstrip('/')}"
     results: list[Result] = []
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-        futures = [executor.submit(request_once, url, args.timeout) for _ in range(args.requests)]
+        futures = [
+            executor.submit(request_once, url, args.timeout, args.cookie)
+            for _ in range(args.requests)
+        ]
         for future in as_completed(futures):
             results.append(future.result())
 
@@ -84,7 +91,9 @@ def main() -> int:
         "p95_ms": percentile(durations, 0.95),
         "p99_ms": percentile(durations, 0.99),
         "mean_ms": round(statistics.fmean(durations), 2) if durations else 0.0,
-        "error_types": dict(sorted(Counter(result.error for result in failures if result.error).items())),
+        "error_types": dict(
+            sorted(Counter(result.error for result in failures if result.error).items())
+        ),
     }
     print(json.dumps(summary, sort_keys=True))
     return int(

@@ -24,6 +24,7 @@ from app.jobs.local_acceptance import (
     seed_body_jobs,
     seed_catalogue_member,
 )
+from app.profile.models import UserProfile
 
 
 def test_local_fake_provider_is_rejected_outside_explicit_local_mode() -> None:
@@ -119,6 +120,10 @@ def test_catalogue_member_fixture_creates_and_cleans_isolated_session(
     user_id = UUID(seeded["user_id"])
     assert seeded["session_cookie_name"] == test_settings.session_cookie_name
     assert session_for_token(db, seeded["session_token"]).user_id == user_id
+    profile = db.get(UserProfile, user_id)
+    assert profile is not None
+    assert profile.display_name == "Local Acceptance"
+    assert profile.plan_duration_weeks == 4
 
     result = cleanup_member(db, user_id)
     assert result["deleted_users"] == 1

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -29,7 +29,13 @@ from app.body_photos.enums import BodyPhotoPurpose, BodyPhotoSessionState, BodyP
 from app.body_photos.models import BodyPhoto, BodyPhotoSession
 from app.config import Settings, get_settings
 from app.database.session import get_engine
-from app.profile.enums import FitnessGoal, Sex
+from app.profile.enums import (
+    ExperienceLevel,
+    FitnessGoal,
+    Sex,
+    TrainingLocation,
+    WorkoutGenerationMethod,
+)
 from app.profile.models import BodyMeasurement, UserProfile
 
 
@@ -130,8 +136,22 @@ def seed_catalogue_member(db: Session, settings: Settings) -> dict[str, Any]:
         email=f"local-acceptance-catalogue-{uuid4()}@example.invalid",
         password_hash="local-acceptance-fixture",
     )
+    profile = UserProfile(
+        user_id=user.id,
+        display_name="Local Acceptance",
+        birth_date=date(1990, 1, 1),
+        sex=Sex.MALE,
+        height_cm=178,
+        fitness_goal=FitnessGoal.BUILD_MUSCLE,
+        experience_level=ExperienceLevel.BEGINNER,
+        training_days_per_week=3,
+        training_location=TrainingLocation.GYM,
+        session_duration_minutes=60,
+        plan_duration_weeks=4,
+        workout_generation_method=WorkoutGenerationMethod.FITICIAN_COACH,
+    )
     raw_token, token_hash = make_session_token()
-    db.add(user)
+    db.add_all([user, profile])
     db.flush()
     db.add(
         AuthSession(
