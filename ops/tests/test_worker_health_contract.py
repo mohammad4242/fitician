@@ -2,7 +2,6 @@ import re
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 WORKERS = (
     "body-analysis-worker",
@@ -28,6 +27,8 @@ class WorkerHealthContractTests(unittest.TestCase):
                 self.assertIn("app.jobs.heartbeat", service_block)
                 self.assertIn("healthcheck:", service_block)
                 self.assertIn("tmpfs:", service_block)
+                if compose_name == "compose.prod.yaml":
+                    self.assertIn("timeout: 10s", service_block)
 
 
 if __name__ == "__main__":

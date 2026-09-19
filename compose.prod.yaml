@@ -172,7 +172,7 @@ services:
     healthcheck:
       test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
       interval: 10s
-      timeout: 3s
+      timeout: 10s
       retries: 3
       start_period: 15s
     stop_grace_period: 450s
@@ -212,7 +212,7 @@ services:
     healthcheck:
       test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
       interval: 10s
-      timeout: 3s
+      timeout: 10s
       retries: 3
       start_period: 15s
     stop_grace_period: 450s
@@ -251,7 +251,7 @@ services:
     healthcheck:
       test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
       interval: 10s
-      timeout: 3s
+      timeout: 10s
       retries: 3
       start_period: 15s
     stop_grace_period: 60s
@@ -283,7 +283,7 @@ services:
     healthcheck:
       test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
       interval: 10s
-      timeout: 3s
+      timeout: 10s
       retries: 3
       start_period: 15s
     stop_grace_period: 30s
