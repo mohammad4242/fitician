@@ -79,5 +79,7 @@ def client(db: Session, test_settings: Settings) -> Iterator[TestClient]:
         join_transaction_mode="create_savepoint",
     )
     with TestClient(app) as test_client:
+        test_client.app.state.cache = None
+        test_client.app.state.rate_limiter = None
         yield test_client
     app.dependency_overrides.clear()
