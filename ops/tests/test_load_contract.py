@@ -15,6 +15,11 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("compose.multi.yaml", workflow)
         self.assertIn("failure-drills.sh all", workflow)
         self.assertIn("upload-artifact", workflow)
+        self.assertIn("docker volume create fitician_fitician_postgres_data", workflow)
+        self.assertLess(
+            workflow.index("docker volume create fitician_fitician_postgres_data"),
+            workflow.index("Start two-replica local topology"),
+        )
         self.assertNotIn("compose.prod.yaml", workflow)
         self.assertNotIn("FITICIAN_ALLOW_PRODUCTION_LOAD", workflow)
 
