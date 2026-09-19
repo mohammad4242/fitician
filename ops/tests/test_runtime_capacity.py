@@ -29,7 +29,7 @@ class RuntimeCapacityTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertGreaterEqual(payload["memory_headroom_mib"], 750)
         self.assertEqual(payload["replicas"], 2)
-        self.assertEqual(payload["services"]["notification-worker"]["cpus_each"], 0.15)
+        self.assertEqual(payload["services"]["notification-worker"]["cpus_each"], 0.1)
         self.assertTrue(payload["within_budget"])
 
     def test_third_backend_replica_exceeds_the_4_gib_budget(self) -> None:

@@ -170,11 +170,11 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 90s
+      start_period: 15s
     stop_grace_period: 450s
     mem_limit: ${FOOD_PHOTO_WORKER_MEMORY_LIMIT:-192m}
     cpus: ${FOOD_PHOTO_WORKER_CPU_LIMIT:-0.20}
@@ -210,11 +210,11 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 90s
+      start_period: 15s
     stop_grace_period: 450s
     mem_limit: ${BODY_ANALYSIS_WORKER_MEMORY_LIMIT:-384m}
     cpus: ${BODY_ANALYSIS_WORKER_CPU_LIMIT:-0.35}
@@ -249,11 +249,11 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 90s
+      start_period: 15s
     stop_grace_period: 60s
     mem_limit: ${SCHEDULER_MEMORY_LIMIT:-128m}
     cpus: ${SCHEDULER_CPU_LIMIT:-0.15}
@@ -281,14 +281,14 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 90s
+      start_period: 15s
     stop_grace_period: 30s
     mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-96m}
-    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.15}
+    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.10}
     restart: unless-stopped
 
   frontend:

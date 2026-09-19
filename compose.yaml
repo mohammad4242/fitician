@@ -204,7 +204,7 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -251,7 +251,7 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -297,7 +297,7 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -334,7 +334,7 @@ services:
     tmpfs:
       - /run/fitician:rw,noexec,nosuid,size=1m
     healthcheck:
-      test: ["CMD", "python", "-m", "app.jobs.heartbeat"]
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
       interval: 10s
       timeout: 3s
       retries: 3
