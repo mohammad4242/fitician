@@ -20,6 +20,7 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("LOAD_COOKIE", workflow)
         self.assertIn("set -euo pipefail", workflow)
         self.assertIn("cleanup-member", workflow)
+        self.assertIn("LOAD_WARMUP_REQUESTS=20", workflow)
         self.assertLess(
             workflow.index("docker volume create fitician_fitician_postgres_data"),
             workflow.index("Start two-replica local topology"),
@@ -36,6 +37,7 @@ class LoadContractTests(unittest.TestCase):
         self.assertIn("p95", smoke)
         self.assertIn('"Cookie"', smoke)
         self.assertIn("LOAD_COOKIE", smoke)
+        self.assertIn("warmup-requests", smoke)
         self.assertNotIn("openrouter", runner.lower())
         self.assertNotIn("sms", runner.lower())
         self.assertNotIn("smtp", runner.lower())

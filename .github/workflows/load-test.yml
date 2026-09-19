@@ -49,7 +49,7 @@ jobs:
           set -euo pipefail
           BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=100 LOAD_CONCURRENCY=10 \
             bash ops/load/run.sh health | tee artifacts/scalability/health.json
-          BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=200 LOAD_CONCURRENCY=20 \
+          BASE_URL=http://127.0.0.1:8080 LOAD_REQUESTS=200 LOAD_CONCURRENCY=20 LOAD_WARMUP_REQUESTS=20 \
             bash ops/load/run.sh catalogue | tee artifacts/scalability/catalogue.json
       - name: Clean up authenticated catalogue smoke member
         if: always()

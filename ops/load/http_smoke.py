@@ -47,12 +47,31 @@ def request_once(url: str, timeout: float, cookie: str | None) -> Result:
         return Result(None, (time.perf_counter() - started) * 1000, type(error).__name__)
 
 
+def collect_results(
+    url: str,
+    timeout: float,
+    cookie: str | None,
+    request_count: int,
+    concurrency: int,
+) -> list[Result]:
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        futures = [
+            executor.submit(request_once, url, timeout, cookie) for _ in range(request_count)
+        ]
+        return [future.result() for future in as_completed(futures)]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default=os.environ.get("BASE_URL", "http://127.0.0.1:8080"))
     parser.add_argument("--path", default=os.environ.get("LOAD_PATH", "/livez"))
     parser.add_argument("--cookie", default=os.environ.get("LOAD_COOKIE"))
     parser.add_argument("--requests", type=int, default=int(os.environ.get("LOAD_REQUESTS", "100")))
+    parser.add_argument(
+        "--warmup-requests",
+        type=int,
+        default=int(os.environ.get("LOAD_WARMUP_REQUESTS", "0")),
+    )
     parser.add_argument(
         "--concurrency", type=int, default=int(os.environ.get("LOAD_CONCURRENCY", "10"))
     )
@@ -65,24 +84,31 @@ def main() -> int:
         "--max-p95-ms", type=float, default=float(os.environ.get("LOAD_MAX_P95_MS", "750"))
     )
     args = parser.parse_args()
-    if args.requests < 1 or args.concurrency < 1 or args.timeout <= 0:
-        parser.error("requests, concurrency, and timeout must be positive")
+    if args.requests < 1 or args.warmup_requests < 0 or args.concurrency < 1 or args.timeout <= 0:
+        parser.error(
+            "requests and concurrency must be positive; warmup-requests cannot be negative"
+        )
 
     url = f"{args.base_url.rstrip('/')}/{args.path.lstrip('/')}"
-    results: list[Result] = []
-    with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-        futures = [
-            executor.submit(request_once, url, args.timeout, args.cookie)
-            for _ in range(args.requests)
-        ]
-        for future in as_completed(futures):
-            results.append(future.result())
+    warmup_results = collect_results(
+        url,
+        args.timeout,
+        args.cookie,
+        args.warmup_requests,
+        args.concurrency,
+    )
+    results = collect_results(url, args.timeout, args.cookie, args.requests, args.concurrency)
 
     durations = [result.duration_ms for result in results]
     failures = [result for result in results if result.status != args.expected_status]
+    warmup_failures = [result for result in warmup_results if result.status != args.expected_status]
     summary = {
         "url": url,
         "requests": len(results),
+        "warmup_requests": len(warmup_results),
+        "warmup_error_rate": round(len(warmup_failures) / len(warmup_results), 4)
+        if warmup_results
+        else 0.0,
         "concurrency": args.concurrency,
         "expected_status": args.expected_status,
         "status_counts": dict(sorted(Counter(str(result.status) for result in results).items())),
@@ -97,7 +123,9 @@ def main() -> int:
     }
     print(json.dumps(summary, sort_keys=True))
     return int(
-        summary["error_rate"] > args.max_error_rate or summary["p95_ms"] > args.max_p95_ms
+        bool(warmup_failures)
+        or summary["error_rate"] > args.max_error_rate
+        or summary["p95_ms"] > args.max_p95_ms
     )
 
 
