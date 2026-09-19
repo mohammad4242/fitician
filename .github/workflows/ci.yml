@@ -255,8 +255,10 @@ jobs:
       - name: Validate Compose, Caddy, and deployment helpers
         run: |
           test ! -e .env
+          test ! -e backend/.env
           printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > .env
-          trap 'rm -f .env' EXIT
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > backend/.env
+          trap 'rm -f .env backend/.env' EXIT
           DOCKERHUB_USERNAME=example \
           IMAGE_TAG=0000000000000000000000000000000000000000 \
           POSTGRES_PASSWORD=placeholder \
@@ -298,6 +300,12 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --frozen --extra dev
+      - name: Prepare safe Compose environment
+        run: |
+          test ! -e .env
+          test ! -e ../.env
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > .env
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > ../.env
       - name: Verify Redis service
         run: |
           uv run python - <<'PY'
