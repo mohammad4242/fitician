@@ -72,6 +72,89 @@ def _input(**changes: object):
     return PlannerInput(**values)  # type: ignore[arg-type]
 
 
+def _simple_template(template_id: str, food_id: str, *, category: str = "lunch"):
+    from app.nutrition.planner_engine import PlannerMealIngredient, PlannerMealTemplate
+
+    return PlannerMealTemplate(
+        meal_id=template_id,
+        name_fa=template_id,
+        name_en=template_id,
+        category=category,
+        items=(
+            PlannerMealIngredient(
+                food_id=food_id,
+                reference_grams=Decimal("100"),
+                min_grams=Decimal("50"),
+                max_grams=Decimal("200"),
+                is_required=True,
+                functional_role="main_protein",
+            ),
+        ),
+    )
+
+
+def _prepared_recipe_template(template_id: str, food_id: str, *, category: str = "lunch"):
+    from app.nutrition.planner_engine import PlannerMealTemplate, PlannerPreparedRecipe
+    from app.nutrition.prepared_recipe import (
+        PreparedRecipeDefinition,
+        PreparedRecipeIngredient,
+        PreparedRecipeYield,
+    )
+
+    return PlannerMealTemplate(
+        meal_id=template_id,
+        name_fa=template_id,
+        name_en=template_id,
+        category=category,
+        items=(),
+        prepared_recipe=PlannerPreparedRecipe(
+            revision_id=f"{template_id}-revision",
+            name_fa=template_id,
+            name_en=template_id,
+            verification_status="verified",
+            definition=PreparedRecipeDefinition(
+                calculation_version="prepared-recipe-v1",
+                ingredients=(
+                    PreparedRecipeIngredient(
+                        food_id=food_id,
+                        reference_grams=Decimal("100"),
+                        min_grams=Decimal("50"),
+                        max_grams=Decimal("150"),
+                        is_required=True,
+                    ),
+                ),
+                ratios=(),
+                cooked_yield=PreparedRecipeYield(
+                    method="proportional_reference_batch",
+                    reference_input_grams=Decimal("100"),
+                    final_cooked_yield_grams=Decimal("100"),
+                ),
+            ),
+        ),
+    )
+
+
+def _small_plan_input(**changes: object):
+    values: dict[str, object] = {
+        "daily_targets": {
+            "goal_calories": Decimal("200"),
+            "protein": Decimal("20"),
+            "carbohydrate": Decimal("20"),
+            "total_fat": Decimal("5"),
+        },
+        "micronutrient_targets": {},
+        "micronutrient_upper_limits": {},
+        "daily_minimums": {},
+        "daily_maximums": {},
+        "main_meals_per_day": 2,
+        "snacks_per_day": 0,
+        "weekly_budget_irr": 10_000_000,
+        "budget_mode": "strict",
+    }
+    values.update(changes)
+    return _input(**values)  # type: ignore[arg-type]
+
+
 def test_do_not_suggest_again_excludes_a_meal_template() -> None:
     from app.nutrition.planner_engine import (
         PlannerMealIngredient,
@@ -186,6 +269,161 @@ def test_disliked_food_is_removed_before_template_ranking() -> None:
     assert [candidate.template.meal_id for candidate in eligible] == ["safe-meal"]
 
 
+def test_prepared_recipe_with_disliked_food_is_excluded() -> None:
+    from app.nutrition.planner_engine import GenerationOutcome, _eligible_templates, plan_week
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    disliked_food = _food(
+        "disliked-recipe-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    safe_food = _food(
+        "safe-recipe-alternative",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    blocked_recipe = _prepared_recipe_template("blocked-recipe-meal", disliked_food.food_id)
+    safe_meal = _simple_template("safe-meal", safe_food.food_id)
+    snapshot = PreferenceSnapshot(disliked_food_ids=(disliked_food.food_id,))
+    inputs = _small_plan_input(preference_snapshot=snapshot)
+
+    assert blocked_recipe.prepared_recipe is not None
+    recipe_ingredient_ids = {
+        str(ingredient.food_id)
+        for ingredient in blocked_recipe.prepared_recipe.definition.ingredients
+    }
+    assert disliked_food.food_id in recipe_ingredient_ids
+    eligible = _eligible_templates(inputs, (disliked_food, safe_food), (blocked_recipe, safe_meal))
+    assert [candidate.template.meal_id for candidate in eligible] == [safe_meal.meal_id]
+
+    result = plan_week(inputs, (disliked_food, safe_food), (blocked_recipe, safe_meal))
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe_meal.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        food.food_id != disliked_food.food_id
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+    assert all(
+        disliked_food.food_id
+        not in set((food.recipe_snapshot or {}).get("selected_ingredient_grams", {}))
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+
+
+def test_prepared_recipe_with_allergy_food_is_hard_blocked() -> None:
+    from app.nutrition.planner_engine import GenerationOutcome, plan_week
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    safe_food = _food(
+        "safe-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    peanut_food = _food(
+        "peanut-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    blocked_recipe = _prepared_recipe_template("peanut-recipe-meal", peanut_food.food_id)
+    safe_meal = _simple_template("safe-meal", safe_food.food_id)
+    snapshot = PreferenceSnapshot(
+        hard_excluded_food_ids=(peanut_food.food_id,),
+        allergy_food_ids=(peanut_food.food_id,),
+    )
+    inputs = _small_plan_input(preference_snapshot=snapshot)
+
+    result = plan_week(inputs, (safe_food, peanut_food), (blocked_recipe, safe_meal))
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe_meal.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        food.food_id != peanut_food.food_id
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+    assert all(
+        peanut_food.food_id
+        not in set((food.recipe_snapshot or {}).get("selected_ingredient_grams", {}))
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+
+    no_alternative = plan_week(
+        _small_plan_input(preference_snapshot=snapshot),
+        (peanut_food,),
+        (blocked_recipe,),
+    )
+    assert no_alternative.outcome is GenerationOutcome.INFEASIBLE
+    assert no_alternative.reason_codes == ("PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN",)
+
+
+def test_prepared_recipe_with_intolerance_food_is_hard_blocked() -> None:
+    from app.nutrition.planner_engine import GenerationOutcome, plan_week
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    safe_food = _food(
+        "safe-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    dairy_food = _food(
+        "intolerated-dairy-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    blocked_recipe = _prepared_recipe_template("dairy-recipe-meal", dairy_food.food_id)
+    safe_meal = _simple_template("safe-meal", safe_food.food_id)
+    snapshot = PreferenceSnapshot(
+        intolerance_food_ids=(dairy_food.food_id,),
+        hard_excluded_food_ids=(dairy_food.food_id,),
+    )
+    inputs = _small_plan_input(preference_snapshot=snapshot)
+
+    result = plan_week(inputs, (safe_food, dairy_food), (blocked_recipe, safe_meal))
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe_meal.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        food.food_id != dairy_food.food_id
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+    assert all(
+        dairy_food.food_id
+        not in set((food.recipe_snapshot or {}).get("selected_ingredient_grams", {}))
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+
+
 def test_liked_meal_has_stronger_rank_than_an_equivalent_meal() -> None:
     from app.nutrition.planner_engine import (
         PlannerMealIngredient,
@@ -228,6 +466,87 @@ def test_liked_meal_has_stronger_rank_than_an_equivalent_meal() -> None:
     )
 
     assert ranked[0].template.meal_id == "liked-meal"
+
+
+def test_favourite_never_overrides_hard_exclusion() -> None:
+    from app.nutrition.planner_engine import GenerationOutcome, plan_week
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    food = _food(
+        "shared-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    favourite_but_unsafe = _simple_template("favourite-unsafe-meal", food.food_id)
+    safe = _simple_template("safe-meal", food.food_id)
+    snapshot = PreferenceSnapshot(
+        liked_meal_ids=(favourite_but_unsafe.meal_id,),
+        hard_excluded_meal_ids=(favourite_but_unsafe.meal_id,),
+    )
+
+    result = plan_week(
+        _small_plan_input(preference_snapshot=snapshot),
+        (food,),
+        (favourite_but_unsafe, safe),
+    )
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        meal.template_id != favourite_but_unsafe.meal_id
+        for day in result.days
+        for meal in day.meals
+    )
+
+
+def test_favourite_meal_does_not_override_repetition_cap() -> None:
+    from app.nutrition.planner_engine import GenerationOutcome, _eligible_templates, plan_week
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+    from app.nutrition.template_substitution import SubstitutionContext, rank_template_substitutes
+
+    food = _food(
+        "shared-food",
+        ("main_protein",),
+        kcal="200",
+        protein="20",
+        carbs="20",
+        fat="5",
+    )
+    favourite = _simple_template("favourite-meal", food.food_id)
+    alternatives = tuple(
+        _simple_template(f"alternative-{index}", food.food_id) for index in range(1, 4)
+    )
+    requested_id = "missing-scheduled-meal"
+    schedule = tuple(("main_meal", requested_id, "lunch") for _ in range(7))
+    inputs = _small_plan_input(
+        maximum_meal_repetition_per_week=2,
+        template_schedule=tuple((slot,) for slot in schedule),
+        preference_snapshot=PreferenceSnapshot(liked_meal_ids=(favourite.meal_id,)),
+    )
+    eligible = _eligible_templates(inputs, (food,), (favourite, *alternatives))
+    ranked = rank_template_substitutes(
+        _simple_template(requested_id, food.food_id),
+        eligible,
+        SubstitutionContext(
+            slot_category="lunch",
+            target_kcal=Decimal("200"),
+            target_protein=Decimal("20"),
+            maximum_repetition=2,
+            liked_meal_ids=(favourite.meal_id,),
+        ),
+    )
+    assert ranked[0].template.meal_id == favourite.meal_id
+
+    result = plan_week(inputs, (food,), (favourite, *alternatives))
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    meal_ids = [meal.template_id for day in result.days for meal in day.meals]
+    assert 0 < meal_ids.count(favourite.meal_id) <= 2
+    assert all(meal_ids.count(template_id) <= 2 for template_id in set(meal_ids))
+    assert set(meal_ids) & {template.meal_id for template in alternatives}
 
 
 def test_meal_allergy_blocks_only_the_exact_meal_not_its_ingredients() -> None:
@@ -641,6 +960,100 @@ def _meal_templates():
             items=(item("yogurt", "200", "100", "350", "protein"),),
         ),
     )
+
+
+def _planned_day_for_preference_guard(
+    *,
+    template_id: str = "safe-template",
+    food_id: str | None = "safe-food",
+    recipe_snapshot: dict[str, object] | None = None,
+):
+    from app.nutrition.planner_engine import PlannedDay, PlannedFood, PlannedMeal
+
+    nutrients = (
+        ("carbohydrate_g", Decimal("20")),
+        ("energy_kcal", Decimal("200")),
+        ("fibre_g", Decimal("2")),
+        ("protein_g", Decimal("20")),
+        ("total_fat_g", Decimal("5")),
+    )
+    planned_food = PlannedFood(
+        food_id=food_id if recipe_snapshot is None else None,
+        slug="prepared-meal" if recipe_snapshot is not None else (food_id or "food"),
+        name_fa="prepared-meal" if recipe_snapshot is not None else (food_id or "food"),
+        name_en="prepared-meal" if recipe_snapshot is not None else (food_id or "food"),
+        roles=("main_protein",),
+        grams=Decimal("100"),
+        cost_irr=Decimal("100"),
+        nutrients=nutrients,
+        price_reference_id="price-test",
+        min_grams=Decimal("50"),
+        max_grams=Decimal("200"),
+        functional_role="main_protein",
+        item_kind="prepared_recipe" if recipe_snapshot is not None else "food",
+        recipe_snapshot=recipe_snapshot,
+    )
+    meal = PlannedMeal(
+        role="main_meal",
+        slot_index=0,
+        template_id=template_id,
+        template_category="lunch",
+        foods=(planned_food,),
+        cost_irr=planned_food.cost_irr,
+        nutrients=nutrients,
+    )
+    return PlannedDay(
+        day_index=0,
+        meals=(meal,),
+        cost_irr=meal.cost_irr,
+        nutrients=nutrients,
+    )
+
+
+def test_final_preference_guard_rejects_disliked_direct_food() -> None:
+    from app.nutrition.planner_engine import _final_preference_failure
+
+    blocked_food_id = "blocked-direct-food"
+
+    reason = _final_preference_failure(
+        (_planned_day_for_preference_guard(food_id=blocked_food_id),),
+        _input(disliked_food_ids=(blocked_food_id,)),
+    )
+
+    assert reason == "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+
+
+def test_final_preference_guard_rejects_hard_excluded_meal() -> None:
+    from app.nutrition.planner_engine import _final_preference_failure
+
+    blocked_meal_id = "blocked-meal"
+
+    reason = _final_preference_failure(
+        (_planned_day_for_preference_guard(template_id=blocked_meal_id),),
+        _input(hard_excluded_meal_ids=(blocked_meal_id,)),
+    )
+
+    assert reason == "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
+
+
+def test_final_preference_guard_rejects_blocked_prepared_recipe_ingredient() -> None:
+    from app.nutrition.planner_engine import _final_preference_failure
+
+    blocked_food_id = "blocked-prepared-food"
+    prepared_snapshot = {
+        "selected_ingredient_grams": {blocked_food_id: "100"},
+    }
+
+    reason = _final_preference_failure(
+        (
+            _planned_day_for_preference_guard(
+                recipe_snapshot=prepared_snapshot,
+            ),
+        ),
+        _input(hard_excluded_food_ids=(blocked_food_id,)),
+    )
+
+    assert reason == "PREFERENCE_AVOIDANCE_NO_FEASIBLE_PLAN"
 
 
 def test_planner_uses_only_catalogue_templates_and_keeps_every_item_in_bounds() -> None:

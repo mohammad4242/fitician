@@ -95,6 +95,40 @@ def _eligible(template: PlannerMealTemplate, food: PlannerFood) -> EligibleMealT
     return EligibleMealTemplate(template=template, items=((template.items[0], food),))
 
 
+def _prepared_recipe_template(meal_id: str, category: str, food_id: str) -> PlannerMealTemplate:
+    return PlannerMealTemplate(
+        meal_id=meal_id,
+        name_fa=meal_id,
+        name_en=meal_id,
+        category=category,
+        items=(),
+        prepared_recipe=PlannerPreparedRecipe(
+            revision_id=f"{meal_id}-revision",
+            name_fa=meal_id,
+            name_en=meal_id,
+            verification_status="verified",
+            definition=PreparedRecipeDefinition(
+                calculation_version="prepared-recipe-v1",
+                ingredients=(
+                    PreparedRecipeIngredient(
+                        food_id=food_id,
+                        reference_grams=Decimal("100"),
+                        min_grams=Decimal("50"),
+                        max_grams=Decimal("150"),
+                        is_required=True,
+                    ),
+                ),
+                ratios=(),
+                cooked_yield=PreparedRecipeYield(
+                    method="proportional_reference_batch",
+                    reference_input_grams=Decimal("100"),
+                    final_cooked_yield_grams=Decimal("100"),
+                ),
+            ),
+        ),
+    )
+
+
 def _input(
     *, dietary_pattern: str = "omnivore", excluded_terms: tuple[str, ...] = ()
 ) -> PlannerInput:
@@ -226,6 +260,188 @@ def test_excluded_food_does_not_reenter_through_substitution() -> None:
     assert all(meal.template_id == safe.meal_id for day in result.days for meal in day.meals)
     assert all(
         food.slug != "peanut" for day in result.days for meal in day.meals for food in meal.foods
+    )
+
+
+def test_substitution_does_not_use_disliked_meal() -> None:
+    requested_food = _food("requested", dietary_patterns=("omnivore",))
+    disliked_food = _food("disliked-meal-food")
+    allowed_a_food = _food("allowed-a-food", kcal="200", protein="20")
+    allowed_b_food = _food("allowed-b-food", kcal="205", protein="20")
+    requested = _template("requested", "lunch", requested_food.food_id)
+    disliked = _template("disliked-meal", "lunch", disliked_food.food_id)
+    allowed_a = _template("allowed-a", "lunch", allowed_a_food.food_id)
+    allowed_b = _template("allowed-b", "lunch", allowed_b_food.food_id)
+    templates = (requested, disliked, allowed_a, allowed_b)
+    foods = (requested_food, disliked_food, allowed_a_food, allowed_b_food)
+    inputs = replace(
+        _input(dietary_pattern="vegan"),
+        template_schedule=_schedule(requested.meal_id),
+        disliked_meal_ids=(disliked.meal_id,),
+    )
+    eligible = _eligible_templates(
+        inputs,
+        (disliked_food, allowed_a_food, allowed_b_food),
+        templates,
+    )
+    context = SubstitutionContext(
+        slot_category="lunch",
+        target_kcal=Decimal("200"),
+        target_protein=Decimal("20"),
+        disliked_meal_ids=(disliked.meal_id,),
+    )
+
+    assert [candidate.template.meal_id for candidate in eligible] == [
+        allowed_a.meal_id,
+        allowed_b.meal_id,
+    ]
+    assert [
+        candidate.template.meal_id
+        for candidate in rank_template_substitutes(requested, eligible, context)
+    ] == [
+        candidate.template.meal_id
+        for candidate in rank_template_substitutes(requested, tuple(reversed(eligible)), context)
+    ]
+
+    result = plan_week(inputs, foods, templates)
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == allowed_a.meal_id for day in result.days for meal in day.meals)
+    assert all(meal.template_id != disliked.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        action.reason_code == "SCHEDULED_TEMPLATE_UNAVAILABLE"
+        for action in result.substitution_actions
+    )
+
+
+def test_substitution_does_not_use_hard_excluded_meal() -> None:
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    requested_food = _food("requested", dietary_patterns=("omnivore",))
+    excluded_food = _food("excluded-meal-food")
+    safe_food = _food("safe-meal-food", kcal="205", protein="20")
+    requested = _template("requested", "lunch", requested_food.food_id)
+    excluded = _template("excluded-meal", "lunch", excluded_food.food_id)
+    safe = _template("safe-meal", "lunch", safe_food.food_id)
+    snapshot = PreferenceSnapshot(
+        hard_excluded_meal_ids=(requested.meal_id, excluded.meal_id),
+        allergy_meal_ids=(requested.meal_id,),
+    )
+    inputs = replace(
+        _input(dietary_pattern="vegan"),
+        template_schedule=_schedule(requested.meal_id),
+        preference_snapshot=snapshot,
+    )
+
+    result = plan_week(
+        inputs,
+        (requested_food, excluded_food, safe_food),
+        (requested, excluded, safe),
+    )
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe.meal_id for day in result.days for meal in day.meals)
+    assert all(meal.template_id != excluded.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        action.replacement_template_id == safe.meal_id
+        and action.reason_code == "PROFILE_ALLERGY_MEAL"
+        for action in result.substitution_actions
+    )
+
+
+def test_substitution_rejects_prepared_recipe_containing_disliked_food() -> None:
+    requested_food = _food("requested", dietary_patterns=("omnivore",))
+    disliked_food = _food("disliked-recipe-food")
+    safe_food = _food("safe-food", kcal="205", protein="20")
+    requested = _template("requested", "lunch", requested_food.food_id)
+    blocked_recipe = _prepared_recipe_template(
+        "disliked-recipe-meal", "lunch", disliked_food.food_id
+    )
+    safe = _template("safe-meal", "lunch", safe_food.food_id)
+    inputs = replace(
+        _input(dietary_pattern="vegan"),
+        template_schedule=_schedule(requested.meal_id),
+        disliked_food_ids=(disliked_food.food_id,),
+    )
+    assert blocked_recipe.prepared_recipe is not None
+    ingredient_ids = {
+        str(ingredient.food_id)
+        for ingredient in blocked_recipe.prepared_recipe.definition.ingredients
+    }
+    eligible = _eligible_templates(
+        inputs,
+        (disliked_food, safe_food),
+        (requested, blocked_recipe, safe),
+    )
+
+    assert disliked_food.food_id in ingredient_ids
+    assert [candidate.template.meal_id for candidate in eligible] == [safe.meal_id]
+
+    result = plan_week(
+        inputs,
+        (requested_food, disliked_food, safe_food),
+        (requested, blocked_recipe, safe),
+    )
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        disliked_food.food_id
+        not in (food.recipe_snapshot or {}).get("selected_ingredient_grams", {})
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
+    )
+
+
+def test_substitution_rejects_prepared_recipe_containing_hard_excluded_food() -> None:
+    from app.nutrition.preference_snapshot import PreferenceSnapshot
+
+    requested_food = _food("requested", dietary_patterns=("omnivore",))
+    excluded_food = _food("excluded-recipe-food")
+    safe_food = _food("safe-food", kcal="205", protein="20")
+    requested = _template("requested", "lunch", requested_food.food_id)
+    blocked_recipe = _prepared_recipe_template(
+        "excluded-recipe-meal", "lunch", excluded_food.food_id
+    )
+    safe = _template("safe-meal", "lunch", safe_food.food_id)
+    snapshot = PreferenceSnapshot(
+        hard_excluded_food_ids=(excluded_food.food_id,),
+        allergy_food_ids=(excluded_food.food_id,),
+    )
+    inputs = replace(
+        _input(dietary_pattern="vegan"),
+        template_schedule=_schedule(requested.meal_id),
+        preference_snapshot=snapshot,
+    )
+    assert blocked_recipe.prepared_recipe is not None
+    ingredient_ids = {
+        str(ingredient.food_id)
+        for ingredient in blocked_recipe.prepared_recipe.definition.ingredients
+    }
+    eligible = _eligible_templates(
+        inputs,
+        (excluded_food, safe_food),
+        (requested, blocked_recipe, safe),
+    )
+
+    assert excluded_food.food_id in ingredient_ids
+    assert [candidate.template.meal_id for candidate in eligible] == [safe.meal_id]
+
+    result = plan_week(
+        inputs,
+        (requested_food, excluded_food, safe_food),
+        (requested, blocked_recipe, safe),
+    )
+
+    assert result.outcome is GenerationOutcome.SUCCESS
+    assert all(meal.template_id == safe.meal_id for day in result.days for meal in day.meals)
+    assert all(
+        excluded_food.food_id
+        not in (food.recipe_snapshot or {}).get("selected_ingredient_grams", {})
+        for day in result.days
+        for meal in day.meals
+        for food in meal.foods
     )
 
 

@@ -258,6 +258,72 @@ def test_budget_repair_does_not_reintroduce_disliked_food() -> None:
     )
 
 
+def test_budget_repair_does_not_reintroduce_disliked_meal() -> None:
+    expensive_food = _food("expensive-food", price="100")
+    allowed_food = _food("allowed-food", price="20")
+    disliked_food = _food("disliked-food", price="1")
+    expensive = _template("expensive-template", expensive_food.food_id)
+    allowed = _template("allowed-template", allowed_food.food_id)
+    disliked = _template("disliked-template", disliked_food.food_id)
+
+    result = optimize_weekly_budget(
+        days=_days(expensive, expensive_food),
+        inputs=replace(
+            _input(budget=20_000),
+            disliked_meal_ids=(disliked.meal_id,),
+        ),
+        eligible_templates=(
+            _eligible(expensive, expensive_food),
+            _eligible(allowed, allowed_food),
+            _eligible(disliked, disliked_food),
+        ),
+        policy=PlannerPolicy(maximum_budget_repair_iterations=10),
+    )
+
+    assert result.failure_code is None
+    assert result.final_cost_irr <= Decimal("20000")
+    assert all(
+        meal.template_id == allowed.meal_id
+        for day in result.days
+        for meal in day.meals
+        if meal.foods
+    )
+    assert all(meal.template_id != disliked.meal_id for day in result.days for meal in day.meals)
+
+
+def test_budget_repair_does_not_reintroduce_hard_excluded_meal() -> None:
+    expensive_food = _food("expensive-food", price="100")
+    allowed_food = _food("allowed-food", price="20")
+    excluded_food = _food("excluded-food", price="1")
+    expensive = _template("expensive-template", expensive_food.food_id)
+    allowed = _template("allowed-template", allowed_food.food_id)
+    excluded = _template("excluded-template", excluded_food.food_id)
+
+    result = optimize_weekly_budget(
+        days=_days(expensive, expensive_food),
+        inputs=replace(
+            _input(budget=20_000),
+            hard_excluded_meal_ids=(excluded.meal_id,),
+        ),
+        eligible_templates=(
+            _eligible(expensive, expensive_food),
+            _eligible(allowed, allowed_food),
+            _eligible(excluded, excluded_food),
+        ),
+        policy=PlannerPolicy(maximum_budget_repair_iterations=10),
+    )
+
+    assert result.failure_code is None
+    assert result.final_cost_irr <= Decimal("20000")
+    assert all(
+        meal.template_id == allowed.meal_id
+        for day in result.days
+        for meal in day.meals
+        if meal.foods
+    )
+    assert all(meal.template_id != excluded.meal_id for day in result.days for meal in day.meals)
+
+
 def test_optimizer_recomputes_day_nutrients_after_a_repair() -> None:
     expensive_food = _food("expensive-food", price="100")
     cheap_food = _food("cheap-food", kcal="150", protein="15", carbs="15", fat="4", price="10")
