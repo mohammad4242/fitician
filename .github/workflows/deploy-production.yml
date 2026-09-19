@@ -197,7 +197,8 @@ jobs:
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
-          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$VPS_APP_DIR/ops/redis'"
+          ssh "$VPS_USER@$VPS_HOST" \
+            "mkdir -p '$VPS_APP_DIR/ops/redis'; if [ -f '$VPS_APP_DIR/compose.prod.yaml' ]; then cp '$VPS_APP_DIR/compose.prod.yaml' '$VPS_APP_DIR/.compose.prod.rollback.yaml'; else rm -f '$VPS_APP_DIR/.compose.prod.rollback.yaml'; fi"
           scp compose.prod.yaml "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/compose.prod.yaml"
           scp Caddyfile "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/Caddyfile"
           scp ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/redis/redis.conf"
@@ -214,4 +215,4 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
-            "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
+            "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' ROLLBACK_COMPOSE_FILE='$VPS_APP_DIR/.compose.prod.rollback.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"

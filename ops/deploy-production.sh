@@ -2,6 +2,7 @@
 set -eu
 
 compose_file=${COMPOSE_FILE:-compose.prod.yaml}
+rollback_compose_file=${ROLLBACK_COMPOSE_FILE:-}
 image_tag=${IMAGE_TAG:?IMAGE_TAG is required}
 previous_image_tag=${PREVIOUS_IMAGE_TAG:-}
 initial_deploy=${INITIAL_DEPLOY:-false}
@@ -109,6 +110,9 @@ rollback() {
   rollback_current_revision=$(compose exec -T db sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version"')
   image_tag="$previous_image_tag"
+  if [ -n "$rollback_compose_file" ] && [ -f "$rollback_compose_file" ]; then
+    cp "$rollback_compose_file" "$compose_file"
+  fi
   compose pull
   rollback_target_revision=$(compose run --rm --no-deps migrations alembic heads | \
     awk 'NR == 1 {print $1}')
@@ -123,7 +127,19 @@ rollback() {
 
 capture_failure_diagnostics() {
   compose ps || true
-  compose logs --no-color --tail=200 scheduler migrations || true
+  for service in \
+    notification-worker food-photo-worker body-analysis-worker scheduler \
+    backend backend-2 frontend agent-service migrations; do
+    container_id=$(compose ps -q "$service" 2>/dev/null || true)
+    if [ -n "$container_id" ]; then
+      docker inspect --format \
+        'service={{index .Config.Labels "com.docker.compose.service"}} status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} oom={{.State.OOMKilled}} restarts={{.RestartCount}} health_log={{json .State.Health.Log}}' \
+        "$container_id" || true
+    fi
+  done
+  compose logs --no-color --tail=200 \
+    notification-worker food-photo-worker body-analysis-worker scheduler \
+    backend backend-2 frontend agent-service migrations || true
 }
 
 verify_runtime() {
@@ -192,6 +208,9 @@ if [ "$first_scalability_release" = true ]; then
     "$image_tag" "$scalability_evidence_run_id" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     > "$next_scalability_marker"
   mv "$next_scalability_marker" "$scalability_marker"
+fi
+if [ -n "$rollback_compose_file" ]; then
+  rm -f "$rollback_compose_file"
 fi
 
 echo "Production deployment verified for immutable image tag ${image_tag}"

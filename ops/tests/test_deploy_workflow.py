@@ -40,6 +40,8 @@ class DeployWorkflowTests(unittest.TestCase):
         self.assertIn("ops/verify-production.sh", workflow)
         self.assertIn("ops/check-db-connection-budget.py", workflow)
         self.assertIn("ops/check-runtime-capacity.py", workflow)
+        self.assertIn(".compose.prod.rollback.yaml", workflow)
+        self.assertIn("ROLLBACK_COMPOSE_FILE=", workflow)
 
 
 if __name__ == "__main__":

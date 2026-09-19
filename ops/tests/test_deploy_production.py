@@ -37,6 +37,7 @@ class DeployProductionTests(unittest.TestCase):
 printf '%s\\n' "$*" >> "$FAKE_STATE_DIR/calls"
 case "$*" in
   *' ps --status running --services'*) printf '%s\n' backend backend-2 redis food-photo-worker body-analysis-worker notification-worker scheduler frontend caddy ;;
+  *' ps -q '*) printf '%s\n' fake-container ;;
   *' up '*)
     if [ "${FAKE_UP_FAIL_NEW:-}" = true ] && [ "$IMAGE_TAG" = "${FAKE_NEW_TAG}" ]; then
       exit 3
@@ -127,6 +128,21 @@ esac
         self.assertIn("IMAGE_TAG=" + OLD_TAG, (self.workspace / ".env").read_text())
         calls = (self.workspace / "calls").read_text().splitlines()
         self.assertEqual(sum(" up " in call for call in calls), 2)
+        self.assertTrue(any("inspect --format" in call for call in calls))
+
+    def test_failed_rollout_restores_previous_compose_contract(self) -> None:
+        rollback_compose = self.workspace / ".compose.prod.rollback.yaml"
+        rollback_compose.write_text("previous compose contract\n")
+        self.env["ROLLBACK_COMPOSE_FILE"] = str(rollback_compose)
+        self.env["FAKE_UP_FAIL_NEW"] = "true"
+
+        result = self._run()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(
+            (self.workspace / "compose.prod.yaml").read_text(),
+            "previous compose contract\n",
+        )
 
     def test_failed_rollout_refuses_schema_incompatible_previous_image(self) -> None:
         self.env["FAKE_UP_FAIL_NEW"] = "true"
