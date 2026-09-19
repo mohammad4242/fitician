@@ -317,8 +317,8 @@ jobs:
         run: |
           test ! -e .env
           test ! -e ../.env
-          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > .env
-          printf 'DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician\n' > ../.env
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test\n' > .env
+          printf 'DATABASE_URL=postgresql+psycopg://fitician:fitician@localhost:5432/fitician_test\n' > ../.env
       - name: Verify Redis service
         run: |
           uv run python - <<'PY'
