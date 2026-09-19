@@ -288,7 +288,7 @@ services:
       start_period: 15s
     stop_grace_period: 30s
     mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-96m}
-    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.10}
+    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.15}
     restart: unless-stopped
 
   frontend:

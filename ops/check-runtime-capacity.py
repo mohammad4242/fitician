@@ -54,7 +54,7 @@ def normal_budgets(replicas: int) -> tuple[ServiceBudget, ...]:
         ServiceBudget(
             "notification-worker",
             env_int("NOTIFICATION_WORKER_MEMORY_MIB", 96),
-            env_float("NOTIFICATION_WORKER_CPUS", 0.10),
+            env_float("NOTIFICATION_WORKER_CPUS", 0.15),
         ),
         ServiceBudget(
             "scheduler", env_int("SCHEDULER_MEMORY_MIB", 128), env_float("SCHEDULER_CPUS", 0.15)
