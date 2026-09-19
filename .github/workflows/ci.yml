@@ -401,6 +401,7 @@ jobs:
             'APP_ENV=local' \
             'COOKIE_SECURE=false' \
             'SESSION_COOKIE_NAME=fitician_session' \
+            'AGENT_SERVICE_TOKEN=fitician-ci-agent-token-placeholder-000000' \
             'EMAIL_PROVIDER=fake' \
             'SMS_PROVIDER=fake' \
             'BODY_ANALYSIS_LOCAL_FAKE_PROVIDER_ENABLED=true' \
