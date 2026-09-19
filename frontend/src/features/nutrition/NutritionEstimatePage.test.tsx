@@ -233,13 +233,14 @@ async function generatePlan(result: WeeklyPlanGeneration) {
 }
 
 async function openWeeklyPlan(user: ReturnType<typeof userEvent.setup>) {
-  const summary = screen.queryByText("Nutrition plan", { exact: true }) ?? screen.getByText("برنامه تغذیه", { exact: true });
+  const summary = await screen.findByText(/^(Nutrition plan|برنامه تغذیه)$/);
   await user.click(summary);
 }
 
 async function openFirstMeal(user: ReturnType<typeof userEvent.setup>) {
-  const mealTitle = screen.queryByText("LU01 — جوجه کباب + برنج + گوجه کبابی", { exact: true })
-    ?? screen.getByText("LU01 — Chicken kebab, rice, and grilled tomato", { exact: true });
+  const mealTitle = await screen.findByText(
+    /^LU01 — (جوجه کباب \+ برنج \+ گوجه کبابی|Chicken kebab, rice, and grilled tomato)$/,
+  );
   await user.click(mealTitle.closest("summary")!);
 }
 

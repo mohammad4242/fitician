@@ -164,13 +164,14 @@ it("filters with horizontal category chips while preserving the search query", a
 
   const allChip = await screen.findByRole("button", { name: "همه گروه‌ها" });
   expect(allChip).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: "مرغ و ماکیان" })).toHaveAttribute(
+  const poultryChip = await screen.findByRole("button", { name: "مرغ و ماکیان" });
+  expect(poultryChip).toHaveAttribute(
     "aria-pressed",
     "false",
   );
   await user.type(screen.getByLabelText("جست‌وجوی ماده غذایی"), "مرغ");
   await user.click(screen.getByRole("button", { name: "جست‌وجو" }));
-  await user.click(screen.getByRole("button", { name: "مرغ و ماکیان" }));
+  await user.click(poultryChip);
 
   await waitFor(() => expect(api.getFoodCatalogue).toHaveBeenLastCalledWith({
     query: "مرغ",
