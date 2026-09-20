@@ -1,30 +1,31 @@
 import {
-  accessPackageCodes,
   type AccessPackageCode,
   type EntitlementCode,
   type GrantSource,
 } from "@fitician/core/entitlements";
+import { type AccessCampaignKind } from "@fitician/core/campaigns";
 
 import { request } from "../../shared/apiClient";
 
 const adminAccessPath = "/api/v1/admin/access";
 const adminAuditPath = "/api/v1/admin/audit/events";
 
-export type AccessCampaignKind = "signup_trial" | "manual_promotion";
 export type AccessTermWeeks = 4 | 6 | 8;
 export type GrantStatus = "active" | "future" | "expired" | "revoked";
 
-const campaignPackageCodes = accessPackageCodes.filter(
-  (code) => code !== "free",
-) as AccessPackageCode[];
+export const campaignGrantPackageCodes = [
+  "training",
+  "training_coach",
+  "nutrition",
+  "nutrition_physician",
+  "complete",
+  "complete_care",
+] as const satisfies readonly AccessPackageCode[];
 
-export const adminAccessPackageCodes = campaignPackageCodes.filter(
-  (code) => code !== "launch_trial",
-);
+export const signupBonusPackageCodes = campaignGrantPackageCodes;
+export const adminAccessPackageCodes = campaignGrantPackageCodes;
 
-export const signupTrialPackageCodes = campaignPackageCodes.filter(
-  (code) => code === "launch_trial",
-);
+export type { AccessCampaignKind } from "@fitician/core/campaigns";
 
 export type AdminAccessCampaign = {
   readonly id: string;
@@ -39,6 +40,16 @@ export type AdminAccessCampaign = {
   readonly available_until: string | null;
   readonly is_active: boolean;
   readonly max_total_redemptions: number | null;
+  readonly public_badge_fa: string | null;
+  readonly public_badge_en: string | null;
+  readonly public_title_fa: string | null;
+  readonly public_title_en: string | null;
+  readonly public_message_fa: string | null;
+  readonly public_message_en: string | null;
+  readonly public_cta_fa: string | null;
+  readonly public_cta_en: string | null;
+  readonly show_on_landing: boolean;
+  readonly show_on_register: boolean;
   readonly redemption_count: number;
   readonly created_by_user_id: string | null;
   readonly created_at: string;
@@ -57,6 +68,16 @@ export type AdminAccessCampaignInput = {
   readonly available_until?: string | null;
   readonly is_active?: boolean;
   readonly max_total_redemptions?: number | null;
+  readonly public_badge_fa?: string | null;
+  readonly public_badge_en?: string | null;
+  readonly public_title_fa?: string | null;
+  readonly public_title_en?: string | null;
+  readonly public_message_fa?: string | null;
+  readonly public_message_en?: string | null;
+  readonly public_cta_fa?: string | null;
+  readonly public_cta_en?: string | null;
+  readonly show_on_landing?: boolean;
+  readonly show_on_register?: boolean;
 };
 
 export type AdminAccessCampaignUpdate = Partial<

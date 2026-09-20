@@ -10,7 +10,6 @@ import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   activateCampaign,
   adminAccessPackageCodes,
-  signupTrialPackageCodes,
   createCampaign,
   deactivateCampaign,
   getCampaigns,
@@ -34,6 +33,16 @@ type CampaignFormState = {
   available_until: string | null;
   is_active: boolean;
   max_total_redemptions: string;
+  public_badge_fa: string;
+  public_badge_en: string;
+  public_title_fa: string;
+  public_title_en: string;
+  public_message_fa: string;
+  public_message_en: string;
+  public_cta_fa: string;
+  public_cta_en: string;
+  show_on_landing: boolean;
+  show_on_register: boolean;
 };
 
 type CampaignFormField =
@@ -42,7 +51,8 @@ type CampaignFormField =
   | "duration_days"
   | "term_weeks"
   | "max_total_redemptions"
-  | "availability";
+  | "availability"
+  | "marketing";
 
 type CampaignFormErrorCode =
   | "codeRequired"
@@ -50,10 +60,12 @@ type CampaignFormErrorCode =
   | "nameRequired"
   | "durationRequired"
   | "durationRange"
+  | "durationTermMinimum"
   | "maxRedemptionsPositive"
   | "trainingTermRequired"
   | "termInvalid"
-  | "availabilityOrder";
+  | "availabilityOrder"
+  | "publicCopyRequired";
 
 type CampaignFormErrors = Partial<Record<CampaignFormField, CampaignFormErrorCode>>;
 
@@ -65,6 +77,11 @@ const trainingTermPackageCodes = new Set<AdminAccessCampaign["package_code"]>([
   "complete",
   "complete_care",
 ]);
+const humanReviewPackageCodes = new Set<AdminAccessCampaign["package_code"]>([
+  "training_coach",
+  "nutrition_physician",
+  "complete_care",
+]);
 
 const initialForm: CampaignFormState = {
   code: "",
@@ -72,12 +89,22 @@ const initialForm: CampaignFormState = {
   description: "",
   kind: "manual_promotion",
   package_code: "complete",
-  duration_days: "30",
+  duration_days: "56",
   term_weeks: "8",
   available_from: null,
   available_until: null,
   is_active: false,
   max_total_redemptions: "",
+  public_badge_fa: "",
+  public_badge_en: "",
+  public_title_fa: "",
+  public_title_en: "",
+  public_message_fa: "",
+  public_message_en: "",
+  public_cta_fa: "",
+  public_cta_en: "",
+  show_on_landing: false,
+  show_on_register: false,
 };
 
 export function AdminAccessCampaignsPage() {
@@ -107,15 +134,18 @@ export function AdminAccessCampaignsPage() {
         setLoadError(cause);
         setState("error");
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   const editingSemanticsLocked = editing !== null && editing.redemption_count > 0;
-  const availablePackages = useMemo(
-    () => form.kind === "signup_trial" ? signupTrialPackageCodes : adminAccessPackageCodes,
-    [form.kind],
-  );
   const english = i18n.resolvedLanguage === "en";
+  const availablePackages = useMemo(() => {
+    if (adminAccessPackageCodes.some((code) => code === form.package_code)) return adminAccessPackageCodes;
+    return [form.package_code, ...adminAccessPackageCodes];
+  }, [form.package_code]);
+  const publicCampaign = form.kind === "signup_bonus";
 
   function openCreate() {
     setEditing(null);
@@ -141,6 +171,16 @@ export function AdminAccessCampaignsPage() {
       max_total_redemptions: campaign.max_total_redemptions === null
         ? ""
         : String(campaign.max_total_redemptions),
+      public_badge_fa: campaign.public_badge_fa ?? "",
+      public_badge_en: campaign.public_badge_en ?? "",
+      public_title_fa: campaign.public_title_fa ?? "",
+      public_title_en: campaign.public_title_en ?? "",
+      public_message_fa: campaign.public_message_fa ?? "",
+      public_message_en: campaign.public_message_en ?? "",
+      public_cta_fa: campaign.public_cta_fa ?? "",
+      public_cta_en: campaign.public_cta_en ?? "",
+      show_on_landing: campaign.show_on_landing,
+      show_on_register: campaign.show_on_register,
     });
     setFormErrors({});
     setActionError(null);
@@ -214,14 +254,14 @@ export function AdminAccessCampaignsPage() {
                   <div>
                     <span className="access-admin-code">{campaign.code}</span>
                     <h2>{campaign.name}</h2>
-                    <p>{campaign.kind === "signup_trial" ? t("adminAccess.signupTrial") : t("adminAccess.manualPromotion")}</p>
+                    <p>{campaign.kind === "signup_bonus" ? t("adminAccess.signupBonus") : t("adminAccess.manualPromotion")}</p>
                   </div>
                   <span className={`access-admin-state ${campaign.is_active ? "is-active" : "is-inactive"}`}>
                     {campaign.is_active ? t("adminAccess.active") : t("adminAccess.inactive")}
                   </span>
                 </header>
                 <p className="access-campaign-card__help">
-                  {campaign.kind === "signup_trial" ? t("adminAccess.signupHelp") : t("adminAccess.manualHelp")}
+                  {campaign.kind === "signup_bonus" ? t("adminAccess.signupHelp") : t("adminAccess.manualHelp")}
                 </p>
                 <dl className="access-campaign-card__facts">
                   <div><dt>{t("adminAccess.package")}</dt><dd>{t(`entitlements.packageLabels.${campaign.package_code}`, { defaultValue: campaign.package_code })}</dd></div>
@@ -259,115 +299,200 @@ export function AdminAccessCampaignsPage() {
               </div>
               <button className="access-admin-button access-admin-button--quiet" onClick={() => setShowForm(false)} type="button">{t("adminAccess.cancel")}</button>
             </header>
-            <div className="access-admin-form-grid">
-              <label>
-                {t("adminAccess.code")}
-                <input
-                  aria-describedby={hasFieldError("code") ? fieldErrorId("code") : undefined}
-                  aria-invalid={hasFieldError("code")}
-                  disabled={editing !== null}
-                  onChange={(event) => setField("code", event.currentTarget.value)}
-                  value={form.code}
-                />
-                {renderFieldError("code")}
-              </label>
-              <label>
-                {t("adminAccess.campaignName")}
-                <input
-                  aria-describedby={hasFieldError("name") ? fieldErrorId("name") : undefined}
-                  aria-invalid={hasFieldError("name")}
-                  onChange={(event) => setField("name", event.currentTarget.value)}
-                  value={form.name}
-                />
-                {renderFieldError("name")}
-              </label>
-              <label>
-                {t("adminAccess.kind")}
-                <select disabled={editingSemanticsLocked} onChange={(event) => setCampaignKind(event.currentTarget.value as AccessCampaignKind)} value={form.kind}>
-                  <option value="signup_trial">{t("adminAccess.signupTrial")}</option>
-                  <option value="manual_promotion">{t("adminAccess.manualPromotion")}</option>
-                </select>
-              </label>
-              <label>
-                {t("adminAccess.package")}
-                <select disabled={editingSemanticsLocked} onChange={(event) => setField("package_code", event.currentTarget.value as CampaignFormState["package_code"])} value={form.package_code}>
-                  {availablePackages.map((packageCode) => <option key={packageCode} value={packageCode}>{t(`entitlements.packageLabels.${packageCode}`, { defaultValue: packageCode })}</option>)}
-                </select>
-              </label>
-              <label>
-                {t("adminAccess.benefitDuration")}
-                <input
-                  aria-describedby={hasFieldError("duration_days") ? fieldErrorId("duration_days") : undefined}
-                  aria-invalid={hasFieldError("duration_days")}
-                  disabled={editingSemanticsLocked}
-                  min="1"
-                  onChange={(event) => setField("duration_days", event.currentTarget.value)}
-                  type="number"
-                  value={form.duration_days}
-                />
-                {renderFieldError("duration_days")}
-              </label>
-              <label>
-                {t("adminAccess.trainingTerm")}
-                <select
-                  aria-describedby={hasFieldError("term_weeks") ? fieldErrorId("term_weeks") : undefined}
-                  aria-invalid={hasFieldError("term_weeks")}
-                  disabled={editingSemanticsLocked || form.kind === "signup_trial"}
-                  onChange={(event) => setField("term_weeks", event.currentTarget.value)}
-                  value={form.term_weeks}
-                >
-                  {form.kind !== "signup_trial" && <option value="">—</option>}
-                  <option value="4">{t("billing.fourWeeks")}</option>
-                  {form.kind !== "signup_trial" && <>
+
+            <div className="access-campaign-form-section">
+              <h3>{t("adminAccess.sections.identity")}</h3>
+              <div className="access-admin-form-grid">
+                <label>
+                  {t("adminAccess.code")}
+                  <input
+                    aria-describedby={hasFieldError("code") ? fieldErrorId("code") : undefined}
+                    aria-invalid={hasFieldError("code")}
+                    disabled={editing !== null}
+                    onChange={(event) => setField("code", event.currentTarget.value)}
+                    value={form.code}
+                  />
+                  {renderFieldError("code")}
+                </label>
+                <label>
+                  {t("adminAccess.campaignName")}
+                  <input
+                    aria-describedby={hasFieldError("name") ? fieldErrorId("name") : undefined}
+                    aria-invalid={hasFieldError("name")}
+                    onChange={(event) => setField("name", event.currentTarget.value)}
+                    value={form.name}
+                  />
+                  {renderFieldError("name")}
+                </label>
+                <label className="access-admin-form-card__description">
+                  {t("adminAccess.description")}
+                  <textarea onChange={(event) => setField("description", event.currentTarget.value)} value={form.description} />
+                </label>
+              </div>
+            </div>
+
+            <div className="access-campaign-form-section">
+              <h3>{t("adminAccess.sections.type")}</h3>
+              <div className="access-admin-form-grid">
+                <label>
+                  {t("adminAccess.kind")}
+                  <select disabled={editingSemanticsLocked} onChange={(event) => setCampaignKind(event.currentTarget.value as AccessCampaignKind)} value={form.kind}>
+                    <option value="signup_bonus">{t("adminAccess.signupBonus")}</option>
+                    <option value="manual_promotion">{t("adminAccess.manualPromotion")}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="access-campaign-form-section">
+              <h3>{t("adminAccess.sections.benefit")}</h3>
+              <div className="access-admin-form-grid">
+                <label>
+                  {t("adminAccess.package")}
+                  <select disabled={editingSemanticsLocked} onChange={(event) => setField("package_code", event.currentTarget.value as CampaignFormState["package_code"])} value={form.package_code}>
+                    {availablePackages.map((packageCode) => <option key={packageCode} value={packageCode}>{t(`entitlements.packageLabels.${packageCode}`, { defaultValue: packageCode })}</option>)}
+                  </select>
+                </label>
+                <label>
+                  {t("adminAccess.benefitDuration")}
+                  <input
+                    aria-describedby={hasFieldError("duration_days") ? fieldErrorId("duration_days") : undefined}
+                    aria-invalid={hasFieldError("duration_days")}
+                    disabled={editingSemanticsLocked}
+                    min="1"
+                    onChange={(event) => setField("duration_days", event.currentTarget.value)}
+                    type="number"
+                    value={form.duration_days}
+                  />
+                  {renderFieldError("duration_days")}
+                </label>
+                <label>
+                  {t("adminAccess.trainingTerm")}
+                  <select
+                    aria-describedby={hasFieldError("term_weeks") ? fieldErrorId("term_weeks") : undefined}
+                    aria-invalid={hasFieldError("term_weeks")}
+                    disabled={editingSemanticsLocked}
+                    onChange={(event) => setField("term_weeks", event.currentTarget.value)}
+                    value={form.term_weeks}
+                  >
+                    <option value="">—</option>
+                    <option value="4">{t("billing.fourWeeks")}</option>
                     <option value="6">{t("billing.sixWeeks")}</option>
                     <option value="8">{t("billing.eightWeeks")}</option>
-                  </>}
-                </select>
-                {renderFieldError("term_weeks")}
-              </label>
-              <div>
-                <PersianDateTimePicker
-                  ariaLabel={t("adminAccess.campaignStart")}
-                  label={t("adminAccess.campaignStart")}
-                  onChange={(value) => setField("available_from", value)}
-                  value={form.available_from}
-                />
-              </div>
-              <div>
-                <PersianDateTimePicker
-                  ariaLabel={t("adminAccess.campaignEnd")}
-                  label={t("adminAccess.campaignEnd")}
-                  onChange={(value) => setField("available_until", value)}
-                  value={form.available_until}
-                />
-              </div>
-              <label>
-                {t("adminAccess.maximumRedemptions")}
-                <input
-                  aria-describedby={hasFieldError("max_total_redemptions") ? fieldErrorId("max_total_redemptions") : undefined}
-                  aria-invalid={hasFieldError("max_total_redemptions")}
-                  min="1"
-                  onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)}
-                  type="number"
-                  value={form.max_total_redemptions}
-                />
-                {renderFieldError("max_total_redemptions")}
-              </label>
-              {editing === null && (
-                <label className="access-admin-checkbox">
-                  <input checked={form.is_active} onChange={(event) => setField("is_active", event.currentTarget.checked)} type="checkbox" />
-                  {t("adminAccess.active")}
+                  </select>
+                  {renderFieldError("term_weeks")}
                 </label>
-              )}
+              </div>
+              {humanReviewPackageCodes.has(form.package_code) && <p className="access-campaign-human-warning">{t("adminAccess.humanReviewWarning")}</p>}
             </div>
-            <label className="access-admin-form-card__description">
-              {t("adminAccess.description")}
-              <textarea onChange={(event) => setField("description", event.currentTarget.value)} value={form.description} />
-            </label>
+
+            <div className="access-campaign-form-section">
+              <h3>{t("adminAccess.sections.eligibility")}</h3>
+              <div className="access-admin-form-grid">
+                <div>
+                  <PersianDateTimePicker
+                    ariaLabel={t("adminAccess.campaignStart")}
+                    label={t("adminAccess.campaignStart")}
+                    onChange={(value) => setField("available_from", value)}
+                    value={form.available_from}
+                  />
+                </div>
+                <div>
+                  <PersianDateTimePicker
+                    ariaLabel={t("adminAccess.campaignEnd")}
+                    label={t("adminAccess.campaignEnd")}
+                    onChange={(value) => setField("available_until", value)}
+                    value={form.available_until}
+                  />
+                </div>
+                <label>
+                  {t("adminAccess.maximumRedemptions")}
+                  <input
+                    aria-describedby={hasFieldError("max_total_redemptions") ? fieldErrorId("max_total_redemptions") : undefined}
+                    aria-invalid={hasFieldError("max_total_redemptions")}
+                    min="1"
+                    onChange={(event) => setField("max_total_redemptions", event.currentTarget.value)}
+                    type="number"
+                    value={form.max_total_redemptions}
+                  />
+                  {renderFieldError("max_total_redemptions")}
+                </label>
+                {editing === null && (
+                  <label className="access-admin-checkbox">
+                    <input checked={form.is_active} onChange={(event) => setField("is_active", event.currentTarget.checked)} type="checkbox" />
+                    {t("adminAccess.active")}
+                  </label>
+                )}
+              </div>
+              {renderFieldError("availability")}
+            </div>
+
+            {publicCampaign ? (
+              <div className="access-campaign-form-section">
+                <h3>{t("adminAccess.sections.publicAdvertising")}</h3>
+                <div className="access-campaign-visibility-controls">
+                  <label className="access-admin-checkbox">
+                    <input checked={form.show_on_landing} onChange={(event) => setField("show_on_landing", event.currentTarget.checked)} type="checkbox" />
+                    {t("adminAccess.showOnLanding")}
+                  </label>
+                  <label className="access-admin-checkbox">
+                    <input checked={form.show_on_register} onChange={(event) => setField("show_on_register", event.currentTarget.checked)} type="checkbox" />
+                    {t("adminAccess.showOnRegister")}
+                  </label>
+                </div>
+                <div className="access-campaign-marketing-grid">
+                  <label>
+                    {t("adminAccess.badgeFa")}
+                    <input onChange={(event) => setField("public_badge_fa", event.currentTarget.value)} value={form.public_badge_fa} />
+                  </label>
+                  <label>
+                    {t("adminAccess.badgeEn")}
+                    <input dir="ltr" onChange={(event) => setField("public_badge_en", event.currentTarget.value)} value={form.public_badge_en} />
+                  </label>
+                  <label>
+                    {t("adminAccess.titleFa")}
+                    <input onChange={(event) => setField("public_title_fa", event.currentTarget.value)} value={form.public_title_fa} />
+                  </label>
+                  <label>
+                    {t("adminAccess.titleEn")}
+                    <input dir="ltr" onChange={(event) => setField("public_title_en", event.currentTarget.value)} value={form.public_title_en} />
+                  </label>
+                  <label>
+                    {t("adminAccess.messageFa")}
+                    <textarea onChange={(event) => setField("public_message_fa", event.currentTarget.value)} value={form.public_message_fa} />
+                  </label>
+                  <label>
+                    {t("adminAccess.messageEn")}
+                    <textarea dir="ltr" onChange={(event) => setField("public_message_en", event.currentTarget.value)} value={form.public_message_en} />
+                  </label>
+                  <label>
+                    {t("adminAccess.ctaFa")}
+                    <input onChange={(event) => setField("public_cta_fa", event.currentTarget.value)} value={form.public_cta_fa} />
+                  </label>
+                  <label>
+                    {t("adminAccess.ctaEn")}
+                    <input dir="ltr" onChange={(event) => setField("public_cta_en", event.currentTarget.value)} value={form.public_cta_en} />
+                  </label>
+                </div>
+                {renderFieldError("marketing")}
+              </div>
+            ) : (
+              <p className="access-campaign-private-note">{t("adminAccess.manualPrivateNote")}</p>
+            )}
+
+            {publicCampaign && (
+              <div className="access-campaign-form-section">
+                <h3>{t("adminAccess.sections.preview")}</h3>
+                <div className="access-campaign-preview-grid">
+                  <CampaignPreview direction="rtl" badge={form.public_badge_fa} title={form.public_title_fa} message={form.public_message_fa} cta={form.public_cta_fa} language={t("adminAccess.previewFa")} benefit={benefitLabel(form, t)} />
+                  <CampaignPreview direction="ltr" badge={form.public_badge_en} title={form.public_title_en} message={form.public_message_en} cta={form.public_cta_en} language={t("adminAccess.previewEn")} benefit={benefitLabel(form, t)} />
+                </div>
+              </div>
+            )}
+
             <p className="access-campaign-card__help">
-              {form.kind === "signup_trial" ? t("adminAccess.signupHelp") : t("adminAccess.manualHelp")}
+              {publicCampaign ? t("adminAccess.signupHelp") : t("adminAccess.manualHelp")}
             </p>
-            {renderFieldError("availability")}
             <button className="access-admin-button access-admin-button--primary" disabled={saving} onClick={() => void save()} type="button">
               {saving ? t("billing.saving") : t("adminAccess.saveChanges")}
             </button>
@@ -377,59 +502,89 @@ export function AdminAccessCampaignsPage() {
     </main>
   );
 
-    function setField<K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) {
-      setForm((current) => ({ ...current, [key]: value }));
-      const errorField: CampaignFormField = key === "available_from" || key === "available_until"
-        ? "availability"
+  function setField<K extends keyof CampaignFormState>(key: K, value: CampaignFormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    const errorField: CampaignFormField = key === "available_from" || key === "available_until"
+      ? "availability"
+      : key === "public_badge_fa" || key === "public_badge_en" || key === "public_title_fa"
+        || key === "public_title_en" || key === "public_message_fa" || key === "public_message_en"
+        || key === "public_cta_fa" || key === "public_cta_en" || key === "show_on_landing"
+        || key === "show_on_register"
+        ? "marketing"
         : key as CampaignFormField;
-      setFormErrors((current) => {
-        if (!(errorField in current)) return current;
-        const next = { ...current };
-        delete next[errorField];
-        return next;
-      });
-      setActionError(null);
-    }
-
-    function setCampaignKind(kind: AccessCampaignKind) {
-      setForm((current) => ({
-        ...current,
-        kind,
-        package_code: kind === "signup_trial"
-          ? signupTrialPackageCodes[0] ?? "launch_trial"
-          : current.package_code === "launch_trial"
-            ? adminAccessPackageCodes[0] ?? "complete"
-            : current.package_code,
-        term_weeks: kind === "signup_trial" ? "4" : current.term_weeks,
-      }));
-      setFormErrors({});
-      setActionError(null);
-    }
-
-    function hasFieldError(field: CampaignFormField): boolean {
-      return formErrors[field] !== undefined;
-    }
-
-    function fieldErrorId(field: CampaignFormField): string {
-      return `access-campaign-${field}-error`;
-    }
-
-    function renderFieldError(field: CampaignFormField) {
-      const errorCode = formErrors[field];
-      if (errorCode === undefined) return null;
-      return (
-        <span className="access-admin-field-error" id={fieldErrorId(field)}>
-          {t(`adminAccess.validation.${errorCode}`)}
-        </span>
-      );
-    }
+    setFormErrors((current) => {
+      if (!(errorField in current)) return current;
+      const next = { ...current };
+      delete next[errorField];
+      return next;
+    });
+    setActionError(null);
   }
+
+  function setCampaignKind(kind: AccessCampaignKind) {
+    setForm((current) => ({
+      ...current,
+      kind,
+      show_on_landing: kind === "signup_bonus" ? current.show_on_landing : false,
+      show_on_register: kind === "signup_bonus" ? current.show_on_register : false,
+    }));
+    setFormErrors({});
+    setActionError(null);
+  }
+
+  function hasFieldError(field: CampaignFormField): boolean {
+    return formErrors[field] !== undefined;
+  }
+
+  function fieldErrorId(field: CampaignFormField): string {
+    return `access-campaign-${field}-error`;
+  }
+
+  function renderFieldError(field: CampaignFormField) {
+    const errorCode = formErrors[field];
+    if (errorCode === undefined) return null;
+    return (
+      <span className="access-admin-field-error" id={fieldErrorId(field)}>
+        {t(`adminAccess.validation.${errorCode}`)}
+      </span>
+    );
+  }
+}
+
+function CampaignPreview({
+  direction,
+  badge,
+  title,
+  message,
+  cta,
+  language,
+  benefit,
+}: {
+  direction: "rtl" | "ltr";
+  badge: string;
+  title: string;
+  message: string;
+  cta: string;
+  language: string;
+  benefit: string;
+}) {
+  return (
+    <article className="access-campaign-preview" data-testid={`campaign-preview-${direction}`} dir={direction}>
+      <span className="access-campaign-preview__language">{language}</span>
+      {badge.trim() !== "" && <span className="access-campaign-preview__badge">{badge}</span>}
+      <h4>{title || "—"}</h4>
+      <p>{message || "—"}</p>
+      <small>{benefit}</small>
+      {cta.trim() !== "" && <span className="access-campaign-preview__cta">{cta}</span>}
+    </article>
+  );
+}
 
 function toCreateInput(form: CampaignFormState): AdminAccessCampaignInput {
   return {
     code: form.code.trim(),
     name: form.name.trim(),
-    description: form.description.trim() === "" ? null : form.description.trim(),
+    description: optionalText(form.description),
     kind: form.kind,
     package_code: form.package_code,
     duration_days: Number(form.duration_days),
@@ -438,16 +593,36 @@ function toCreateInput(form: CampaignFormState): AdminAccessCampaignInput {
     available_until: form.available_until,
     is_active: form.is_active,
     max_total_redemptions: form.max_total_redemptions === "" ? null : Number(form.max_total_redemptions),
+    public_badge_fa: optionalText(form.public_badge_fa),
+    public_badge_en: optionalText(form.public_badge_en),
+    public_title_fa: optionalText(form.public_title_fa),
+    public_title_en: optionalText(form.public_title_en),
+    public_message_fa: optionalText(form.public_message_fa),
+    public_message_en: optionalText(form.public_message_en),
+    public_cta_fa: optionalText(form.public_cta_fa),
+    public_cta_en: optionalText(form.public_cta_en),
+    show_on_landing: form.kind === "signup_bonus" && form.show_on_landing,
+    show_on_register: form.kind === "signup_bonus" && form.show_on_register,
   };
 }
 
 function toUpdateInput(form: CampaignFormState, previous: AdminAccessCampaign): AdminAccessCampaignUpdate {
   const input: AdminAccessCampaignUpdate = {
     name: form.name.trim(),
-    description: form.description.trim() === "" ? null : form.description.trim(),
+    description: optionalText(form.description),
     available_from: form.available_from,
     available_until: form.available_until,
     max_total_redemptions: form.max_total_redemptions === "" ? null : Number(form.max_total_redemptions),
+    public_badge_fa: optionalText(form.public_badge_fa),
+    public_badge_en: optionalText(form.public_badge_en),
+    public_title_fa: optionalText(form.public_title_fa),
+    public_title_en: optionalText(form.public_title_en),
+    public_message_fa: optionalText(form.public_message_fa),
+    public_message_en: optionalText(form.public_message_en),
+    public_cta_fa: optionalText(form.public_cta_fa),
+    public_cta_en: optionalText(form.public_cta_en),
+    show_on_landing: form.kind === "signup_bonus" && form.show_on_landing,
+    show_on_register: form.kind === "signup_bonus" && form.show_on_register,
   };
   if (previous.redemption_count === 0) {
     return {
@@ -461,6 +636,11 @@ function toUpdateInput(form: CampaignFormState, previous: AdminAccessCampaign): 
   return input;
 }
 
+function optionalText(value: string): string | null {
+  const normalized = value.trim();
+  return normalized === "" ? null : normalized;
+}
+
 function toTermWeeks(value: string): AccessTermWeeks | null {
   if (value === "4" || value === "6" || value === "8") return Number(value) as AccessTermWeeks;
   return null;
@@ -468,6 +648,13 @@ function toTermWeeks(value: string): AccessTermWeeks | null {
 
 function formatDate(value: string, english: boolean): string {
   return formatTehranDateTimeForLocale(value, english ? "en" : "fa-IR");
+}
+
+function benefitLabel(form: CampaignFormState, t: (key: string, options?: Record<string, unknown>) => string): string {
+  const term = toTermWeeks(form.term_weeks);
+  return term === null
+    ? `${form.duration_days} ${t("adminAccess.days")}`
+    : `${term} ${t("adminAccess.weeks")} · ${form.duration_days} ${t("adminAccess.days")}`;
 }
 
 function validateCampaignForm(form: CampaignFormState): CampaignFormErrors {
@@ -478,6 +665,7 @@ function validateCampaignForm(form: CampaignFormState): CampaignFormErrors {
   const maxRedemptions = form.max_total_redemptions === ""
     ? null
     : Number(form.max_total_redemptions);
+  const term = toTermWeeks(form.term_weeks);
 
   if (code === "") errors.code = "codeRequired";
   else if (!campaignCodePattern.test(code)) errors.code = "codeFormat";
@@ -493,9 +681,11 @@ function validateCampaignForm(form: CampaignFormState): CampaignFormErrors {
   ) {
     errors.max_total_redemptions = "maxRedemptionsPositive";
   }
-  if (trainingTermPackageCodes.has(form.package_code) && !validTermValues.has(form.term_weeks)) {
+  if (trainingTermPackageCodes.has(form.package_code) && term === null) {
     errors.term_weeks = "trainingTermRequired";
-  } else if (form.kind === "signup_trial" && form.term_weeks !== "4") {
+  } else if (trainingTermPackageCodes.has(form.package_code) && term !== null && Number.isInteger(duration) && duration < term * 7) {
+    errors.duration_days = "durationTermMinimum";
+  } else if (form.term_weeks !== "" && !validTermValues.has(form.term_weeks)) {
     errors.term_weeks = "termInvalid";
   }
   if (
@@ -504,6 +694,20 @@ function validateCampaignForm(form: CampaignFormState): CampaignFormErrors {
     && new Date(form.available_until).getTime() < new Date(form.available_from).getTime()
   ) {
     errors.availability = "availabilityOrder";
+  }
+  if (
+    form.kind === "signup_bonus"
+    && (form.show_on_landing || form.show_on_register)
+    && [
+      form.public_title_fa,
+      form.public_title_en,
+      form.public_message_fa,
+      form.public_message_en,
+      form.public_cta_fa,
+      form.public_cta_en,
+    ].some((value) => value.trim() === "")
+  ) {
+    errors.marketing = "publicCopyRequired";
   }
   return errors;
 }
@@ -519,6 +723,7 @@ function apiCampaignFormErrors(error: unknown): CampaignFormErrors {
     else if (field === "term_weeks") errors.term_weeks = "termInvalid";
     else if (field === "max_total_redemptions") errors.max_total_redemptions = "maxRedemptionsPositive";
     else if (field === "available_until" || field === "available_from") errors.availability = "availabilityOrder";
+    else if (typeof field === "string" && (field.startsWith("public_") || field.startsWith("show_on_"))) errors.marketing = "publicCopyRequired";
   }
   return errors;
 }

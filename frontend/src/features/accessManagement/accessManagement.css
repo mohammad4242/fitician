@@ -341,6 +341,26 @@
 .access-admin-form-card > .access-admin-field-error { margin-block-start: -.25rem; }
 .access-admin-checkbox { display: flex !important; align-items: center; gap: .45rem; align-self: end; min-height: 2.65rem; }
 .access-admin-checkbox input { width: auto; min-height: auto; }
+.access-campaign-form-section { display: grid; gap: .8rem; padding-block-start: .35rem; border-block-start: 1px solid var(--fitician-line); }
+.access-campaign-form-section h3 { margin: 0; color: var(--fitician-ink); font-size: .95rem; }
+.access-campaign-human-warning { margin: 0; padding: .7rem .8rem; border: 1px solid rgb(147 103 0 / 28%); border-radius: var(--fitician-radius-md); color: #805b00; background: rgb(241 193 74 / 12%); font-size: .75rem; line-height: 1.7; }
+.access-campaign-visibility-controls { display: flex; flex-wrap: wrap; gap: 1rem; }
+.access-campaign-marketing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.access-campaign-marketing-grid label { display: grid; gap: .35rem; color: var(--fitician-ink); font-size: .78rem; font-weight: 750; }
+.access-campaign-marketing-grid input,
+.access-campaign-marketing-grid textarea { width: 100%; min-height: 2.65rem; box-sizing: border-box; padding: .55rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface-subtle); font: inherit; }
+.access-campaign-marketing-grid textarea { min-height: 5rem; resize: vertical; }
+.access-campaign-marketing-grid input:focus,
+.access-campaign-marketing-grid textarea:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
+.access-campaign-private-note { margin: 0; padding: .7rem .8rem; border-radius: var(--fitician-radius-md); color: var(--fitician-muted); background: var(--fitician-surface-subtle); font-size: .78rem; }
+.access-campaign-preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.access-campaign-preview { display: grid; gap: .55rem; min-height: 11rem; padding: 1rem; border: 1px solid rgb(80 223 206 / 30%); border-radius: var(--fitician-radius-lg); color: var(--fitician-ink); background: linear-gradient(145deg, rgb(80 223 206 / 14%), var(--fitician-surface-raised)); box-shadow: 0 .6rem 1.5rem rgb(0 0 0 / 8%); }
+.access-campaign-preview__language { color: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
+.access-campaign-preview__badge { width: fit-content; padding: .25rem .5rem; border-radius: 999px; color: var(--fitician-petrol); background: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
+.access-campaign-preview h4 { margin: 0; font-size: 1rem; line-height: 1.5; }
+.access-campaign-preview p { min-height: 2.8rem; margin: 0; color: var(--fitician-muted); font-size: .78rem; line-height: 1.7; }
+.access-campaign-preview small { color: var(--fitician-teal); font-size: .72rem; font-weight: 800; }
+.access-campaign-preview__cta { width: fit-content; margin-block-start: .15rem; padding: .45rem .7rem; border: 1px solid var(--fitician-aqua); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-petrol); font-size: .74rem; font-weight: 800; }
 
 @media (max-width: 700px) {
   .access-admin-page__header { align-items: stretch; flex-direction: column; }
@@ -363,6 +383,7 @@
   .access-order-filters { grid-template-columns: 1fr; }
   .access-audit-filters { grid-template-columns: 1fr; }
   .access-admin-form-grid { grid-template-columns: 1fr; }
+  .access-campaign-marketing-grid, .access-campaign-preview-grid { grid-template-columns: 1fr; }
   .access-campaign-card > header { align-items: flex-start; flex-direction: column; }
   .access-campaign-card > footer { flex-wrap: wrap; }
   .access-admin-button--create { width: 100%; }

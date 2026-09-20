@@ -27,7 +27,7 @@ it("renders the central workspace and keeps the five sections in URL tabs", () =
     "href",
     "/admin/billing/offers",
   );
-  expect(screen.getByRole("link", { name: "کمپین‌ها و Trialها" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "کمپین‌ها و هدیه ثبت‌نام" })).toHaveAttribute(
     "href",
     "/admin/billing/campaigns",
   );

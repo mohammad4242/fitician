@@ -89,6 +89,13 @@ const campaign = {
   created_at: "2026-09-13T08:00:00Z",
   updated_at: "2026-09-13T08:00:00Z",
 };
+const signupBonusCampaign = {
+  ...campaign,
+  id: "campaign-signup-bonus",
+  code: "signup-bonus",
+  name: "Signup Bonus",
+  kind: "signup_bonus" as const,
+};
 
 beforeEach(() => {
   accessApi.getUserAccess.mockReset();
@@ -97,7 +104,7 @@ beforeEach(() => {
   accessApi.redeemUserCampaign.mockReset();
   accessApi.revokeUserAccess.mockReset();
   accessApi.getUserAccess.mockResolvedValue(access);
-  accessApi.getCampaigns.mockResolvedValue([campaign]);
+  accessApi.getCampaigns.mockResolvedValue([campaign, signupBonusCampaign]);
   accessApi.grantUserAccess.mockResolvedValue(access.grants[0]);
   accessApi.redeemUserCampaign.mockResolvedValue({ campaign, grant: access.grants[1] });
   accessApi.revokeUserAccess.mockResolvedValue({ ...access.grants[0], status: "revoked" });
@@ -151,6 +158,8 @@ it("grants a package and applies a manual campaign with a reason", async () => {
   }));
 
   await user.click(screen.getByRole("button", { name: "اعمال کمپین" }));
+  expect(screen.queryByRole("option", { name: "Signup Bonus" })).not.toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "Beta promotion" })).toBeInTheDocument();
   await user.selectOptions(screen.getByLabelText("کمپین را انتخاب کنید"), "campaign-1");
   await user.type(screen.getByLabelText("دلیل اعمال کمپین"), "manual beta access");
   await user.click(screen.getByRole("button", { name: "ذخیره تغییرات" }));
