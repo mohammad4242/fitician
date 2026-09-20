@@ -18,6 +18,8 @@ from app.body_photos.models import BodyPhotoStorageCleanup
 from app.body_photos.service import BodyPhotoService
 from app.body_photos.storage import BodyPhotoStorage, BodyPhotoStorageError, StoredBodyPhoto
 from app.config import Settings
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
@@ -77,7 +79,7 @@ def _jpeg_with_exif() -> bytes:
     return output.getvalue()
 
 
-def _register_and_create(client: TestClient, email: str) -> str:
+def _register_and_create(client: TestClient, db: Session, email: str) -> str:
     assert (
         client.post(
             "/api/v1/auth/register",
@@ -86,6 +88,10 @@ def _register_and_create(client: TestClient, email: str) -> str:
         ).status_code
         == 201
     )
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    grant_package(db, user.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+    db.flush()
     created = client.post(
         "/api/v1/body-photo-sessions",
         headers=ORIGIN,
@@ -124,6 +130,7 @@ def _stored_files(root: Path) -> list[Path]:
 )
 def test_mime_mismatch_and_corruption_leave_no_stored_file(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
     content: bytes,
     content_type: str,
@@ -131,7 +138,7 @@ def test_mime_mismatch_and_corruption_leave_no_stored_file(
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
     session_id = _register_and_create(
-        client, f"bad-image-{content_type.split('/')[-1]}@example.com"
+        client, db, f"bad-image-{content_type.split('/')[-1]}@example.com"
     )
 
     response = _upload(client, session_id, content, content_type)
@@ -148,11 +155,12 @@ def test_mime_mismatch_and_corruption_leave_no_stored_file(
 
 def test_excessive_bytes_and_pixels_leave_no_stored_file(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "photo-limits@example.com")
+    session_id = _register_and_create(client, db, "photo-limits@example.com")
 
     test_settings.body_photo_max_bytes = 20
     too_many_bytes = _upload(client, session_id, _png(), "image/png")
@@ -170,11 +178,12 @@ def test_excessive_bytes_and_pixels_leave_no_stored_file(
 
 def test_pillow_decompression_bomb_warning_is_sanitized_and_stores_nothing(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "photo-bomb@example.com")
+    session_id = _register_and_create(client, db, "photo-bomb@example.com")
 
     bomb = _png_with_declared_dimensions(10_000, 10_000)
     response = _upload(client, session_id, bomb, "image/png")
@@ -191,11 +200,12 @@ def test_pillow_decompression_bomb_warning_is_sanitized_and_stores_nothing(
 
 def test_landscape_geometry_is_rejected_without_storage(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "crop-geometry@example.com")
+    session_id = _register_and_create(client, db, "crop-geometry@example.com")
 
     landscape = _png(800, 400)
     response = _upload(client, session_id, landscape, "image/png")
@@ -210,13 +220,14 @@ def test_landscape_geometry_is_rejected_without_storage(
 )
 def test_minimum_width_and_height_are_enforced_independently(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
     width: int,
     height: int,
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, f"photo-tiny-{width}-{height}@example.com")
+    session_id = _register_and_create(client, db, f"photo-tiny-{width}-{height}@example.com")
     tiny = _png(width, height)
 
     response = _upload(client, session_id, tiny, "image/png")
@@ -231,6 +242,7 @@ def test_minimum_width_and_height_are_enforced_independently(
 )
 def test_dimension_minimums_are_configurable(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
     setting_name: str,
     configured_minimum: int,
@@ -238,7 +250,7 @@ def test_dimension_minimums_are_configurable(
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
     setattr(test_settings, setting_name, configured_minimum)
-    session_id = _register_and_create(client, f"photo-config-{setting_name}@example.com")
+    session_id = _register_and_create(client, db, f"photo-config-{setting_name}@example.com")
     content = _png()
 
     response = _upload(client, session_id, content, "image/png")
@@ -249,11 +261,12 @@ def test_dimension_minimums_are_configurable(
 
 def test_accepted_jpeg_is_reencoded_without_exif(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "photo-exif@example.com")
+    session_id = _register_and_create(client, db, "photo-exif@example.com")
 
     jpeg = _jpeg_with_exif()
     uploaded = client.put(
@@ -432,7 +445,7 @@ def test_replacement_retains_failed_cleanup_and_retries_it(
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "photo-replace-cleanup@example.com")
+    session_id = _register_and_create(client, db, "photo-replace-cleanup@example.com")
     assert _upload(client, session_id, _png(), "image/png").status_code == 200
     original_delete = BodyPhotoStorage.delete
 
@@ -464,7 +477,7 @@ def test_delete_failure_is_retryable_without_losing_cleanup_key(
 ) -> None:
     private_root = Path(test_settings.media_root).parent / "body-private"
     test_settings.body_photo_storage_root = private_root
-    session_id = _register_and_create(client, "photo-delete-cleanup@example.com")
+    session_id = _register_and_create(client, db, "photo-delete-cleanup@example.com")
     assert _upload(client, session_id, _png(), "image/png").status_code == 200
     original_delete = BodyPhotoStorage.delete
 

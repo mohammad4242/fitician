@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -103,9 +103,9 @@ def test_previous_nutrition_handoff_downgrade_preserves_effective_plan(
 ) -> None:
     _, bundle, current_plan, future_plan = _seed_test_bundle(client, db)
     current_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
-    current_plan.start_date = date(2026, 9, 1)
+    current_plan.start_date = date.today() - timedelta(days=7)
     future_plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
-    future_plan.start_date = date(2026, 9, 20)
+    future_plan.start_date = date.today() + timedelta(days=7)
     bundle.selected_plan_id = future_plan.id
     db.flush()
 

@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 import app.nutrition.plan_service as plan_service
 from app.auth.models import User
 from app.entitlements.enums import AccessPackageCode, GrantSource
-from app.entitlements.models import UserAccessGrant
 from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     EstimateConfidence,
@@ -49,11 +48,13 @@ def _birth_date() -> str:
 
 def _register_and_estimate(
     client: TestClient,
+    db: Session,
     email: str,
     *,
     meals: int = 2,
     snacks: int = 1,
     goal: str = "maintain_weight",
+    package: AccessPackageCode = AccessPackageCode.NUTRITION_PHYSICIAN,
 ) -> None:
     assert (
         client.post(
@@ -63,6 +64,10 @@ def _register_and_estimate(
         ).status_code
         == 201
     )
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    grant_package(db, user.id, package, source=GrantSource.MANUAL)
+    db.flush()
     assert (
         client.post(
             "/api/v1/profile/mode", headers=ORIGIN, json={"product_mode": "nutrition"}
@@ -326,7 +331,7 @@ def _meal_item(
 def test_generation_returns_visible_seven_day_draft_and_creates_review(
     client: TestClient, db: Session
 ) -> None:
-    _register_and_estimate(client, "weekly-plan-success@example.com", meals=2, snacks=1)
+    _register_and_estimate(client, db, "weekly-plan-success@example.com", meals=2, snacks=1)
     _seed_foods_and_prices(db)
 
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
@@ -366,7 +371,7 @@ def test_plan_reports_preference_refresh_after_profile_preference_changes(
     client: TestClient, db: Session
 ) -> None:
     email = "weekly-plan-preference-refresh@example.com"
-    _register_and_estimate(client, email, meals=2, snacks=1)
+    _register_and_estimate(client, db, email, meals=2, snacks=1)
     _seed_foods_and_prices(db)
 
     generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
@@ -399,19 +404,14 @@ def test_base_nutrition_activates_without_physician_review(
     client: TestClient, db: Session
 ) -> None:
     email = "base-nutrition-entitlement@example.com"
-    _register_and_estimate(client, email, meals=2, snacks=1)
-    user = db.scalar(select(User).where(User.email == email))
-    assert user is not None
-    trial = db.scalar(
-        select(UserAccessGrant).where(
-            UserAccessGrant.user_id == user.id,
-            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
-        )
+    _register_and_estimate(
+        client,
+        db,
+        email,
+        meals=2,
+        snacks=1,
+        package=AccessPackageCode.NUTRITION,
     )
-    assert trial is not None
-    trial.revoked_at = datetime.now(UTC)
-    grant_package(db, user.id, AccessPackageCode.NUTRITION, source=GrantSource.MANUAL)
-    db.flush()
     _seed_foods_and_prices(db)
 
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
@@ -456,6 +456,7 @@ def test_generation_continues_with_alignment_warning_for_muscle_goal_without_tra
 ) -> None:
     _register_and_estimate(
         client,
+        db,
         "weekly-plan-goal-warning@example.com",
         goal="build_muscle",
     )
@@ -477,7 +478,7 @@ def test_generation_continues_with_alignment_warning_for_muscle_goal_without_tra
 def test_generation_evaluates_every_program_and_persists_only_the_best_result(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
-    _register_and_estimate(client, "weekly-plan-all-candidates@example.com")
+    _register_and_estimate(client, db, "weekly-plan-all-candidates@example.com")
     programs = [
         NutritionProgram(
             code=f"TEST-{letter}",
@@ -579,7 +580,7 @@ def test_generation_evaluates_every_program_and_persists_only_the_best_result(
 def test_generation_aggregates_all_candidate_failures_without_persisting_a_plan(
     client: TestClient, db: Session, monkeypatch
 ) -> None:
-    _register_and_estimate(client, "weekly-plan-all-candidates-fail@example.com")
+    _register_and_estimate(client, db, "weekly-plan-all-candidates-fail@example.com")
     _seed_foods_and_prices(db)
     programs = plan_service.list_programs(db)
 
@@ -608,7 +609,7 @@ def test_generation_aggregates_all_candidate_failures_without_persisting_a_plan(
 
 
 def test_missing_price_coverage_is_a_generation_not_a_plan(client: TestClient, db: Session) -> None:
-    _register_and_estimate(client, "weekly-plan-no-price@example.com")
+    _register_and_estimate(client, db, "weekly-plan-no-price@example.com")
 
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
 
@@ -623,7 +624,7 @@ def test_missing_price_coverage_is_a_generation_not_a_plan(client: TestClient, d
 def test_latest_and_history_keep_old_snapshot_when_market_price_changes(
     client: TestClient, db: Session
 ) -> None:
-    _register_and_estimate(client, "weekly-plan-history@example.com")
+    _register_and_estimate(client, db, "weekly-plan-history@example.com")
     _seed_foods_and_prices(db)
     generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     original_cost = generated.json()["plan"]["weekly_cost_irr"]
@@ -647,7 +648,7 @@ def test_latest_and_history_keep_old_snapshot_when_market_price_changes(
 def test_stale_reference_prices_are_not_used_as_live_prices(
     client: TestClient, db: Session
 ) -> None:
-    _register_and_estimate(client, "weekly-plan-stale-price@example.com")
+    _register_and_estimate(client, db, "weekly-plan-stale-price@example.com")
     _seed_foods_and_prices(db)
     old = datetime(2025, 1, 1, tzinfo=UTC)
     for reference in db.scalars(select(NutritionFoodPriceReference)):
@@ -662,14 +663,24 @@ def test_stale_reference_prices_are_not_used_as_live_prices(
 
 
 def test_safety_block_is_persisted_without_creating_a_plan(client: TestClient, db: Session) -> None:
+    email = "weekly-plan-blocked@example.com"
     assert (
         client.post(
             "/api/v1/auth/register",
             headers=ORIGIN,
-            json={"email": "weekly-plan-blocked@example.com", "password": "long password"},
+            json={"email": email, "password": "long password"},
         ).status_code
         == 201
     )
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.NUTRITION_PHYSICIAN,
+        source=GrantSource.MANUAL,
+    )
+    db.flush()
     assert (
         client.post(
             "/api/v1/profile/mode", headers=ORIGIN, json={"product_mode": "nutrition"}
@@ -721,7 +732,7 @@ def test_safety_block_is_persisted_without_creating_a_plan(client: TestClient, d
 
 
 def test_download_nutrition_plan_pdf(client: TestClient, db: Session) -> None:
-    _register_and_estimate(client, "weekly-plan-pdf@example.com", meals=2, snacks=1)
+    _register_and_estimate(client, db, "weekly-plan-pdf@example.com", meals=2, snacks=1)
     _seed_foods_and_prices(db)
 
     post_resp = client.post("/api/v1/nutrition/plans", headers=ORIGIN)

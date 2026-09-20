@@ -28,7 +28,7 @@ from tests.nutrition.test_weekly_plan_api import (
 
 
 def _generated_plan(client: TestClient, db: Session) -> dict[str, object]:
-    _register_and_estimate(client, "task7-member@example.com", meals=2, snacks=1)
+    _register_and_estimate(client, db, "task7-member@example.com", meals=2, snacks=1)
     _seed_foods_and_prices(db)
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert response.status_code == 201

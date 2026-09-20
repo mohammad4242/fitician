@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.task_provider import ConfiguredAIProvider
+from app.auth.models import User
 from app.body_analysis.admin_config.enums import (
     AIAgentName,
     AIExecutionBackend,
@@ -29,6 +30,8 @@ from app.body_analysis.providers.models import (
     StructuredGenerationResponse,
 )
 from app.config import Settings
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.food_photo_service import (
     EstimatedPhotoItem,
     _normalize_image,
@@ -183,17 +186,21 @@ def test_food_photo_request_builder_is_the_canonical_task_contract() -> None:
     }
 
 
-def _register(client: TestClient) -> None:
+def _register(client: TestClient, db: Session) -> None:
     response = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": "food-photo@example.com", "password": "long password"},
     )
     assert response.status_code == 201
+    user = db.scalar(select(User).where(User.email == "food-photo@example.com"))
+    assert user is not None
+    grant_package(db, user.id, AccessPackageCode.NUTRITION, source=GrantSource.MANUAL)
+    db.flush()
 
 
-def test_photo_requires_explicit_consent(client: TestClient) -> None:
-    _register(client)
+def test_photo_requires_explicit_consent(client: TestClient, db: Session) -> None:
+    _register(client, db)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
         headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "false"},
@@ -205,8 +212,9 @@ def test_photo_requires_explicit_consent(client: TestClient) -> None:
 
 def test_photo_estimation_is_safely_disabled_without_openrouter_task_config(
     client: TestClient,
+    db: Session,
 ) -> None:
-    _register(client)
+    _register(client, db)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
         headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
@@ -225,7 +233,7 @@ def test_photo_estimate_maps_catalogue_and_writes_only_after_confirmation(
 ) -> None:
     test_settings.food_photo_rate_limit = 1
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     _seed_foods_and_prices(db)
     db.add(
         AITaskConfig(
@@ -320,7 +328,7 @@ def test_agent_photo_estimate_uses_agent_metadata_without_api_credential_decrypt
     monkeypatch: pytest.MonkeyPatch,
     test_settings: Settings,
 ) -> None:
-    _register(client)
+    _register(client, db)
     _seed_foods_and_prices(db)
     db.add(
         AITaskConfig(
@@ -403,7 +411,7 @@ def test_agent_photo_invalid_output_is_rejected_and_stored_photo_removed(
     tmp_path: Path,
 ) -> None:
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     db.add(
         AITaskConfig(
             task_type=AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -464,7 +472,7 @@ def test_agent_photo_provider_failure_deletes_only_stored_photo(
     test_settings.food_photo_rate_limit = 2
     test_settings.food_photo_max_attempts = 1
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     db.add(
         AITaskConfig(
             task_type=AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -522,7 +530,7 @@ def _setup_estimate(
     test_settings: Settings,
 ) -> dict[str, Any]:
     """Register a user, seed catalogue, configure a fake provider, and run estimation."""
-    _register(client)
+    _register(client, db)
     _seed_foods_and_prices(db)
     db.add(
         AITaskConfig(
@@ -989,7 +997,7 @@ def test_unmapped_food_with_direct_ai_macros_is_complete_and_confirms(
             )
 
     provider = JoojehVisionProvider()
-    _register(client)
+    _register(client, db)
     db.add(
         AITaskConfig(
             task_type=AITaskType.FOOD_PHOTO_ESTIMATION,

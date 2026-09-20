@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.task_provider import ConfiguredAIProvider
+from app.auth.models import User
 from app.body_analysis.admin_config.enums import AIProviderName, AITaskType
 from app.body_analysis.admin_config.models import AITaskConfig
 from app.body_analysis.providers import AIProvider
@@ -23,6 +24,8 @@ from app.body_analysis.providers.models import (
     StructuredGenerationResponse,
 )
 from app.config import Settings
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.notifications.models import NotificationOutboxEvent
 from app.nutrition.food_photo_worker import claim_food_photo_jobs, run_food_photo_analysis_once
 from app.nutrition.models import NutritionFoodPhotoAnalysisJob, NutritionFoodPhotoEstimate
@@ -36,13 +39,17 @@ def _image() -> bytes:
     return output.getvalue()
 
 
-def _register(client: TestClient) -> None:
+def _register(client: TestClient, db: Session) -> None:
     response = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": "food-photo-queue@example.com", "password": "long password"},
     )
     assert response.status_code == 201
+    user = db.scalar(select(User).where(User.email == "food-photo-queue@example.com"))
+    assert user is not None
+    grant_package(db, user.id, AccessPackageCode.NUTRITION, source=GrantSource.MANUAL)
+    db.flush()
 
 
 class _SuccessfulProvider:
@@ -111,7 +118,7 @@ def _enqueue_photo(
     tmp_path: Path,
 ) -> str:
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     _configure_photo_task(db)
     response = client.post(
         "/api/v1/nutrition/tracking/photo-estimates",
@@ -166,7 +173,7 @@ def test_food_photo_upload_commits_a_queued_job_without_running_ai(
     tmp_path: Path,
 ) -> None:
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     db.add(
         AITaskConfig(
             task_type=AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -210,7 +217,7 @@ def test_food_photo_queue_has_owner_scoped_get_and_history_endpoints(
     tmp_path: Path,
 ) -> None:
     test_settings.food_photo_storage_root = tmp_path / "food-photos"
-    _register(client)
+    _register(client, db)
     db.add(
         AITaskConfig(
             task_type=AITaskType.FOOD_PHOTO_ESTIMATION,

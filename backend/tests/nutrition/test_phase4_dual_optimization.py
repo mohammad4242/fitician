@@ -267,7 +267,7 @@ def test_budget_insufficient_exact_minimum_only_when_established():
 
 def test_ideal_is_never_returned_as_active_or_latest_diet(client: TestClient, db: Session):
     email = "phase4-dual@example.com"
-    _register_and_estimate(client, email, meals=3, snacks=1)
+    _register_and_estimate(client, db, email, meals=3, snacks=1)
     user = db.scalar(select(User).where(User.email == email))
     assert user is not None
     user_id = user.id

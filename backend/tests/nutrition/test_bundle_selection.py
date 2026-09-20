@@ -7,10 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.enums import AccessPackageCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError
-from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
-from app.entitlements.service import grant_package
+from app.entitlements.models import EntitlementUsageEvent
 from app.nutrition.enums import (
     NutritionPlanBudgetStatus,
     NutritionPlanLifecycleStatus,
@@ -42,20 +41,10 @@ def _seed_test_bundle(
     package: AccessPackageCode = AccessPackageCode.NUTRITION,
 ) -> tuple[User, NutritionPlanBundle, NutritionWeeklyPlan, NutritionWeeklyPlan]:
     email = f"bundle_test_{uuid4().hex[:8]}@example.com"
-    _register_and_estimate(client, email, meals=3, snacks=1)
+    _register_and_estimate(client, db, email, meals=3, snacks=1, package=package)
     user = db.scalar(select(User).where(User.email == email))
     assert user is not None
     user_id = user.id
-    trial = db.scalar(
-        select(UserAccessGrant).where(
-            UserAccessGrant.user_id == user_id,
-            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
-        )
-    )
-    assert trial is not None
-    trial.revoked_at = datetime.now(UTC)
-    grant_package(db, user_id, package, source=GrantSource.MANUAL)
-
     safety = db.scalar(
         select(NutritionSafetyDecision)
         .where(NutritionSafetyDecision.user_id == user_id)

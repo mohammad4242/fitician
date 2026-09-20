@@ -22,7 +22,7 @@ from tests.nutrition.test_weekly_plan_api import (
 
 
 def _setup(client: TestClient, db: Session) -> tuple[dict[str, object], NutritionCatalogueFood]:
-    _register_and_estimate(client, "tracking-member@example.com")
+    _register_and_estimate(client, db, "tracking-member@example.com")
     _seed_foods_and_prices(db)
     plan = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()["plan"]
     food = db.scalar(select(NutritionCatalogueFood).order_by(NutritionCatalogueFood.slug))

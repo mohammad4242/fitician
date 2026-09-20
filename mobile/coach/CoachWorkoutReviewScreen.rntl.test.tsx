@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
-import { beforeEach, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ApiError, formatTehranDateTime } from "@fitician/core";
@@ -124,6 +124,8 @@ function renderScreen() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date("2026-09-14T08:00:00.000Z"));
   mockUseRouter.mockReturnValue({ back: jest.fn() } as never);
   mockUseMobileAuth.mockReturnValue({ request: jest.fn() } as never);
   mockUseQueryClient.mockReturnValue(queryClient as never);
@@ -144,6 +146,10 @@ beforeEach(() => {
     saveDraft: jest.fn<() => Promise<typeof detail>>().mockResolvedValue({ ...detail, draft_revision: 2 }),
     submitForMember: jest.fn<() => Promise<typeof detail>>().mockResolvedValue({ ...detail, status: "awaiting_member_acceptance" }),
   } as never);
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 test("claims a case, edits the exercise selection, and saves the current revision", async () => {

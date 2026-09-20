@@ -18,7 +18,7 @@ from tests.nutrition.test_weekly_plan_api import (
 
 
 def _setup(client: TestClient, db: Session) -> tuple[NutritionWeeklyPlan, User]:
-    _register_and_estimate(client, "supplement-member@example.com")
+    _register_and_estimate(client, db, "supplement-member@example.com")
     _seed_foods_and_prices(db)
     plan_id = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()["plan"]["id"]
     plan = db.scalar(select(NutritionWeeklyPlan).where(NutritionWeeklyPlan.id == plan_id))

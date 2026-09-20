@@ -32,7 +32,7 @@ def _member_plan(
     *,
     seed_catalogue: bool = True,
 ) -> dict[str, object]:
-    _register_and_estimate(client, email)
+    _register_and_estimate(client, db, email)
     if seed_catalogue:
         _seed_foods_and_prices(db)
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)

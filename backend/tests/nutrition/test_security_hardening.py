@@ -6,18 +6,30 @@ from PIL import Image
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.models import NutritionLabDocument, NutritionSecurityAuditEvent
 from app.nutrition.retention import cleanup_private_nutrition_files
 from tests.nutrition.test_weekly_plan_api import ORIGIN
 
 
-def _register(client: TestClient, email: str) -> None:
+def _register(client: TestClient, db: Session, email: str) -> None:
     response = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": email, "password": "long password"},
     )
     assert response.status_code == 201
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.NUTRITION_PHYSICIAN,
+        source=GrantSource.MANUAL,
+    )
+    db.flush()
 
 
 def _pdf() -> bytes:
@@ -32,8 +44,9 @@ def _image() -> bytes:
 
 def test_lab_download_requires_short_lived_actor_bound_grant(
     client: TestClient,
+    db: Session,
 ) -> None:
-    _register(client, "secure-lab@example.com")
+    _register(client, db, "secure-lab@example.com")
     uploaded = client.post(
         "/api/v1/nutrition/labs",
         headers=ORIGIN,
@@ -54,7 +67,7 @@ def test_lab_download_requires_short_lived_actor_bound_grant(
     assert tampered.status_code == 403
 
     assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
-    _register(client, "other-lab@example.com")
+    _register(client, db, "other-lab@example.com")
     assert client.get(access_url).status_code == 403
     assert (
         client.post(
@@ -67,7 +80,7 @@ def test_lab_download_requires_short_lived_actor_bound_grant(
 def test_duplicate_lab_upload_reuses_private_document_and_audits_metadata_only(
     client: TestClient, db: Session
 ) -> None:
-    _register(client, "dedupe-lab@example.com")
+    _register(client, db, "dedupe-lab@example.com")
     first = client.post(
         "/api/v1/nutrition/labs",
         headers=ORIGIN,
@@ -91,8 +104,8 @@ def test_duplicate_lab_upload_reuses_private_document_and_audits_metadata_only(
     assert "private medical note" not in str([event.metadata_snapshot for event in events])
 
 
-def test_lab_upload_rejects_active_pdf_content(client: TestClient) -> None:
-    _register(client, "unsafe-lab@example.com")
+def test_lab_upload_rejects_active_pdf_content(client: TestClient, db: Session) -> None:
+    _register(client, db, "unsafe-lab@example.com")
     response = client.post(
         "/api/v1/nutrition/labs",
         headers=ORIGIN,
@@ -108,9 +121,11 @@ def test_lab_upload_rejects_active_pdf_content(client: TestClient) -> None:
     assert response.json()["detail"]["code"] == "INVALID_LAB_DOCUMENT"
 
 
-def test_lab_upload_rate_limit_is_database_backed(client: TestClient, test_settings) -> None:  # type: ignore[no-untyped-def]
+def test_lab_upload_rate_limit_is_database_backed(
+    client: TestClient, db: Session, test_settings
+) -> None:  # type: ignore[no-untyped-def]
     test_settings.nutrition_lab_upload_rate_limit = 1
-    _register(client, "limited-lab@example.com")
+    _register(client, db, "limited-lab@example.com")
     first = client.post(
         "/api/v1/nutrition/labs",
         headers=ORIGIN,
@@ -129,7 +144,7 @@ def test_lab_upload_rate_limit_is_database_backed(client: TestClient, test_setti
 def test_retention_removes_private_file_but_preserves_lab_audit_record(
     client: TestClient, db: Session, test_settings
 ) -> None:  # type: ignore[no-untyped-def]
-    _register(client, "retention-lab@example.com")
+    _register(client, db, "retention-lab@example.com")
     uploaded = client.post(
         "/api/v1/nutrition/labs",
         headers=ORIGIN,

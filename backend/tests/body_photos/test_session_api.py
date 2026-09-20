@@ -1,6 +1,5 @@
 import struct
 import zlib
-from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -14,8 +13,9 @@ from app.body_analysis.models import BodyAnalysis
 from app.body_photos.enums import BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
 from app.config import Settings
-from app.entitlements.enums import AccessPackageCode
+from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.models import UserAccessGrant
+from app.entitlements.service import grant_package
 from tests.error_assertions import assert_standard_error
 
 ORIGIN = {"Origin": "http://localhost:5173"}
@@ -50,13 +50,18 @@ def _png(
     )
 
 
-def _register(client: TestClient, email: str) -> None:
+def _register(client: TestClient, email: str, db: Session | None = None) -> None:
     response = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": email, "password": "long password"},
     )
     assert response.status_code == 201
+    if db is not None:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        grant_package(db, user.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+        db.flush()
 
 
 def _login(client: TestClient, email: str) -> None:
@@ -89,15 +94,7 @@ def test_free_user_cannot_start_a_new_body_analysis_session(
     _register(client, email)
     user = db.scalar(select(User).where(User.email == email))
     assert user is not None
-    trial = db.scalar(
-        select(UserAccessGrant).where(
-            UserAccessGrant.user_id == user.id,
-            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
-        )
-    )
-    assert trial is not None
-    trial.revoked_at = datetime.now(UTC)
-    db.commit()
+    assert db.scalars(select(UserAccessGrant).where(UserAccessGrant.user_id == user.id)).all() == []
 
     response = client.post(
         "/api/v1/body-photo-sessions",
@@ -153,7 +150,7 @@ def test_photo_validation_failure_allows_replacing_only_the_rejected_view(
     client: TestClient,
     db: Session,
 ) -> None:
-    _register(client, "photo-replace-rejected-view@example.com")
+    _register(client, "photo-replace-rejected-view@example.com", db)
     created = _create_session(client)
     session_id = created["id"]
     for view in ("front", "side", "back"):
@@ -176,7 +173,7 @@ def test_queued_session_with_a_failed_analysis_allows_replacing_a_rejected_view(
     client: TestClient,
     db: Session,
 ) -> None:
-    _register(client, "photo-replace-queued-view@example.com")
+    _register(client, "photo-replace-queued-view@example.com", db)
     created = _create_session(client)
     session_id = created["id"]
     for view in ("front", "side", "back"):
@@ -205,7 +202,9 @@ def test_queued_session_with_a_failed_analysis_allows_replacing_a_rejected_view(
     assert response.json()["state"] == "uploaded"
 
 
-def test_session_routes_require_authentication_and_trusted_origin(client: TestClient) -> None:
+def test_session_routes_require_authentication_and_trusted_origin(
+    client: TestClient, db: Session
+) -> None:
     anonymous = client.post(
         "/api/v1/body-photo-sessions",
         headers=ORIGIN,
@@ -214,7 +213,7 @@ def test_session_routes_require_authentication_and_trusted_origin(client: TestCl
     assert anonymous.status_code == 401
     assert client.get("/api/v1/body-photo-sessions").status_code == 401
 
-    _register(client, "photo-origin@example.com")
+    _register(client, "photo-origin@example.com", db)
     untrusted = client.post(
         "/api/v1/body-photo-sessions",
         json={"purpose": "initial_plan"},
@@ -222,8 +221,10 @@ def test_session_routes_require_authentication_and_trusted_origin(client: TestCl
     assert untrusted.status_code == 403
 
 
-def test_every_session_mutation_rejects_missing_trusted_origin(client: TestClient) -> None:
-    _register(client, "photo-mutations@example.com")
+def test_every_session_mutation_rejects_missing_trusted_origin(
+    client: TestClient, db: Session
+) -> None:
+    _register(client, "photo-mutations@example.com", db)
     created = _create_session(client)
     session_id = created["id"]
 
@@ -266,8 +267,9 @@ def test_upload_cors_preflight_allows_multipart_content(client: TestClient) -> N
 
 def test_upload_accepts_standardized_photo_without_obsolete_crop_evidence(
     client: TestClient,
+    db: Session,
 ) -> None:
-    _register(client, "photo-client-crop-name@example.com")
+    _register(client, "photo-client-crop-name@example.com", db)
     created = _create_session(client)
     accepted = _upload(client, created["id"], "front")
 
@@ -278,8 +280,10 @@ def test_upload_accepts_standardized_photo_without_obsolete_crop_evidence(
     assert "server_geometry_checked" not in photo
 
 
-def test_owner_can_create_list_and_read_safe_session_dtos(client: TestClient) -> None:
-    _register(client, "photo-owner@example.com")
+def test_owner_can_create_list_and_read_safe_session_dtos(
+    client: TestClient, db: Session
+) -> None:
+    _register(client, "photo-owner@example.com", db)
     created = _create_session(client, "progress_check")
 
     detail = client.get(f"/api/v1/body-photo-sessions/{created['id']}")
@@ -297,15 +301,16 @@ def test_owner_can_create_list_and_read_safe_session_dtos(client: TestClient) ->
 
 def test_cross_user_session_and_content_are_not_disclosed(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-a@example.com")
+    _register(client, "photo-a@example.com", db)
     created = _create_session(client)
     assert _upload(client, created["id"], "front").status_code == 200
     _logout(client)
 
-    _register(client, "photo-b@example.com")
+    _register(client, "photo-b@example.com", db)
     detail = client.get(f"/api/v1/body-photo-sessions/{created['id']}")
     content = client.get(f"/api/v1/body-photo-sessions/{created['id']}/photos/front/content")
 
@@ -315,10 +320,11 @@ def test_cross_user_session_and_content_are_not_disclosed(
 
 def test_submit_requires_operational_consent_but_not_training_consent(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-consent@example.com")
+    _register(client, "photo-consent@example.com", db)
     created = _create_session(client)
     for view in ("front", "side", "back"):
         assert _upload(client, created["id"], view).status_code == 200
@@ -352,7 +358,7 @@ def test_training_consent_revocation_is_a_separate_immutable_event(
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-revoke@example.com")
+    _register(client, "photo-revoke@example.com", db)
     created = _create_session(client)
     for view in ("front", "side", "back"):
         assert _upload(client, created["id"], view).status_code == 200
@@ -391,7 +397,7 @@ def test_submit_rejects_missing_view_and_replacement_keeps_one_photo_per_view(
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-replace@example.com")
+    _register(client, "photo-replace@example.com", db)
     created = _create_session(client)
     assert _upload(client, created["id"], "front", _png(color=(1, 2, 3))).status_code == 200
     replacement = _upload(client, created["id"], "front", _png(color=(9, 8, 7)))
@@ -418,10 +424,11 @@ def test_submit_rejects_missing_view_and_replacement_keeps_one_photo_per_view(
 
 def test_protected_content_returns_normalized_bytes_only_to_owner(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-content@example.com")
+    _register(client, "photo-content@example.com", db)
     created = _create_session(client)
     original = _png(color=(10, 20, 30))
     assert _upload(client, created["id"], "front", original).status_code == 200
@@ -437,10 +444,11 @@ def test_protected_content_returns_normalized_bytes_only_to_owner(
 
 def test_delete_removes_private_files_and_marks_session_deleted(
     client: TestClient,
+    db: Session,
     test_settings: Settings,
 ) -> None:
     test_settings.body_photo_storage_root = Path(test_settings.media_root).parent / "body-private"
-    _register(client, "photo-delete@example.com")
+    _register(client, "photo-delete@example.com", db)
     created = _create_session(client)
     assert _upload(client, created["id"], "front").status_code == 200
 

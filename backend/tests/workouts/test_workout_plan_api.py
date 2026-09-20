@@ -86,8 +86,20 @@ def _revoke_launch_trial(db: Session, user_id: UUID) -> None:
     trial = db.query(UserAccessGrant).filter_by(
         user_id=user_id,
         package_code=AccessPackageCode.LAUNCH_TRIAL,
-    ).one()
-    trial.revoked_at = datetime.now(UTC)
+    ).one_or_none()
+    if trial is not None:
+        trial.revoked_at = datetime.now(UTC)
+    db.flush()
+
+
+def _grant_training_access(db: Session, user_id: UUID, *, term_weeks: int = 8) -> None:
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.TRAINING,
+        source=GrantSource.MANUAL,
+        term_weeks=term_weeks,
+    )
     db.flush()
 
 
@@ -366,6 +378,17 @@ def test_launch_trial_limits_new_generation_to_four_weeks(
         f"trial-term-api-{requested_weeks}-{uuid4()}@example.com",
         plan_duration_weeks=requested_weeks,
     )
+    now = datetime.now(UTC)
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.LAUNCH_TRIAL,
+        source=GrantSource.LAUNCH_TRIAL,
+        starts_at=now,
+        ends_at=now + timedelta(days=28),
+        term_weeks=4,
+        idempotency_key=f"legacy-launch-trial:{user_id}",
+    )
     _override_fake_generation_service(client, db, user_id)
 
     from app.workouts.dependencies import get_workout_generation_service
@@ -422,6 +445,14 @@ def test_training_coach_generation_route_uses_review_lifecycle(
     db: Session,
 ) -> None:
     user_id = _register_and_complete_profile(client, "training-coach-generate@example.com")
+    grant_package(
+        db,
+        user_id,
+        AccessPackageCode.TRAINING_COACH,
+        source=GrantSource.MANUAL,
+        term_weeks=8,
+    )
+    db.flush()
     plan = _plan(db, user_id)
     lifecycle: list[bool] = []
 
@@ -928,6 +959,7 @@ def test_generate_uses_authenticated_user_and_returns_reuse_flag(
     client: TestClient, db: Session
 ) -> None:
     user_id = _register_and_complete_profile(client, "generate-plan@example.com")
+    _grant_training_access(db, user_id)
     plan = _plan(db, user_id)
     called_user_ids: list[UUID] = []
 
@@ -976,6 +1008,7 @@ def test_strength_profile_is_created_and_reaches_real_fitician_coach_generation(
     )
     assert profile.status_code == 201
     assert profile.json()["fitness_goal"] == "strength"
+    _grant_training_access(db, UUID(registration.json()["id"]))
     _store_program_engine_catalog(db)
 
     response = client.post(
@@ -997,6 +1030,7 @@ def test_strength_profile_is_created_and_reaches_real_fitician_coach_generation(
 
 def test_generate_accepts_typed_optional_engine_evidence(client: TestClient, db: Session) -> None:
     user_id = _register_and_complete_profile(client, "generate-overrides@example.com")
+    _grant_training_access(db, user_id)
     plan = _plan(db, user_id)
     captured_seed: list[int | None] = []
 
@@ -1067,8 +1101,11 @@ def test_generate_rejects_multiple_or_duplicate_user_priority_overrides(
     assert captured == []
 
 
-def test_generate_returns_structured_professional_review_status(client: TestClient) -> None:
-    _register_and_complete_profile(client, "review-plan@example.com")
+def test_generate_returns_structured_professional_review_status(
+    client: TestClient, db: Session
+) -> None:
+    user_id = _register_and_complete_profile(client, "review-plan@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(
@@ -1116,10 +1153,12 @@ def test_generate_returns_structured_professional_review_status(client: TestClie
 )
 def test_generate_maps_bodyweight_rejections_to_actionable_422(
     client: TestClient,
+    db: Session,
     error_code: str,
     message: str,
 ) -> None:
-    _register_and_complete_profile(client, f"{error_code.lower()}@example.com")
+    user_id = _register_and_complete_profile(client, f"{error_code.lower()}@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(
@@ -1145,8 +1184,11 @@ def test_generate_maps_bodyweight_rejections_to_actionable_422(
     assert detail["retryable"] is False
 
 
-def test_generate_returns_construction_exhaustion_as_a_specific_422(client: TestClient) -> None:
-    _register_and_complete_profile(client, "construction-exhausted@example.com")
+def test_generate_returns_construction_exhaustion_as_a_specific_422(
+    client: TestClient, db: Session
+) -> None:
+    user_id = _register_and_complete_profile(client, "construction-exhausted@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(
@@ -1172,8 +1214,11 @@ def test_generate_returns_construction_exhaustion_as_a_specific_422(client: Test
     assert detail["retryable"] is False
 
 
-def test_generate_exposes_preferred_calendar_conflict_reason(client: TestClient) -> None:
-    _register_and_complete_profile(client, "preferred-calendar-conflict@example.com")
+def test_generate_exposes_preferred_calendar_conflict_reason(
+    client: TestClient, db: Session
+) -> None:
+    user_id = _register_and_complete_profile(client, "preferred-calendar-conflict@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(
@@ -1204,8 +1249,10 @@ def test_generate_exposes_preferred_calendar_conflict_reason(client: TestClient)
 
 def test_generate_returns_retry_after_during_a_generation_cooldown(
     client: TestClient,
+    db: Session,
 ) -> None:
-    _register_and_complete_profile(client, "cooldown-plan@example.com")
+    user_id = _register_and_complete_profile(client, "cooldown-plan@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(
@@ -1237,10 +1284,12 @@ def test_generate_returns_retry_after_during_a_generation_cooldown(
 )
 def test_generate_maps_provider_failures_to_safe_statuses(
     client: TestClient,
+    db: Session,
     error_code: ProviderErrorCode,
     expected_status: int,
 ) -> None:
-    _register_and_complete_profile(client, f"provider-{error_code.value}@example.com")
+    user_id = _register_and_complete_profile(client, f"provider-{error_code.value}@example.com")
+    _grant_training_access(db, user_id)
 
     class FakeService:
         async def generate(

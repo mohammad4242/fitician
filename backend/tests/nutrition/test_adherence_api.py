@@ -14,7 +14,7 @@ from tests.nutrition.test_weekly_plan_api import (
 
 
 def _active_plan(client: TestClient, db: Session) -> NutritionWeeklyPlan:
-    _register_and_estimate(client, "adherence-member@example.com")
+    _register_and_estimate(client, db, "adherence-member@example.com")
     _seed_foods_and_prices(db)
     plan_id = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()["plan"]["id"]
     plan = db.scalar(select(NutritionWeeklyPlan).where(NutritionWeeklyPlan.id == plan_id))
