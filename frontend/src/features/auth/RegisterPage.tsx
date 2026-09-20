@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { AuthShell } from "../../shared/AuthShell";
+import { SignupCampaignBanner } from "../campaigns/SignupCampaignBanner";
 import { authErrorMessage } from "./authError";
 import { useAuth } from "./AuthContext";
 import { authPath, safeReturnTo } from "./returnTo";
@@ -48,6 +49,8 @@ export function RegisterPage() {
         <h2 className="fitician-display">{t("register.title")}</h2>
         <p>{t("register.subtitle")}</p>
       </div>
+
+      <SignupCampaignBanner surface="register" />
 
       <form className="auth-form" onSubmit={handleSubmit}>
         <label htmlFor="register-email">{t("common.email")}</label>

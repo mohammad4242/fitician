@@ -11,6 +11,7 @@ afterEach(() => vi.restoreAllMocks());
 it("shows a retryable localized message when the server cannot be reached", async () => {
   vi.spyOn(globalThis, "fetch")
     .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    .mockResolvedValueOnce(new Response(null, { status: 503 }))
     .mockImplementationOnce(
       () =>
         new Promise<Response>((_resolve, reject) => {
@@ -25,7 +26,7 @@ it("shows a retryable localized message when the server cannot be reached", asyn
       </MemoryRouter>
     </AuthProvider>,
   );
-  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
 
   await user.type(screen.getByLabelText("ایمیل"), "user@example.com");
   await user.type(screen.getByLabelText("رمز عبور"), "long password");

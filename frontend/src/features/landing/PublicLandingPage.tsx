@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
 import { BodyIntelligence } from "./BodyIntelligence";
 import { CinematicStory } from "./CinematicStory";
 import { ProcessStory } from "./ProcessStory";
+import { SignupCampaignBanner } from "../campaigns/SignupCampaignBanner";
 import "./publicLanding.css";
 import "./landingStory.css";
 
@@ -87,6 +88,10 @@ export function PublicLandingPage() {
           </nav>
         </aside>
       )}
+
+      <div className="landing-campaign-slot">
+        <SignupCampaignBanner surface="landing" />
+      </div>
 
       <CinematicStory reducedMotion={reducedMotion} />
       <ProcessStory reducedMotion={reducedMotion} />

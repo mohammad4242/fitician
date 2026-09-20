@@ -126,6 +126,15 @@
 .landing-menu nav { display: grid; margin-top: 2rem; }
 .landing-menu nav a { padding: 1rem; border-bottom: 1px solid var(--fitician-line); color: inherit; font-weight: 800; text-decoration: none; }
 
+.landing-campaign-slot {
+  position: relative;
+  z-index: 2;
+}
+
+.landing-campaign-slot .signup-campaign-banner {
+  margin-block-start: calc(var(--landing-header-height) + 1rem);
+}
+
 .landing-kicker {
   margin: 0 0 0.75rem;
   color: var(--fitician-aqua);

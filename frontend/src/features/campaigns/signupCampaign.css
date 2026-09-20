@@ -1,0 +1,33 @@
+.signup-campaign-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(100% - 2rem, 72rem);
+  margin: 6.5rem auto 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgb(80 223 206 / 34%);
+  border-radius: var(--fitician-radius-lg);
+  color: var(--fitician-mist);
+  background: linear-gradient(120deg, rgb(80 223 206 / 14%), rgb(8 28 28 / 92%));
+  box-shadow: 0 .8rem 2.5rem rgb(0 0 0 / 16%);
+}
+
+.signup-campaign-banner__copy { display: grid; gap: .3rem; min-width: 0; }
+.signup-campaign-banner__badge { width: fit-content; padding: .24rem .5rem; border-radius: 999px; color: #062021; background: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
+.signup-campaign-banner h2 { margin: 0; font-size: clamp(1rem, 2vw, 1.35rem); line-height: 1.45; }
+.signup-campaign-banner p { max-width: 48rem; margin: 0; color: rgb(232 244 241 / 76%); font-size: .78rem; line-height: 1.75; }
+.signup-campaign-banner__benefit { color: var(--fitician-aqua); font-size: .72rem; font-weight: 800; }
+.signup-campaign-banner__cta { flex: 0 0 auto; padding: .65rem .9rem; border: 1px solid var(--fitician-aqua); border-radius: var(--fitician-radius-pill); color: var(--fitician-canvas); background: var(--fitician-aqua); font-size: .75rem; font-weight: 850; text-decoration: none; }
+.signup-campaign-banner__cta:hover, .signup-campaign-banner__cta:focus-visible { color: var(--fitician-mist); background: transparent; }
+
+.auth-shell .signup-campaign-banner {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 1rem 0 1.25rem;
+}
+
+@media (max-width: 620px) {
+  .signup-campaign-banner { align-items: stretch; flex-direction: column; margin-top: 5.75rem; }
+  .signup-campaign-banner__cta { width: 100%; box-sizing: border-box; text-align: center; }
+}

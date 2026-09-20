@@ -4,7 +4,29 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
+
+const campaignApi = vi.hoisted(() => ({ getActiveSignupCampaign: vi.fn() }));
+vi.mock("../campaigns/publicCampaignApi", () => campaignApi);
+
 import { PublicLandingPage } from "./PublicLandingPage";
+
+const landingCampaign = {
+  code: "landing-bonus",
+  package_code: "complete" as const,
+  duration_days: 42,
+  term_weeks: 6 as const,
+  available_until: null,
+  public_badge_fa: "هدیه ثبت‌نام",
+  public_badge_en: "Signup Gift",
+  public_title_fa: "دوره کامل مهمان فیتیشن",
+  public_title_en: "Your complete program is on us",
+  public_message_fa: "ثبت‌نام کن و شروع کن.",
+  public_message_en: "Create your account and start.",
+  public_cta_fa: "هدیه‌ام رو بگیر",
+  public_cta_en: "Claim my gift",
+  show_on_landing: true,
+  show_on_register: true,
+};
 
 function stubMotion(reduced: boolean) {
   vi.stubGlobal("matchMedia", vi.fn(() => ({
@@ -16,6 +38,8 @@ function stubMotion(reduced: boolean) {
 
 beforeEach(async () => {
   await i18n.changeLanguage("fa");
+  campaignApi.getActiveSignupCampaign.mockReset();
+  campaignApi.getActiveSignupCampaign.mockResolvedValue(null);
   stubMotion(false);
 });
 
@@ -36,8 +60,17 @@ it("leads with the cinematic Fitician film and a focused Persian promise", () =>
   expect(screen.getByTestId("landing-film")).toHaveAttribute("loop");
 });
 
+it("renders an active Persian Landing campaign without changing the four story sections", async () => {
+  campaignApi.getActiveSignupCampaign.mockResolvedValue(landingCampaign);
+  render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
+
+  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("دوره کامل مهمان فیتیشن");
+  expect(screen.getByRole("link", { name: "هدیه‌ام رو بگیر" })).toHaveAttribute("href", "/get-started");
+});
+
 it("switches the complete landing direction and primary copy to English", async () => {
   const user = userEvent.setup();
+  campaignApi.getActiveSignupCampaign.mockResolvedValue(landingCampaign);
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
   await user.click(screen.getByRole("button", { name: "English" }));
@@ -48,6 +81,15 @@ it("switches the complete landing direction and primary copy to English", async 
   expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute("href", "/get-started");
   expect(screen.getByText("Estimate from your meal photo")).toBeInTheDocument();
   expect(screen.getAllByText("Shoulders").length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByTestId("signup-campaign-banner")).toHaveTextContent("Your complete program is on us");
+});
+
+it("keeps Landing usable when the public campaign request fails", async () => {
+  campaignApi.getActiveSignupCampaign.mockRejectedValue(new Error("network"));
+  render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
+
+  expect(await screen.findByRole("heading", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeInTheDocument();
+  expect(screen.queryByTestId("signup-campaign-banner")).not.toBeInTheDocument();
 });
 
 it("presents coach and physician supervision with schematic documents", () => {
