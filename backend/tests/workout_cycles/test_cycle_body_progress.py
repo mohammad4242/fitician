@@ -104,7 +104,9 @@ def test_photo_session_cannot_attach_to_another_users_cycle(
     client: TestClient,
     db: Session,
 ) -> None:
-    _register(client, f"cycle-photo-owner-{uuid4()}@example.com")
+    owner_id = _register(client, f"cycle-photo-owner-{uuid4()}@example.com")
+    grant_package(db, owner_id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+    db.flush()
     other = _user(db)
     _plan, _prescribed, other_cycle, _original, _safe, _unsafe = _plan_with_cycle(db, other.id)
     assert other_cycle is not None

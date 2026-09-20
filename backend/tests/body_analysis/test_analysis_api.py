@@ -30,13 +30,17 @@ from .test_execution_and_reviews import (
 ORIGIN = {"Origin": "http://localhost:5173"}
 
 
-def _register(client: TestClient, email: str) -> None:
+def _register(client: TestClient, email: str, db: Session) -> None:
     response = client.post(
         "/api/v1/auth/register",
         headers=ORIGIN,
         json={"email": email, "password": "long password"},
     )
     assert response.status_code == 201
+    user = db.scalar(select(User).where(User.email == email))
+    assert user is not None
+    grant_package(db, user.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+    db.flush()
 
 
 def _logout(client: TestClient) -> None:
@@ -66,7 +70,7 @@ def test_start_only_enqueues_and_does_not_execute_provider(
         config=_config(),
     )
     email = f"enqueue-only-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -89,7 +93,7 @@ def test_analysis_result_api_is_owner_only_and_hides_provider_envelopes(
     client: TestClient, db: Session
 ) -> None:
     email = f"result-owner-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -109,7 +113,7 @@ def test_analysis_result_api_is_owner_only_and_hides_provider_envelopes(
     assert result.json()["experience_result"] is None
 
     _logout(client)
-    _register(client, f"result-other-{uuid4()}@example.com")
+    _register(client, f"result-other-{uuid4()}@example.com", db)
     assert client.get(f"/api/v1/body-photo-sessions/{photo_session.id}/analysis").status_code == 404
 
 
@@ -117,7 +121,7 @@ def test_analysis_result_exposes_a_safe_error_code_for_actionable_feedback(
     client: TestClient, db: Session
 ) -> None:
     email = f"result-error-code-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -137,7 +141,7 @@ def test_analysis_result_preserves_legacy_photo_validation_payload(
     client: TestClient, db: Session
 ) -> None:
     email = f"legacy-photo-validation-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -162,7 +166,7 @@ def test_v4_analysis_result_exposes_deterministic_experience_read_model(
     client: TestClient, db: Session
 ) -> None:
     email = f"v4-result-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -205,7 +209,7 @@ def test_review_api_requires_admin_and_records_reviewer_identity(
     client: TestClient, db: Session
 ) -> None:
     email = f"reviewer-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     reviewer = db.scalar(select(User).where(User.email == email))
     assert reviewer is not None
     owner, photo_session = _submitted_session(db)
@@ -239,7 +243,7 @@ def test_unconfigured_analysis_returns_safe_failure_without_changing_photo_sessi
     client: TestClient, db: Session
 ) -> None:
     email = f"unconfigured-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -264,11 +268,9 @@ def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
 ) -> None:
     _runtime_override(client)
     email = f"quota-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
-    grant_package(db, owner.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
-    db.flush()
     _, photo_session = _submitted_session(db, owner)
 
     started = client.post(
@@ -317,7 +319,7 @@ def test_v4_start_returns_structured_missing_measurement_fields(
 ) -> None:
     _v4_runtime_override(client)
     email = f"missing-measurements-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -349,12 +351,12 @@ def test_start_and_retry_do_not_disclose_another_users_photo_session(
 ) -> None:
     _runtime_override(client)
     owner_email = f"owner-{uuid4()}@example.com"
-    _register(client, owner_email)
+    _register(client, owner_email, db)
     owner = db.scalar(select(User).where(User.email == owner_email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
     _logout(client)
-    _register(client, f"other-{uuid4()}@example.com")
+    _register(client, f"other-{uuid4()}@example.com", db)
 
     start = client.post(
         f"/api/v1/body-photo-sessions/{photo_session.id}/analysis",
@@ -373,7 +375,7 @@ def test_start_and_retry_do_not_disclose_another_users_photo_session(
 def test_fresh_queued_analysis_is_not_replaced_by_retry(client: TestClient, db: Session) -> None:
     _runtime_override(client)
     email = f"queued-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
     _, photo_session = _submitted_session(db, owner)
@@ -394,7 +396,7 @@ def test_admin_retry_requires_admin_and_can_queue_failed_analysis(
 ) -> None:
     _runtime_override(client)
     email = f"admin-retry-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     actor = db.scalar(select(User).where(User.email == email))
     assert actor is not None
     owner, photo_session = _submitted_session(db)
@@ -417,7 +419,7 @@ def test_admin_retry_rejects_completed_and_nonlatest_revisions(
 ) -> None:
     _runtime_override(client)
     email = f"admin-retry-reject-{uuid4()}@example.com"
-    _register(client, email)
+    _register(client, email, db)
     admin = db.scalar(select(User).where(User.email == email))
     assert admin is not None
     admin.is_admin = True

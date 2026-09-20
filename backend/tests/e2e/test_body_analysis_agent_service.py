@@ -24,6 +24,8 @@ from app.body_analysis.worker import run_body_analysis_once
 from app.body_photos.enums import BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
 from app.config import Settings
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.profile.enums import FitnessGoal, Sex
 from app.profile.models import BodyMeasurement, UserProfile
 from tests.body_photos.test_session_api import ORIGIN, _png
@@ -80,6 +82,7 @@ def _register_and_submit(client: TestClient, email: str, db: Session) -> UUID:
     assert registered.status_code == 201
     user = db.scalar(select(User).where(User.email == email))
     assert user is not None
+    grant_package(db, user.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
     db.add_all(
         [
             UserProfile(
