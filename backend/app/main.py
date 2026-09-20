@@ -16,6 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.access_management.exceptions import AccessManagementError
+from app.access_management.public_router import router as public_campaign_router
 from app.access_management.router import router as access_management_router
 from app.account_deletion.router import router as account_deletion_router
 from app.admin.router import router as admin_router
@@ -496,6 +497,7 @@ def create_app(
     app.include_router(billing_router)
     app.include_router(billing_admin_router)
     app.include_router(admin_audit_router)
+    app.include_router(public_campaign_router)
     app.include_router(access_management_router)
     app.include_router(entitlements_router)
     app.include_router(account_deletion_router)

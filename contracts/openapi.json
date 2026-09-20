@@ -458,6 +458,112 @@
           "package_code": {
             "$ref": "#/components/schemas/AccessPackageCode"
           },
+          "public_badge_en": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge En"
+          },
+          "public_badge_fa": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge Fa"
+          },
+          "public_cta_en": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta En"
+          },
+          "public_cta_fa": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta Fa"
+          },
+          "public_message_en": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message En"
+          },
+          "public_message_fa": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message Fa"
+          },
+          "public_title_en": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title En"
+          },
+          "public_title_fa": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title Fa"
+          },
+          "show_on_landing": {
+            "default": false,
+            "title": "Show On Landing",
+            "type": "boolean"
+          },
+          "show_on_register": {
+            "default": false,
+            "title": "Show On Register",
+            "type": "boolean"
+          },
           "term_weeks": {
             "anyOf": [
               {
@@ -487,7 +593,7 @@
       },
       "AccessCampaignKind": {
         "enum": [
-          "signup_trial",
+          "signup_bonus",
           "manual_promotion"
         ],
         "title": "AccessCampaignKind",
@@ -586,9 +692,105 @@
           "package_code": {
             "$ref": "#/components/schemas/AccessPackageCode"
           },
+          "public_badge_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge En"
+          },
+          "public_badge_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge Fa"
+          },
+          "public_cta_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta En"
+          },
+          "public_cta_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta Fa"
+          },
+          "public_message_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message En"
+          },
+          "public_message_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message Fa"
+          },
+          "public_title_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title En"
+          },
+          "public_title_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title Fa"
+          },
           "redemption_count": {
             "title": "Redemption Count",
             "type": "integer"
+          },
+          "show_on_landing": {
+            "title": "Show On Landing",
+            "type": "boolean"
+          },
+          "show_on_register": {
+            "title": "Show On Register",
+            "type": "boolean"
           },
           "term_weeks": {
             "anyOf": [
@@ -625,6 +827,16 @@
           "available_until",
           "is_active",
           "max_total_redemptions",
+          "public_badge_fa",
+          "public_badge_en",
+          "public_title_fa",
+          "public_title_en",
+          "public_message_fa",
+          "public_message_en",
+          "public_cta_fa",
+          "public_cta_en",
+          "show_on_landing",
+          "show_on_register",
           "redemption_count",
           "created_by_user_id",
           "created_at",
@@ -729,6 +941,124 @@
                 "type": "null"
               }
             ]
+          },
+          "public_badge_en": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge En"
+          },
+          "public_badge_fa": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge Fa"
+          },
+          "public_cta_en": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta En"
+          },
+          "public_cta_fa": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta Fa"
+          },
+          "public_message_en": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message En"
+          },
+          "public_message_fa": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message Fa"
+          },
+          "public_title_en": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title En"
+          },
+          "public_title_fa": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title Fa"
+          },
+          "show_on_landing": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show On Landing"
+          },
+          "show_on_register": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show On Register"
           },
           "term_weeks": {
             "anyOf": [
@@ -7996,6 +8326,14 @@
           "flexible"
         ],
         "title": "BudgetStyle",
+        "type": "string"
+      },
+      "CampaignSurface": {
+        "enum": [
+          "landing",
+          "register"
+        ],
+        "title": "CampaignSurface",
         "type": "string"
       },
       "CatalogueConsumptionInput": {
@@ -20024,6 +20362,165 @@
         "title": "ProviderTestResponse",
         "type": "object"
       },
+      "PublicSignupCampaignResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "duration_days": {
+            "title": "Duration Days",
+            "type": "integer"
+          },
+          "package_code": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "public_badge_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge En"
+          },
+          "public_badge_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Badge Fa"
+          },
+          "public_cta_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta En"
+          },
+          "public_cta_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Cta Fa"
+          },
+          "public_message_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message En"
+          },
+          "public_message_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Message Fa"
+          },
+          "public_title_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title En"
+          },
+          "public_title_fa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Title Fa"
+          },
+          "show_on_landing": {
+            "title": "Show On Landing",
+            "type": "boolean"
+          },
+          "show_on_register": {
+            "title": "Show On Register",
+            "type": "boolean"
+          },
+          "term_weeks": {
+            "anyOf": [
+              {
+                "enum": [
+                  4,
+                  6,
+                  8
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Weeks"
+          }
+        },
+        "required": [
+          "code",
+          "package_code",
+          "duration_days",
+          "term_weeks",
+          "available_until",
+          "public_badge_fa",
+          "public_badge_en",
+          "public_title_fa",
+          "public_title_en",
+          "public_message_fa",
+          "public_message_en",
+          "public_cta_fa",
+          "public_cta_en",
+          "show_on_landing",
+          "show_on_register"
+        ],
+        "title": "PublicSignupCampaignResponse",
+        "type": "object"
+      },
       "QuickApproximationInput": {
         "properties": {
           "calories": {
@@ -31846,6 +32343,56 @@
         "summary": "Get Body Progress Timeline",
         "tags": [
           "body-progress"
+        ]
+      }
+    },
+    "/api/v1/campaigns/signup/active": {
+      "get": {
+        "operationId": "read_active_signup_campaign_api_v1_campaigns_signup_active_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "surface",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/CampaignSurface",
+              "default": "landing"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PublicSignupCampaignResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Read Active Signup Campaign Api V1 Campaigns Signup Active Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Active Signup Campaign",
+        "tags": [
+          "campaigns"
         ]
       }
     },

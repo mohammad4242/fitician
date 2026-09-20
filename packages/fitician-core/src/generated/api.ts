@@ -1349,6 +1349,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/campaigns/signup/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Active Signup Campaign */
+        get: operations["read_active_signup_campaign_api_v1_campaigns_signup_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/coach/workout-reviews": {
         parameters: {
             query?: never;
@@ -3779,6 +3796,32 @@ export type components = {
             /** Name */
             name: string;
             package_code: components["schemas"]["AccessPackageCode"];
+            /** Public Badge En */
+            public_badge_en?: string | null;
+            /** Public Badge Fa */
+            public_badge_fa?: string | null;
+            /** Public Cta En */
+            public_cta_en?: string | null;
+            /** Public Cta Fa */
+            public_cta_fa?: string | null;
+            /** Public Message En */
+            public_message_en?: string | null;
+            /** Public Message Fa */
+            public_message_fa?: string | null;
+            /** Public Title En */
+            public_title_en?: string | null;
+            /** Public Title Fa */
+            public_title_fa?: string | null;
+            /**
+             * Show On Landing
+             * @default false
+             */
+            show_on_landing: boolean;
+            /**
+             * Show On Register
+             * @default false
+             */
+            show_on_register: boolean;
             /** Term Weeks */
             term_weeks?: (4 | 6 | 8) | null;
         };
@@ -3786,7 +3829,7 @@ export type components = {
          * AccessCampaignKind
          * @enum {string}
          */
-        AccessCampaignKind: "signup_trial" | "manual_promotion";
+        AccessCampaignKind: "signup_bonus" | "manual_promotion";
         /** AccessCampaignResponse */
         AccessCampaignResponse: {
             /** Available From */
@@ -3819,8 +3862,28 @@ export type components = {
             /** Name */
             name: string;
             package_code: components["schemas"]["AccessPackageCode"];
+            /** Public Badge En */
+            public_badge_en: string | null;
+            /** Public Badge Fa */
+            public_badge_fa: string | null;
+            /** Public Cta En */
+            public_cta_en: string | null;
+            /** Public Cta Fa */
+            public_cta_fa: string | null;
+            /** Public Message En */
+            public_message_en: string | null;
+            /** Public Message Fa */
+            public_message_fa: string | null;
+            /** Public Title En */
+            public_title_en: string | null;
+            /** Public Title Fa */
+            public_title_fa: string | null;
             /** Redemption Count */
             redemption_count: number;
+            /** Show On Landing */
+            show_on_landing: boolean;
+            /** Show On Register */
+            show_on_register: boolean;
             /** Term Weeks */
             term_weeks: (4 | 6 | 8) | null;
             /**
@@ -3845,6 +3908,26 @@ export type components = {
             /** Name */
             name?: string | null;
             package_code?: components["schemas"]["AccessPackageCode"] | null;
+            /** Public Badge En */
+            public_badge_en?: string | null;
+            /** Public Badge Fa */
+            public_badge_fa?: string | null;
+            /** Public Cta En */
+            public_cta_en?: string | null;
+            /** Public Cta Fa */
+            public_cta_fa?: string | null;
+            /** Public Message En */
+            public_message_en?: string | null;
+            /** Public Message Fa */
+            public_message_fa?: string | null;
+            /** Public Title En */
+            public_title_en?: string | null;
+            /** Public Title Fa */
+            public_title_fa?: string | null;
+            /** Show On Landing */
+            show_on_landing?: boolean | null;
+            /** Show On Register */
+            show_on_register?: boolean | null;
             /** Term Weeks */
             term_weeks?: (4 | 6 | 8) | null;
         };
@@ -6352,6 +6435,11 @@ export type components = {
          * @enum {string}
          */
         BudgetStyle: "strict" | "flexible";
+        /**
+         * CampaignSurface
+         * @enum {string}
+         */
+        CampaignSurface: "landing" | "register";
         /** CatalogueConsumptionInput */
         CatalogueConsumptionInput: {
             /**
@@ -10432,6 +10520,38 @@ export type components = {
             ok: boolean;
             /** Safe Error Message */
             safe_error_message?: string | null;
+        };
+        /** PublicSignupCampaignResponse */
+        PublicSignupCampaignResponse: {
+            /** Available Until */
+            available_until: string | null;
+            /** Code */
+            code: string;
+            /** Duration Days */
+            duration_days: number;
+            package_code: components["schemas"]["AccessPackageCode"];
+            /** Public Badge En */
+            public_badge_en: string | null;
+            /** Public Badge Fa */
+            public_badge_fa: string | null;
+            /** Public Cta En */
+            public_cta_en: string | null;
+            /** Public Cta Fa */
+            public_cta_fa: string | null;
+            /** Public Message En */
+            public_message_en: string | null;
+            /** Public Message Fa */
+            public_message_fa: string | null;
+            /** Public Title En */
+            public_title_en: string | null;
+            /** Public Title Fa */
+            public_title_fa: string | null;
+            /** Show On Landing */
+            show_on_landing: boolean;
+            /** Show On Register */
+            show_on_register: boolean;
+            /** Term Weeks */
+            term_weeks: (4 | 6 | 8) | null;
         };
         /** QuickApproximationInput */
         QuickApproximationInput: {
@@ -15856,6 +15976,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BodyProgressTimelineResponse"];
+                };
+            };
+        };
+    };
+    read_active_signup_campaign_api_v1_campaigns_signup_active_get: {
+        parameters: {
+            query?: {
+                surface?: components["schemas"]["CampaignSurface"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSignupCampaignResponse"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
