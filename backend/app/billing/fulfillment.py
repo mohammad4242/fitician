@@ -52,9 +52,15 @@ def _access_start(
     purchased_entitlements = package_definition(package_code).entitlements
     for grant in valid_grants:
         grant_package_code = AccessPackageCode(grant.package_code)
-        if grant_package_code is AccessPackageCode.LAUNCH_TRIAL:
-            trial_entitlements = package_definition(grant_package_code).entitlements
-            if purchased_entitlements.issubset(trial_entitlements) and grant.ends_at is not None:
+        if (
+            grant_package_code is AccessPackageCode.LAUNCH_TRIAL
+            or grant.source is GrantSource.PROMOTION
+        ):
+            covering_entitlements = package_definition(grant_package_code).entitlements
+            if (
+                purchased_entitlements.issubset(covering_entitlements)
+                and grant.ends_at is not None
+            ):
                 anchors.append(grant.ends_at)
     return max([reference, *anchors])
 

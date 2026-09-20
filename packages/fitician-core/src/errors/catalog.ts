@@ -1099,7 +1099,7 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
   ),
   ACCESS_CAMPAIGN_WINDOW_OVERLAPS: entry(
     text("بازه کمپین تداخل دارد", "Campaign window overlaps"),
-    text("این بازه با یک Signup Trial فعال دیگر تداخل دارد.", "This window overlaps another active Signup Trial."),
+    text("این بازه با یک هدیه ثبت‌نام فعال دیگر تداخل دارد.", "This window overlaps another active Signup Bonus."),
   ),
   ACCESS_CAMPAIGN_SEMANTICS_IMMUTABLE: entry(
     text("مشخصات کمپین قفل شده است", "Campaign details are locked"),

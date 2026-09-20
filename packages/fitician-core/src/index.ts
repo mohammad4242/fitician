@@ -19,6 +19,13 @@ export type {
   QuotaStatus,
 } from "./entitlements";
 
+export { accessCampaignKinds, campaignSurfaces } from "./campaigns";
+export type {
+  AccessCampaignKind,
+  CampaignSurface,
+  PublicSignupCampaign,
+} from "./campaigns";
+
 export {
   billingOfferCodes,
   billingOrderStatuses,

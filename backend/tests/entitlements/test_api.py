@@ -57,9 +57,9 @@ def test_my_entitlements_does_not_require_completed_profile(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["primary_package"] == "launch_trial"
-    assert body["active_packages"] == ["launch_trial", "free"]
-    assert "training.plan.generate" in body["entitlements"]["granted"]
+    assert body["primary_package"] == "free"
+    assert body["active_packages"] == ["free"]
+    assert "training.plan.generate" not in body["entitlements"]["granted"]
 
 
 def test_my_entitlements_serializes_trial_and_quota_status(

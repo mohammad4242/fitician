@@ -13,6 +13,7 @@ from app.access_management.exceptions import (
     CampaignImmutableError,
     CampaignOverlapError,
     CampaignRedemptionUnavailableError,
+    CampaignValidationError,
 )
 from app.access_management.models import AccessCampaign, AccessCampaignRedemption
 from app.access_management.schemas import (
@@ -56,9 +57,9 @@ def disable_default_trial(db: Session) -> None:
 def campaign_request(
     code: str,
     *,
-    kind: AccessCampaignKind = AccessCampaignKind.SIGNUP_TRIAL,
-    package_code: AccessPackageCode = AccessPackageCode.LAUNCH_TRIAL,
-    duration_days: int = 14,
+    kind: AccessCampaignKind = AccessCampaignKind.SIGNUP_BONUS,
+    package_code: AccessPackageCode = AccessPackageCode.COMPLETE,
+    duration_days: int = 28,
     term_weeks: int | None = 4,
     active: bool = True,
     available_from: datetime | None = None,
@@ -86,7 +87,7 @@ def test_active_signup_campaign_provisions_one_package_and_is_idempotent(db: Ses
         db,
         campaign_request(
             "signup-service",
-            package_code=AccessPackageCode.LAUNCH_TRIAL,
+            package_code=AccessPackageCode.COMPLETE,
             term_weeks=4,
         ),
         actor_user_id=admin.id,
@@ -100,9 +101,9 @@ def test_active_signup_campaign_provisions_one_package_and_is_idempotent(db: Ses
     assert len(first) == 1
     assert len(second) == 1
     assert first[0].grant.id == second[0].grant.id
-    assert first[0].grant.package_code is AccessPackageCode.LAUNCH_TRIAL
-    assert first[0].grant.source is GrantSource.LAUNCH_TRIAL
-    assert first[0].grant.ends_at == now + timedelta(days=14)
+    assert first[0].grant.package_code is AccessPackageCode.COMPLETE
+    assert first[0].grant.source is GrantSource.PROMOTION
+    assert first[0].grant.ends_at == now + timedelta(days=28)
     assert db.scalar(
         select(AccessCampaignRedemption).where(
             AccessCampaignRedemption.campaign_id == campaign.id,
@@ -174,6 +175,27 @@ def test_signup_campaign_cap_is_enforced(db: Session) -> None:
         redeem_campaign(db, campaign.id, second_user.id, now=now)
 
 
+def test_campaign_cap_cannot_be_reduced_below_existing_redemptions(db: Session) -> None:
+    disable_default_trial(db)
+    admin = make_admin(db)
+    campaign = create_campaign(
+        db,
+        campaign_request("cap-update", max_total_redemptions=2),
+        actor_user_id=admin.id,
+    )
+    now = datetime(2026, 9, 20, tzinfo=UTC)
+    redeem_campaign(db, campaign.id, make_user(db, "cap-one").id, now=now)
+    redeem_campaign(db, campaign.id, make_user(db, "cap-two" ).id, now=now)
+
+    with pytest.raises(CampaignValidationError, match="redemptions"):
+        update_campaign(
+            db,
+            campaign.id,
+            AccessCampaignUpdateRequest(max_total_redemptions=1),
+            actor_user_id=admin.id,
+        )
+
+
 def test_active_signup_campaigns_cannot_overlap_but_promotions_can(db: Session) -> None:
     disable_default_trial(db)
     admin = make_admin(db)
@@ -204,6 +226,7 @@ def test_active_signup_campaigns_cannot_overlap_but_promotions_can(db: Session) 
             kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.COMPLETE,
             term_weeks=8,
+            duration_days=56,
             active=True,
             available_from=first.available_from,
             available_until=first.available_until,
@@ -223,6 +246,7 @@ def test_manual_promotion_does_not_auto_apply_and_can_be_redeemed_once(db: Sessi
             kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.COMPLETE,
             term_weeks=8,
+            duration_days=56,
         ),
         actor_user_id=admin.id,
     )
@@ -344,7 +368,7 @@ def test_overlapping_signup_campaign_creates_are_serialized_across_sessions() ->
             cleanup_db.execute(
                 update(AccessCampaign)
                 .where(AccessCampaign.code == "launch_trial_v1")
-                .values(is_active=True)
+                .values(is_active=False)
             )
             cleanup_db.execute(delete(User).where(User.email == admin_email))
             cleanup_db.commit()

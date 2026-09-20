@@ -114,7 +114,7 @@ def test_campaign_patch_cannot_change_activation_state(client: TestClient, db: S
             "name": "Patch state",
             "kind": "manual_promotion",
             "package_code": "complete",
-            "duration_days": 30,
+            "duration_days": 56,
             "term_weeks": 8,
         },
     )

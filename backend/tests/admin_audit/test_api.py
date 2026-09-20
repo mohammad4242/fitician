@@ -46,7 +46,7 @@ def test_audit_api_lists_filters_and_redacts_sensitive_fields(client, db: Sessio
             "name": "Audit manual campaign",
             "kind": "manual_promotion",
             "package_code": "complete",
-            "duration_days": 30,
+            "duration_days": 56,
             "term_weeks": 8,
         },
     )
@@ -92,7 +92,7 @@ def test_audit_api_returns_newest_first(client, db: Session) -> None:
                 "name": suffix,
                 "kind": "manual_promotion",
                 "package_code": "complete",
-                "duration_days": 30,
+                "duration_days": 56,
                 "term_weeks": 8,
             },
         )

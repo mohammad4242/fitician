@@ -38,7 +38,7 @@ class AccessCampaign(Base):
             name="ck_access_campaigns_code_length",
         ),
         CheckConstraint(
-            "kind IN ('signup_trial', 'manual_promotion')",
+            "kind IN ('signup_bonus', 'manual_promotion')",
             name="ck_access_campaigns_kind_values",
         ),
         CheckConstraint(
@@ -58,11 +58,6 @@ class AccessCampaign(Base):
             name="ck_access_campaigns_launch_trial_term",
         ),
         CheckConstraint(
-            "kind <> 'signup_trial' OR "
-            "(package_code = 'launch_trial' AND term_weeks = 4)",
-            name="ck_access_campaigns_signup_trial_package",
-        ),
-        CheckConstraint(
             "kind <> 'manual_promotion' "
             "OR package_code NOT IN ('free', 'launch_trial')",
             name="ck_access_campaigns_manual_promotion_package",
@@ -71,6 +66,15 @@ class AccessCampaign(Base):
             "package_code NOT IN ('training', 'training_coach', 'complete', 'complete_care') "
             "OR term_weeks IS NOT NULL",
             name="ck_access_campaigns_training_term",
+        ),
+        CheckConstraint(
+            "package_code NOT IN ('training', 'training_coach', 'complete', 'complete_care') "
+            "OR (term_weeks IS NOT NULL AND duration_days >= term_weeks * 7)",
+            name="ck_access_campaigns_training_duration",
+        ),
+        CheckConstraint(
+            "kind <> 'manual_promotion' OR (show_on_landing = false AND show_on_register = false)",
+            name="ck_access_campaigns_manual_promotion_private",
         ),
         CheckConstraint(
             "available_until IS NULL OR available_from IS NULL "
@@ -94,6 +98,14 @@ class AccessCampaign(Base):
     code: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_badge_fa: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    public_badge_en: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    public_title_fa: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    public_title_en: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    public_message_fa: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_message_en: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_cta_fa: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    public_cta_en: Mapped[str | None] = mapped_column(String(80), nullable=True)
     kind: Mapped[AccessCampaignKind] = mapped_column(
         Enum(
             AccessCampaignKind,
@@ -128,6 +140,12 @@ class AccessCampaign(Base):
         Boolean, default=False, server_default="false", nullable=False
     )
     max_total_redemptions: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    show_on_landing: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    show_on_register: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

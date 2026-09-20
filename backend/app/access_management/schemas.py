@@ -15,6 +15,29 @@ def _trim(value: object) -> object:
     return value.strip() if isinstance(value, str) else value
 
 
+def _normalize_optional_text(value: object) -> object:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        trimmed = value.strip()
+        return trimmed or None
+    return value
+
+
+PUBLIC_MARKETING_FIELDS = (
+    "public_badge_fa",
+    "public_badge_en",
+    "public_title_fa",
+    "public_title_en",
+    "public_message_fa",
+    "public_message_en",
+    "public_cta_fa",
+    "public_cta_en",
+)
+
+PUBLIC_COPY_FIELDS = PUBLIC_MARKETING_FIELDS[2:]
+
+
 class AccessCampaignCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -29,22 +52,42 @@ class AccessCampaignCreateRequest(BaseModel):
     available_until: datetime | None = None
     is_active: bool = False
     max_total_redemptions: int | None = Field(default=None, gt=0)
+    public_badge_fa: str | None = Field(default=None, max_length=80)
+    public_badge_en: str | None = Field(default=None, max_length=80)
+    public_title_fa: str | None = Field(default=None, max_length=160)
+    public_title_en: str | None = Field(default=None, max_length=160)
+    public_message_fa: str | None = Field(default=None, max_length=1000)
+    public_message_en: str | None = Field(default=None, max_length=1000)
+    public_cta_fa: str | None = Field(default=None, max_length=80)
+    public_cta_en: str | None = Field(default=None, max_length=80)
+    show_on_landing: bool = False
+    show_on_register: bool = False
 
     _normalize_name = field_validator("name", mode="before")(_trim)
 
     @field_validator("description", mode="before")
     @classmethod
     def normalize_description(cls, value: object) -> object:
-        return None if value is None else _trim(value)
+        return _normalize_optional_text(value)
+
+    @field_validator(*PUBLIC_MARKETING_FIELDS, mode="before")
+    @classmethod
+    def normalize_public_copy(cls, value: object) -> object:
+        return _normalize_optional_text(value)
 
     @model_validator(mode="after")
     def validate_semantics(self) -> "AccessCampaignCreateRequest":
         _validate_campaign_semantics(
             self.kind,
             self.package_code,
+            self.duration_days,
             self.term_weeks,
             self.available_from,
             self.available_until,
+            self.max_total_redemptions,
+            show_on_landing=self.show_on_landing,
+            show_on_register=self.show_on_register,
+            public_copy={field: getattr(self, field) for field in PUBLIC_COPY_FIELDS},
         )
         return self
 
@@ -61,6 +104,16 @@ class AccessCampaignUpdateRequest(BaseModel):
     available_from: datetime | None = None
     available_until: datetime | None = None
     max_total_redemptions: int | None = Field(default=None, gt=0)
+    public_badge_fa: str | None = Field(default=None, max_length=80)
+    public_badge_en: str | None = Field(default=None, max_length=80)
+    public_title_fa: str | None = Field(default=None, max_length=160)
+    public_title_en: str | None = Field(default=None, max_length=160)
+    public_message_fa: str | None = Field(default=None, max_length=1000)
+    public_message_en: str | None = Field(default=None, max_length=1000)
+    public_cta_fa: str | None = Field(default=None, max_length=80)
+    public_cta_en: str | None = Field(default=None, max_length=80)
+    show_on_landing: bool | None = None
+    show_on_register: bool | None = None
 
     @field_validator("name", mode="before")
     @classmethod
@@ -70,7 +123,12 @@ class AccessCampaignUpdateRequest(BaseModel):
     @field_validator("description", mode="before")
     @classmethod
     def normalize_description(cls, value: object) -> object:
-        return None if value is None else _trim(str(value))
+        return _normalize_optional_text(value)
+
+    @field_validator(*PUBLIC_MARKETING_FIELDS, mode="before")
+    @classmethod
+    def normalize_public_copy(cls, value: object) -> object:
+        return _normalize_optional_text(value)
 
 
 class AccessCampaignResponse(BaseModel):
@@ -88,10 +146,40 @@ class AccessCampaignResponse(BaseModel):
     available_until: datetime | None
     is_active: bool
     max_total_redemptions: int | None
+    public_badge_fa: str | None
+    public_badge_en: str | None
+    public_title_fa: str | None
+    public_title_en: str | None
+    public_message_fa: str | None
+    public_message_en: str | None
+    public_cta_fa: str | None
+    public_cta_en: str | None
+    show_on_landing: bool
+    show_on_register: bool
     redemption_count: int
     created_by_user_id: UUID | None
     created_at: datetime
     updated_at: datetime
+
+
+class PublicSignupCampaignResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    package_code: AccessPackageCode
+    duration_days: int
+    term_weeks: AccessTermWeeks | None
+    available_until: datetime | None
+    public_badge_fa: str | None
+    public_badge_en: str | None
+    public_title_fa: str | None
+    public_title_en: str | None
+    public_message_fa: str | None
+    public_message_en: str | None
+    public_cta_fa: str | None
+    public_cta_en: str | None
+    show_on_landing: bool
+    show_on_register: bool
 
 
 class ManualCampaignRedemptionRequest(BaseModel):
@@ -211,17 +299,21 @@ class AdminCampaignRedemptionResponse(BaseModel):
 def _validate_campaign_semantics(
     kind: AccessCampaignKind,
     package_code: AccessPackageCode,
+    duration_days: int,
     term_weeks: AccessTermWeeks | None,
     available_from: datetime | None,
     available_until: datetime | None,
+    max_total_redemptions: int | None,
+    *,
+    show_on_landing: bool = False,
+    show_on_register: bool = False,
+    public_copy: dict[str, str | None] | None = None,
+    allow_legacy_launch_trial: bool = False,
 ) -> None:
     if package_code is AccessPackageCode.FREE:
         raise ValueError("Campaign package cannot be free")
-    if (
-        kind is AccessCampaignKind.SIGNUP_TRIAL
-        and package_code is not AccessPackageCode.LAUNCH_TRIAL
-    ):
-        raise ValueError("signup_trial campaigns must use the launch_trial package")
+    if package_code is AccessPackageCode.LAUNCH_TRIAL and not allow_legacy_launch_trial:
+        raise ValueError("New campaigns cannot use the launch_trial package")
     if (
         kind is AccessCampaignKind.MANUAL_PROMOTION
         and package_code is AccessPackageCode.LAUNCH_TRIAL
@@ -230,11 +322,22 @@ def _validate_campaign_semantics(
     if EntitlementCode.TRAINING_PLAN_GENERATE in package_definition(package_code).entitlements:
         if term_weeks is None:
             raise ValueError("term_weeks is required for training access")
-    if package_code is AccessPackageCode.LAUNCH_TRIAL and term_weeks != 4:
-        raise ValueError("Launch Trial campaigns require term_weeks=4")
+        if duration_days < term_weeks * 7:
+            raise ValueError("duration_days must cover the selected training term")
     if (
         available_from is not None
         and available_until is not None
         and available_until < available_from
     ):
         raise ValueError("available_until must be after available_from")
+    if max_total_redemptions is not None and max_total_redemptions < 1:
+        raise ValueError("max_total_redemptions must be positive")
+    if kind not in {AccessCampaignKind.SIGNUP_BONUS, AccessCampaignKind.MANUAL_PROMOTION}:
+        raise ValueError("Unsupported campaign kind")
+    if kind is AccessCampaignKind.MANUAL_PROMOTION and (show_on_landing or show_on_register):
+        raise ValueError("manual_promotion campaigns cannot be public")
+    if kind is AccessCampaignKind.SIGNUP_BONUS and (show_on_landing or show_on_register):
+        copy = public_copy or {}
+        missing = [field for field in PUBLIC_COPY_FIELDS if not copy.get(field)]
+        if missing:
+            raise ValueError(f"Public campaign copy is required: {missing[0]}")

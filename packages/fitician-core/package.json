@@ -42,6 +42,10 @@
       "types": "./dist/entitlements.d.ts",
       "import": "./dist/entitlements.js"
     },
+    "./campaigns": {
+      "types": "./dist/campaigns.d.ts",
+      "import": "./dist/campaigns.js"
+    },
     "./billing": {
       "types": "./dist/billing.d.ts",
       "import": "./dist/billing.js"

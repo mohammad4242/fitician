@@ -13,7 +13,7 @@ from app.auth.models import User
 from app.entitlements.enums import AccessPackageCode
 
 
-def test_campaign_schema_rejects_free_and_invalid_benefit_semantics() -> None:
+def test_campaign_schema_rejects_unsafe_packages_and_accepts_generic_signup_bonuses() -> None:
     with pytest.raises(ValidationError):
         AccessCampaignCreateRequest(
             code="free-promo",
@@ -27,39 +27,50 @@ def test_campaign_schema_rejects_free_and_invalid_benefit_semantics() -> None:
         AccessCampaignCreateRequest(
             code="too-long",
             name="Too long",
-            kind=AccessCampaignKind.SIGNUP_TRIAL,
+            kind=AccessCampaignKind.SIGNUP_BONUS,
             package_code=AccessPackageCode.LAUNCH_TRIAL,
             duration_days=3651,
             term_weeks=4,
         )
 
-    with pytest.raises(ValidationError, match="signup_trial"):
+    with pytest.raises(ValidationError, match="launch_trial"):
         AccessCampaignCreateRequest(
             code="signup-package",
             name="Signup package",
-            kind=AccessCampaignKind.SIGNUP_TRIAL,
-            package_code=AccessPackageCode.TRAINING,
-            duration_days=14,
+            kind=AccessCampaignKind.SIGNUP_BONUS,
+            package_code=AccessPackageCode.LAUNCH_TRIAL,
+            duration_days=28,
             term_weeks=4,
         )
 
-    with pytest.raises(ValidationError, match="manual_promotion"):
+    with pytest.raises(ValidationError, match="launch_trial"):
         AccessCampaignCreateRequest(
             code="manual-trial",
             name="Manual trial",
-            kind=AccessCampaignKind.MANUAL_PROMOTION,
+            kind=AccessCampaignKind.SIGNUP_BONUS,
             package_code=AccessPackageCode.LAUNCH_TRIAL,
-            duration_days=14,
-            term_weeks=4,
+            duration_days=42,
+            term_weeks=6,
         )
 
-    with pytest.raises(ValidationError):
+    for term_weeks, duration_days in ((4, 28), (6, 42), (8, 56)):
+        campaign = AccessCampaignCreateRequest(
+            code=f"signup-{term_weeks}",
+            name="Signup bonus",
+            kind=AccessCampaignKind.SIGNUP_BONUS,
+            package_code=AccessPackageCode.COMPLETE,
+            duration_days=duration_days,
+            term_weeks=term_weeks,
+        )
+        assert campaign.term_weeks == term_weeks
+
+    with pytest.raises(ValidationError, match="duration_days"):
         AccessCampaignCreateRequest(
-            code="bad-launch",
-            name="Bad launch",
-            kind=AccessCampaignKind.SIGNUP_TRIAL,
-            package_code=AccessPackageCode.LAUNCH_TRIAL,
-            duration_days=14,
+            code="short-training",
+            name="Short training",
+            kind=AccessCampaignKind.SIGNUP_BONUS,
+            package_code=AccessPackageCode.COMPLETE,
+            duration_days=30,
             term_weeks=6,
         )
 
@@ -71,7 +82,7 @@ def test_campaign_schema_requires_training_term_and_valid_window() -> None:
             name="Missing term",
             kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.TRAINING,
-            duration_days=14,
+            duration_days=28,
         )
 
     with pytest.raises(ValidationError):
@@ -80,10 +91,48 @@ def test_campaign_schema_requires_training_term_and_valid_window() -> None:
             name="Bad window",
             kind=AccessCampaignKind.MANUAL_PROMOTION,
             package_code=AccessPackageCode.COMPLETE,
-            duration_days=14,
+            duration_days=56,
             term_weeks=8,
             available_from=datetime(2026, 10, 2, tzinfo=UTC),
             available_until=datetime(2026, 10, 1, tzinfo=UTC),
+        )
+
+
+def test_campaign_schema_requires_complete_bilingual_public_copy() -> None:
+    common = {
+        "code": "public-bonus",
+        "name": "Public bonus",
+        "kind": AccessCampaignKind.SIGNUP_BONUS,
+        "package_code": AccessPackageCode.COMPLETE,
+        "duration_days": 42,
+        "term_weeks": 6,
+        "show_on_landing": True,
+    }
+    with pytest.raises(ValidationError, match="public_title_fa"):
+        AccessCampaignCreateRequest(**common)
+
+    campaign = AccessCampaignCreateRequest(
+        **common,
+        public_title_fa=" عنوان فارسی ",
+        public_title_en=" English title ",
+        public_message_fa=" پیام فارسی ",
+        public_message_en=" English message ",
+        public_cta_fa=" شروع ",
+        public_cta_en=" Start ",
+        public_badge_fa=" ",
+    )
+    assert campaign.public_title_fa == "عنوان فارسی"
+    assert campaign.public_badge_fa is None
+
+    with pytest.raises(ValidationError, match="manual_promotion"):
+        AccessCampaignCreateRequest(
+            code="manual-public",
+            name="Manual public",
+            kind=AccessCampaignKind.MANUAL_PROMOTION,
+            package_code=AccessPackageCode.COMPLETE,
+            duration_days=42,
+            term_weeks=6,
+            show_on_register=True,
         )
 
 
@@ -96,7 +145,7 @@ def test_campaign_redemption_has_database_uniqueness_per_campaign_user(db: Sessi
         name="Campaign",
         kind=AccessCampaignKind.MANUAL_PROMOTION,
         package_code=AccessPackageCode.COMPLETE,
-        duration_days=30,
+        duration_days=56,
         term_weeks=8,
         is_active=True,
     )
@@ -135,5 +184,6 @@ def test_campaign_table_declares_stable_kind_and_training_term_constraints() -> 
 
     assert "ck_access_campaigns_kind_values" in constraint_names
     assert "ck_access_campaigns_training_term" in constraint_names
-    assert "ck_access_campaigns_signup_trial_package" in constraint_names
-    assert "ck_access_campaigns_manual_promotion_package" in constraint_names
+    assert "ck_access_campaigns_training_duration" in constraint_names
+    assert "ck_access_campaigns_manual_promotion_private" in constraint_names
+    assert "ck_access_campaigns_signup_trial_package" not in constraint_names

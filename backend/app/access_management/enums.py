@@ -2,5 +2,10 @@ from enum import StrEnum
 
 
 class AccessCampaignKind(StrEnum):
-    SIGNUP_TRIAL = "signup_trial"
+    SIGNUP_BONUS = "signup_bonus"
     MANUAL_PROMOTION = "manual_promotion"
+
+
+class CampaignSurface(StrEnum):
+    LANDING = "landing"
+    REGISTER = "register"

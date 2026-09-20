@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.access_management.enums import AccessCampaignKind
+from app.access_management.enums import AccessCampaignKind, CampaignSurface
 from app.access_management.models import AccessCampaign, AccessCampaignRedemption
 from app.auth.models import User
 from app.auth.security import normalize_iranian_phone
+from app.entitlements.enums import AccessPackageCode
 from app.profile.models import UserProfile
 
 
@@ -42,16 +44,55 @@ def list_campaigns(
     return list(db.scalars(statement).all())
 
 
-def list_active_signup_campaigns(db: Session) -> list[AccessCampaign]:
+def list_active_signup_bonus_campaigns(db: Session) -> list[AccessCampaign]:
     statement = (
         select(AccessCampaign)
         .where(
-            AccessCampaign.kind == AccessCampaignKind.SIGNUP_TRIAL,
+            AccessCampaign.kind == AccessCampaignKind.SIGNUP_BONUS,
             AccessCampaign.is_active.is_(True),
+            AccessCampaign.package_code != AccessPackageCode.LAUNCH_TRIAL,
         )
         .order_by(AccessCampaign.available_from.asc().nulls_first(), AccessCampaign.id)
     )
     return list(db.scalars(statement).all())
+
+
+def get_active_signup_bonus_for_surface(
+    db: Session,
+    surface: CampaignSurface,
+    *,
+    now: datetime,
+) -> AccessCampaign | None:
+    visibility = (
+        AccessCampaign.show_on_landing
+        if surface is CampaignSurface.LANDING
+        else AccessCampaign.show_on_register
+    )
+    redemption_count = (
+        select(func.count())
+        .select_from(AccessCampaignRedemption)
+        .where(AccessCampaignRedemption.campaign_id == AccessCampaign.id)
+        .correlate(AccessCampaign)
+        .scalar_subquery()
+    )
+    statement = (
+        select(AccessCampaign)
+        .where(
+            AccessCampaign.kind == AccessCampaignKind.SIGNUP_BONUS,
+            AccessCampaign.is_active.is_(True),
+            AccessCampaign.package_code != AccessPackageCode.LAUNCH_TRIAL,
+            visibility.is_(True),
+            or_(AccessCampaign.available_from.is_(None), AccessCampaign.available_from <= now),
+            or_(AccessCampaign.available_until.is_(None), AccessCampaign.available_until >= now),
+            or_(
+                AccessCampaign.max_total_redemptions.is_(None),
+                redemption_count < AccessCampaign.max_total_redemptions,
+            ),
+        )
+        .order_by(AccessCampaign.available_from.asc().nulls_first(), AccessCampaign.id)
+        .limit(1)
+    )
+    return db.scalar(statement)
 
 
 def count_redemptions(db: Session, campaign_id: UUID) -> int:

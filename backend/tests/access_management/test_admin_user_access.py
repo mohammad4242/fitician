@@ -57,6 +57,16 @@ def test_user_access_detail_is_safe_and_includes_snapshot_and_all_grants(
     member = register(client, "detail-access@example.com")
     user = db.get(User, member["id"])
     assert user is not None
+    grant_package(
+        db,
+        user.id,
+        AccessPackageCode.COMPLETE,
+        source=GrantSource.PROMOTION,
+        starts_at=datetime.now(UTC),
+        ends_at=datetime.now(UTC) + timedelta(days=42),
+        term_weeks=6,
+        idempotency_key="detail-access-promotion",
+    )
     db.add(UserProfile(user_id=user.id, display_name="Detail Member"))
     db.flush()
     client.post("/api/v1/auth/logout", headers=ORIGIN)

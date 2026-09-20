@@ -26,7 +26,7 @@ from app.access_management.repository import (
     get_campaign,
     get_campaign_by_code,
     get_redemption,
-    list_active_signup_campaigns,
+    list_active_signup_bonus_campaigns,
     list_campaigns,
 )
 from app.access_management.schemas import (
@@ -37,6 +37,7 @@ from app.access_management.schemas import (
     AdminEntitlementSnapshotResponse,
     AdminGrantResponse,
     AdminMemberSummaryResponse,
+    PublicSignupCampaignResponse,
 )
 from app.admin_audit.enums import AdminAuditAction
 from app.admin_audit.service import record_admin_audit_event
@@ -101,6 +102,16 @@ def _campaign_state(campaign: AccessCampaign, *, redemption_count: int) -> dict[
         else None,
         "is_active": campaign.is_active,
         "max_total_redemptions": campaign.max_total_redemptions,
+        "public_badge_fa": campaign.public_badge_fa,
+        "public_badge_en": campaign.public_badge_en,
+        "public_title_fa": campaign.public_title_fa,
+        "public_title_en": campaign.public_title_en,
+        "public_message_fa": campaign.public_message_fa,
+        "public_message_en": campaign.public_message_en,
+        "public_cta_fa": campaign.public_cta_fa,
+        "public_cta_en": campaign.public_cta_en,
+        "show_on_landing": campaign.show_on_landing,
+        "show_on_register": campaign.show_on_register,
         "redemption_count": redemption_count,
     }
 
@@ -114,14 +125,16 @@ def _validate_campaign_values(
     available_from: datetime | None,
     available_until: datetime | None,
     max_total_redemptions: int | None,
+    show_on_landing: bool = False,
+    show_on_register: bool = False,
+    public_copy: dict[str, str | None] | None = None,
+    allow_legacy_launch_trial: bool = False,
+    enforce_training_duration: bool = True,
 ) -> None:
     if package_code is AccessPackageCode.FREE:
         raise CampaignValidationError("Campaign package cannot be free")
-    if (
-        kind is AccessCampaignKind.SIGNUP_TRIAL
-        and package_code is not AccessPackageCode.LAUNCH_TRIAL
-    ):
-        raise CampaignValidationError("signup_trial campaigns must use the launch_trial package")
+    if package_code is AccessPackageCode.LAUNCH_TRIAL and not allow_legacy_launch_trial:
+        raise CampaignValidationError("New campaigns cannot use the launch_trial package")
     if (
         kind is AccessCampaignKind.MANUAL_PROMOTION
         and package_code is AccessPackageCode.LAUNCH_TRIAL
@@ -138,8 +151,14 @@ def _validate_campaign_values(
         and term_weeks is None
     ):
         raise CampaignValidationError("term_weeks is required for training access")
-    if package_code is AccessPackageCode.LAUNCH_TRIAL and term_weeks != 4:
-        raise CampaignValidationError("Launch Trial campaigns require term_weeks=4")
+    if (
+        enforce_training_duration
+        and EntitlementCode.TRAINING_PLAN_GENERATE
+        in package_definition(package_code).entitlements
+        and term_weeks is not None
+        and duration_days < term_weeks * 7
+    ):
+        raise CampaignValidationError("duration_days must cover the selected training term")
     if (
         available_from is not None
         and available_until is not None
@@ -148,8 +167,22 @@ def _validate_campaign_values(
         raise CampaignValidationError("available_until must be after available_from")
     if max_total_redemptions is not None and max_total_redemptions < 1:
         raise CampaignValidationError("max_total_redemptions must be positive")
-    if kind not in {AccessCampaignKind.SIGNUP_TRIAL, AccessCampaignKind.MANUAL_PROMOTION}:
+    if kind not in {AccessCampaignKind.SIGNUP_BONUS, AccessCampaignKind.MANUAL_PROMOTION}:
         raise CampaignValidationError("Unsupported campaign kind")
+    if kind is AccessCampaignKind.MANUAL_PROMOTION and (show_on_landing or show_on_register):
+        raise CampaignValidationError("manual_promotion campaigns cannot be public")
+    if kind is AccessCampaignKind.SIGNUP_BONUS and (show_on_landing or show_on_register):
+        copy = public_copy or {}
+        missing = next((field for field in (
+            "public_title_fa",
+            "public_title_en",
+            "public_message_fa",
+            "public_message_en",
+            "public_cta_fa",
+            "public_cta_en",
+        ) if not copy.get(field)), None)
+        if missing is not None:
+            raise CampaignValidationError(f"Public campaign copy is required: {missing}")
 
 
 def _lock_campaign_mutations(db: Session) -> None:
@@ -190,11 +223,11 @@ def _ensure_no_signup_overlap(
     available_from: datetime | None,
     available_until: datetime | None,
 ) -> None:
-    if not is_active or kind is not AccessCampaignKind.SIGNUP_TRIAL:
+    if not is_active or kind is not AccessCampaignKind.SIGNUP_BONUS:
         return
     active_campaigns = db.scalars(
         select(AccessCampaign).where(
-            AccessCampaign.kind == AccessCampaignKind.SIGNUP_TRIAL,
+            AccessCampaign.kind == AccessCampaignKind.SIGNUP_BONUS,
             AccessCampaign.is_active.is_(True),
         )
     ).all()
@@ -233,6 +266,16 @@ def _campaign_response(db: Session, campaign: AccessCampaign) -> AccessCampaignR
         available_until=campaign.available_until,
         is_active=campaign.is_active,
         max_total_redemptions=campaign.max_total_redemptions,
+        public_badge_fa=campaign.public_badge_fa,
+        public_badge_en=campaign.public_badge_en,
+        public_title_fa=campaign.public_title_fa,
+        public_title_en=campaign.public_title_en,
+        public_message_fa=campaign.public_message_fa,
+        public_message_en=campaign.public_message_en,
+        public_cta_fa=campaign.public_cta_fa,
+        public_cta_en=campaign.public_cta_en,
+        show_on_landing=campaign.show_on_landing,
+        show_on_register=campaign.show_on_register,
         redemption_count=count_redemptions(db, campaign.id),
         created_by_user_id=campaign.created_by_user_id,
         created_at=campaign.created_at,
@@ -254,6 +297,26 @@ def get_campaign_response(db: Session, campaign_id: UUID) -> AccessCampaignRespo
     return _campaign_response(db, _campaign_or_raise(db, campaign_id))
 
 
+def public_campaign_response(campaign: AccessCampaign) -> PublicSignupCampaignResponse:
+    return PublicSignupCampaignResponse(
+        code=campaign.code,
+        package_code=campaign.package_code,
+        duration_days=campaign.duration_days,
+        term_weeks=campaign.term_weeks,
+        available_until=campaign.available_until,
+        public_badge_fa=campaign.public_badge_fa,
+        public_badge_en=campaign.public_badge_en,
+        public_title_fa=campaign.public_title_fa,
+        public_title_en=campaign.public_title_en,
+        public_message_fa=campaign.public_message_fa,
+        public_message_en=campaign.public_message_en,
+        public_cta_fa=campaign.public_cta_fa,
+        public_cta_en=campaign.public_cta_en,
+        show_on_landing=campaign.show_on_landing,
+        show_on_register=campaign.show_on_register,
+    )
+
+
 def create_campaign(
     db: Session,
     payload: AccessCampaignCreateRequest,
@@ -273,6 +336,19 @@ def create_campaign(
         available_from=available_from,
         available_until=available_until,
         max_total_redemptions=payload.max_total_redemptions,
+        show_on_landing=payload.show_on_landing,
+        show_on_register=payload.show_on_register,
+        public_copy={
+            field: getattr(payload, field)
+            for field in (
+                "public_title_fa",
+                "public_title_en",
+                "public_message_fa",
+                "public_message_en",
+                "public_cta_fa",
+                "public_cta_en",
+            )
+        },
     )
     _ensure_no_signup_overlap(
         db,
@@ -294,6 +370,16 @@ def create_campaign(
         available_until=available_until,
         is_active=payload.is_active,
         max_total_redemptions=payload.max_total_redemptions,
+        public_badge_fa=payload.public_badge_fa,
+        public_badge_en=payload.public_badge_en,
+        public_title_fa=payload.public_title_fa,
+        public_title_en=payload.public_title_en,
+        public_message_fa=payload.public_message_fa,
+        public_message_en=payload.public_message_en,
+        public_cta_fa=payload.public_cta_fa,
+        public_cta_en=payload.public_cta_en,
+        show_on_landing=payload.show_on_landing,
+        show_on_register=payload.show_on_register,
         created_by_user_id=actor_user_id,
     )
     db.add(campaign)
@@ -339,7 +425,10 @@ def update_campaign(
             value = value.strip()
         if field in {"available_from", "available_until"}:
             value = _optional_utc(value)
-        if field in {"kind", "package_code"} and value is None:
+        if (
+            field in {"kind", "package_code", "show_on_landing", "show_on_register"}
+            and value is None
+        ):
             raise CampaignConflictError(f"Campaign {field} cannot be null")
         setattr(campaign, field, value)
 
@@ -351,7 +440,31 @@ def update_campaign(
         available_from=campaign.available_from,
         available_until=campaign.available_until,
         max_total_redemptions=campaign.max_total_redemptions,
+        show_on_landing=campaign.show_on_landing,
+        show_on_register=campaign.show_on_register,
+        public_copy={
+            field: getattr(campaign, field)
+            for field in (
+                "public_title_fa",
+                "public_title_en",
+                "public_message_fa",
+                "public_message_en",
+                "public_cta_fa",
+                "public_cta_en",
+            )
+        },
+        allow_legacy_launch_trial=(
+            campaign.code == "launch_trial_v1"
+            and campaign.package_code is AccessPackageCode.LAUNCH_TRIAL
+        ),
     )
+    if (
+        campaign.max_total_redemptions is not None
+        and campaign.max_total_redemptions < redemption_count
+    ):
+        raise CampaignValidationError(
+            "max_total_redemptions cannot be lower than existing redemptions"
+        )
     _ensure_no_signup_overlap(
         db,
         campaign=campaign,
@@ -384,6 +497,8 @@ def set_campaign_active(
     campaign = _campaign_or_raise(db, campaign_id, lock=True)
     if campaign.is_active is is_active:
         return campaign
+    if is_active and campaign.code == "launch_trial_v1":
+        raise CampaignValidationError("The legacy launch_trial_v1 campaign cannot be reactivated")
     before = _campaign_state(campaign, redemption_count=count_redemptions(db, campaign.id))
     if is_active:
         _ensure_no_signup_overlap(
@@ -426,7 +541,7 @@ def redeem_campaign(
     campaign = _campaign_or_raise(db, campaign_id, lock=True)
     if manual and campaign.kind is not AccessCampaignKind.MANUAL_PROMOTION:
         raise CampaignKindError("Only manual promotion campaigns can be applied by an Admin")
-    if not manual and campaign.kind is not AccessCampaignKind.SIGNUP_TRIAL:
+    if not manual and campaign.kind is not AccessCampaignKind.SIGNUP_BONUS:
         raise CampaignKindError("Manual promotion campaigns do not auto-apply at signup")
     if manual and (actor_user_id is None or not reason or not reason.strip()):
         raise CampaignConflictError("A reason is required for manual campaign redemption")
@@ -473,15 +588,13 @@ def redeem_campaign(
         raise CampaignRedemptionUnavailableError("Campaign redemption limit has been reached")
 
     package_code = AccessPackageCode(campaign.package_code)
+    if package_code is AccessPackageCode.LAUNCH_TRIAL:
+        raise CampaignRedemptionUnavailableError("Legacy Launch Trial campaigns are inactive")
     grant = grant_package(
         db,
         user_id,
         package_code,
-        source=(
-            GrantSource.LAUNCH_TRIAL
-            if package_code is AccessPackageCode.LAUNCH_TRIAL
-            else GrantSource.PROMOTION
-        ),
+        source=GrantSource.PROMOTION,
         starts_at=reference,
         ends_at=reference + timedelta(days=campaign.duration_days),
         idempotency_key=idempotency_key,
@@ -529,7 +642,7 @@ def provision_signup_campaigns(
         raise UserNotFoundError
     reference = utc_now(now)
     results: list[CampaignRedemptionResult] = []
-    for campaign in list_active_signup_campaigns(db):
+    for campaign in list_active_signup_bonus_campaigns(db):
         try:
             results.append(redeem_campaign(db, campaign.id, user_id, now=reference))
         except CampaignRedemptionUnavailableError:
@@ -727,6 +840,7 @@ def create_admin_grant(
         available_from=None,
         available_until=None,
         max_total_redemptions=None,
+        enforce_training_duration=False,
     )
     if end <= start:
         raise CampaignConflictError("ends_at must be after starts_at")

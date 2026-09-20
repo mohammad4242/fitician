@@ -70,7 +70,7 @@ def test_campaign_mutation_can_roll_back_with_audit_failure(
                 name="Audit rollback",
                 kind=AccessCampaignKind.MANUAL_PROMOTION,
                 package_code="complete",
-                duration_days=30,
+                duration_days=56,
                 term_weeks=8,
             ),
             actor_user_id=None,

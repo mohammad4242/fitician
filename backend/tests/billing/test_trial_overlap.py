@@ -67,3 +67,43 @@ def test_paid_package_starts_after_active_launch_trial(db: Session) -> None:
 
     assert result.access_grant.starts_at == trial_end
     assert result.access_grant.ends_at == trial_end + timedelta(weeks=4)
+
+
+def test_paid_package_starts_after_qualifying_promotion(db: Session) -> None:
+    reference = datetime(2026, 10, 15, tzinfo=UTC)
+    promotion_end = datetime(2026, 11, 1, tzinfo=UTC)
+    order, transaction = make_order(db, AccessPackageCode.TRAINING, 4)
+    grant_package(
+        db,
+        order.user_id,
+        AccessPackageCode.COMPLETE,
+        source=GrantSource.PROMOTION,
+        starts_at=reference - timedelta(days=5),
+        ends_at=promotion_end,
+        term_weeks=6,
+        idempotency_key="complete-promotion-overlap",
+    )
+
+    result = fulfill_paid_order(db, order.id, transaction.id, now=reference)
+
+    assert result.access_grant.starts_at == promotion_end
+    assert result.access_grant.ends_at == promotion_end + timedelta(weeks=4)
+
+
+def test_unrelated_promotion_does_not_delay_paid_package(db: Session) -> None:
+    reference = datetime(2026, 10, 15, tzinfo=UTC)
+    promotion_end = datetime(2026, 11, 1, tzinfo=UTC)
+    order, transaction = make_order(db, AccessPackageCode.TRAINING, 4)
+    grant_package(
+        db,
+        order.user_id,
+        AccessPackageCode.NUTRITION,
+        source=GrantSource.PROMOTION,
+        starts_at=reference - timedelta(days=5),
+        ends_at=promotion_end,
+        idempotency_key="nutrition-promotion-overlap",
+    )
+
+    result = fulfill_paid_order(db, order.id, transaction.id, now=reference)
+
+    assert result.access_grant.starts_at == reference

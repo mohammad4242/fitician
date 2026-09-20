@@ -26,7 +26,7 @@ def test_member_deletion_cascades_redemption_and_nulls_audit_target_while_histor
         name="Deletion campaign",
         kind=AccessCampaignKind.MANUAL_PROMOTION,
         package_code=AccessPackageCode.COMPLETE,
-        duration_days=30,
+        duration_days=56,
         term_weeks=8,
         is_active=True,
         created_by_user_id=actor.id,
@@ -39,7 +39,7 @@ def test_member_deletion_cascades_redemption_and_nulls_audit_target_while_histor
         AccessPackageCode.COMPLETE,
         source=GrantSource.ADMIN,
         starts_at=datetime.now(UTC),
-        ends_at=datetime.now(UTC) + timedelta(days=30),
+        ends_at=datetime.now(UTC) + timedelta(days=56),
         term_weeks=8,
         idempotency_key=f"deletion-{uuid4()}",
     )
@@ -48,7 +48,7 @@ def test_member_deletion_cascades_redemption_and_nulls_audit_target_while_histor
         user_id=member.id,
         access_grant_id=grant.id,
         package_code_snapshot=AccessPackageCode.COMPLETE,
-        duration_days_snapshot=30,
+        duration_days_snapshot=56,
         term_weeks_snapshot=8,
     )
     audit = AdminAuditEvent(
