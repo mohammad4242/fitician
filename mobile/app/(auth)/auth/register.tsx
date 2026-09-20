@@ -10,6 +10,8 @@ import { authCopy, mobileAuthCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
 import { authStyles } from "../../../auth/authStyles";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
+import { SignupCampaignCard } from "../../../campaigns/SignupCampaignCard";
+import { usePublicSignupCampaign } from "../../../campaigns/usePublicSignupCampaign";
 import { validateConfirmation, validateEmail, validatePassword } from "../../../auth/validation";
 
 interface RegisterFormValues {
@@ -22,6 +24,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ source?: string }>();
   const auth = useMobileAuth();
+  const signupCampaign = usePublicSignupCampaign("register", auth.request);
   const [error, setError] = useState<string | null>(null);
   const [complete, setComplete] = useState(false);
   const { control, handleSubmit, watch } = useForm<RegisterFormValues>({
@@ -47,6 +50,7 @@ export default function RegisterScreen() {
       title={authCopy.register.title}
     >
       <View style={authStyles.content}>
+        <SignupCampaignCard campaign={signupCampaign} surface="register" />
         {complete ? <Notice message={mobileAuthCopy.registrationComplete} variant="success" /> : null}
         <AuthFormSection>
           <Controller

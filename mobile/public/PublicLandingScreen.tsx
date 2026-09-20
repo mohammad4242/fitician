@@ -22,6 +22,9 @@ import Svg, { Circle, Defs, Path, RadialGradient, Stop } from "react-native-svg"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { authCopy } from "../auth/copy";
+import { useMobileAuth } from "../auth/MobileAuthProvider";
+import { SignupCampaignCard } from "../campaigns/SignupCampaignCard";
+import { usePublicSignupCampaign } from "../campaigns/usePublicSignupCampaign";
 import { BrandMark, Button, Media } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { LTR_TEXT } from "../ui/rtl";
@@ -45,6 +48,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export function PublicLandingScreen() {
   const router = useRouter();
+  const auth = useMobileAuth();
+  const signupCampaign = usePublicSignupCampaign("landing", auth.request);
   const scrollRef = useRef<ScrollView>(null);
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -75,6 +80,7 @@ export function PublicLandingScreen() {
   return (
     <Screen contentContainerStyle={styles.screenContent} contentWidth="full" keyboardAware={false} scroll={false}>
       <View style={styles.root}>
+        <SignupCampaignCard campaign={signupCampaign} surface="landing" />
         <Animated.ScrollView
           contentContainerStyle={styles.scrollContent}
           onScroll={handleScroll}

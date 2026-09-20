@@ -3,8 +3,15 @@ import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native";
 import type { ReactTestInstance } from "react-test-renderer";
+import type { PublicSignupCampaign, TransportRequest } from "@fitician/core";
 
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
+const mockPublicCampaignRequest = jest.fn<
+  (request: TransportRequest) => Promise<PublicSignupCampaign | null>
+>();
+jest.mock("../auth/MobileAuthProvider", () => ({
+  useMobileAuth: () => ({ request: mockPublicCampaignRequest }),
+}));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({ play: () => undefined }) }));
 jest.mock("react-native-reanimated", () => {
@@ -58,6 +65,33 @@ function renderEntry() {
 beforeEach(() => {
   mockPush.mockClear();
   mockUseRouter.mockReturnValue({ push: mockPush } as never);
+  mockPublicCampaignRequest.mockReset();
+  mockPublicCampaignRequest.mockImplementation(() => new Promise<never>(() => undefined));
+});
+
+test("shows an active Landing Signup Bonus without changing scroll actions", async () => {
+  const campaign: PublicSignupCampaign = {
+    code: "landing-bonus",
+    package_code: "complete",
+    duration_days: 42,
+    term_weeks: 6,
+    available_until: null,
+    public_badge_fa: "هدیه ثبت‌نام",
+    public_badge_en: "Signup Gift",
+    public_title_fa: "دوره کامل مهمان فیتیشن",
+    public_title_en: "Your complete program is on us",
+    public_message_fa: "ثبت‌نام کن و شروع کن.",
+    public_message_en: "Create your account and start.",
+    public_cta_fa: "هدیه‌ام رو بگیر",
+    public_cta_en: "Claim my gift",
+    show_on_landing: true,
+    show_on_register: true,
+  };
+  mockPublicCampaignRequest.mockResolvedValueOnce(campaign);
+  renderEntry();
+
+  expect(await screen.findByTestId("signup-campaign-card")).toBeTruthy();
+  expect(screen.getByText("دوره کامل مهمان فیتیشن")).toBeTruthy();
 });
 
 test("keeps the Web hero hierarchy in a concise native entry", () => {

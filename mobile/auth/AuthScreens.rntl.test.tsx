@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import type { PublicSignupCampaign, TransportRequest } from "@fitician/core";
 
 jest.mock("expo-router", () => ({ useLocalSearchParams: jest.fn(), useRouter: jest.fn() }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
@@ -30,6 +31,7 @@ const mockReplace = jest.fn();
 type MockAuth = {
   busy: boolean;
   register: jest.Mock<(credentials: { email: string; password: string }) => Promise<unknown>>;
+  request: jest.Mock<(request: TransportRequest) => Promise<PublicSignupCampaign | null>>;
   sendPhoneOtp: jest.Mock<(phoneNumber: string) => Promise<{ retry_after_seconds: number }>>;
   sessionExpired: boolean;
   signInWithGoogle: jest.Mock<(credential: string) => Promise<unknown>>;
@@ -47,6 +49,23 @@ const mockUseRouter = jest.mocked(useRouter);
 const mockUseAppleSignIn = jest.mocked(useAppleSignIn);
 const mockUseGoogleSignIn = jest.mocked(useGoogleSignIn);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
+const registerCampaign = {
+  code: "register-bonus",
+  package_code: "complete" as const,
+  duration_days: 42,
+  term_weeks: 6 as const,
+  available_until: null,
+  public_badge_fa: "هدیه ثبت‌نام",
+  public_badge_en: "Signup Gift",
+  public_title_fa: "حساب کامل مهمان فیتیشن",
+  public_title_en: "Your complete account is on us",
+  public_message_fa: "ثبت‌نام کن و شروع کن.",
+  public_message_en: "Create your account and start.",
+  public_cta_fa: "هدیه‌ام رو بگیر",
+  public_cta_en: "Claim my gift",
+  show_on_landing: true,
+  show_on_register: true,
+};
 
 function renderScreen(screenComponent: React.ReactElement) {
   return render(
@@ -75,6 +94,9 @@ beforeEach(() => {
   mockAuth = {
     busy: false,
     register: jest.fn<MockAuth["register"]>().mockResolvedValue({}),
+    request: jest.fn<(request: TransportRequest) => Promise<PublicSignupCampaign | null>>(
+      () => new Promise<never>(() => undefined),
+    ),
     sendPhoneOtp: jest.fn<MockAuth["sendPhoneOtp"]>().mockResolvedValue({ retry_after_seconds: 2 }),
     sessionExpired: false,
     signInWithApple: jest.fn<MockAuth["signInWithApple"]>().mockResolvedValue({}),
@@ -124,6 +146,16 @@ test("presents the Web auth hierarchy with native fields and method selection", 
 test("uses the quiet Web-aligned scaffold without the old decorative accent rule", () => {
   expect(authStyles.brand).toBeDefined();
   expect("accentRule" in authStyles).toBe(false);
+});
+
+test("renders a public Signup Bonus above Register without adding a second CTA", async () => {
+  mockAuth.request.mockResolvedValue(registerCampaign);
+  renderRegister();
+
+  expect(await screen.findByTestId("signup-campaign-card")).toBeTruthy();
+  expect(screen.getByText("حساب کامل مهمان فیتیشن")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "هدیه‌ام رو بگیر" })).toBeNull();
+  expect(screen.getByRole("button", { name: "ساخت حساب" })).toBeTruthy();
 });
 
 test("keeps the phone method inline and preserves the forgot-password source", async () => {
