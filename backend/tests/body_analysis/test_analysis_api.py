@@ -14,7 +14,9 @@ from app.body_analysis.models import BodyAnalysis, UserSpecialistRole
 from app.body_analysis.runtime import BodyAnalysisRuntime, get_body_analysis_runtime
 from app.body_analysis.service import BodyAnalysisService
 from app.body_photos.enums import BodyPhotoSessionState
+from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.models import EntitlementUsageEvent
+from app.entitlements.service import grant_package
 
 from .test_execution_and_reviews import (
     _complete_body_profile,
@@ -265,6 +267,8 @@ def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
     _register(client, email)
     owner = db.scalar(select(User).where(User.email == email))
     assert owner is not None
+    grant_package(db, owner.id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+    db.flush()
     _, photo_session = _submitted_session(db, owner)
 
     started = client.post(

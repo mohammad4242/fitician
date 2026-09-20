@@ -11,6 +11,8 @@ from app.body_analysis.service import (
 )
 from app.body_photos.enums import BodyPhotoPurpose, BodyPhotoSessionState, BodyPhotoView
 from app.body_photos.models import BodyPhoto, BodyPhotoSession
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.profile.models import BodyMeasurement
 from tests.body_photos.test_session_api import ORIGIN
 from tests.profile.test_profile_update_api import VALID_PROFILE
@@ -79,6 +81,8 @@ def test_cycle_photo_session_is_linked_and_existing_photo_flow_remains_owned(
     db: Session,
 ) -> None:
     user_id = _register(client, f"cycle-photo-session-{uuid4()}@example.com")
+    grant_package(db, user_id, AccessPackageCode.TRAINING, source=GrantSource.MANUAL)
+    db.flush()
     _plan, _prescribed, cycle, _original, _safe, _unsafe = _plan_with_cycle(db, user_id)
     assert cycle is not None
 
