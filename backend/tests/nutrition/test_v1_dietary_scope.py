@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
+from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.service import grant_package
 from app.nutrition.enums import DietaryPattern
 from app.nutrition.models import NutritionProfile
 from tests.nutrition.test_weekly_plan_api import ORIGIN, _birth_date
@@ -148,7 +151,11 @@ def test_put_profile_rejects_vegan_with_422(client: TestClient) -> None:
 def test_legacy_vegetarian_profile_returns_unsupported_state_on_generation(
     client: TestClient, db: Session
 ) -> None:
-    _setup_user_with_safety(client, "legacy-veg@example.com")
+    email = "legacy-veg@example.com"
+    _setup_user_with_safety(client, email)
+    user = db.query(User).filter_by(email=email).one()
+    grant_package(db, user.id, AccessPackageCode.NUTRITION, source=GrantSource.MANUAL)
+    db.flush()
     response = client.put(
         "/api/v1/nutrition/profile",
         headers=ORIGIN,
