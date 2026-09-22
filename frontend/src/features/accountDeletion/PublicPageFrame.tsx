@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
+import { BrandLogo } from "../../shared/BrandLogo";
 
 export function PublicPageFrame({ children }: { children: ReactNode }) {
   const { i18n, t } = useTranslation();
@@ -13,9 +14,8 @@ export function PublicPageFrame({ children }: { children: ReactNode }) {
     <main className="public-account-page fitician-page" dir={english ? "ltr" : "rtl"}>
       <div className="public-account-page__container">
         <header className="public-account-page__header">
-          <Link className="brand-mark brand-mark--dark" to="/">
-            <span className="brand-mark__pulse" aria-hidden="true" />
-            {t("common.brand")}
+          <Link className="fitician-brand-link public-account-page__brand" to="/" aria-label={t("common.brand")}>
+            <BrandLogo testId="public-account-brand-logo" />
           </Link>
           <LanguageSwitcher />
         </header>

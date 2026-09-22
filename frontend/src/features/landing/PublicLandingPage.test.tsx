@@ -51,6 +51,9 @@ it("leads with the cinematic Fitician film and a focused Persian promise", () =>
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
   expect(screen.getByTestId("landing-brand-logo")).toBeInTheDocument();
+  expect(screen.getByTestId("landing-brand-logo")).toHaveClass("fitician-brand-logo");
+  expect(screen.getByTestId("landing-brand-logo")).toHaveAttribute("src", expect.stringContaining("fitician-logo-horizontal"));
+  expect(screen.getByRole("link", { name: "فیتیشن" })).toHaveAttribute("href", "/");
   const hero = screen.getByRole("region", { name: "هر بدن، برنامه خودش را می‌خواهد." });
   expect(within(hero).getByRole("heading", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeInTheDocument();
   expect(screen.getAllByRole("link", { name: "برنامه من را بساز" })[0]).toHaveAttribute("href", "/get-started");
@@ -64,8 +67,8 @@ it("renders an active Persian Landing campaign without changing the four story s
   campaignApi.getActiveSignupCampaign.mockResolvedValue(landingCampaign);
   render(<MemoryRouter><PublicLandingPage /></MemoryRouter>);
 
-  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("دوره کامل مهمان فیتیشن");
-  expect(screen.getByRole("link", { name: "هدیه‌ام رو بگیر" })).toHaveAttribute("href", "/get-started");
+  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("۶ هفته برنامه تمرین + تغذیه رایگان");
+  expect(screen.getByRole("link", { name: "۶ هفته برنامه تمرین + تغذیه رایگان" })).toHaveAttribute("href", "/get-started");
 });
 
 it("switches the complete landing direction and primary copy to English", async () => {
@@ -81,7 +84,7 @@ it("switches the complete landing direction and primary copy to English", async 
   expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute("href", "/get-started");
   expect(screen.getByText("Estimate from your meal photo")).toBeInTheDocument();
   expect(screen.getAllByText("Shoulders").length).toBeGreaterThanOrEqual(1);
-  expect(screen.getByTestId("signup-campaign-banner")).toHaveTextContent("Your complete program is on us");
+  expect(screen.getByTestId("signup-campaign-banner")).toHaveTextContent("6 weeks of training + nutrition free");
 });
 
 it("keeps Landing usable when the public campaign request fails", async () => {

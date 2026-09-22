@@ -12,6 +12,8 @@ it("shows only account navigation and form content", () => {
 
   expect(screen.getByRole("main")).toHaveClass("auth-shell", "fitician-page");
   expect(screen.getByRole("link", { name: "فیتیشن" })).toHaveAttribute("href", "/");
+  expect(screen.getByTestId("auth-brand-logo")).toHaveClass("fitician-brand-logo");
+  expect(screen.getByTestId("auth-brand-logo")).toHaveAttribute("alt", "");
   expect(screen.getByRole("button", { name: "English" })).toBeVisible();
   expect(screen.getByText("account form")).toBeVisible();
   expect(screen.queryByTestId("auth-training-accent")).not.toBeInTheDocument();

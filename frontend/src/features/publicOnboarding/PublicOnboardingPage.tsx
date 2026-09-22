@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { AppIcon } from "../../shared/AppIcon";
+import { BrandLogo } from "../../shared/BrandLogo";
 import * as authApi from "../auth/api";
 import { authErrorMessage, type AuthErrorContext } from "../auth/authError";
 import { useAuth } from "../auth/AuthContext";
@@ -32,7 +33,7 @@ type PhoneStep = "request" | "verify";
 
 const publicCopy = {
   fa: {
-    brand: "فیتیشن", header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
+    header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
     mode: { eyebrow: "شروع با مربی فیتیشن", title: "تو چه زمینه‌ای به کمک نیاز داری؟", training: "برنامه تمرینی", nutrition: "برنامه تغذیه", both: "تمرین و تغذیه", recommended: "پیشنهاد فیتیشن" },
     account: {
       eyebrow: "آخرین قدم",
@@ -71,7 +72,7 @@ const publicCopy = {
     },
   },
   en: {
-    brand: "Fitician", header: "Your answers stay in this tab until you create an account.",
+    header: "Your answers stay in this tab until you create an account.",
     mode: { eyebrow: "Start with your Fitician coach", title: "What would you like help with?", training: "Training plan", nutrition: "Nutrition plan", both: "Training and nutrition", recommended: "Fitician recommended" },
     account: {
       eyebrow: "Final step",
@@ -112,7 +113,7 @@ const publicCopy = {
 } as const;
 
 export function PublicOnboardingPage() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const language: Language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const text = publicCopy[language];
   const [draft, setDraft] = useState<OnboardingDraft | null>(() => loadOnboardingDraft());
@@ -128,7 +129,9 @@ export function PublicOnboardingPage() {
   return (
     <main className="public-onboarding" dir={language === "fa" ? "rtl" : "ltr"}>
       <header className="public-onboarding__header">
-        <Link className="brand-mark" to="/"><span className="brand-mark__pulse" aria-hidden="true" />{text.brand}</Link>
+        <Link className="fitician-brand-link public-onboarding__brand" to="/" aria-label={t("common.brand")}>
+          <BrandLogo testId="onboarding-brand-logo" />
+        </Link>
         <span>{text.header}</span>
       </header>
       <div className="public-onboarding__stage">

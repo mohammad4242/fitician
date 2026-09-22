@@ -108,6 +108,15 @@ it("uses English on the first public onboarding screen when English is selected"
   expect(screen.getByRole("button", { name: "Training plan" })).toBeInTheDocument();
 });
 
+it("renders the shared real brand logo in the onboarding header", () => {
+  render(<MemoryRouter><PublicOnboardingPage /></MemoryRouter>);
+
+  expect(screen.getByRole("link", { name: "فیتیشن" })).toHaveAttribute("href", "/");
+  expect(screen.getByTestId("onboarding-brand-logo")).toHaveClass("fitician-brand-logo");
+  expect(screen.getByTestId("onboarding-brand-logo")).toHaveAttribute("src", expect.stringContaining("fitician-logo-horizontal"));
+  expect(document.querySelector(".brand-mark__pulse")).not.toBeInTheDocument();
+});
+
 it("keeps English and asks one shared-profile question per screen", async () => {
   const user = userEvent.setup();
   await i18n.changeLanguage("en");

@@ -1,0 +1,100 @@
+name: Fitician Frontend Only CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  frontend-verification:
+    name: Frontend verification
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.4
+          cache: npm
+      - run: npm ci
+      - run: npm run build:core
+      - run: npm run test --workspace frontend
+      - run: npm run lint --workspace frontend
+      - run: npm run build --workspace frontend
+
+  frontend-image:
+    name: Build, verify, and push frontend image
+    needs: frontend-verification
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Require public S3 media URL
+        env:
+          MEDIA_BASE: ${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
+        run: |
+          case "$MEDIA_BASE" in
+            https://*) ;;
+            *) echo "VITE_MEDIA_PUBLIC_BASE_URL must be an HTTPS bucket base URL" >&2; exit 1 ;;
+          esac
+          curl --fail --silent --show-error --head --max-time 20 \
+            "${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4" >/dev/null
+      - name: Mask Google web client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: echo "::add-mask::$GOOGLE_CLIENT_ID"
+      - name: Require Google web client ID
+        env:
+          GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          if [ -z "$(printf '%s' "$GOOGLE_CLIENT_ID" | tr -d '[:space:]')" ]; then
+            echo "VITE_GOOGLE_CLIENT_ID is required for production Google Sign-In" >&2
+            exit 1
+          fi
+          case "$GOOGLE_CLIENT_ID" in
+            *.apps.googleusercontent.com) ;;
+            *)
+              echo "VITE_GOOGLE_CLIENT_ID must look like a Google OAuth client ID" >&2
+              exit 1
+              ;;
+          esac
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build frontend image for verification
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          load: true
+          build-args: |
+            VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:main
+          cache-from: type=gha,scope=fitician-frontend
+          cache-to: type=gha,mode=max,scope=fitician-frontend
+      - name: Check built frontend image contents
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID \
+            "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
+              test -f /usr/share/nginx/html/index.html
+              test -f /usr/share/nginx/html/exercises/exercise-placeholder.svg
+              test -f /usr/share/nginx/html/pwa/icon-192.png
+              test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
+              grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" /usr/share/nginx/html/assets >/dev/null
+            '
+      - name: Push verified frontend image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
+          docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"

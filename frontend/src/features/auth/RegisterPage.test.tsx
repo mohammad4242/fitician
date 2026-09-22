@@ -78,9 +78,9 @@ it("shows an active campaign above the registration form", async () => {
   campaignApi.getActiveSignupCampaign.mockResolvedValue(registerCampaign);
   renderPage();
 
-  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("حساب کامل مهمان فیتیشن");
+  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("۶ هفته برنامه تمرین + تغذیه رایگان");
   expect(screen.getByRole("button", { name: "ساخت حساب" })).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "هدیه‌ام رو بگیر" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "۶ هفته برنامه تمرین + تغذیه رایگان" })).not.toBeInTheDocument();
   expect(campaignApi.getActiveSignupCampaign).toHaveBeenCalledWith("register");
 });
 

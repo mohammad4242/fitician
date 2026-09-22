@@ -15,7 +15,7 @@
   padding-right: max(clamp(1rem, 5vw, 4rem), env(safe-area-inset-right));
   border-bottom: 1px solid rgb(255 255 255 / 9%);
 }
-.public-onboarding__header .brand-mark { color: #f4f1e9; }
+.public-onboarding__brand { width: clamp(9.5rem, 18vw, 11.5rem); }
 .public-onboarding__header > span { color: rgb(255 255 255 / 54%); font-size: 0.78rem; }
 .public-onboarding__stage { width: min(100% - 2rem, 68rem); margin: 0 auto; padding: clamp(2rem, 7vw, 5rem) 0; }
 .public-mode-selection { text-align: center; }
@@ -473,6 +473,7 @@
 .public-account-step .form-error { border-inline-start-color: var(--fitician-coral); color: #ffd4c9; background: rgb(246 120 89 / 10%); }
 
 @media (max-width: 650px) {
+  .public-onboarding__brand { width: clamp(9rem, 44vw, 10.25rem); }
   .public-onboarding__stage { width: min(100% - 1.25rem, 68rem); }
   .public-onboarding__header > span { display: none; }
   .public-onboarding .product-mode-cards { gap: 0.75rem; margin-top: 1.5rem; }

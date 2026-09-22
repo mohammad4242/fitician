@@ -10,6 +10,7 @@ import { ProfilePhotoAvatar } from "../features/profile/ProfilePhoto";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { AppIcon } from "./AppIcon";
 import { AppErrorNotice } from "./AppErrorNotice";
+import { BrandLogo } from "./BrandLogo";
 import "./authenticatedHeader.css";
 
 export function AuthenticatedHeader() {
@@ -135,9 +136,8 @@ export function AuthenticatedHeader() {
           </Link>
         </div>
         <div className="authenticated-header__desktop">
-          <Link className="brand-mark brand-mark--dark" to="/dashboard">
-            <span className="brand-mark__pulse" aria-hidden="true" />
-            {t("common.brand")}
+          <Link className="fitician-brand-link authenticated-header__brand" to="/dashboard" aria-label={t("common.brand")}>
+            <BrandLogo testId="authenticated-brand-logo" />
           </Link>
           <div className="dashboard-header__actions">
           <div className="member-menu-wrap">

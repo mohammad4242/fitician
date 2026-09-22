@@ -12,7 +12,7 @@ type SignupCampaignBannerProps = {
 };
 
 export function SignupCampaignBanner({ surface }: SignupCampaignBannerProps) {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const [campaign, setCampaign] = useState<PublicSignupCampaign | null>(null);
 
   useEffect(() => {
@@ -33,32 +33,42 @@ export function SignupCampaignBanner({ surface }: SignupCampaignBannerProps) {
   if (campaign === null) return null;
 
   const english = i18n.resolvedLanguage === "en";
-  const title = english ? campaign.public_title_en : campaign.public_title_fa;
-  const message = english ? campaign.public_message_en : campaign.public_message_fa;
-  const cta = english ? campaign.public_cta_en : campaign.public_cta_fa;
-  const badge = english ? campaign.public_badge_en : campaign.public_badge_fa;
-  if (title === null || message === null) return null;
+  const completePackage = campaign.package_code === "complete" || campaign.package_code === "complete_care";
+  if (!completePackage || campaign.term_weeks === null) return null;
 
-  const benefit = campaign.term_weeks === null
-    ? t("publicCampaign.benefitDays", { count: campaign.duration_days })
-    : t("publicCampaign.benefitWeeks", {
-      count: campaign.term_weeks,
-      days: campaign.duration_days,
-    });
+  const weeks = english
+    ? String(campaign.term_weeks)
+    : new Intl.NumberFormat("fa-IR", { useGrouping: false }).format(campaign.term_weeks);
+  const offer = english
+    ? `${weeks} weeks of training + nutrition free`
+    : `${weeks} هفته برنامه تمرین + تغذیه رایگان`;
+  const content = (
+    <>
+      <span className="signup-campaign-banner__gift" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7H8.8a2.3 2.3 0 1 1 2.1-3.2L12 7Zm0 0h3.2a2.3 2.3 0 1 0-2.1-3.2L12 7Z" />
+        </svg>
+      </span>
+      <strong>{offer}</strong>
+    </>
+  );
+
+  if (surface === "landing") {
+    return (
+      <Link
+        className="signup-campaign-banner signup-campaign-banner--landing"
+        to="/get-started"
+        aria-label={offer}
+        data-testid="signup-campaign-banner"
+      >
+        {content}
+      </Link>
+    );
+  }
 
   return (
-    <aside className={`signup-campaign-banner signup-campaign-banner--${surface}`} data-testid="signup-campaign-banner">
-      <div className="signup-campaign-banner__copy">
-        {badge !== null && badge.trim() !== "" && <span className="signup-campaign-banner__badge">{badge}</span>}
-        <h2>{title}</h2>
-        <p>{message}</p>
-        <span className="signup-campaign-banner__benefit">{benefit}</span>
-      </div>
-      {surface === "landing" && cta !== null && cta.trim() !== "" && (
-        <Link className="signup-campaign-banner__cta" to="/get-started">
-          {cta}
-        </Link>
-      )}
+    <aside className="signup-campaign-banner signup-campaign-banner--register" data-testid="signup-campaign-banner">
+      {content}
     </aside>
   );
 }

@@ -1,6 +1,6 @@
 .nutrition-estimate-page { min-height: 100svh; color: var(--fitician-mist); background: var(--fitician-canvas); }
 .nutrition-estimate-page .dashboard-header { max-width: 82rem; margin: 0 auto; padding: 1.25rem clamp(1rem, 4vw, 3rem); color: var(--fitician-mist); }
-.nutrition-estimate-page .brand-mark--dark, .nutrition-estimate-page .authenticated-nav a { color: var(--fitician-mist); }
+.nutrition-estimate-page .authenticated-nav a { color: var(--fitician-mist); }
 .nutrition-estimate-hero, .nutrition-estimate-summary, .nutrition-target-grid, .nutrition-estimate-notes, .nutrition-estimate-state, .nutrition-science-details { width: min(100% - 2rem, 72rem); margin-inline: auto; }
 .nutrition-estimate-hero { padding: clamp(1.5rem, 4vw, 3.25rem) 0 1.5rem; }
 .nutrition-estimate-hero h1 { max-width: 16ch; margin: .4rem 0 .8rem; font-family: inherit; font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 850; letter-spacing: -.045em; line-height: 1.08; }

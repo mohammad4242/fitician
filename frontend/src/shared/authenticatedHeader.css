@@ -159,6 +159,8 @@
   justify-content: space-between;
 }
 
+.authenticated-header__brand { width: clamp(9.5rem, 14vw, 11rem); }
+
 @media (max-width: 767px) {
   .authenticated-header__desktop { display: none; }
   .authenticated-header__mobile {

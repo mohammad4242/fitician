@@ -211,36 +211,20 @@ canvas {
   text-decoration: none;
 }
 
-.brand-mark {
+.fitician-brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
-  color: var(--paper);
-  font-size: 1.45rem;
-  font-weight: 850;
+  flex: 0 0 auto;
+  line-height: 0;
   text-decoration: none;
 }
 
-.brand-mark--dark {
-  color: var(--petrol-900);
-}
-
-.brand-mark__pulse {
-  position: relative;
-  width: 1.65rem;
-  height: 1.65rem;
-  display: inline-block;
-  border: 0.35rem solid currentColor;
-  border-radius: 50%;
-}
-
-.brand-mark__pulse::after {
-  position: absolute;
-  inset: 0.27rem -0.65rem auto;
-  height: 0.22rem;
-  background: var(--persimmon);
-  transform: rotate(-20deg);
-  content: "";
+.fitician-brand-logo {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  display: block;
+  object-fit: contain;
 }
 
 .language-switcher,
@@ -398,6 +382,8 @@ html[dir="rtl"] .welcome-card h1 {
   color: var(--fitician-ink);
   background: var(--fitician-surface);
 }
+
+.auth-shell__brand { width: clamp(9.5rem, 18vw, 11.5rem); }
 
 .auth-shell {
   background: var(--fitician-surface);
@@ -1308,8 +1294,6 @@ html[dir="ltr"] .primary-button span:last-child {
   transform: translateY(0) scale(0.985);
 }
 .auth-shell .form-alternative a { color: var(--fitician-aqua); }
-.auth-shell .brand-mark--dark { color: var(--fitician-ink); }
-
 @media (max-width: 767px) {
   .auth-shell {
     padding-block: env(safe-area-inset-top) env(safe-area-inset-bottom);
@@ -1333,8 +1317,6 @@ html[dir="ltr"] .primary-button span:last-child {
   border-bottom: 1px solid var(--fitician-line);
 }
 
-.fitician-page .dashboard-header .brand-mark--dark,
-.fitsho-page .dashboard-header .brand-mark--dark { color: var(--fitician-ink); }
 .fitician-page .authenticated-nav,
 .fitsho-page .authenticated-nav {
   border: 1px solid var(--fitician-line);
@@ -1433,7 +1415,6 @@ html[dir="ltr"] .primary-button span:last-child {
   backdrop-filter: blur(18px);
 }
 
-.app-shell > .dashboard-header .brand-mark--dark { color: var(--fitician-ink); }
 .app-shell > .dashboard-header .authenticated-nav { display: none; }
 .app-shell > .dashboard-header .language-switcher,
 .app-shell > .dashboard-header .logout-button,

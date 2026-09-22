@@ -40,23 +40,31 @@ function renderBanner(surface: "landing" | "register" = "landing") {
   );
 }
 
-it("renders Persian campaign copy and a fixed onboarding CTA on Landing", async () => {
+it("renders only the Persian complete-package offer as the Landing link", async () => {
   campaignApi.getActiveSignupCampaign.mockResolvedValue(campaign);
   renderBanner();
 
-  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("یک دوره کامل مهمان فیتیشن");
-  expect(screen.getByText("هدیه ثبت‌نام")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "هدیه‌ام رو بگیر" })).toHaveAttribute("href", "/get-started");
+  const banner = await screen.findByTestId("signup-campaign-banner");
+  expect(banner).toHaveTextContent("۶ هفته برنامه تمرین + تغذیه رایگان");
+  expect(banner).not.toHaveTextContent("یک دوره کامل مهمان فیتیشن");
+  expect(banner).not.toHaveTextContent("ثبت‌نام کن و شروع کن.");
+  expect(banner).not.toHaveTextContent("هدیه ثبت‌نام");
+  expect(banner).not.toHaveTextContent("روز دسترسی مهمان");
+  expect(screen.getByRole("link", { name: "۶ هفته برنامه تمرین + تغذیه رایگان" })).toHaveAttribute("href", "/get-started");
   expect(campaignApi.getActiveSignupCampaign).toHaveBeenCalledWith("landing");
 });
 
-it("selects English campaign copy from resolvedLanguage", async () => {
+it("renders only the English complete-package offer", async () => {
   await i18n.changeLanguage("en");
   campaignApi.getActiveSignupCampaign.mockResolvedValue(campaign);
   renderBanner();
 
-  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("Your complete program is on us");
-  expect(screen.getByRole("link", { name: "Claim my gift" })).toHaveAttribute("href", "/get-started");
+  const banner = await screen.findByTestId("signup-campaign-banner");
+  expect(banner).toHaveTextContent("6 weeks of training + nutrition free");
+  expect(banner).not.toHaveTextContent("Your complete program is on us");
+  expect(banner).not.toHaveTextContent("Create your account and start.");
+  expect(banner).not.toHaveTextContent("Signup Gift");
+  expect(screen.getByRole("link", { name: "6 weeks of training + nutrition free" })).toHaveAttribute("href", "/get-started");
 });
 
 it("renders no card for null responses or failed requests", async () => {
@@ -75,7 +83,18 @@ it("does not add a competing navigation CTA on registration", async () => {
   campaignApi.getActiveSignupCampaign.mockResolvedValue(campaign);
   renderBanner("register");
 
-  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("یک دوره کامل مهمان فیتیشن");
+  expect(await screen.findByTestId("signup-campaign-banner")).toHaveTextContent("۶ هفته برنامه تمرین + تغذیه رایگان");
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
   expect(campaignApi.getActiveSignupCampaign).toHaveBeenCalledWith("register");
+});
+
+it.each([
+  { package_code: "training" as const, term_weeks: 6 as const },
+  { package_code: "complete" as const, term_weeks: null },
+])("fails safely for an incompatible offer", async (override) => {
+  campaignApi.getActiveSignupCampaign.mockResolvedValue({ ...campaign, ...override });
+  renderBanner();
+
+  await waitFor(() => expect(campaignApi.getActiveSignupCampaign).toHaveBeenCalled());
+  expect(screen.queryByTestId("signup-campaign-banner")).not.toBeInTheDocument();
 });

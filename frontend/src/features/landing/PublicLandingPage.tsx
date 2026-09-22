@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import fiticianLogo from "../../assets/branding/fitician-logo.jpg";
+import { BrandLogo } from "../../shared/BrandLogo";
 import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
 import { BodyIntelligence } from "./BodyIntelligence";
 import { CinematicStory } from "./CinematicStory";
@@ -47,12 +47,7 @@ export function PublicLandingPage() {
           to="/"
           aria-label={t("common.brand")}
         >
-          <img
-            src={fiticianLogo}
-            alt=""
-            className="landing-brand-logo__image"
-            data-testid="landing-brand-logo"
-          />
+          <BrandLogo testId="landing-brand-logo" />
         </Link>
         <nav className="landing-header__nav" aria-label={t("landing.menu.label")}>
           <a href="#how-it-works">{t("landing.menu.how")}</a>
