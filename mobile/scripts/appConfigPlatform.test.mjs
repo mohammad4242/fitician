@@ -11,6 +11,9 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       name: config.name,
       version: config.version,
       package: config.android.package,
+      plugins: config.plugins.map((plugin) =>
+        Array.isArray(plugin) ? plugin[0] : typeof plugin === "string" ? plugin : "custom",
+      ),
       environment: config.extra.environment,
       apiBaseUrl: config.extra.apiBaseUrl,
       frontendOrigin: config.extra.frontendOrigin,
@@ -50,6 +53,22 @@ test("development config can build before Google credentials are provisioned", (
   const result = loadConfig("ios", "development");
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /com\.fitician\.app/u);
+  assert.match(result.stdout, /expo-dev-client/u);
+});
+
+test("release configs do not include the Expo development client", () => {
+  for (const variant of ["preview", "production"]) {
+    const result = loadConfig("android", variant, "", variant === "production"
+      ? {
+          EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+          EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+          FITICIAN_APP_LINK_HOST: "fitician.fit",
+        }
+      : undefined);
+    assert.equal(result.status, 0, result.stderr);
+    const resolved = JSON.parse(result.stdout);
+    assert.equal(resolved.plugins.includes("expo-dev-client"), false);
+  }
 });
 
 test("Android production resolves only the approved public runtime", () => {
@@ -64,6 +83,25 @@ test("Android production resolves only the approved public runtime", () => {
     name: "Fitician",
     version: "0.1.0",
     package: "com.fitician.app",
+    plugins: [
+      "expo-router",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      "expo-splash-screen",
+      "expo-font",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-image-picker",
+      "expo-background-task",
+      "expo-notifications",
+      "expo-updates",
+      "expo-video",
+      "expo-build-properties",
+      "custom",
+      "custom",
+      "custom",
+      "custom",
+    ],
     environment: "production",
     apiBaseUrl: "https://fitician.fit",
     frontendOrigin: "https://fitician.fit",

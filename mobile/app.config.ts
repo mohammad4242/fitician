@@ -127,7 +127,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: "dark",
   plugins: [
     "expo-router",
-    "expo-dev-client",
+    ...(appVariant === "development" ? ["expo-dev-client"] : []),
     "expo-web-browser",
     ...(isIosSideloadBuild ? [withIosSideloadEntitlements as never] : []),
     ...(isIosSideloadBuild ? [] : ["expo-apple-authentication"]),
