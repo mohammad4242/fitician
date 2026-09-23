@@ -37,6 +37,17 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
   });
 }
 
+function loadNativeConfig(variant) {
+  return spawnSync(process.execPath, ["--input-type=module", "-e", `
+    const { default: config } = await import('./react-native.config.js');
+    console.log(JSON.stringify(config));
+  `], {
+    cwd: new URL("../", import.meta.url),
+    encoding: "utf8",
+    env: { ...process.env, APP_VARIANT: variant },
+  });
+}
+
 test("Android preview config does not require credentials for iOS Google login", () => {
   const result = loadConfig("android", "preview");
   assert.equal(result.status, 0, result.stderr);
@@ -70,6 +81,20 @@ test("release configs do not include the Expo development client", () => {
     const resolved = JSON.parse(result.stdout);
     assert.equal(resolved.plugins.includes("expo-dev-client"), false);
   }
+});
+
+test("release native autolinking excludes the Expo development client", () => {
+  const production = loadNativeConfig("production");
+  assert.equal(production.status, 0, production.stderr);
+  assert.deepEqual(JSON.parse(production.stdout), {
+    dependencies: {
+      "expo-dev-client": { platforms: { android: null, ios: null } },
+    },
+  });
+
+  const development = loadNativeConfig("development");
+  assert.equal(development.status, 0, development.stderr);
+  assert.deepEqual(JSON.parse(development.stdout), { dependencies: { "expo-dev-client": {} } });
 });
 
 test("Android production resolves only the approved public runtime", () => {
