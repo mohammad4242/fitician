@@ -13,6 +13,14 @@ dist/
 mobile/.expo/
 mobile/android/
 mobile/ios/
+mobile/.codex-tmp/
+mobile/.local-tools/
+mobile/.local-*.gradle
+mobile/.runtime*.png
+mobile/artifacts/
+mobile/modules/**/android/.cxx/
+mobile/modules/**/android/build/
+mobile/*.deb
 *.egg-info/
 .codex-log/
 exercise-import/raw/
