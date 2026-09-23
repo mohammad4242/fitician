@@ -125,6 +125,9 @@ const config: ExpoConfig = {
   scheme: "fitician",
   icon: "./assets/branding/fitician-icon.png",
   userInterfaceStyle: "dark",
+  autolinking: {
+    exclude: appVariant === "development" ? [] : ["expo-dev-client"],
+  },
   plugins: [
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),

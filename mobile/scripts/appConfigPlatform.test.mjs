@@ -11,6 +11,7 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       name: config.name,
       version: config.version,
       package: config.android.package,
+      autolinking: config.autolinking,
       plugins: config.plugins.map((plugin) =>
         Array.isArray(plugin) ? plugin[0] : typeof plugin === "string" ? plugin : "custom",
       ),
@@ -83,6 +84,7 @@ test("Android production resolves only the approved public runtime", () => {
     name: "Fitician",
     version: "0.1.0",
     package: "com.fitician.app",
+    autolinking: { exclude: ["expo-dev-client"] },
     plugins: [
       "expo-router",
       "expo-web-browser",
