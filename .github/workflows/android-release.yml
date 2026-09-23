@@ -11,6 +11,7 @@ on:
         options:
           - development
           - preview
+          - production-device
           - production
 
 permissions:
@@ -20,7 +21,7 @@ jobs:
   build:
     name: Build ${{ inputs.profile }} Android artifact
     runs-on: ubuntu-latest
-    environment: ${{ inputs.profile }}
+    environment: ${{ inputs.profile == 'production-device' && 'production' || inputs.profile }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +36,7 @@ jobs:
           case "${{ inputs.profile }}" in
             development) npm run build:android:debug --workspace @fitician/mobile ;;
             preview) npm run build:android:internal --workspace @fitician/mobile ;;
+            production-device) npm run build:android:production-device --workspace @fitician/mobile ;;
             production) npm run build:android:production --workspace @fitician/mobile ;;
             *) echo "Unsupported release profile" >&2; exit 2 ;;
           esac

@@ -8,7 +8,12 @@ const legacyBrandPattern = /Fitsho|Fitition/u;
 export function validateReleaseConfig(easConfig, appConfig) {
   assert.equal(easConfig.cli?.appVersionSource, "remote");
   const profiles = easConfig.build;
-  assert.deepEqual(Object.keys(profiles), ["development", "preview", "production"]);
+  assert.deepEqual(Object.keys(profiles), [
+    "development",
+    "preview",
+    "production",
+    "production-device",
+  ]);
 
   const expected = {
     development: { buildType: "apk", channel: "development", environment: "development" },
@@ -32,6 +37,14 @@ export function validateReleaseConfig(easConfig, appConfig) {
   assert.equal(profiles.development.developmentClient, true);
   assert.equal(profiles.preview.distribution, "internal");
   assert.equal(profiles.production.autoIncrement, true);
+  assert.deepEqual(profiles["production-device"], {
+    extends: "production",
+    autoIncrement: false,
+    distribution: "internal",
+    environment: "production",
+    env: { APP_VARIANT: "production" },
+    android: { buildType: "apk", credentialsSource: "remote" },
+  });
   assert.equal(easConfig.submit?.production?.android?.track, "internal");
   assert.equal(easConfig.submit?.production?.android?.releaseStatus, "draft");
   assert.ok(easConfig.submit?.production?.ios, "production iOS submit config is missing");

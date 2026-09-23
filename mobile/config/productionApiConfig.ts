@@ -2,11 +2,8 @@ import endpointConfig from "./productionApiEndpoints.json";
 
 export type MobileRuntimeEnvironment = "development" | "preview" | "production";
 
-// The backend is currently HTTP-only. This is still tailnet-only traffic: the
-// Tailscale transport encrypts it between the Android device and this host.
-export const TAILSCALE_BACKEND_HOST = endpointConfig.tailscaleBackendHost;
-export const PRODUCTION_API_BASE_URL = `http://${TAILSCALE_BACKEND_HOST}:${endpointConfig.backendPort}`;
-export const PRODUCTION_FRONTEND_ORIGIN = `http://${TAILSCALE_BACKEND_HOST}:${endpointConfig.frontendPort}`;
+export const PRODUCTION_API_BASE_URL = endpointConfig.apiBaseUrl;
+export const PRODUCTION_FRONTEND_ORIGIN = endpointConfig.frontendOrigin;
 
 function normalizedString(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -39,8 +36,7 @@ function requireConfiguredUrl(
 ): string {
   const configured = normalizedString(value) ?? fallback ?? null;
   if (configured === null) {
-    const target = environment === "production" ? ` and must be the Tailscale value ${PRODUCTION_API_BASE_URL}` : "";
-    throw new Error(`${label} is required for ${environment} builds${target}`);
+    throw new Error(`${label} is required for ${environment} builds`);
   }
   return normalizedUrl(configured, label);
 }
@@ -53,7 +49,7 @@ export function resolveApiBaseUrl(
     const configured = requireConfiguredUrl(value, environment, "EXPO_PUBLIC_API_BASE_URL");
     if (configured !== PRODUCTION_API_BASE_URL) {
       throw new Error(
-        `EXPO_PUBLIC_API_BASE_URL must equal the configured Tailscale backend ${PRODUCTION_API_BASE_URL}`,
+        `EXPO_PUBLIC_API_BASE_URL must equal the approved production origin ${PRODUCTION_API_BASE_URL}`,
       );
     }
     return configured;
@@ -83,7 +79,7 @@ export function resolveFrontendOrigin(
     const configured = requireConfiguredUrl(value, environment, "EXPO_PUBLIC_FRONTEND_ORIGIN");
     if (configured !== PRODUCTION_FRONTEND_ORIGIN) {
       throw new Error(
-        `EXPO_PUBLIC_FRONTEND_ORIGIN must equal the configured Tailscale origin ${PRODUCTION_FRONTEND_ORIGIN}`,
+        `EXPO_PUBLIC_FRONTEND_ORIGIN must equal the approved production origin ${PRODUCTION_FRONTEND_ORIGIN}`,
       );
     }
     return configured;

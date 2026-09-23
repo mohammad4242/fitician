@@ -9,10 +9,6 @@ import {
   withMainActivity,
 } from "expo/config-plugins.js";
 
-import endpointConfig from "../config/productionApiEndpoints.json";
-
-const TAILSCALE_BACKEND_HOST = endpointConfig.tailscaleBackendHost;
-
 export const ANDROID_BLOCKED_PERMISSIONS = [
   "android.permission.READ_EXTERNAL_STORAGE",
   "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -60,9 +56,6 @@ export const FITICIAN_NETWORK_SECURITY_CONFIG = `<?xml version="1.0" encoding="u
             <certificates src="system"/>
         </trust-anchors>
     </base-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">${TAILSCALE_BACKEND_HOST}</domain>
-    </domain-config>
 </network-security-config>
 `;
 

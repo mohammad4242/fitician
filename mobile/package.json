@@ -23,6 +23,7 @@
     "validate:store-readiness": "node scripts/validate-store-readiness.mjs",
     "build:android:debug": "node scripts/release-build-plan.mjs --profile development",
     "build:android:internal": "node scripts/release-build-plan.mjs --profile preview",
+    "build:android:production-device": "node scripts/release-build-plan.mjs --profile production-device",
     "build:android:production": "node scripts/release-build-plan.mjs --profile production",
     "build:ios:debug": "node scripts/release-build-plan.mjs --platform ios --profile development",
     "build:ios:internal": "node scripts/release-build-plan.mjs --platform ios --profile preview",

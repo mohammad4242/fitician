@@ -30,7 +30,7 @@ function loadConfig(sideload) {
 test("normal iOS config keeps signing-related capabilities", () => {
   const config = loadConfig(false);
   assert.equal(config.ios.bundleIdentifier, "com.fitician.app");
-  assert.deepEqual(config.ios.associatedDomains, ["applinks:app.fitician.example"]);
+  assert.deepEqual(config.ios.associatedDomains, ["applinks:fitician.fit"]);
   assert.equal(config.ios.usesAppleSignIn, true);
   assert.ok(config.plugins.some((plugin) => plugin === "expo-apple-authentication"));
   assert.ok(config.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-notifications"));

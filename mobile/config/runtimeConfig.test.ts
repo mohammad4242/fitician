@@ -1,9 +1,5 @@
 import { expect, it } from "vitest";
 
-import {
-  PRODUCTION_API_BASE_URL,
-  PRODUCTION_FRONTEND_ORIGIN,
-} from "./productionApiConfig";
 import { mobileRuntimeConfigFromExtra } from "./runtimeConfig";
 
 it("normalizes the native API, trusted web origin, and optional Google client config", () => {
@@ -16,7 +12,7 @@ it("normalizes the native API, trusted web origin, and optional Google client co
       googleIosClientId: "ios-client.apps.googleusercontent.com",
     }),
   ).toEqual({
-    appLinkHost: "app.fitician.example",
+    appLinkHost: "fitician.fit",
     apiBaseUrl: "https://api.fitician.example",
     environment: "preview",
     frontendOrigin: "https://fitician.example",
@@ -25,12 +21,12 @@ it("normalizes the native API, trusted web origin, and optional Google client co
   });
 });
 
-it("uses repository development endpoints when configuration is absent", () => {
+it("uses the safe public origin when development configuration is absent", () => {
   expect(mobileRuntimeConfigFromExtra({})).toEqual({
-    appLinkHost: "app.fitician.example",
-    apiBaseUrl: PRODUCTION_API_BASE_URL,
+    appLinkHost: "fitician.fit",
+    apiBaseUrl: "https://fitician.fit",
     environment: "development",
-    frontendOrigin: PRODUCTION_FRONTEND_ORIGIN,
+    frontendOrigin: "https://fitician.fit",
     googleAndroidClientId: null,
     googleIosClientId: null,
   });

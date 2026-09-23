@@ -4,7 +4,7 @@ import {
   type MobileRuntimeEnvironment,
 } from "./productionApiConfig";
 
-export const DEFAULT_APP_LINK_HOST = "app.fitician.example";
+export const DEFAULT_APP_LINK_HOST = "fitician.fit";
 export type { MobileRuntimeEnvironment } from "./productionApiConfig";
 
 export interface MobileRuntimeConfig {

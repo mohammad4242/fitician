@@ -2,12 +2,20 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-function loadConfig(platform, variant, googleIosClientId = "") {
+function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
   return spawnSync(process.execPath, ["--input-type=module", "-e", `
     import { loadModuleSync } from '@expo/require-utils';
     import { resolve } from 'node:path';
     const { default: config } = loadModuleSync(resolve('app.config.ts'));
-    console.log(config.ios.bundleIdentifier);
+    console.log(JSON.stringify({
+      name: config.name,
+      version: config.version,
+      package: config.android.package,
+      environment: config.extra.environment,
+      apiBaseUrl: config.extra.apiBaseUrl,
+      frontendOrigin: config.extra.frontendOrigin,
+      appLinkHost: config.extra.appLinkHost,
+    }));
   `], {
     cwd: new URL("../", import.meta.url),
     encoding: "utf8",
@@ -20,6 +28,7 @@ function loadConfig(platform, variant, googleIosClientId = "") {
       EXPO_PUBLIC_API_BASE_URL: "https://api.example.com",
       EXPO_PUBLIC_FRONTEND_ORIGIN: "https://app.example.com",
       FITICIAN_APP_LINK_HOST: "app.example.com",
+      ...overrides,
     },
   });
 }
@@ -41,4 +50,32 @@ test("development config can build before Google credentials are provisioned", (
   const result = loadConfig("ios", "development");
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /com\.fitician\.app/u);
+});
+
+test("Android production resolves only the approved public runtime", () => {
+  const production = {
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+  };
+  const result = loadConfig("android", "production", "", production);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    name: "Fitician",
+    version: "0.1.0",
+    package: "com.fitician.app",
+    environment: "production",
+    apiBaseUrl: "https://fitician.fit",
+    frontendOrigin: "https://fitician.fit",
+    appLinkHost: "fitician.fit",
+  });
+
+  for (const appLinkHost of ["app.fitician.example", "localhost", "100.97.78.5"]) {
+    const rejected = loadConfig("android", "production", "", {
+      ...production,
+      FITICIAN_APP_LINK_HOST: appLinkHost,
+    });
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /FITICIAN_APP_LINK_HOST/u);
+  }
 });

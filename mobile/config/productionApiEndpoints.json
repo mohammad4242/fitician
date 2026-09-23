@@ -1,5 +1,4 @@
 {
-  "tailscaleBackendHost": "100.97.78.5",
-  "backendPort": 8001,
-  "frontendPort": 5173
+  "apiBaseUrl": "https://fitician.fit",
+  "frontendOrigin": "https://fitician.fit"
 }

@@ -1,11 +1,13 @@
 # Fitician EAS release configuration
 
-`mobile/eas.json` defines three isolated profiles:
+`mobile/eas.json` defines four isolated profiles:
 
 - `development`: internal development-client build (APK on Android, IPA on
   iOS) on the `development` channel;
 - `preview`: remotely signed internal-test build (AAB on Android, IPA on iOS)
   on the `preview` channel;
+- `production-device`: remotely signed, installable release APK using the
+  production environment, application ID, runtime values, and Android keystore;
 - `production`: remotely signed auto-incremented store build on the
   `production` channel, submitted as an internal-track draft on Android.
 
@@ -15,6 +17,10 @@ change. The app config permanently links to the existing EAS project, so
 `EAS_PROJECT_ID` is optional and is not required for ordinary EAS commands.
 Build-time API values still come from the matching EAS environment; production
 OTA updates require an explicit release review.
+
+Production API and frontend values must both be the public origin
+`https://fitician.fit`. The API base is an origin because request paths already
+start with `/api`. The production app-link host is exactly `fitician.fit`.
 
 Configure these values in EAS environments or protected CI secret storage:
 
@@ -38,6 +44,7 @@ The required commands are:
 ```bash
 eas build --profile development --platform android
 eas build --profile preview --platform android
+eas build --profile production-device --platform android
 eas build --profile production --platform android
 eas build --platform ios --profile development
 eas build --platform ios --profile preview
@@ -48,3 +55,7 @@ eas update --channel preview --platform android
 
 Production channel updates and production submissions remain manual release
 steps after the acceptance matrix and crash/ANR review pass.
+
+Build and install `production-device` on a physical phone first. Produce the
+store `production` AAB only after the signed APK passes launch and a real
+network-backed production workflow with no local backend or port forwarding.

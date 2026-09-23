@@ -28,7 +28,7 @@ it("supports custom-scheme paths and leaves unknown destinations untouched", () 
 it("routes allowlisted verification and reset links to native auth screens", () => {
   expect(
     normalizeNativeDeepLinkPath(
-      "https://app.fitician.example/link/verify-email?token=verification-token",
+      "https://fitician.fit/link/verify-email?token=verification-token",
     ),
   ).toBe("/auth/verify-email?token=verification-token");
   expect(

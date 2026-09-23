@@ -17,21 +17,57 @@ test("parses and validates each Fitician mobile environment", () => {
   assert.doesNotThrow(() => validateEnvironment("production", {
     ...values,
     APP_VARIANT: "production",
-    EXPO_PUBLIC_API_BASE_URL: "http://100.97.78.5:8001",
-    EXPO_PUBLIC_FRONTEND_ORIGIN: "http://100.97.78.5:5173",
-    FITICIAN_APP_LINK_HOST: "app.fitician.example",
-  }, { allowPlaceholder: true }));
-  assert.throws(
-    () =>
-      validateEnvironment("production", {
-        ...values,
-        APP_VARIANT: "production",
-        EXPO_PUBLIC_API_BASE_URL: "https://api.fitician.example",
-        EXPO_PUBLIC_FRONTEND_ORIGIN: "http://100.97.78.5:5173",
-        FITICIAN_APP_LINK_HOST: "app.fitician.example",
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+  }));
+});
+
+test("rejects every forbidden production endpoint class", () => {
+  const base = {
+    APP_VARIANT: "production",
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+  };
+
+  for (const rejected of [
+    "http://fitician.fit",
+    "http://localhost:8001",
+    "http://127.0.0.1:8001",
+    "http://10.0.2.2:8001",
+    "http://192.168.1.5:8001",
+    "http://172.16.0.5:8001",
+    "http://100.97.78.5:8001",
+    "https://backend.local",
+    "https://api.fitician.example",
+  ]) {
+    assert.throws(
+      () => validateEnvironment("production", {
+        ...base,
+        EXPO_PUBLIC_API_BASE_URL: rejected,
       }),
-    /Tailscale backend/,
+      /approved production origin/u,
+    );
+  }
+
+  assert.throws(
+    () => validateEnvironment("production", {
+      ...base,
+      FITICIAN_APP_LINK_HOST: "app.fitician.example",
+    }),
+    /FITICIAN_APP_LINK_HOST must be fitician\.fit/u,
   );
+});
+
+test("documents the exact public production environment", async () => {
+  const example = await readFile(resolve(mobileRoot, ".env.production.example"), "utf8");
+  const values = parseEnvFile(example);
+
+  assert.equal(values.APP_VARIANT, "production");
+  assert.equal(values.EXPO_PUBLIC_API_BASE_URL, "https://fitician.fit");
+  assert.equal(values.EXPO_PUBLIC_FRONTEND_ORIGIN, "https://fitician.fit");
+  assert.equal(values.FITICIAN_APP_LINK_HOST, "fitician.fit");
 });
 
 test("requires a trusted HTTPS frontend origin outside development", () => {

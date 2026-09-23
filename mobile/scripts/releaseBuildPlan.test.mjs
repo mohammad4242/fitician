@@ -33,6 +33,7 @@ test("release plan maps every Android artifact to the locked EAS profile", () =>
   assert.deepEqual(RELEASE_ARTIFACTS, {
     debugApk: { extension: ".apk", profile: "development" },
     internalAab: { extension: ".aab", profile: "preview" },
+    productionDeviceApk: { extension: ".apk", profile: "production-device" },
     productionAab: { extension: ".aab", profile: "production" },
   });
   assert.deepEqual(buildEasArgs("preview"), [
@@ -60,14 +61,20 @@ test("release plan maps every Android artifact to the locked EAS profile", () =>
   ]);
 });
 
-test("release artifact validation requires all three non-empty files", () => {
+test("release artifact validation requires every non-empty file", () => {
   assert.deepEqual(
     validateReleaseArtifactSet({
       debugApk: { path: "debug.apk", size: 10 },
       internalAab: { path: "internal.aab", size: 20 },
+      productionDeviceApk: { path: "production-device.apk", size: 25 },
       productionAab: { path: "production.aab", size: 30 },
     }),
-    { debugApk: "debug.apk", internalAab: "internal.aab", productionAab: "production.aab" },
+    {
+      debugApk: "debug.apk",
+      internalAab: "internal.aab",
+      productionDeviceApk: "production-device.apk",
+      productionAab: "production.aab",
+    },
   );
   assert.throws(
     () => validateReleaseArtifactSet({ debugApk: { path: "debug.apk", size: 10 } }),
@@ -101,17 +108,26 @@ test("protected release workflow exposes all three EAS artifact profiles", async
   assert.match(iosWorkflow, /workflow_dispatch:/u);
   assert.match(iosWorkflow, /EAS_TOKEN/u);
   assert.match(iosWorkflow, /node-version:\s*["']20\.19\.4["']/u);
-  for (const profile of ["development", "preview", "production"]) {
+  for (const profile of ["development", "preview", "production-device", "production"]) {
     assert.match(androidWorkflow, new RegExp(profile, "u"));
+  }
+  for (const profile of ["development", "preview", "production"]) {
     assert.match(iosWorkflow, new RegExp(profile, "u"));
   }
   assert.match(packageJson.scripts["build:android:debug"], /--profile development/u);
   assert.match(packageJson.scripts["build:android:internal"], /--profile preview/u);
   assert.match(packageJson.scripts["build:android:production"], /--profile production/u);
+  assert.match(
+    packageJson.scripts["build:android:production-device"],
+    /--profile production-device/u,
+  );
   assert.match(packageJson.scripts["build:ios:debug"], /--platform ios/u);
   assert.match(packageJson.scripts["build:ios:internal"], /--platform ios/u);
   assert.match(packageJson.scripts["build:ios:production"], /--platform ios/u);
-  assert.match(androidWorkflow, /environment:\s*\$\{\{ inputs\.profile \}\}/u);
+  assert.match(
+    androidWorkflow,
+    /environment:\s*\$\{\{ inputs\.profile == 'production-device' && 'production' \|\| inputs\.profile \}\}/u,
+  );
   assert.match(iosWorkflow, /environment:\s*\$\{\{ inputs\.profile \}\}/u);
   assert.match(iosWorkflow, /build:ios:debug/u);
   assert.match(iosWorkflow, /build:ios:internal/u);

@@ -14,10 +14,20 @@ test("keeps EAS profiles isolated and remotely signed", async () => {
 
   assert.doesNotThrow(() => validateReleaseConfig(easConfig, appConfig));
   for (const [name, profile] of Object.entries(easConfig.build)) {
-    assert.equal(profile.ios?.credentialsSource, "remote", `${name} iOS signing drifted`);
+    if (name !== "production-device") {
+      assert.equal(profile.ios?.credentialsSource, "remote", `${name} iOS signing drifted`);
+    }
     assert.equal(profile.distribution, name === "production" ? "store" : "internal");
-    assert.equal(profile.env?.APP_VARIANT, name);
+    assert.equal(profile.env?.APP_VARIANT, name === "production-device" ? "production" : name);
   }
+  assert.deepEqual(easConfig.build["production-device"], {
+    extends: "production",
+    autoIncrement: false,
+    distribution: "internal",
+    environment: "production",
+    env: { APP_VARIANT: "production" },
+    android: { buildType: "apk", credentialsSource: "remote" },
+  });
   assert.ok(easConfig.submit?.production?.ios);
 });
 

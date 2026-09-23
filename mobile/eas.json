@@ -50,6 +50,19 @@
       "ios": {
         "credentialsSource": "remote"
       }
+    },
+    "production-device": {
+      "extends": "production",
+      "autoIncrement": false,
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production"
+      },
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      }
     }
   },
   "submit": {

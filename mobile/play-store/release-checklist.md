@@ -6,7 +6,8 @@
 - [x] App name, scheme, channels, and release metadata use Fitician.
 - [x] Target and compile API are 36; minimum API is 24.
 - [x] Branded icon, adaptive foreground, and splash assets are present.
-- [x] EAS development, preview, and production profiles use remote signing.
+- [x] EAS development, preview, production-device, and production profiles use remote Android signing.
+- [x] Production runtime URLs are locked to `https://fitician.fit`.
 - [x] CI covers backend, frontend, shared core, mobile, OpenAPI, Android, dependency, and secret gates.
 - [x] Public privacy and account-deletion routes are implemented in the web frontend.
 - [x] Deletion and private-media retention behavior is covered by the existing backend lifecycle.
@@ -16,7 +17,9 @@
 - [ ] Set and verify the production EAS project, protected signing credentials,
   FCM service account, Google services file, Google Android client ID, and OTA
   URL in the matching EAS environments.
-- [ ] Build and retain the debug APK, internal-test AAB, and production AAB;
+- [ ] Build and retain the debug APK, internal-test AAB, production-device APK,
+  and production AAB. Install the production-device APK on a physical phone and
+  pass launch plus a production network-backed workflow before building the AAB;
   upload JavaScript, R8 mapping, and native symbols to the approved telemetry
   provider.
 - [ ] Set `FITICIAN_PUBLIC_WEB_ORIGIN` and `FITICIAN_SUPPORT_EMAIL`, verify both

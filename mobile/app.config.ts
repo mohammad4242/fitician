@@ -25,7 +25,9 @@ const iosSideload = loadModuleSync(
 ) as typeof import("./plugins/withIosSideload");
 const withIosSideloadEntitlements = iosSideload.default;
 
-const FITICIAN_APP_LINK_PLACEHOLDER = "app.fitician.example";
+const PRODUCTION_APP_LINK_HOST = new URL(
+  productionApiConfig.PRODUCTION_FRONTEND_ORIGIN,
+).hostname;
 const supportedAppVariants = new Set(["development", "preview", "production"]);
 const appVariant = process.env.APP_VARIANT?.trim() || "development";
 const isIosSideloadBuild = process.env.IOS_SIDELOAD_BUILD?.trim() === "1";
@@ -78,10 +80,10 @@ const fiticianFontConfig = {
 };
 
 function resolveAppLinkHost(rawHost: string | undefined, isProduction: boolean): string {
-  const host = rawHost?.trim() || FITICIAN_APP_LINK_PLACEHOLDER;
-  if (isProduction && host === FITICIAN_APP_LINK_PLACEHOLDER) {
+  const host = rawHost?.trim() || PRODUCTION_APP_LINK_HOST;
+  if (isProduction && host !== PRODUCTION_APP_LINK_HOST) {
     throw new Error(
-      "FITICIAN_APP_LINK_HOST must be set to a verified HTTPS host for production builds",
+      `FITICIAN_APP_LINK_HOST must be ${PRODUCTION_APP_LINK_HOST} for production builds`,
     );
   }
 

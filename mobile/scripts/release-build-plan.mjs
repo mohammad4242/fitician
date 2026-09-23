@@ -8,6 +8,7 @@ const mobileRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const RELEASE_ARTIFACTS = Object.freeze({
   debugApk: Object.freeze({ extension: ".apk", profile: "development" }),
   internalAab: Object.freeze({ extension: ".aab", profile: "preview" }),
+  productionDeviceApk: Object.freeze({ extension: ".apk", profile: "production-device" }),
   productionAab: Object.freeze({ extension: ".aab", profile: "production" }),
 });
 
@@ -75,7 +76,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const profile = profileIndex === -1 ? undefined : process.argv[profileIndex + 1];
   const platformIndex = process.argv.indexOf("--platform");
   const platform = platformIndex === -1 ? "android" : process.argv[platformIndex + 1];
-  assert.ok(profile, "Use --profile development, preview, or production");
+  assert.ok(profile, "Use --profile development, preview, production-device, or production");
   assert.ok(platform, "Use --platform android or ios");
   const environment = buildEasEnvironment(process.env, platform);
 
