@@ -109,7 +109,6 @@ test("Android production resolves only the approved public runtime", () => {
     name: "Fitician",
     version: "0.1.0",
     package: "com.fitician.app",
-    autolinking: { exclude: ["expo-dev-client"] },
     plugins: [
       "expo-router",
       "expo-web-browser",
