@@ -36,6 +36,7 @@ import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
 import {
   AppIcon,
+  BrandMark,
   Button,
   Card,
   Notice,
@@ -445,7 +446,7 @@ export function OnboardingScreen() {
             </Pressable>
           ) : null}
         </View>
-        <Text style={styles.brand}>FITICIAN</Text>
+        <BrandMark compact label="FITICIAN" testID="authenticated-onboarding-brand-mark" />
       </View>
       <View style={styles.progressBlock}>
         <Text style={styles.progressSummary}>{progressSummary}</Text>
@@ -1707,14 +1708,6 @@ const styles = StyleSheet.create({
     padding: fiticianTokens.spacing[2],
     textAlign: "auto",
     writingDirection: "rtl",
-  },
-  brand: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.extraBold,
-    letterSpacing: 1.4,
-    writingDirection: "ltr",
   },
   brandRow: {
     alignItems: "center",

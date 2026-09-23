@@ -10,6 +10,7 @@ import { onboardingRoute, publicOnboardingParams } from "../../../auth/authRoute
 import { authCopy, mobileAuthCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
 import { authStyles } from "../../../auth/authStyles";
+import { GoogleBrandIcon } from "../../../auth/GoogleBrandIcon";
 import { useAppleSignIn } from "../../../auth/AppleSignIn";
 import { useGoogleSignIn } from "../../../auth/GoogleSignIn";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
@@ -265,6 +266,7 @@ export default function SignInScreen() {
         <Button
           disabled={google.available && !google.ready}
           label="ادامه با گوگل"
+          leadingIcon={<GoogleBrandIcon testID="google-brand-icon" />}
           loading={googleBusy}
           onPress={() => void submitGoogle()}
           variant="secondary"

@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
-import { Button, Card, Notice, PageHeading, TextField } from "../ui/components";
+import { BrandMark, Button, Card, Notice, PageHeading, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { fiticianTokens } from "../ui/tokens";
 import {
@@ -132,7 +132,7 @@ export function AccountDeletionScreen() {
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
       <View style={styles.brandRow}>
         <Button label="بازگشت" onPress={() => router.back()} variant="ghost" />
-        <Text style={styles.brand}>FITICIAN</Text>
+        <BrandMark compact label="FITICIAN" testID="account-deletion-brand-mark" />
       </View>
       <PageHeading
         compact={false}
@@ -219,14 +219,6 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     textAlign: "auto",
     writingDirection: "rtl",
-  },
-  brand: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.extraBold,
-    letterSpacing: 1.4,
-    writingDirection: "ltr",
   },
   centered: {
     alignItems: "center",

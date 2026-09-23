@@ -1,16 +1,19 @@
 # Fitician release artwork
 
-The canonical source for the current installed and launcher icon is the
-repository-root `../../../logo.jpg`. It contains the full Fitician mark,
-wordmark, and `Fit with Science` slogan on a dark square background.
+The canonical source for current mobile branding is the repository-root
+`../../../logo1.jpg`. It is an opaque 1254x1254 RGB JPEG with the Fitician mark
+on a near-black square background.
 
-The PNGs used by `mobile/app.config.ts` are generated from that source:
+The bundled PNG assets are generated from that source with aspect-preserving
+LANCZOS resizing:
 
-- `fitician-icon.png` preserves the full square composition.
-- `fitician-adaptive-foreground.png` preserves the same composition inside a
-  centered safe area for Android launcher masks.
+- `fitician-icon.png` preserves the full square composition at 1024x1024.
+- `fitician-adaptive-foreground.png` centers the artwork at 60% canvas size
+  for Android launcher-mask safe padding. Its `#010101` background matches
+  the source's near-black corners.
+- `fitician-brand.png` preserves the full square composition for in-app
+  `BrandMark` headers.
 
-The existing SVG files are legacy vector references and are not the current Expo
-input. `fitician-splash.png` remains unchanged because this rollout changes
-installed and launcher icons only. The release PNGs remain free of product
-screenshots, user data, and third-party marks.
+`mobile/app.config.ts` keeps its stable icon paths. `fitician-splash.png` and
+legacy vector references remain unchanged. The release PNGs contain no product
+screenshots, user data, or third-party marks.

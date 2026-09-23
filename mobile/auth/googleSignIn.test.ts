@@ -39,3 +39,10 @@ it("configures Expo Auth Session with the native platform client ID", async () =
   expect(source).toMatch(/googleClientIdForPlatform/);
   expect(source).toMatch(/available\s*=\s*clientId\s*!==\s*null/u);
 });
+
+it("does not embed a fallback OAuth client ID when Google is unconfigured", async () => {
+  const source = await readFile(resolve(__dirname, "GoogleSignIn.tsx"), "utf8");
+
+  expect(source).not.toMatch(/disabled-google-client-id/u);
+  expect(source).toMatch(/clientId \?\? ""/u);
+});

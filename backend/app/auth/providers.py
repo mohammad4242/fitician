@@ -221,16 +221,23 @@ class FarazSmsProvider:
 
 class GoogleIdTokenProvider:
     def __init__(self, settings: Settings) -> None:
-        self._client_id = settings.google_client_id
+        self._client_ids = frozenset(
+            client_id.strip()
+            for client_id in (settings.google_client_id, settings.google_android_client_id)
+            if client_id is not None and client_id.strip()
+        )
 
     def verify(self, credential: str) -> GoogleIdentity:
-        if self._client_id is None:
+        if not self._client_ids:
             raise ValueError("Google identity is not configured")
         claims = google_id_token.verify_oauth2_token(  # type: ignore[no-untyped-call]
             credential,
             google_auth_requests.Request(),
-            self._client_id,
+            None,
         )
+        audience = claims.get("aud")
+        if not isinstance(audience, str) or audience not in self._client_ids:
+            raise ValueError("Invalid Google token audience")
         issuer = claims.get("iss")
         if issuer not in {"accounts.google.com", "https://accounts.google.com"}:
             raise ValueError("Invalid Google token issuer")

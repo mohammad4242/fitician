@@ -42,6 +42,16 @@ def test_settings_accept_explicit_environment_values() -> None:
     assert settings.farazsms_base_url == "https://api.iranpayamak.com/ws/v1"
 
 
+def test_android_google_client_id_is_loaded_from_server_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GOOGLE_ANDROID_CLIENT_ID", "android-client-for-tests")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.google_android_client_id == "android-client-for-tests"
+
+
 def test_delivery_credentials_are_redacted() -> None:
     settings = Settings(
         smtp_password="smtp-secret",

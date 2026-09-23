@@ -11,11 +11,12 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       name: config.name,
       version: config.version,
       package: config.android.package,
-      autolinking: config.autolinking,
       plugins: config.plugins.map((plugin) =>
         Array.isArray(plugin) ? plugin[0] : typeof plugin === "string" ? plugin : "custom",
       ),
       environment: config.extra.environment,
+      icon: config.icon,
+      adaptiveIcon: config.android.adaptiveIcon,
       apiBaseUrl: config.extra.apiBaseUrl,
       frontendOrigin: config.extra.frontendOrigin,
       appLinkHost: config.extra.appLinkHost,
@@ -48,9 +49,36 @@ function loadNativeConfig(variant) {
   });
 }
 
-test("Android preview config does not require credentials for iOS Google login", () => {
+test("Android preview config accepts its own Google client ID", () => {
   const result = loadConfig("android", "preview");
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("Android release config fails clearly when its Google client ID is missing", () => {
+  const result = loadConfig("android", "production", "", {
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+    EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "",
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required/u);
+});
+
+test("Android preview also requires the ID while development remains buildable without it", () => {
+  const preview = loadConfig("android", "preview", "", {
+    EXPO_PUBLIC_API_BASE_URL: "https://api-preview.fitician.example",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://preview.fitician.example",
+    FITICIAN_APP_LINK_HOST: "preview.fitician.example",
+    EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "",
+  });
+  assert.notEqual(preview.status, 0);
+  assert.match(preview.stderr, /EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required/u);
+
+  const development = loadConfig("android", "development", "", {
+    EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "",
+  });
+  assert.equal(development.status, 0, development.stderr);
 });
 
 test("iOS preview still requires Google client configuration", () => {
@@ -109,7 +137,6 @@ test("Android production resolves only the approved public runtime", () => {
     name: "Fitician",
     version: "0.1.0",
     package: "com.fitician.app",
-    autolinking: { exclude: ["expo-dev-client"] },
     plugins: [
       "expo-router",
       "expo-web-browser",
@@ -130,6 +157,11 @@ test("Android production resolves only the approved public runtime", () => {
       "custom",
     ],
     environment: "production",
+    icon: "./assets/branding/fitician-icon.png",
+    adaptiveIcon: {
+      foregroundImage: "./assets/branding/fitician-adaptive-foreground.png",
+      backgroundColor: "#010101",
+    },
     apiBaseUrl: "https://fitician.fit",
     frontendOrigin: "https://fitician.fit",
     appLinkHost: "fitician.fit",

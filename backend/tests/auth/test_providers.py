@@ -263,14 +263,25 @@ def test_smtp_provider_reuses_delivery_for_verification_and_welcome(
     assert "فیتیشن" in FakeSmtp.last_message.get_content()
 
 
-def test_google_provider_passes_backend_audience_to_official_verifier(
+@pytest.mark.parametrize(
+    ("token_audience", "accepted"),
+    [
+        ("web-client-for-tests", True),
+        ("android-client-for-tests", True),
+        ("unknown-client-for-tests", False),
+    ],
+)
+def test_google_provider_accepts_only_configured_audiences(
     monkeypatch: pytest.MonkeyPatch,
+    token_audience: str,
+    accepted: bool,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def fake_verify(token: str, _request: object, audience: str) -> dict[str, object]:
+    def fake_verify(token: str, _request: object, audience: str | None) -> dict[str, object]:
         captured.update(token=token, audience=audience)
         return {
+            "aud": token_audience,
             "iss": "https://accounts.google.com",
             "sub": "google-sub",
             "email": "member@example.com",
@@ -281,10 +292,39 @@ def test_google_provider_passes_backend_audience_to_official_verifier(
 
     monkeypatch.setattr("google.oauth2.id_token.verify_oauth2_token", fake_verify)
     assert hasattr(providers, "GoogleIdTokenProvider")
-    provider = providers.GoogleIdTokenProvider(Settings(google_client_id="fitician-client-id"))
+    provider = providers.GoogleIdTokenProvider(
+        Settings(
+            google_client_id="web-client-for-tests",
+            google_android_client_id="android-client-for-tests",
+        )
+    )
 
-    identity = provider.verify("signed-token")
+    if accepted:
+        identity = provider.verify("signed-token")
+        assert identity.sub == "google-sub"
+        assert identity.email_verified is True
+    else:
+        with pytest.raises(ValueError, match="audience"):
+            provider.verify("signed-token")
 
-    assert captured == {"token": "signed-token", "audience": "fitician-client-id"}
-    assert identity.sub == "google-sub"
-    assert identity.email_verified is True
+    assert captured == {"token": "signed-token", "audience": None}
+
+
+def test_google_provider_rejects_malformed_tokens_through_google_verifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_verify(token: str, _request: object, audience: str | None) -> dict[str, object]:
+        captured.update(token=token, audience=audience)
+        raise ValueError("malformed token")
+
+    monkeypatch.setattr("google.oauth2.id_token.verify_oauth2_token", fake_verify)
+    provider = providers.GoogleIdTokenProvider(
+        Settings(google_client_id="web-client-for-tests")
+    )
+
+    with pytest.raises(ValueError, match="malformed token"):
+        provider.verify("malformed-token")
+
+    assert captured == {"token": "malformed-token", "audience": None}

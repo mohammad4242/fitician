@@ -5,6 +5,23 @@ import { expect, it } from "vitest";
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "app");
 
+it("uses the shared Fitician brand artwork in RouteEntryScreen", async () => {
+  const uiRoot = dirname(fileURLToPath(import.meta.url));
+  const source = await readFile(resolve(uiRoot, "navigation/RouteEntryScreen.tsx"), "utf8");
+  const screenHeader = await readFile(resolve(uiRoot, "components/ScreenHeader.tsx"), "utf8");
+  const onboarding = await readFile(resolve(uiRoot, "../onboarding/OnboardingScreen.tsx"), "utf8");
+  const accountDeletion = await readFile(resolve(uiRoot, "../accountDeletion/AccountDeletionScreen.tsx"), "utf8");
+  const profile = await readFile(resolve(uiRoot, "../profile/ProfileScreen.tsx"), "utf8");
+
+  expect(source).toMatch(/<BrandMark/);
+  expect(source).not.toMatch(/<AppIcon/);
+  expect(source).not.toMatch(/FITICIAN/);
+  expect(screenHeader).toMatch(/<BrandMark compact label=\{brand\}/);
+  expect(onboarding).toMatch(/<BrandMark compact label="FITICIAN"/);
+  expect(accountDeletion).toMatch(/<BrandMark compact label="FITICIAN"/);
+  expect(profile).toMatch(/<BrandMark compact label="FITICIAN"/);
+});
+
 async function routeExists(route: string): Promise<boolean> {
   try {
     await access(resolve(appRoot, route));

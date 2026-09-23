@@ -116,6 +116,13 @@ for (const clientId of [googleAndroidClientId, googleIosClientId]) {
 if (process.env.EAS_BUILD_PLATFORM === "ios" && appVariant !== "development" && !googleIosClientId) {
   throw new Error("EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is required for iOS release builds");
 }
+if (
+  process.env.EAS_BUILD_PLATFORM === "android"
+  && appVariant !== "development"
+  && !googleAndroidClientId
+) {
+  throw new Error("EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required for Android release builds");
+}
 
 const config: ExpoConfig = {
   name: "Fitician",
@@ -125,9 +132,6 @@ const config: ExpoConfig = {
   scheme: "fitician",
   icon: "./assets/branding/fitician-icon.png",
   userInterfaceStyle: "dark",
-  autolinking: {
-    exclude: appVariant === "development" ? [] : ["expo-dev-client"],
-  },
   plugins: [
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),
@@ -188,7 +192,7 @@ const config: ExpoConfig = {
     permissions: ["android.permission.CAMERA"],
     adaptiveIcon: {
       foregroundImage: "./assets/branding/fitician-adaptive-foreground.png",
-      backgroundColor: "#020607",
+      backgroundColor: "#010101",
     },
     ...(googleServicesFile ? { googleServicesFile } : {}),
     intentFilters: [

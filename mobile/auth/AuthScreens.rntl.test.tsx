@@ -222,6 +222,8 @@ test("uses Google and keeps the public onboarding destination", async () => {
   mockUseLocalSearchParams.mockReturnValue({ source: "public-onboarding" } as never);
   renderSignIn();
 
+  const googleIcon = screen.getByTestId("google-brand-icon");
+  expect(googleIcon.parent?.type).not.toBe("Text");
   fireEvent.press(screen.getByRole("button", { name: "ادامه با گوگل" }));
 
   await waitFor(() => expect(mockAuth.signInWithGoogle).toHaveBeenCalledWith("google-credential"));

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { type ReactNode } from "react";
 
-import { AppIcon, Card } from "../components";
+import { BrandMark, Card } from "../components";
 import { Screen } from "../layout";
 import { fiticianTokens } from "../tokens";
 
@@ -16,10 +16,7 @@ export function RouteEntryScreen({ children, description, title }: RouteEntryScr
     <Screen contentContainerStyle={styles.screen} contentWidth="reading" scroll={false}>
       <View style={styles.content}>
         <View style={styles.brandRow}>
-          <Text style={styles.brand}>FITICIAN</Text>
-          <View style={styles.brandMark}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="target" size={18} />
-          </View>
+          <BrandMark accessibilityLabel="فیتیشن" label="فیتیشن" testID="route-entry-brand-mark" />
         </View>
         <Card variant="hero" style={styles.hero}>
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
@@ -32,29 +29,9 @@ export function RouteEntryScreen({ children, description, title }: RouteEntryScr
 }
 
 const styles = StyleSheet.create({
-  brand: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.extraBold,
-    letterSpacing: 1.4,
-    textAlign: "left",
-    writingDirection: "ltr",
-  },
-  brandMark: {
-    alignItems: "center",
-    backgroundColor: fiticianTokens.colors.surfaceInteractive,
-    borderColor: fiticianTokens.colors.lineStrong,
-    borderRadius: fiticianTokens.radii.small,
-    borderWidth: 1,
-    height: 36,
-    justifyContent: "center",
-    width: 36,
-  },
   brandRow: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
   },
   content: {
     gap: fiticianTokens.spacing[3],

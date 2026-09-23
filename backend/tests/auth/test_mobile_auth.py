@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -286,6 +287,44 @@ def test_mobile_google_login_uses_the_existing_identity_provider(
     assert response.status_code == 200
     assert response.json()["user"]["email"] == "google-mobile@example.com"
     assert "access_token" in response.json()
+
+
+def test_mobile_google_login_accepts_verified_android_audience(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.auth.providers import GoogleIdTokenProvider
+    from app.config import Settings
+
+    captured: dict[str, object] = {}
+
+    def fake_verify(token: str, _request: object, audience: str | None) -> dict[str, object]:
+        captured.update(token=token, audience=audience)
+        return {
+            "aud": "android-client-for-tests",
+            "email": "android-google@example.com",
+            "email_verified": True,
+            "iss": "https://accounts.google.com",
+            "sub": "google-android-sub",
+        }
+
+    monkeypatch.setattr("google.oauth2.id_token.verify_oauth2_token", fake_verify)
+    client.app.state.google_identity_provider = GoogleIdTokenProvider(
+        Settings(
+            google_client_id="web-client-for-tests",
+            google_android_client_id="android-client-for-tests",
+        )
+    )
+
+    response = client.post(
+        "/api/v1/auth/mobile/google",
+        json={"credential": "verified-android-id-token", **DEVICE},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["user"]["email"] == "android-google@example.com"
+    assert "access_token" in response.json()
+    assert captured == {"token": "verified-android-id-token", "audience": None}
 
 
 def test_mobile_phone_login_uses_verified_otp(client: TestClient) -> None:

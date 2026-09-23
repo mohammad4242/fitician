@@ -7,6 +7,7 @@ it("keeps onboarding guided, native, and RTL-friendly", async () => {
   const landingSource = await readFile(resolve(import.meta.dirname, "../public/PublicLandingScreen.tsx"), "utf8");
   const source = await readFile(resolve(import.meta.dirname, "OnboardingScreen.tsx"), "utf8");
   const publicSource = await readFile(resolve(import.meta.dirname, "PublicOnboardingScreen.tsx"), "utf8");
+  const brandMarkSource = await readFile(resolve(import.meta.dirname, "../ui/components/BrandMark.tsx"), "utf8");
   const publicQuestionSource = await readFile(resolve(import.meta.dirname, "public/GuidedSharedProfileQuestions.tsx"), "utf8");
   const publicTrainingSource = await readFile(resolve(import.meta.dirname, "public/GuidedTrainingQuestions.tsx"), "utf8");
   const publicNutritionSource = await readFile(resolve(import.meta.dirname, "public/PublicNutritionOnboardingFlow.tsx"), "utf8");
@@ -39,6 +40,7 @@ it("keeps onboarding guided, native, and RTL-friendly", async () => {
   expect(publicSource).toMatch(/PUBLIC_ONBOARDING_SOURCE/);
   expect(publicSource).toMatch(/StateSkeleton/);
   expect(publicSource).toMatch(/GuidedSharedProfileQuestions/);
+  expect(publicSource).toMatch(/<BrandMark/);
   expect(publicSource).toMatch(/GuidedTrainingQuestions/);
   expect(publicSource).toMatch(/PublicNutritionOnboardingFlow/);
   expect(publicSource).toMatch(/PublicAccountStep/);
@@ -54,6 +56,10 @@ it("keeps onboarding guided, native, and RTL-friendly", async () => {
   expect(publicSource).not.toMatch(/getOnboardingStageProgress/);
   expect(publicSource).not.toMatch(/WebView/);
   expect(publicQuestionSource).toMatch(/دوست داری چه صدایت کنیم؟/);
+  expect(brandMarkSource).toMatch(/react-native/);
+  expect(brandMarkSource).toMatch(/fitician-brand\.png/);
+  expect(brandMarkSource).toMatch(/testID=\{testID \? `\$\{testID\}-image`/);
+  expect(brandMarkSource).not.toMatch(/pulse/);
   expect(publicQuestionSource).toMatch(/چه تاریخی به دنیا آمدی؟/);
   expect(publicQuestionSource).toMatch(/جنسیتت چیست؟/);
   expect(publicQuestionSource).toMatch(/قد و وزنت چقدر است؟/);

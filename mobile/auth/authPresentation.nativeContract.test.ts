@@ -4,8 +4,10 @@ import { resolve } from "node:path";
 
 it("keeps auth screens on a quiet Web-aligned native scaffold", async () => {
   const scaffold = await readFile(resolve(import.meta.dirname, "AuthScaffold.tsx"), "utf8");
+  const button = await readFile(resolve(import.meta.dirname, "../ui/components/Button.tsx"), "utf8");
   const signIn = await readFile(resolve(import.meta.dirname, "../app/(auth)/auth/sign-in.tsx"), "utf8");
   const register = await readFile(resolve(import.meta.dirname, "../app/(auth)/auth/register.tsx"), "utf8");
+  const googleIcon = await readFile(resolve(import.meta.dirname, "GoogleBrandIcon.tsx"), "utf8");
 
   expect(scaffold).toMatch(/authCopy\.common\.brand/);
   expect(scaffold).toMatch(/PageHeading/);
@@ -20,10 +22,21 @@ it("keeps auth screens on a quiet Web-aligned native scaffold", async () => {
   expect(signIn).toMatch(/useGoogleSignIn/);
   expect(signIn).toMatch(/useAppleSignIn/);
   expect(signIn).toMatch(/AppleAuthenticationButton/);
+  expect(signIn).toMatch(/apple\.available \?/);
+  expect(signIn).toMatch(/buttonType=\{AppleAuthentication\.AppleAuthenticationButtonType\.SIGN_IN\}/);
+  expect(signIn).toMatch(/GoogleBrandIcon/);
+  expect(signIn).toMatch(/leadingIcon/);
   expect(signIn).toMatch(/publicOnboardingParams/);
   expect(signIn).toMatch(/verifyPhoneOtp/);
   expect(signIn).toMatch(/sendPhoneOtp/);
   expect(signIn).toMatch(/validateOtpCode/);
   expect(register).toMatch(/passwordHint/);
   expect(register).toMatch(/maxLength=\{128\}/);
+  expect(button).toMatch(/leadingIcon\?: ReactNode/);
+  expect(button).toMatch(/<View style=\{styles\.labelWithIcon\}>/);
+  expect(googleIcon).toMatch(/react-native-svg/);
+  expect(googleIcon).toMatch(/#4285F4/);
+  expect(googleIcon).toMatch(/#34A853/);
+  expect(googleIcon).toMatch(/#FBBC05/);
+  expect(googleIcon).toMatch(/#EA4335/);
 });

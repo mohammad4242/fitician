@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     phone_otp_resend_cooldown_seconds: int = Field(default=60, ge=10, le=600)
     phone_otp_max_attempts: int = Field(default=5, ge=1, le=10)
     google_client_id: str | None = None
+    google_android_client_id: str | None = None
     apple_client_id: str | None = None
     apple_jwks_url: str = "https://appleid.apple.com/auth/keys"
     apple_jwks_cache_ttl_seconds: int = Field(default=3600, ge=60, le=86400)

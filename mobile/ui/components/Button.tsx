@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type PressableStateCallbackType,
   type StyleProp,
@@ -24,6 +25,7 @@ export type ButtonProps = Omit<
   readonly children?: ReactNode;
   readonly disabled?: boolean;
   readonly label?: string;
+  readonly leadingIcon?: ReactNode;
   readonly loading?: boolean;
   readonly loadingAccessibilityLabel?: string;
   readonly style?: PressableProps["style"];
@@ -78,6 +80,7 @@ export function Button({
   children,
   disabled = false,
   label,
+  leadingIcon,
   loading = false,
   loadingAccessibilityLabel = "در حال بارگذاری",
   style,
@@ -108,8 +111,13 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator accessibilityLabel={loadingAccessibilityLabel} color={indicatorColor} size="small" />
-      ) : (
+      ) : leadingIcon === undefined ? (
         <Text allowFontScaling style={[styles.label, variantTextStyles[variant]]}>{text}</Text>
+      ) : (
+        <View style={styles.labelWithIcon}>
+          <Text allowFontScaling style={[styles.label, variantTextStyles[variant]]}>{text}</Text>
+          {leadingIcon}
+        </View>
       )}
     </Pressable>
   );
@@ -135,6 +143,12 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
     lineHeight: 24,
+  },
+  labelWithIcon: {
+    ...RTL_ROW,
+    alignItems: "center",
+    gap: fiticianTokens.spacing[2],
+    justifyContent: "center",
   },
   pressed: {
     opacity: 0.86,

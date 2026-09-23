@@ -9,8 +9,6 @@ import { googleCredentialFromResult, googleResultMessage, GoogleSignInFlowError 
 
 WebBrowser.maybeCompleteAuthSession();
 
-const DISABLED_CLIENT_ID = "disabled-google-client-id.apps.googleusercontent.com";
-
 export interface GoogleSignInController {
   readonly available: boolean;
   readonly ready: boolean;
@@ -22,10 +20,10 @@ export function useGoogleSignIn(): GoogleSignInController {
   const clientId = googleClientIdForPlatform(Platform.OS, runtime);
   const available = clientId !== null;
   const clientConfig = Platform.OS === "ios"
-    ? { iosClientId: clientId ?? DISABLED_CLIENT_ID }
+    ? { iosClientId: clientId ?? "" }
     : Platform.OS === "android"
-      ? { androidClientId: clientId ?? DISABLED_CLIENT_ID }
-      : { webClientId: DISABLED_CLIENT_ID };
+      ? { androidClientId: clientId ?? "" }
+      : { webClientId: clientId ?? "" };
   const [request, , promptAsync] = useIdTokenAuthRequest(
     {
       ...clientConfig,

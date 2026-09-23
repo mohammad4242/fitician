@@ -37,6 +37,7 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import {
   AppIcon,
+  BrandMark,
   Button,
   Card,
   FormField,
@@ -401,7 +402,7 @@ export function ProfileScreen() {
   if (error !== null && (loaded === null || values === null)) {
     return (
       <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
-        <Text style={styles.brand}>FITICIAN</Text>
+        <BrandMark compact label="FITICIAN" testID="profile-error-brand-mark" />
         <Notice message={error} variant="danger" />
         <Button label="بازگشت" onPress={() => router.back()} variant="secondary" />
       </Screen>
@@ -1312,14 +1313,6 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.h2,
     textAlign: "center",
     writingDirection: "rtl",
-  },
-  brand: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
-    fontSize: fiticianTokens.typography.fontSize.sm,
-    fontWeight: fiticianTokens.typography.fontWeight.extraBold,
-    letterSpacing: 1.4,
-    writingDirection: "ltr",
   },
   centered: {
     alignItems: "center",

@@ -15,6 +15,7 @@ const native = vi.hoisted(() => ({
 }));
 
 vi.mock("react-native", () => native);
+vi.mock("./components/BrandMark", () => ({ BrandMark: "BrandMark" }));
 vi.mock("./components/AppIcon", () => ({ AppIcon: "AppIcon" }));
 vi.mock("./components/Card", () => ({ Card: "Card" }));
 
@@ -169,6 +170,7 @@ test("keeps shared Persian headers and disclosure copy on the logical RTL side",
   const screenViews = screenRenderer.root.findAll((node) => String(node.type) === "View");
   expect(flattenStyle(screenViews[0]?.props.style)).toMatchObject({ direction: "rtl" });
   expect(flattenStyle(screenViews[2]?.props.style).alignItems).toBe("stretch");
+  expect(screenRenderer.root.findByProps({ testID: "screen-header-brand-mark" })).toBeTruthy();
 
   const disclosureRenderer = render(
     createElement(DisclosureCard, { summary: "خلاصه فارسی", title: "جزئیات", children: "محتوا" }),

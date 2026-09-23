@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../rtl";
 import { fiticianTokens } from "../tokens";
+import { BrandMark } from "./BrandMark";
 
 export interface ScreenHeaderProps {
   readonly action?: ReactNode;
@@ -24,7 +25,7 @@ export function ScreenHeader({
   return (
     <View style={[styles.header, RTL_LAYOUT, compact && styles.compact]}>
       <View style={[styles.topRow, RTL_ROW]}>
-        <Text style={styles.brand}>{brand}</Text>
+        <BrandMark compact label={brand} testID="screen-header-brand-mark" />
         {action}
       </View>
       <View style={styles.copy}>
@@ -37,14 +38,6 @@ export function ScreenHeader({
 }
 
 const styles = StyleSheet.create({
-  brand: {
-    color: fiticianTokens.colors.aqua,
-    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
-    fontSize: fiticianTokens.typography.fontSize.xs,
-    fontWeight: fiticianTokens.typography.fontWeight.extraBold,
-    letterSpacing: 1.8,
-    writingDirection: "ltr",
-  },
   compact: {
     gap: fiticianTokens.spacing[2],
   },
