@@ -25,7 +25,9 @@ export function useGoogleSignIn(): GoogleSignInController {
     : clientId !== null;
   const clientConfig = Platform.OS === "ios"
     ? { iosClientId: clientId ?? "" }
-    : { webClientId: Platform.OS === "android" ? "" : clientId ?? "" };
+    : Platform.OS === "android"
+      ? { androidClientId: clientId ?? "" }
+      : { webClientId: clientId ?? "" };
   const [request, , promptAsync] = useIdTokenAuthRequest(
     {
       ...clientConfig,
