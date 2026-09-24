@@ -15,14 +15,17 @@ platform-specific native capability requires a separate verification.
 Run the artifact commands only from a protected EAS environment:
 
 ```bash
-npm --prefix mobile run build:android:debug
-npm --prefix mobile run build:android:internal
-npm --prefix mobile run build:android:production
+cd mobile
+npx --yes eas-cli@latest env:exec --environment development 'npm run build:android:debug'
+npx --yes eas-cli@latest env:exec --environment preview 'npm run build:android:internal'
+npx --yes eas-cli@latest env:exec --environment production 'npm run build:android:production'
 ```
 
 Each command requires `EXPO_TOKEN`. The shared build helper also accepts the
 legacy `EAS_TOKEN` variable for compatibility, but GitHub Actions uses only
-`EXPO_TOKEN`. The EAS project, remote signing,
+`EXPO_TOKEN`. GitHub Actions and the commands above run inside `eas env:exec`
+for the matching profile environment, so dynamic app config can resolve EAS
+variables before the remote build starts. The EAS project, remote signing,
 `GOOGLE_SERVICES_JSON`, FCM configuration, app-link host, Google client ID,
 OTA URL, and store URLs come from protected environment values. Build outputs
 must be retained with the commit, profile, app version, runtime version, and
@@ -75,9 +78,10 @@ Play installation from this workspace.
 Run the exact iOS builds from a protected EAS environment:
 
 ```bash
-npm --prefix mobile run build:ios:debug
-npm --prefix mobile run build:ios:internal
-npm --prefix mobile run build:ios:production
+cd mobile
+npx --yes eas-cli@latest env:exec --environment development 'npm run build:ios:debug'
+npx --yes eas-cli@latest env:exec --environment preview 'npm run build:ios:internal'
+npx --yes eas-cli@latest env:exec --environment production 'npm run build:ios:production'
 ```
 
 Each command requires `EXPO_TOKEN` and remote Apple signing configured in the

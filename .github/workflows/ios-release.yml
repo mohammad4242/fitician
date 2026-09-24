@@ -31,15 +31,21 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build signed EAS artifact
+        working-directory: mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          FITICIAN_EAS_ENVIRONMENT: ${{ inputs.profile }}
         run: |
           case "${{ inputs.profile }}" in
-            development) npm run build:ios:debug --workspace @fitician/mobile ;;
-            preview) npm run build:ios:internal --workspace @fitician/mobile ;;
-            production) npm run build:ios:production --workspace @fitician/mobile ;;
+            development) build_script=build:ios:debug ;;
+            preview) build_script=build:ios:internal ;;
+            production) build_script=build:ios:production ;;
             *) echo "Unsupported release profile" >&2; exit 2 ;;
           esac
+          npx --yes eas-cli@latest env:exec \
+            --environment "$FITICIAN_EAS_ENVIRONMENT" \
+            --non-interactive \
+            "npm run $build_script"
 
   sideload:
     if: ${{ inputs.profile == 'sideload' }}
