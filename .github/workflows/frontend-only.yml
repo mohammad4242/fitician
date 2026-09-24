@@ -2,6 +2,16 @@ name: Fitician Frontend Only CI
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: Deploy the verified frontend image to production
+        required: false
+        type: boolean
+        default: false
+      previous_image_tag:
+        description: Current immutable production image tag for rollback
+        required: false
+        type: string
 
 jobs:
   frontend-verification:
@@ -86,6 +96,7 @@ jobs:
           docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID \
             "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
               test -f /usr/share/nginx/html/index.html
+              test "$(grep -F -o '<meta name="enamad" content="74257848" />' /usr/share/nginx/html/index.html | wc -l)" -eq 1
               test -f /usr/share/nginx/html/exercises/exercise-placeholder.svg
               test -f /usr/share/nginx/html/pwa/icon-192.png
               test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
@@ -98,3 +109,130 @@ jobs:
         run: |
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
+
+  deploy-frontend-production:
+    name: Deploy verified frontend only
+    if: inputs.deploy_production
+    needs: frontend-image
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: fitician-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag || '' }}
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Pin VPS host key
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Validate deployment inputs
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$PREVIOUS_IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          test "$IMAGE_TAG" != "$PREVIOUS_IMAGE_TAG"
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+      - name: Authenticate VPS Docker client
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+      - name: Deploy only frontend and preserve other services
+        id: deploy-frontend
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          compose() {
+            local tag="$1"
+            shift
+            (cd "$VPS_APP_DIR" && IMAGE_TAG="$tag" docker compose -f compose.prod.yaml "$@")
+          }
+          non_frontend_service_ids() {
+            local tag="$1"
+            local id service
+            while IFS= read -r id; do
+              [ -n "$id" ] || continue
+              service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
+              [ "$service" = frontend ] || printf '%s:%s\n' "$service" "$id"
+            done < <(compose "$tag" ps -q) | sort
+          }
+          rollback_frontend() {
+            compose "$PREVIOUS_IMAGE_TAG" pull frontend
+            compose "$PREVIOUS_IMAGE_TAG" up -d --no-deps --wait frontend
+          }
+
+          before_ids=$(non_frontend_service_ids "$PREVIOUS_IMAGE_TAG")
+          compose "$IMAGE_TAG" pull frontend
+          if ! compose "$IMAGE_TAG" up -d --no-deps --wait frontend; then
+            echo "Frontend health check failed; restoring the previous image" >&2
+            rollback_frontend || true
+            exit 1
+          fi
+
+          after_ids=$(non_frontend_service_ids "$IMAGE_TAG")
+          if [ "$before_ids" != "$after_ids" ]; then
+            echo "A non-frontend service changed during the frontend deployment" >&2
+            rollback_frontend || true
+            exit 1
+          fi
+
+          frontend_id=$(compose "$IMAGE_TAG" ps -q frontend)
+          test -n "$frontend_id"
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$frontend_id")" = healthy
+          actual_image=$(docker inspect --format '{{.Config.Image}}' "$frontend_id")
+          expected_image=$(compose "$IMAGE_TAG" config --images | grep '/fitician-frontend:')
+          test "$actual_image" = "$expected_image"
+          echo "Frontend image is healthy; all other service container IDs are unchanged."
+          REMOTE
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+      - name: Verify production HTML ownership tag
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if html=$(curl --fail --silent --show-error --location \
+              -H 'Cache-Control: no-cache' --max-time 20 https://fitician.fit/); then
+              count=$(printf '%s' "$html" | grep -F -o '<meta name="enamad" content="74257848" />' | wc -l | tr -d ' ')
+              if [ "$count" = 1 ]; then
+                echo "Production HTML contains the ownership tag exactly once."
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "Production HTML does not contain the ownership tag exactly once." >&2
+          exit 1
+      - name: Roll back frontend if public verification fails
+        if: failure() && steps.deploy-frontend.outputs.deployed == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "cd '$VPS_APP_DIR' && IMAGE_TAG='$PREVIOUS_IMAGE_TAG' docker compose -f compose.prod.yaml pull frontend && IMAGE_TAG='$PREVIOUS_IMAGE_TAG' docker compose -f compose.prod.yaml up -d --no-deps --wait frontend"
