@@ -30,7 +30,6 @@ import { getQuickActionColumns } from "./homePresentation";
 import { WorkoutTodayCard, type WorkoutHomeState } from "./WorkoutTodayCard";
 
 const homeBodyImage = require("../assets/home-body.webp") as number;
-const homeFoodImage = require("../assets/home-food.webp") as number;
 
 export function MemberHomeScreen() {
   const auth = useMobileAuth();
@@ -268,7 +267,6 @@ export function MemberHomeScreen() {
         {hasNutrition ? (
           <QuickActionCard
             icon="foodLog"
-            image={homeFoodImage}
             onPress={() => router.push("/member/nutrition-tracking")}
             subtitle="وعده امروزت را ثبت کن"
             title="ثبت غذا"

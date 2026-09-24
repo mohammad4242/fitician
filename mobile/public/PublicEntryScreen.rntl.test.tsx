@@ -118,6 +118,7 @@ test("renders the Web cinematic film and scroll-driven landing story", () => {
   expect(screen.getByTestId("public-entry-scroll")).toBeTruthy();
   expect(screen.getByTestId("public-entry-film")).toBeTruthy();
   expect(screen.getByTestId("public-entry-meal-scan")).toBeTruthy();
+  expect(screen.getByTestId("public-entry-meal-nutrition-icon")).toBeTruthy();
   expect(screen.getByTestId("public-entry-process-step-understand")).toBeTruthy();
   expect(screen.getByTestId("public-entry-body-analysis")).toBeTruthy();
 });

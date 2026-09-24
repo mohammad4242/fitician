@@ -72,11 +72,23 @@ it("passes contract images to native thumbnails for catalogues, meals, and repla
   expect(plan).toContain("<DisclosureCard");
 });
 
+it("keeps promotional food photos out of the native bundle", async () => {
+  const mealRoute = await readFile(new URL("../app/(member)/member/meal-catalogue.tsx", import.meta.url), "utf8");
+  const home = await readFile(new URL("../home/MemberHomeScreen.tsx", import.meta.url), "utf8");
+  const landing = await readFile(new URL("../public/PublicLandingScreen.tsx", import.meta.url), "utf8");
+
+  expect(mealRoute).not.toContain("home-food.webp");
+  expect(home).not.toContain("home-food.webp");
+  expect(landing).not.toContain("landing/food.webp");
+  expect(mealRoute).toContain("<AppIcon");
+  expect(landing).toContain('testID="public-entry-meal-nutrition-icon"');
+  expect(home).not.toContain("homeFoodImage");
+});
+
 it("keeps the meal catalogue background fixed behind a transparent native screen", async () => {
   const source = await readFile(new URL("../app/(member)/member/meal-catalogue.tsx", import.meta.url), "utf8");
 
-  expect(source).toContain('require("../../../assets/home-food.webp")');
-  expect(source).toContain("<ImageBackground");
+  expect(source).toContain("<AppIcon");
   expect(source).toContain("<LinearGradient");
   expect(source).toContain("<Rect");
   expect(source).toContain("style={styles.transparentScreen}");

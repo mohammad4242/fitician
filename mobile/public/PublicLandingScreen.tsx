@@ -25,7 +25,7 @@ import { authCopy } from "../auth/copy";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { SignupCampaignCard } from "../campaigns/SignupCampaignCard";
 import { usePublicSignupCampaign } from "../campaigns/usePublicSignupCampaign";
-import { BrandMark, Button, Media } from "../ui/components";
+import { AppIcon, BrandMark, Button, Media } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { LTR_TEXT } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
@@ -433,7 +433,9 @@ function MealPhotoAnalysis({ compactLayout, motion, reducedMotion, splitLayout, 
       </View>
       <View style={styles.mealVisual}>
         <View style={[styles.scanFrame, compactLayout && styles.scanFrameMealCompact, compactLayout && { width: Math.min(viewportWidth * 0.76, 288) }]} testID="public-entry-meal-scan">
-          <Image accessibilityLabel={landing.meal.imageAlt} resizeMode="cover" source={require("../assets/landing/food.webp")} style={styles.scanImage} />
+          <View accessibilityLabel={landing.meal.imageAlt} accessibilityRole="image" style={styles.scanImage} testID="public-entry-meal-nutrition-icon">
+            <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={72} />
+          </View>
           <ScanCorners progress={mealScanProgress} />
           <Animated.View style={[styles.scanLine, scanLineAnimatedStyle]} />
         </View>
@@ -744,7 +746,7 @@ const styles = StyleSheet.create({
   mealVisual: { maxWidth: 360, position: "relative", width: "100%" },
   scanFrame: { aspectRatio: 0.92, backgroundColor: "#061817", borderColor: "rgba(232,244,241,0.1)", borderRadius: 24, borderWidth: 1, overflow: "hidden", position: "relative", width: "100%" },
   scanFrameMealCompact: { alignSelf: "center", aspectRatio: 0.86 },
-  scanImage: { height: "100%", width: "100%" },
+  scanImage: { alignItems: "center", backgroundColor: fiticianTokens.colors.surfaceRaised, height: "100%", justifyContent: "center", width: "100%" },
   scanCorner: { borderColor: fiticianTokens.colors.aqua, height: 36, position: "absolute", width: 36, zIndex: 3 },
   scanCornerOne: { borderLeftWidth: 2, borderTopLeftRadius: 10, borderTopWidth: 2, left: 16, top: 16 },
   scanCornerTwo: { borderRightWidth: 2, borderTopRightRadius: 10, borderTopWidth: 2, right: 16, top: 16 },

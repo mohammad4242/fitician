@@ -194,7 +194,7 @@ test("shows the real Persian title for today's workout", () => {
     .toMatchObject({ direction: "rtl", flexDirection: "row" });
 });
 
-test("uses the same moderately larger icon in both quick action cards", () => {
+test("uses a native nutrition icon backdrop when the food photo is omitted", () => {
   render(
     <>
       <QuickActionCard
@@ -206,7 +206,6 @@ test("uses the same moderately larger icon in both quick action cards", () => {
       />
       <QuickActionCard
         icon="foodLog"
-        image={1}
         onPress={jest.fn()}
         subtitle="وعده امروزت را ثبت کن"
         title="ثبت غذا"
@@ -214,7 +213,8 @@ test("uses the same moderately larger icon in both quick action cards", () => {
     </>,
   );
 
-  expect(screen.UNSAFE_getAllByType(AppIcon).map((icon) => icon.props.size)).toEqual([26, 26]);
+  expect(screen.UNSAFE_getAllByType(AppIcon).map((icon) => icon.props.size)).toEqual([26, 104, 26]);
+  expect(screen.getByTestId("quick-action-icon-background-foodLog")).toBeTruthy();
   expect(findAncestorStyle(screen.getByText("تحلیل بدن"), "flexDirection")).toMatchObject({ flexDirection: "row" });
 });
 

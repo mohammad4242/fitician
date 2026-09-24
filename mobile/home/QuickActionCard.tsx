@@ -5,7 +5,7 @@ import { fiticianTokens } from "../ui/tokens";
 
 export interface QuickActionCardProps {
   readonly icon: "bodyAnalysis" | "foodLog";
-  readonly image: ImageSourcePropType;
+  readonly image?: ImageSourcePropType;
   readonly disabled?: boolean;
   readonly onPress: () => void;
   readonly subtitle: string;
@@ -22,7 +22,13 @@ export function QuickActionCard({ disabled = false, icon, image, onPress, subtit
       onPress={onPress}
       style={({ pressed }) => [styles.card, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
-      <Media accessibilityLabel="" source={image} style={styles.image} />
+      {image === undefined ? (
+        <View pointerEvents="none" style={styles.iconArtwork} testID={`quick-action-icon-background-${icon}`}>
+          <AppIcon color={fiticianTokens.colors.aqua} name={icon} size={104} style={styles.iconArtworkGlyph} />
+        </View>
+      ) : (
+        <Media accessibilityLabel="" source={image} style={styles.image} />
+      )}
       <View pointerEvents="none" style={styles.scrim} />
       <View pointerEvents="none" style={[styles.corner, styles.cornerStart]} />
       <View pointerEvents="none" style={[styles.corner, styles.cornerEnd]} />
@@ -104,6 +110,16 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     height: "100%",
     width: "100%",
+  },
+  iconArtwork: {
+    alignItems: "center",
+    backgroundColor: fiticianTokens.colors.surfaceRaised,
+    height: "100%",
+    justifyContent: "center",
+    width: "100%",
+  },
+  iconArtworkGlyph: {
+    opacity: 0.24,
   },
   pressed: {
     opacity: 0.86,
