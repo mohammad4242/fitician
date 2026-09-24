@@ -24174,6 +24174,17 @@
             "title": "Grams",
             "type": "number"
           },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
           "item_kind": {
             "default": "food",
             "enum": [

@@ -12,6 +12,7 @@ export interface MobileRuntimeConfig {
   readonly apiBaseUrl: string;
   readonly environment: MobileRuntimeEnvironment;
   readonly frontendOrigin: string;
+  readonly publicMediaBaseUrl: string | null;
   readonly googleAndroidClientId: string | null;
   readonly googleIosClientId: string | null;
   readonly googleWebClientId: string | null;
@@ -22,6 +23,7 @@ export interface MobileRuntimeExtra {
   readonly apiBaseUrl?: unknown;
   readonly environment?: unknown;
   readonly frontendOrigin?: unknown;
+  readonly publicMediaBaseUrl?: unknown;
   readonly googleAndroidClientId?: unknown;
   readonly googleIosClientId?: unknown;
   readonly googleWebClientId?: unknown;
@@ -58,6 +60,7 @@ export function mobileRuntimeConfigFromExtra(
   const apiBaseUrl = trimmedString(extra?.apiBaseUrl);
   const environment = runtimeEnvironment(extra?.environment);
   const frontendOrigin = trimmedString(extra?.frontendOrigin);
+  const publicMediaBaseUrl = trimmedString(extra?.publicMediaBaseUrl)?.replace(/\/+$/u, "") || null;
   const googleAndroidClientId = trimmedString(extra?.googleAndroidClientId);
   const googleIosClientId = trimmedString(extra?.googleIosClientId);
   const googleWebClientId = trimmedString(extra?.googleWebClientId);
@@ -66,6 +69,7 @@ export function mobileRuntimeConfigFromExtra(
     apiBaseUrl: resolveApiBaseUrl(apiBaseUrl ?? undefined, environment),
     environment,
     frontendOrigin: resolveFrontendOrigin(frontendOrigin ?? undefined, environment),
+    publicMediaBaseUrl,
     googleAndroidClientId,
     googleIosClientId,
     googleWebClientId,

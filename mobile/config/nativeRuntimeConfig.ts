@@ -18,5 +18,8 @@ export function logMobileRuntimeConfiguration(
   logDevelopmentDiagnostic("runtime_configuration", "info", {
     api_base_url: config.apiBaseUrl,
     environment: config.environment,
+    ...(config.publicMediaBaseUrl
+      ? { public_media_base_url: config.publicMediaBaseUrl }
+      : {}),
   });
 }

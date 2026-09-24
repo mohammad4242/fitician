@@ -17,6 +17,10 @@
       "type": "string",
       "format": "uri-reference"
     },
+    "VITE_MEDIA_PUBLIC_BASE_URL": {
+      "type": "string",
+      "format": "uri-reference"
+    },
     "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": {
       "type": "string"
     },

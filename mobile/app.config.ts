@@ -109,6 +109,33 @@ const appLinkHost = resolveAppLinkHost(process.env.FITICIAN_APP_LINK_HOST, isPro
 const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || "";
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || "";
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || "";
+const rawPublicMediaBaseUrl = process.env.VITE_MEDIA_PUBLIC_BASE_URL?.trim() || "";
+const publicMediaBaseUrl = rawPublicMediaBaseUrl.replace(/\/+$/u, "") || null;
+if (rawPublicMediaBaseUrl && publicMediaBaseUrl === null) {
+  throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid URL");
+}
+if (isProduction && publicMediaBaseUrl === null) {
+  throw new Error("VITE_MEDIA_PUBLIC_BASE_URL is required for production builds");
+}
+if (publicMediaBaseUrl !== null) {
+  let parsedPublicMediaBaseUrl: URL;
+  try {
+    parsedPublicMediaBaseUrl = new URL(publicMediaBaseUrl);
+  } catch {
+    throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid URL");
+  }
+  if (
+    !parsedPublicMediaBaseUrl.hostname
+    || (parsedPublicMediaBaseUrl.protocol !== "http:" && parsedPublicMediaBaseUrl.protocol !== "https:")
+    || parsedPublicMediaBaseUrl.username
+    || parsedPublicMediaBaseUrl.password
+    || parsedPublicMediaBaseUrl.search
+    || parsedPublicMediaBaseUrl.hash
+    || (appVariant !== "development" && parsedPublicMediaBaseUrl.protocol !== "https:")
+  ) {
+    throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid HTTPS URL for release builds");
+  }
+}
 const nitroGoogleSignInPlugin: [string, { iosUrlScheme: string }] | null = googleIosClientId
   ? ["react-native-nitro-google-signin", {
       iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.split(".")[0]}`,
@@ -237,6 +264,7 @@ const config: ExpoConfig = {
       process.env.EXPO_PUBLIC_FRONTEND_ORIGIN,
       runtimeEnvironment,
     ),
+    publicMediaBaseUrl,
     googleAndroidClientId: googleAndroidClientId || null,
     googleIosClientId: googleIosClientId || null,
     googleWebClientId: googleWebClientId || null,

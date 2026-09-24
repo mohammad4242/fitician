@@ -311,6 +311,7 @@ export function ExerciseDetailScreen() {
             onMediaIndexChange={setMediaIndex}
             onPresentationChange={choosePresentation}
             runtimeApiBaseUrl={runtime.apiBaseUrl}
+            runtimePublicMediaBaseUrl={runtime.publicMediaBaseUrl}
           />
           <ExerciseInformation detail={detail} language={language} />
         </>
@@ -329,6 +330,7 @@ function ExerciseMediaPanel({
   onMediaIndexChange,
   onPresentationChange,
   runtimeApiBaseUrl,
+  runtimePublicMediaBaseUrl,
 }: {
   readonly availablePresentations: readonly MediaPresentationChoice[];
   readonly detail: ExerciseDetail;
@@ -339,12 +341,14 @@ function ExerciseMediaPanel({
   readonly onMediaIndexChange: (index: number) => void;
   readonly onPresentationChange: (presentation: MediaPresentationChoice) => void;
   readonly runtimeApiBaseUrl: string;
+  readonly runtimePublicMediaBaseUrl: string | null;
 }) {
   const name = exerciseTitle(detail.name_fa, detail.name_en, language);
   return (
     <Card style={[styles.mediaCard, language === "en" && styles.mediaCardEnglish]} variant="hero">
       <ExerciseMediaCarousel
         apiBaseUrl={runtimeApiBaseUrl}
+        publicMediaBaseUrl={runtimePublicMediaBaseUrl}
         items={mediaItems}
         language={language}
         name={name}

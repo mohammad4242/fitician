@@ -1,7 +1,7 @@
 import type { components } from "@fitician/core";
 
 import type { ExerciseDetail } from "./exerciseApi";
-import { resolveBackendResourceUrl } from "../config/backendResourceUrl";
+import { resolvePublicMediaUrl, type PublicMediaUrlConfig } from "../config/publicMediaUrl";
 
 export type ExerciseMediaItem = {
   readonly key: string;
@@ -71,8 +71,8 @@ export function buildExerciseMediaItems(exercise: ExerciseMediaSource): Exercise
   return items;
 }
 
-export function resolveExerciseMediaUrl(path: string, apiBaseUrl: string): string {
-  return resolveBackendResourceUrl(path, apiBaseUrl);
+export function resolveExerciseMediaUrl(path: string, config: PublicMediaUrlConfig): string {
+  return resolvePublicMediaUrl(path, config);
 }
 
 export function exerciseVideoPosterPath(path: string): string | null {

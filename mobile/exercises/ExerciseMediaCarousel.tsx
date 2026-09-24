@@ -23,6 +23,7 @@ import {
 
 export interface ExerciseMediaCarouselProps {
   readonly apiBaseUrl: string;
+  readonly publicMediaBaseUrl: string | null;
   readonly items: readonly ExerciseMediaItem[];
   readonly language: MobileLanguage;
   readonly name: string;
@@ -38,6 +39,7 @@ const mediaUnavailableCopy: Record<MobileLanguage, string> = {
 
 export function ExerciseMediaCarousel({
   apiBaseUrl,
+  publicMediaBaseUrl,
   items,
   language,
   name,
@@ -100,7 +102,15 @@ export function ExerciseMediaCarousel({
       testID="exercise-media-surface"
     >
       {item !== undefined && isExerciseMediaRenderable(item.mediaPath, item.mediaType) ? (
-        <NativeExerciseMedia item={item} key={`${item.key}:${sourceUri ?? "remote"}`} language={language} name={name} apiBaseUrl={apiBaseUrl} sourceUri={sourceUri} />
+        <NativeExerciseMedia
+          item={item}
+          key={`${item.key}:${sourceUri ?? "remote"}`}
+          language={language}
+          name={name}
+          apiBaseUrl={apiBaseUrl}
+          publicMediaBaseUrl={publicMediaBaseUrl}
+          sourceUri={sourceUri}
+        />
       ) : (
         <MediaFallback language={language} />
       )}
@@ -120,19 +130,27 @@ export function ExerciseMediaCarousel({
 
 function NativeExerciseMedia({
   apiBaseUrl,
+  publicMediaBaseUrl,
   item,
   language,
   name,
   sourceUri,
 }: {
   readonly apiBaseUrl: string;
+  readonly publicMediaBaseUrl: string | null;
   readonly item: ExerciseMediaItem;
   readonly language: MobileLanguage;
   readonly name: string;
   readonly sourceUri?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const source = { uri: sourceUri ?? resolveExerciseMediaUrl(item.mediaPath, apiBaseUrl) };
+  let mediaUri = sourceUri;
+  try {
+    mediaUri ??= resolveExerciseMediaUrl(item.mediaPath, { apiBaseUrl, publicMediaBaseUrl });
+  } catch {
+    return <MediaFallback language={language} />;
+  }
+  const source = { uri: mediaUri };
   const accessibilityLabel = language === "en" ? `Exercise demonstration: ${name}` : `نمایش حرکت ${name}`;
   if (failed) return <MediaFallback language={language} />;
 

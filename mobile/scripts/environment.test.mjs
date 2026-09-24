@@ -19,6 +19,7 @@ test("parses and validates each Fitician mobile environment", () => {
     APP_VARIANT: "production",
     EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
     EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    VITE_MEDIA_PUBLIC_BASE_URL: "https://media.fitician.example",
     FITICIAN_APP_LINK_HOST: "fitician.fit",
   }));
 });
@@ -28,6 +29,7 @@ test("rejects every forbidden production endpoint class", () => {
     APP_VARIANT: "production",
     EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
     EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    VITE_MEDIA_PUBLIC_BASE_URL: "https://media.example.test",
     FITICIAN_APP_LINK_HOST: "fitician.fit",
   };
 
@@ -62,12 +64,75 @@ test("rejects every forbidden production endpoint class", () => {
 
 test("documents the exact public production environment", async () => {
   const example = await readFile(resolve(mobileRoot, ".env.production.example"), "utf8");
+  const schema = await readFile(resolve(mobileRoot, "config/environment.schema.json"), "utf8");
   const values = parseEnvFile(example);
 
   assert.equal(values.APP_VARIANT, "production");
   assert.equal(values.EXPO_PUBLIC_API_BASE_URL, "https://fitician.fit");
   assert.equal(values.EXPO_PUBLIC_FRONTEND_ORIGIN, "https://fitician.fit");
   assert.equal(values.FITICIAN_APP_LINK_HOST, "fitician.fit");
+  assert.equal(values.VITE_MEDIA_PUBLIC_BASE_URL, "");
+  assert.match(
+    example,
+    /same public media base currently used by Web\/CI through the repository variable VITE_MEDIA_PUBLIC_BASE_URL/u,
+  );
+  assert.doesNotMatch(example, /EXPO_PUBLIC_MEDIA_PUBLIC_BASE_URL/u);
+  assert.doesNotMatch(schema, /EXPO_PUBLIC_MEDIA_PUBLIC_BASE_URL/u);
+});
+
+test("validates the shared public media base by environment", () => {
+  const base = {
+    APP_VARIANT: "production",
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+  };
+
+  assert.doesNotThrow(() => validateEnvironment("production", {
+    ...base,
+    VITE_MEDIA_PUBLIC_BASE_URL: "  https://media.example.test/assets///  ",
+  }));
+  assert.doesNotThrow(() => validateEnvironment("preview", {
+    APP_VARIANT: "preview",
+    EXPO_PUBLIC_API_BASE_URL: "https://api-preview.fitician.example",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://preview.fitician.example",
+    FITICIAN_APP_LINK_HOST: "preview.fitician.example",
+    VITE_MEDIA_PUBLIC_BASE_URL: "https://media.example.test",
+  }));
+  assert.throws(() => validateEnvironment("preview", {
+    APP_VARIANT: "preview",
+    EXPO_PUBLIC_API_BASE_URL: "https://api-preview.fitician.example",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://preview.fitician.example",
+    FITICIAN_APP_LINK_HOST: "preview.fitician.example",
+    VITE_MEDIA_PUBLIC_BASE_URL: "http://media.example.test",
+  }), /VITE_MEDIA_PUBLIC_BASE_URL/u);
+  assert.throws(() => validateEnvironment("preview", {
+    APP_VARIANT: "preview",
+    EXPO_PUBLIC_API_BASE_URL: "https://api-preview.fitician.example",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://preview.fitician.example",
+    FITICIAN_APP_LINK_HOST: "preview.fitician.example",
+    VITE_MEDIA_PUBLIC_BASE_URL: "////",
+  }), /VITE_MEDIA_PUBLIC_BASE_URL/u);
+  for (const invalid of [
+    "http://media.example.test",
+    "//media.example.test/assets",
+    "javascript:alert(1)",
+    "file:///media",
+    "data:image/png;base64,abc",
+  ]) {
+    assert.throws(() => validateEnvironment("production", {
+      ...base,
+      VITE_MEDIA_PUBLIC_BASE_URL: invalid,
+    }), /VITE_MEDIA_PUBLIC_BASE_URL/u);
+  }
+  assert.throws(() => validateEnvironment("production", base), /VITE_MEDIA_PUBLIC_BASE_URL/u);
+  assert.doesNotThrow(() => validateEnvironment("development", {
+    APP_VARIANT: "development",
+    EXPO_PUBLIC_API_BASE_URL: "http://10.0.2.2:8001",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "http://localhost:5173",
+    FITICIAN_APP_LINK_HOST: "app.fitician.example",
+  }));
+  assert.doesNotThrow(() => validateEnvironment("production", base, { allowPlaceholder: true }));
 });
 
 test("requires a trusted HTTPS frontend origin outside development", () => {

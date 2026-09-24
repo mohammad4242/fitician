@@ -37,7 +37,6 @@ export function ExerciseMedia({
 }: ExerciseMediaProps) {
   const isFocused = useIsFocused();
   const runtime = getMobileRuntimeConfig();
-  const source = { uri: resolveExerciseMediaUrl(path, runtime.apiBaseUrl) };
   const [posterFailed, setPosterFailed] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,11 +50,27 @@ export function ExerciseMedia({
   const renderable = isExerciseMediaRenderable(path, mediaType);
   const deferredVideo = renderable && mediaType === "video" && deferVideo;
   const posterPath = deferredVideo ? exerciseVideoPosterPath(path) : null;
+  const resolverConfig = {
+    apiBaseUrl: runtime.apiBaseUrl,
+    publicMediaBaseUrl: runtime.publicMediaBaseUrl,
+  };
+  let resolvedMediaUrl: string | null = null;
+  let resolvedPosterUrl: string | null = null;
+  let mediaResolutionFailed = false;
+  try {
+    if (renderable) resolvedMediaUrl = resolveExerciseMediaUrl(path, resolverConfig);
+    if (posterPath !== null) resolvedPosterUrl = resolveExerciseMediaUrl(posterPath, resolverConfig);
+  } catch {
+    mediaResolutionFailed = true;
+  }
+  const source = { uri: resolvedMediaUrl ?? "" };
   const showPoster = deferredVideo
     && (!videoActive || videoFailed)
     && posterPath !== null
+    && resolvedPosterUrl !== null
     && !posterFailed;
   const mediaMounted = renderable
+    && !mediaResolutionFailed
     && !videoFailed
     && (!deferredVideo || videoActive)
     && (mediaType !== "video" || isFocused);
@@ -95,10 +110,10 @@ export function ExerciseMedia({
         <Media
           accessibilityLabel={`پوستر حرکت ${name}`}
           onError={() => setPosterFailed(true)}
-          source={{ uri: resolveExerciseMediaUrl(posterPath, runtime.apiBaseUrl) }}
+          source={{ uri: resolvedPosterUrl ?? "" }}
           style={[styles.media, compact && styles.compactMedia]}
         />
-      ) : !renderable || posterFailed || videoFailed ? (
+      ) : !renderable || posterFailed || videoFailed || mediaResolutionFailed ? (
         <View style={styles.fallback}>
           <AppIcon color={fiticianTokens.colors.aqua} name="training" size={fiticianTokens.iconSize.xl} />
           <Text style={styles.fallbackText}>نمایش حرکت آماده نیست</Text>

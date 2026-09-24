@@ -49,7 +49,7 @@ describe("native exercise media", () => {
     ]);
   });
 
-  it("deduplicates matching paths and resolves relative media against the API origin", () => {
+  it("deduplicates matching paths and resolves media against the shared public base", () => {
     const items = buildExerciseMediaItems({
       media_attribution: null,
       media_assets: [mediaAsset("/media/primary.mp4", 0), mediaAsset("/media/other.mp4", 1)],
@@ -58,11 +58,18 @@ describe("native exercise media", () => {
     });
 
     expect(items).toHaveLength(2);
-    expect(resolveExerciseMediaUrl("/media/primary.mp4", "https://api.fitician.test/")).toBe(
-      "https://api.fitician.test/media/primary.mp4",
-    );
-    expect(() => resolveExerciseMediaUrl("https://cdn.fitician.test/video.mp4", "https://api.fitician.test"))
-      .toThrow(/configured backend origin/u);
+    expect(resolveExerciseMediaUrl("/media/primary.mp4", {
+      apiBaseUrl: "https://api.fitician.test/",
+      publicMediaBaseUrl: "https://public-media.fitician.test/",
+    })).toBe("https://public-media.fitician.test/public/primary.mp4");
+    expect(resolveExerciseMediaUrl("/media/primary.mp4", {
+      apiBaseUrl: "https://api.fitician.test/",
+      publicMediaBaseUrl: null,
+    })).toBe("https://api.fitician.test/media/primary.mp4");
+    expect(() => resolveExerciseMediaUrl("https://cdn.fitician.test/video.mp4", {
+      apiBaseUrl: "https://api.fitician.test",
+      publicMediaBaseUrl: "https://public-media.fitician.test",
+    })).toThrow(/configured trusted origin/u);
   });
 
   it("accepts real GIF, image, and video media but rejects placeholders", () => {

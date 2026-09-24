@@ -893,6 +893,7 @@ class WeeklyPlanFoodResponse(BaseModel):
     slug: str
     name_fa: str
     name_en: str
+    image_url: str | None = None
     grams: float
     cost_irr: int
     nutrients: dict[str, float]

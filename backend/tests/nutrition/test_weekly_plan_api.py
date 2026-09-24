@@ -3,7 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 import app.nutrition.plan_service as plan_service
@@ -183,6 +183,7 @@ def _seed_foods_and_prices(db: Session) -> None:
             slug=slug,
             name_fa=name,
             name_en=slug,
+            image_path=("/media/food-catalogue/lentils.webp" if slug == "task6-lentils" else None),
             verification_status=FoodVerificationStatus.VERIFIED,
             source_name="USDA FoodData Central test mapping",
             source_reference="https://fdc.nal.usda.gov/",
@@ -364,6 +365,61 @@ def test_generation_returns_visible_seven_day_draft_and_creates_review(
         meal["catalogue_meal_id"] is not None and meal["catalogue_meal_category"]
         for day in body["plan"]["days"]
         for meal in day["meals"]
+    )
+
+
+def test_latest_plan_returns_catalogue_food_images_with_one_bulk_lookup(
+    client: TestClient, db: Session
+) -> None:
+    _register_and_estimate(client, db, "weekly-plan-food-images@example.com", meals=2, snacks=1)
+    _seed_foods_and_prices(db)
+
+    generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert generated.status_code == 201, generated.text
+
+    catalogue_food_queries: list[str] = []
+
+    def count_catalogue_food_query(
+        _connection,
+        _cursor,
+        statement: str,
+        _parameters,
+        _context,
+        _executemany,
+    ) -> None:
+        normalized_statement = statement.lower()
+        if (
+            normalized_statement.lstrip().startswith("select")
+            and "from nutrition_catalogue_foods" in normalized_statement
+        ):
+            catalogue_food_queries.append(statement)
+
+    engine = db.get_bind()
+    event.listen(engine, "before_cursor_execute", count_catalogue_food_query)
+    try:
+        latest = client.get("/api/v1/nutrition/plans/latest", headers=ORIGIN)
+    finally:
+        event.remove(engine, "before_cursor_execute", count_catalogue_food_query)
+
+    assert latest.status_code == 200, latest.text
+    body = latest.json()
+    plan_meals = [meal for day in body["days"] for meal in day["meals"]]
+    lunch = next(meal for meal in plan_meals if meal["meal_code"] == "TST-LU01")
+    lentils = next(
+        food for meal in plan_meals for food in meal["foods"] if food["slug"] == "task6-lentils"
+    )
+    assert lunch["image_url"] == "/media/meal-catalogue/test-lunch.png"
+    assert lentils["image_url"] == "/media/food-catalogue/lentils.webp"
+    assert len(catalogue_food_queries) == 1
+
+    stored_plan = db.get(NutritionWeeklyPlan, body["id"])
+    assert stored_plan is not None
+    without_database = plan_service.weekly_plan_response(stored_plan, db=None)
+    assert all(
+        food.image_url is None
+        for day in without_database.days
+        for meal in day.meals
+        for food in meal.foods
     )
 
 

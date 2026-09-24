@@ -2468,6 +2468,23 @@ def weekly_plan_response(
     db: Session | None = None,
     profile_summary: ReviewProfileSummary | None = None,
 ) -> WeeklyPlanResponse:
+    food_ids = {
+        food.food_id
+        for day in plan.days
+        for meal in day.meals
+        for food in meal.foods
+        if food.food_id is not None
+    }
+    food_image_paths: dict[UUID, str | None] = {}
+    if db is not None and food_ids:
+        food_image_paths = dict(
+            db.execute(
+                select(NutritionCatalogueFood.id, NutritionCatalogueFood.image_path).where(
+                    NutritionCatalogueFood.id.in_(food_ids)
+                )
+            ).tuples().all()
+        )
+
     review_status = plan.review.status.value if plan.review else "missing"
     plan_role = plan.generation.plan_role if plan.generation else None
     preference_refresh_required = False
@@ -2570,6 +2587,11 @@ def weekly_plan_response(
                                 slug=food.food_slug,
                                 name_fa=food.food_name_fa,
                                 name_en=food.food_name_en,
+                                image_url=(
+                                    food_image_paths.get(food.food_id)
+                                    if food.food_id is not None
+                                    else None
+                                ),
                                 grams=float(food.grams),
                                 cost_irr=food.cost_irr,
                                 nutrients=_float_map(food.nutrient_snapshot),

@@ -11803,6 +11803,8 @@ export type components = {
             food_id: string | null;
             /** Grams */
             grams: number;
+            /** Image Url */
+            image_url?: string | null;
             /**
              * Item Kind
              * @default food

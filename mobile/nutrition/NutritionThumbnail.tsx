@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
-import { resolveBackendResourceUrl } from "../config/backendResourceUrl";
+import { resolvePublicMediaUrl } from "../config/publicMediaUrl";
 import { AppIcon, Media } from "../ui/components";
 import { fiticianTokens } from "../ui/tokens";
 
@@ -27,7 +27,7 @@ export function NutritionThumbnail({ imageUrl, name, shape = "rounded", style }:
   let resolvedImageUrl: string | null = null;
   if (normalizedImageUrl !== null) {
     try {
-      resolvedImageUrl = resolveNutritionImageUrl(normalizedImageUrl, runtime.apiBaseUrl);
+      resolvedImageUrl = resolvePublicMediaUrl(normalizedImageUrl, runtime);
     } catch {
       resolvedImageUrl = null;
     }
@@ -62,10 +62,6 @@ export function NutritionThumbnail({ imageUrl, name, shape = "rounded", style }:
       ) : null}
     </View>
   );
-}
-
-function resolveNutritionImageUrl(path: string, apiBaseUrl: string): string {
-  return resolveBackendResourceUrl(path, apiBaseUrl);
 }
 
 const styles = StyleSheet.create({

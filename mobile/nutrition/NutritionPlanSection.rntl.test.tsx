@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { formatPersianDateWithWeekday } from "@fitician/core";
-import { Linking, StyleSheet } from "react-native";
+import { Image, Linking, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { ReactTestInstance } from "react-test-renderer";
 
@@ -15,6 +15,18 @@ jest.mock("expo-crypto", () => ({ randomUUID: jest.fn(() => "uuid") }));
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
+jest.mock("../config/nativeRuntimeConfig", () => ({
+  getMobileRuntimeConfig: () => ({
+    apiBaseUrl: "https://api.example.test",
+    appLinkHost: "fitician.fit",
+    environment: "development",
+    frontendOrigin: "https://fitician.fit",
+    googleAndroidClientId: null,
+    googleIosClientId: null,
+    googleWebClientId: null,
+    publicMediaBaseUrl: "https://public-media.example.test",
+  }),
+}));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
 jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../programTimeline/programTimelineApi", () => ({ createProgramTimelineApi: jest.fn() }));
@@ -79,6 +91,7 @@ function planDay(index: number): WeeklyPlan["days"][number] {
         cost_irr: 120_000,
         food_id: "food-1",
         grams: 150,
+        image_url: "/media/food-catalogue/lentils.webp",
         name_en: "Lentils",
         name_fa: "عدس",
         nutrients: { energy_kcal: 300, protein_g: 24 },
@@ -595,6 +608,17 @@ test("keeps meal editing controls available inside the selected day", async () =
 
   fireEvent.press(screen.getByRole("button", { name: "قفل وعده" }));
   await waitFor(() => expect(mockSetMealLock).toHaveBeenCalledWith("plan-1", "meal-0", true));
+});
+
+test("renders meal and food thumbnails from their public media paths", async () => {
+  renderPlan();
+  await settlePdf();
+  openNutritionPlan();
+  fireEvent.press(screen.getByRole("button", { name: "LU01 — جوجه کباب + برنج + گوجه کبابی" }));
+
+  const imageUris = screen.UNSAFE_getAllByType(Image).map((image) => image.props.source.uri);
+  expect(imageUris).toContain("https://public-media.example.test/public/meal-catalogue/lu01.png");
+  expect(imageUris).toContain("https://public-media.example.test/public/food-catalogue/lentils.webp");
 });
 
 test("keeps the unlocked-meal regeneration action inside the selected day", async () => {

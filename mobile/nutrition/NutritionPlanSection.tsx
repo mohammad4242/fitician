@@ -1037,6 +1037,11 @@ function NutritionMealCard({
           {meal.foods.map((food) => (
             <View key={`${food.slug}-${food.food_id ?? food.item_kind}`}>
               <View style={[styles.foodRow, RTL_ROW]}>
+                <NutritionThumbnail
+                  imageUrl={food.image_url}
+                  name={food.name_fa || food.name_en}
+                  style={styles.foodThumbnail}
+                />
                 <Text style={styles.foodName}>{food.name_fa || food.name_en}</Text>
                 <Text style={styles.foodAmount}>{formatNutritionNumber(food.grams)} گرم</Text>
               </View>
@@ -1884,6 +1889,11 @@ const styles = StyleSheet.create({
   },
   foodStack: {
     gap: fiticianTokens.spacing[1],
+  },
+  foodThumbnail: {
+    flexShrink: 0,
+    height: 40,
+    width: 40,
   },
   historyCard: {
     marginBottom: fiticianTokens.spacing[2],

@@ -12,6 +12,7 @@ from app.media.public_migration import (
     verify_manifest,
 )
 from app.media.storage import LocalObjectStorage, ObjectMetadata, ObjectStorageError
+from scripts.migrate_public_media_to_s3 import _required_database_media_paths
 
 
 class MetadataLessStorage(LocalObjectStorage):
@@ -113,18 +114,33 @@ def test_manifest_detects_missing_selected_database_targets(tmp_path: Path) -> N
 
     assert missing_database_targets(
         manifest,
-        (
-            "/media/exercises/bench--123/media-abc.mp4",
-            "/media/exercises/seed/missing.gif",
-            "/media/food-catalogue/missing.jpg",
-            "/media/meal-catalogue/../private.jpg",
-            "/exercises/exercise-placeholder.svg",
+        _required_database_media_paths(
+            (
+                "/media/exercises/bench--123/media-abc.mp4",
+                "/media/exercises/seed/missing.gif",
+                "/media/food-catalogue/missing.jpg",
+                "/media/meal-catalogue/../private.jpg",
+                "/exercises/exercise-placeholder.svg",
+            )
         ),
     ) == (
+        "/media/exercises/bench--123/media-abc.poster.webp",
         "/media/exercises/seed/missing.gif",
         "/media/food-catalogue/missing.jpg",
         "/media/meal-catalogue/../private.jpg",
     )
+
+
+def test_manifest_completeness_passes_when_video_and_required_poster_exist(tmp_path: Path) -> None:
+    media_root = tmp_path / "media"
+    _media_tree(media_root)
+    poster = media_root / "exercises/bench--123/media-abc.poster.webp"
+    poster.parent.mkdir(parents=True, exist_ok=True)
+    poster.write_bytes(b"poster")
+    manifest = build_manifest(media_root, PUBLIC_CATEGORIES)
+    required = _required_database_media_paths(("/media/exercises/bench--123/media-abc.mp4",))
+
+    assert missing_database_targets(manifest, required) == ()
 
 
 def test_upload_is_resumable_and_verifies_downloaded_sha256(tmp_path: Path) -> None:

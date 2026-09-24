@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable
 from pathlib import Path
 
 from sqlalchemy import text
@@ -10,7 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database.session import get_engine
+from app.exercises.media_storage import exercise_video_poster_path
 from app.media.factory import build_s3_storage
+from app.media.object_keys import MediaObjectKeyError, public_object_key
 from app.media.public_migration import (
     ALL_PUBLIC_CATEGORIES,
     PUBLIC_CATEGORIES,
@@ -29,6 +32,21 @@ def _print_examples(label: str, values: tuple[str, ...]) -> None:
         print(f"{label}: {value}")
     if len(values) > 20:
         print(f"{label}: ... and {len(values) - 20} more")
+
+
+def _required_database_media_paths(paths: Iterable[str]) -> tuple[str, ...]:
+    required_paths = set(paths)
+    for path in tuple(required_paths):
+        if not path.startswith("/media/exercises/"):
+            continue
+        try:
+            public_object_key(path)
+        except MediaObjectKeyError:
+            continue
+        poster_path = exercise_video_poster_path(path)
+        if poster_path is not None:
+            required_paths.add(poster_path)
+    return tuple(sorted(required_paths))
 
 
 def _database_media_paths(database_url: str, categories: tuple[str, ...]) -> tuple[str, ...]:
@@ -59,7 +77,7 @@ def _database_media_paths(database_url: str, categories: tuple[str, ...]) -> tup
                 )
                 if path
             )
-    return tuple(sorted(paths))
+    return _required_database_media_paths(paths)
 
 
 def main() -> None:
@@ -102,14 +120,13 @@ def main() -> None:
         )
         print(f"Mapping: {source} -> {prefix}/")
 
-    if args.dry_run or args.upload:
-        database_paths = _database_media_paths(settings.database_url, categories)
-        missing = missing_database_targets(manifest, database_paths)
-        print(f"Database media paths checked: {len(database_paths)}")
-        print(f"Missing database targets: {len(missing)}")
-        _print_examples("Missing", missing)
-        if missing:
-            raise SystemExit(2)
+    database_paths = _database_media_paths(settings.database_url, categories)
+    missing = missing_database_targets(manifest, database_paths)
+    print(f"Database media paths checked: {len(database_paths)}")
+    print(f"Missing database targets: {len(missing)}")
+    _print_examples("Missing", missing)
+    if missing:
+        raise SystemExit(2)
 
     storage = build_s3_storage(settings)
     if args.dry_run:

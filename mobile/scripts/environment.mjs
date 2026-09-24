@@ -65,6 +65,33 @@ export function validateEnvironment(expectedVariant, values, options = {}) {
   if (values.APP_VARIANT !== expectedVariant) {
     throw new Error(`APP_VARIANT must be ${expectedVariant}`);
   }
+  const rawPublicMediaBaseUrl = values.VITE_MEDIA_PUBLIC_BASE_URL?.trim() || "";
+  const publicMediaBaseUrl = rawPublicMediaBaseUrl.replace(/\/+$/u, "");
+  if (rawPublicMediaBaseUrl && !publicMediaBaseUrl) {
+    throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid HTTPS URL for release builds");
+  }
+  if (!publicMediaBaseUrl && expectedVariant === "production" && !options.allowPlaceholder) {
+    throw new Error("VITE_MEDIA_PUBLIC_BASE_URL is required for production builds");
+  }
+  if (publicMediaBaseUrl) {
+    let parsedPublicMediaBaseUrl;
+    try {
+      parsedPublicMediaBaseUrl = new URL(publicMediaBaseUrl);
+    } catch {
+      throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid HTTPS URL for release builds");
+    }
+    if (
+      !parsedPublicMediaBaseUrl.hostname
+      || (parsedPublicMediaBaseUrl.protocol !== "http:" && parsedPublicMediaBaseUrl.protocol !== "https:")
+      || parsedPublicMediaBaseUrl.username
+      || parsedPublicMediaBaseUrl.password
+      || parsedPublicMediaBaseUrl.search
+      || parsedPublicMediaBaseUrl.hash
+      || (expectedVariant !== "development" && parsedPublicMediaBaseUrl.protocol !== "https:")
+    ) {
+      throw new Error("VITE_MEDIA_PUBLIC_BASE_URL must be a valid HTTPS URL for release builds");
+    }
+  }
   const apiUrl = values.EXPO_PUBLIC_API_BASE_URL;
   if (!apiUrl) throw new Error("EXPO_PUBLIC_API_BASE_URL is required");
   const parsedApiUrl = new URL(apiUrl);

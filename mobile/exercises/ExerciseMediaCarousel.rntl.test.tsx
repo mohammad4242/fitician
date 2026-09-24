@@ -5,12 +5,14 @@ const mockVideoPlayer = {
   addListener: jest.fn(),
   status: "idle",
 };
+const mockUseVideoPlayer = jest.fn();
 
 jest.mock("expo-video", () => {
   const React = jest.requireActual("react") as typeof import("react");
   const { View } = jest.requireActual("react-native") as typeof import("react-native");
   return {
-    useVideoPlayer: (_source: unknown, setup?: (player: typeof mockVideoPlayer) => void) => {
+    useVideoPlayer: (source: unknown, setup?: (player: typeof mockVideoPlayer) => void) => {
+      mockUseVideoPlayer(source);
       setup?.(mockVideoPlayer);
       return mockVideoPlayer;
     },
@@ -43,6 +45,7 @@ const items: ExerciseMediaItem[] = [
 
 beforeEach(() => {
   mockVideoPlayer.addListener.mockClear();
+  mockUseVideoPlayer.mockClear();
 });
 
 test("mounts one current player and keeps pagination on the media surface", () => {
@@ -50,6 +53,7 @@ test("mounts one current player and keeps pagination on the media surface", () =
   const { rerender } = render(
     <ExerciseMediaCarousel
       apiBaseUrl="https://api.example.com"
+      publicMediaBaseUrl="https://public-media.example.com"
       items={items}
       language="fa"
       name="پرس بالا سینه دمبل"
@@ -63,10 +67,14 @@ test("mounts one current player and keeps pagination on the media surface", () =
   expect(screen.getByLabelText("1/2")).toBeTruthy();
   expect(screen.getAllByTestId("native-video")).toHaveLength(1);
   expect(screen.getByTestId("native-video").props.nativeControls).toBe(true);
+  expect(mockUseVideoPlayer.mock.calls[0]?.[0]).toEqual({
+    uri: "https://public-media.example.com/public/male-1.mp4",
+  });
 
   rerender(
     <ExerciseMediaCarousel
       apiBaseUrl="https://api.example.com"
+      publicMediaBaseUrl="https://public-media.example.com"
       items={items}
       language="fa"
       name="پرس بالا سینه دمبل"
@@ -84,6 +92,7 @@ test("hides single-item pagination and renders the clean missing-media state", (
   const { rerender } = render(
     <ExerciseMediaCarousel
       apiBaseUrl="https://api.example.com"
+      publicMediaBaseUrl="https://public-media.example.com"
       items={[items[0]]}
       language="fa"
       name="پرس بالا سینه دمبل"
@@ -97,6 +106,7 @@ test("hides single-item pagination and renders the clean missing-media state", (
   rerender(
     <ExerciseMediaCarousel
       apiBaseUrl="https://api.example.com"
+      publicMediaBaseUrl="https://public-media.example.com"
       items={[]}
       language="fa"
       name="پرس بالا سینه دمبل"
@@ -113,6 +123,7 @@ test("falls back cleanly when the mounted video reports a load error", () => {
   render(
     <ExerciseMediaCarousel
       apiBaseUrl="https://api.example.com"
+      publicMediaBaseUrl="https://public-media.example.com"
       items={[items[0]]}
       language="en"
       name="Dumbbell Incline Bench Press"
