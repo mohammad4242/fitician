@@ -1,3 +1,7 @@
+www.{$FITICIAN_DOMAIN} {
+	redir https://{$FITICIAN_DOMAIN}{uri} 308
+}
+
 {$FITICIAN_DOMAIN} {
 	handle /healthz {
 		reverse_proxy backend:8000 backend-2:8000 {

@@ -1,0 +1,218 @@
+name: Deploy Caddy www redirect
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: Deploy the validated Caddy configuration to production
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-caddy:
+    name: Validate Caddy and production Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate production Compose and Caddyfile
+        run: |
+          env \
+            DOCKERHUB_USERNAME=example \
+            IMAGE_TAG=0000000000000000000000000000000000000000 \
+            POSTGRES_PASSWORD=placeholder \
+            REDIS_PASSWORD=placeholder \
+            AGENT_SERVICE_TOKEN=placeholder \
+            DATABASE_URL=postgresql+psycopg://fitician:placeholder@db:5432/fitician \
+            FITICIAN_DOMAIN=fitician.fit \
+            docker compose -f compose.prod.yaml config --quiet
+          docker run --rm -e FITICIAN_DOMAIN=fitician.fit \
+            -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
+
+  deploy-caddy-production:
+    name: Deploy Caddy only and verify www TLS
+    if: inputs.deploy_production
+    needs: validate-caddy
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: fitician-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Pin VPS host key
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Validate production target
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          test -n "$VPS_HOST"
+          test -n "$VPS_USER"
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+      - name: Stage validated Caddyfile
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          scp Caddyfile "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-candidate"
+      - name: Install Caddyfile and restart only Caddy
+        id: deploy-caddy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$VPS_APP_DIR"
+
+          compose() {
+            docker compose -f compose.prod.yaml "$@"
+          }
+          non_caddy_service_ids() {
+            local id service
+            while IFS= read -r id; do
+              [ -n "$id" ] || continue
+              service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
+              [ "$service" = caddy ] || printf '%s:%s\n' "$service" "$id"
+            done < <(compose ps -q) | sort
+          }
+          rollback_caddy() {
+            cp "$backup" Caddyfile
+            compose up -d --no-deps --force-recreate --wait --wait-timeout 90 caddy
+          }
+
+          candidate="$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-candidate"
+          backup="$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-rollback"
+          test -s "$candidate"
+          caddy_id=$(compose ps -q caddy)
+          test -n "$caddy_id"
+          domain=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$caddy_id" | grep '^FITICIAN_DOMAIN=' | cut -d= -f2-)
+          test "$domain" = fitician.fit
+          before_ids=$(non_caddy_service_ids)
+
+          docker run --rm -e FITICIAN_DOMAIN="$domain" \
+            -v "$candidate:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
+          cp -p Caddyfile "$backup"
+          mv "$candidate" Caddyfile
+          if ! compose up -d --no-deps --force-recreate --wait --wait-timeout 90 caddy; then
+            echo "Caddy restart failed; restoring the previous Caddyfile" >&2
+            rollback_caddy || true
+            compose logs --no-color --tail=120 caddy >&2 || true
+            exit 1
+          fi
+
+          after_ids=$(non_caddy_service_ids)
+          if [ "$before_ids" != "$after_ids" ]; then
+            echo "A non-Caddy service changed during deployment; restoring Caddy" >&2
+            rollback_caddy || true
+            compose logs --no-color --tail=120 caddy >&2 || true
+            exit 1
+          fi
+
+          caddy_id=$(compose ps -q caddy)
+          test -n "$caddy_id"
+          test "$(docker inspect --format '{{.State.Status}}' "$caddy_id")" = running
+          echo "Caddy config installed; all non-Caddy service IDs are unchanged."
+          REMOTE
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+      - name: Verify production www TLS, redirect, and ownership tag
+        run: |
+          set -euo pipefail
+          expected='<meta name="enamad" content="74257848" />'
+
+          for attempt in $(seq 1 24); do
+            if curl --silent --show-error --head --max-time 15 https://www.fitician.fit/ >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 24 ]; then
+              echo "TLS did not become valid for www.fitician.fit." >&2
+              exit 1
+            fi
+            sleep 10
+          done
+
+          www_head=$(curl --silent --show-error --head --max-time 20 https://www.fitician.fit/)
+          printf '%s\n' "$www_head"
+          printf '%s\n' "$www_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308$'
+          location=$(printf '%s\n' "$www_head" | tr -d '\r' | awk 'tolower($1) == "location:" {print $2; exit}')
+          test "$location" = 'https://fitician.fit/'
+
+          redirect_chain=$(curl --silent --show-error --head --location --max-redirs 3 \
+            --max-time 20 --write-out '\nFINAL:%{http_code}|%{url_effective}|%{num_redirects}\n' \
+            https://www.fitician.fit/)
+          printf '%s\n' "$redirect_chain"
+          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308$'
+          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200$'
+          printf '%s\n' "$redirect_chain" | grep -F 'FINAL:200|https://fitician.fit/|1'
+
+          root_head=$(curl --silent --show-error --head --max-time 20 https://fitician.fit/)
+          printf '%s\n' "$root_head"
+          printf '%s\n' "$root_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200$'
+
+          printf '%s\n' 'curl -sL https://www.fitician.fit | grep -i enamad'
+          www_html=$(curl --fail --silent --show-error --location --max-redirs 3 --max-time 20 https://www.fitician.fit/)
+          printf '%s' "$www_html" | grep -i 'enamad'
+          test "$(printf '%s' "$www_html" | grep -F -o "$expected" | wc -l | tr -d ' ')" = 1
+
+          printf '%s\n' 'curl -s https://fitician.fit | grep -i enamad'
+          root_html=$(curl --fail --silent --show-error --max-time 20 https://fitician.fit/)
+          printf '%s' "$root_html" | grep -i 'enamad'
+          test "$(printf '%s' "$root_html" | grep -F -o "$expected" | wc -l | tr -d ' ')" = 1
+      - name: Capture Caddy certificate diagnostics
+        if: failure() && steps.deploy-caddy.outputs.deployed == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "cd '$VPS_APP_DIR' && docker compose -f compose.prod.yaml ps caddy && docker compose -f compose.prod.yaml logs --no-color --tail=200 caddy"
+      - name: Roll back Caddy after failed public verification
+        if: failure() && steps.deploy-caddy.outputs.deployed == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$VPS_APP_DIR"
+          backup="$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-rollback"
+          test -s "$backup"
+          cp "$backup" Caddyfile
+          docker compose -f compose.prod.yaml up -d --no-deps --force-recreate --wait --wait-timeout 90 caddy
+          REMOTE
+      - name: Remove deployment backup after success
+        if: success() && steps.deploy-caddy.outputs.deployed == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "rm -f '$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-rollback' '$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-candidate'"
