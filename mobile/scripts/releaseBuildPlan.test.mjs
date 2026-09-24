@@ -106,7 +106,8 @@ test("protected release workflow exposes all three EAS artifact profiles", async
   assert.doesNotMatch(androidWorkflow, /EAS_TOKEN/u);
   assert.match(androidWorkflow, /working-directory:\s*mobile/u);
   assert.match(androidWorkflow, /FITICIAN_EAS_ENVIRONMENT:\s*\$\{\{\s*inputs\.profile == 'production-device' && 'production' \|\| inputs\.profile\s*\}\}/u);
-  assert.match(androidWorkflow, /eas-cli@latest env:exec/u);
+  assert.match(androidWorkflow, /eas-cli@latest env:exec\s+\\\n\s+"\$FITICIAN_EAS_ENVIRONMENT"\s+\\\n\s+"npm run \$build_script"\s+\\\n\s+--non-interactive/u);
+  assert.doesNotMatch(androidWorkflow, /env:exec\s+\\\n\s+--environment/u);
   assert.match(androidWorkflow, /node-version:\s*["']20\.19\.4["']/u);
   assert.match(iosWorkflow, /name: Fitician iOS release/u);
   assert.match(iosWorkflow, /workflow_dispatch:/u);
@@ -114,7 +115,8 @@ test("protected release workflow exposes all three EAS artifact profiles", async
   assert.doesNotMatch(iosWorkflow, /EAS_TOKEN/u);
   assert.match(iosWorkflow, /working-directory:\s*mobile/u);
   assert.match(iosWorkflow, /FITICIAN_EAS_ENVIRONMENT:\s*\$\{\{\s*inputs\.profile\s*\}\}/u);
-  assert.match(iosWorkflow, /eas-cli@latest env:exec/u);
+  assert.match(iosWorkflow, /eas-cli@latest env:exec\s+\\\n\s+"\$FITICIAN_EAS_ENVIRONMENT"\s+\\\n\s+"npm run \$build_script"\s+\\\n\s+--non-interactive/u);
+  assert.doesNotMatch(iosWorkflow, /env:exec\s+\\\n\s+--environment/u);
   assert.match(iosWorkflow, /node-version:\s*["']20\.19\.4["']/u);
   for (const profile of ["development", "preview", "production-device", "production"]) {
     assert.match(androidWorkflow, new RegExp(profile, "u"));

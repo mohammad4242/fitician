@@ -16,9 +16,9 @@ Run the artifact commands only from a protected EAS environment:
 
 ```bash
 cd mobile
-npx --yes eas-cli@latest env:exec --environment development 'npm run build:android:debug'
-npx --yes eas-cli@latest env:exec --environment preview 'npm run build:android:internal'
-npx --yes eas-cli@latest env:exec --environment production 'npm run build:android:production'
+npx --yes eas-cli@latest env:exec development 'npm run build:android:debug' --non-interactive
+npx --yes eas-cli@latest env:exec preview 'npm run build:android:internal' --non-interactive
+npx --yes eas-cli@latest env:exec production 'npm run build:android:production' --non-interactive
 ```
 
 Each command requires `EXPO_TOKEN`. The shared build helper also accepts the
@@ -79,9 +79,9 @@ Run the exact iOS builds from a protected EAS environment:
 
 ```bash
 cd mobile
-npx --yes eas-cli@latest env:exec --environment development 'npm run build:ios:debug'
-npx --yes eas-cli@latest env:exec --environment preview 'npm run build:ios:internal'
-npx --yes eas-cli@latest env:exec --environment production 'npm run build:ios:production'
+npx --yes eas-cli@latest env:exec development 'npm run build:ios:debug' --non-interactive
+npx --yes eas-cli@latest env:exec preview 'npm run build:ios:internal' --non-interactive
+npx --yes eas-cli@latest env:exec production 'npm run build:ios:production' --non-interactive
 ```
 
 Each command requires `EXPO_TOKEN` and remote Apple signing configured in the

@@ -43,6 +43,6 @@ jobs:
             *) echo "Unsupported release profile" >&2; exit 2 ;;
           esac
           npx --yes eas-cli@latest env:exec \
-            --environment "$FITICIAN_EAS_ENVIRONMENT" \
-            --non-interactive \
-            "npm run $build_script"
+            "$FITICIAN_EAS_ENVIRONMENT" \
+            "npm run $build_script" \
+            --non-interactive
