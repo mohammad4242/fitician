@@ -94,9 +94,10 @@ jobs:
           EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
         run: |
           docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID \
+            -e 'EXPECTED_ENAMAD_META_TAG=<meta name="enamad" content="74257848" />' \
             "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
               test -f /usr/share/nginx/html/index.html
-              test "$(grep -F -o '<meta name="enamad" content="74257848" />' /usr/share/nginx/html/index.html | wc -l)" -eq 1
+              test "$(grep -F -o -- "$EXPECTED_ENAMAD_META_TAG" /usr/share/nginx/html/index.html | wc -l)" -eq 1
               test -f /usr/share/nginx/html/exercises/exercise-placeholder.svg
               test -f /usr/share/nginx/html/pwa/icon-192.png
               test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
