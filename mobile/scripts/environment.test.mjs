@@ -107,7 +107,12 @@ test("validates each configured Google client ID without blocking the other plat
     ...base,
     EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "android.apps.googleusercontent.com",
     EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: "ios.apps.googleusercontent.com",
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "web.apps.googleusercontent.com",
   }));
+  assert.throws(() => validateEnvironment("preview", {
+    ...base,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "web-client",
+  }), /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID must be a Google OAuth client ID/u);
 });
 
 test("requires the iOS Google client ID for release environments", () => {

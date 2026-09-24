@@ -108,7 +108,13 @@ const googleServicesFile = process.env.GOOGLE_SERVICES_JSON?.trim();
 const appLinkHost = resolveAppLinkHost(process.env.FITICIAN_APP_LINK_HOST, isProduction);
 const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || "";
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || "";
-for (const clientId of [googleAndroidClientId, googleIosClientId]) {
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || "";
+const nitroGoogleSignInPlugin: [string, { iosUrlScheme: string }] | null = googleIosClientId
+  ? ["react-native-nitro-google-signin", {
+      iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.split(".")[0]}`,
+    }]
+  : null;
+for (const clientId of [googleAndroidClientId, googleIosClientId, googleWebClientId]) {
   if (clientId && !clientId.endsWith(".apps.googleusercontent.com")) {
     throw new Error("Google client IDs must use the Google OAuth client ID format");
   }
@@ -122,6 +128,13 @@ if (
   && !googleAndroidClientId
 ) {
   throw new Error("EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required for Android release builds");
+}
+if (
+  process.env.EAS_BUILD_PLATFORM === "android"
+  && appVariant !== "development"
+  && !googleWebClientId
+) {
+  throw new Error("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is required for Android Google Sign-In");
 }
 
 const config: ExpoConfig = {
@@ -148,6 +161,7 @@ const config: ExpoConfig = {
     ],
     ["expo-font", fiticianFontConfig],
     "expo-secure-store",
+    ...(nitroGoogleSignInPlugin ? [nitroGoogleSignInPlugin] : []),
     ["expo-sqlite", { useSQLCipher: true }],
     [
       "expo-image-picker",
@@ -225,6 +239,7 @@ const config: ExpoConfig = {
     ),
     googleAndroidClientId: googleAndroidClientId || null,
     googleIosClientId: googleIosClientId || null,
+    googleWebClientId: googleWebClientId || null,
     eas: { projectId: easProjectId },
   },
 };

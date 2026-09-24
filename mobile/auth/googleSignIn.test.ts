@@ -7,6 +7,7 @@ import * as runtimeConfig from "../config/runtimeConfig";
 type RuntimeClientConfig = {
   readonly googleAndroidClientId: string | null;
   readonly googleIosClientId: string | null;
+  readonly googleWebClientId: string | null;
 };
 
 it("selects the platform-specific Google client ID and disables missing platforms", () => {
@@ -25,19 +26,22 @@ it("selects the platform-specific Google client ID and disables missing platform
   const config = {
     googleAndroidClientId: "android-client.apps.googleusercontent.com",
     googleIosClientId: "ios-client.apps.googleusercontent.com",
+    googleWebClientId: "web-client.apps.googleusercontent.com",
   };
   expect(selectClientId("android", config)).toBe(config.googleAndroidClientId);
   expect(selectClientId("ios", config)).toBe(config.googleIosClientId);
   expect(selectClientId("ios", { ...config, googleIosClientId: null })).toBeNull();
 });
 
-it("configures Expo Auth Session with the native platform client ID", async () => {
+it("uses Credential Manager on Android and keeps Expo Auth Session for iOS", async () => {
   const source = await readFile(resolve(__dirname, "GoogleSignIn.tsx"), "utf8");
 
   expect(source).toMatch(/Platform\.OS/);
   expect(source).toMatch(/iosClientId/);
   expect(source).toMatch(/googleClientIdForPlatform/);
-  expect(source).toMatch(/available\s*=\s*clientId\s*!==\s*null/u);
+  expect(source).toMatch(/requestAndroidGoogleIdToken/u);
+  expect(source).toMatch(/googleWebClientId/u);
+  expect(source).not.toMatch(/androidClientId:\s*clientId/u);
 });
 
 it("does not embed a fallback OAuth client ID when Google is unconfigured", async () => {

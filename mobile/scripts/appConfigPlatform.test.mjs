@@ -20,6 +20,8 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       apiBaseUrl: config.extra.apiBaseUrl,
       frontendOrigin: config.extra.frontendOrigin,
       appLinkHost: config.extra.appLinkHost,
+      googleAndroidClientId: config.extra.googleAndroidClientId,
+      googleWebClientId: config.extra.googleWebClientId,
     }));
   `], {
     cwd: new URL("../", import.meta.url),
@@ -30,6 +32,7 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       APP_VARIANT: variant,
       EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: googleIosClientId,
       EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "android.apps.googleusercontent.com",
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "web.apps.googleusercontent.com",
       EXPO_PUBLIC_API_BASE_URL: "https://api.example.com",
       EXPO_PUBLIC_FRONTEND_ORIGIN: "https://app.example.com",
       FITICIAN_APP_LINK_HOST: "app.example.com",
@@ -79,6 +82,17 @@ test("Android preview also requires the ID while development remains buildable w
     EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: "",
   });
   assert.equal(development.status, 0, development.stderr);
+});
+
+test("Android release config requires the Web audience ID for Credential Manager", () => {
+  const result = loadConfig("android", "production", "", {
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "",
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is required/u);
 });
 
 test("iOS preview still requires Google client configuration", () => {
@@ -165,6 +179,8 @@ test("Android production resolves only the approved public runtime", () => {
     apiBaseUrl: "https://fitician.fit",
     frontendOrigin: "https://fitician.fit",
     appLinkHost: "fitician.fit",
+    googleAndroidClientId: "android.apps.googleusercontent.com",
+    googleWebClientId: "web.apps.googleusercontent.com",
   });
 
   for (const appLinkHost of ["app.fitician.example", "localhost", "100.97.78.5"]) {

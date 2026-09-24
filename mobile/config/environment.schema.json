@@ -23,6 +23,9 @@
     "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": {
       "type": "string"
     },
+    "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": {
+      "type": "string"
+    },
     "EXPO_UPDATES_URL": {
       "type": "string",
       "format": "uri-reference"

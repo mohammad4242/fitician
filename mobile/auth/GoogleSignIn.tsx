@@ -2,10 +2,12 @@ import * as WebBrowser from "expo-web-browser";
 import { useIdTokenAuthRequest } from "expo-auth-session/providers/google";
 import { useCallback } from "react";
 import { Platform } from "react-native";
+import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { googleClientIdForPlatform } from "../config/runtimeConfig";
 import { googleCredentialFromResult, googleResultMessage, GoogleSignInFlowError } from "./googleCredential";
+import { requestAndroidGoogleIdToken } from "./googleNativeCredential";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -18,12 +20,12 @@ export interface GoogleSignInController {
 export function useGoogleSignIn(): GoogleSignInController {
   const runtime = getMobileRuntimeConfig();
   const clientId = googleClientIdForPlatform(Platform.OS, runtime);
-  const available = clientId !== null;
+  const available = Platform.OS === "android"
+    ? clientId !== null && runtime.googleWebClientId !== null
+    : clientId !== null;
   const clientConfig = Platform.OS === "ios"
     ? { iosClientId: clientId ?? "" }
-    : Platform.OS === "android"
-      ? { androidClientId: clientId ?? "" }
-      : { webClientId: clientId ?? "" };
+    : { webClientId: Platform.OS === "android" ? "" : clientId ?? "" };
   const [request, , promptAsync] = useIdTokenAuthRequest(
     {
       ...clientConfig,
@@ -36,13 +38,16 @@ export function useGoogleSignIn(): GoogleSignInController {
     if (!available) {
       throw new GoogleSignInFlowError("ورود با گوگل در این محیط پیکربندی نشده است.");
     }
+    if (Platform.OS === "android") {
+      return requestAndroidGoogleIdToken(GoogleOneTapSignIn, runtime.googleWebClientId);
+    }
     const result = await promptAsync();
     const credential = googleCredentialFromResult(result);
     if (credential === null) {
       throw new GoogleSignInFlowError(googleResultMessage(result));
     }
     return credential;
-  }, [available, promptAsync]);
+  }, [available, promptAsync, runtime.googleWebClientId]);
 
-  return { available, ready: request !== null, signIn };
+  return { available, ready: Platform.OS === "android" ? available : request !== null, signIn };
 }

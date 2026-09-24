@@ -10,6 +10,7 @@ it("normalizes the native API, trusted web origin, and optional Google client co
       frontendOrigin: "https://fitician.example/",
       googleAndroidClientId: "android-client.apps.googleusercontent.com",
       googleIosClientId: "ios-client.apps.googleusercontent.com",
+      googleWebClientId: "web-client.apps.googleusercontent.com",
     }),
   ).toEqual({
     appLinkHost: "fitician.fit",
@@ -18,6 +19,7 @@ it("normalizes the native API, trusted web origin, and optional Google client co
     frontendOrigin: "https://fitician.example",
     googleAndroidClientId: "android-client.apps.googleusercontent.com",
     googleIosClientId: "ios-client.apps.googleusercontent.com",
+    googleWebClientId: "web-client.apps.googleusercontent.com",
   });
 });
 
@@ -29,6 +31,7 @@ it("uses the safe public origin when development configuration is absent", () =>
     frontendOrigin: "https://fitician.fit",
     googleAndroidClientId: null,
     googleIosClientId: null,
+    googleWebClientId: null,
   });
 });
 

@@ -42,9 +42,11 @@ function validateHostname(value) {
 function validateGoogleClientIds(values, options = {}) {
   const androidClientId = values.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() || "";
   const iosClientId = values.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() || "";
+  const webClientId = values.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() || "";
   for (const [name, clientId] of [
     ["EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID", androidClientId],
     ["EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID", iosClientId],
+    ["EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID", webClientId],
   ]) {
     if (!clientId) continue;
     if (!clientId.endsWith(".apps.googleusercontent.com")) {

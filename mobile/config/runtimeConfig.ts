@@ -14,6 +14,7 @@ export interface MobileRuntimeConfig {
   readonly frontendOrigin: string;
   readonly googleAndroidClientId: string | null;
   readonly googleIosClientId: string | null;
+  readonly googleWebClientId: string | null;
 }
 
 export interface MobileRuntimeExtra {
@@ -23,6 +24,7 @@ export interface MobileRuntimeExtra {
   readonly frontendOrigin?: unknown;
   readonly googleAndroidClientId?: unknown;
   readonly googleIosClientId?: unknown;
+  readonly googleWebClientId?: unknown;
 }
 
 function trimmedString(value: unknown): string | null {
@@ -58,6 +60,7 @@ export function mobileRuntimeConfigFromExtra(
   const frontendOrigin = trimmedString(extra?.frontendOrigin);
   const googleAndroidClientId = trimmedString(extra?.googleAndroidClientId);
   const googleIosClientId = trimmedString(extra?.googleIosClientId);
+  const googleWebClientId = trimmedString(extra?.googleWebClientId);
   return {
     appLinkHost: appLinkHost ?? DEFAULT_APP_LINK_HOST,
     apiBaseUrl: resolveApiBaseUrl(apiBaseUrl ?? undefined, environment),
@@ -65,5 +68,6 @@ export function mobileRuntimeConfigFromExtra(
     frontendOrigin: resolveFrontendOrigin(frontendOrigin ?? undefined, environment),
     googleAndroidClientId,
     googleIosClientId,
+    googleWebClientId,
   };
 }
