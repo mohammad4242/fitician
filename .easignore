@@ -1,4 +1,5 @@
 .git
+/app.json
 .worktrees/
 .superpowers/
 .codex*/
