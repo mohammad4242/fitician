@@ -583,6 +583,7 @@ function ExerciseCard({
         <ExerciseMedia
           accessibilityLabel={`نمایش حرکت ${name}`}
           compact
+          deferVideo
           mediaType={exercise.media_type}
           name={name}
           path={exercise.media_path}
