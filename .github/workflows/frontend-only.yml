@@ -94,7 +94,7 @@ jobs:
           EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
         run: |
           docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID \
-            -e 'EXPECTED_ENAMAD_META_TAG=<meta name="enamad" content ="74257848"/>' \
+            -e 'EXPECTED_ENAMAD_META_TAG=<meta name="enamad" content="74257848" />' \
             "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
               test -f /usr/share/nginx/html/index.html
               test "$(grep -F -o -- "$EXPECTED_ENAMAD_META_TAG" /usr/share/nginx/html/index.html | wc -l)" -eq 1
@@ -218,7 +218,7 @@ jobs:
           for attempt in 1 2 3 4 5 6; do
             if html=$(curl --fail --silent --show-error --location \
               -H 'Cache-Control: no-cache' --max-time 20 https://fitician.fit/); then
-              count=$(printf '%s' "$html" | grep -F -o '<meta name="enamad" content ="74257848"/>' | wc -l | tr -d ' ')
+              count=$(printf '%s' "$html" | grep -F -o '<meta name="enamad" content="74257848" />' | wc -l | tr -d ' ')
               if [ "$count" = 1 ]; then
                 echo "Production HTML contains the ownership tag exactly once."
                 exit 0
