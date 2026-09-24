@@ -159,7 +159,7 @@ jobs:
 
           www_head=$(curl --silent --show-error --head --max-time 20 https://www.fitician.fit/)
           printf '%s\n' "$www_head"
-          printf '%s\n' "$www_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308$'
+          printf '%s\n' "$www_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308[[:space:]]*$'
           location=$(printf '%s\n' "$www_head" | tr -d '\r' | awk 'tolower($1) == "location:" {print $2; exit}')
           test "$location" = 'https://fitician.fit/'
 
@@ -167,13 +167,13 @@ jobs:
             --max-time 20 --write-out '\nFINAL:%{http_code}|%{url_effective}|%{num_redirects}\n' \
             https://www.fitician.fit/)
           printf '%s\n' "$redirect_chain"
-          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308$'
-          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200$'
+          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 308[[:space:]]*$'
+          printf '%s\n' "$redirect_chain" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200[[:space:]]*$'
           printf '%s\n' "$redirect_chain" | grep -F 'FINAL:200|https://fitician.fit/|1'
 
           root_head=$(curl --silent --show-error --head --max-time 20 https://fitician.fit/)
           printf '%s\n' "$root_head"
-          printf '%s\n' "$root_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200$'
+          printf '%s\n' "$root_head" | tr -d '\r' | grep -Eq '^HTTP/[^ ]+ 200[[:space:]]*$'
 
           printf '%s\n' 'curl -sL https://www.fitician.fit | grep -i enamad'
           www_html=$(curl --fail --silent --show-error --location --max-redirs 3 --max-time 20 https://www.fitician.fit/)
