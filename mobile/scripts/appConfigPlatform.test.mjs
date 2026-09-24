@@ -135,7 +135,7 @@ test("Android production resolves only the approved public runtime", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), {
     name: "Fitician",
-    version: "0.1.0",
+    version: "0.1.1",
     package: "com.fitician.app",
     plugins: [
       "expo-router",
