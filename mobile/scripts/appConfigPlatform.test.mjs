@@ -35,6 +35,7 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "web.apps.googleusercontent.com",
       EXPO_PUBLIC_API_BASE_URL: "https://api.example.com",
       EXPO_PUBLIC_FRONTEND_ORIGIN: "https://app.example.com",
+      VITE_MEDIA_PUBLIC_BASE_URL: "https://media.example.test",
       FITICIAN_APP_LINK_HOST: "app.example.com",
       ...overrides,
     },
@@ -66,6 +67,17 @@ test("Android release config fails clearly when its Google client ID is missing"
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required/u);
+});
+
+test("Android production config fails clearly when the public media base is missing", () => {
+  const result = loadConfig("android", "production", "", {
+    EXPO_PUBLIC_API_BASE_URL: "https://fitician.fit",
+    EXPO_PUBLIC_FRONTEND_ORIGIN: "https://fitician.fit",
+    FITICIAN_APP_LINK_HOST: "fitician.fit",
+    VITE_MEDIA_PUBLIC_BASE_URL: "",
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /VITE_MEDIA_PUBLIC_BASE_URL is required for production builds/u);
 });
 
 test("Android preview also requires the ID while development remains buildable without it", () => {

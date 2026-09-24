@@ -4,6 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: CI execution mode
+        required: true
+        type: choice
+        options:
+          - full
+          - mobile-resume
+        default: full
 
 permissions:
   contents: read
@@ -15,6 +25,7 @@ concurrency:
 jobs:
   backend:
     name: Backend tests
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -110,6 +121,7 @@ jobs:
 
   frontend:
     name: Frontend tests, lint, and build
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,6 +137,7 @@ jobs:
 
   frontend-browser:
     name: Frontend browser regression (Chromium and WebKit)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     needs: frontend
     env:
@@ -165,6 +178,7 @@ jobs:
 
   shared:
     name: Shared core and contract checks
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -182,6 +196,56 @@ jobs:
 
   mobile:
     name: Mobile tests and validation
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.4"
+          cache: npm
+      - run: npm ci
+      - run: npm run build:core
+      - run: npm run test --workspace @fitician/mobile
+      - run: npm run test:native --workspace @fitician/mobile
+      - run: npm run test:mobile:foundation
+      - run: npm run typecheck:mobile
+      - run: npm run validate:mobile
+
+  mobile-resume-guard:
+    name: Validate mobile-only resume diff
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'mobile-resume' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require the previously validated parent and approved file allowlist
+        env:
+          EXPECTED_PARENT_SHA: 42f3d0735bac940c29bee446ca5dde798b4f3b38
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "${GITHUB_SHA}^")" = "$EXPECTED_PARENT_SHA"
+          git cat-file -e "${EXPECTED_PARENT_SHA}^{commit}"
+          expected_files="$(printf '%s\n' \
+            '.github/workflows/ci.yml' \
+            'mobile/scripts/appConfigPlatform.test.mjs' | LC_ALL=C sort)"
+          changed_files="$(git diff --name-only "$EXPECTED_PARENT_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
+          if [ "$changed_files" != "$expected_files" ]; then
+            echo "mobile-resume permits only these changed files:" >&2
+            printf '%s\n' "$expected_files" >&2
+            echo "actual changed files:" >&2
+            printf '%s\n' "$changed_files" >&2
+            exit 1
+          fi
+          git diff --check "$EXPECTED_PARENT_SHA" "$GITHUB_SHA"
+
+  mobile-resume:
+    name: Mobile resume tests and validation
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'mobile-resume' && github.ref == 'refs/heads/main' }}
+    needs: mobile-resume-guard
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -199,6 +263,7 @@ jobs:
 
   android:
     name: Android debug build
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -225,6 +290,7 @@ jobs:
 
   dependencies:
     name: Dependency audit
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -237,6 +303,7 @@ jobs:
 
   secrets:
     name: Secret scan
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -249,6 +316,7 @@ jobs:
 
   production-contract:
     name: Production Compose and deployment checks
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -275,6 +343,7 @@ jobs:
 
   scalability-contract:
     name: Scalability foundation contract checks
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -387,6 +456,7 @@ jobs:
 
   multi-replica-smoke:
     name: Short two-replica runtime smoke
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: scalability-contract
@@ -433,7 +503,25 @@ jobs:
 
   container-images:
     name: Build and publish immutable production images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'push' &&
+         needs.backend.result == 'success' &&
+         needs.frontend-browser.result == 'success' &&
+         needs.shared.result == 'success' &&
+         needs.mobile.result == 'success' &&
+         needs.android.result == 'success' &&
+         needs.dependencies.result == 'success' &&
+         needs.secrets.result == 'success' &&
+         needs.production-contract.result == 'success' &&
+         needs.scalability-contract.result == 'success' &&
+         needs.multi-replica-smoke.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.mode == 'mobile-resume' &&
+         needs.mobile-resume-guard.result == 'success' &&
+         needs.mobile-resume.result == 'success')
+      )
     needs:
       - backend
       - frontend-browser
@@ -445,6 +533,8 @@ jobs:
       - production-contract
       - scalability-contract
       - multi-replica-smoke
+      - mobile-resume-guard
+      - mobile-resume
     runs-on: ubuntu-latest
     permissions:
       contents: read
