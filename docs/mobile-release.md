@@ -20,7 +20,9 @@ npm --prefix mobile run build:android:internal
 npm --prefix mobile run build:android:production
 ```
 
-Each command requires `EAS_TOKEN`. The EAS project, remote signing,
+Each command requires `EXPO_TOKEN`. The shared build helper also accepts the
+legacy `EAS_TOKEN` variable for compatibility, but GitHub Actions uses only
+`EXPO_TOKEN`. The EAS project, remote signing,
 `GOOGLE_SERVICES_JSON`, FCM configuration, app-link host, Google client ID,
 OTA URL, and store URLs come from protected environment values. Build outputs
 must be retained with the commit, profile, app version, runtime version, and
@@ -78,8 +80,7 @@ npm --prefix mobile run build:ios:internal
 npm --prefix mobile run build:ios:production
 ```
 
-Each command requires `EXPO_TOKEN` (the legacy `EAS_TOKEN` name is also accepted
-and forwarded to EAS CLI as `EXPO_TOKEN`) and remote Apple signing configured in the
+Each command requires `EXPO_TOKEN` and remote Apple signing configured in the
 matching EAS environment. Apple Team ID, App Store Connect App ID, bundle
 identifier, provisioning, and distribution certificates are managed by EAS;
 no Apple credential belongs in this repository. The production profile uses
@@ -88,7 +89,7 @@ the `production` channel and `appVersion` runtime boundary.
 The manual GitHub workflow is `.github/workflows/ios-release.yml`. It runs on
 Ubuntu because EAS performs the remote iOS build; it does not claim local
 Xcode compilation. Protect the `development`, `preview`, and `production`
-GitHub environments and expose only the required `EAS_TOKEN` secret.
+GitHub environments and expose only the required `EXPO_TOKEN` secret.
 
 ## iOS development and internal device testing
 

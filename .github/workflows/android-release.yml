@@ -31,7 +31,7 @@ jobs:
       - run: npm ci
       - name: Build signed EAS artifact
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           case "${{ inputs.profile }}" in
             development) npm run build:android:debug --workspace @fitician/mobile ;;

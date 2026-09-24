@@ -186,7 +186,7 @@ Files: `mobile/scripts/release-build-plan.mjs`, `releaseArtifacts.mjs`, `validat
 
 Files: new `.github/workflows/ios-release.yml`, `docs/mobile-release.md`, new `mobile/ios-device-matrix.json`, new `mobile/app-store/{README.md,store-metadata.json,privacy.md,review-notes.md,tester-instructions.md,screenshots/README.md}`.
 
-- Add manual protected-environment iOS release workflow using the real iOS scripts, `npm ci`, Node engine-compatible version, and `EAS_TOKEN`; hardcode no Apple values.
+- Add manual protected-environment iOS release workflow using the real iOS scripts, `npm ci`, Node engine-compatible version, and `EXPO_TOKEN`; hardcode no Apple values.
 - Preserve Android release documentation and add iOS development/internal/preview/production/TestFlight/App Store/signing/rollback/OTA boundaries with exact commands.
 - Mark missing Apple Team ID, ASC App ID, support/privacy URLs, reviewer account, screenshots, and EAS credentials as configuration requirements rather than inventing values.
 
@@ -235,4 +235,3 @@ Inspect generated iOS and Android outputs for bundle/package IDs, app name, sche
 - Review the final diff against the user allowlist and ensure no secrets, generated native trees, unrelated WIP, or web redesign entered the commits.
 - Commit any narrowly scoped final validation/docs correction with a specific Conventional Commit message and push.
 - Final report must separate complete, verified, unverified, and externally blocked items, include exact iOS debug/production commands, tests passed/failed, Android regression result, and remaining credential/device blockers.
-
