@@ -9,6 +9,7 @@ test("serves a valid Fitician manifest and icons", async ({ request }) => {
     description: string;
     lang: string;
     dir: string;
+    id: string;
     start_url: string;
     scope: string;
     display: string;
@@ -21,6 +22,7 @@ test("serves a valid Fitician manifest and icons", async ({ request }) => {
   expect(manifest.description).toContain("فیتیشن");
   expect(manifest.lang).toBe("fa");
   expect(manifest.dir).toBe("rtl");
+  expect(manifest.id).toBe("/");
   expect(manifest.start_url).toBe("/");
   expect(manifest.scope).toBe("/");
   expect(manifest.display).toBe("standalone");
@@ -98,7 +100,7 @@ test("production shell does not precache private or large public data", async ({
 });
 
 test("production preview serves SPA deep links", async ({ request }) => {
-  for (const path of ["/workout-plan", "/body-progress", "/nutrition-tracking"]) {
+  for (const path of ["/workout-plan", "/body-progress", "/nutrition-tracking", "/install"]) {
     const response = await request.get(path);
     expect(response.status(), path).toBe(200);
     expect(await response.text(), path).toContain("Fitician");

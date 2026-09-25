@@ -24,6 +24,7 @@ export const pwaManifest = {
   description: "فیتیشن؛ همراه هوشمند تمرین، تغذیه و تحلیل بدن.",
   lang: "fa",
   dir: "rtl",
+  id: "/",
   start_url: "/",
   scope: "/",
   display: "standalone",

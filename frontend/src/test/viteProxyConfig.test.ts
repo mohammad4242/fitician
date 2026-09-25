@@ -21,6 +21,7 @@ describe("pwaManifest", () => {
       short_name: "Fitician",
       lang: "fa",
       dir: "rtl",
+      id: "/",
       start_url: "/",
       scope: "/",
       display: "standalone",

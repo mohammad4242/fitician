@@ -64,6 +64,7 @@ const OnboardingPage = lazy(() => import("./features/profile/OnboardingPage").th
 const PhysicianNutritionReviewPage = lazy(() => import("./features/nutrition/PhysicianNutritionReviewPage").then(({ PhysicianNutritionReviewPage }) => ({ default: PhysicianNutritionReviewPage })));
 const ProfilePage = lazy(() => import("./features/profile/ProfilePage").then(({ ProfilePage }) => ({ default: ProfilePage })));
 const PublicLandingRoute = lazy(() => import("./features/landing/PublicLandingRoute").then(({ PublicLandingRoute }) => ({ default: PublicLandingRoute })));
+const PublicInstallPage = lazy(() => import("./features/install/PublicInstallPage").then(({ PublicInstallPage }) => ({ default: PublicInstallPage })));
 const PublicOnboardingPage = lazy(() => import("./features/publicOnboarding/PublicOnboardingPage").then(({ PublicOnboardingPage }) => ({ default: PublicOnboardingPage })));
 const PrivacyPolicyPage = lazy(() => import("./features/accountDeletion/PrivacyPolicyPage").then(({ PrivacyPolicyPage }) => ({ default: PrivacyPolicyPage })));
 const RegisterPage = lazy(() => import("./features/auth/RegisterPage").then(({ RegisterPage }) => ({ default: RegisterPage })));
@@ -76,6 +77,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/delete-account" element={deferred(<AccountDeletionPage />)} />
       <Route path="/privacy" element={deferred(<PrivacyPolicyPage />)} />
+      <Route path="/install" element={deferred(<PublicInstallPage />)} />
       <Route path="/verify-email" element={deferred(<VerifyEmailPage />)} />
       <Route element={<GuestRoute />}>
         <Route path="/login" element={deferred(<LoginPage />)} />
