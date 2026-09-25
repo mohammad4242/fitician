@@ -30,6 +30,7 @@ const profileContext = vi.hoisted(() => ({
 }));
 
 const authContext = vi.hoisted(() => ({
+  user: null as null | { id: string; email: string; created_at: string },
   logout: vi.fn(),
 }));
 
@@ -157,6 +158,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   sessionStorage.clear();
   nutritionFlow.props = null;
+  authContext.user = null;
   authContext.logout.mockResolvedValue(undefined);
   profileContext.status = "mode_selected";
   profileContext.productMode = "training";
@@ -330,6 +332,14 @@ it("keeps the guided training question visible and shows the existing error afte
 });
 
 it("logs out from authenticated onboarding and returns to the public landing", async () => {
+  authContext.user = {
+    id: "018f0000-0000-7000-8000-000000000001",
+    email: "member@example.invalid",
+    created_at: "2026-09-26T00:00:00Z",
+  };
+  authContext.logout.mockImplementation(async () => {
+    authContext.user = null;
+  });
   const user = userEvent.setup();
   renderOnboarding();
 

@@ -234,7 +234,10 @@ function OnboardingShell({
     setBusy(true);
     setError(null);
     void logout()
-      .then(() => navigate("/", { replace: true }))
+      .then(() => {
+        // Let the protected route process the cleared user before returning to the public route.
+        window.setTimeout(() => navigate("/", { replace: true }), 0);
+      })
       .catch((cause: unknown) => setError(cause))
       .finally(() => setBusy(false));
   }
