@@ -11,7 +11,7 @@ import { useAutoAdvance } from "./useAutoAdvance";
 type Props = {
   values: ProfileFormValues;
   onChange: (field: keyof ProfileFormValues, value: string) => void;
-  onBack: () => void;
+  onBack?: () => void;
   onComplete: (values: ProfileFormValues) => ProfileValidationErrors | void;
 };
 
@@ -94,7 +94,7 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
 
   function handleBack() {
     resetAdvancing();
-    if (question === 0) onBack();
+    if (question === 0) onBack?.();
     else setQuestion((current) => current - 1);
   }
 
@@ -108,16 +108,18 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
 
   return (
     <section className="guided-question" aria-labelledby="guided-question-title">
-      <div className="guided-question__nav">
-        <button
-          type="button"
-          className="guided-back-button"
-          onClick={handleBack}
-          aria-label={back}
-        >
-          <AppIcon name="arrow" />
-        </button>
-      </div>
+      {(question > 0 || onBack !== undefined) && (
+        <div className="guided-question__nav">
+          <button
+            type="button"
+            className="guided-back-button"
+            onClick={handleBack}
+            aria-label={back}
+          >
+            <AppIcon name="arrow" />
+          </button>
+        </div>
+      )}
       <ol className="guided-stage-track" aria-label={language === "en" ? "Profile sections" : "بخش‌های پروفایل"}>{stages.map((stage, index) => <li className={index < activeStage ? "is-complete" : index === activeStage ? "is-active" : ""} key={stage}><span aria-hidden="true">{index < activeStage ? "✓" : index + 1}</span>{stage}</li>)}</ol>
       <div className="public-onboarding-progress" aria-label={language === "en" ? "Personal details progress" : "پیشرفت اطلاعات شخصی"}>
         <span>{language === "en" ? `Step ${question + 1} of ${labels.length}` : `مرحله ${question + 1} از ${labels.length}`}</span>

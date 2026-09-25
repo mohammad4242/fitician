@@ -579,3 +579,18 @@ it("advances to account creation when selecting omnivore on the last pre-account
     );
   });
 });
+
+it("does not render an inert back action on authenticated shared-profile onboarding", async () => {
+  render(
+    <NutritionOnboardingFlow
+      productMode="nutrition"
+      onCreateTrainingProfile={vi.fn()}
+      onComplete={vi.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "دوست داری چه صدایت کنیم؟" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "بازگشت" })).not.toBeInTheDocument();
+});

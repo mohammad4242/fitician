@@ -252,7 +252,7 @@ it("opens the dashboard after sign-in and keeps profile completion in the accoun
   renderRoute("/dashboard");
 
   expect(await screen.findByRole("heading", { name: "سلام، دوست" })).toBeInTheDocument();
-  expect(screen.queryByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "تو چه زمینه‌ای به کمک نیاز داری؟" })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "باز کردن منوی حساب" }));
 
@@ -401,7 +401,7 @@ it.each(["/exercises", "/exercises/dumbbell-bench-press", "/workout-plan"])(
 
     expect(
       await screen.findByRole("heading", {
-        name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟",
+        name: "تو چه زمینه‌ای به کمک نیاز داری؟",
       }),
     ).toBeInTheDocument();
   },

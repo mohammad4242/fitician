@@ -10,10 +10,11 @@ import { useAuth } from "../auth/AuthContext";
 import { GoogleSignInButton } from "../auth/GoogleSignInButton";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
 import { toProfileInput, validateStep, type ProfileValidationErrors } from "../profile/profileValidation";
-import type { ProductMode, ProfileFormValue, ProfileFormValues } from "../profile/types";
+import type { ProfileFormValue, ProfileFormValues } from "../profile/types";
 import { clearOnboardingDraft, hydrateOnboardingDraft, loadOnboardingDraft, saveOnboardingDraft, type OnboardingDraft } from "./onboardingDraft";
 import { GuidedSharedProfileQuestions } from "./GuidedSharedProfileQuestions";
 import { GuidedTrainingQuestions } from "./GuidedTrainingQuestions";
+import { ModeSelection } from "./ModeSelection";
 import "./publicOnboarding.css";
 
 const emptyValues: ProfileFormValues = {
@@ -34,7 +35,6 @@ type PhoneStep = "request" | "verify";
 const publicCopy = {
   fa: {
     header: "اطلاعاتت تا زمان ساخت حساب فقط در همین تب نگه‌داری می‌شود.",
-    mode: { eyebrow: "شروع با مربی فیتیشن", title: "تو چه زمینه‌ای به کمک نیاز داری؟", training: "برنامه تمرینی", nutrition: "برنامه تغذیه", both: "تمرین و تغذیه", recommended: "پیشنهاد فیتیشن" },
     account: {
       eyebrow: "آخرین قدم",
       title: "حالا حسابت را بساز",
@@ -73,7 +73,6 @@ const publicCopy = {
   },
   en: {
     header: "Your answers stay in this tab until you create an account.",
-    mode: { eyebrow: "Start with your Fitician coach", title: "What would you like help with?", training: "Training plan", nutrition: "Nutrition plan", both: "Training and nutrition", recommended: "Fitician recommended" },
     account: {
       eyebrow: "Final step",
       title: "Create your account",
@@ -156,38 +155,6 @@ export function PublicOnboardingPage() {
         )}
       </div>
     </main>
-  );
-}
-
-function ModeSelection({ language, onChoose }: { language: Language; onChoose: (mode: ProductMode) => void }) {
-  const text = publicCopy[language].mode;
-  const modes = [
-    ["training", text.training, "dumbbell"],
-    ["nutrition", text.nutrition, "nutrition"],
-    ["both", text.both, "target"],
-  ] as const;
-  return (
-    <section className="public-mode-selection">
-      <p className="eyebrow eyebrow--accent">{text.eyebrow}</p>
-      <h1 className="fitician-display">{text.title}</h1>
-      <div className="product-mode-cards">
-        {modes.map(([mode, title, icon]) => (
-          <button
-            key={mode}
-            className={`product-mode-card mode-${mode} ${mode === "both" ? "is-recommended" : ""}`}
-            type="button"
-            aria-label={title}
-            onClick={() => onChoose(mode)}
-          >
-            <span className="product-mode-card__icon" aria-hidden="true"><AppIcon name={icon} /></span>
-            <span className="product-mode-card__content">
-              <strong>{title}</strong>
-              {mode === "both" && <span className="product-mode-card__badge">{text.recommended}</span>}
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
   );
 }
 

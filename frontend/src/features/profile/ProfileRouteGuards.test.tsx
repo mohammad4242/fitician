@@ -205,7 +205,7 @@ describe("profile route matrix", () => {
       renderRoute(path);
 
       expect(
-        await screen.findByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" }),
+        await screen.findByRole("heading", { name: "تو چه زمینه‌ای به کمک نیاز داری؟" }),
       ).toBeInTheDocument();
     },
   );
@@ -216,7 +216,7 @@ describe("profile route matrix", () => {
     renderRoute("/onboarding");
 
     expect(
-      await screen.findByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" }),
+      await screen.findByRole("heading", { name: "تو چه زمینه‌ای به کمک نیاز داری؟" }),
     ).toBeInTheDocument();
     expect(screen.getByText("پیشنهاد فیتیشن")).toBeInTheDocument();
   });

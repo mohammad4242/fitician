@@ -1,31 +1,27 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import { AuthShell } from "../../shared/AuthShell";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { BrandLogo } from "../../shared/BrandLogo";
 import { useAuth } from "../auth/AuthContext";
 import { NutritionOnboardingFlow } from "../nutrition/NutritionOnboardingFlow";
 import {
   clearPendingNutritionBasics,
   loadPendingNutritionSetup,
 } from "../publicOnboarding/onboardingDraft";
-import {
-  BodyGoalFields,
-  ExperienceFields,
-  PersonalFields,
-} from "./ProfileFormFields";
+import { GuidedSharedProfileQuestions } from "../publicOnboarding/GuidedSharedProfileQuestions";
+import { GuidedTrainingQuestions } from "../publicOnboarding/GuidedTrainingQuestions";
+import { ModeSelection, type OnboardingLanguage } from "../publicOnboarding/ModeSelection";
 import { useProfile } from "./ProfileContext";
 import {
   toProfileInput,
-  validateAll,
   validateStep,
   type ProfileValidationErrors,
 } from "./profileValidation";
 import type { ProductMode, ProfileFormValue, ProfileFormValues } from "./types";
+import "../publicOnboarding/publicOnboarding.css";
 import "./profile.css";
-
-type Step = 1 | 2 | 3;
 
 const emptyValues: ProfileFormValues = {
   display_name: "",
@@ -51,17 +47,24 @@ const emptyValues: ProfileFormValues = {
   plan_duration_weeks: "4",
 };
 
-const stepKeys = ["personal", "bodyGoal", "experience"] as const;
-
 export function OnboardingPage() {
-  const { i18n, t } = useTranslation();
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
-  const { createProfile, profile, productMode, retryProfile, selectProductMode, status } = useProfile();
-  const [step, setStep] = useState<Step>(1);
+  const {
+    createProfile,
+    profile,
+    productMode,
+    retryProfile,
+    selectProductMode,
+    status,
+  } = useProfile();
   const [values, setValues] = useState<ProfileFormValues>(emptyValues);
   const [errors, setErrors] = useState<ProfileValidationErrors>({});
   const [submitError, setSubmitError] = useState<unknown | null>(null);
   const [busy, setBusy] = useState(false);
+  const [trainingStep, setTrainingStep] = useState(false);
+  const language: OnboardingLanguage = i18n.resolvedLanguage === "en" ? "en" : "fa";
+  const pendingNutritionSetup = loadPendingNutritionSetup();
 
   function chooseMode(mode: ProductMode) {
     if (busy) return;
@@ -75,25 +78,25 @@ export function OnboardingPage() {
     const firstInvalidField = Object.keys(errors)[0];
     if (firstInvalidField !== undefined) {
       document
-        .querySelector<HTMLElement>(`[name="${firstInvalidField}"]`)
+        .querySelector<HTMLElement>("[name=\"" + firstInvalidField + "\"]")
         ?.focus();
     }
   }, [errors]);
 
-  function updateValue(
-    field: keyof ProfileFormValues,
-    value: ProfileFormValue,
-  ) {
+  function updateValue(field: keyof ProfileFormValues, value: ProfileFormValue) {
+    if (busy) return;
     const changesTrainingLocation = field === "training_location";
     setValues((current) => ({
       ...current,
       [field]: value,
-      ...(changesTrainingLocation ? { home_training_setup: "", available_equipment: [] } : {}),
+      ...(changesTrainingLocation
+        ? { home_training_setup: "", available_equipment: [] }
+        : {}),
     }));
     setErrors((current) => {
       if (
-        current[field] === undefined &&
-        (!changesTrainingLocation || current.home_training_setup === undefined)
+        current[field] === undefined
+        && (!changesTrainingLocation || current.home_training_setup === undefined)
       ) {
         return current;
       }
@@ -107,35 +110,26 @@ export function OnboardingPage() {
     });
   }
 
-  function handleBack() {
-    if (step === 1 || busy) {
-      return;
+  function completeSharedQuestions(
+    nextValues: ProfileFormValues = values,
+  ): ProfileValidationErrors {
+    const nextErrors = {
+      ...validateStep(nextValues, 1, new Date()),
+      ...validateStep(nextValues, 2, new Date()),
+    };
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length === 0) {
+      setSubmitError(null);
+      setTrainingStep(true);
     }
-    setErrors({});
-    setSubmitError(null);
-    setStep((step - 1) as Step);
+    return nextErrors;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) {
-      return;
-    }
-
-    if (step < 3) {
-      const stepErrors = validateStep(values, step, new Date());
-      setErrors(stepErrors);
-      if (Object.keys(stepErrors).length === 0) {
-        setStep((step + 1) as Step);
-      }
-      return;
-    }
-
-    const allErrors = validateAll(values, new Date());
-    setErrors(allErrors);
-    if (Object.keys(allErrors).length > 0) {
-      return;
-    }
+  function completeTrainingQuestions() {
+    if (busy) return;
+    const nextErrors = validateStep(values, 3, new Date());
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     setBusy(true);
     setSubmitError(null);
@@ -145,173 +139,92 @@ export function OnboardingPage() {
       .finally(() => setBusy(false));
   }
 
-  const locale = i18n.resolvedLanguage === "en" ? "en" : "fa-IR";
-  const numberFormat = new Intl.NumberFormat(locale);
-  const pendingNutritionSetup = loadPendingNutritionSetup();
+  function returnToSharedQuestions() {
+    if (busy) return;
+    setErrors({});
+    setSubmitError(null);
+    setTrainingStep(false);
+  }
 
   if (status === "missing") {
     return (
-      <OnboardingShell>
-        <main className="onboarding-flow product-mode-flow">
-          <p className="eyebrow eyebrow--accent">شروع با مربی فیتیشن</p>
-          <h2 className="fitician-display">بیشتر در چه زمینه‌ای به کمک نیاز داری؟</h2>
-          <p>مسیرت را انتخاب کن؛ فقط همان سؤال‌هایی را می‌پرسیم که برای برنامه‌ات لازم است.</p>
-          <div className="product-mode-cards" role="list">
-            {([
-              ["training", "تمرین", "برنامه شخصی براساس بدن، هدف، سطح، زمان و تجهیزات"],
-              ["nutrition", "تغذیه", "برنامه غذایی متناسب با هدف، نیاز بدن، مواد در دسترس و بودجه"],
-              ["both", "تمرین و تغذیه", "یک برنامه هماهنگ برای نتیجه بهتر"],
-            ] as const).map(([mode, title, description]) => (
-              <button key={mode} className={`product-mode-card ${mode === "both" ? "is-recommended" : ""}`}
-                type="button" disabled={busy} onClick={() => chooseMode(mode)} role="listitem">
-                {mode === "both" && <span>پیشنهاد فیتیشن</span>}
-                <strong>{title}</strong><small>{description}</small>
-              </button>
-            ))}
-          </div>
-          {submitError !== null && (
-            <AppErrorNotice
-              audience="member"
-              context="profile"
-              error={submitError}
-              locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
-            />
-          )}
-        </main>
+      <OnboardingShell language={language}>
+        <ModeSelection
+          language={language}
+          disabled={busy}
+          onChoose={chooseMode}
+        />
+        {submitError !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="profile"
+            error={submitError}
+            locale={language}
+          />
+        )}
       </OnboardingShell>
     );
   }
 
   if (productMode === "nutrition" || productMode === "both") {
     return (
-      <OnboardingShell>
-        <main className="onboarding-flow">
-          <NutritionOnboardingFlow
-            productMode={productMode}
-            trainingProfileExists={profile !== null}
-            initialDraft={pendingNutritionSetup === null ? undefined : {
-              mode: productMode,
-              safety: pendingNutritionSetup.safety,
-              structuredExercise: pendingNutritionSetup.structuredExercise,
-            }}
-            initialNutritionBasics={pendingNutritionSetup?.nutritionBasics}
-            onCreateTrainingProfile={createProfile}
-            onComplete={retryProfile}
-            onNutritionComplete={clearPendingNutritionBasics}
-            editExisting
-          />
-        </main>
+      <OnboardingShell language={language}>
+        <NutritionOnboardingFlow
+          productMode={productMode}
+          trainingProfileExists={profile !== null}
+          initialDraft={pendingNutritionSetup === null ? undefined : {
+            mode: productMode,
+            safety: pendingNutritionSetup.safety,
+            structuredExercise: pendingNutritionSetup.structuredExercise,
+          }}
+          initialNutritionBasics={pendingNutritionSetup?.nutritionBasics}
+          onCreateTrainingProfile={createProfile}
+          onComplete={retryProfile}
+          onNutritionComplete={clearPendingNutritionBasics}
+          editExisting
+        />
       </OnboardingShell>
     );
   }
 
   return (
-    <OnboardingShell>
-      <div className="onboarding-flow">
-        <div className="form-heading">
-          <p className="eyebrow eyebrow--accent">{t("onboarding.eyebrow")}</p>
-          <h2 className="fitician-display">{t("onboarding.title")}</h2>
-          <p>{t("onboarding.intro")}</p>
-        </div>
-
-        <nav className="profile-progress" aria-label={t("onboarding.progressLabel")}>
-          <p className="profile-progress__count" aria-live="polite">
-            {t("onboarding.stepCount", {
-              current: numberFormat.format(step),
-              total: numberFormat.format(3),
-            })}
-          </p>
-          <ol aria-label={t("onboarding.progressLabel")}>
-            {stepKeys.map((key, index) => {
-              const stepNumber = (index + 1) as Step;
-              return (
-                <li
-                  key={key}
-                  className={stepNumber <= step ? "is-active" : undefined}
-                  aria-current={stepNumber === step ? "step" : undefined}
-                >
-                  <span aria-hidden="true">{numberFormat.format(stepNumber)}</span>
-                  <strong>{t(`onboarding.steps.${key}`)}</strong>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
-
-        <form className="profile-form" noValidate onSubmit={handleSubmit}>
-          {step === 1 && (
-            <PersonalFields
-              values={values}
-              errors={errors}
-              disabled={busy}
-              onChange={updateValue}
-            />
-          )}
-          {step === 2 && (
-            <>
-              <BodyGoalFields
-                values={values}
-                errors={errors}
-                disabled={busy}
-                onChange={updateValue}
-              />
-              <button className="text-button" type="button" onClick={() => {
-                updateValue("shoulder_circumference_cm", "");
-                updateValue("waist_circumference_cm", "");
-                updateValue("hip_circumference_cm", "");
-              }}>رد کردن اندازه‌گیری‌های اختیاری</button>
-            </>
-          )}
-          {step === 3 && (
-            <>
-              <ExperienceFields
-                values={values}
-                errors={errors}
-                disabled={busy}
-                onChange={updateValue}
-              />
-            </>
-          )}
-
-          {submitError !== null && (
-            <AppErrorNotice
-              audience="member"
-              context="profile"
-              error={submitError}
-              locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
-            />
-          )}
-
-          <div className="profile-actions">
-            {step > 1 && (
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={busy}
-                onClick={handleBack}
-              >
-                {t("onboarding.actions.back")}
-              </button>
-            )}
-            <button className="primary-button" type="submit" disabled={busy}>
-              <span>
-                {step < 3
-                  ? t("onboarding.actions.next")
-                  : busy
-                    ? t("onboarding.actions.saving")
-                    : t("onboarding.actions.submit")}
-              </span>
-              <span aria-hidden="true">←</span>
-            </button>
-          </div>
-        </form>
-      </div>
+    <OnboardingShell language={language}>
+      <section className="public-question-card public-question-card--fullscreen">
+        {trainingStep ? (
+          <GuidedTrainingQuestions
+            values={values}
+            onChange={updateValue}
+            onBack={returnToSharedQuestions}
+            onComplete={completeTrainingQuestions}
+          />
+        ) : (
+          <GuidedSharedProfileQuestions
+            values={values}
+            onChange={updateValue}
+            onComplete={completeSharedQuestions}
+          />
+        )}
+        {submitError !== null && (
+          <AppErrorNotice
+            audience="member"
+            context="profile"
+            error={submitError}
+            locale={language}
+          />
+        )}
+      </section>
     </OnboardingShell>
   );
 }
 
-function OnboardingShell({ children }: { children: ReactNode }) {
-  const { i18n, t } = useTranslation();
+function OnboardingShell({
+  children,
+  language,
+}: {
+  children: ReactNode;
+  language: OnboardingLanguage;
+}) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -327,22 +240,41 @@ function OnboardingShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthShell>
-      <div className="onboarding-session-actions">
-        <button className="logout-button" type="button" disabled={busy} onClick={handleLogout}>
-          {busy ? t("header.loggingOut") : t("header.logout")}
-        </button>
-        {error !== null && (
+    <main
+      className="public-onboarding authenticated-onboarding"
+      dir={language === "fa" ? "rtl" : "ltr"}
+    >
+      <header className="public-onboarding__header">
+        <Link
+          className="fitician-brand-link public-onboarding__brand"
+          to="/"
+          aria-label={t("common.brand")}
+        >
+          <BrandLogo testId="authenticated-onboarding-brand-logo" />
+        </Link>
+        <div className="authenticated-onboarding__header-actions">
+          <button
+            className="logout-button"
+            type="button"
+            disabled={busy}
+            onClick={handleLogout}
+          >
+            {busy ? t("header.loggingOut") : t("header.logout")}
+          </button>
+        </div>
+      </header>
+      {error !== null && (
+        <div className="authenticated-onboarding__session-error">
           <AppErrorNotice
             audience="member"
             context="auth"
             error={error}
-            locale={i18n.resolvedLanguage === "en" ? "en" : "fa"}
+            locale={language}
             onRetry={handleLogout}
           />
-        )}
-      </div>
-      {children}
-    </AuthShell>
+        </div>
+      )}
+      <div className="public-onboarding__stage">{children}</div>
+    </main>
   );
 }

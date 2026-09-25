@@ -1,5 +1,5 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent, { type UserEvent } from "@testing-library/user-event";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   MemoryRouter,
   Route,
@@ -86,7 +86,7 @@ const createdProfile: Profile = {
 function Destination() {
   const location = useLocation();
   const navigationType = useNavigationType();
-  return <h1>{`${navigationType}:${location.pathname}`}</h1>;
+  return <h1>{navigationType + ":" + location.pathname}</h1>;
 }
 
 function renderOnboarding() {
@@ -102,42 +102,55 @@ function renderOnboarding() {
   );
 }
 
-async function completePersonalStep(
-  user: UserEvent,
-  displayName = "Mohammad",
+async function choosePersianBirthDate(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - روز" }), "25");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - ماه" }), "2");
+  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ تولد - سال" }), "1379");
+  await user.click(screen.getByRole("button", { name: "انتخاب" }));
+}
+
+async function completeSharedQuestions(
+  user: ReturnType<typeof userEvent.setup>,
+  displayName = "  Mohammad  ",
 ) {
   await user.type(screen.getByLabelText("نام نمایشی"), displayName);
-  await user.click(screen.getByRole("button", { name: "تاریخ تولد" }));
-  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - روز" }), "25");
-  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - ماه" }), "2");
-  await user.selectOptions(screen.getByRole("combobox", { name: "تاریخ - سال" }), "1379");
-  await user.click(screen.getByRole("button", { name: "انتخاب" }));
-  await user.selectOptions(screen.getByLabelText("جنسیت"), "male");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
-}
-
-async function completeBodyStep(user: UserEvent) {
-  await user.type(screen.getByLabelText("قد (سانتی‌متر)"), "178");
+  await choosePersianBirthDate(user);
+  await user.click(screen.getByRole("button", { name: "ادامه" }));
+  await user.click(screen.getByRole("button", { name: "مرد" }));
+  await user.type(await screen.findByLabelText("قد (سانتی‌متر)"), "178");
   await user.type(screen.getByLabelText("وزن فعلی (کیلوگرم)"), "76.5");
-  await user.selectOptions(screen.getByLabelText("هدف ورزشی"), "build_muscle");
   await user.click(screen.getByRole("button", { name: "ادامه" }));
+  await user.click(await screen.findByRole("button", { name: "عضله‌سازی 💪" }));
+  expect(
+    await screen.findByRole("heading", { name: "چقدر سابقه تمرین مداوم داری؟" }),
+  ).toBeInTheDocument();
 }
 
-async function reachExperienceStep(
-  user: UserEvent,
-  displayName = "Mohammad",
+async function completeTrainingQuestions(
+  user: ReturnType<typeof userEvent.setup>,
+  location: "باشگاه" | "خانه" = "باشگاه",
 ) {
-  await completePersonalStep(user, displayName);
-  await completeBodyStep(user);
-}
-
-async function completeExperienceFields(user: UserEvent) {
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "3");
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "gym");
-  await user.selectOptions(screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"), "60");
-  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
-  await user.click(screen.getByLabelText("ندارم"));
+  await user.click(screen.getByRole("button", { name: "مبتدی (زیر ۶ ماه)" }));
+  await user.click(await screen.findByRole("button", { name: "ادامه" }));
+  await user.click(await screen.findByRole("button", { name: "۳ روز در هفته" }));
+  await user.click(await screen.findByRole("button", { name: location }));
+  if (location === "خانه") {
+    expect(
+      await screen.findByRole("heading", { name: "در خانه چه امکاناتی داری؟" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "دمبل + کش" }));
+  }
+  await user.click(await screen.findByRole("button", { name: "۶۰ دقیقه" }));
+  await user.click(await screen.findByRole("button", { name: "متوسط" }));
+  await user.click(
+    await screen.findByRole("button", { name: "تمرکز ویژه‌ای ندارم" }),
+  );
+  await user.click(
+    await screen.findByRole("button", { name: "رد کردن این سؤال" }),
+  );
+  await user.click(await screen.findByRole("button", { name: "۴ هفته" }));
 }
 
 beforeEach(async () => {
@@ -150,7 +163,57 @@ beforeEach(async () => {
   await i18n.changeLanguage("fa");
 });
 
-it("uses the shared safe presentation when selecting a product mode fails", async () => {
+it("renders authenticated onboarding in the public presentation shell", () => {
+  const { container } = renderOnboarding();
+
+  const onboarding = container.querySelector("main.public-onboarding.authenticated-onboarding");
+  expect(onboarding?.querySelector(".public-onboarding__header")).toBeInTheDocument();
+  expect(onboarding?.querySelector(".public-onboarding__stage")).toBeInTheDocument();
+  expect(container.querySelector(".auth-shell")).not.toBeInTheDocument();
+  expect(container.querySelector(".form-wrap")).not.toBeInTheDocument();
+  expect(screen.getByTestId("authenticated-onboarding-brand-logo")).toHaveClass(
+    "fitician-brand-logo",
+  );
+});
+
+it("uses the public mode cards and keeps product selection behavior", async () => {
+  profileContext.status = "missing";
+  profileContext.productMode = null;
+  profileContext.selectProductMode.mockResolvedValue({
+    user_id: createdProfile.user_id,
+    product_mode: "both",
+    completion_state: "shared_profile_incomplete",
+  });
+  const user = userEvent.setup();
+  const { container } = renderOnboarding();
+
+  const expectedModes = [
+    ["برنامه تمرینی", "training"],
+    ["برنامه تغذیه", "nutrition"],
+    ["تمرین و تغذیه", "both"],
+  ] as const;
+  for (const [label, mode] of expectedModes) {
+    const card = screen.getByRole("button", { name: label });
+    expect(card).toHaveClass("product-mode-card", "mode-" + mode);
+    expect(card.querySelector(".product-mode-card__icon")).toBeInTheDocument();
+    expect(card.querySelector(".product-mode-card__content")).toBeInTheDocument();
+  }
+  const bothCard = screen.getByRole("button", { name: "تمرین و تغذیه" });
+  expect(bothCard).toHaveClass("is-recommended");
+  expect(bothCard.querySelector(".product-mode-card__badge")).toHaveTextContent(
+    "پیشنهاد فیتیشن",
+  );
+  expect(container.querySelector(".auth-shell")).not.toBeInTheDocument();
+
+  for (const [label, mode] of expectedModes) {
+    await user.click(screen.getByRole("button", { name: label }));
+    await waitFor(() =>
+      expect(profileContext.selectProductMode).toHaveBeenLastCalledWith(mode),
+    );
+  }
+});
+
+it("preserves safe error presentation when selecting a product mode fails", async () => {
   profileContext.status = "missing";
   profileContext.productMode = null;
   profileContext.selectProductMode.mockRejectedValueOnce(
@@ -161,7 +224,7 @@ it("uses the shared safe presentation when selecting a product mode fails", asyn
   const user = userEvent.setup();
   renderOnboarding();
 
-  await user.click(screen.getByText("تمرین و تغذیه", { exact: true }));
+  await user.click(screen.getByRole("button", { name: "تمرین و تغذیه" }));
 
   const alert = await screen.findByRole("alert");
   expect(alert).toHaveTextContent("سرویس موقتاً در دسترس نیست");
@@ -169,7 +232,126 @@ it("uses the shared safe presentation when selecting a product mode fails", asyn
   expect(alert).not.toHaveTextContent("onboarding-mode-request-1");
 });
 
-it("resumes pending nutrition safety data after registration", () => {
+it("starts authenticated training with the guided shared-profile question", () => {
+  renderOnboarding();
+
+  expect(
+    screen.getByRole("heading", { name: "دوست داری چه صدایت کنیم؟" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "پروفایل ورزشی‌ات را بساز" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByLabelText("نام نمایشی")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "بازگشت" })).not.toBeInTheDocument();
+});
+
+it("moves from shared questions into the public guided training sequence", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await completeSharedQuestions(user);
+
+  expect(
+    screen.getByRole("heading", { name: "چقدر سابقه تمرین مداوم داری؟" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "مبتدی (زیر ۶ ماه)" })).toBeInTheDocument();
+});
+
+it("creates the normalized profile and replaces the route after guided training", async () => {
+  profileContext.createProfile.mockResolvedValue(createdProfile);
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await completeSharedQuestions(user);
+  await completeTrainingQuestions(user);
+
+  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
+  expect(profileContext.createProfile).toHaveBeenCalledWith({
+    display_name: "Mohammad",
+    birth_date: "2000-05-14",
+    sex: "male",
+    height_cm: 178,
+    current_weight_kg: 76.5,
+    shoulder_circumference_cm: null,
+    waist_circumference_cm: null,
+    hip_circumference_cm: null,
+    fitness_goal: "build_muscle",
+    experience_level: "beginner",
+    training_age_months: null,
+    training_days_per_week: 3,
+    preferred_weekdays: null,
+    priority_muscles: null,
+    training_location: "gym",
+    home_training_setup: null,
+    available_equipment: null,
+    session_duration_minutes: 60,
+    training_intensity: "moderate",
+    training_cautions: [],
+    plan_duration_weeks: 4,
+  });
+  expect(
+    await screen.findByRole("heading", { name: "REPLACE:/body-progress/new" }),
+  ).toBeInTheDocument();
+});
+
+it("keeps guided home setup and equipment in the created profile", async () => {
+  profileContext.createProfile.mockResolvedValue(createdProfile);
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await completeSharedQuestions(user);
+  await completeTrainingQuestions(user, "خانه");
+
+  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
+  expect(profileContext.createProfile).toHaveBeenCalledWith(
+    expect.objectContaining({
+      training_location: "home",
+      home_training_setup: "dumbbells_and_resistance_bands_available",
+      available_equipment: ["bodyweight", "dumbbell", "resistance_band", "pull_up_bar"],
+    }),
+  );
+});
+
+it("keeps the guided training question visible and shows the existing error after creation fails", async () => {
+  profileContext.createProfile.mockRejectedValue(new TransportError("offline"));
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await completeSharedQuestions(user);
+  await completeTrainingQuestions(user);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "اتصال اینترنت در دسترس نیست",
+  );
+  expect(
+    screen.getByRole("heading", { name: "این برنامه چند هفته باشد؟" }),
+  ).toBeInTheDocument();
+  expect(profileContext.createProfile).toHaveBeenCalledOnce();
+});
+
+it("logs out from authenticated onboarding and returns to the public landing", async () => {
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await user.click(screen.getByRole("button", { name: "خروج" }));
+
+  expect(authContext.logout).toHaveBeenCalledOnce();
+  expect(await screen.findByRole("heading", { name: "REPLACE:/" })).toBeInTheDocument();
+});
+
+it("keeps the safe error notice when logout fails", async () => {
+  authContext.logout.mockRejectedValueOnce(new TransportError("offline"));
+  const user = userEvent.setup();
+  renderOnboarding();
+
+  await user.click(screen.getByRole("button", { name: "خروج" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "اتصال اینترنت در دسترس نیست",
+  );
+});
+
+it("resumes pending nutrition data within the authenticated presentation shell", () => {
   const safety: SafetyProfileInput = {
     conditions: [{ code: "type_2_diabetes_non_insulin", details: null }],
     medications: [],
@@ -197,442 +379,65 @@ it("resumes pending nutrition safety data after registration", () => {
     JSON.stringify({ safety, nutritionBasics }),
   );
   profileContext.productMode = "nutrition";
-
-  renderOnboarding();
+  const { container } = renderOnboarding();
 
   expect(screen.getByRole("heading", { name: "Nutrition flow" })).toBeInTheDocument();
+  expect(container.querySelector("main.public-onboarding.authenticated-onboarding"))
+    .toBeInTheDocument();
   const props = nutritionFlow.props as {
+    productMode: string;
+    trainingProfileExists: boolean;
     initialDraft?: OnboardingDraft;
     initialNutritionBasics?: PreAccountNutritionBasics;
+    onCreateTrainingProfile: unknown;
+    onComplete: unknown;
+    onNutritionComplete: unknown;
+    editExisting: boolean;
   };
+  expect(props).toMatchObject({
+    productMode: "nutrition",
+    trainingProfileExists: false,
+    editExisting: true,
+  });
   expect(props.initialDraft).toMatchObject({ mode: "nutrition", safety });
   expect(props.initialNutritionBasics).toEqual(nutritionBasics);
+  expect(props.onCreateTrainingProfile).toBe(profileContext.createProfile);
+  expect(props.onComplete).toBe(profileContext.retryProfile);
+  expect(props.onNutritionComplete).toEqual(expect.any(Function));
 });
 
-it("logs out from onboarding and returns to the public landing", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
+it("passes the existing combined-mode nutrition contract through the same shell", () => {
+  const safety: SafetyProfileInput = {
+    conditions: [],
+    medications: [],
+    dangerous_food_reaction_history: false,
+    pregnant: false,
+    breastfeeding: false,
+    eating_disorder_diagnosed: false,
+    eating_disorder_active_symptoms: false,
+    emergency_or_danger_symptoms: false,
+    complex_medication_food_interaction: false,
+    physician_dietary_restrictions: null,
+    other_relevant_condition: null,
+  };
+  const structuredExercise = { trains: false } as const;
+  sessionStorage.setItem(
+    PENDING_NUTRITION_BASICS_KEY,
+    JSON.stringify({ safety, structuredExercise }),
+  );
+  profileContext.productMode = "both";
+  const { container } = renderOnboarding();
 
-  await user.click(screen.getByRole("button", { name: "خروج" }));
-
-  expect(authContext.logout).toHaveBeenCalledOnce();
-  expect(await screen.findByRole("heading", { name: "REPLACE:/" })).toBeInTheDocument();
-});
-
-it("shows unselected product modes first and saves the chosen mode", async () => {
-  profileContext.status = "missing";
-  profileContext.productMode = null;
-  profileContext.selectProductMode.mockResolvedValue({
-    user_id: createdProfile.user_id,
-    product_mode: "both",
-    completion_state: "shared_profile_incomplete",
+  expect(screen.getByRole("heading", { name: "Nutrition flow" })).toBeInTheDocument();
+  expect(container.querySelector(".public-onboarding__stage"))
+    .toContainElement(screen.getByRole("heading", { name: "Nutrition flow" }));
+  expect(nutritionFlow.props).toMatchObject({
+    productMode: "both",
+    trainingProfileExists: false,
+    initialDraft: { mode: "both", safety, structuredExercise },
+    onCreateTrainingProfile: profileContext.createProfile,
+    onComplete: profileContext.retryProfile,
+    onNutritionComplete: expect.any(Function),
+    editExisting: true,
   });
-  const user = userEvent.setup();
-  renderOnboarding();
-
-  expect(screen.getByRole("heading", { name: "بیشتر در چه زمینه‌ای به کمک نیاز داری؟" })).toBeInTheDocument();
-  expect(screen.getByText("پیشنهاد فیتیشن")).toBeInTheDocument();
-  await user.click(screen.getByText("تمرین و تغذیه").closest("button")!);
-
-  expect(profileContext.selectProductMode).toHaveBeenCalledWith("both");
-});
-
-it("announces the first of three onboarding steps", () => {
-  renderOnboarding();
-
-  expect(screen.getByRole("heading", { name: "پروفایل ورزشی‌ات را بساز" })).toHaveClass("fitician-display");
-  expect(screen.getByText("مرحله ۱ از ۳")).toBeInTheDocument();
-  const progress = screen.getByRole("list", { name: "مراحل ساخت پروفایل" });
-  expect(progress).toBeInTheDocument();
-  expect(within(progress).getByText("مشخصات فردی").closest("li")).toHaveAttribute(
-    "aria-current",
-    "step",
-  );
-});
-
-it("shows personal field errors and stays on step one", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-
-  await user.click(screen.getByRole("button", { name: "ادامه" }));
-
-  expect(screen.getAllByText("این فیلد الزامی است.")).toHaveLength(3);
-  expect(screen.getByText("مرحله ۱ از ۳")).toBeInTheDocument();
-  expect(screen.getByLabelText("نام نمایشی")).toHaveFocus();
-});
-
-it("advances after valid personal values", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-
-  await completePersonalStep(user);
-
-  expect(screen.getByText("مرحله ۲ از ۳")).toBeInTheDocument();
-  expect(screen.getByLabelText("قد (سانتی‌متر)")).toBeInTheDocument();
-});
-
-it("keeps invalid body values on step two and focuses height first", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await completePersonalStep(user);
-
-  await user.type(screen.getByLabelText("قد (سانتی‌متر)"), "99");
-  await user.type(screen.getByLabelText("وزن فعلی (کیلوگرم)"), "19");
-  await user.selectOptions(screen.getByLabelText("هدف ورزشی"), "build_muscle");
-  await user.click(screen.getByRole("button", { name: "ادامه" }));
-
-  expect(screen.getByText("قد باید بین ۱۲۰ تا ۲۳۰ سانتی‌متر باشد.")).toBeInTheDocument();
-  expect(screen.getByText("وزن باید بین ۳۵ تا ۳۰۰ کیلوگرم باشد.")).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText("قد (سانتی‌متر)")).toHaveFocus());
-  expect(screen.getByText("مرحله ۲ از ۳")).toBeInTheDocument();
-});
-
-it("requires a fitness goal before leaving step two", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await completePersonalStep(user);
-
-  await user.type(screen.getByLabelText("قد (سانتی‌متر)"), "178");
-  await user.type(screen.getByLabelText("وزن فعلی (کیلوگرم)"), "76.5");
-  await user.click(screen.getByRole("button", { name: "ادامه" }));
-
-  expect(screen.getByText("مرحله ۲ از ۳")).toBeInTheDocument();
-  expect(screen.getByLabelText("هدف ورزشی")).toHaveFocus();
-});
-
-it("advances after valid body and goal values", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await completePersonalStep(user);
-
-  await completeBodyStep(user);
-
-  expect(screen.getByText("مرحله ۳ از ۳")).toBeInTheDocument();
-  expect(screen.getByLabelText("سطح تجربه")).toBeInTheDocument();
-});
-
-it("shows home setup only for home training and clears it after switching to gym", async () => {
-  profileContext.createProfile.mockResolvedValue(createdProfile);
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "3");
-
-  expect(
-    screen.queryByLabelText("برای تمرین در خانه چه امکاناتی داری؟"),
-  ).not.toBeInTheDocument();
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "home");
-  const homeGroup = screen.getByRole("group", { name: "برای تمرین در خانه چه امکاناتی داری؟" });
-  for (const label of ["وزن بدن", "دمبل", "کش", "دمبل + کش"]) {
-    expect(within(homeGroup).getByRole("radio", { name: label })).toBeInTheDocument();
-  }
-  expect(within(homeGroup).queryByLabelText("میله بارفیکس")).not.toBeInTheDocument();
-  expect(within(homeGroup).queryByLabelText("نیمکت")).not.toBeInTheDocument();
-  await user.click(within(homeGroup).getByRole("radio", { name: "دمبل + کش" }));
-  expect(within(homeGroup).getByRole("radio", { name: "دمبل + کش" })).toBeChecked();
-  expect(within(homeGroup).getByRole("radio", { name: "دمبل" })).not.toBeChecked();
-  await user.selectOptions(screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"), "60");
-  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
-  await user.click(screen.getByLabelText("ندارم"));
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "gym");
-
-  expect(
-    screen.queryByLabelText("برای تمرین در خانه چه امکاناتی داری؟"),
-  ).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
-  expect(profileContext.createProfile).toHaveBeenCalledWith(
-    expect.objectContaining({
-      training_location: "gym",
-      home_training_setup: null,
-      available_equipment: null,
-    }),
-  );
-});
-
-it("shows the official two-day presets and selects each calendar option", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "2");
-
-  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
-  const primary = within(weekdayGroup).getByRole("radio", { name: "شنبه · سه‌شنبه" });
-  const second = within(weekdayGroup).getByRole("radio", { name: "یکشنبه · چهارشنبه" });
-  const third = within(weekdayGroup).getByRole("radio", { name: "دوشنبه · پنجشنبه" });
-
-  expect(primary).toHaveAttribute("aria-checked", "true");
-  await user.click(second);
-  expect(second).toHaveAttribute("aria-checked", "true");
-  expect(primary).toHaveAttribute("aria-checked", "false");
-  await user.click(third);
-  expect(third).toHaveAttribute("aria-checked", "true");
-});
-
-it("shows the exact three, four, and five-day preset calendars", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  const trainingDays = screen.getByLabelText("روزهای تمرین در هفته");
-
-  for (const [count, labels] of [
-    [3, ["شنبه · دوشنبه · چهارشنبه", "یکشنبه · سه‌شنبه · پنجشنبه"]],
-    [4, ["شنبه · یکشنبه · سه‌شنبه · چهارشنبه", "یکشنبه · دوشنبه · چهارشنبه · پنجشنبه"]],
-    [5, ["شنبه · یکشنبه · دوشنبه · چهارشنبه · پنجشنبه", "شنبه · یکشنبه · سه‌شنبه · چهارشنبه · پنجشنبه"]],
-  ] as const) {
-    await user.clear(trainingDays);
-    await user.type(trainingDays, String(count));
-    const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
-    for (const label of labels) {
-      expect(within(weekdayGroup).getByRole("radio", { name: label })).toBeInTheDocument();
-    }
-  }
-});
-
-it("opens custom weekdays, keeps the exact count, and allows Friday", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "4");
-
-  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
-  await user.click(within(weekdayGroup).getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
-
-  const grid = screen.getByRole("group", { name: "روزهای دلخواه" });
-  const checkboxes = within(grid).getAllByRole("checkbox");
-  expect(checkboxes).toHaveLength(7);
-  expect(checkboxes.filter((checkbox) => (checkbox as HTMLInputElement).disabled)).toHaveLength(3);
-  await user.click(within(grid).getByRole("checkbox", { name: "شنبه" }));
-  const friday = within(grid).getByRole("checkbox", { name: "جمعه" });
-  expect(friday).not.toBeDisabled();
-  await user.click(friday);
-  expect(within(grid).getAllByRole("checkbox", { checked: true })).toHaveLength(4);
-});
-
-it("resets to the primary preset when the training day count changes", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  const trainingDays = screen.getByLabelText("روزهای تمرین در هفته");
-  await user.type(trainingDays, "4");
-  await user.clear(trainingDays);
-  await user.type(trainingDays, "3");
-
-  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
-  expect(within(weekdayGroup).getByRole("radio", { name: "شنبه · دوشنبه · چهارشنبه" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
-});
-
-it("submits a custom Friday-inclusive weekday selection unchanged", async () => {
-  profileContext.createProfile.mockResolvedValue(createdProfile);
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "4");
-
-  const weekdayGroup = screen.getByRole("radiogroup", { name: "روزهای تمرینت" });
-  await user.click(within(weekdayGroup).getByRole("radio", { name: "روزهای تمرین را خودم انتخاب می‌کنم" }));
-  const grid = screen.getByRole("group", { name: "روزهای دلخواه" });
-  await user.click(within(grid).getByRole("checkbox", { name: "یکشنبه" }));
-  await user.click(within(grid).getByRole("checkbox", { name: "دوشنبه" }));
-  await user.click(within(grid).getByRole("checkbox", { name: "سه‌شنبه" }));
-  await user.click(within(grid).getByRole("checkbox", { name: "جمعه" }));
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "gym");
-  await user.selectOptions(screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"), "60");
-  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
-  await user.click(screen.getByLabelText("ندارم"));
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
-  expect(profileContext.createProfile).toHaveBeenCalledWith(
-    expect.objectContaining({ preferred_weekdays: [0, 2, 4, 6] }),
-  );
-});
-
-it("requires at least one home equipment choice before creating a profile", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "3");
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "home");
-  await user.selectOptions(screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"), "60");
-  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
-  await user.click(screen.getByLabelText("ندارم"));
-
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(screen.getByText("این فیلد الزامی است.")).toBeInTheDocument();
-  expect(profileContext.createProfile).not.toHaveBeenCalled();
-});
-
-it("returns to step two with entered values preserved", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-
-  await user.click(screen.getByRole("button", { name: "بازگشت" }));
-
-  expect(screen.getByLabelText("قد (سانتی‌متر)")).toHaveValue(178);
-  expect(screen.getByLabelText("وزن فعلی (کیلوگرم)")).toHaveValue(76.5);
-  expect(screen.getByLabelText("هدف ورزشی")).toHaveValue("build_muscle");
-});
-
-it("blocks invalid training days", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "8");
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(screen.getByText("روزهای تمرین باید بین ۲ تا ۶ باشد.")).toBeInTheDocument();
-  expect(profileContext.createProfile).not.toHaveBeenCalled();
-});
-
-it("submits one normalized typed profile payload", async () => {
-  profileContext.createProfile.mockResolvedValue(createdProfile);
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user, "  Mohammad  ");
-  await completeExperienceFields(user);
-  await user.click(screen.getByLabelText("احتیاط برای زانو"));
-  await user.selectOptions(screen.getByLabelText("مدت این برنامه چقدر باشد؟"), "6");
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  await waitFor(() => expect(profileContext.createProfile).toHaveBeenCalledOnce());
-  expect(profileContext.createProfile).toHaveBeenCalledWith({
-    display_name: "Mohammad",
-    birth_date: "2000-05-14",
-    sex: "male",
-    height_cm: 178,
-    current_weight_kg: 76.5,
-    shoulder_circumference_cm: null,
-    waist_circumference_cm: null,
-    hip_circumference_cm: null,
-    fitness_goal: "build_muscle",
-    experience_level: "beginner",
-    training_age_months: null,
-    training_days_per_week: 3,
-    preferred_weekdays: [0, 2, 4],
-    priority_muscles: null,
-    training_location: "gym",
-    home_training_setup: null,
-    available_equipment: null,
-    session_duration_minutes: 60,
-    training_intensity: "moderate",
-    training_cautions: ["knee"],
-    plan_duration_weeks: 6,
-  });
-});
-
-it("keeps the four home presets mutually exclusive", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "home");
-
-  const homeGroup = screen.getByRole("group", { name: "برای تمرین در خانه چه امکاناتی داری؟" });
-  const bodyweight = within(homeGroup).getByRole("radio", { name: "وزن بدن" });
-  const dumbbells = within(homeGroup).getByRole("radio", { name: "دمبل" });
-  const bands = within(homeGroup).getByRole("radio", { name: "کش" });
-  const combined = within(homeGroup).getByRole("radio", { name: "دمبل + کش" });
-
-  await user.click(bodyweight);
-  expect(bodyweight).toBeChecked();
-  expect(dumbbells).not.toBeChecked();
-  expect(bands).not.toBeChecked();
-  expect(combined).not.toBeChecked();
-
-  await user.click(bands);
-  expect(bodyweight).not.toBeChecked();
-  expect(bands).toBeChecked();
-});
-
-it("offers the optional photo flow after successful profile creation", async () => {
-  profileContext.createProfile.mockResolvedValue(createdProfile);
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await completeExperienceFields(user);
-
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(
-    await screen.findByRole("heading", { name: "REPLACE:/body-progress/new" }),
-  ).toBeInTheDocument();
-});
-
-it("keeps entered values and shows an alert when creation fails", async () => {
-  profileContext.createProfile.mockRejectedValue(new TransportError("offline"));
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user, "Mohammad");
-  await completeExperienceFields(user);
-
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    "اتصال اینترنت در دسترس نیست",
-  );
-  expect(screen.getByLabelText("روزهای تمرین در هفته")).toHaveValue(3);
-  expect(screen.queryByLabelText("محدودیت‌های جسمی (اختیاری)")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "بازگشت" }));
-  await user.click(screen.getByRole("button", { name: "بازگشت" }));
-  expect(screen.getByLabelText("نام نمایشی")).toHaveValue("Mohammad");
-});
-
-it("disables back and submit controls while creation is pending", async () => {
-  profileContext.createProfile.mockReturnValue(new Promise(() => undefined));
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await completeExperienceFields(user);
-
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(await screen.findByRole("button", { name: "در حال ذخیره…" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "بازگشت" })).toBeDisabled();
-});
-
-it("renders the onboarding structure in English", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await i18n.changeLanguage("en");
-
-  expect(screen.getByRole("heading", { name: "Build your fitness profile" })).toBeInTheDocument();
-  expect(screen.getByText("Step 3 of 3")).toBeInTheDocument();
-  expect(screen.getByLabelText("Where do you train?")).toBeInTheDocument();
-  expect(
-    screen.getByLabelText("How much time do you usually have for each workout?"),
-  ).toBeInTheDocument();
-});
-
-it("requires a deliberate training-caution choice", async () => {
-  const user = userEvent.setup();
-  renderOnboarding();
-  await reachExperienceStep(user);
-  await user.selectOptions(screen.getByLabelText("سطح تجربه"), "beginner");
-  await user.type(screen.getByLabelText("روزهای تمرین در هفته"), "3");
-  await user.selectOptions(screen.getByLabelText("کجا تمرین می‌کنی؟"), "gym");
-  await user.selectOptions(
-    screen.getByLabelText("معمولاً برای هر جلسه چقدر زمان داری؟"),
-    "60",
-  );
-  await user.selectOptions(screen.getByLabelText("شدت معمول تمرین"), "moderate");
-
-  await user.click(screen.getByRole("button", { name: "ساخت پروفایل" }));
-
-  expect(screen.getByText("این فیلد الزامی است.")).toBeInTheDocument();
-  expect(profileContext.createProfile).not.toHaveBeenCalled();
 });

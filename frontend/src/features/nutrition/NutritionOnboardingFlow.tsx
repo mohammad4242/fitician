@@ -576,7 +576,7 @@ export function NutritionOnboardingFlow({
         <p className="nutrition-feedback" role="status">{language === "en" ? "A Fitician physician review is required for your nutrition path." : decision.message}</p>
       )}
       {step === "personal" && (
-        <GuidedSharedProfileQuestions values={values} onChange={(field, value) => updateProfileValue(field, value)} onBack={onExit ?? (() => undefined)} onComplete={saveShared} />
+        <GuidedSharedProfileQuestions values={values} onChange={(field, value) => updateProfileValue(field, value)} onBack={onExit} onComplete={saveShared} />
       )}
       {step === "safety" && (
         <SafetyForm
