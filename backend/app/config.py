@@ -96,6 +96,8 @@ class Settings(BaseSettings):
     apple_jwks_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
     apple_clock_skew_seconds: int = Field(default=60, ge=0, le=300)
     auth_rate_limit_window_seconds: int = Field(default=3600, ge=60, le=86400)
+    auth_register_ip_limit: int = Field(default=20, ge=1, le=1000)
+    auth_register_identifier_limit: int = Field(default=5, ge=1, le=1000)
     auth_password_ip_limit: int = Field(default=20, ge=1, le=1000)
     auth_password_identifier_limit: int = Field(default=5, ge=1, le=1000)
     auth_phone_otp_ip_limit: int = Field(default=10, ge=1, le=1000)

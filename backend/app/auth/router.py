@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from google.auth.exceptions import GoogleAuthError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.auth.cookies import (
     clear_session_cookie,
@@ -236,15 +237,33 @@ def _mobile_auth_response(result: MobileAuthResult) -> MobileAuthResponse:
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def register(
+async def register(
     payload: RegisterRequest,
+    request: Request,
     response: Response,
     db: DatabaseSession,
     settings: AppSettings,
     email_provider: EmailDelivery,
 ) -> UserResponse:
+    await _consume_limit(
+        request,
+        db,
+        settings,
+        actor=f"ip:{_client_actor(request)}",
+        operation="register-ip",
+        limit=settings.auth_register_ip_limit,
+    )
+    await _consume_limit(
+        request,
+        db,
+        settings,
+        actor=f"email:{normalize_email(str(payload.email))}",
+        operation="register-email",
+        limit=settings.auth_register_identifier_limit,
+    )
     try:
-        result = register_user(
+        result = await run_in_threadpool(
+            register_user,
             db,
             payload,
             settings.session_ttl_seconds,
