@@ -692,6 +692,7 @@ def revoke_all_mobile_token_families(
     *,
     reason: str,
     now: datetime | None = None,
+    commit: bool = True,
 ) -> None:
     revoked_at = now or datetime.now(UTC)
     families = db.scalars(
@@ -726,6 +727,8 @@ def revoke_all_mobile_token_families(
             event_type="logout_all",
             event_data={"reason": reason},
         )
+    if not commit:
+        return
     try:
         db.commit()
     except SQLAlchemyError:
@@ -790,6 +793,7 @@ def reset_password(db: Session, raw_token: str, new_password: str) -> bool:
         .values(used_at=now)
     )
     db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    revoke_all_mobile_token_families(db, user.id, reason="password_reset", now=now, commit=False)
     try:
         db.commit()
     except SQLAlchemyError:
