@@ -12,6 +12,7 @@ on:
         type: choice
         options:
           - full
+          - release
           - mobile-resume
         default: full
 
@@ -231,7 +232,7 @@ jobs:
 
           mode = os.environ.get("DISPATCH_MODE", "")
           if os.environ["EVENT_NAME"] == "workflow_dispatch":
-              if mode == "full":
+              if mode in {"full", "release"}:
                   outputs.update({scope: True for scope in scopes})
               elif mode != "mobile-resume":
                   raise SystemExit(f"Unsupported workflow_dispatch mode: {mode}")
@@ -569,7 +570,7 @@ jobs:
 
   secrets:
     name: Secret scan
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || inputs.mode == 'release' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -792,7 +793,21 @@ jobs:
         (github.event_name == 'workflow_dispatch' &&
          inputs.mode == 'mobile-resume' &&
          needs.mobile-resume-guard.result == 'success' &&
-         needs.mobile-resume.result == 'success')
+         needs.mobile-resume.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.mode == 'release' &&
+         needs.changes.result == 'success' &&
+         needs.secrets.result == 'success' &&
+         needs.backend.result == 'success' &&
+         needs.frontend.result == 'success' &&
+         needs.frontend-browser.result == 'success' &&
+         needs.shared.result == 'success' &&
+         needs.mobile.result == 'success' &&
+         needs.android.result == 'success' &&
+         needs.dependencies.result == 'success' &&
+         needs.production-contract.result == 'success' &&
+         needs.scalability-contract.result == 'success' &&
+         needs.multi-replica-smoke.result == 'success')
       )
     needs:
       - changes
