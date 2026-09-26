@@ -43,6 +43,36 @@ concurrency:
   queue: max
 
 jobs:
+  automatic_images_gate:
+    name: Confirm immutable images were published
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      images_ready: ${{ steps.inspect-images.outputs.ready }}
+    steps:
+      - name: Inspect image job in this exact CI run
+        id: inspect-images
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          image_conclusions="$(gh api \
+            --paginate \
+            --jq '.jobs[] | select(.name == "Build and publish immutable production images") | .conclusion' \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}/jobs?per_page=100&filter=latest")"
+          if printf '%s\n' "$image_conclusions" | grep -Fxq success; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'The CI run did not publish immutable production images; automatic deployment is skipped.'
+          fi
+
   automatic_deploy_gate:
     name: Check automatic first scalability gate
     if: >-
@@ -50,7 +80,9 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      needs.automatic_images_gate.outputs.images_ready == 'true'
+    needs: automatic_images_gate
     runs-on: ubuntu-latest
     environment: production
     outputs:
@@ -103,14 +135,16 @@ jobs:
 
   deploy:
     name: Deploy immutable images to VPS
-    needs: [automatic_deploy_gate]
+    needs: [automatic_images_gate, automatic_deploy_gate]
     if: >-
-      always() &&
+      always() && !cancelled() &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.head_repository.full_name == github.repository &&
+        needs.automatic_images_gate.result == 'success' &&
+        needs.automatic_images_gate.outputs.images_ready == 'true' &&
         needs.automatic_deploy_gate.result == 'success' &&
         needs.automatic_deploy_gate.outputs.deploy == 'true'))
     runs-on: ubuntu-latest

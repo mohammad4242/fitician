@@ -23,9 +23,270 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      run_backend: ${{ steps.classify.outputs.run_backend }}
+      run_frontend: ${{ steps.classify.outputs.run_frontend }}
+      run_frontend_browser: ${{ steps.classify.outputs.run_frontend_browser }}
+      run_shared: ${{ steps.classify.outputs.run_shared }}
+      run_mobile: ${{ steps.classify.outputs.run_mobile }}
+      run_android: ${{ steps.classify.outputs.run_android }}
+      run_dependencies: ${{ steps.classify.outputs.run_dependencies }}
+      run_production_contract: ${{ steps.classify.outputs.run_production_contract }}
+      run_scalability: ${{ steps.classify.outputs.run_scalability }}
+      run_multi_replica: ${{ steps.classify.outputs.run_multi_replica }}
+      deployable: ${{ steps.classify.outputs.deployable }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify changed paths
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          DISPATCH_MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import fnmatch
+          import os
+          import subprocess
+
+          scopes = (
+              "run_backend",
+              "run_frontend",
+              "run_frontend_browser",
+              "run_shared",
+              "run_mobile",
+              "run_android",
+              "run_dependencies",
+              "run_production_contract",
+              "run_scalability",
+              "run_multi_replica",
+          )
+          outputs = {scope: False for scope in scopes}
+          outputs["deployable"] = False
+
+          def changed_paths() -> list[str]:
+              event = os.environ["EVENT_NAME"]
+              if event == "push":
+                  base = os.environ.get("BEFORE_SHA", "")
+                  head = os.environ["HEAD_SHA"]
+                  if not head:
+                      raise SystemExit("Push event is missing github.sha")
+                  if not base or set(base) == {"0"}:
+                      raw = subprocess.check_output(
+                          ["git", "ls-tree", "-r", "--name-only", "-z", head]
+                      )
+                  else:
+                      raw = subprocess.check_output(
+                          ["git", "diff", "--no-renames", "--name-only", "-z", base, head]
+                      )
+              elif event == "pull_request":
+                  base = os.environ.get("BASE_SHA", "")
+                  head = os.environ.get("PR_HEAD_SHA", "")
+                  if not base or not head:
+                      raise SystemExit("Pull request event is missing its base or head SHA")
+                  raw = subprocess.check_output(
+                      ["git", "diff", "--no-renames", "--name-only", "-z", base, head]
+                  )
+              else:
+                  raise SystemExit(f"Unsupported event for changed-path detection: {event}")
+              return [os.fsdecode(path) for path in raw.split(b"\0") if path]
+
+          def test_or_docs_only(path: str) -> bool:
+              parts = path.lower().split("/")
+              basename = parts[-1]
+              if any(
+                  part in {"test", "tests", "test-results", "__tests__", "e2e", "coverage"}
+                  for part in parts
+              ):
+                  return True
+              if ".test." in basename or ".spec." in basename:
+                  return True
+              if basename.startswith(("test_", "test.")) or basename.endswith("_test.py"):
+                  return True
+              if basename in {"readme.md", "changelog.md"}:
+                  return True
+              return path.startswith(
+                  ("frontend/docs/", "packages/fitician-core/docs/", "agent-service/docs/")
+              )
+
+          def is_npm_dependency_input(path: str) -> bool:
+              if path in {
+                  "package.json",
+                  "package-lock.json",
+                  "npm-shrinkwrap.json",
+                  ".npmrc",
+                  "mobile/package.json",
+                  "mobile/package-lock.json",
+                  "mobile/npm-shrinkwrap.json",
+                  "mobile/.npmrc",
+                  "packages/fitician-core/package.json",
+              }:
+                  return True
+              return path.startswith("mobile/modules/") and path.endswith(
+                  ("/package.json", "/package-lock.json", "/npm-shrinkwrap.json")
+              )
+
+          def is_android_sensitive(path: str) -> bool:
+              if path in {
+                  "package.json",
+                  "package-lock.json",
+                  "npm-shrinkwrap.json",
+                  ".npmrc",
+                  "mobile/.npmrc",
+                  "mobile/app.json",
+                  "mobile/app.config.js",
+                  "mobile/app.config.ts",
+                  "mobile/eas.json",
+                  "mobile/package.json",
+                  "mobile/metro.config.cjs",
+                  "mobile/config/productionApiConfig.ts",
+                  "packages/fitician-core/package.json",
+              }:
+                  return True
+              return (
+                  path.startswith((
+                      "mobile/android/",
+                      "mobile/plugins/",
+                      "mobile/modules/",
+                      "mobile/assets/branding/",
+                      "mobile/assets/fonts/",
+                  ))
+                  or fnmatch.fnmatchcase(path, "mobile/app.config.*")
+                  or fnmatch.fnmatchcase(path, "mobile/metro.config.*")
+                  or fnmatch.fnmatchcase(path, "mobile/babel.config.*")
+                  or path.startswith("mobile/") and path.endswith(("/package-lock.json", "/npm-shrinkwrap.json"))
+              )
+
+          def is_topology_input(path: str) -> bool:
+              basename = path.rsplit("/", 1)[-1]
+              return (
+                  path.startswith(("agent-service/", "ops/", "docker/"))
+                  or path == "Caddyfile"
+                  or path.startswith("Caddyfile.")
+                  or basename.startswith("compose") and basename.endswith((".yaml", ".yml"))
+                  or path in {
+                      ".dockerignore",
+                      "backend/Dockerfile",
+                      "backend/.dockerignore",
+                      "agent-service/Dockerfile",
+                      "agent-service/.dockerignore",
+                  }
+              )
+
+          def is_production_contract_input(path: str) -> bool:
+              return (
+                  is_topology_input(path)
+                  or path in {"frontend/Dockerfile", "frontend/nginx.conf"}
+              )
+
+          def is_deployable_input(path: str) -> bool:
+              if path in {
+                  "package.json",
+                  "package-lock.json",
+                  "frontend/Dockerfile",
+                  "frontend/nginx.conf",
+                  "backend/Dockerfile",
+                  "backend/.dockerignore",
+                  "backend/pyproject.toml",
+                  "backend/alembic.ini",
+                  "agent-service/Dockerfile",
+                  "agent-service/.dockerignore",
+                  "agent-service/pyproject.toml",
+                  "agent-service/uv.lock",
+                  "agent-service/docker/entrypoint.sh",
+                  "compose.prod.yaml",
+                  "Caddyfile",
+                  ".dockerignore",
+                  "ops/backup-production.sh",
+                  "ops/check-db-connection-budget.py",
+                  "ops/check-runtime-capacity.py",
+                  "ops/deploy-production.sh",
+                  "ops/verify-production.sh",
+                  "ops/redis/redis.conf",
+              }:
+                  return True
+              if path.startswith(("backend/app/", "backend/alembic/", "agent-service/app/")):
+                  return not test_or_docs_only(path)
+              if path.startswith("frontend/"):
+                  return (
+                      path not in {"frontend/package-lock.json", "frontend/Dockerfile.dev"}
+                      and not test_or_docs_only(path)
+                  )
+              if path.startswith("packages/fitician-core/") and not test_or_docs_only(path):
+                  return True
+              if path.startswith("agent-service/docker/") and not test_or_docs_only(path):
+                  return True
+              if path in {"packages/fitician-core/src/generated/api.ts"}:
+                  return True
+              return False
+
+          mode = os.environ.get("DISPATCH_MODE", "")
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+              if mode == "full":
+                  outputs.update({scope: True for scope in scopes})
+              elif mode != "mobile-resume":
+                  raise SystemExit(f"Unsupported workflow_dispatch mode: {mode}")
+          else:
+              paths = changed_paths()
+              backend = any(path.startswith("backend/") for path in paths)
+              frontend = any(path.startswith("frontend/") for path in paths)
+              core = any(path.startswith("packages/fitician-core/") for path in paths)
+              workspace = any(
+                  path in {"package.json", "package-lock.json", ".npmrc"} for path in paths
+              )
+              contracts = any(
+                  path.startswith("contracts/")
+                  or path in {
+                      "scripts/generate-openapi.mjs",
+                      "scripts/openapi_generation.test.mjs",
+                      "frontend/src/api/generated/api.ts",
+                  }
+                  for path in paths
+              )
+              workflows = any(path.startswith(".github/workflows/") for path in paths)
+              topology = any(is_topology_input(path) for path in paths)
+              production_contract = any(is_production_contract_input(path) for path in paths)
+              android = workspace or any(is_android_sensitive(path) for path in paths)
+              mobile = core or workspace or any(path.startswith("mobile/") for path in paths)
+              shared = backend or core or workspace or contracts
+              frontend_checks = frontend or core or workspace
+
+              outputs.update(
+                  {
+                      "run_backend": backend,
+                      "run_frontend": frontend_checks,
+                      "run_frontend_browser": frontend_checks,
+                      "run_shared": shared,
+                      "run_mobile": mobile,
+                      "run_android": android,
+                      "run_dependencies": any(is_npm_dependency_input(path) for path in paths),
+                      "run_production_contract": production_contract,
+                      "run_scalability": backend or topology,
+                      "run_multi_replica": backend or topology,
+                      "deployable": any(is_deployable_input(path) for path in paths),
+                  }
+              )
+              if workflows:
+                  outputs.update({scope: True for scope in scopes})
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output_file:
+              for name, value in outputs.items():
+                  print(f"{name}={'true' if value else 'false'}", file=output_file)
+          PY
+
   backend:
     name: Backend tests
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_backend == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -121,7 +382,8 @@ jobs:
 
   frontend:
     name: Frontend tests, lint, and build
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_frontend == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -137,9 +399,9 @@ jobs:
 
   frontend-browser:
     name: Frontend browser regression (Chromium and WebKit)
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_frontend_browser == 'true' }}
     runs-on: ubuntu-latest
-    needs: frontend
+    needs: [changes, frontend]
     env:
       E2E_DATABASE_URL: postgresql+psycopg://fitician:fitician@127.0.0.1:5432/fitician_e2e
     services:
@@ -178,7 +440,8 @@ jobs:
 
   shared:
     name: Shared core and contract checks
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_shared == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -196,7 +459,8 @@ jobs:
 
   mobile:
     name: Mobile tests and validation
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_mobile == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -263,7 +527,8 @@ jobs:
 
   android:
     name: Android debug build
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_android == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -290,7 +555,8 @@ jobs:
 
   dependencies:
     name: Dependency audit
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_dependencies == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -316,7 +582,8 @@ jobs:
 
   production-contract:
     name: Production Compose and deployment checks
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_production_contract == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -343,7 +610,8 @@ jobs:
 
   scalability-contract:
     name: Scalability foundation contract checks
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_scalability == 'true' }}
+    needs: changes
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -456,10 +724,10 @@ jobs:
 
   multi-replica-smoke:
     name: Short two-replica runtime smoke
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ needs.changes.outputs.run_multi_replica == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: scalability-contract
+    needs: [changes, scalability-contract]
     steps:
       - uses: actions/checkout@v4
       - name: Prepare provider-free local configuration
@@ -504,26 +772,32 @@ jobs:
   container-images:
     name: Build and publish immutable production images
     if: >-
-      always() && github.ref == 'refs/heads/main' &&
+      always() && !cancelled() &&
+      github.ref == 'refs/heads/main' &&
       (
         (github.event_name == 'push' &&
-         needs.backend.result == 'success' &&
-         needs.frontend-browser.result == 'success' &&
-         needs.shared.result == 'success' &&
-         needs.mobile.result == 'success' &&
-         needs.android.result == 'success' &&
-         needs.dependencies.result == 'success' &&
+         needs.changes.result == 'success' &&
+         needs.changes.outputs.deployable == 'true' &&
          needs.secrets.result == 'success' &&
-         needs.production-contract.result == 'success' &&
-         needs.scalability-contract.result == 'success' &&
-         needs.multi-replica-smoke.result == 'success') ||
+         (needs.changes.outputs.run_backend != 'true' || needs.backend.result == 'success') &&
+         (needs.changes.outputs.run_frontend != 'true' || needs.frontend.result == 'success') &&
+         (needs.changes.outputs.run_frontend_browser != 'true' || needs.frontend-browser.result == 'success') &&
+         (needs.changes.outputs.run_shared != 'true' || needs.shared.result == 'success') &&
+         (needs.changes.outputs.run_mobile != 'true' || needs.mobile.result == 'success') &&
+         (needs.changes.outputs.run_android != 'true' || needs.android.result == 'success') &&
+         (needs.changes.outputs.run_dependencies != 'true' || needs.dependencies.result == 'success') &&
+         (needs.changes.outputs.run_production_contract != 'true' || needs.production-contract.result == 'success') &&
+         (needs.changes.outputs.run_scalability != 'true' || needs.scalability-contract.result == 'success') &&
+         (needs.changes.outputs.run_multi_replica != 'true' || needs.multi-replica-smoke.result == 'success')) ||
         (github.event_name == 'workflow_dispatch' &&
          inputs.mode == 'mobile-resume' &&
          needs.mobile-resume-guard.result == 'success' &&
          needs.mobile-resume.result == 'success')
       )
     needs:
+      - changes
       - backend
+      - frontend
       - frontend-browser
       - shared
       - mobile
