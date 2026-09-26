@@ -3,6 +3,16 @@ www.{$FITICIAN_DOMAIN} {
 }
 
 {$FITICIAN_DOMAIN} {
+	# Bound uploads at ingress; exercise galleries can include multiple 64 MiB videos.
+	@exercise_upload path /api/v1/admin/exercises /api/v1/admin/exercises/*
+	request_body @exercise_upload {
+		max_size 256MiB
+	}
+	@standard_request not path /api/v1/admin/exercises /api/v1/admin/exercises/*
+	request_body @standard_request {
+		max_size 32MiB
+	}
+
 	handle /healthz {
 		reverse_proxy backend:8000 backend-2:8000 {
 			health_uri /readyz

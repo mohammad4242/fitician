@@ -7,10 +7,8 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
-    File,
     HTTPException,
     Request,
-    UploadFile,
     status,
 )
 from fastapi.responses import StreamingResponse
@@ -40,6 +38,7 @@ from app.body_photos.service import (
     BodyPhotoSessionValidationError,
 )
 from app.body_photos.storage import BodyPhotoStorageError
+from app.body_photos.upload import bounded_photo_upload
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
@@ -172,6 +171,20 @@ def get_session(
     "/{session_id}/photos/{view}",
     response_model=BodyPhotoSessionResponse,
     dependencies=[Depends(require_trusted_origin)],
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                        "type": "object",
+                        "required": ["file"],
+                        "properties": {"file": {"type": "string", "format": "binary"}},
+                    }
+                }
+            },
+        }
+    },
 )
 async def upload_photo(
     session_id: UUID,
@@ -180,7 +193,6 @@ async def upload_photo(
     user: CurrentUser,
     settings: AppSettings,
     request: Request,
-    file: Annotated[UploadFile, File()],
 ) -> BodyPhotoSessionResponse:
     try:
         await enforce_distributed_rate_limit(
@@ -193,12 +205,13 @@ async def upload_photo(
             window_seconds=settings.application_rate_limit_window_seconds,
             user_id=user.id,
         )
-        session = BodyPhotoService(db, settings).upload_standardized_photo(
-            session_id,
-            user.id,
-            view,
-            file,
-        )
+        async with bounded_photo_upload(request, settings.body_photo_max_bytes) as file:
+            session = BodyPhotoService(db, settings).upload_standardized_photo(
+                session_id,
+                user.id,
+                view,
+                file,
+            )
         return _session_response(session)
     except BodyPhotoSessionNotFoundError:
         raise _not_found() from None
