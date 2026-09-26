@@ -1,7 +1,11 @@
+from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -41,18 +45,22 @@ def _apple_login(
     provider: StubAppleIdentityProvider,
     *,
     platform: str = "ios",
-):
+) -> Response:
+    assert isinstance(client.app, FastAPI)
     client.app.state.apple_identity_provider = provider
-    return client.post(
-        "/api/v1/auth/mobile/apple",
-        json={
-            "app_version": "1.0.0",
-            "device_id": "iphone-test-1",
-            "device_name": "iPhone",
-            "identity_token": "signed-apple-id-token",
-            "nonce": "nonce-1",
-            "platform": platform,
-        },
+    return cast(
+        Response,
+        client.post(
+            "/api/v1/auth/mobile/apple",
+            json={
+                "app_version": "1.0.0",
+                "device_id": "iphone-test-1",
+                "device_name": "iPhone",
+                "identity_token": "signed-apple-id-token",
+                "nonce": "nonce-1",
+                "platform": platform,
+            },
+        ),
     )
 
 
@@ -121,6 +129,10 @@ def test_verified_apple_email_links_existing_password_account(
         headers={"Origin": "http://localhost:5173"},
         json={"email": "Member@Example.com", "password": "long password"},
     )
+    existing = db.get(User, registered.json()["id"])
+    assert existing is not None
+    existing.email_verified_at = datetime.now(UTC)
+    db.commit()
 
     response = _apple_login(
         client,

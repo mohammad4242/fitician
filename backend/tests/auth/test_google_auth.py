@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 
@@ -90,6 +91,10 @@ def test_verified_google_email_links_existing_password_account(
         headers=ORIGIN,
         json={"email": "Member@Example.com", "password": "long password"},
     )
+    existing = db.get(User, registered.json()["id"])
+    assert existing is not None
+    existing.email_verified_at = datetime.now(UTC)
+    db.commit()
     client.post("/api/v1/auth/logout", headers=ORIGIN)
 
     google = _google_login(

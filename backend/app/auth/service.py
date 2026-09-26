@@ -290,7 +290,11 @@ def _authenticate_google_user(
         )
         if identity.email_verified and normalized_google_email is not None:
             if email_user is not None:
-                if email_user.google_sub not in {None, identity.sub}:
+                # Provider verification cannot establish who chose local credentials.
+                if (
+                    email_user.email_verified_at is None
+                    or email_user.google_sub not in {None, identity.sub}
+                ):
                     raise GoogleAccountConflictError
                 user = email_user
                 user.google_sub = identity.sub
@@ -406,7 +410,11 @@ def _authenticate_apple_user(
         )
         if identity.email_verified and normalized_apple_email is not None:
             if email_user is not None:
-                if email_user.apple_sub not in {None, identity.sub}:
+                # Provider verification cannot establish who chose local credentials.
+                if (
+                    email_user.email_verified_at is None
+                    or email_user.apple_sub not in {None, identity.sub}
+                ):
                     raise AppleAccountConflictError
                 user = email_user
                 user.apple_sub = identity.sub
