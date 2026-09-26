@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -77,6 +78,17 @@ def grant_count(db: Session, user_id) -> int:
     )
 
 
+def _verify_registration_email(client: TestClient) -> None:
+    delivery = client.app.state.email_provider.verification_deliveries[-1]
+    token = parse_qs(urlsplit(delivery.verification_url).query)["token"][0]
+    response = client.post(
+        "/api/v1/auth/email/verify",
+        headers=ORIGIN,
+        json={"token": token},
+    )
+    assert response.status_code == 204
+
+
 def test_email_registration_gets_one_signup_bonus_and_repeated_registration_does_not_add_one(
     client: TestClient,
     db: Session,
@@ -137,6 +149,7 @@ def test_google_link_to_existing_email_account_does_not_create_a_second_signup_b
         json={"email": "google-link-trial@example.com", "password": PASSWORD},
     )
     assert registered.status_code == 201
+    _verify_registration_email(client)
     client.post("/api/v1/auth/logout", headers=ORIGIN)
     client.app.state.google_identity_provider = GoogleProvider(
         sub="linked-google",
@@ -187,6 +200,7 @@ def test_apple_new_user_and_existing_email_link_have_one_signup_bonus(
         json={"email": "apple-link-trial@example.com", "password": PASSWORD},
     )
     assert registered.status_code == 201
+    _verify_registration_email(client)
     client.post("/api/v1/auth/logout", headers=ORIGIN)
     client.app.state.apple_identity_provider = AppleProvider(
         sub="linked-apple",
@@ -206,7 +220,9 @@ def test_apple_new_user_and_existing_email_link_have_one_signup_bonus(
     assert linked.status_code == 200
     linked_user = db.get(User, registered.json()["id"])
     assert linked_user is not None
+    assert linked_user.apple_sub == "linked-apple"
     assert grant_count(db, linked_user.id) == 1
+    assert db.scalar(select(func.count()).select_from(User)) == 3
 
 
 def test_phone_new_user_gets_one_signup_bonus_and_existing_login_keeps_one(

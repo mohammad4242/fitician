@@ -5647,11 +5647,6 @@ export type components = {
             /** File */
             file: string;
         };
-        /** Body_upload_photo_api_v1_body_photo_sessions__session_id__photos__view__put */
-        Body_upload_photo_api_v1_body_photo_sessions__session_id__photos__view__put: {
-            /** File */
-            file: string;
-        };
         /** Body_upload_profile_photo_api_v1_profile_photo_put */
         Body_upload_profile_photo_api_v1_profile_photo_put: {
             /** File */
@@ -15871,7 +15866,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_photo_api_v1_body_photo_sessions__session_id__photos__view__put"];
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
             };
         };
         responses: {
