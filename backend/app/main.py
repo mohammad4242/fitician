@@ -63,7 +63,7 @@ from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
 from app.nutrition.router import router as nutrition_router
 from app.observability.logging import configure_structured_logging, log_event
-from app.observability.metrics import MetricsRegistry
+from app.observability.metrics import MetricsRegistry, route_label_from_scope
 from app.profile.router import router as profile_router
 from app.program_timeline.router import router as program_timeline_router
 from app.workout_cycles.router import router as workout_cycles_router
@@ -344,13 +344,13 @@ def create_app(
             )
             metrics.finish_failed_request(
                 method=request.method,
-                path=request.url.path,
+                route=route_label_from_scope(request.scope),
                 duration_seconds=time.perf_counter() - started,
             )
             raise
         metrics.observe_http(
             method=request.method,
-            path=request.url.path,
+            route=route_label_from_scope(request.scope),
             status_code=response.status_code,
             duration_seconds=time.perf_counter() - started,
         )

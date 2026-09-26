@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Mapping
 from threading import Lock
 
-_UUID_SEGMENT = re.compile(r"^[0-9a-fA-F-]{16,}$")
+UNMATCHED_ROUTE = "/__unmatched__"
+_HTTP_METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
 
 class MetricsRegistry:
@@ -36,12 +38,11 @@ class MetricsRegistry:
         self,
         *,
         method: str,
-        path: str,
+        route: str,
         status_code: int,
         duration_seconds: float,
     ) -> None:
-        route = normalize_route(path)
-        key = (method.upper(), route, status_code)
+        key = (normalize_method(method), normalize_route(route), status_code)
         with self._lock:
             self._http_count[key] += 1
             self._http_duration[key] += max(0.0, duration_seconds)
@@ -51,12 +52,12 @@ class MetricsRegistry:
         self,
         *,
         method: str,
-        path: str,
+        route: str,
         duration_seconds: float,
     ) -> None:
         self.observe_http(
             method=method,
-            path=path,
+            route=route,
             status_code=500,
             duration_seconds=duration_seconds,
         )
@@ -168,16 +169,25 @@ class MetricsRegistry:
         return "\n".join(lines) + "\n"
 
 
-def normalize_route(path: str) -> str:
-    segments = []
-    for segment in path.split("/"):
-        if not segment:
-            continue
-        if _UUID_SEGMENT.fullmatch(segment) or segment.isdigit():
-            segments.append(":id")
-        else:
-            segments.append(segment[:80])
-    return "/" + "/".join(segments) if segments else "/"
+def route_label_from_scope(scope: Mapping[str, object]) -> str:
+    """Return the registered route template, or one fixed unmatched label."""
+    matched_route = scope.get("route")
+    return normalize_route(getattr(matched_route, "path", None))
+
+
+def normalize_route(route_template: object) -> str:
+    if (
+        not isinstance(route_template, str)
+        or not route_template.startswith("/")
+        or len(route_template) > 256
+    ):
+        return UNMATCHED_ROUTE
+    return route_template
+
+
+def normalize_method(method: str) -> str:
+    normalized = method.upper()
+    return normalized if normalized in _HTTP_METHODS else "OTHER"
 
 
 def _labels(**values: str) -> str:
