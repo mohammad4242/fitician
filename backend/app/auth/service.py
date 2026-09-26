@@ -107,7 +107,7 @@ def authenticate_password_user(db: Session, payload: LoginRequest) -> User:
         else DUMMY_PASSWORD_HASH
     )
     password_is_valid = verify_password(payload.password, stored_hash)
-    if user is None or not password_is_valid:
+    if user is None or user.password_hash is None or not password_is_valid:
         raise InvalidCredentialsError
     return user
 

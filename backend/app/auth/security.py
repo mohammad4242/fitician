@@ -6,7 +6,8 @@ import secrets
 from pwdlib import PasswordHash
 
 _password_hash = PasswordHash.recommended()
-DUMMY_PASSWORD_HASH = _password_hash.hash("fitician-dummy-password-value")
+# Used only to equalize password verification cost, never to authenticate a user.
+DUMMY_PASSWORD_HASH = _password_hash.hash(secrets.token_urlsafe(32))
 
 
 def hash_password(password: str) -> str:

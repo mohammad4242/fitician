@@ -21,6 +21,10 @@ def test_password_is_hashed_and_verifiable() -> None:
     assert not verify_password("wrong password", encoded)
 
 
+def test_dummy_password_hash_rejects_the_previous_public_fallback_value() -> None:
+    assert not verify_password("fitician-dummy-password-value", security.DUMMY_PASSWORD_HASH)
+
+
 def test_session_tokens_are_random_and_only_digest_is_stable() -> None:
     raw_one, digest_one = make_session_token()
     raw_two, digest_two = make_session_token()
