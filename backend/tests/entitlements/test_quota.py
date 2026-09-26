@@ -90,6 +90,40 @@ def test_different_resource_is_rejected_until_rolling_window_resets(db: Session)
     )
 
 
+def test_distinct_quota_resources_use_a_user_row_lock(db: Session, monkeypatch) -> None:
+    user = make_user(db)
+    now = datetime.now(UTC)
+    user_lock_queries: list[str] = []
+    original_scalar = db.scalar
+
+    def capture_user_lock(statement, *args, **kwargs):
+        sql = str(statement.compile(dialect=db.get_bind().dialect)).upper()
+        if "FROM USERS" in sql:
+            user_lock_queries.append(sql)
+        return original_scalar(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db, "scalar", capture_user_lock)
+    assert consume_quota(
+        db,
+        user.id,
+        EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+        "nutrition-plan:first:revision:1",
+        now=now,
+    )
+
+    with pytest.raises(EntitlementQuotaExceededError):
+        consume_quota(
+            db,
+            user.id,
+            EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+            "nutrition-plan:second:revision:1",
+            now=now + timedelta(days=1),
+        )
+
+    assert len(user_lock_queries) == 2
+    assert all("FOR UPDATE" in statement for statement in user_lock_queries)
+
+
 def test_consumption_does_not_commit_the_callers_transaction(db: Session, monkeypatch) -> None:
     user = make_user(db)
     commit_calls = 0

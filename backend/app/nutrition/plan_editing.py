@@ -4,12 +4,14 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.service import consume_quota
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
@@ -378,6 +380,16 @@ def _create_revision(
     if generation is None:
         raise PlanEditError("PLAN_GENERATION_NOT_FOUND")
     review_required = physician_id is not None or physician_review_allowed
+    member_review_required = physician_id is None and physician_review_allowed
+    revision = latest + 1
+    new_plan_id = uuid4()
+    if member_review_required:
+        consume_quota(
+            db,
+            user_id,
+            EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+            f"nutrition-plan:{new_plan_id}:revision:{revision}",
+        )
     copied_generation = NutritionPlanGeneration(
         user_id=user_id,
         estimate_id=generation.estimate_id,
@@ -393,8 +405,8 @@ def _create_revision(
     )
     db.add(copied_generation)
     db.flush()
-    revision = latest + 1
     new_plan = NutritionWeeklyPlan(
+        id=new_plan_id,
         user_id=user_id,
         generation_id=copied_generation.id,
         estimate_id=plan.estimate_id,
