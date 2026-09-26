@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -52,6 +53,22 @@ def _campaign_redemptions(db: Session, user_id) -> list[AccessCampaignRedemption
             )
         ).all()
     )
+
+
+def _verify_registered_email(client: TestClient, db: Session, user_id: str) -> User:
+    delivery = client.app.state.email_provider.verification_deliveries[-1]
+    token = parse_qs(urlsplit(delivery.verification_url).query)["token"][0]
+    response = client.post(
+        "/api/v1/auth/email/verify",
+        headers=ORIGIN,
+        json={"token": token},
+    )
+    assert response.status_code == 204
+    user = db.get(User, user_id)
+    assert user is not None
+    db.refresh(user)
+    assert user.email_verified_at is not None
+    return user
 
 
 @pytest.fixture
@@ -127,13 +144,13 @@ def test_google_link_to_existing_account_does_not_create_campaign_redemption(
         json={"email": "campaign-google-link@example.com", "password": "long password"},
     )
     assert registered.status_code == 201
+    user = _verify_registered_email(client, db, registered.json()["id"])
     client.post("/api/v1/auth/logout", headers=ORIGIN)
-    user = db.get(User, registered.json()["id"])
-    assert user is not None
     before = len(_campaign_redemptions(db, user.id))
+    email = "campaign-google-link@example.com"
     client.app.state.google_identity_provider = GoogleProvider(
         "campaign-google-sub",
-        "campaign-google-link@example.com",
+        email,
     )
 
     linked = client.post(
@@ -143,7 +160,9 @@ def test_google_link_to_existing_account_does_not_create_campaign_redemption(
     )
 
     assert linked.status_code == 200
+    assert linked.json()["id"] == str(user.id)
     assert len(_campaign_redemptions(db, user.id)) == before
+    assert db.scalar(select(func.count()).select_from(User).where(User.email == email)) == 1
 
 
 def test_apple_new_user_and_existing_account_link_do_not_duplicate_campaign_redemption(
@@ -191,12 +210,13 @@ def test_apple_new_user_and_existing_account_link_do_not_duplicate_campaign_rede
         json={"email": "campaign-apple-link@example.com", "password": "long password"},
     )
     assert registered.status_code == 201
-    linked_user = db.get(User, registered.json()["id"])
-    assert linked_user is not None
+    linked_user = _verify_registered_email(client, db, registered.json()["id"])
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
     before = len(_campaign_redemptions(db, linked_user.id))
+    email = "campaign-apple-link@example.com"
     client.app.state.apple_identity_provider = AppleProvider(
         "campaign-apple-link",
-        "campaign-apple-link@example.com",
+        email,
     )
 
     linked = client.post(
@@ -214,6 +234,7 @@ def test_apple_new_user_and_existing_account_link_do_not_duplicate_campaign_rede
     assert linked.status_code == 200
     assert linked.json()["user"]["id"] == str(linked_user.id)
     assert len(_campaign_redemptions(db, linked_user.id)) == before
+    assert db.scalar(select(func.count()).select_from(User).where(User.email == email)) == 1
 
 
 def test_phone_new_user_and_existing_login_keep_one_campaign_redemption(
