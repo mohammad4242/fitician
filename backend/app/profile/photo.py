@@ -32,7 +32,7 @@ from app.nutrition.models import (
     NutritionWeeklyPlan,
 )
 from app.profile.models import UserProfilePhoto
-from app.workout_reviews.enums import WorkoutReviewStatus
+from app.workout_reviews.enums import EXCLUSIVE_ASSIGNMENT_STATUSES, WorkoutReviewStatus
 from app.workout_reviews.models import WorkoutPlanReview
 
 PROFILE_PHOTO_FORMATS = {
@@ -243,7 +243,7 @@ def can_view_profile_photo(db: Session, viewer_id: UUID, owner_id: UUID) -> bool
                 WorkoutPlanReview.user_id == owner_id,
                 WorkoutPlanReview.claimed_by_user_id == viewer_id,
                 WorkoutPlanReview.status.in_(
-                    [WorkoutReviewStatus.CLAIMED, WorkoutReviewStatus.APPROVED]
+                    [*EXCLUSIVE_ASSIGNMENT_STATUSES, WorkoutReviewStatus.APPROVED]
                 ),
             )
         )

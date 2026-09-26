@@ -11,6 +11,15 @@ class WorkoutReviewStatus(StrEnum):
     SUPERSEDED = "superseded"
 
 
+EXCLUSIVE_ASSIGNMENT_STATUSES = frozenset(
+    {
+        WorkoutReviewStatus.CLAIMED,
+        WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE,
+        WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED,
+    }
+)
+
+
 class WorkoutReviewQueueView(StrEnum):
     PENDING = "pending"
     MINE = "mine"

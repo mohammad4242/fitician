@@ -32,6 +32,72 @@ def _login(client: TestClient, email: str) -> None:
     assert response.status_code == 200, response.text
 
 
+def test_assigned_review_detail_stays_private_through_member_changes(
+    client: TestClient,
+    db: Session,
+) -> None:
+    member_email = f"assigned-member-{uuid4()}@example.com"
+    member_id = _register(client, member_email)
+    plan = make_review_plan(db, member_id)
+    review = ensure_pending_review(db, plan)
+    db.commit()
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    assigned_email = f"assigned-coach-{uuid4()}@example.com"
+    assigned_id = _register(client, assigned_email)
+    db.add(UserSpecialistRole(user_id=assigned_id, role=SpecialistRole.COACH))
+    db.commit()
+    claimed = client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/claim",
+        headers=ORIGIN,
+    )
+    assert claimed.status_code == 200, claimed.text
+    submitted = client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/submit",
+        headers=ORIGIN,
+        json={"expected_revision": 1},
+    )
+    assert submitted.status_code == 200, submitted.text
+    assert submitted.json()["status"] == "awaiting_member_acceptance"
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    other_email = f"other-coach-{uuid4()}@example.com"
+    other_id = _register(client, other_email)
+    db.add(UserSpecialistRole(user_id=other_id, role=SpecialistRole.COACH))
+    db.commit()
+    foreign_awaiting = client.get(f"/api/v1/coach/workout-reviews/{review.id}")
+    assert foreign_awaiting.status_code == 409
+    assert foreign_awaiting.json()["detail"]["code"] == "REVIEW_ALREADY_CLAIMED"
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, assigned_email)
+    assigned_awaiting = client.get(f"/api/v1/coach/workout-reviews/{review.id}")
+    assert assigned_awaiting.status_code == 200, assigned_awaiting.text
+    assert assigned_awaiting.json()["source_plan"]["id"] == str(plan.id)
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, member_email)
+    rejected = client.post(
+        f"/api/v1/workout-reviews/{review.id}/reject",
+        headers=ORIGIN,
+        json={"expected_revision": 1, "explanation": "Please revise day two"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    assert rejected.json()["status"] == "member_changes_requested"
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, other_email)
+    foreign_changes = client.get(f"/api/v1/coach/workout-reviews/{review.id}")
+    assert foreign_changes.status_code == 409
+    assert foreign_changes.json()["detail"]["code"] == "REVIEW_ALREADY_CLAIMED"
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, assigned_email)
+    assigned_changes = client.get(f"/api/v1/coach/workout-reviews/{review.id}")
+    assert assigned_changes.status_code == 200, assigned_changes.text
+    assert assigned_changes.json()["source_plan"]["id"] == str(plan.id)
+
+
 def test_member_can_read_diff_and_accept_coach_proposal(
     client: TestClient,
     db: Session,

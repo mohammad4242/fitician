@@ -35,6 +35,15 @@ def _register(client: TestClient, email: str) -> dict[str, object]:
     return response.json()
 
 
+def _login(client: TestClient, email: str) -> None:
+    response = client.post(
+        "/api/v1/auth/login",
+        headers=ORIGIN,
+        json={"email": email, "password": "long password"},
+    )
+    assert response.status_code == 200, response.text
+
+
 def _use_private_root(test_settings: Settings) -> Path:
     root = Path(test_settings.media_root).parent / "profile-private"
     test_settings.profile_photo_storage_root = root
@@ -196,7 +205,8 @@ def test_claimed_coach_can_view_member_profile_photo_and_pending_queue_hides_it(
     assert (private_root / stored.storage_key).exists()
 
     client.post("/api/v1/auth/logout", headers=ORIGIN)
-    coach = _register(client, "profile-photo-coach@example.com")
+    coach_email = "profile-photo-coach@example.com"
+    coach = _register(client, coach_email)
     coach_id = UUID(str(coach["id"]))
     db.add(UserSpecialistRole(user_id=coach_id, role=SpecialistRole.COACH))
     db.commit()
@@ -218,6 +228,30 @@ def test_claimed_coach_can_view_member_profile_photo_and_pending_queue_hides_it(
     photo = client.get(claimed.json()["member_profile_photo_url"])
     assert photo.status_code == 200
     assert photo.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+    submitted = client.post(
+        f"/api/v1/coach/workout-reviews/{review.id}/submit",
+        headers=ORIGIN,
+        json={"expected_revision": 1},
+    )
+    assert submitted.status_code == 200, submitted.text
+    photo_url = submitted.json()["member_profile_photo_url"]
+    assert photo_url.startswith(f"/api/v1/profile/photo/{owner['id']}")
+    assert client.get(photo_url).status_code == 200
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, "profile-photo-coach-member@example.com")
+    rejected = client.post(
+        f"/api/v1/workout-reviews/{review.id}/reject",
+        headers=ORIGIN,
+        json={"expected_revision": 1, "explanation": "Please revise the plan"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    assert rejected.json()["status"] == "member_changes_requested"
+
+    client.post("/api/v1/auth/logout", headers=ORIGIN)
+    _login(client, coach_email)
+    assert client.get(photo_url).status_code == 200
 
 
 def test_claimed_physician_can_view_member_profile_photo(

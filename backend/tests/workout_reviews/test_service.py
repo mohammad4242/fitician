@@ -422,6 +422,39 @@ def test_claim_stays_with_coach_until_manual_release(db: Session) -> None:
     assert claimed.status is WorkoutReviewStatus.CLAIMED
 
 
+def test_detail_remains_exclusive_to_assigned_coach_through_member_changes(db: Session) -> None:
+    member = _user(db, "detail-exclusive-member")
+    assigned_coach = _user(db, "detail-assigned-coach")
+    other_coach = _user(db, "detail-other-coach")
+    exercise = _exercise(db, "detail-exclusive-press")
+    review = ensure_pending_review(db, _active_plan(db, user=member, exercises=[exercise]))
+    service = WorkoutReviewService(db)
+
+    claimed = service.claim(review.id, assigned_coach.id)
+    with pytest.raises(ReviewConflict) as error:
+        service.detail(review.id, other_coach.id)
+    assert error.value.code is WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED
+    assert service.detail(review.id, assigned_coach.id) is review
+
+    submitted = service.submit_for_member(
+        review.id,
+        assigned_coach.id,
+        expected_revision=claimed.draft_revision,
+    )
+    assert submitted.status is WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE
+    with pytest.raises(ReviewConflict) as error:
+        service.detail(review.id, other_coach.id)
+    assert error.value.code is WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED
+    assert service.detail(review.id, assigned_coach.id) is review
+
+    rejected = service.reject_by_member(review.id, member.id, "Please adjust the plan")
+    assert rejected.status is WorkoutReviewStatus.MEMBER_CHANGES_REQUESTED
+    with pytest.raises(ReviewConflict) as error:
+        service.detail(review.id, other_coach.id)
+    assert error.value.code is WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED
+    assert service.detail(review.id, assigned_coach.id) is review
+
+
 def test_approval_remains_available_after_claim_time_passes(db: Session) -> None:
     member = _user(db, "persistent-approval-member")
     coach = _user(db, "persistent-approval-coach")

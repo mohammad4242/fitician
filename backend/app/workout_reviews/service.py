@@ -11,6 +11,7 @@ from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.workout_reviews.diff import build_coach_difference_summary
 from app.workout_reviews.enums import (
+    EXCLUSIVE_ASSIGNMENT_STATUSES,
     WorkoutReviewErrorCode,
     WorkoutReviewQueueView,
     WorkoutReviewStatus,
@@ -54,8 +55,7 @@ class WorkoutReviewService:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_FOUND)
         if (
             viewer_id is not None
-            and review.status is WorkoutReviewStatus.CLAIMED
-            and review.claimed_by_user_id is not None
+            and review.status in EXCLUSIVE_ASSIGNMENT_STATUSES
             and review.claimed_by_user_id != viewer_id
         ):
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_ALREADY_CLAIMED)
