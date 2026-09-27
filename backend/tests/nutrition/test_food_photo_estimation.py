@@ -32,6 +32,7 @@ from app.body_analysis.providers.models import (
 from app.config import Settings
 from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.service import grant_package
+from app.nutrition.enums import NutritionConsumptionSource
 from app.nutrition.food_photo_service import (
     EstimatedPhotoItem,
     _normalize_image,
@@ -710,6 +711,51 @@ def test_confirmation_rejects_unresolved_items(
     db.expire_all()
     row = db.scalar(select(NutritionFoodPhotoEstimate))
     assert row is not None and row.status == "estimated"
+
+
+def test_confirmation_keeps_two_portions_mapped_to_the_same_food(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    test_settings: Settings,
+    tmp_path: Path,
+) -> None:
+    test_settings.food_photo_rate_limit = 10
+    test_settings.food_photo_storage_root = tmp_path / "food-photos"
+    body = _setup_estimate(client, db, monkeypatch, test_settings)
+    row = db.get(NutritionFoodPhotoEstimate, body["id"])
+    assert row is not None
+    items = list(row.mapped_items)
+    first_item = dict(items[0])
+    assert first_item["food_id"] is not None
+    second_item = dict(first_item)
+    second_item.update({"item_id": "second-chicken-portion", "estimated_amount": 75, "unit": "g"})
+    row.mapped_items = [first_item, second_item]
+    db.commit()
+
+    confirmed = client.post(
+        f"/api/v1/nutrition/tracking/photo-estimates/{row.id}/confirm",
+        headers=ORIGIN,
+        json={"entry_date": date.today().isoformat()},
+    )
+
+    assert confirmed.status_code == 200, confirmed.text
+    db.refresh(row)
+    entries = db.scalars(
+        select(NutritionConsumptionEntry).where(
+            NutritionConsumptionEntry.user_id == row.user_id,
+            NutritionConsumptionEntry.entry_date == date.today(),
+            NutritionConsumptionEntry.source
+            == NutritionConsumptionSource.PHOTO_ESTIMATED_CONFIRMED,
+        )
+    ).all()
+    assert len(entries) == 2
+    assert {str(entry.food_id) for entry in entries} == {str(first_item["food_id"])}
+    quantities = sorted(
+        entry.quantity_grams for entry in entries if entry.quantity_grams is not None
+    )
+    assert quantities == [75, 140]
+    assert row.status == "confirmed"
 
 
 def test_resolving_unresolved_item_makes_summary_complete(

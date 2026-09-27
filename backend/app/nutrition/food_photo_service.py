@@ -327,9 +327,7 @@ def _store(root: Path, content: bytes) -> str:
 
 def _store_private(settings: Settings, content: bytes) -> str:
     try:
-        return build_private_storage(settings).put(
-            "food-photos", content, ".jpg", "image/jpeg"
-        ).key
+        return build_private_storage(settings).put("food-photos", content, ".jpg", "image/jpeg").key
     except PrivateStorageError as error:
         raise FoodPhotoError("FOOD_PHOTO_STORAGE_UNAVAILABLE") from error
 
@@ -798,17 +796,18 @@ def confirm_photo(
         if bool(item.get("food_id")) and item.get("unit") == "g"
     ]
     food_map: dict[UUID, NutritionCatalogueFood] = {}
-    if catalogue_food_ids:
+    unique_catalogue_food_ids = set(catalogue_food_ids)
+    if unique_catalogue_food_ids:
         foods_with_compositions = db.scalars(
             select(NutritionCatalogueFood)
             .where(
-                NutritionCatalogueFood.id.in_(catalogue_food_ids),
+                NutritionCatalogueFood.id.in_(unique_catalogue_food_ids),
                 NutritionCatalogueFood.verification_status == FoodVerificationStatus.VERIFIED,
             )
             .options(selectinload(NutritionCatalogueFood.compositions))
         ).all()
         food_map = {food.id: food for food in foods_with_compositions}
-        if len(food_map) != len(catalogue_food_ids):
+        if set(food_map) != unique_catalogue_food_ids:
             raise FoodPhotoError("UNRESOLVED_ITEMS_REQUIRE_EDIT")
 
     created: list[NutritionConsumptionEntry] = []
