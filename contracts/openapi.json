@@ -8051,261 +8051,6 @@
         "title": "BodyRegionCategory",
         "type": "object"
       },
-      "Body_create_exercise_api_v1_admin_exercises_post": {
-        "properties": {
-          "media": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media"
-          },
-          "media_female_video": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Female Video"
-          },
-          "media_files": {
-            "anyOf": [
-              {
-                "items": {
-                  "contentMediaType": "application/octet-stream",
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Files"
-          },
-          "media_male_video": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Male Video"
-          },
-          "payload": {
-            "title": "Payload",
-            "type": "string"
-          }
-        },
-        "required": [
-          "payload"
-        ],
-        "title": "Body_create_exercise_api_v1_admin_exercises_post",
-        "type": "object"
-      },
-      "Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post",
-        "type": "object"
-      },
-      "Body_create_lab_document_api_v1_nutrition_labs_post": {
-        "properties": {
-          "category": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Category"
-          },
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          },
-          "laboratory_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Laboratory Name"
-          },
-          "request_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Request Id"
-          },
-          "test_date": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Test Date"
-          },
-          "user_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "User Note"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_create_lab_document_api_v1_nutrition_labs_post",
-        "type": "object"
-      },
-      "Body_update_exercise_api_v1_admin_exercises__exercise_id__patch": {
-        "properties": {
-          "media": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media"
-          },
-          "media_female_video": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Female Video"
-          },
-          "media_files": {
-            "anyOf": [
-              {
-                "items": {
-                  "contentMediaType": "application/octet-stream",
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Files"
-          },
-          "media_male_video": {
-            "anyOf": [
-              {
-                "contentMediaType": "application/octet-stream",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Media Male Video"
-          },
-          "payload": {
-            "title": "Payload",
-            "type": "string"
-          }
-        },
-        "required": [
-          "payload"
-        ],
-        "title": "Body_update_exercise_api_v1_admin_exercises__exercise_id__patch",
-        "type": "object"
-      },
-      "Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post",
-        "type": "object"
-      },
-      "Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post",
-        "type": "object"
-      },
-      "Body_upload_profile_photo_api_v1_profile_photo_put": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_upload_profile_photo_api_v1_profile_photo_put",
-        "type": "object"
-      },
       "BudgetStyle": {
         "enum": [
           "strict",
@@ -29686,7 +29431,68 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_exercise_api_v1_admin_exercises_post"
+                "properties": {
+                  "media": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media"
+                  },
+                  "media_female_video": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Female Video"
+                  },
+                  "media_files": {
+                    "anyOf": [
+                      {
+                        "items": {
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Files"
+                  },
+                  "media_male_video": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Male Video"
+                  },
+                  "payload": {
+                    "title": "Payload",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payload"
+                ],
+                "title": "ExerciseUploadForm",
+                "type": "object"
               }
             }
           },
@@ -29829,7 +29635,68 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_update_exercise_api_v1_admin_exercises__exercise_id__patch"
+                "properties": {
+                  "media": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media"
+                  },
+                  "media_female_video": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Female Video"
+                  },
+                  "media_files": {
+                    "anyOf": [
+                      {
+                        "items": {
+                          "contentMediaType": "application/octet-stream",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Files"
+                  },
+                  "media_male_video": {
+                    "anyOf": [
+                      {
+                        "contentMediaType": "application/octet-stream",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Media Male Video"
+                  },
+                  "payload": {
+                    "title": "Payload",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "payload"
+                ],
+                "title": "ExerciseUploadForm",
+                "type": "object"
               }
             }
           },
@@ -33691,7 +33558,18 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post"
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "title": "File",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "SingleFileUpload",
+                "type": "object"
               }
             }
           },
@@ -34150,7 +34028,18 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post"
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "title": "File",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "SingleFileUpload",
+                "type": "object"
               }
             }
           },
@@ -34893,7 +34782,75 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_lab_document_api_v1_nutrition_labs_post"
+                "properties": {
+                  "category": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Category"
+                  },
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "title": "File",
+                    "type": "string"
+                  },
+                  "laboratory_name": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Laboratory Name"
+                  },
+                  "request_id": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Request Id"
+                  },
+                  "test_date": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Test Date"
+                  },
+                  "user_note": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "User Note"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "LabUploadForm",
+                "type": "object"
               }
             }
           },
@@ -38135,7 +38092,18 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post"
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "title": "File",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "SingleFileUpload",
+                "type": "object"
               }
             }
           },
@@ -38891,7 +38859,18 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_upload_profile_photo_api_v1_profile_photo_put"
+                "properties": {
+                  "file": {
+                    "contentMediaType": "application/octet-stream",
+                    "title": "File",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "title": "SingleFileUpload",
+                "type": "object"
               }
             }
           },

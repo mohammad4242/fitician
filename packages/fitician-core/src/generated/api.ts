@@ -5591,67 +5591,6 @@ export type components = {
          * @enum {string}
          */
         BillingTransactionStatus: "created" | "pending" | "verified" | "failed" | "cancelled" | "refunded";
-        /** Body_create_exercise_api_v1_admin_exercises_post */
-        Body_create_exercise_api_v1_admin_exercises_post: {
-            /** Media */
-            media?: string | null;
-            /** Media Female Video */
-            media_female_video?: string | null;
-            /** Media Files */
-            media_files?: string[] | null;
-            /** Media Male Video */
-            media_male_video?: string | null;
-            /** Payload */
-            payload: string;
-        };
-        /** Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post */
-        Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_create_lab_document_api_v1_nutrition_labs_post */
-        Body_create_lab_document_api_v1_nutrition_labs_post: {
-            /** Category */
-            category?: string | null;
-            /** File */
-            file: string;
-            /** Laboratory Name */
-            laboratory_name?: string | null;
-            /** Request Id */
-            request_id?: string | null;
-            /** Test Date */
-            test_date?: string | null;
-            /** User Note */
-            user_note?: string | null;
-        };
-        /** Body_update_exercise_api_v1_admin_exercises__exercise_id__patch */
-        Body_update_exercise_api_v1_admin_exercises__exercise_id__patch: {
-            /** Media */
-            media?: string | null;
-            /** Media Female Video */
-            media_female_video?: string | null;
-            /** Media Files */
-            media_files?: string[] | null;
-            /** Media Male Video */
-            media_male_video?: string | null;
-            /** Payload */
-            payload: string;
-        };
-        /** Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post */
-        Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post */
-        Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_profile_photo_api_v1_profile_photo_put */
-        Body_upload_profile_photo_api_v1_profile_photo_put: {
-            /** File */
-            file: string;
-        };
         /**
          * BodyAnalysisClassification
          * @enum {string}
@@ -14206,7 +14145,18 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_create_exercise_api_v1_admin_exercises_post"];
+                "multipart/form-data": {
+                    /** Media */
+                    media?: string | null;
+                    /** Media Female Video */
+                    media_female_video?: string | null;
+                    /** Media Files */
+                    media_files?: string[] | null;
+                    /** Media Male Video */
+                    media_male_video?: string | null;
+                    /** Payload */
+                    payload: string;
+                };
             };
         };
         responses: {
@@ -14301,7 +14251,18 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_update_exercise_api_v1_admin_exercises__exercise_id__patch"];
+                "multipart/form-data": {
+                    /** Media */
+                    media?: string | null;
+                    /** Media Female Video */
+                    media_female_video?: string | null;
+                    /** Media Files */
+                    media_files?: string[] | null;
+                    /** Media Male Video */
+                    media_male_video?: string | null;
+                    /** Payload */
+                    payload: string;
+                };
             };
         };
         responses: {
@@ -16734,7 +16695,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_catalogue_food_image_api_v1_nutrition_admin_foods__slug__image_post"];
+                "multipart/form-data": {
+                    /** File */
+                    file: string;
+                };
             };
         };
         responses: {
@@ -16996,7 +16960,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_catalogue_meal_image_api_v1_nutrition_admin_meals__meal_id__image_post"];
+                "multipart/form-data": {
+                    /** File */
+                    file: string;
+                };
             };
         };
         responses: {
@@ -17496,7 +17463,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_create_lab_document_api_v1_nutrition_labs_post"];
+                "multipart/form-data": {
+                    /** Category */
+                    category?: string | null;
+                    /** File */
+                    file: string;
+                    /** Laboratory Name */
+                    laboratory_name?: string | null;
+                    /** Request Id */
+                    request_id?: string | null;
+                    /** Test Date */
+                    test_date?: string | null;
+                    /** User Note */
+                    user_note?: string | null;
+                };
             };
         };
         responses: {
@@ -19507,7 +19487,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_create_food_photo_estimate_api_v1_nutrition_tracking_photo_estimates_post"];
+                "multipart/form-data": {
+                    /** File */
+                    file: string;
+                };
             };
         };
         responses: {
@@ -19991,7 +19974,10 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_profile_photo_api_v1_profile_photo_put"];
+                "multipart/form-data": {
+                    /** File */
+                    file: string;
+                };
             };
         };
         responses: {
