@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,6 +13,7 @@ from app.nutrition.models import (
     NutritionSupplementCatalogue,
     NutritionSupplementOrderAudit,
     NutritionWeeklyPlan,
+    NutritionWeeklyPlanNutrient,
 )
 from tests.nutrition.test_weekly_plan_api import (
     ORIGIN,
@@ -165,6 +168,25 @@ def test_magnesium_at_supplemental_upper_limit_ignores_food_intake(
     assert target is not None
     assert target.upper_limit_value == 350
     assert target.upper_limit_scope == MicronutrientUpperLimitScope.SUPPLEMENTAL_ONLY.value
+    food_magnesium = next(
+        (row for row in plan.nutrients if row.nutrient_code == "magnesium_mg"), None
+    )
+    if food_magnesium is None:
+        food_magnesium = NutritionWeeklyPlanNutrient(
+            plan_id=plan.id,
+            nutrient_code="magnesium_mg",
+            unit="mg",
+            planned_value=Decimal("700"),
+            status="planned",
+            reason_codes=[],
+            data_confidence="high",
+            explanation_codes=[],
+        )
+        db.add(food_magnesium)
+    else:
+        food_magnesium.planned_value = Decimal("700")
+    db.flush()
+    assert food_magnesium.planned_value / Decimal("7") == Decimal("100")
 
     supplement = _catalogue(db, nutrient_code="magnesium_mg", amount=350)
     response = client.post(
