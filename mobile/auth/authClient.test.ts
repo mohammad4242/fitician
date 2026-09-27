@@ -1,8 +1,40 @@
 import { expect, it, vi } from "vitest";
 
-import { ApiError, type BinaryDownload, type TransportRequest } from "@fitician/core";
+import {
+  ApiError,
+  type BinaryDownload,
+  type MobileAuthTokens,
+  type TransportRequest,
+} from "@fitician/core";
 
 import { MobileAuthClient } from "./authClient";
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function tokensFor(userId: string, accessToken: string, refreshToken: string): MobileAuthTokens {
+  return {
+    access_token: accessToken,
+    expires_in: 900,
+    refresh_expires_in: 2_592_000,
+    refresh_token: refreshToken,
+    token_type: "Bearer",
+    user: {
+      created_at: "2026-01-01T00:00:00Z",
+      email: `${userId}@example.com`,
+      id: userId,
+      is_admin: false,
+      phone_number: null,
+    },
+  };
+}
 
 vi.mock("expo-secure-store", () => ({
   deleteItemAsync: vi.fn(),
@@ -323,4 +355,314 @@ it("authenticates binary downloads and refreshes once after a 401", async () => 
   });
   expect(downloadCalls).toBe(2);
   expect(refreshCalls).toBe(1);
+});
+
+it("does not replay a stale mutation with the next user's credentials", async () => {
+  const firstMutationStarted = deferred<string | null>();
+  const firstMutationResponse = deferred<{ ok: boolean }>();
+  const mutationAuthorizations: Array<string | null> = [];
+  let refreshCalls = 0;
+  let refreshReads = 0;
+  let storedRefreshToken: string | null = null;
+  const client = new MobileAuthClient({
+    refreshTokenStorage: {
+      clear: async () => {
+        storedRefreshToken = null;
+      },
+      read: async () => {
+        refreshReads += 1;
+        return storedRefreshToken;
+      },
+      write: async (token) => {
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          refreshCalls += 1;
+          throw new Error("A stale mutation must not start a refresh");
+        }
+        mutationAuthorizations.push(request.headers?.Authorization ?? null);
+        if (mutationAuthorizations.length === 1) {
+          firstMutationStarted.resolve(request.headers?.Authorization ?? null);
+          return firstMutationResponse.promise as Promise<TResponse>;
+        }
+        return { ok: true } as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  await client.setSession(tokensFor("user-a", "access-a", "refresh-a"));
+  const staleMutation = client.request<{ ok: boolean }>({
+    path: "/api/v1/profile",
+    method: "PATCH",
+    body: { display_name: "A's change" },
+  });
+  await expect(firstMutationStarted.promise).resolves.toBe("Bearer access-a");
+
+  await client.clearSession();
+  await client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  firstMutationResponse.reject(new ApiError(401, "Authentication required"));
+
+  await expect(staleMutation).rejects.toMatchObject({ status: 401 });
+  expect(mutationAuthorizations).toEqual(["Bearer access-a"]);
+  expect(refreshCalls).toBe(0);
+  expect(refreshReads).toBe(0);
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+});
+
+it("discards an old refresh response after a newer user signs in", async () => {
+  const refreshStarted = deferred<string | undefined>();
+  const refreshResponse = deferred<MobileAuthTokens>();
+  const businessAuthorizations: Array<string | null> = [];
+  let storedRefreshToken: string | null = null;
+  const client = new MobileAuthClient({
+    refreshTokenStorage: {
+      clear: async () => {
+        storedRefreshToken = null;
+      },
+      read: async () => storedRefreshToken,
+      write: async (token) => {
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          refreshStarted.resolve((request.body as { refresh_token?: string }).refresh_token);
+          return refreshResponse.promise as Promise<TResponse>;
+        }
+        businessAuthorizations.push(request.headers?.Authorization ?? null);
+        if (request.path === "/api/v1/profile") {
+          throw new ApiError(401, "Authentication required");
+        }
+        return { ok: true } as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  await client.setSession(tokensFor("user-a", "access-a", "refresh-a"));
+  const staleMutation = client.request<{ ok: boolean }>({
+    path: "/api/v1/profile",
+    method: "PATCH",
+    body: { display_name: "A's change" },
+  });
+  await expect(refreshStarted.promise).resolves.toBe("refresh-a");
+
+  await client.clearSession();
+  await client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  refreshResponse.resolve(tokensFor("user-a", "refreshed-access-a", "rotated-refresh-a"));
+
+  await expect(staleMutation).rejects.toMatchObject({ status: 401 });
+  expect(businessAuthorizations).toEqual(["Bearer access-a"]);
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+  await expect(client.request({ path: "/api/v1/profile/current", method: "GET" })).resolves
+    .toEqual({ ok: true });
+  expect(businessAuthorizations.at(-1)).toBe("Bearer access-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+});
+
+it("does not send an initially unauthenticated request after its session becomes stale", async () => {
+  const refreshStarted = deferred<string | undefined>();
+  const refreshResponse = deferred<MobileAuthTokens>();
+  const businessAuthorizations: Array<string | null> = [];
+  let storedRefreshToken: string | null = "refresh-a";
+  const client = new MobileAuthClient({
+    refreshTokenStorage: {
+      clear: async () => {
+        storedRefreshToken = null;
+      },
+      read: async () => storedRefreshToken,
+      write: async (token) => {
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          refreshStarted.resolve((request.body as { refresh_token?: string }).refresh_token);
+          return refreshResponse.promise as Promise<TResponse>;
+        }
+        businessAuthorizations.push(request.headers?.Authorization ?? null);
+        return { ok: true } as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  const staleRequest = client.request({ path: "/api/v1/member", method: "GET" });
+  await expect(refreshStarted.promise).resolves.toBe("refresh-a");
+  await client.clearSession();
+  await client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  refreshResponse.resolve(tokensFor("user-a", "refreshed-access-a", "rotated-refresh-a"));
+
+  await expect(staleRequest).rejects.toMatchObject({ status: 401 });
+  expect(businessAuthorizations).toEqual([]);
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+});
+
+it("keeps restore signed in when an older refresh finishes after a new login", async () => {
+  const refreshStarted = deferred<string | undefined>();
+  const refreshResponse = deferred<MobileAuthTokens>();
+  let storedRefreshToken: string | null = "refresh-a";
+  const client = new MobileAuthClient({
+    refreshTokenStorage: {
+      clear: async () => {
+        storedRefreshToken = null;
+      },
+      read: async () => storedRefreshToken,
+      write: async (token) => {
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          refreshStarted.resolve((request.body as { refresh_token?: string }).refresh_token);
+          return refreshResponse.promise as Promise<TResponse>;
+        }
+        return {} as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  const restoring = client.restoreSession();
+  await expect(refreshStarted.promise).resolves.toBe("refresh-a");
+  await client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  refreshResponse.resolve(tokensFor("user-a", "refreshed-access-a", "rotated-refresh-a"));
+
+  await expect(restoring).resolves.toBe(true);
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+});
+
+it("does not expire a newer session after a stale retry receives a second 401", async () => {
+  const retryStarted = deferred<string | null>();
+  const retryResponse = deferred<{ ok: boolean }>();
+  const businessAuthorizations: Array<string | null> = [];
+  let expiryNotifications = 0;
+  let storedRefreshToken: string | null = null;
+  let clearCalls = 0;
+  let mutationCalls = 0;
+  const client = new MobileAuthClient({
+    onSessionExpired: () => {
+      expiryNotifications += 1;
+    },
+    refreshTokenStorage: {
+      clear: async () => {
+        clearCalls += 1;
+        storedRefreshToken = null;
+      },
+      read: async () => storedRefreshToken,
+      write: async (token) => {
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          return tokensFor("user-a", "refreshed-access-a", "rotated-refresh-a") as TResponse;
+        }
+        businessAuthorizations.push(request.headers?.Authorization ?? null);
+        if (request.path === "/api/v1/profile") {
+          mutationCalls += 1;
+          if (mutationCalls === 1) {
+            throw new ApiError(401, "Authentication required");
+          }
+          retryStarted.resolve(request.headers?.Authorization ?? null);
+          return retryResponse.promise as Promise<TResponse>;
+        }
+        return { ok: true } as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  await client.setSession(tokensFor("user-a", "access-a", "refresh-a"));
+  const staleMutation = client.request<{ ok: boolean }>({
+    path: "/api/v1/profile",
+    method: "PATCH",
+    body: { display_name: "A's change" },
+  });
+  await expect(retryStarted.promise).resolves.toBe("Bearer refreshed-access-a");
+
+  await client.clearSession();
+  await client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  retryResponse.reject(new ApiError(401, "Authentication required"));
+
+  await expect(staleMutation).rejects.toMatchObject({ status: 401 });
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+  expect(expiryNotifications).toBe(0);
+  expect(clearCalls).toBe(1);
+  await expect(client.request({ path: "/api/v1/profile/current", method: "GET" })).resolves
+    .toEqual({ ok: true });
+  expect(businessAuthorizations.at(-1)).toBe("Bearer access-b");
+});
+
+it("serializes delayed refresh-token writes ahead of newer session storage", async () => {
+  const refreshWriteStarted = deferred<void>();
+  const finishRefreshWrite = deferred<void>();
+  const refreshStarted = deferred<void>();
+  const businessCalls: string[] = [];
+  let storedRefreshToken: string | null = null;
+  const client = new MobileAuthClient({
+    refreshTokenStorage: {
+      clear: async () => {
+        storedRefreshToken = null;
+      },
+      read: async () => storedRefreshToken,
+      write: async (token) => {
+        if (token === "rotated-refresh-a") {
+          refreshWriteStarted.resolve();
+          await finishRefreshWrite.promise;
+        }
+        storedRefreshToken = token;
+      },
+    },
+    transport: {
+      download: async () => ({ bytes: new Uint8Array(), contentType: null, filename: null }),
+      request: async <TResponse>(request: TransportRequest): Promise<TResponse> => {
+        if (request.path.endsWith("/refresh")) {
+          refreshStarted.resolve();
+          return tokensFor("user-a", "refreshed-access-a", "rotated-refresh-a") as TResponse;
+        }
+        businessCalls.push(request.headers?.Authorization ?? "none");
+        if (request.path === "/api/v1/profile") {
+          throw new ApiError(401, "Authentication required");
+        }
+        return { ok: true } as TResponse;
+      },
+      upload: async <TResponse>(): Promise<TResponse> => ({ ok: true }) as TResponse,
+    },
+  });
+
+  await client.setSession(tokensFor("user-a", "access-a", "refresh-a"));
+  const staleMutation = client.request({ path: "/api/v1/profile", method: "PATCH" });
+  await refreshStarted.promise;
+  await refreshWriteStarted.promise;
+
+  const clearOldSession = client.clearSession();
+  const adoptNewSession = client.setSession(tokensFor("user-b", "access-b", "refresh-b"));
+  finishRefreshWrite.resolve();
+  await Promise.all([clearOldSession, adoptNewSession]);
+  await expect(staleMutation).rejects.toMatchObject({ status: 401 });
+
+  expect(client.getUser()?.id).toBe("user-b");
+  expect(storedRefreshToken).toBe("refresh-b");
+  await expect(client.request({ path: "/api/v1/profile/current", method: "GET" })).resolves
+    .toEqual({ ok: true });
+  expect(businessCalls.at(-1)).toBe("Bearer access-b");
 });
