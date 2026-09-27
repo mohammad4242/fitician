@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.nutrition.clinical_service import ClinicalError, require_physician
-from app.nutrition.enums import NutritionSupplementOrderStatus
+from app.nutrition.enums import MicronutrientUpperLimitScope, NutritionSupplementOrderStatus
 from app.nutrition.models import (
     NutritionEstimateMicronutrientTarget,
     NutritionMedication,
@@ -131,14 +131,22 @@ def _safety_check(
         select(NutritionEstimateMicronutrientTarget).where(
             NutritionEstimateMicronutrientTarget.estimate_id == plan.estimate_id,
             NutritionEstimateMicronutrientTarget.upper_limit_value.is_not(None),
-            NutritionEstimateMicronutrientTarget.upper_limit_scope == "total_intake",
+            NutritionEstimateMicronutrientTarget.upper_limit_scope.in_(
+                [
+                    MicronutrientUpperLimitScope.TOTAL_INTAKE.value,
+                    MicronutrientUpperLimitScope.SUPPLEMENTAL_ONLY.value,
+                ]
+            ),
         )
     ).all()
     violations: list[dict[str, object]] = []
     combined: dict[str, str] = {}
     for target in targets:
         code = f"{target.nutrient_code}_{target.unit.casefold().replace('µ', 'u')}"
-        total = food_daily.get(code, Decimal()) + supplement_totals.get(code, Decimal())
+        supplement_exposure = supplement_totals.get(code, Decimal())
+        total = supplement_exposure
+        if target.upper_limit_scope == MicronutrientUpperLimitScope.TOTAL_INTAKE.value:
+            total += food_daily.get(code, Decimal())
         combined[code] = str(total)
         if target.upper_limit_value is not None and total > target.upper_limit_value:
             violations.append(
