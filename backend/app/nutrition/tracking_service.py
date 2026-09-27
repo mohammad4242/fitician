@@ -90,6 +90,8 @@ def submit_check_in(
             )
         )
         for meal in day.meals:
+            if meal.slot_role is MealSlotRole.FREE_MEAL:
+                continue
             db.add(
                 NutritionConsumptionEntry(
                     user_id=user_id,

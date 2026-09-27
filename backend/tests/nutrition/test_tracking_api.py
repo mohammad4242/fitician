@@ -1,16 +1,19 @@
 from datetime import date, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.nutrition.enums import (
     MealSlotRole,
+    NutritionConsumptionSource,
     NutritionPlanLifecycleStatus,
     NutritionPlanReviewStatus,
 )
 from app.nutrition.models import (
     NutritionCatalogueFood,
+    NutritionConsumptionEntry,
     NutritionWeeklyPlan,
     NutritionWeeklyPlanMeal,
 )
@@ -76,6 +79,56 @@ def test_on_plan_confirmation_prefills_and_pins_exact_active_revision(
     assert body["entries"]
     assert all(entry["source"] == "planned_confirmed" for entry in body["entries"])
     assert all(entry["plan_revision_id"] == str(plan.id) for entry in body["entries"])
+
+
+@pytest.mark.parametrize("status", ["on_plan", "mostly_on_plan"])
+def test_check_in_with_free_meal_prefills_only_normal_meals(
+    client: TestClient, db: Session, status: str
+) -> None:
+    plan_json, _food = _setup(client, db)
+    plan = db.get(NutritionWeeklyPlan, plan_json["id"])
+    assert plan is not None and plan.review is not None
+    plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    plan.review.status = NutritionPlanReviewStatus.APPROVED
+    day = plan.days[0]
+    free_meal = NutritionWeeklyPlanMeal(
+        day_id=day.id,
+        catalogue_meal_id=None,
+        catalogue_meal_category="lunch",
+        slot_role=MealSlotRole.FREE_MEAL,
+        slot_index=0,
+        target_distribution={},
+        nutrient_totals={},
+        cost_irr=0,
+    )
+    db.add(free_meal)
+    db.commit()
+    normal_meal_ids = {
+        meal.id for meal in day.meals if meal.slot_role is not MealSlotRole.FREE_MEAL
+    }
+
+    response = client.put(
+        "/api/v1/nutrition/tracking/check-in",
+        headers=ORIGIN,
+        json={"entry_date": day.plan_date.isoformat(), "status": status},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["check_in_status"] == status
+    assert body["plan_revision_id"] == str(plan.id)
+    entries = db.scalars(
+        select(NutritionConsumptionEntry).where(
+            NutritionConsumptionEntry.user_id == plan.user_id,
+            NutritionConsumptionEntry.entry_date == day.plan_date,
+        )
+    ).all()
+    planned_entries = [
+        entry for entry in entries if entry.source is NutritionConsumptionSource.PLANNED_CONFIRMED
+    ]
+    assert {entry.planned_meal_id for entry in planned_entries} == normal_meal_ids
+    assert all(entry.planned_meal_id != free_meal.id for entry in planned_entries)
+    assert all(entry.quantity_grams is None or entry.quantity_grams > 0 for entry in entries)
 
 
 def test_quick_approximation_is_explicitly_low_confidence_and_deletable(
@@ -168,9 +221,14 @@ def test_free_meal_recurs_on_day_8_and_rejects_wrong_meal(client: TestClient, db
     plan.review.status = NutritionPlanReviewStatus.APPROVED
     day = plan.days[0]
     free_meal = NutritionWeeklyPlanMeal(
-        day_id=day.id, catalogue_meal_id=None, catalogue_meal_category="lunch",
-        slot_role=MealSlotRole.FREE_MEAL, slot_index=0, target_distribution={},
-        nutrient_totals={}, cost_irr=0,
+        day_id=day.id,
+        catalogue_meal_id=None,
+        catalogue_meal_category="lunch",
+        slot_role=MealSlotRole.FREE_MEAL,
+        slot_index=0,
+        target_distribution={},
+        nutrient_totals={},
+        cost_irr=0,
     )
     db.add(free_meal)
     db.commit()
