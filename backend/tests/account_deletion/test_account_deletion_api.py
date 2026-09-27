@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
-from app.account_deletion.models import AccountDeletionRequest
+from app.account_deletion.models import AccountDeletionRequest, AccountDeletionStatus
 from app.account_deletion.service import execute_due_account_deletions
 from app.auth.models import AuthSession, MobileTokenFamily, User
 from app.auth.security import hash_session_token, make_session_token
@@ -21,6 +21,10 @@ from app.nutrition.models import (
     NutritionSecurityAuditEvent,
 )
 from app.profile.models import UserProfilePhoto
+from app.workout_reviews.enums import WorkoutReviewStatus
+from app.workout_reviews.models import WorkoutPlanReview
+from app.workouts.enums import WorkoutPlanStatus
+from app.workouts.models import WorkoutPlan
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PASSWORD = "long password"
@@ -37,6 +41,59 @@ def _register(client: TestClient, email: str = "delete@example.com") -> None:
 
 def _enable_deletion(test_settings: Settings) -> None:
     test_settings.account_deletion_enabled = True
+
+
+def _account_deletion_request(
+    db: Session,
+    user: User,
+    *,
+    due_at: datetime,
+) -> AccountDeletionRequest:
+    deletion = AccountDeletionRequest(
+        user_id=user.id,
+        status=AccountDeletionStatus.PENDING,
+        requested_at=due_at - timedelta(days=1),
+        reauthenticated_at=due_at - timedelta(days=1),
+        grace_period_ends_at=due_at,
+    )
+    db.add(deletion)
+    db.flush()
+    return deletion
+
+
+def _coach_review(
+    db: Session,
+    *,
+    member: User,
+    coach: User,
+    status: WorkoutReviewStatus,
+    plan_status: WorkoutPlanStatus = WorkoutPlanStatus.ACTIVE,
+) -> WorkoutPlanReview:
+    plan = WorkoutPlan(
+        user_id=member.id,
+        status=plan_status,
+        generation_signature="a" * 64,
+        profile_snapshot={"plan_duration_weeks": 4},
+        provider="fake",
+        model_id="fake-model",
+        prompt_version="v1",
+        generation_policy_version="v1",
+        candidate_set_hash="b" * 64,
+        generation_method="ai",
+    )
+    db.add(plan)
+    db.flush()
+    review = WorkoutPlanReview(
+        source_plan_id=plan.id,
+        user_id=member.id,
+        status=status,
+        claimed_by_user_id=coach.id,
+        lease_acquired_at=datetime.now(UTC),
+        lease_expires_at=None,
+    )
+    db.add(review)
+    db.flush()
+    return review
 
 
 def test_deletion_requires_explicit_confirmation_and_current_password(
@@ -216,6 +273,147 @@ def test_due_deletion_removes_user_and_revokes_all_auth_sessions(
     assert retained_security_audit.owner_user_id is None
     assert client.get("/api/v1/auth/me").status_code == 401
     assert mobile.raw_access_token
+
+
+def test_due_deletion_releases_claimed_coach_review(
+    db: Session,
+    test_settings: Settings,
+) -> None:
+    _enable_deletion(test_settings)
+    member = User(email="claimed-review-member@example.com", password_hash="hash")
+    coach = User(email="claimed-review-coach@example.com", password_hash="hash")
+    db.add_all([member, coach])
+    db.flush()
+    review = _coach_review(
+        db,
+        member=member,
+        coach=coach,
+        status=WorkoutReviewStatus.CLAIMED,
+    )
+    coach_id = coach.id
+    member_id = member.id
+    review_id = review.id
+    now = datetime.now(UTC)
+    deletion = _account_deletion_request(db, coach, due_at=now - timedelta(seconds=1))
+
+    processed = execute_due_account_deletions(db, test_settings, now=now)
+
+    assert processed == 1
+    assert db.get(User, coach_id) is None
+    assert db.get(User, member_id) is not None
+    completed = db.get(AccountDeletionRequest, deletion.id)
+    assert completed is not None
+    assert completed.status is AccountDeletionStatus.COMPLETED
+    retained_review = db.get(WorkoutPlanReview, review_id)
+    assert retained_review is not None
+    assert retained_review.status is WorkoutReviewStatus.PENDING
+    assert retained_review.claimed_by_user_id is None
+    assert retained_review.lease_acquired_at is None
+    assert retained_review.lease_expires_at is None
+
+
+def test_due_deletion_detaches_coach_from_historical_approved_review(
+    db: Session,
+    test_settings: Settings,
+) -> None:
+    _enable_deletion(test_settings)
+    member = User(email="approved-review-member@example.com", password_hash="hash")
+    coach = User(email="approved-review-coach@example.com", password_hash="hash")
+    db.add_all([member, coach])
+    db.flush()
+    historical_reviews: list[tuple[WorkoutReviewStatus, WorkoutPlanReview, WorkoutPlan]] = []
+    for index, status in enumerate(
+        (
+            WorkoutReviewStatus.APPROVED,
+            WorkoutReviewStatus.REJECTED,
+            WorkoutReviewStatus.SUPERSEDED,
+        )
+    ):
+        review = _coach_review(
+            db,
+            member=member,
+            coach=coach,
+            status=status,
+            plan_status=(WorkoutPlanStatus.ACTIVE if index == 0 else WorkoutPlanStatus.SUPERSEDED),
+        )
+        review.coach_note = f"Historical {status.value} note"
+        review.draft_payload = {"history": status.value}
+        review.member_rejection_note = "Retain member feedback"
+        plan = db.get(WorkoutPlan, review.source_plan_id)
+        assert plan is not None
+        historical_reviews.append((status, review, plan))
+    coach_id = coach.id
+    member_id = member.id
+    now = datetime.now(UTC)
+    deletion = _account_deletion_request(db, coach, due_at=now - timedelta(seconds=1))
+
+    processed = execute_due_account_deletions(db, test_settings, now=now)
+
+    assert processed == 1
+    assert db.get(User, coach_id) is None
+    assert db.get(User, member_id) is not None
+    completed = db.get(AccountDeletionRequest, deletion.id)
+    assert completed is not None
+    assert completed.status is AccountDeletionStatus.COMPLETED
+    for expected_status, original_review, plan in historical_reviews:
+        assert db.get(WorkoutPlan, plan.id) is not None
+        retained_review = db.get(WorkoutPlanReview, original_review.id)
+        assert retained_review is not None
+        assert retained_review.status is expected_status
+        assert retained_review.claimed_by_user_id is None
+        assert retained_review.lease_acquired_at is None
+        assert retained_review.lease_expires_at is None
+        assert retained_review.coach_note == f"Historical {expected_status.value} note"
+        assert retained_review.draft_payload == {"history": expected_status.value}
+        assert retained_review.member_rejection_note == "Retain member feedback"
+
+
+def test_claimed_coach_deletion_does_not_block_next_due_account(
+    db: Session,
+    test_settings: Settings,
+) -> None:
+    _enable_deletion(test_settings)
+    member = User(email="batch-review-member@example.com", password_hash="hash")
+    coach = User(email="batch-review-coach@example.com", password_hash="hash")
+    next_user = User(email="batch-next-delete@example.com", password_hash="hash")
+    db.add_all([member, coach, next_user])
+    db.flush()
+    review = _coach_review(
+        db,
+        member=member,
+        coach=coach,
+        status=WorkoutReviewStatus.CLAIMED,
+    )
+    coach_id = coach.id
+    next_user_id = next_user.id
+    review_id = review.id
+    now = datetime.now(UTC)
+    coach_deletion = _account_deletion_request(
+        db,
+        coach,
+        due_at=now - timedelta(seconds=2),
+    )
+    next_deletion = _account_deletion_request(
+        db,
+        next_user,
+        due_at=now - timedelta(seconds=1),
+    )
+
+    processed = execute_due_account_deletions(db, test_settings, now=now, batch_size=2)
+
+    assert processed == 2
+    assert db.get(User, coach_id) is None
+    assert db.get(User, next_user_id) is None
+    for deletion_id in (coach_deletion.id, next_deletion.id):
+        completed = db.get(AccountDeletionRequest, deletion_id)
+        assert completed is not None
+        assert completed.status is AccountDeletionStatus.COMPLETED
+    returned_review = db.get(WorkoutPlanReview, review_id)
+    assert returned_review is not None
+    assert returned_review.status is WorkoutReviewStatus.PENDING
+    assert returned_review.claimed_by_user_id is None
+    assert returned_review.lease_acquired_at is None
+    assert returned_review.lease_expires_at is None
 
 
 def test_due_deletion_removes_every_private_media_object(

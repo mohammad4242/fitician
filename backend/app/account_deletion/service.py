@@ -27,6 +27,7 @@ from app.media.storage import ObjectNotFoundError
 from app.nutrition.models import NutritionFoodPhotoEstimate, NutritionLabDocument
 from app.profile.models import UserProfilePhoto
 from app.profile.photo import ProfilePhotoStorage, ProfilePhotoStorageError
+from app.workout_reviews.repository import detach_coach_claims_for_account_deletion
 
 
 class AccountDeletionError(Exception):
@@ -280,6 +281,7 @@ def _execute_one(
         return
     _delete_private_files(db, settings, user_id)
     _revoke_auth_state(db, user_id, now)
+    detach_coach_claims_for_account_deletion(db, user_id)
     db.execute(delete(User).where(User.id == user_id))
     deletion.user_id = None
     deletion.status = AccountDeletionStatus.COMPLETED

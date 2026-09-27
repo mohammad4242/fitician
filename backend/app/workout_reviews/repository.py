@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
@@ -12,7 +12,11 @@ from app.exercises.models import Exercise
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
-from app.workout_reviews.enums import WorkoutReviewQueueView, WorkoutReviewStatus
+from app.workout_reviews.enums import (
+    EXCLUSIVE_ASSIGNMENT_STATUSES,
+    WorkoutReviewQueueView,
+    WorkoutReviewStatus,
+)
 from app.workout_reviews.models import WorkoutPlanReview
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
 
@@ -163,3 +167,30 @@ def supersede_open_review(db: Session, plan_id: UUID) -> None:
     )
     if review is not None:
         review.status = WorkoutReviewStatus.SUPERSEDED
+
+
+def detach_coach_claims_for_account_deletion(db: Session, coach_id: UUID) -> None:
+    db.execute(
+        update(WorkoutPlanReview)
+        .where(
+            WorkoutPlanReview.claimed_by_user_id == coach_id,
+            WorkoutPlanReview.status.in_(EXCLUSIVE_ASSIGNMENT_STATUSES),
+        )
+        .values(
+            status=WorkoutReviewStatus.PENDING,
+            claimed_by_user_id=None,
+            lease_acquired_at=None,
+            lease_expires_at=None,
+        )
+        .execution_options(synchronize_session="fetch")
+    )
+    db.execute(
+        update(WorkoutPlanReview)
+        .where(WorkoutPlanReview.claimed_by_user_id == coach_id)
+        .values(
+            claimed_by_user_id=None,
+            lease_acquired_at=None,
+            lease_expires_at=None,
+        )
+        .execution_options(synchronize_session="fetch")
+    )
