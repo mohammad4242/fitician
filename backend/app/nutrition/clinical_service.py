@@ -130,9 +130,11 @@ def _store(root: Path, content: bytes, extension: str) -> str:
 
 def _store_private(settings: Settings, content: bytes, extension: str, content_type: str) -> str:
     try:
-        return build_private_storage(settings).put(
-            "nutrition-labs", content, extension, content_type
-        ).key
+        return (
+            build_private_storage(settings)
+            .put("nutrition-labs", content, extension, content_type)
+            .key
+        )
     except PrivateStorageError as error:
         raise ClinicalError("LAB_STORAGE_UNAVAILABLE") from error
 
@@ -451,21 +453,29 @@ def delete_lab(db: Session, user_id: UUID, document_id: UUID, settings: Settings
     )
     if row is None:
         raise ClinicalError("LAB_DOCUMENT_NOT_FOUND")
-    storage = build_private_storage(settings)
-    row.purged_at = datetime.now(UTC)
-    audit_security_event(
-        db,
-        actor_user_id=user_id,
-        owner_user_id=user_id,
-        event_type="lab_deleted",
-        resource_type="lab_document",
-        resource_id=row.id,
-    )
-    db.commit()
+    now = datetime.now(UTC)
+    if row.purged_at is None:
+        row.purged_at = now
+        audit_security_event(
+            db,
+            actor_user_id=user_id,
+            owner_user_id=user_id,
+            event_type="lab_deleted",
+            resource_type="lab_document",
+            resource_id=row.id,
+        )
+        db.commit()
+    if row.storage_deleted_at is not None:
+        return
     try:
-        storage.delete("nutrition-labs", row.storage_key)
-    except (PrivateStorageError, ObjectNotFoundError):
+        build_private_storage(settings).delete("nutrition-labs", row.storage_key)
+    except ObjectNotFoundError:
+        pass
+    except PrivateStorageError:
         logger.exception("Unable to clean up deleted nutrition lab object")
+        return
+    row.storage_deleted_at = datetime.now(UTC)
+    db.commit()
 
 
 def review_queue(

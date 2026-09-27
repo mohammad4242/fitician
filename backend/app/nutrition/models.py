@@ -1340,9 +1340,7 @@ class NutritionFoodItem(Base):
             "kind",
             "normalized_name",
             unique=True,
-            postgresql_where=sql_text(
-                "catalogue_food_id IS NULL AND catalogue_meal_id IS NULL"
-            ),
+            postgresql_where=sql_text("catalogue_food_id IS NULL AND catalogue_meal_id IS NULL"),
         ),
     )
 
@@ -1722,7 +1720,15 @@ class NutritionMealFeedback(Base):
 
 class NutritionLabDocument(Base):
     __tablename__ = "nutrition_lab_documents"
-    __table_args__ = (UniqueConstraint("user_id", "sha256", name="uq_nutrition_lab_user_sha256"),)
+    __table_args__ = (
+        Index(
+            "uq_nutrition_lab_user_sha256",
+            "user_id",
+            "sha256",
+            unique=True,
+            postgresql_where=sql_text("purged_at IS NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
@@ -1754,6 +1760,7 @@ class NutritionLabDocument(Base):
     )
     retained_until: Mapped[date | None] = mapped_column()
     purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    storage_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

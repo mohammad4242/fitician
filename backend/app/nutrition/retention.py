@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -50,25 +50,31 @@ def cleanup_private_nutrition_files(
         )
     labs = db.scalars(
         select(NutritionLabDocument).where(
-            NutritionLabDocument.retained_until < current.date(),
-            NutritionLabDocument.purged_at.is_(None),
+            NutritionLabDocument.storage_deleted_at.is_(None),
+            or_(
+                NutritionLabDocument.purged_at.is_not(None),
+                NutritionLabDocument.retained_until < current.date(),
+            ),
         )
     ).all()
     for lab in labs:
         try:
             private_storage.delete("nutrition-labs", lab.storage_key)
-        except (PrivateStorageError, ObjectNotFoundError) as error:
-            if isinstance(error, PrivateStorageError):
-                raise
-        lab.purged_at = current
-        audit_security_event(
-            db,
-            actor_user_id=None,
-            owner_user_id=lab.user_id,
-            event_type="lab_retention_purged",
-            resource_type="lab_document",
-            resource_id=lab.id,
-        )
+        except ObjectNotFoundError:
+            pass
+        except PrivateStorageError:
+            raise
+        lab.storage_deleted_at = current
+        if lab.purged_at is None:
+            lab.purged_at = current
+            audit_security_event(
+                db,
+                actor_user_id=None,
+                owner_user_id=lab.user_id,
+                event_type="lab_retention_purged",
+                resource_type="lab_document",
+                resource_id=lab.id,
+            )
     record_operational_event(
         db,
         category="retention",
