@@ -90,6 +90,7 @@ def get_workout_generation_service(
             catalog_programming_version=settings.workout_catalog_programming_version,
             max_repair_attempts=0,
             cooldown_seconds=settings.workout_generation_cooldown_seconds,
+            stale_generation_seconds=settings.workout_generation_stale_seconds,
             max_candidates=settings.workout_max_candidates,
             max_request_bytes=settings.workout_max_request_bytes,
             warmup_minutes=settings.workout_warmup_minutes,

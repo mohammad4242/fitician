@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
@@ -23,13 +23,16 @@ from app.nutrition.enums import (
     NutritionPlanLifecycleStatus,
     NutritionPlanReviewStatus,
     NutritionPlanRole,
+    SafetyOutcome,
 )
 from app.nutrition.models import (
     NutritionCatalogueFood,
     NutritionMealFeedback,
+    NutritionPlanBundle,
     NutritionPlanGeneration,
     NutritionPlanPhysicianReview,
     NutritionReviewAuditEvent,
+    NutritionSafetyDecision,
     NutritionWeeklyPlan,
     NutritionWeeklyPlanDay,
     NutritionWeeklyPlanFood,
@@ -44,6 +47,28 @@ from app.profile.review_summary import build_review_profile_summary
 class PlanEditError(Exception):
     def __init__(self, code: str) -> None:
         self.code = code
+
+
+def _plan_requires_physician_review(
+    db: Session,
+    plan: NutritionWeeklyPlan,
+    *,
+    physician_id: UUID | None = None,
+    physician_review_allowed: bool = False,
+) -> bool:
+    if physician_id is not None or physician_review_allowed or plan.review is not None:
+        return True
+    if plan.lifecycle_status in {
+        NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+        NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS,
+        NutritionPlanLifecycleStatus.AWAITING_LAB_INFORMATION,
+        NutritionPlanLifecycleStatus.CHANGES_REQUESTED,
+        NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+        NutritionPlanLifecycleStatus.REJECTED,
+    }:
+        return True
+    safety = db.get(NutritionSafetyDecision, plan.safety_decision_id)
+    return safety is not None and safety.outcome is not SafetyOutcome.STANDARD_AUTOMATIC
 
 
 def _query() -> Select[tuple[NutritionWeeklyPlan]]:
@@ -316,7 +341,9 @@ def preview_remove_meal(
         "daily_delta": {key: -float(str(value)) for key, value in meal.nutrient_totals.items()},
         "weekly_cost_delta_irr": -meal.cost_irr,
         "new_warning_codes": ["MEAL_REMOVAL_MAY_REDUCE_ADEQUACY"],
-        "requires_physician_review": physician_review_allowed,
+        "requires_physician_review": _plan_requires_physician_review(
+            db, plan, physician_review_allowed=physician_review_allowed
+        ),
         "change_kind": "plan_defining",
     }
 
@@ -379,8 +406,19 @@ def _create_revision(
     generation = db.get(NutritionPlanGeneration, plan.generation_id)
     if generation is None:
         raise PlanEditError("PLAN_GENERATION_NOT_FOUND")
-    review_required = physician_id is not None or physician_review_allowed
-    member_review_required = physician_id is None and physician_review_allowed
+    selected_bundle_ids = db.scalars(
+        select(NutritionPlanBundle.id).where(
+            NutritionPlanBundle.user_id == user_id,
+            NutritionPlanBundle.selected_plan_id == plan.id,
+        )
+    ).all()
+    review_required = _plan_requires_physician_review(
+        db,
+        plan,
+        physician_id=physician_id,
+        physician_review_allowed=physician_review_allowed,
+    )
+    member_review_required = physician_id is None and review_required
     revision = latest + 1
     new_plan_id = uuid4()
     if member_review_required:
@@ -461,6 +499,8 @@ def _create_revision(
             else None
         ),
     )
+    db.add(new_plan)
+    db.flush()
     if plan.review and plan.review.status in {
         NutritionPlanReviewStatus.PENDING,
         NutritionPlanReviewStatus.IN_REVIEW,
@@ -471,8 +511,16 @@ def _create_revision(
         plan.review.invalidated_at = datetime.now(UTC)
         plan.review.invalidation_reason = "PLAN_DEFINING_REVISION"
         plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
-    db.add(new_plan)
-    db.flush()
+    if selected_bundle_ids:
+        db.execute(
+            update(NutritionPlanBundle)
+            .where(
+                NutritionPlanBundle.id.in_(selected_bundle_ids),
+                NutritionPlanBundle.user_id == user_id,
+                NutritionPlanBundle.selected_plan_id == plan.id,
+            )
+            .values(selected_plan_id=new_plan.id)
+        )
     if review_required and physician_id is None:
         review = new_plan.review
         if review is None:
@@ -651,7 +699,9 @@ def preview_replace_meal(
         "replacement_meal_id": replacement.id,
         "daily_delta": _delta(target.nutrient_totals, replacement.nutrient_totals),
         "weekly_cost_delta_irr": replacement.cost_irr - target.cost_irr,
-        "requires_physician_review": physician_review_allowed,
+        "requires_physician_review": _plan_requires_physician_review(
+            db, plan, physician_review_allowed=physician_review_allowed
+        ),
         "change_kind": "plan_defining",
     }
 
@@ -735,7 +785,9 @@ def preview_replace_food(
         "replacement_food_id": replacement.food_id,
         "meal_delta": _delta(target.nutrient_snapshot, scaled.nutrient_snapshot),
         "cost_delta_irr": scaled.cost_irr - target.cost_irr,
-        "requires_physician_review": physician_review_allowed,
+        "requires_physician_review": _plan_requires_physician_review(
+            db, plan, physician_review_allowed=physician_review_allowed
+        ),
         "change_kind": "plan_defining",
     }
 

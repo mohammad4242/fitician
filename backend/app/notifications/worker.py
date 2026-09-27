@@ -247,7 +247,11 @@ def process_notification_delivery(
         db.rollback()
         return False
     event = db.get(NotificationOutboxEvent, delivery.event_id)
-    token = db.get(NotificationDeviceToken, delivery.token_id)
+    token = db.scalar(
+        select(NotificationDeviceToken)
+        .where(NotificationDeviceToken.id == delivery.token_id)
+        .with_for_update()
+    )
     if event is None or token is None or token.invalid_at is not None:
         delivery.status = "dead_letter"
         delivery.dead_letter_at = now
@@ -263,6 +267,24 @@ def process_notification_delivery(
         delivery.locked_at = None
         delivery.locked_by = None
         delivery.last_error = "PROVIDER_UNAVAILABLE"
+        db.commit()
+        return True
+
+    device = db.get(NotificationDevice, token.device_id)
+    if device is None:
+        delivery.status = "dead_letter"
+        delivery.dead_letter_at = now
+        delivery.last_error = "TOKEN_UNAVAILABLE"
+        delivery.locked_at = None
+        delivery.locked_by = None
+        db.commit()
+        return True
+    if device.user_id != event.user_id:
+        delivery.status = "dead_letter"
+        delivery.dead_letter_at = now
+        delivery.last_error = "TOKEN_OWNER_MISMATCH"
+        delivery.locked_at = None
+        delivery.locked_by = None
         db.commit()
         return True
 

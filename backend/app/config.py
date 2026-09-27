@@ -233,6 +233,7 @@ class Settings(BaseSettings):
     workout_catalog_programming_version: str = "v1"
     workout_max_repair_attempts: int = Field(default=1, ge=0, le=1)
     workout_generation_cooldown_seconds: int = Field(default=0, ge=0, le=3600)
+    workout_generation_stale_seconds: int = Field(default=900, ge=60, le=3600)
     workout_deterministic_fallback_enabled: bool = True
     workout_max_candidates: int = Field(default=80, ge=3, le=200)
     workout_max_request_bytes: int = Field(default=262144, ge=1024, le=1048576)

@@ -117,6 +117,7 @@ from app.workouts.repository import (
     get_active_plan,
     get_current_foreground_plan,
     get_latest_completed_generation_at,
+    get_running_generation_for_update,
     persist_pending_review_plan,
 )
 from app.workouts.schemas import CandidateSet, ProgramGenerationOverrides, WorkoutGenerationProfile
@@ -143,6 +144,7 @@ class WorkoutGenerationSettings:
     max_candidates: int
     max_request_bytes: int
     warmup_minutes: int
+    stale_generation_seconds: int = 900
     deterministic_fallback_enabled: bool = True
     generation_method: str = "fitician_coach"
     ai_coach_fallback_models: tuple[str, ...] = ()
@@ -1164,6 +1166,25 @@ class WorkoutGenerationService:
 
     def _start_generation(self, user_id: UUID, candidate_count: int) -> WorkoutPlanGeneration:
         try:
+            now = datetime.now(UTC)
+            existing = get_running_generation_for_update(self._db, user_id)
+            if existing is not None:
+                created_at = existing.created_at
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=UTC)
+                if now - created_at <= timedelta(
+                    seconds=self._settings.stale_generation_seconds
+                ):
+                    self._db.rollback()
+                    raise GenerationInProgressError
+                fail_generation(
+                    self._db,
+                    existing,
+                    error_code="STALE_GENERATION_RECOVERED",
+                    safe_error_message=(
+                        "The previous workout generation was abandoned and recovered."
+                    ),
+                )
             generation = create_generation(
                 self._db,
                 user_id=user_id,

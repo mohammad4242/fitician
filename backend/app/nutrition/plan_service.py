@@ -1648,10 +1648,14 @@ def latest_plan_bundle(db: Session, user_id: UUID) -> WeeklyPlanGenerationRespon
 
     selected_resp = None
     if bundle.selected_plan_id:
-        if budget_plan_resp and budget_plan_resp.id == bundle.selected_plan_id:
-            selected_resp = budget_plan_resp
-        elif ideal_plan_resp and ideal_plan_resp.id == bundle.selected_plan_id:
-            selected_resp = ideal_plan_resp
+        selected_plan = db.scalar(
+            _plan_query().where(
+                NutritionWeeklyPlan.id == bundle.selected_plan_id,
+                NutritionWeeklyPlan.user_id == user_id,
+            )
+        )
+        if selected_plan is not None:
+            selected_resp = weekly_plan_response(selected_plan, db=db)
 
     return WeeklyPlanGenerationResponse(
         generation_id=generation_id,

@@ -755,6 +755,7 @@ def _service(
     db: Session,
     *,
     cooldown_seconds: int = 0,
+    stale_generation_seconds: int = 900,
     body_analysis_resolver: BodyAnalysisInfluenceResolver | None = None,
     ai_coach_provider: OpenRouterAiCoachProvider | None = None,
     generation_method: str = "deterministic_domain",
@@ -771,6 +772,7 @@ def _service(
             catalog_programming_version="v1",
             max_repair_attempts=0,
             cooldown_seconds=cooldown_seconds,
+            stale_generation_seconds=stale_generation_seconds,
             max_candidates=5000,
             max_request_bytes=262144,
             warmup_minutes=5,
@@ -1665,6 +1667,70 @@ def test_generation_in_progress_rejects_second_request(db: Session) -> None:
         asyncio.run(_service(db).generate(user.id))
 
     assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 0
+
+
+def test_fresh_generation_remains_in_progress(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    generation = create_generation(
+        db,
+        user_id=user.id,
+        provider="fitician_domain",
+        model_id="program_engine_v1",
+        candidate_count=3,
+    )
+    generation.created_at = datetime.now(UTC) - timedelta(minutes=1)
+    db.commit()
+
+    with pytest.raises(GenerationInProgressError):
+        asyncio.run(_service(db).generate(user.id))
+
+    db.refresh(generation)
+    assert generation.status is WorkoutGenerationStatus.GENERATING
+
+
+def test_stale_generation_is_failed_and_replaced(db: Session) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    stale = create_generation(
+        db,
+        user_id=user.id,
+        provider="fitician_domain",
+        model_id="program_engine_v1",
+        candidate_count=3,
+    )
+    stale.created_at = datetime.now(UTC) - timedelta(seconds=901)
+    db.commit()
+
+    result = asyncio.run(_service(db).generate(user.id))
+
+    db.refresh(stale)
+    assert stale.status is WorkoutGenerationStatus.FAILED
+    assert stale.completed_at is not None
+    assert stale.error_code == "STALE_GENERATION_RECOVERED"
+    assert result.plan.status is WorkoutPlanStatus.ACTIVE
+    assert db.query(WorkoutPlanGeneration).filter_by(user_id=user.id).count() == 2
+
+
+def test_stale_recovery_leaves_at_most_one_running_generation(db: Session) -> None:
+    user = _user_with_profile(db)
+    stale = create_generation(
+        db,
+        user_id=user.id,
+        provider="fitician_domain",
+        model_id="program_engine_v1",
+        candidate_count=3,
+    )
+    stale.created_at = datetime.now(UTC) - timedelta(seconds=901)
+    db.commit()
+
+    replacement = _service(db)._start_generation(user.id, candidate_count=3)
+
+    assert replacement.id != stale.id
+    assert db.query(WorkoutPlanGeneration).filter_by(
+        user_id=user.id,
+        status=WorkoutGenerationStatus.GENERATING,
+    ).count() <= 1
 
 
 def test_expired_plan_is_replaced_with_structured_difference(db: Session) -> None:

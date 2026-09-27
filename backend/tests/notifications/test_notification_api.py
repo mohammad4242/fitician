@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from hashlib import sha256
+
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -90,6 +92,62 @@ def test_current_mobile_device_registers_and_rotates_a_single_active_token(
     assert len(listed.json()) == 1
     assert listed.json()[0]["has_active_token"] is True
     assert all("token" not in item for item in listed.json())
+
+
+def test_registration_reassigns_token_between_users_without_exposing_it(
+    client: TestClient,
+    db: Session,
+) -> None:
+    _register(client, "token-owner-a@example.com")
+    auth_a = _login(client, "token-owner-a@example.com", device_id="device-a")
+    headers_a = {"Authorization": f"Bearer {auth_a['access_token']}"}
+    response_a = client.put(
+        "/api/v1/notifications/devices/current",
+        headers=headers_a,
+        json={"provider": "fcm", "token": "shared-token-x"},
+    )
+    assert response_a.status_code == 200
+    assert "token" not in response_a.json()
+
+    _register(client, "token-owner-b@example.com")
+    auth_b = _login(client, "token-owner-b@example.com", device_id="device-b")
+    headers_b = {"Authorization": f"Bearer {auth_b['access_token']}"}
+    response_b = client.put(
+        "/api/v1/notifications/devices/current",
+        headers=headers_b,
+        json={"provider": "fcm", "token": "shared-token-x"},
+    )
+    assert response_b.status_code == 200
+    assert "token" not in response_b.json()
+
+    token = db.scalar(
+        select(NotificationDeviceToken).where(
+            NotificationDeviceToken.provider == "fcm",
+            NotificationDeviceToken.token_hash == sha256(b"shared-token-x").hexdigest(),
+        )
+    )
+    assert token is not None and token.invalid_at is None
+    current_device = db.get(NotificationDevice, response_b.json()["id"])
+    previous_device = db.get(NotificationDevice, response_a.json()["id"])
+    assert current_device is not None and token.device_id == current_device.id
+    assert previous_device is not None
+    assert db.scalars(
+        select(NotificationDeviceToken.id).where(
+            NotificationDeviceToken.device_id == previous_device.id,
+            NotificationDeviceToken.invalid_at.is_(None),
+        )
+    ).all() == []
+    assert db.scalars(
+        select(NotificationDeviceToken.id).where(
+            NotificationDeviceToken.device_id == current_device.id,
+            NotificationDeviceToken.invalid_at.is_(None),
+        )
+    ).all() == [token.id]
+
+    listed_a = client.get("/api/v1/notifications/devices", headers=headers_a)
+    listed_b = client.get("/api/v1/notifications/devices", headers=headers_b)
+    assert listed_a.status_code == listed_b.status_code == 200
+    assert all("token" not in device for device in listed_a.json() + listed_b.json())
 
 
 def test_notification_endpoints_require_native_bearer_auth(client: TestClient) -> None:

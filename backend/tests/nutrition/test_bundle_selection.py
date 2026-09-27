@@ -11,6 +11,7 @@ from app.entitlements.enums import AccessPackageCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError
 from app.entitlements.models import EntitlementUsageEvent
 from app.nutrition.enums import (
+    MealSlotRole,
     NutritionPlanBudgetStatus,
     NutritionPlanLifecycleStatus,
     NutritionPlanRole,
@@ -25,8 +26,12 @@ from app.nutrition.models import (
     NutritionPlanGeneration,
     NutritionSafetyDecision,
     NutritionWeeklyPlan,
+    NutritionWeeklyPlanDay,
+    NutritionWeeklyPlanMeal,
 )
+from app.nutrition.plan_editing import confirm_remove_meal
 from app.nutrition.plan_service import (
+    latest_plan_bundle,
     latest_weekly_plan,
     select_bundle_plan,
 )
@@ -194,6 +199,65 @@ def test_select_bundle_plan_by_id(client: TestClient, db: Session) -> None:
     latest = latest_weekly_plan(db, user.id)
     assert latest.id == ideal_plan.id
     assert latest.revision == 2
+
+
+def test_editing_selected_plan_tracks_revision_and_preserves_bundle_candidates(
+    client: TestClient, db: Session
+) -> None:
+    user, bundle, budget_plan, ideal_plan = _seed_test_bundle(client, db)
+    bundle_id = bundle.id
+    selected_role = bundle.selected_plan_role
+    selected_at = bundle.selected_at
+    comparison_snapshot = dict(bundle.comparison_snapshot or {})
+    budget_plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
+    day = NutritionWeeklyPlanDay(
+        plan_id=budget_plan.id,
+        day_index=0,
+        plan_date=date.today(),
+        cost_irr=25_000_000,
+        nutrient_totals={"calories": "500"},
+        meals=[
+            NutritionWeeklyPlanMeal(
+                slot_role=MealSlotRole.MAIN_MEAL,
+                slot_index=0,
+                target_distribution={},
+                nutrient_totals={"calories": "500"},
+                cost_irr=25_000_000,
+            )
+        ],
+    )
+    db.add(day)
+    db.commit()
+    meal_id = day.meals[0].id
+
+    revision = confirm_remove_meal(
+        db,
+        user.id,
+        budget_plan.id,
+        budget_plan.id,
+        meal_id,
+    )
+
+    db.refresh(bundle)
+    assert revision.id != budget_plan.id
+    revised_plan = db.get(NutritionWeeklyPlan, revision.id)
+    assert revised_plan is not None
+    revision_generation = db.get(NutritionPlanGeneration, revised_plan.generation_id)
+    assert revision_generation is not None and revision_generation.bundle_id is None
+    assert bundle.selected_plan_id == revision.id
+    assert bundle.selected_plan_role == selected_role
+    assert bundle.selected_at == selected_at
+    assert bundle.comparison_snapshot == comparison_snapshot
+    assert bundle.id == bundle_id
+    assert latest_weekly_plan(db, user.id).id == revision.id
+
+    latest_bundle = latest_plan_bundle(db, user.id)
+    assert latest_bundle is not None
+    assert latest_bundle.selected_plan_id == revision.id
+    assert latest_bundle.selected_plan_role == selected_role
+    assert latest_bundle.plan is not None and latest_bundle.plan.id == revision.id
+    assert latest_bundle.budget_plan is not None and latest_bundle.budget_plan.id == budget_plan.id
+    assert latest_bundle.ideal_plan is not None and latest_bundle.ideal_plan.id == ideal_plan.id
 
 
 def test_select_bundle_plan_by_role(client: TestClient, db: Session) -> None:
