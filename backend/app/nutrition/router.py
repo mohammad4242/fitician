@@ -8,13 +8,10 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
-    File,
-    Form,
     Header,
     HTTPException,
     Query,
     Request,
-    UploadFile,
     status,
 )
 from fastapi.responses import StreamingResponse
@@ -39,6 +36,7 @@ from app.database.session import get_db, isolated_session
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.service import require_entitlement
 from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
+from app.media.uploads import SingleFileUpload, bounded_upload_form, multipart_openapi
 from app.nutrition.adherence_service import (
     AdherenceError,
     adaptive_preferences,
@@ -332,6 +330,7 @@ from app.nutrition.tracking_service import (
     save_quick_approximation,
     submit_check_in,
 )
+from app.nutrition.uploads import LabUploadForm
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
 
@@ -562,8 +561,7 @@ async def read_verified_foods(
         ttl_seconds=settings.cache_default_ttl_seconds,
         serialize=lambda value: [item.model_dump(mode="json") for item in value],
         deserialize=lambda value: [
-            CatalogueFoodResponse.model_validate(item)
-            for item in cast(list[object], value)
+            CatalogueFoodResponse.model_validate(item) for item in cast(list[object], value)
         ],
     )
 
@@ -672,6 +670,7 @@ async def create_or_update_catalogue_food(
 
 @router.post(
     "/admin/foods/{slug}/image",
+    openapi_extra=multipart_openapi(SingleFileUpload),
     response_model=FoodCatalogueImageResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
@@ -681,7 +680,6 @@ async def upload_catalogue_food_image(
     admin: AdminUser,
     settings: AppSettings,
     request: Request,
-    file: Annotated[UploadFile, File()],
 ) -> FoodCatalogueImageResponse:
     del admin
     food = db.scalar(select(NutritionCatalogueFood).where(NutritionCatalogueFood.slug == slug))
@@ -691,7 +689,10 @@ async def upload_catalogue_food_image(
             detail={"code": "FOOD_NOT_FOUND"},
         )
     try:
-        stored = store_image_upload(file, settings, "food-catalogue")
+        async with bounded_upload_form(
+            request, SingleFileUpload, max_bytes=settings.media_max_bytes
+        ) as form:
+            stored = store_image_upload(form.file, settings, "food-catalogue")
     except MediaValidationError as error:
         raise _nutrition_media_error(error) from None
     except MediaStorageError as error:
@@ -1063,6 +1064,7 @@ async def replace_catalogue_meal(
 
 @router.post(
     "/admin/meals/{meal_id}/image",
+    openapi_extra=multipart_openapi(SingleFileUpload),
     response_model=CatalogueMealImageResponse,
     dependencies=[Depends(require_trusted_origin)],
 )
@@ -1072,7 +1074,6 @@ async def upload_catalogue_meal_image(
     admin: AdminUser,
     settings: AppSettings,
     request: Request,
-    file: Annotated[UploadFile, File()],
 ) -> CatalogueMealImageResponse:
     del admin
     meal = db.get(NutritionCatalogueMeal, meal_id)
@@ -1082,7 +1083,10 @@ async def upload_catalogue_meal_image(
             detail={"code": "MEAL_NOT_FOUND"},
         )
     try:
-        stored = store_image_upload(file, settings, "meal-catalogue")
+        async with bounded_upload_form(
+            request, SingleFileUpload, max_bytes=settings.media_max_bytes
+        ) as form:
+            stored = store_image_upload(form.file, settings, "meal-catalogue")
     except MediaValidationError as error:
         raise _nutrition_media_error(error) from None
     except MediaStorageError as error:
@@ -2491,6 +2495,7 @@ def _food_photo_error(error: FoodPhotoError) -> HTTPException:
 
 @router.post(
     "/tracking/photo-estimates",
+    openapi_extra=multipart_openapi(SingleFileUpload),
     response_model=NutritionFoodPhotoEstimateResponse,
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
@@ -2500,7 +2505,6 @@ async def create_food_photo_estimate(
     user: CurrentUser,
     request: Request,
     settings: AppSettings,
-    file: Annotated[UploadFile, File()],
     consent: Annotated[bool, Header(alias="X-Fitician-Food-Photo-Consent")],
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     accept_language: Annotated[str | None, Header(alias="Accept-Language")] = None,
@@ -2526,16 +2530,19 @@ async def create_food_photo_estimate(
             if (language == "en" or (accept_language and accept_language.lower().startswith("en")))
             else "fa"
         )
-        return await enqueue_photo(
-            db,
-            user.id,
-            file,
-            consent,
-            settings,
-            idempotency_key,
-            language=resolved_lang,
-            correlation_id=getattr(request.state, "request_id", None),
-        )
+        async with bounded_upload_form(
+            request, SingleFileUpload, max_bytes=settings.food_photo_max_bytes, max_fields=0
+        ) as form:
+            return await enqueue_photo(
+                db,
+                user.id,
+                form.file,
+                consent,
+                settings,
+                idempotency_key,
+                language=resolved_lang,
+                correlation_id=getattr(request.state, "request_id", None),
+            )
     except RateLimitExceeded as error:
         raise HTTPException(
             status_code=429,
@@ -2747,6 +2754,7 @@ def _clinical_error(error: ClinicalError) -> HTTPException:
 
 @router.post(
     "/labs",
+    openapi_extra=multipart_openapi(LabUploadForm),
     response_model=NutritionLabUploadResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_trusted_origin)],
@@ -2756,12 +2764,6 @@ async def create_lab_document(
     user: CurrentUser,
     request: Request,
     settings: AppSettings,
-    file: Annotated[UploadFile, File()],
-    test_date: Annotated[date | None, Form()] = None,
-    laboratory_name: Annotated[str | None, Form()] = None,
-    user_note: Annotated[str | None, Form()] = None,
-    category: Annotated[str | None, Form()] = None,
-    request_id: Annotated[UUID | None, Form()] = None,
 ) -> NutritionLabUploadResponse:
     require_entitlement(db, user.id, EntitlementCode.NUTRITION_LABS_MANAGE)
     try:
@@ -2773,17 +2775,20 @@ async def create_lab_document(
             operation="nutrition_lab_upload",
             limit=settings.nutrition_lab_upload_rate_limit,
         )
-        return await upload_lab(
-            db,
-            user.id,
-            file,
-            settings,
-            test_date=test_date,
-            laboratory_name=laboratory_name,
-            user_note=user_note,
-            category=category,
-            request_id=request_id,
-        )
+        async with bounded_upload_form(
+            request, LabUploadForm, max_bytes=settings.nutrition_lab_max_bytes, max_fields=5
+        ) as form:
+            return await upload_lab(
+                db,
+                user.id,
+                form.file,
+                settings,
+                test_date=form.test_date,
+                laboratory_name=form.laboratory_name,
+                user_note=form.user_note,
+                category=form.category,
+                request_id=form.request_id,
+            )
     except RateLimitExceeded as error:
         raise HTTPException(
             status_code=429,

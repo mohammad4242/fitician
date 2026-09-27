@@ -4,8 +4,6 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
-    File,
-    Form,
     HTTPException,
     Query,
     Request,
@@ -50,12 +48,14 @@ from app.admin.service import (
     list_admin_exercises,
     update_admin_exercise,
 )
+from app.admin.uploads import EXERCISE_UPLOAD_MAX_BYTES, ExerciseUploadForm
 from app.auth.cookies import require_trusted_origin
 from app.auth.dependencies import AppSettings, DatabaseSession
 from app.exercises.enums import MediaPresentation, MediaRole, MediaType
 from app.exercises.media_resolver import ordered_media_assets, resolve_primary_media
 from app.exercises.models import Exercise
 from app.exercises.taxonomy import MUSCLES_BY_REGION, is_compatible_muscle_focus
+from app.media.uploads import bounded_upload_form, multipart_openapi
 from app.profile.enums import ExperienceLevel
 from app.training_templates.admin_service import (
     StructureWriteError,
@@ -702,85 +702,91 @@ def read_admin_exercise(
 
 @router.patch(
     "/exercises/{exercise_id}",
+    openapi_extra=multipart_openapi(ExerciseUploadForm),
     response_model=AdminExerciseDetail,
     dependencies=[Depends(require_trusted_origin)],
 )
 async def update_exercise(
     exercise_id: UUID,
-    payload: Annotated[str, Form()],
     db: DatabaseSession,
     settings: AppSettings,
     request: Request,
-    media: Annotated[UploadFile | None, File()] = None,
-    media_male_video: Annotated[UploadFile | None, File()] = None,
-    media_female_video: Annotated[UploadFile | None, File()] = None,
-    media_files: Annotated[list[UploadFile] | None, File()] = None,
 ) -> AdminExerciseDetail:
-    exercise_payload = _parse_payload(payload)
-    stored_media: StoredMedia | None = None
-    stored_media_assets: dict[MediaAssetKey, StoredMedia] = {}
-    try:
-        media_namespace = f"{exercise_payload.slug}--{str(exercise_id)[:8]}"
-        if media is not None:
-            stored_media = store_upload(media, settings, media_namespace)
-        stored_media_assets = _variant_uploads(
-            settings,
-            {
-                (MediaPresentation.MALE, MediaRole.VIDEO, 0): media_male_video,
-                (MediaPresentation.FEMALE, MediaRole.VIDEO, 0): media_female_video,
-            },
-            media_namespace,
-        )
-        stored_media_assets.update(
-            _gallery_uploads(settings, exercise_payload, media_files or [], media_namespace)
-        )
-        exercise = update_admin_exercise(
-            db,
-            exercise_id,
-            exercise_payload,
-            stored_media,
-            stored_media_assets,
-        )
-        if exercise is None:
+    async with bounded_upload_form(
+        request,
+        ExerciseUploadForm,
+        max_bytes=EXERCISE_UPLOAD_MAX_BYTES,
+        max_files=1000,
+        max_fields=1,
+        list_fields=("media_files",),
+    ) as form:
+        exercise_payload = _parse_payload(form.payload)
+        stored_media: StoredMedia | None = None
+        stored_media_assets: dict[MediaAssetKey, StoredMedia] = {}
+        try:
+            media_namespace = f"{exercise_payload.slug}--{str(exercise_id)[:8]}"
+            if form.media is not None:
+                stored_media = store_upload(form.media, settings, media_namespace)
+            stored_media_assets = _variant_uploads(
+                settings,
+                {
+                    (MediaPresentation.MALE, MediaRole.VIDEO, 0): form.media_male_video,
+                    (MediaPresentation.FEMALE, MediaRole.VIDEO, 0): form.media_female_video,
+                },
+                media_namespace,
+            )
+            stored_media_assets.update(
+                _gallery_uploads(
+                    settings, exercise_payload, form.media_files or [], media_namespace
+                )
+            )
+            exercise = update_admin_exercise(
+                db,
+                exercise_id,
+                exercise_payload,
+                stored_media,
+                stored_media_assets,
+            )
+            if exercise is None:
+                if stored_media is not None:
+                    discard_media(stored_media)
+                _discard_media_assets(stored_media_assets)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={"code": "EXERCISE_NOT_FOUND"},
+                )
+        except MediaValidationError:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _validation_error("media") from None
+        except MediaStorageError as error:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _media_storage_error(error) from None
+        except ValueError:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _validation_error("media_assets") from None
+        except DuplicateExerciseSlugError:
             if stored_media is not None:
                 discard_media(stored_media)
             _discard_media_assets(stored_media_assets)
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"code": "EXERCISE_NOT_FOUND"},
-            )
-    except MediaValidationError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _validation_error("media") from None
-    except MediaStorageError as error:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _media_storage_error(error) from None
-    except ValueError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _validation_error("media_assets") from None
-    except DuplicateExerciseSlugError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
-        ) from None
-    except HTTPException:
-        raise
-    except Exception:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise
-    await _invalidate_exercise_cache(request)
-    return _detail(exercise)
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
+            ) from None
+        except HTTPException:
+            raise
+        except Exception:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise
+        await _invalidate_exercise_cache(request)
+        return _detail(exercise)
 
 
 @router.delete(
@@ -804,71 +810,77 @@ async def delete_exercise(
 
 @router.post(
     "/exercises",
+    openapi_extra=multipart_openapi(ExerciseUploadForm),
     response_model=AdminExerciseDetail,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_trusted_origin)],
 )
 async def create_exercise(
-    payload: Annotated[str, Form()],
     db: DatabaseSession,
     settings: AppSettings,
     request: Request,
-    media: Annotated[UploadFile | None, File()] = None,
-    media_male_video: Annotated[UploadFile | None, File()] = None,
-    media_female_video: Annotated[UploadFile | None, File()] = None,
-    media_files: Annotated[list[UploadFile] | None, File()] = None,
 ) -> AdminExerciseDetail:
-    exercise_payload = _parse_payload(payload)
-    stored_media: StoredMedia | None = None
-    stored_media_assets: dict[MediaAssetKey, StoredMedia] = {}
-    try:
-        media_namespace = exercise_payload.slug
-        if media is not None:
-            stored_media = store_upload(media, settings, media_namespace)
-        stored_media_assets = _variant_uploads(
-            settings,
-            {
-                (MediaPresentation.MALE, MediaRole.VIDEO, 0): media_male_video,
-                (MediaPresentation.FEMALE, MediaRole.VIDEO, 0): media_female_video,
-            },
-            media_namespace,
-        )
-        stored_media_assets.update(
-            _gallery_uploads(settings, exercise_payload, media_files or [], media_namespace)
-        )
-        exercise = create_admin_exercise(
-            db,
-            exercise_payload,
-            stored_media,
-            stored_media_assets,
-        )
-    except MediaValidationError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _validation_error("media") from None
-    except MediaStorageError as error:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _media_storage_error(error) from None
-    except ValueError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise _validation_error("media_assets") from None
-    except DuplicateExerciseSlugError:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
-        ) from None
-    except Exception:
-        if stored_media is not None:
-            discard_media(stored_media)
-        _discard_media_assets(stored_media_assets)
-        raise
-    await _invalidate_exercise_cache(request)
-    return _detail(exercise)
+    async with bounded_upload_form(
+        request,
+        ExerciseUploadForm,
+        max_bytes=EXERCISE_UPLOAD_MAX_BYTES,
+        max_files=1000,
+        max_fields=1,
+        list_fields=("media_files",),
+    ) as form:
+        exercise_payload = _parse_payload(form.payload)
+        stored_media: StoredMedia | None = None
+        stored_media_assets: dict[MediaAssetKey, StoredMedia] = {}
+        try:
+            media_namespace = exercise_payload.slug
+            if form.media is not None:
+                stored_media = store_upload(form.media, settings, media_namespace)
+            stored_media_assets = _variant_uploads(
+                settings,
+                {
+                    (MediaPresentation.MALE, MediaRole.VIDEO, 0): form.media_male_video,
+                    (MediaPresentation.FEMALE, MediaRole.VIDEO, 0): form.media_female_video,
+                },
+                media_namespace,
+            )
+            stored_media_assets.update(
+                _gallery_uploads(
+                    settings, exercise_payload, form.media_files or [], media_namespace
+                )
+            )
+            exercise = create_admin_exercise(
+                db,
+                exercise_payload,
+                stored_media,
+                stored_media_assets,
+            )
+        except MediaValidationError:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _validation_error("media") from None
+        except MediaStorageError as error:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _media_storage_error(error) from None
+        except ValueError:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise _validation_error("media_assets") from None
+        except DuplicateExerciseSlugError:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "EXERCISE_SLUG_ALREADY_EXISTS"},
+            ) from None
+        except Exception:
+            if stored_media is not None:
+                discard_media(stored_media)
+            _discard_media_assets(stored_media_assets)
+            raise
+        await _invalidate_exercise_cache(request)
+        return _detail(exercise)

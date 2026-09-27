@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from typing import Annotated, BinaryIO, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from app.auth.models import User
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.exercises.enums import MuscleGroup
+from app.media.uploads import SingleFileUpload, bounded_upload_form, multipart_openapi
 from app.nutrition.models import NutritionProfile, NutritionSafetyDecision
 from app.profile.enums import ProfileCompletionState
 from app.profile.exceptions import (
@@ -290,16 +291,20 @@ def _stream_photo(
 @router.put(
     "/photo",
     response_model=ProfilePhotoResponse,
+    openapi_extra=multipart_openapi(SingleFileUpload),
     dependencies=[Depends(require_trusted_origin)],
 )
-def upload_profile_photo(
+async def upload_profile_photo(
     db: DatabaseSession,
     user: CurrentUser,
     settings: AppSettings,
-    file: Annotated[UploadFile, File()],
+    request: Request,
 ) -> ProfilePhotoResponse:
     try:
-        photo = ProfilePhotoService(db, settings).save(user.id, file)
+        async with bounded_upload_form(
+            request, SingleFileUpload, max_bytes=settings.profile_photo_max_bytes
+        ) as form:
+            photo = ProfilePhotoService(db, settings).save(user.id, form.file)
     except ProfilePhotoValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
