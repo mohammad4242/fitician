@@ -138,7 +138,10 @@ def list_reviews(
             WorkoutPlanReview.claimed_by_user_id == coach_id,
         )
     else:
-        statement = statement.where(WorkoutPlanReview.status == WorkoutReviewStatus.APPROVED)
+        statement = statement.where(
+            WorkoutPlanReview.status == WorkoutReviewStatus.APPROVED,
+            WorkoutPlanReview.claimed_by_user_id == coach_id,
+        )
     return list(
         db.scalars(
             statement.order_by(
