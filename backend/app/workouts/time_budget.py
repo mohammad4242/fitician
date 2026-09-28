@@ -9,6 +9,7 @@ from math import ceil
 class ExerciseTiming:
     sets: int
     rest_seconds: int
+    duration_seconds: int | None = None
 
 
 @dataclass(frozen=True)
@@ -46,9 +47,14 @@ def calculate_exercise_minutes(
     set_execution_seconds: int = 45,
     transition_seconds: int = 90,
 ) -> int:
+    execution_seconds = (
+        timing.duration_seconds
+        if timing.duration_seconds is not None
+        else set_execution_seconds
+    )
     total_seconds = (
         transition_seconds
-        + timing.sets * set_execution_seconds
+        + timing.sets * execution_seconds
         + max(timing.sets - 1, 0) * timing.rest_seconds
     )
     return ceil(total_seconds / 60)

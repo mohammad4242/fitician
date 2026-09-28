@@ -4,7 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from app.ai.schemas import WorkoutPlanExerciseOutput
-from app.exercises.enums import PrescriptionMode
+from app.exercises.enums import (
+    Difficulty,
+    ExerciseType,
+    MovementPattern,
+    MuscleGroup,
+    PrescriptionMode,
+)
 from app.workout_reviews.schemas import (
     WorkoutReviewDayDraft,
     WorkoutReviewDraftUpdate,
@@ -12,6 +18,9 @@ from app.workout_reviews.schemas import (
 )
 from app.workout_reviews.validation import WorkoutReviewDraftValidator
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
+from app.workouts.schemas import CandidateSet, WorkoutExerciseCandidate
+from app.workouts.time_budget import WorkoutGenerationPolicy
+from app.workouts.validator import WorkoutPlanValidationError, WorkoutPlanValidator
 
 
 def test_coach_review_preserves_duration_contract() -> None:
@@ -109,3 +118,101 @@ def test_coach_review_does_not_restore_source_rir_for_duration() -> None:
     )
 
     assert model.days[0].exercises[0].rir is None
+
+
+def test_coach_review_estimates_timed_sets_from_prescribed_duration() -> None:
+    exercise_id = uuid4()
+    day = WorkoutDay(
+        day_number=1,
+        title_en="Day 1",
+        title_fa="روز ۱",
+        estimated_duration_minutes=20,
+    )
+    payload = WorkoutReviewDraftUpdate(
+        expected_revision=1,
+        days=[
+            WorkoutReviewDayDraft(
+                day_number=1,
+                exercises=[
+                    WorkoutReviewExerciseDraft(
+                        order_index=1,
+                        exercise_id=exercise_id,
+                        sets=3,
+                        prescription_mode=PrescriptionMode.DURATION,
+                        duration_min_seconds=240,
+                        duration_max_seconds=300,
+                        rir=None,
+                        rest_seconds=60,
+                    )
+                ],
+            )
+        ],
+    )
+
+    model = WorkoutReviewDraftValidator._to_model(
+        WorkoutPlan(days=[day]),
+        payload,
+        {},
+    )
+
+    assert model.days[0].exercises[0].estimated_minutes == 19
+    assert model.days[0].estimated_duration_minutes == 24
+
+
+def test_workout_validator_rejects_timed_session_over_duration_limit() -> None:
+    exercise_id = uuid4()
+    day = WorkoutDay(
+        day_number=1,
+        title_en="Day 1",
+        title_fa="روز ۱",
+        estimated_duration_minutes=20,
+    )
+    payload = WorkoutReviewDraftUpdate(
+        expected_revision=1,
+        days=[
+            WorkoutReviewDayDraft(
+                day_number=1,
+                exercises=[
+                    WorkoutReviewExerciseDraft(
+                        order_index=1,
+                        exercise_id=exercise_id,
+                        sets=3,
+                        prescription_mode=PrescriptionMode.DURATION,
+                        duration_min_seconds=3600,
+                        duration_max_seconds=3600,
+                        rir=None,
+                        rest_seconds=60,
+                    )
+                ],
+            )
+        ],
+    )
+    model = WorkoutReviewDraftValidator._to_model(WorkoutPlan(days=[day]), payload, {})
+    candidate = WorkoutExerciseCandidate(
+        id=exercise_id,
+        primary_muscle=MuscleGroup.CHEST,
+        secondary_muscles=(),
+        movement_pattern=MovementPattern.HORIZONTAL_PUSH,
+        exercise_type=ExerciseType.COMPOUND,
+        equipment=(),
+        difficulty=Difficulty.BEGINNER,
+        caution_tags=(),
+        prescription_mode=PrescriptionMode.DURATION,
+        duration_min_seconds=3600,
+        duration_max_seconds=3600,
+    )
+    validator = WorkoutPlanValidator(
+        candidates=CandidateSet(
+            exercises=(candidate,),
+            candidate_set_hash="timed-duration-test",
+            soft_cautions=(),
+            minimum_candidate_count=1,
+        ),
+        policy=WorkoutGenerationPolicy.for_session_duration(45),
+        required_day_count=1,
+    )
+
+    with pytest.raises(WorkoutPlanValidationError) as error:
+        validator.validate(model)
+
+    assert any(problem.code == "duration_exceeded" for problem in error.value.problems)

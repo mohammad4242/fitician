@@ -154,7 +154,14 @@ class WorkoutReviewDraftValidator:
             (
                 5
                 + calculate_day_minutes(
-                    ExerciseTiming(item.sets, item.rest_seconds) for item in day.exercises
+                    ExerciseTiming(
+                        item.sets,
+                        item.rest_seconds,
+                        item.duration_max_seconds
+                        if item.prescription_mode is PrescriptionMode.DURATION
+                        else None,
+                    )
+                    for item in day.exercises
                 )
                 for day in source.days
             ),
@@ -200,7 +207,13 @@ class WorkoutReviewDraftValidator:
             for item in sorted(draft_day.exercises, key=lambda value: value.order_index):
                 source_slot = source_slots.get((draft_day.day_number, item.order_index))
                 source_item = source_slot[1] if source_slot is not None else None
-                timing = ExerciseTiming(item.sets, item.rest_seconds)
+                timing = ExerciseTiming(
+                    item.sets,
+                    item.rest_seconds,
+                    item.duration_max_seconds
+                    if item.prescription_mode is PrescriptionMode.DURATION
+                    else None,
+                )
                 output_exercises.append(
                     WorkoutPlanExerciseOutput(
                         exercise_id=item.exercise_id,
@@ -223,7 +236,16 @@ class WorkoutReviewDraftValidator:
                         notes_fa=item.notes_fa,
                     )
                 )
-            timings = [ExerciseTiming(item.sets, item.rest_seconds) for item in draft_day.exercises]
+            timings = [
+                ExerciseTiming(
+                    item.sets,
+                    item.rest_seconds,
+                    item.duration_max_seconds
+                    if item.prescription_mode is PrescriptionMode.DURATION
+                    else None,
+                )
+                for item in draft_day.exercises
+            ]
             output_days.append(
                 WorkoutPlanDayOutput(
                     day_number=draft_day.day_number,

@@ -144,7 +144,17 @@ class WorkoutPlanValidator:
                 )
             seen_ids.add(exercise.exercise_id)
             self._validate_prescription(day.day_number, exercise, problems)
-            timings.append(ExerciseTiming(sets=exercise.sets, rest_seconds=exercise.rest_seconds))
+            timings.append(
+                ExerciseTiming(
+                    sets=exercise.sets,
+                    rest_seconds=exercise.rest_seconds,
+                    duration_seconds=(
+                        exercise.duration_max_seconds
+                        if exercise.prescription_mode is PrescriptionMode.DURATION
+                        else None
+                    ),
+                )
+            )
 
         if not fits_session_duration(timings, self._policy):
             problems.append(
