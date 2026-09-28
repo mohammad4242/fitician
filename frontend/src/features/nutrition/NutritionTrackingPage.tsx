@@ -313,7 +313,13 @@ export function NutritionTrackingPage() {
   }
 
   const todayAdherence = adherence?.days.find((day) => day.date === today);
-  const visibleEntries = summary?.entries.filter((entry) => sourceFilter === "all" || entry.source === sourceFilter) ?? [];
+  const visibleEntries = summary?.entries.filter((entry) => {
+    if (sourceFilter === "all") return true;
+    if (sourceFilter === "photo_estimated_confirmed") {
+      return entry.source === "photo_estimated_confirmed" || entry.source === "photo_estimated_edited";
+    }
+    return entry.source === sourceFilter;
+  }) ?? [];
 
   const isItemReady = (item: FoodPhotoEstimateItem) =>
     (Boolean(item.food_id) && item.unit === "g") ||

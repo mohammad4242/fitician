@@ -189,6 +189,25 @@ it("starts with both nutrition entry methods collapsed", async () => {
   expect(document.getElementById("nutrition-photo-entry-panel")).toBeNull();
 });
 
+it("includes edited photo entries in the photo source filter", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.getDailyTracking).mockResolvedValue({
+    ...summary,
+    entries: [
+      { ...summary.entries[0], id: "photo-confirmed", display_name: "Confirmed photo meal", source: "photo_estimated_confirmed" },
+      { ...summary.entries[0], id: "photo-edited", display_name: "Edited photo meal", source: "photo_estimated_edited" },
+    ],
+  });
+  render(<MemoryRouter><NutritionTrackingPage /></MemoryRouter>);
+
+  expect(await screen.findByText(/Confirmed photo meal/)).toBeInTheDocument();
+  expect(screen.getByText(/Edited photo meal/)).toBeInTheDocument();
+  await user.selectOptions(screen.getByLabelText("Entry source"), "photo_estimated_confirmed");
+
+  expect(screen.getByText(/Confirmed photo meal/)).toBeInTheDocument();
+  expect(screen.getByText(/Edited photo meal/)).toBeInTheDocument();
+});
+
 it("keeps only the selected nutrition entry workflow open and toggles it closed", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><NutritionTrackingPage /></MemoryRouter>);

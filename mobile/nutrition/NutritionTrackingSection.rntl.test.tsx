@@ -355,6 +355,21 @@ test("places the entry hub before the daily summary, entries, adherence, and fin
   }
 });
 
+test("keeps edited photo entries in the photo source filter", () => {
+  currentDailyTracking = {
+    ...dailyTrackingWithEntry,
+    entries: [
+      dailyEntry,
+      { ...dailyEntry, id: "entry-2", display_name: "عکس ویرایش‌شده", source: "photo_estimated_edited" },
+    ],
+  };
+  renderTracking();
+
+  expect(screen.getAllByText("عکس ویرایش‌شده").length).toBeGreaterThan(0);
+  fireEvent.press(screen.getByRole("button", { name: "عکس تأییدشده" }));
+  expect(screen.getAllByText("عکس ویرایش‌شده").length).toBeGreaterThan(0);
+});
+
 test("does not render a large empty today's entries section when there are no entries", () => {
   renderTracking();
 

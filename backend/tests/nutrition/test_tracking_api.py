@@ -343,6 +343,39 @@ def test_member_edit_scales_confirmed_photo_estimate_without_catalogue_food(
     assert summary.json()["actual_totals"]["energy_kcal"] == 240
 
 
+def test_member_edit_preserves_photo_warning_for_catalogue_backed_estimate(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan_json, food = _setup(client, db)
+    plan = db.get(NutritionWeeklyPlan, plan_json["id"])
+    assert plan is not None
+    entry = NutritionConsumptionEntry(
+        user_id=plan.user_id,
+        entry_date=date.today(),
+        food_id=food.id,
+        display_name=food.name_fa,
+        quantity_grams=Decimal("80"),
+        source=NutritionConsumptionSource.PHOTO_ESTIMATED_CONFIRMED,
+        confidence=EstimateConfidence.MEDIUM,
+        user_confirmed=True,
+        nutrients={"energy_kcal": "160"},
+        warning_codes=["PHOTO_ESTIMATE_APPROXIMATE"],
+    )
+    db.add(entry)
+    db.commit()
+
+    edited = client.put(
+        f"/api/v1/nutrition/tracking/entries/{entry.id}",
+        headers=ORIGIN,
+        json={"grams": 120},
+    )
+
+    assert edited.status_code == 200, edited.text
+    assert edited.json()["source"] == NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED.value
+    assert "PHOTO_ESTIMATE_APPROXIMATE" in edited.json()["warning_codes"]
+
+
 def test_member_can_adjust_and_skip_planned_meal_on_active_revision(
     client: TestClient,
     db: Session,

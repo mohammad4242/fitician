@@ -151,7 +151,10 @@ export function NutritionTrackingSection() {
 
   const selectedFood = catalogueFoods.find((food) => food.id === selectedFoodId) ?? null;
   const visibleEntries = daily?.entries.filter(
-    (entry) => sourceFilter === "all" || entry.source === sourceFilter,
+    (entry) => sourceFilter === "all"
+      || (sourceFilter === "photo_estimated_confirmed"
+        && (entry.source === "photo_estimated_confirmed" || entry.source === "photo_estimated_edited"))
+      || entry.source === sourceFilter,
   ) ?? [];
   const checkInValue = checkInStatus ?? daily?.check_in_status ?? "not_recorded";
 

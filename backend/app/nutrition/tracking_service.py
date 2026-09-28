@@ -342,7 +342,12 @@ def edit_entry(
             entry.nutrients = {
                 row.nutrient_code: str(row.value_per_100g * factor) for row in food.compositions
             }
-            entry.warning_codes = actual_intake_warnings(db, user_id, food)
+            warning_codes = actual_intake_warnings(db, user_id, food)
+            if is_photo_estimate:
+                warning_codes = list(
+                    dict.fromkeys(["PHOTO_ESTIMATE_APPROXIMATE", *warning_codes])
+                )
+            entry.warning_codes = warning_codes
             if is_photo_estimate:
                 entry.source = NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED
     elif is_photo_estimate:
