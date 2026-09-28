@@ -211,4 +211,5 @@ def test_upload_openapi_keeps_the_multipart_contract(
                 "user_note",
                 "category",
                 "request_id",
+                "request_ids",
             }
