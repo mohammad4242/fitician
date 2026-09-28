@@ -48,9 +48,10 @@ def metrics_for_reviewed_plan(plan: WorkoutPlan) -> dict[str, object] | None:
     for day in plan.days:
         for item in day.exercises:
             metadata = _metadata_from_snapshot(item.exercise_snapshot)
-            if metadata is None and item.exercise is not None:
-                metadata = metadata_from_exercise(item.exercise)
             if metadata is None:
+                # A coach-reviewed plan without a saved exercise snapshot cannot be
+                # rebuilt safely from today's catalogue metadata. Keep its persisted
+                # aggregate metrics as the historical baseline instead.
                 return None
             metadata_by_id[item.exercise_id] = metadata
 
