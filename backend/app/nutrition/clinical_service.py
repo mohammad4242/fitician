@@ -182,6 +182,54 @@ def _link_lab_request(
     request.status = NutritionLabRequestStatus.UPLOADED
 
 
+def _resume_review_if_lab_requests_resolved(
+    db: Session,
+    plan_id: UUID,
+    physician_id: UUID,
+    resolved_request_id: UUID,
+) -> None:
+    plan = db.scalar(
+        select(NutritionWeeklyPlan).where(NutritionWeeklyPlan.id == plan_id).with_for_update()
+    )
+    review = db.scalar(
+        select(NutritionPlanPhysicianReview)
+        .where(NutritionPlanPhysicianReview.plan_id == plan_id)
+        .with_for_update()
+    )
+    if (
+        plan is None
+        or review is None
+        or review.physician_user_id != physician_id
+        or review.status != NutritionPlanReviewStatus.AWAITING_LAB_INFORMATION
+    ):
+        return
+    unresolved_request_id = db.scalar(
+        select(NutritionLabRequest.id)
+        .where(
+            NutritionLabRequest.plan_id == plan_id,
+            NutritionLabRequest.status.in_(
+                [NutritionLabRequestStatus.REQUESTED, NutritionLabRequestStatus.UPLOADED]
+            ),
+        )
+        .limit(1)
+    )
+    if unresolved_request_id is not None:
+        return
+    review.status = NutritionPlanReviewStatus.IN_REVIEW
+    plan.lifecycle_status = NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS
+    db.add(
+        NutritionReviewAuditEvent(
+            review_id=review.id,
+            actor_user_id=physician_id,
+            action="laboratory_information_resolved",
+            metadata_snapshot={
+                "plan_id": str(plan_id),
+                "request_id": str(resolved_request_id),
+            },
+        )
+    )
+
+
 async def upload_lab(
     db: Session,
     user_id: UUID,
@@ -222,11 +270,13 @@ async def upload_lab(
             raise ClinicalError("LAB_REQUEST_NOT_FOUND")
         requests = [requests_by_id[request_uuid] for request_uuid in submitted_request_ids]
     duplicate = db.scalar(
-        select(NutritionLabDocument).where(
+        select(NutritionLabDocument)
+        .where(
             NutritionLabDocument.user_id == user_id,
             NutritionLabDocument.sha256 == digest,
             NutritionLabDocument.purged_at.is_(None),
-        ).with_for_update()
+        )
+        .with_for_update()
     )
     if duplicate is not None:
         for request in requests:
@@ -424,10 +474,17 @@ def review_lab_document(
         )
         .where(NutritionLabDocumentRequest.lab_document_id == row.id)
     ).all()
+    resolved_requests_by_plan: dict[UUID, UUID] = {}
     for request in requests:
         if request.physician_user_id == physician_id:
             request.status = NutritionLabRequestStatus.REVIEWED
             request.reviewed_at = row.reviewed_at
+            resolved_requests_by_plan.setdefault(request.plan_id, request.id)
+    ordered_resolved_requests = sorted(
+        resolved_requests_by_plan.items(), key=lambda item: str(item[0])
+    )
+    for plan_id, request_id in ordered_resolved_requests:
+        _resume_review_if_lab_requests_resolved(db, plan_id, physician_id, request_id)
     audit_security_event(
         db,
         actor_user_id=physician_id,
@@ -741,5 +798,6 @@ def transition_lab_request(
         row.cancelled_at = now
     else:
         raise ClinicalError("INVALID_LAB_REQUEST_TRANSITION")
+    _resume_review_if_lab_requests_resolved(db, row.plan_id, physician_id, row.id)
     db.commit()
     return {"id": row.id, "status": row.status.value}

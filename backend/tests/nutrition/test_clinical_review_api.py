@@ -9,7 +9,11 @@ from app.auth.models import User
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
 from app.notifications.models import NotificationOutboxEvent
-from app.nutrition.enums import NutritionLabRequestStatus, NutritionPlanReviewStatus
+from app.nutrition.enums import (
+    NutritionLabRequestStatus,
+    NutritionPlanLifecycleStatus,
+    NutritionPlanReviewStatus,
+)
 from app.nutrition.models import (
     NutritionLabDocument,
     NutritionLabRequest,
@@ -252,6 +256,201 @@ def test_duplicate_lab_document_can_satisfy_multiple_lab_requests(
     )
     assert reviewed.status_code == 200, reviewed.text
     assert {item.status for item in requests} == {NutritionLabRequestStatus.REVIEWED}
+
+
+def test_lab_review_resumes_physician_plan_review(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db)
+    physician_email = "resume-lab-review-physician@example.com"
+    _login_physician(client, db, physician_email)
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+    claimed = client.post(
+        f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+        headers=ORIGIN,
+    )
+    assert claimed.status_code == 200, claimed.text
+    request = client.post(
+        f"/api/v1/nutrition/physician/plans/{plan['id']}/request-labs",
+        headers=ORIGIN,
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "requested_tests": ["CBC"],
+            "user_visible_reason": "نتیجه برای ادامهٔ بررسی لازم است",
+        },
+    )
+    assert request.status_code == 200, request.text
+    assert request.json()["status"] == "requested"
+
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={"email": "clinical-member@example.com", "password": "long password"},
+        ).status_code
+        == 200
+    )
+    uploaded = client.post(
+        "/api/v1/nutrition/labs",
+        headers=ORIGIN,
+        files=[
+            ("file", ("blood.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")),
+            ("request_ids", (None, request.json()["id"])),
+        ],
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    assert uploaded.json()["request_ids"] == [request.json()["id"]]
+
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={"email": physician_email, "password": "long password"},
+        ).status_code
+        == 200
+    )
+    reviewed = client.put(
+        f"/api/v1/nutrition/physician/labs/{uploaded.json()['id']}/review",
+        headers=ORIGIN,
+        json={"review_status": "reviewed", "notes": "بررسی شد"},
+    )
+
+    assert reviewed.status_code == 200, reviewed.text
+    db.expire_all()
+    persisted_plan = db.get(NutritionWeeklyPlan, plan["id"])
+    persisted_review = db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == plan["id"]
+        )
+    )
+    persisted_request = db.get(NutritionLabRequest, request.json()["id"])
+    assert persisted_plan is not None
+    assert persisted_review is not None
+    assert persisted_request is not None
+    assert persisted_request.status is NutritionLabRequestStatus.REVIEWED
+    assert persisted_review.status is NutritionPlanReviewStatus.IN_REVIEW
+    assert (
+        persisted_plan.lifecycle_status is NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS
+    )
+    claimed_queue = client.get("/api/v1/nutrition/physician/reviews?view=claimed")
+    assert claimed_queue.status_code == 200
+    resumed = next(item for item in claimed_queue.json() if item["plan_id"] == plan["id"])
+    assert resumed["status"] == NutritionPlanReviewStatus.IN_REVIEW.value
+
+
+def test_resolving_requests_waits_for_last_lab_request_before_resuming(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db)
+    physician_email = "cancel-lab-review-physician@example.com"
+    physician = _login_physician(client, db, physician_email)
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+    claimed = client.post(
+        f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+        headers=ORIGIN,
+    )
+    assert claimed.status_code == 200, claimed.text
+    request = client.post(
+        f"/api/v1/nutrition/physician/plans/{plan['id']}/request-labs",
+        headers=ORIGIN,
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "requested_tests": ["CBC"],
+            "user_visible_reason": "درخواست لغو شد",
+        },
+    )
+    assert request.status_code == 200, request.text
+    persisted_plan = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted_plan is not None
+    additional_request = NutritionLabRequest(
+        user_id=persisted_plan.user_id,
+        plan_id=persisted_plan.id,
+        physician_user_id=physician.id,
+        status=NutritionLabRequestStatus.REQUESTED,
+        requested_tests=["Ferritin"],
+    )
+    db.add(additional_request)
+    db.commit()
+
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={"email": "clinical-member@example.com", "password": "long password"},
+        ).status_code
+        == 200
+    )
+    uploaded = client.post(
+        "/api/v1/nutrition/labs",
+        headers=ORIGIN,
+        files=[
+            ("file", ("blood.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")),
+            ("request_ids", (None, request.json()["id"])),
+        ],
+    )
+    assert uploaded.status_code == 201, uploaded.text
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={"email": physician_email, "password": "long password"},
+        ).status_code
+        == 200
+    )
+
+    resolved_first = client.put(
+        f"/api/v1/nutrition/physician/lab-requests/{request.json()['id']}",
+        headers=ORIGIN,
+        json={"status": "reviewed"},
+    )
+
+    assert resolved_first.status_code == 200, resolved_first.text
+    db.expire_all()
+    persisted_plan = db.get(NutritionWeeklyPlan, plan["id"])
+    persisted_review = db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == plan["id"]
+        )
+    )
+    assert persisted_plan is not None
+    assert persisted_review is not None
+    assert persisted_review.status is NutritionPlanReviewStatus.AWAITING_LAB_INFORMATION
+    assert persisted_plan.lifecycle_status is NutritionPlanLifecycleStatus.AWAITING_LAB_INFORMATION
+
+    cancelled_last = client.put(
+        f"/api/v1/nutrition/physician/lab-requests/{additional_request.id}",
+        headers=ORIGIN,
+        json={"status": "cancelled"},
+    )
+
+    assert cancelled_last.status_code == 200, cancelled_last.text
+    db.expire_all()
+    persisted_plan = db.get(NutritionWeeklyPlan, plan["id"])
+    persisted_review = db.scalar(
+        select(NutritionPlanPhysicianReview).where(
+            NutritionPlanPhysicianReview.plan_id == plan["id"]
+        )
+    )
+    assert persisted_plan is not None
+    assert persisted_review is not None
+    assert persisted_review.status is NutritionPlanReviewStatus.IN_REVIEW
+    assert (
+        persisted_plan.lifecycle_status is NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS
+    )
 
 
 def test_non_physician_cannot_access_review_queue(client: TestClient, db: Session) -> None:
