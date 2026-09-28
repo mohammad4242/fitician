@@ -366,8 +366,6 @@ it("links one lab upload to each selected physician request", async () => {
       requested_tests: ["CBC"],
       user_visible_reason: null,
       created_at: `${today}T12:00:00Z`,
-      reviewed_at: null,
-      cancelled_at: null,
     },
     {
       id: "lab-request-ferritin",
@@ -376,8 +374,6 @@ it("links one lab upload to each selected physician request", async () => {
       requested_tests: ["Ferritin"],
       user_visible_reason: null,
       created_at: `${today}T12:01:00Z`,
-      reviewed_at: null,
-      cancelled_at: null,
     },
   ]);
   vi.mocked(api.uploadLabDocument).mockResolvedValue({});
