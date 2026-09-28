@@ -1836,6 +1836,11 @@ def read_latest_plan(db: DatabaseSession, user: CurrentUser) -> WeeklyPlanRespon
 def read_active_plan(db: DatabaseSession, user: CurrentUser) -> WeeklyPlanResponse:
     try:
         return active_weekly_plan(db, user.id)
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
+        ) from None
     except ActiveWeeklyPlanNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

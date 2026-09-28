@@ -215,6 +215,43 @@ def test_plan_cannot_start_when_current_safety_decision_is_hard_blocked(
     assert response.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
 
 
+def test_hard_blocked_member_cannot_read_existing_active_plan(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _ready_plan(client, db)
+    started = client.post(
+        f"/api/v1/nutrition/plans/{plan['id']}/start",
+        headers=ORIGIN,
+        json={"start_date": date.today().isoformat(), "timezone": "UTC"},
+    )
+    assert started.status_code == 200, started.text
+
+    blocked = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            "conditions": [],
+            "medications": [],
+            "dangerous_food_reaction_history": False,
+            "pregnant": False,
+            "breastfeeding": False,
+            "eating_disorder_diagnosed": False,
+            "eating_disorder_active_symptoms": False,
+            "emergency_or_danger_symptoms": True,
+            "complex_medication_food_interaction": False,
+            "physician_dietary_restrictions": None,
+            "other_relevant_condition": None,
+        },
+    )
+    assert blocked.status_code == 200, blocked.text
+
+    active = client.get("/api/v1/nutrition/plans/active")
+
+    assert active.status_code == 409
+    assert active.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
+
+
 def test_reference_comparison_plan_cannot_start(client: TestClient, db: Session) -> None:
     user, bundle, _, ideal_plan = _seed_test_bundle(client, db)
 

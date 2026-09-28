@@ -49,6 +49,7 @@ from app.nutrition.estimate_service import create_estimate
 from app.nutrition.exceptions import (
     GoalReselectionRequiredDomainError,
     NutritionProductModeError,
+    NutritionPlanStartConflictError,
     NutritionTargetInfeasibleDomainError,
     PlanSelectionInvalidError,
     StructuredExerciseRequiredError,
@@ -140,6 +141,7 @@ from app.nutrition.schemas import (
     WeeklyPlanPreparedRecipeSummary,
     WeeklyPlanResponse,
 )
+from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.service import current_safety_decision
 from app.profile.models import UserProfile
 from app.profile.review_summary import ReviewProfileSummary
@@ -1395,6 +1397,12 @@ def active_weekly_plan(
     plan = effective_nutrition_plan_for_date(db, user_id, local_date)
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError
+    decision = current_medical_safety_decision(db, user_id)
+    if decision is not None and decision.outcome is SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED:
+        raise NutritionPlanStartConflictError(
+            "NUTRITION_PLAN_SAFETY_BLOCKED",
+            "با توجه به اطلاعات پزشکی فعلی، ادامهٔ این برنامه مجاز نیست.",
+        )
     return weekly_plan_response(plan, db=db)
 
 
