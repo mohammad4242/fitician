@@ -1032,3 +1032,12 @@ def test_assigned_physician_can_list_and_review_member_labs(
     row = db.get(NutritionLabDocument, document_id)
     assert row is not None and row.review_status == "reviewed"
     assert row.reviewed_at is not None
+
+    follow_up = client.put(
+        f"/api/v1/nutrition/physician/labs/{document_id}/review",
+        headers=ORIGIN,
+        json={"review_status": "requires_follow_up", "notes": "نتیجه نیازمند پیگیری است"},
+    )
+    assert follow_up.status_code == 200, follow_up.text
+    row = db.get(NutritionLabDocument, document_id)
+    assert row is not None and row.review_status == "requires_follow_up"

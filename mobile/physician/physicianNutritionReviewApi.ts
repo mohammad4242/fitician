@@ -61,7 +61,7 @@ export interface PhysicianNutritionReviewApi {
   ): Promise<components["schemas"]["NutritionLabRequestCreatedResponse"]>;
   reviewLab(
     documentId: string,
-    reviewStatus: string,
+    reviewStatus: "reviewed" | "requires_follow_up",
     notes: string | null,
   ): Promise<PhysicianLabDocument>;
   createSupplementOrder(

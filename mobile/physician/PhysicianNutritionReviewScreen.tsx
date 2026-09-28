@@ -63,7 +63,7 @@ const queueViews: readonly PhysicianReviewQueueView[] = ["pending", "claimed", "
 const clinicalTabs = ["plan", "labs", "supplements", "notes"] as const;
 type ClinicalTab = (typeof clinicalTabs)[number];
 type WeeklyPlanMeal = components["schemas"]["WeeklyPlanMealResponse"];
-type LabReviewStatus = "reviewed" | "needs_attention";
+type LabReviewStatus = "reviewed" | "requires_follow_up";
 type SupplementTransitionStatus = Extract<
   PhysicianSupplementOrderStatus,
   "active" | "completed" | "discontinued" | "cancelled"
@@ -1088,7 +1088,7 @@ function LabsCard({
             <Button
               disabled={busy}
               label={lab.review_status === "reviewed" ? "ثبت نیازمند توجه" : "ثبت بررسی"}
-              onPress={() => onReviewLab(lab.id, lab.review_status === "reviewed" ? "needs_attention" : "reviewed")}
+              onPress={() => onReviewLab(lab.id, lab.review_status === "reviewed" ? "requires_follow_up" : "reviewed")}
               variant="ghost"
             />
           ) : null}
