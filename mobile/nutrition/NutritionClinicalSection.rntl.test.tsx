@@ -133,6 +133,49 @@ test("shows clinical heading, status filter, and disclosure without changing sup
   expect(screen.getByText("موردی با این وضعیت نیست")).toBeTruthy();
 });
 
+test("allows one lab file to answer multiple outstanding physician requests", () => {
+  const requests = [
+    {
+      id: "lab-request-cbc",
+      plan_id: "plan-1",
+      status: "requested",
+      requested_tests: ["CBC"],
+      user_visible_reason: null,
+      created_at: "2026-09-20T12:00:00Z",
+      reviewed_at: null,
+      cancelled_at: null,
+    },
+    {
+      id: "lab-request-ferritin",
+      plan_id: "plan-2",
+      status: "requested",
+      requested_tests: ["Ferritin"],
+      user_visible_reason: null,
+      created_at: "2026-09-20T12:01:00Z",
+      reviewed_at: null,
+      cancelled_at: null,
+    },
+  ];
+  mockUseQuery.mockImplementation(({ queryKey }) => {
+    const key = queryKey as readonly unknown[];
+    if (key[1] === "lab-requests") return queryResult(requests);
+    if (key[1] === "supplement-orders") return queryResult([order]);
+    return queryResult([]);
+  });
+  render(
+    <SafeAreaProvider initialMetrics={{ frame: { height: 900, width: 400, x: 0, y: 0 }, insets: { bottom: 0, left: 0, right: 0, top: 0 } }}>
+      <NutritionClinicalSection mode="labs" />
+    </SafeAreaProvider>,
+  );
+
+  expect(screen.getByRole("checkbox", { name: "CBC" }).props.accessibilityState).toMatchObject({ checked: true });
+  const ferritin = screen.getByRole("checkbox", { name: "Ferritin" });
+  fireEvent.press(ferritin);
+
+  expect(screen.getByRole("checkbox", { name: "CBC" }).props.accessibilityState).toMatchObject({ checked: true });
+  expect(screen.getByRole("checkbox", { name: "Ferritin" }).props.accessibilityState).toMatchObject({ checked: true });
+});
+
 test("keeps existing clinical records readable while locking clinical writes", () => {
   mockUseMobileEntitlements.mockReturnValue({
     error: null,

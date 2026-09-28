@@ -3,7 +3,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
 import { useEffect, useMemo, useState } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ApiError, formatPersianDate, type MultipartUploadRequest } from "@fitician/core";
 
@@ -73,6 +73,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
   const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
   const connectivityStatus = useConnectivityStatus();
+  const [selectedLabRequestIdsState, setSelectedLabRequestIdsState] = useState<string[] | null>(null);
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
     [auth.download, auth.request],
@@ -101,6 +102,9 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
   const requests = stateData(requestsState) ?? [];
   const orders = stateData(ordersState) ?? [];
   const catalogue = stateData(catalogueState) ?? [];
+  const pendingLabRequests = requests.filter((request) => request.status === "requested");
+  const defaultLabRequestIds = pendingLabRequests.length > 0 ? [pendingLabRequests[0].id] : [];
+  const selectedLabRequestIds = selectedLabRequestIdsState ?? defaultLabRequestIds;
   const [supplementStatusFilter, setSupplementStatusFilter] = useState<SupplementStatusFilter>("all");
   const visibleOrders = orders.filter(
     (order) => supplementStatusFilter === "all" || order.status === supplementStatusFilter,
@@ -155,7 +159,6 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
     }
     setLabUploadError(null);
     setLabUploadNotice(null);
-    const requestId = requests.find((request) => request.status === "requested")?.id;
     try {
       const handle = uploadManager.enqueue<NutritionLabUpload>(createLabDocumentUploadJob({
         asset: selection.asset,
@@ -163,7 +166,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
         metadata: {
           category: optionalText(category),
           laboratoryName: optionalText(laboratoryName),
-          requestId,
+          requestIds: selectedLabRequestIds,
           testDate: optionalText(testDate),
           userNote: optionalText(userNote),
         },
@@ -176,6 +179,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
         ? "این فایل قبلاً در پرونده سلامتت ثبت شده بود؛ همان سابقه استفاده شد."
         : "فایل آزمایش با موفقیت در پرونده خصوصی تو ثبت شد.");
       setSelectedFile(null);
+      setSelectedLabRequestIdsState(null);
       setLabUploadKey(undefined);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: nutritionKeys.labs() }),
@@ -189,6 +193,16 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
       setLabUploadRef(null);
       setLabUploading(false);
     }
+  }
+
+  function toggleLabRequest(requestId: string) {
+    setLabUploadKey(undefined);
+    setSelectedLabRequestIdsState((current) => {
+      const selected = current ?? defaultLabRequestIds;
+      return selected.includes(requestId)
+        ? selected.filter((id) => id !== requestId)
+        : [...selected, requestId];
+    });
   }
 
   async function chooseLabFile(source: "image" | "document"): Promise<void> {
@@ -336,6 +350,7 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
             laboratoryName={laboratoryName}
             loading={labUploading}
             notice={labUploadNotice}
+            pendingRequests={pendingLabRequests}
             onCategoryChange={setCategory}
             onChooseImage={() => void chooseLabFile("image")}
             onChooseDocument={() => void chooseLabFile("document")}
@@ -343,7 +358,9 @@ export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: Nut
             onRetry={selectedFile === null ? undefined : () => void uploadLabSelection(selectedFile)}
             onTestDateChange={setTestDate}
             onNoteChange={setUserNote}
+            onToggleRequest={toggleLabRequest}
             note={userNote}
+            selectedRequestIds={selectedLabRequestIds}
             selectedFile={selectedFile}
             testDate={testDate}
             disabled={labUploading || connectivityStatus === "offline" || !canManageLabs}
@@ -412,6 +429,8 @@ function LabUploadCard({
   loading,
   notice,
   note,
+  onToggleRequest,
+  pendingRequests,
   onCategoryChange,
   onChooseDocument,
   onChooseImage,
@@ -420,6 +439,7 @@ function LabUploadCard({
   onRetry,
   onTestDateChange,
   selectedFile,
+  selectedRequestIds,
   testDate,
 }: {
   readonly category: string;
@@ -430,6 +450,8 @@ function LabUploadCard({
   readonly loading: boolean;
   readonly notice: string | null;
   readonly note: string;
+  readonly onToggleRequest: (requestId: string) => void;
+  readonly pendingRequests: readonly NutritionLabRequest[];
   readonly onCategoryChange: (value: string) => void;
   readonly onChooseDocument: () => void;
   readonly onChooseImage: () => void;
@@ -438,6 +460,7 @@ function LabUploadCard({
   readonly onRetry?: () => void;
   readonly onTestDateChange: (value: string) => void;
   readonly selectedFile: LabSelection | null;
+  readonly selectedRequestIds: readonly string[];
   readonly testDate: string;
 }) {
   return (
@@ -475,6 +498,32 @@ function LabUploadCard({
           value={note}
         />
       </View>
+      {pendingRequests.length > 0 ? (
+        <View style={styles.formStack}>
+          <Text style={styles.bodyText}>این فایل به کدام درخواست‌های پزشک پاسخ می‌دهد؟</Text>
+          {pendingRequests.map((request) => {
+            const checked = selectedRequestIds.includes(request.id);
+            return (
+              <Pressable
+                accessible
+                accessibilityLabel={request.requested_tests.join("، ")}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked, disabled: disabled || loading }}
+                disabled={disabled || loading}
+                key={request.id}
+                onPress={() => onToggleRequest(request.id)}
+                style={styles.itemCard}
+              >
+                <View style={styles.rowBetween}>
+                  <Text style={styles.itemTitle}>{request.requested_tests.join("، ")}</Text>
+                  <Text style={styles.statusText}>{checked ? "انتخاب‌شده" : "انتخاب"}</Text>
+                </View>
+                {request.user_visible_reason ? <Text style={styles.bodyText}>{request.user_visible_reason}</Text> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
       <View style={styles.actions}>
         <Button disabled={disabled} label="انتخاب PDF" loading={loading} onPress={onChooseDocument} variant="primary" />
         <Button disabled={disabled} label="انتخاب تصویر" onPress={onChooseImage} variant="secondary" />

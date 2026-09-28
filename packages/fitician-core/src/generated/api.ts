@@ -8746,6 +8746,8 @@ export type components = {
             original_filename: string;
             /** Request Id */
             request_id: string | null;
+            /** Request Ids */
+            request_ids: string[];
             /** Retained Until */
             retained_until: string | null;
             /** Review Notes */
@@ -8839,6 +8841,8 @@ export type components = {
             original_filename: string;
             /** Request Id */
             request_id: string | null;
+            /** Request Ids */
+            request_ids: string[];
             /** Retained Until */
             retained_until: string | null;
             /** Review Notes */
@@ -17472,6 +17476,8 @@ export interface operations {
                     laboratory_name?: string | null;
                     /** Request Id */
                     request_id?: string | null;
+                    /** Request Ids */
+                    request_ids?: string[];
                     /** Test Date */
                     test_date?: string | null;
                     /** User Note */

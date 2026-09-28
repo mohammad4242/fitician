@@ -107,6 +107,22 @@ it("builds a member lab upload with validated metadata parts", () => {
   ]);
 });
 
+it("includes every selected physician request in one lab upload", () => {
+  const job = createLabDocumentUploadJob({
+    asset: {
+      bytes: Uint8Array.from(new TextEncoder().encode("%PDF-1.7\n%%EOF")),
+      filename: "panel.pdf",
+      mimeType: "application/pdf",
+    },
+    metadata: { requestIds: ["request-cbc", "request-ferritin"] },
+  });
+
+  expect(job.parts.filter((part) => part.name === "request_ids")).toEqual([
+    { name: "request_ids", value: "request-cbc" },
+    { name: "request_ids", value: "request-ferritin" },
+  ]);
+});
+
 it("rejects unsafe or incomplete laboratory files before upload", () => {
   expect(() => createLabDocumentUploadJob({
     asset: {

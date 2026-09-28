@@ -641,15 +641,16 @@ export function getNutritionAdherence(start: string, end: string): Promise<Nutri
   return request<NutritionAdherence>(`${nutritionPath}/adherence?${query}`);
 }
 
-export type LabDocument = { id: string; original_filename: string; content_type: string; byte_size: number; test_date: string | null; laboratory_name: string | null; user_note: string | null; category: string | null; review_status: string; review_notes: string | null; uploaded_at: string };
+export type LabDocument = { id: string; original_filename: string; content_type: string; byte_size: number; test_date: string | null; laboratory_name: string | null; user_note: string | null; category: string | null; review_status: string; review_notes: string | null; request_id: string | null; request_ids: string[]; uploaded_at: string };
 export function listLabDocuments(): Promise<LabDocument[]> {
   return request(`${nutritionPath}/labs`);
 }
 
-export function uploadLabDocument(file: File, input: { requestId?: string; testDate?: string; laboratoryName?: string; userNote?: string; category?: string } = {}): Promise<unknown> {
+export function uploadLabDocument(file: File, input: { requestId?: string; requestIds?: readonly string[]; testDate?: string; laboratoryName?: string; userNote?: string; category?: string } = {}): Promise<unknown> {
   const body = new FormData();
   body.append("file", file);
   if (input.requestId) body.append("request_id", input.requestId);
+  for (const requestId of input.requestIds ?? []) body.append("request_ids", requestId);
   if (input.testDate) body.append("test_date", input.testDate);
   if (input.laboratoryName) body.append("laboratory_name", input.laboratoryName);
   if (input.userNote) body.append("user_note", input.userNote);

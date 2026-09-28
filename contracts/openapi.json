@@ -14708,6 +14708,14 @@
             ],
             "title": "Request Id"
           },
+          "request_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Request Ids",
+            "type": "array"
+          },
           "retained_until": {
             "anyOf": [
               {
@@ -14802,6 +14810,7 @@
           "reviewed_by_user_id",
           "review_notes",
           "request_id",
+          "request_ids",
           "uploaded_at",
           "retained_until"
         ],
@@ -14995,6 +15004,14 @@
             ],
             "title": "Request Id"
           },
+          "request_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Request Ids",
+            "type": "array"
+          },
           "retained_until": {
             "anyOf": [
               {
@@ -15089,6 +15106,7 @@
           "reviewed_by_user_id",
           "review_notes",
           "request_id",
+          "request_ids",
           "uploaded_at",
           "retained_until",
           "duplicate"
@@ -34821,6 +34839,15 @@
                       }
                     ],
                     "title": "Request Id"
+                  },
+                  "request_ids": {
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 30,
+                    "title": "Request Ids",
+                    "type": "array"
                   },
                   "test_date": {
                     "anyOf": [

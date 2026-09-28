@@ -1,6 +1,8 @@
 from datetime import date
 from uuid import UUID
 
+from pydantic import Field
+
 from app.media.uploads import SingleFileUpload
 
 
@@ -10,3 +12,4 @@ class LabUploadForm(SingleFileUpload):
     user_note: str | None = None
     category: str | None = None
     request_id: UUID | None = None
+    request_ids: list[UUID] = Field(default_factory=list, max_length=30)

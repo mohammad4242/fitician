@@ -329,7 +329,7 @@ it("uses the shared resolver for a backend check-in error", async () => {
 
 it("uploads laboratory metadata and can delete an owned document", async () => {
   const user = userEvent.setup();
-  const document = { id: "lab-1", original_filename: "cbc.pdf", content_type: "application/pdf", byte_size: 10, test_date: today, laboratory_name: "Lab", user_note: "Annual panel", category: "CBC", review_status: "uploaded", review_notes: null, uploaded_at: `${today}T12:00:00Z` };
+  const document = { id: "lab-1", original_filename: "cbc.pdf", content_type: "application/pdf", byte_size: 10, test_date: today, laboratory_name: "Lab", user_note: "Annual panel", category: "CBC", review_status: "uploaded", review_notes: null, request_id: null, request_ids: [], uploaded_at: `${today}T12:00:00Z` };
   vi.mocked(api.listLabDocuments)
     .mockResolvedValueOnce([document])
     .mockResolvedValueOnce([document])
@@ -356,12 +356,54 @@ it("uploads laboratory metadata and can delete an owned document", async () => {
   await waitFor(() => expect(api.deleteLabDocument).toHaveBeenCalledWith("lab-1"));
 });
 
+it("links one lab upload to each selected physician request", async () => {
+  const user = userEvent.setup();
+  vi.mocked(api.listLabRequests).mockResolvedValue([
+    {
+      id: "lab-request-cbc",
+      plan_id: "plan-1",
+      status: "requested",
+      requested_tests: ["CBC"],
+      user_visible_reason: null,
+      created_at: `${today}T12:00:00Z`,
+      reviewed_at: null,
+      cancelled_at: null,
+    },
+    {
+      id: "lab-request-ferritin",
+      plan_id: "plan-2",
+      status: "requested",
+      requested_tests: ["Ferritin"],
+      user_visible_reason: null,
+      created_at: `${today}T12:01:00Z`,
+      reviewed_at: null,
+      cancelled_at: null,
+    },
+  ]);
+  vi.mocked(api.uploadLabDocument).mockResolvedValue({});
+  render(<MemoryRouter><NutritionLabsPage /></MemoryRouter>);
+
+  const firstRequest = await screen.findByRole("checkbox", { name: /CBC/ });
+  const secondRequest = screen.getByRole("checkbox", { name: /Ferritin/ });
+  expect(firstRequest).toBeChecked();
+  await user.click(secondRequest);
+  await user.upload(
+    screen.getByLabelText("Choose lab file"),
+    new File(["pdf"], "combined-panel.pdf", { type: "application/pdf" }),
+  );
+
+  await waitFor(() => expect(api.uploadLabDocument).toHaveBeenCalledWith(
+    expect.any(File),
+    expect.objectContaining({ requestIds: ["lab-request-cbc", "lab-request-ferritin"] }),
+  ));
+});
+
 it("keeps existing lab records readable while locking new uploads without access", async () => {
   entitlementAccess.allowed = false;
   vi.mocked(api.listLabDocuments).mockResolvedValue([{
     id: "lab-1", original_filename: "cbc.pdf", content_type: "application/pdf", byte_size: 10,
     test_date: today, laboratory_name: "Lab", user_note: null, category: "CBC", review_status: "uploaded",
-    review_notes: null, uploaded_at: `${today}T12:00:00Z`,
+    review_notes: null, request_id: null, request_ids: [], uploaded_at: `${today}T12:00:00Z`,
   }]);
   render(<MemoryRouter><NutritionLabsPage /></MemoryRouter>);
 

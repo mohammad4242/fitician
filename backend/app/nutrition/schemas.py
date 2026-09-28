@@ -1176,6 +1176,7 @@ class NutritionLabDocumentResponse(BaseModel):
     reviewed_by_user_id: UUID | None
     review_notes: str | None
     request_id: UUID | None
+    request_ids: list[UUID]
     uploaded_at: datetime
     retained_until: date | None
 

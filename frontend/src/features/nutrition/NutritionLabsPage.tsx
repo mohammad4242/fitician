@@ -102,6 +102,10 @@ export function NutritionLabsPage() {
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedRequestIdsState, setSelectedRequestIdsState] = useState<string[] | null>(null);
+  const pendingRequests = requests.filter((request) => request.status === "requested");
+  const defaultRequestIds = pendingRequests.length > 0 ? [pendingRequests[0].id] : [];
+  const selectedRequestIds = selectedRequestIdsState ?? defaultRequestIds;
 
   const load = () => Promise.all([api.listLabDocuments(), api.listLabRequests()])
     .then(([documents, requested]) => {
@@ -120,18 +124,28 @@ export function NutritionLabsPage() {
     setBusy(true);
     try {
       await api.uploadLabDocument(file, {
-        requestId: requests.find((request) => request.status === "requested")?.id,
+        requestIds: selectedRequestIds,
         testDate: testDate || undefined,
         laboratoryName: laboratoryName || undefined,
         userNote: note || undefined,
         category: category || undefined,
       });
+      setSelectedRequestIdsState(null);
       await load();
     } catch (cause) {
       setError(cause);
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleRequest(requestId: string, checked: boolean) {
+    setSelectedRequestIdsState((current) => {
+      const selected = current ?? defaultRequestIds;
+      return checked
+        ? [...new Set([...selected, requestId])]
+        : selected.filter((id) => id !== requestId);
+    });
   }
 
   async function openLab(lab: Lab) {
@@ -232,6 +246,18 @@ export function NutritionLabsPage() {
           <div><strong>{request.requested_tests.join("، ")}</strong><span>{requestStatus(request.status, l)}</span></div>
           {request.user_visible_reason && <p>{request.user_visible_reason}</p>}
         </article>)}</div>}
+        {pendingRequests.length > 0 && <fieldset className="nutrition-labs-requests__selection">
+          <legend>{l("این فایل مربوط به کدام درخواست‌هاست؟", "Which requests does this file answer?")}</legend>
+          {pendingRequests.map((request) => <label key={request.id}>
+            <input
+              aria-label={`${l("اتصال فایل به درخواست", "Attach file to request")}: ${request.requested_tests.join(", ")}`}
+              checked={selectedRequestIds.includes(request.id)}
+              onChange={(event) => toggleRequest(request.id, event.currentTarget.checked)}
+              type="checkbox"
+            />
+            <span>{request.requested_tests.join("، ")}</span>
+          </label>)}
+        </fieldset>}
       </section>
     </div>
 

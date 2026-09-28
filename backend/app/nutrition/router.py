@@ -2782,7 +2782,11 @@ async def create_lab_document(
             limit=settings.nutrition_lab_upload_rate_limit,
         )
         async with bounded_upload_form(
-            request, LabUploadForm, max_bytes=settings.nutrition_lab_max_bytes, max_fields=5
+            request,
+            LabUploadForm,
+            max_bytes=settings.nutrition_lab_max_bytes,
+            max_fields=35,
+            list_fields=("request_ids",),
         ) as form:
             return await upload_lab(
                 db,
@@ -2794,6 +2798,7 @@ async def create_lab_document(
                 user_note=form.user_note,
                 category=form.category,
                 request_id=form.request_id,
+                request_ids=form.request_ids,
             )
     except RateLimitExceeded as error:
         raise HTTPException(

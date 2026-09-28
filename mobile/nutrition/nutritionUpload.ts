@@ -43,6 +43,7 @@ export type NutritionLabUploadMetadata = {
   readonly category?: string;
   readonly laboratoryName?: string;
   readonly requestId?: string;
+  readonly requestIds?: readonly string[];
   readonly testDate?: string;
   readonly userNote?: string;
 };
@@ -225,6 +226,9 @@ export function createLabDocumentUploadJob(input: {
   ];
   for (const [name, value] of metadataParts) {
     if (value !== undefined && value.length > 0) parts.push({ name, value });
+  }
+  for (const requestId of metadata.requestIds ?? []) {
+    if (requestId.length > 0) parts.push({ name: "request_ids", value: requestId });
   }
 
   return {

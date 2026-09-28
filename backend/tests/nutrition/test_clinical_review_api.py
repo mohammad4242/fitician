@@ -9,7 +9,7 @@ from app.auth.models import User
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
 from app.notifications.models import NotificationOutboxEvent
-from app.nutrition.enums import NutritionPlanReviewStatus
+from app.nutrition.enums import NutritionLabRequestStatus, NutritionPlanReviewStatus
 from app.nutrition.models import (
     NutritionLabDocument,
     NutritionLabRequest,
@@ -158,6 +158,100 @@ def test_lab_upload_is_private_and_physician_request_has_explicit_state(
     assert requests.status_code == 200
     assert requests.json()[0]["requested_tests"] == ["CBC"]
     assert requests.json()[0]["user_visible_reason"] == "برای بررسی ایمن‌تر برنامه"
+
+
+def test_duplicate_lab_document_can_satisfy_multiple_lab_requests(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db)
+    persisted_plan = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted_plan is not None
+    physician = _login_physician(client, db, "multi-request-lab-physician@example.com")
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={"email": "clinical-member@example.com", "password": "long password"},
+        ).status_code
+        == 200
+    )
+    requests = [
+        NutritionLabRequest(
+            user_id=persisted_plan.user_id,
+            plan_id=persisted_plan.id,
+            physician_user_id=physician.id,
+            status=NutritionLabRequestStatus.REQUESTED,
+            requested_tests=[test_name],
+        )
+        for test_name in ("CBC", "Ferritin", "Vitamin D")
+    ]
+    db.add_all(requests)
+    db.flush()
+    request_ids = [str(item.id) for item in requests]
+    db.commit()
+
+    first_upload = client.post(
+        "/api/v1/nutrition/labs",
+        headers=ORIGIN,
+        files=[
+            ("file", ("blood.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")),
+            ("request_ids", (None, request_ids[0])),
+            ("request_ids", (None, request_ids[1])),
+        ],
+    )
+    reused_upload = client.post(
+        "/api/v1/nutrition/labs",
+        headers=ORIGIN,
+        files=[
+            ("file", ("blood-copy.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")),
+            ("request_ids", (None, request_ids[2])),
+        ],
+    )
+
+    assert first_upload.status_code == 201, first_upload.text
+    assert reused_upload.status_code == 201, reused_upload.text
+    assert reused_upload.json()["id"] == first_upload.json()["id"]
+    assert reused_upload.json()["duplicate"] is True
+    assert set(reused_upload.json()["request_ids"]) == set(request_ids)
+    assert reused_upload.json()["request_id"] == request_ids[0]
+    assert {item.status for item in requests} == {NutritionLabRequestStatus.UPLOADED}
+    listed = client.get("/api/v1/nutrition/labs")
+    assert listed.status_code == 200
+    assert set(listed.json()[0]["request_ids"]) == set(request_ids)
+
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            headers=ORIGIN,
+            json={
+                "email": "multi-request-lab-physician@example.com",
+                "password": "long password",
+            },
+        ).status_code
+        == 200
+    )
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+    assert (
+        client.post(
+            f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+            headers=ORIGIN,
+        ).status_code
+        == 200
+    )
+    reviewed = client.put(
+        f"/api/v1/nutrition/physician/labs/{first_upload.json()['id']}/review",
+        headers=ORIGIN,
+        json={"review_status": "reviewed", "notes": "بررسی شد"},
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    assert {item.status for item in requests} == {NutritionLabRequestStatus.REVIEWED}
 
 
 def test_non_physician_cannot_access_review_queue(client: TestClient, db: Session) -> None:

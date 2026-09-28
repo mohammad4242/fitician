@@ -31,6 +31,7 @@ from app.nutrition.enums import (
 )
 from app.nutrition.models import (
     NutritionLabDocument,
+    NutritionLabDocumentRequest,
     NutritionLabRequest,
     NutritionMedicalCondition,
     NutritionMedicalProfile,
@@ -154,9 +155,31 @@ def lab_response(row: NutritionLabDocument) -> dict[str, object]:
         "reviewed_by_user_id": row.reviewed_by_user_id,
         "review_notes": row.review_notes,
         "request_id": row.request_id,
+        "request_ids": sorted({link.lab_request_id for link in row.request_links}, key=str),
         "uploaded_at": row.uploaded_at,
         "retained_until": row.retained_until,
     }
+
+
+def _link_lab_request(
+    db: Session,
+    document: NutritionLabDocument,
+    request: NutritionLabRequest | None,
+) -> None:
+    if request is None:
+        return
+    link_id = (document.id, request.id)
+    if db.get(NutritionLabDocumentRequest, link_id) is not None:
+        return
+    db.add(
+        NutritionLabDocumentRequest(
+            lab_document_id=document.id,
+            lab_request_id=request.id,
+        )
+    )
+    if document.request_id is None:
+        document.request_id = request.id
+    request.status = NutritionLabRequestStatus.UPLOADED
 
 
 async def upload_lab(
@@ -170,6 +193,7 @@ async def upload_lab(
     user_note: str | None,
     category: str | None,
     request_id: UUID | None,
+    request_ids: list[UUID] | None = None,
 ) -> dict[str, object]:
     content = await file.read(settings.nutrition_lab_max_bytes + 1)
     if len(content) > settings.nutrition_lab_max_bytes:
@@ -178,14 +202,35 @@ async def upload_lab(
         content, file.content_type, settings.nutrition_lab_max_pixels
     )
     digest = hashlib.sha256(normalized).hexdigest()
+    submitted_request_ids = list(
+        dict.fromkeys([*(request_ids or []), *([request_id] if request_id is not None else [])])
+    )
+    requests: list[NutritionLabRequest] = []
+    if submitted_request_ids:
+        requests_by_id = {
+            row.id: row
+            for row in db.scalars(
+                select(NutritionLabRequest)
+                .where(
+                    NutritionLabRequest.id.in_(submitted_request_ids),
+                    NutritionLabRequest.user_id == user_id,
+                )
+                .with_for_update()
+            ).all()
+        }
+        if len(requests_by_id) != len(submitted_request_ids):
+            raise ClinicalError("LAB_REQUEST_NOT_FOUND")
+        requests = [requests_by_id[request_uuid] for request_uuid in submitted_request_ids]
     duplicate = db.scalar(
         select(NutritionLabDocument).where(
             NutritionLabDocument.user_id == user_id,
             NutritionLabDocument.sha256 == digest,
             NutritionLabDocument.purged_at.is_(None),
-        )
+        ).with_for_update()
     )
     if duplicate is not None:
+        for request in requests:
+            _link_lab_request(db, duplicate, request)
         audit_security_event(
             db,
             actor_user_id=user_id,
@@ -197,16 +242,6 @@ async def upload_lab(
         )
         db.commit()
         return {**lab_response(duplicate), "duplicate": True}
-    request = None
-    if request_id:
-        request = db.scalar(
-            select(NutritionLabRequest).where(
-                NutritionLabRequest.id == request_id,
-                NutritionLabRequest.user_id == user_id,
-            )
-        )
-        if request is None:
-            raise ClinicalError("LAB_REQUEST_NOT_FOUND")
     storage = build_private_storage(settings)
     key = _store_private(settings, normalized, extension, content_type)
     row = NutritionLabDocument(
@@ -221,14 +256,15 @@ async def upload_lab(
         user_note=user_note,
         category=category,
         review_status="unreviewed",
-        request_id=request_id,
-        assigned_physician_user_id=request.physician_user_id if request else None,
+        request_id=requests[0].id if requests else None,
+        assigned_physician_user_id=requests[0].physician_user_id if requests else None,
         retained_until=date.today() + timedelta(days=settings.nutrition_lab_retention_days),
     )
     try:
         db.add(row)
-        if request:
-            request.status = NutritionLabRequestStatus.UPLOADED
+        db.flush()
+        for request in requests:
+            _link_lab_request(db, row, request)
         db.flush()
         audit_security_event(
             db,
@@ -380,9 +416,16 @@ def review_lab_document(
     row.reviewed_at = datetime.now(UTC)
     row.reviewed_by_user_id = physician_id
     row.review_notes = notes
-    if row.request_id is not None:
-        request = db.get(NutritionLabRequest, row.request_id)
-        if request is not None and request.physician_user_id == physician_id:
+    requests = db.scalars(
+        select(NutritionLabRequest)
+        .join(
+            NutritionLabDocumentRequest,
+            NutritionLabDocumentRequest.lab_request_id == NutritionLabRequest.id,
+        )
+        .where(NutritionLabDocumentRequest.lab_document_id == row.id)
+    ).all()
+    for request in requests:
+        if request.physician_user_id == physician_id:
             request.status = NutritionLabRequestStatus.REVIEWED
             request.reviewed_at = row.reviewed_at
     audit_security_event(
@@ -406,6 +449,18 @@ def authorize_lab_access(db: Session, actor_id: UUID, document_id: UUID) -> Nutr
     if row.user_id != actor_id:
         authorized = (
             row.assigned_physician_user_id == actor_id
+            or db.scalar(
+                select(NutritionLabRequest.id)
+                .join(
+                    NutritionLabDocumentRequest,
+                    NutritionLabDocumentRequest.lab_request_id == NutritionLabRequest.id,
+                )
+                .where(
+                    NutritionLabDocumentRequest.lab_document_id == row.id,
+                    NutritionLabRequest.physician_user_id == actor_id,
+                )
+            )
+            is not None
             or db.scalar(
                 select(NutritionPlanPhysicianReview)
                 .join(

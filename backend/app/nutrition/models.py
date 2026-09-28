@@ -1718,6 +1718,23 @@ class NutritionMealFeedback(Base):
     )
 
 
+class NutritionLabDocumentRequest(Base):
+    __tablename__ = "nutrition_lab_document_requests"
+    __table_args__ = (Index("ix_nutrition_lab_document_requests_lab_request_id", "lab_request_id"),)
+
+    lab_document_id: Mapped[UUID] = mapped_column(
+        ForeignKey("nutrition_lab_documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    lab_request_id: Mapped[UUID] = mapped_column(
+        ForeignKey("nutrition_lab_requests.id", ondelete="CASCADE"), primary_key=True
+    )
+    linked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    document: Mapped[NutritionLabDocument] = relationship(back_populates="request_links")
+    request: Mapped[NutritionLabRequest] = relationship(back_populates="document_links")
+
+
 class NutritionLabDocument(Base):
     __tablename__ = "nutrition_lab_documents"
     __table_args__ = (
@@ -1755,6 +1772,11 @@ class NutritionLabDocument(Base):
     request_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("nutrition_lab_requests.id", ondelete="SET NULL")
     )
+    request_links: Mapped[list[NutritionLabDocumentRequest]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     assigned_physician_user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )
@@ -1790,6 +1812,11 @@ class NutritionLabRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    document_links: Mapped[list[NutritionLabDocumentRequest]] = relationship(
+        back_populates="request",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 
