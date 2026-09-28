@@ -1815,13 +1815,24 @@ def select_plan_in_bundle(
 def read_latest_plan_bundle(
     db: DatabaseSession, user: CurrentUser
 ) -> WeeklyPlanGenerationResponse | None:
-    return latest_plan_bundle(db, user.id)
+    try:
+        return latest_plan_bundle(db, user.id)
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
+        ) from None
 
 
 @router.get("/plans/latest", response_model=WeeklyPlanResponse)
 def read_latest_plan(db: DatabaseSession, user: CurrentUser) -> WeeklyPlanResponse:
     try:
         return latest_weekly_plan(db, user.id)
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
+        ) from None
     except WeeklyPlanNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

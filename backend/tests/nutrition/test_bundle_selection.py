@@ -466,6 +466,37 @@ def test_get_latest_plan_bundle_endpoint(client: TestClient, db: Session) -> Non
     assert data["ideal_plan"]["plan_role"] == NutritionPlanRole.IDEAL_REFERENCE.value
 
 
+def test_hard_blocked_member_cannot_read_latest_plan_bundle(
+    client: TestClient, db: Session
+) -> None:
+    _user, _bundle, _budget_plan, _ideal_plan = _seed_test_bundle(client, db)
+    origin = {"Origin": "http://localhost:5173"}
+
+    blocked = client.put(
+        "/api/v1/nutrition/safety",
+        headers=origin,
+        json={
+            "conditions": [],
+            "medications": [],
+            "dangerous_food_reaction_history": False,
+            "pregnant": False,
+            "breastfeeding": False,
+            "eating_disorder_diagnosed": False,
+            "eating_disorder_active_symptoms": False,
+            "emergency_or_danger_symptoms": True,
+            "complex_medication_food_interaction": False,
+            "physician_dietary_restrictions": None,
+            "other_relevant_condition": None,
+        },
+    )
+    assert blocked.status_code == 200, blocked.text
+
+    response = client.get("/api/v1/nutrition/plan-bundles/latest", headers=origin)
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
+
+
 def test_select_bundle_plan_by_frontend_payload_format(client: TestClient, db: Session) -> None:
     user, bundle, budget_plan, ideal_plan = _seed_test_bundle(client, db)
     origin = {"Origin": "http://localhost:5173"}

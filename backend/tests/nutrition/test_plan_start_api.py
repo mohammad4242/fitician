@@ -251,6 +251,11 @@ def test_hard_blocked_member_cannot_read_existing_active_plan(
     assert active.status_code == 409
     assert active.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
 
+    latest = client.get("/api/v1/nutrition/plans/latest")
+
+    assert latest.status_code == 409
+    assert latest.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
+
 
 def test_reference_comparison_plan_cannot_start(client: TestClient, db: Session) -> None:
     user, bundle, _, ideal_plan = _seed_test_bundle(client, db)

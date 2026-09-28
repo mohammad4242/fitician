@@ -987,6 +987,74 @@ def test_previous_cycle_history_rebuilds_legacy_coach_plan_metrics(db: Session) 
     assert history.previous_weekly_effective_sets_by_muscle[MuscleGroup.CHEST] == 4.0
 
 
+def test_previous_cycle_history_preserves_persisted_metrics_for_unrepresented_muscles(
+    db: Session,
+) -> None:
+    user = _user_with_profile(db)
+    exercise = _exercise(
+        db,
+        "partial-coach-press",
+        MovementPattern.HORIZONTAL_PUSH,
+        MuscleGroup.CHEST,
+    )
+    plan = _persist_active_plan(db, user)
+    plan.generation_method = "coach_review"
+    plan.aggregate_metrics = {
+        "weekly_direct_sets_by_muscle": {"chest": 9, "triceps": 4},
+        "weekly_effective_sets_by_muscle": {"chest": 9.0, "triceps": 4.0},
+    }
+    plan.profile_snapshot = {"plan_duration_weeks": 4, "training_age_months": 12}
+    day = WorkoutDay(
+        day_number=1,
+        title_en="Day 1",
+        title_fa="روز ۱",
+        estimated_duration_minutes=20,
+    )
+    day.exercises.append(
+        WorkoutPlanExercise(
+            exercise_id=exercise.id,
+            order_index=1,
+            sets=4,
+            reps_min=8,
+            reps_max=12,
+            rest_seconds=90,
+            rir=2,
+            estimated_minutes=5,
+            notes_en=None,
+            notes_fa=None,
+            exercise_snapshot={
+                "primary_muscle": MuscleGroup.CHEST.value,
+                "secondary_muscles": [],
+                "movement_pattern": MovementPattern.HORIZONTAL_PUSH.value,
+                "exercise_type": ExerciseType.COMPOUND.value,
+            },
+        )
+    )
+    plan.days.append(day)
+    db.flush()
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
+    cycle.status = WorkoutCycleStatus.COMPLETED
+    cycle.completed_at = datetime.now(UTC)
+    cycle.completion_feedback = WorkoutCycleFeedback(
+        adherence_percent=80,
+        measurements={},
+    )
+    db.flush()
+
+    history = _service(db)._previous_volume_history(user.id)
+
+    assert history is not None
+    assert history.previous_weekly_direct_sets_by_muscle[MuscleGroup.CHEST] == 4.0
+    assert history.previous_weekly_direct_sets_by_muscle[MuscleGroup.TRICEPS] == 4.0
+    assert history.previous_weekly_effective_sets_by_muscle[MuscleGroup.TRICEPS] == 4.0
+
+
 def test_previous_cycle_volume_history_scales_from_weekly_check_ins(
     db: Session,
 ) -> None:

@@ -63,10 +63,28 @@ def _service(db: Session, provider: _NeverCalledAIProvider) -> WorkoutGeneration
 
 
 def _run_transition(
-    db: Session, key: str
+    db: Session, key: str, *, complete_snapshots: bool = False
 ) -> tuple[WorkoutGenerationService, object, object, object, object, _NeverCalledAIProvider]:
     scenario = next(item for item in longitudinal_scenarios() if item.key == key)
     materialized = materialize_scenario(db, scenario)
+    if complete_snapshots:
+        for cycle in materialized.cycles:
+            for day in cycle.workout_plan.days:
+                for item in day.exercises:
+                    exercise = item.exercise
+                    assert exercise is not None
+                    item.exercise_snapshot = {
+                        "name_en": exercise.name_en,
+                        "primary_muscle": (
+                            exercise.primary_muscle.value if exercise.primary_muscle else None
+                        ),
+                        "secondary_muscles": [
+                            secondary.muscle.value for secondary in exercise.secondary_muscles
+                        ],
+                        "movement_pattern": exercise.movement_pattern.value,
+                        "exercise_type": exercise.exercise_type.value,
+                    }
+        db.flush()
     grant_package(
         db,
         materialized.user.id,
@@ -114,7 +132,7 @@ def _snapshot(plan: WorkoutPlan) -> CycleAdaptationProgramSnapshot:
 
 def test_high_adherence_and_good_recovery_allow_conservative_progression(db: Session) -> None:
     _service, _materialized, state, decision, result, provider = _run_transition(
-        db, "intermediate_hypertrophy"
+        db, "intermediate_hypertrophy", complete_snapshots=True
     )
 
     assert state.adherence.percent == 100

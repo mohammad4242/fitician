@@ -48,14 +48,15 @@ from app.nutrition.enums import (
 from app.nutrition.estimate_service import create_estimate
 from app.nutrition.exceptions import (
     GoalReselectionRequiredDomainError,
-    NutritionProductModeError,
     NutritionPlanStartConflictError,
+    NutritionProductModeError,
     NutritionTargetInfeasibleDomainError,
     PlanSelectionInvalidError,
     StructuredExerciseRequiredError,
     WeeklyPlanBundleNotFoundError,
 )
 from app.nutrition.food_constraints import normalize_food_constraints
+from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.models import (
     NutritionCatalogueFood,
     NutritionCatalogueMeal,
@@ -141,7 +142,6 @@ from app.nutrition.schemas import (
     WeeklyPlanPreparedRecipeSummary,
     WeeklyPlanResponse,
 )
-from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.service import current_safety_decision
 from app.profile.models import UserProfile
 from app.profile.review_summary import ReviewProfileSummary
@@ -1348,6 +1348,7 @@ def _selection_trace(selection: CandidateSelection) -> dict[str, object]:
 
 
 def latest_weekly_plan(db: Session, user_id: UUID) -> WeeklyPlanResponse:
+    _ensure_nutrition_plan_read_allowed(db, user_id)
     latest_bundle = db.scalar(
         select(NutritionPlanBundle)
         .where(NutritionPlanBundle.user_id == user_id)
@@ -1389,6 +1390,15 @@ def _member_local_today(db: Session, user_id: UUID, *, now: datetime | None = No
     )
 
 
+def _ensure_nutrition_plan_read_allowed(db: Session, user_id: UUID) -> None:
+    decision = current_medical_safety_decision(db, user_id)
+    if decision is not None and decision.outcome is SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED:
+        raise NutritionPlanStartConflictError(
+            "NUTRITION_PLAN_SAFETY_BLOCKED",
+            "با توجه به اطلاعات پزشکی فعلی، ادامهٔ این برنامه مجاز نیست.",
+        )
+
+
 def active_weekly_plan(
     db: Session, user_id: UUID, *, now: datetime | None = None
 ) -> WeeklyPlanResponse:
@@ -1397,12 +1407,7 @@ def active_weekly_plan(
     plan = effective_nutrition_plan_for_date(db, user_id, local_date)
     if plan is None:
         raise ActiveWeeklyPlanNotFoundError
-    decision = current_medical_safety_decision(db, user_id)
-    if decision is not None and decision.outcome is SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED:
-        raise NutritionPlanStartConflictError(
-            "NUTRITION_PLAN_SAFETY_BLOCKED",
-            "با توجه به اطلاعات پزشکی فعلی، ادامهٔ این برنامه مجاز نیست.",
-        )
+    _ensure_nutrition_plan_read_allowed(db, user_id)
     return weekly_plan_response(plan, db=db)
 
 
@@ -1610,6 +1615,7 @@ def _finalize_selected_plan(
 
 
 def latest_plan_bundle(db: Session, user_id: UUID) -> WeeklyPlanGenerationResponse | None:
+    _ensure_nutrition_plan_read_allowed(db, user_id)
     bundle = db.scalar(
         select(NutritionPlanBundle)
         .where(NutritionPlanBundle.user_id == user_id)
