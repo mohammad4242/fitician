@@ -12,6 +12,7 @@ from app.workout_cycles.models import WorkoutCycle
 from app.workout_reviews.models import WorkoutPlanReview
 from app.workout_reviews.schemas import WorkoutReviewAthleteSummary
 from app.workouts.models import WorkoutPlan
+from app.workouts.prescription_metrics import metrics_for_reviewed_plan
 from app.workouts.program_engine.adaptation_policy import (
     CycleAdaptationDecision,
     CycleAdaptationProgramSnapshot,
@@ -99,7 +100,7 @@ def _history_from_previous(
 ) -> RecentTrainingHistory:
     if previous is None:
         return RecentTrainingHistory()
-    metrics = previous.aggregate_metrics
+    metrics = metrics_for_reviewed_plan(previous) or previous.aggregate_metrics
     direct = _muscle_metrics(
         metrics.get("weekly_direct_sets_by_muscle") or metrics.get("planned_direct_sets_by_muscle")
     )
@@ -126,11 +127,12 @@ def _plan_snapshot(
     cycle_id: UUID | None,
 ) -> CycleAdaptationProgramSnapshot:
     profile = plan.profile_snapshot
+    metrics = metrics_for_reviewed_plan(plan) or plan.aggregate_metrics
     return CycleAdaptationProgramSnapshot(
         program_id=plan.id,
         cycle_id=cycle_id,
         weekly_effective_sets_by_muscle=_muscle_metrics(
-            plan.aggregate_metrics.get("weekly_effective_sets_by_muscle")
+            metrics.get("weekly_effective_sets_by_muscle")
         ),
         priority_muscles=_muscle_values(profile.get("priority_muscles")),
         training_days=_bounded_int(

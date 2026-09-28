@@ -64,7 +64,7 @@ from app.workouts.ai_coach import AiCoachProgramCandidate
 from app.workouts.ai_coach_provider import AiCoachRecommendation, OpenRouterAiCoachProvider
 from app.workouts.body_analysis_resolver import BodyAnalysisInfluenceResolver
 from app.workouts.enums import WorkoutGenerationStatus, WorkoutPlanStatus
-from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanGeneration
+from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise, WorkoutPlanGeneration
 from app.workouts.program_engine.eligibility import filter_eligible_exercises
 from app.workouts.program_engine.enums import (
     BodyPosition,
@@ -922,6 +922,71 @@ def test_previous_cycle_volume_history_uses_plan_metrics_and_confirmed_adherence
     assert "HISTORY_FROM_COMPLETED_PLAN" in history.previous_volume_reason_codes
 
 
+def test_previous_cycle_history_rebuilds_legacy_coach_plan_metrics(db: Session) -> None:
+    user = _user_with_profile(db)
+    exercise = _exercise(
+        db,
+        "legacy-coach-press",
+        MovementPattern.HORIZONTAL_PUSH,
+        MuscleGroup.CHEST,
+    )
+    plan = _persist_active_plan(db, user)
+    plan.generation_method = "coach_review"
+    plan.aggregate_metrics = {
+        "weekly_direct_sets_by_muscle": {"chest": 9},
+        "weekly_effective_sets_by_muscle": {"chest": 9.0},
+    }
+    plan.profile_snapshot = {"plan_duration_weeks": 4, "training_age_months": 12}
+    day = WorkoutDay(
+        day_number=1,
+        title_en="Day 1",
+        title_fa="روز ۱",
+        estimated_duration_minutes=20,
+    )
+    day.exercises.append(
+        WorkoutPlanExercise(
+            exercise_id=exercise.id,
+            order_index=1,
+            sets=4,
+            reps_min=8,
+            reps_max=12,
+            rest_seconds=90,
+            rir=2,
+            estimated_minutes=5,
+            notes_en=None,
+            notes_fa=None,
+            exercise_snapshot={
+                "primary_muscle": MuscleGroup.CHEST.value,
+                "secondary_muscles": [],
+                "movement_pattern": MovementPattern.HORIZONTAL_PUSH.value,
+                "exercise_type": ExerciseType.COMPOUND.value,
+            },
+        )
+    )
+    plan.days.append(day)
+    db.flush()
+    cycle = start_cycle(
+        db,
+        user_id=user.id,
+        workout_plan_id=plan.id,
+        start_date=date(2026, 9, 12),
+        timezone_name="UTC",
+    )
+    cycle.status = WorkoutCycleStatus.COMPLETED
+    cycle.completed_at = datetime.now(UTC)
+    cycle.completion_feedback = WorkoutCycleFeedback(
+        adherence_percent=80,
+        measurements={},
+    )
+    db.flush()
+
+    history = _service(db)._previous_volume_history(user.id)
+
+    assert history is not None
+    assert history.previous_weekly_direct_sets_by_muscle[MuscleGroup.CHEST] == 4.0
+    assert history.previous_weekly_effective_sets_by_muscle[MuscleGroup.CHEST] == 4.0
+
+
 def test_previous_cycle_volume_history_scales_from_weekly_check_ins(
     db: Session,
 ) -> None:
@@ -1727,10 +1792,15 @@ def test_stale_recovery_leaves_at_most_one_running_generation(db: Session) -> No
     replacement = _service(db)._start_generation(user.id, candidate_count=3)
 
     assert replacement.id != stale.id
-    assert db.query(WorkoutPlanGeneration).filter_by(
-        user_id=user.id,
-        status=WorkoutGenerationStatus.GENERATING,
-    ).count() <= 1
+    assert (
+        db.query(WorkoutPlanGeneration)
+        .filter_by(
+            user_id=user.id,
+            status=WorkoutGenerationStatus.GENERATING,
+        )
+        .count()
+        <= 1
+    )
 
 
 def test_expired_plan_is_replaced_with_structured_difference(db: Session) -> None:

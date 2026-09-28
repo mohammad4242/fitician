@@ -27,6 +27,10 @@ from app.workout_reviews.schemas import WorkoutReviewDraftUpdate
 from app.workout_reviews.validation import ValidatedDraft, WorkoutReviewDraftValidator
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
+from app.workouts.prescription_metrics import (
+    metadata_from_exercise,
+    refreshed_prescription_metrics,
+)
 
 LEASE_DURATION = timedelta(minutes=30)
 
@@ -188,9 +192,7 @@ class WorkoutReviewService:
                 raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_PROPOSAL_NOT_FOUND)
             return review.approved_plan
         if review.status is not WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE:
-            raise ReviewConflict(
-                WorkoutReviewErrorCode.REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE
-            )
+            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE)
         if expected_revision is not None:
             self._require_revision(review, expected_revision)
         proposal = review.proposed_plan
@@ -248,9 +250,7 @@ class WorkoutReviewService:
         review = self._required_review(review_id)
         self._require_member(review, member_id)
         if review.status is not WorkoutReviewStatus.AWAITING_MEMBER_ACCEPTANCE:
-            raise ReviewConflict(
-                WorkoutReviewErrorCode.REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE
-            )
+            raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_AWAITING_MEMBER_ACCEPTANCE)
         if expected_revision is not None:
             self._require_revision(review, expected_revision)
         normalized_explanation = explanation.strip()
@@ -501,7 +501,7 @@ class WorkoutReviewService:
             exercise_catalog_snapshot=deepcopy(source.exercise_catalog_snapshot),
             assumptions=deepcopy(source.assumptions),
             warnings=deepcopy(source.warnings),
-            validation_report=deepcopy(source.validation_report),
+            validation_report={},
             aggregate_metrics=deepcopy(source.aggregate_metrics),
             decision_trace=deepcopy(source.decision_trace),
             body_analysis_provenance=deepcopy(source.body_analysis_provenance),
@@ -581,9 +581,7 @@ class WorkoutReviewService:
                             []
                             if changed_exercise
                             else deepcopy(
-                                metadata_item.substitution_exercise_ids
-                                if metadata_item
-                                else []
+                                metadata_item.substitution_exercise_ids if metadata_item else []
                             )
                         ),
                         warmup_sets=metadata_item.warmup_sets if metadata_item else 0,
@@ -594,4 +592,39 @@ class WorkoutReviewService:
                     )
                 )
             plan.days.append(day)
+        current_metrics = refreshed_prescription_metrics(
+            plan.days,
+            {
+                exercise_id: metadata_from_exercise(exercise)
+                for exercise_id, exercise in validated.exercises.items()
+            },
+            source.aggregate_metrics,
+            training_age_months=_training_age_months(source.profile_snapshot),
+        )
+        plan.aggregate_metrics = {**plan.aggregate_metrics, **current_metrics}
+        source_validation_status = source.validation_report.get("status")
+        plan.validation_report = {
+            "status": "VALID",
+            "validation_scope": "coach_review_draft",
+            "source_generation_status": source_validation_status,
+            "source_generation_warnings": deepcopy(source.validation_report.get("warnings", [])),
+            "errors": [],
+            "warnings": [],
+            "assumptions": deepcopy(source.assumptions),
+            "metrics": deepcopy(current_metrics),
+            "decision_trace": [
+                {
+                    "stage": "coach_review_draft",
+                    "status": "passed",
+                    "metrics": {"validator": "WorkoutPlanValidator"},
+                }
+            ],
+        }
         return plan
+
+
+def _training_age_months(profile_snapshot: dict[str, object]) -> int:
+    value = profile_snapshot.get("training_age_months")
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return 0

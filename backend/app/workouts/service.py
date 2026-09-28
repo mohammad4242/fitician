@@ -84,6 +84,7 @@ from app.workouts.candidate_selector import (
 )
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise, WorkoutPlanGeneration
+from app.workouts.prescription_metrics import metrics_for_reviewed_plan
 from app.workouts.program_engine.body_analysis import applicable_body_analysis_influence
 from app.workouts.program_engine.engine import generate_program
 from app.workouts.program_engine.enums import (
@@ -678,7 +679,9 @@ class WorkoutGenerationService:
         if adherence is None or adherence <= 0:
             return None
 
-        metrics = cycle.workout_plan.aggregate_metrics
+        metrics = metrics_for_reviewed_plan(cycle.workout_plan)
+        if metrics is None:
+            metrics = cycle.workout_plan.aggregate_metrics
         direct = self._volume_metrics(
             metrics.get("weekly_direct_sets_by_muscle")
             or metrics.get("planned_direct_sets_by_muscle")
@@ -1139,9 +1142,7 @@ class WorkoutGenerationService:
                 created_at = existing.created_at
                 if created_at.tzinfo is None:
                     created_at = created_at.replace(tzinfo=UTC)
-                if now - created_at <= timedelta(
-                    seconds=self._settings.stale_generation_seconds
-                ):
+                if now - created_at <= timedelta(seconds=self._settings.stale_generation_seconds):
                     self._db.rollback()
                     raise GenerationInProgressError
                 fail_generation(

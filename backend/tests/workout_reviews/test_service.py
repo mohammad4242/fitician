@@ -33,7 +33,12 @@ from app.exercises.enums import (
     MuscleFocus,
     MuscleGroup,
 )
-from app.exercises.models import Exercise, ExerciseCautionTagItem, ExerciseEquipment
+from app.exercises.models import (
+    Exercise,
+    ExerciseCautionTagItem,
+    ExerciseEquipment,
+    ExerciseSecondaryMuscle,
+)
 from app.notifications.models import NotificationOutboxEvent
 from app.profile.enums import (
     ExperienceLevel,
@@ -108,7 +113,7 @@ def _candidate_snapshot(exercise: Exercise) -> dict[str, object]:
     return {
         "id": str(exercise.id),
         "primary_muscle": exercise.primary_muscle.value if exercise.primary_muscle else None,
-        "secondary_muscles": [],
+        "secondary_muscles": [item.muscle.value for item in exercise.secondary_muscles],
         "movement_pattern": exercise.movement_pattern.value,
         "exercise_type": exercise.exercise_type.value,
         "equipment": [],
@@ -585,7 +590,30 @@ def test_approval_creates_new_active_version_and_preserves_source(db: Session) -
     coach = _user(db, "approval-coach")
     original_exercise = _exercise(db, "original")
     replacement = _exercise(db, "replacement")
+    replacement.secondary_muscles.append(ExerciseSecondaryMuscle(muscle=MuscleGroup.SHOULDERS))
     source = _active_plan(db, user=member, exercises=[original_exercise, replacement])
+    source.aggregate_metrics = {
+        "weekly_direct_sets_by_muscle": {"chest": 3},
+        "weekly_fractional_sets_by_muscle": {"chest": 0},
+        "weekly_effective_sets_by_muscle": {"chest": 3},
+        "volume_ranges_by_muscle": {
+            "chest": {
+                "preferred_weekly_target": 3,
+                "acceptable_minimum": 2,
+                "acceptable_maximum": 4,
+                "actual_direct_volume": 3,
+                "actual_effective_volume": 3,
+                "actual_constraint_volume": 3,
+                "status": "exact_target",
+                "constraint_reason_codes": [],
+            }
+        },
+    }
+    source.validation_report = {
+        "status": "VALID",
+        "metrics": {"weekly_direct_sets_by_muscle": {"chest": 3}},
+    }
+    db.flush()
     review = ensure_pending_review(db, source)
     service = WorkoutReviewService(db, clock=Clock())
     service.claim(review.id, coach.id)
@@ -635,6 +663,19 @@ def test_approval_creates_new_active_version_and_preserves_source(db: Session) -
     assert approved.days[0].exercises[0].rest_seconds == 120
     assert approved.days[0].exercises[0].notes_en == "Coach-adjusted note"
     assert approved.days[0].exercises[0].notes_fa == "یادداشت مربی"
+    assert approved.aggregate_metrics["weekly_direct_sets_by_muscle"]["chest"] == 4
+    assert approved.aggregate_metrics["weekly_effective_sets_by_muscle"]["chest"] == 4
+    assert approved.aggregate_metrics["weekly_fractional_sets_by_muscle"]["shoulders"] == 2
+    assert (
+        approved.aggregate_metrics["volume_ranges_by_muscle"]["chest"]["actual_direct_volume"] == 4
+    )
+    assert approved.aggregate_metrics["volume_ranges_by_muscle"]["chest"]["status"] == (
+        "within_flexible_range"
+    )
+    assert source.aggregate_metrics["weekly_direct_sets_by_muscle"]["chest"] == 3
+    assert approved.validation_report["metrics"]["weekly_direct_sets_by_muscle"]["chest"] == 4
+    assert approved.validation_report["validation_scope"] == "coach_review_draft"
+    assert source.validation_report["metrics"]["weekly_direct_sets_by_muscle"]["chest"] == 3
     assert review.approved_plan_id == approved.id
     assert review.status is WorkoutReviewStatus.APPROVED
     assert review.claimed_by_user_id == coach.id
