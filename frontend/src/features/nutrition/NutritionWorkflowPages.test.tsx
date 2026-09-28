@@ -519,6 +519,64 @@ it("presents physician lab request failures through the shared resolver", async 
   expect(alert).not.toHaveTextContent("private workflow detail");
 });
 
+it("refreshes the physician case and queue after reviewing a lab", async () => {
+  const user = userEvent.setup();
+  const review: api.PhysicianReviewQueueItem = {
+    review_id: "review-1",
+    plan_id: "plan-1",
+    user_id: "user-1",
+    member_display_name: "Member One",
+    status: "pending",
+    priority: 1,
+    physician_user_id: "physician-1",
+    requested_at: today,
+    target_review_by: null,
+    reviewed_at: null,
+    overdue: false,
+  };
+  const lab = {
+    id: "lab-1",
+    original_filename: "cbc.pdf",
+    content_type: "application/pdf",
+    byte_size: 10,
+    test_date: today,
+    laboratory_name: "Lab",
+    user_note: null,
+    category: "CBC",
+    review_status: "uploaded",
+    review_notes: null,
+    request_id: null,
+    request_ids: [],
+    uploaded_at: `${today}T12:00:00Z`,
+  } satisfies api.LabDocument;
+  const reviewedLab = { ...lab, review_status: "reviewed" } satisfies api.LabDocument;
+  const updatedPlan = { ...physicianPlan, physician_review_status: "in_review", lifecycle_status: "physician_review_in_progress" } as WeeklyPlan;
+  let queueReads = 0;
+  vi.mocked(api.listPhysicianReviews).mockImplementation(async () => {
+    queueReads += 1;
+    return [{ ...review, status: queueReads >= 5 ? "in_review" : "pending" }];
+  });
+  vi.mocked(api.claimPhysicianReview).mockResolvedValue({});
+  vi.mocked(api.getPhysicianPlan)
+    .mockResolvedValueOnce({ ...physicianPlan, physician_review_status: "awaiting_lab_information" } as WeeklyPlan)
+    .mockResolvedValueOnce(updatedPlan);
+  vi.mocked(api.listPhysicianLabs).mockResolvedValueOnce([lab]).mockResolvedValueOnce([reviewedLab]);
+  vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
+  vi.mocked(api.reviewPhysicianLab).mockResolvedValue(reviewedLab);
+  render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
+
+  await user.click(await screen.findByRole("tab", { name: /^Review queue/ }));
+  await user.click(await screen.findByRole("button", { name: "Claim and view revision" }));
+  await user.click(screen.getByRole("tab", { name: "Laboratory review" }));
+  await user.click(await screen.findByRole("button", { name: "Mark reviewed" }));
+
+  await waitFor(() => expect(api.reviewPhysicianLab).toHaveBeenCalledWith("lab-1", "reviewed", null));
+  await waitFor(() => expect(api.getPhysicianPlan).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(api.listPhysicianLabs).toHaveBeenCalledTimes(2));
+  expect(within(screen.getByTestId("physician-review-case-header")).getByText("In review")).toBeInTheDocument();
+  expect(screen.getByText("Reviewed")).toBeInTheDocument();
+});
+
 it("opens the physician workbench dashboard with aggregate queue counts and overdue attention", async () => {
   const pending: api.PhysicianReviewQueueItem[] = [
     { review_id: "pending-old", plan_id: "pending-old-plan", user_id: "pending-old-user", member_display_name: "Old Patient", status: "pending", priority: 1, physician_user_id: null, requested_at: new Date(Date.now() - 3 * 86400000).toISOString(), target_review_by: new Date(Date.now() - 86400000).toISOString(), reviewed_at: null, overdue: true },

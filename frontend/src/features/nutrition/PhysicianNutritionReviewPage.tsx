@@ -80,7 +80,7 @@ export function PhysicianNutritionReviewPage() {
     }
   }, []);
 
-  const loadAllQueues = useCallback(async () => {
+  const loadAllQueues = useCallback(async (): Promise<Record<QueueView, Review[]>> => {
     const results = await Promise.all(queueViews.map(async (view) => {
       try {
         return { items: await api.listPhysicianReviews(view), view } as const;
@@ -102,6 +102,7 @@ export function PhysicianNutritionReviewPage() {
     setQueueErrors(nextErrors);
     setApiError(firstError ?? null);
     setLoadingQueues({ pending: false, claimed: false, approved: false });
+    return nextQueues;
   }, []);
 
   useEffect(() => {
@@ -266,10 +267,34 @@ export function PhysicianNutritionReviewPage() {
     ).catch((cause) => setApiError(cause));
   }
 
-  function reviewLab(documentId: string, status: LabReviewStatus) {
-    void api.reviewPhysicianLab(documentId, status, notes || null)
-      .then((updated) => setLabs((items) => items.map((item) => item.id === updated.id ? updated : item)))
-      .catch((cause) => setApiError(cause));
+  async function reviewLab(documentId: string, status: LabReviewStatus) {
+    if (!selectedPlan) return;
+    setBusy(true);
+    setApiError(null);
+    try {
+      await api.reviewPhysicianLab(documentId, status, notes || null);
+      const [nextPlan, nextLabs, nextQueues] = await Promise.all([
+        api.getPhysicianPlan(selectedPlan.id),
+        api.listPhysicianLabs(selectedPlan.id),
+        loadAllQueues(),
+      ]);
+      setSelectedPlan(nextPlan);
+      setLabs(nextLabs);
+      const nextReview = queueViews
+        .flatMap((view) => nextQueues[view])
+        .find((item) => item.review_id === selectedReview?.review_id);
+      if (nextReview) {
+        setSelectedReview(nextReview);
+      } else {
+        setSelectedReview((current) => current
+          ? { ...current, status: nextPlan.physician_review_status ?? current.status }
+          : current);
+      }
+    } catch (cause) {
+      setApiError(cause);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const counts = {
