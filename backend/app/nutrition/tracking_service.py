@@ -321,6 +321,10 @@ def edit_entry(
         NutritionConsumptionSource.PLANNED_ADJUSTED,
     }:
         raise TrackingError("USE_PLANNED_MEAL_ADJUSTMENT")
+    is_photo_estimate = entry.source in {
+        NutritionConsumptionSource.PHOTO_ESTIMATED_CONFIRMED,
+        NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED,
+    }
     if entry.food_id is not None:
         if grams is None:
             if "grams" in fields:
@@ -339,6 +343,25 @@ def edit_entry(
                 row.nutrient_code: str(row.value_per_100g * factor) for row in food.compositions
             }
             entry.warning_codes = actual_intake_warnings(db, user_id, food)
+            if is_photo_estimate:
+                entry.source = NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED
+    elif is_photo_estimate:
+        if grams is None:
+            if "grams" in fields:
+                raise TrackingError("ENTRY_GRAMS_REQUIRED")
+        else:
+            old_grams = entry.quantity_grams
+            if old_grams is None or old_grams <= 0:
+                raise TrackingError("ENTRY_GRAMS_REQUIRED")
+            ratio = grams / old_grams
+            nutrients = dict(entry.nutrients)
+            for key in ("energy_kcal", "protein_g", "carbohydrate_g", "total_fat_g"):
+                value = nutrients.get(key)
+                if value is not None:
+                    nutrients[key] = str(round(Decimal(str(value)) * ratio, 2))
+            entry.quantity_grams = grams
+            entry.nutrients = nutrients
+            entry.source = NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED
     elif entry.source is NutritionConsumptionSource.QUICK_APPROXIMATION:
         if display_name is not None:
             entry.display_name = display_name

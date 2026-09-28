@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.nutrition.enums import (
+    EstimateConfidence,
     MealSlotRole,
     NutritionConsumptionSource,
     NutritionPlanLifecycleStatus,
@@ -292,6 +294,53 @@ def test_member_can_edit_own_catalogue_entry_and_read_recent_foods(
     assert recent.status_code == 200
     assert recent.json()[0]["food_id"] == str(food.id)
     assert recent.json()[0]["last_quantity_grams"] == 200
+
+
+def test_member_edit_scales_confirmed_photo_estimate_without_catalogue_food(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan_json, _food = _setup(client, db)
+    plan = db.get(NutritionWeeklyPlan, plan_json["id"])
+    assert plan is not None
+    entry = NutritionConsumptionEntry(
+        user_id=plan.user_id,
+        entry_date=date.today(),
+        display_name="غذای ثبت‌شده از عکس",
+        quantity_grams=Decimal("80"),
+        source=NutritionConsumptionSource.PHOTO_ESTIMATED_CONFIRMED,
+        confidence=EstimateConfidence.MEDIUM,
+        user_confirmed=True,
+        nutrients={
+            "energy_kcal": "160",
+            "protein_g": "12",
+            "carbohydrate_g": "20",
+            "total_fat_g": "4",
+        },
+        warning_codes=["PHOTO_ESTIMATE_APPROXIMATE"],
+    )
+    db.add(entry)
+    db.commit()
+
+    edited = client.put(
+        f"/api/v1/nutrition/tracking/entries/{entry.id}",
+        headers=ORIGIN,
+        json={"grams": 120},
+    )
+    summary = client.get(f"/api/v1/nutrition/tracking/days/{date.today().isoformat()}")
+
+    assert edited.status_code == 200, edited.text
+    assert edited.json()["quantity_grams"] == 120
+    assert edited.json()["source"] == NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED.value
+    assert edited.json()["nutrients"] == {
+        "energy_kcal": 240,
+        "protein_g": 18,
+        "carbohydrate_g": 30,
+        "total_fat_g": 6,
+    }
+    assert edited.json()["warning_codes"] == ["PHOTO_ESTIMATE_APPROXIMATE"]
+    assert summary.status_code == 200
+    assert summary.json()["actual_totals"]["energy_kcal"] == 240
 
 
 def test_member_can_adjust_and_skip_planned_meal_on_active_revision(
