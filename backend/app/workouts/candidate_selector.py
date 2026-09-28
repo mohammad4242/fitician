@@ -25,6 +25,7 @@ from app.workouts.program_engine.equipment import (
     effective_required_equipment,
     resolve_available_equipment,
 )
+from app.workouts.program_engine.safety import effective_caution_tags
 from app.workouts.schemas import CandidateSet, WorkoutExerciseCandidate, WorkoutGenerationProfile
 from app.workouts.signature import hash_candidate_set
 
@@ -97,7 +98,7 @@ def exercise_is_eligible_for_profile(
     ):
         return False
     return WorkoutCandidateSelector._is_eligible(
-        exercise,
+        WorkoutCandidateSelector._to_candidate(exercise),
         available_equipment=WorkoutCandidateSelector._available_equipment(profile),
         allowed_difficulties=_ALLOWED_DIFFICULTIES[profile.experience_level],
         excluded_tags=caution_tags_for_training_cautions(profile.training_cautions),
@@ -169,16 +170,14 @@ class WorkoutCandidateSelector:
 
     @staticmethod
     def _is_eligible(
-        exercise: Exercise,
+        exercise: WorkoutExerciseCandidate,
         *,
         available_equipment: frozenset[Equipment],
         allowed_difficulties: frozenset[Difficulty],
         excluded_tags: frozenset[ExerciseCautionTag],
     ) -> bool:
-        required_equipment = effective_required_equipment(
-            (item.equipment for item in exercise.equipment_items), exercise.movement_pattern
-        )
-        caution_tags = {item.caution_tag for item in exercise.caution_tag_items}
+        required_equipment = frozenset(exercise.equipment)
+        caution_tags = effective_caution_tags(exercise)
         return (
             bool(required_equipment)
             and required_equipment.issubset(available_equipment)

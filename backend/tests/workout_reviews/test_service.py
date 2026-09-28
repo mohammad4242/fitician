@@ -585,6 +585,34 @@ def test_coach_cannot_add_exercise_ineligible_for_current_member(
     assert error.value.problems[0]["code"] == WorkoutReviewErrorCode.EXERCISE_NOT_ALLOWED.value
 
 
+def test_coach_cannot_add_bodyweight_push_for_wrist_caution_without_explicit_tag(
+    db: Session,
+) -> None:
+    member = _user(db, "inferred-wrist-member")
+    coach = _user(db, "inferred-wrist-coach")
+    original = _exercise(db, "inferred-wrist-original")
+    replacement = _exercise(db, "inferred-wrist-push")
+    replacement.movement_pattern = MovementPattern.HORIZONTAL_PUSH
+    replacement.equipment_items = [ExerciseEquipment(equipment=Equipment.BODYWEIGHT)]
+    review = ensure_pending_review(
+        db,
+        _active_plan(db, user=member, exercises=[original, replacement]),
+    )
+    profile = db.get(UserProfile, member.id)
+    assert profile is not None
+    profile.training_caution_items.append(
+        UserProfileTrainingCaution(caution=TrainingCaution.WRIST)
+    )
+    db.flush()
+    service = WorkoutReviewService(db, clock=Clock())
+    service.claim(review.id, coach.id)
+
+    with pytest.raises(DraftValidationError) as error:
+        service.save_draft(review.id, coach.id, _draft(review, exercise_id=str(replacement.id)))
+
+    assert error.value.problems[0]["code"] == WorkoutReviewErrorCode.EXERCISE_NOT_ALLOWED.value
+
+
 def test_approval_creates_new_active_version_and_preserves_source(db: Session) -> None:
     member = _user(db, "approval-member")
     coach = _user(db, "approval-coach")

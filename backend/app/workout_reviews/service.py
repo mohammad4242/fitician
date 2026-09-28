@@ -24,7 +24,11 @@ from app.workout_reviews.repository import (
     supersede_open_review,
 )
 from app.workout_reviews.schemas import WorkoutReviewDraftUpdate
-from app.workout_reviews.validation import ValidatedDraft, WorkoutReviewDraftValidator
+from app.workout_reviews.validation import (
+    DraftValidationError,
+    ValidatedDraft,
+    WorkoutReviewDraftValidator,
+)
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
 from app.workouts.prescription_metrics import (
@@ -203,6 +207,13 @@ class WorkoutReviewService:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_PROPOSAL_NOT_FOUND)
         active = get_active_plan_for_update(self._db, review.user_id)
         self._require_current_source(review, active)
+        try:
+            self._validator.validate(
+                review.source_plan,
+                self._stored_payload(review, review.draft_revision),
+            )
+        except DraftValidationError as error:
+            raise ReviewConflict(WorkoutReviewErrorCode.INVALID_DRAFT) from error
         now = self._clock()
         if active is not None and active.id != review.source_plan_id:
             active.status = WorkoutPlanStatus.SUPERSEDED

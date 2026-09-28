@@ -13,15 +13,23 @@ from app.exercises.enums import (
     BodyRegion,
     Difficulty,
     Equipment,
+    ExerciseCautionTag,
     ExerciseType,
     MediaType,
     MovementPattern,
     MuscleFocus,
     MuscleGroup,
 )
-from app.exercises.models import Exercise, ExerciseEquipment
-from app.profile.enums import ExperienceLevel, FitnessGoal, ProductMode, Sex, TrainingLocation
-from app.profile.models import BodyMeasurement, UserProfile
+from app.exercises.models import Exercise, ExerciseCautionTagItem, ExerciseEquipment
+from app.profile.enums import (
+    ExperienceLevel,
+    FitnessGoal,
+    ProductMode,
+    Sex,
+    TrainingCaution,
+    TrainingLocation,
+)
+from app.profile.models import BodyMeasurement, UserProfile, UserProfileTrainingCaution
 from app.workout_reviews.enums import WorkoutReviewErrorCode, WorkoutReviewStatus
 from app.workout_reviews.models import WorkoutPlanReview
 from app.workout_reviews.repository import ensure_pending_review
@@ -283,6 +291,33 @@ def test_member_acceptance_activates_proposal_atomically_and_is_idempotent(db: S
             WorkoutPlan.status == WorkoutPlanStatus.ACTIVE,
         )
     ).id == approved.id
+
+
+def test_member_acceptance_revalidates_current_exercise_eligibility(db: Session) -> None:
+    member = _user(db, "eligibility-change-member")
+    coach = _user(db, "eligibility-change-coach")
+    original = _exercise(db, "eligibility-original")
+    replacement = _exercise(db, "eligibility-replacement")
+    replacement.caution_tag_items.append(
+        ExerciseCautionTagItem(caution_tag=ExerciseCautionTag.WRIST_LOADING)
+    )
+    source = _plan(db, member, [original, replacement])
+    review = ensure_pending_review(db, source)
+    service = WorkoutReviewService(db)
+    claimed = service.claim(review.id, coach.id)
+    saved = service.save_draft(review.id, coach.id, _draft_with_structure(claimed, replacement))
+    service.submit_for_member(review.id, coach.id, expected_revision=saved.draft_revision)
+
+    db.add(UserProfileTrainingCaution(user_id=member.id, caution=TrainingCaution.WRIST))
+    db.commit()
+
+    with pytest.raises(ReviewConflict) as error:
+        service.accept_by_member(review.id, member.id)
+
+    assert error.value.code is WorkoutReviewErrorCode.INVALID_DRAFT
+    assert source.status is WorkoutPlanStatus.ACTIVE
+    assert review.proposed_plan is not None
+    assert review.proposed_plan.status is WorkoutPlanStatus.PENDING_REVIEW
 
 
 def test_member_cannot_accept_another_members_review(db: Session) -> None:
