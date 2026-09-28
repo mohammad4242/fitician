@@ -25,14 +25,26 @@ from app.auth.models import User
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
+    Equipment,
+    ExerciseCautionTag,
     ExerciseType,
     MediaType,
     MovementPattern,
     MuscleFocus,
     MuscleGroup,
 )
-from app.exercises.models import Exercise
+from app.exercises.models import Exercise, ExerciseCautionTagItem, ExerciseEquipment
 from app.notifications.models import NotificationOutboxEvent
+from app.profile.enums import (
+    ExperienceLevel,
+    FitnessGoal,
+    HomeTrainingSetup,
+    ProductMode,
+    Sex,
+    TrainingCaution,
+    TrainingLocation,
+)
+from app.profile.models import BodyMeasurement, UserProfile, UserProfileTrainingCaution
 from app.workout_cycles.enums import WorkoutExerciseReplacementReason
 from app.workout_cycles.models import WorkoutCycle
 from app.workout_reviews.diff import build_coach_diff
@@ -85,6 +97,7 @@ def _exercise(db: Session, slug: str, *, programmable: bool = True) -> Exercise:
         is_active=True,
         is_programmable=programmable,
         needs_review=False,
+        equipment_items=[ExerciseEquipment(equipment=Equipment.BODYWEIGHT)],
     )
     db.add(exercise)
     db.flush()
@@ -112,6 +125,28 @@ def _active_plan(
     exercises: list[Exercise],
     status: WorkoutPlanStatus = WorkoutPlanStatus.ACTIVE,
 ) -> WorkoutPlan:
+    if db.get(UserProfile, user.id) is None:
+        db.add(
+            UserProfile(
+                user_id=user.id,
+                product_mode=ProductMode.TRAINING,
+                display_name="Review member",
+                birth_date=datetime(1990, 1, 1, tzinfo=UTC).date(),
+                sex=Sex.MALE,
+                height_cm=175,
+                fitness_goal=FitnessGoal.BUILD_MUSCLE,
+                experience_level=ExperienceLevel.ADVANCED,
+                training_age_months=12,
+                training_days_per_week=3,
+                training_location=TrainingLocation.GYM,
+                home_training_setup=None,
+                available_equipment=None,
+                session_duration_minutes=45,
+                plan_duration_weeks=4,
+            )
+        )
+        db.add(BodyMeasurement(user_id=user.id, weight_kg=75))
+        db.flush()
     plan = WorkoutPlan(
         user_id=user.id,
         status=status,
@@ -501,6 +536,46 @@ def test_save_rejects_exercise_outside_source_snapshot(db: Session) -> None:
 
     with pytest.raises(DraftValidationError) as error:
         service.save_draft(review.id, coach.id, _draft(review, exercise_id=str(outside.id)))
+
+    assert error.value.problems[0]["code"] == WorkoutReviewErrorCode.EXERCISE_NOT_ALLOWED.value
+
+
+@pytest.mark.parametrize("ineligibility", ["equipment", "difficulty", "caution"])
+def test_coach_cannot_add_exercise_ineligible_for_current_member(
+    db: Session,
+    ineligibility: str,
+) -> None:
+    member = _user(db, f"ineligible-member-{ineligibility}")
+    coach = _user(db, f"ineligible-coach-{ineligibility}")
+    original = _exercise(db, "eligible-original")
+    replacement = _exercise(db, f"ineligible-{ineligibility}")
+    review = ensure_pending_review(
+        db,
+        _active_plan(db, user=member, exercises=[original, replacement]),
+    )
+    profile = db.get(UserProfile, member.id)
+    assert profile is not None
+    if ineligibility == "equipment":
+        profile.training_location = TrainingLocation.HOME
+        profile.home_training_setup = HomeTrainingSetup.BODYWEIGHT_ONLY
+        profile.available_equipment = [Equipment.BODYWEIGHT.value, Equipment.PULL_UP_BAR.value]
+        replacement.equipment_items = [ExerciseEquipment(equipment=Equipment.BARBELL)]
+    elif ineligibility == "difficulty":
+        profile.experience_level = ExperienceLevel.BEGINNER
+        replacement.difficulty = Difficulty.ADVANCED
+    else:
+        replacement.caution_tag_items = [
+            ExerciseCautionTagItem(caution_tag=ExerciseCautionTag.DEEP_KNEE_FLEXION)
+        ]
+        profile.training_caution_items.append(
+            UserProfileTrainingCaution(caution=TrainingCaution.KNEE)
+        )
+    db.flush()
+    service = WorkoutReviewService(db, clock=Clock())
+    service.claim(review.id, coach.id)
+
+    with pytest.raises(DraftValidationError) as error:
+        service.save_draft(review.id, coach.id, _draft(review, exercise_id=str(replacement.id)))
 
     assert error.value.problems[0]["code"] == WorkoutReviewErrorCode.EXERCISE_NOT_ALLOWED.value
 

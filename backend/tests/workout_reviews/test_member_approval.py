@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -11,13 +12,16 @@ from app.auth.models import User
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
+    Equipment,
     ExerciseType,
     MediaType,
     MovementPattern,
     MuscleFocus,
     MuscleGroup,
 )
-from app.exercises.models import Exercise
+from app.exercises.models import Exercise, ExerciseEquipment
+from app.profile.enums import ExperienceLevel, FitnessGoal, ProductMode, Sex, TrainingLocation
+from app.profile.models import BodyMeasurement, UserProfile
 from app.workout_reviews.enums import WorkoutReviewErrorCode, WorkoutReviewStatus
 from app.workout_reviews.models import WorkoutPlanReview
 from app.workout_reviews.repository import ensure_pending_review
@@ -54,6 +58,7 @@ def _exercise(db: Session, slug: str) -> Exercise:
         is_active=True,
         is_programmable=True,
         needs_review=False,
+        equipment_items=[ExerciseEquipment(equipment=Equipment.BODYWEIGHT)],
     )
     db.add(exercise)
     db.flush()
@@ -75,6 +80,25 @@ def _snapshot(exercise: Exercise) -> dict[str, object]:
 
 
 def _plan(db: Session, member: User, exercises: list[Exercise]) -> WorkoutPlan:
+    if db.get(UserProfile, member.id) is None:
+        db.add(
+            UserProfile(
+                user_id=member.id,
+                product_mode=ProductMode.TRAINING,
+                display_name="Review member",
+                birth_date=date(1990, 1, 1),
+                sex=Sex.MALE,
+                height_cm=175,
+                fitness_goal=FitnessGoal.BUILD_MUSCLE,
+                experience_level=ExperienceLevel.BEGINNER,
+                training_age_months=12,
+                training_days_per_week=3,
+                training_location=TrainingLocation.GYM,
+                session_duration_minutes=45,
+                plan_duration_weeks=4,
+            )
+        )
+        db.add(BodyMeasurement(user_id=member.id, weight_kg=75))
     plan = WorkoutPlan(
         user_id=member.id,
         status=WorkoutPlanStatus.ACTIVE,

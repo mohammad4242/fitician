@@ -12,13 +12,16 @@ from app.body_analysis.models import UserSpecialistRole
 from app.exercises.enums import (
     BodyRegion,
     Difficulty,
+    Equipment,
     ExerciseType,
     MediaType,
     MovementPattern,
     MuscleFocus,
     MuscleGroup,
 )
-from app.exercises.models import Exercise
+from app.exercises.models import Exercise, ExerciseEquipment
+from app.profile.enums import ExperienceLevel, FitnessGoal, ProductMode, Sex, TrainingLocation
+from app.profile.models import BodyMeasurement, UserProfile
 from app.workout_reviews.repository import ensure_pending_review
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
@@ -56,6 +59,26 @@ def _switch_user(client: TestClient, email: str) -> UUID:
 
 
 def _plan(db: Session, user_id: UUID, *, generation_method: str = "ai") -> WorkoutPlan:
+    if db.get(UserProfile, user_id) is None:
+        db.add(
+            UserProfile(
+                user_id=user_id,
+                product_mode=ProductMode.TRAINING,
+                display_name="Review member",
+                birth_date=datetime(1990, 1, 1, tzinfo=UTC).date(),
+                sex=Sex.MALE,
+                height_cm=175,
+                fitness_goal=FitnessGoal.BUILD_MUSCLE,
+                experience_level=ExperienceLevel.BEGINNER,
+                training_age_months=12,
+                training_days_per_week=3,
+                training_location=TrainingLocation.GYM,
+                home_training_setup=None,
+                session_duration_minutes=45,
+                plan_duration_weeks=4,
+            )
+        )
+        db.add(BodyMeasurement(user_id=user_id, weight_kg=76))
     exercise = Exercise(
         slug=f"coach-api-{uuid4().hex}",
         name_en="Chest Press",
@@ -74,6 +97,7 @@ def _plan(db: Session, user_id: UUID, *, generation_method: str = "ai") -> Worko
         media_type=MediaType.PLACEHOLDER,
         is_active=True,
         is_programmable=True,
+        equipment_items=[ExerciseEquipment(equipment=Equipment.BODYWEIGHT)],
     )
     db.add(exercise)
     db.flush()
@@ -469,7 +493,7 @@ def test_coach_review_detail_includes_safe_athlete_summary(
     assert summary["athlete_state"]["adherence"]["percent"] is None
     assert summary["athlete_state"]["recovery_trend"]["summary"] == "unknown"
     assert summary["athlete_state"]["difficulty_trend"]["summary"] == "unknown"
-    assert summary["athlete_state"]["provenance"]["profile_user_id"] is None
+    assert summary["athlete_state"]["provenance"]["profile_user_id"] == str(member_id)
     recommendation = response.json()["fitician_recommendation"]
     assert recommendation["overall_action"] == "maintain"
     assert "INSUFFICIENT_RELIABLE_EVIDENCE" in recommendation["reason_codes"]

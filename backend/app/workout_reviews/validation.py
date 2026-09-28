@@ -12,6 +12,10 @@ from app.exercises.substitution_groups import effective_substitution_group
 from app.workout_reviews.enums import WorkoutReviewErrorCode
 from app.workout_reviews.repository import get_exercises
 from app.workout_reviews.schemas import WorkoutReviewDraftUpdate
+from app.workouts.candidate_selector import (
+    current_generation_profile,
+    exercise_is_eligible_for_profile,
+)
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise
 from app.workouts.program_engine.duration_policy import get_session_duration_policy
 from app.workouts.schemas import CandidateSet, WorkoutExerciseCandidate
@@ -100,14 +104,15 @@ class WorkoutReviewDraftValidator:
             )
 
         live = {exercise.id: exercise for exercise in get_exercises(self._db, allowed_ids)}
+        generation_profile = current_generation_profile(self._db, source.user_id)
+        eligible = {
+            exercise_id: exercise
+            for exercise_id, exercise in live.items()
+            if exercise_is_eligible_for_profile(exercise, generation_profile)
+        }
         for exercise_id in sorted(selected_ids, key=str):
-            exercise = live.get(exercise_id)
-            if (
-                exercise is None
-                or not exercise.is_active
-                or not exercise.is_programmable
-                or exercise.needs_review
-            ):
+            exercise = eligible.get(exercise_id)
+            if exercise is None:
                 problems.append(
                     {
                         "code": WorkoutReviewErrorCode.EXERCISE_NOT_ALLOWED.value,
@@ -129,7 +134,7 @@ class WorkoutReviewDraftValidator:
             raise DraftValidationError(problems)
 
         model = self._to_model(source, payload, source_slots)
-        candidates = tuple(self._candidate(exercise) for exercise in live.values())
+        candidates = tuple(self._candidate(exercise) for exercise in eligible.values())
         raw_session_duration = source.profile_snapshot.get("session_duration_minutes", 45)
         session_duration = raw_session_duration if isinstance(raw_session_duration, int) else 45
         policy = WorkoutGenerationPolicy.for_session_duration(session_duration)
@@ -179,7 +184,7 @@ class WorkoutReviewDraftValidator:
             raise DraftValidationError(
                 [problem.to_repair_payload() for problem in error.problems]
             ) from error
-        return ValidatedDraft(payload=payload, plan=model, exercises=live)
+        return ValidatedDraft(payload=payload, plan=model, exercises=eligible)
 
     @staticmethod
     def _to_model(

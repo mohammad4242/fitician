@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.cookies import require_trusted_origin
-from app.exercises.enums import ExerciseContentType
 from app.profile.models import UserProfile
 from app.profile.photo import authorized_profile_photo_url
 from app.profile.review_summary import build_review_profile_summary
@@ -42,6 +41,10 @@ from app.workout_reviews.summary import (
 )
 from app.workout_reviews.template_selection import build_coach_template_selection
 from app.workout_reviews.validation import DraftValidationError
+from app.workouts.candidate_selector import (
+    current_generation_profile,
+    exercise_is_eligible_for_profile,
+)
 from app.workouts.router import to_plan_response
 
 router = APIRouter(prefix="/api/v1/coach/workout-reviews", tags=["coach-workout-reviews"])
@@ -329,6 +332,7 @@ def _detail_response(
         if isinstance(catalog, dict)
         else set()
     )
+    generation_profile = current_generation_profile(db, review.user_id)
     options = [
         WorkoutReviewExerciseOption(
             id=item.id,
@@ -339,12 +343,7 @@ def _detail_response(
             duration_max_seconds=item.duration_max_seconds,
         )
         for item in sorted(get_exercises(db, candidate_ids), key=lambda exercise: exercise.name_en)
-        if (
-            item.is_active
-            and item.is_programmable
-            and not item.needs_review
-            and item.content_type is ExerciseContentType.EXERCISE
-        )
+        if exercise_is_eligible_for_profile(item, generation_profile)
     ]
     return WorkoutReviewDetailResponse(
         **summary.model_dump(),

@@ -80,6 +80,7 @@ from app.workouts.bodyweight_templates import (
 from app.workouts.candidate_selector import (
     WorkoutCandidateSelector,
     caution_tags_for_training_cautions,
+    generation_profile_from_snapshot,
 )
 from app.workouts.enums import WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise, WorkoutPlanGeneration
@@ -1091,41 +1092,7 @@ class WorkoutGenerationService:
         }
 
     def _to_generation_profile(self, source: ProfileSnapshot) -> WorkoutGenerationProfile:
-        profile = source.profile
-        assert profile.fitness_goal is not None
-        assert profile.experience_level is not None
-        assert profile.training_days_per_week is not None
-        assert profile.training_location is not None
-        assert profile.session_duration_minutes is not None
-        assert profile.plan_duration_weeks is not None
-        assert profile.birth_date is not None
-        assert profile.sex is not None
-        assert profile.height_cm is not None
-        return WorkoutGenerationProfile(
-            fitness_goal=profile.fitness_goal,
-            experience_level=profile.experience_level,
-            training_days_per_week=profile.training_days_per_week,
-            training_location=profile.training_location,
-            home_training_setup=profile.home_training_setup,
-            session_duration_minutes=profile.session_duration_minutes,
-            plan_duration_weeks=profile.plan_duration_weeks,
-            training_cautions=tuple(
-                sorted(
-                    (item.caution for item in profile.training_caution_items),
-                    key=lambda item: item.value,
-                )
-            ),
-            physical_limitations=None,
-            current_weight_kg=source.measurement.weight_kg,
-            age=self._age(profile.birth_date),
-            sex=profile.sex,
-            height_cm=profile.height_cm,
-            available_equipment=resolve_available_equipment(
-                profile.training_location,
-                profile.home_training_setup,
-                getattr(profile, "available_equipment", None),
-            ),
-        )
+        return generation_profile_from_snapshot(source)
 
     def _require_coach_review_quota(self, user_id: UUID, review_required: bool) -> None:
         if review_required:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import date
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -17,6 +19,8 @@ from app.exercises.enums import (
 from app.exercises.models import Exercise
 from app.exercises.substitution_groups import effective_substitution_group
 from app.profile.enums import ExperienceLevel, TrainingCaution
+from app.profile.schemas import calculate_age
+from app.profile.service import ProfileSnapshot, get_profile
 from app.workouts.program_engine.equipment import (
     effective_required_equipment,
     resolve_available_equipment,
@@ -41,6 +45,63 @@ CAUTION_EXCLUSIONS: dict[TrainingCaution, frozenset[ExerciseCautionTag]] = {
     TrainingCaution.OTHER: frozenset({ExerciseCautionTag.OTHER}),
 }
 SOFT_CAUTIONS = frozenset({TrainingCaution.OTHER})
+
+
+def generation_profile_from_snapshot(source: ProfileSnapshot) -> WorkoutGenerationProfile:
+    """Build the canonical generation profile from a loaded member snapshot."""
+    profile = source.profile
+    cautions = tuple(item.caution for item in profile.training_caution_items)
+    if (
+        profile.fitness_goal is None
+        or profile.experience_level is None
+        or profile.training_location is None
+        or profile.training_days_per_week is None
+        or profile.session_duration_minutes is None
+        or profile.plan_duration_weeks is None
+        or profile.birth_date is None
+        or profile.sex is None
+        or profile.height_cm is None
+    ):
+        raise ValueError("Workout profile is incomplete")
+    return WorkoutGenerationProfile(
+        fitness_goal=profile.fitness_goal,
+        experience_level=profile.experience_level,
+        training_days_per_week=profile.training_days_per_week,
+        training_location=profile.training_location,
+        home_training_setup=profile.home_training_setup,
+        session_duration_minutes=profile.session_duration_minutes,
+        plan_duration_weeks=profile.plan_duration_weeks,
+        training_cautions=tuple(sorted(cautions, key=lambda item: item.value)),
+        physical_limitations=None,
+        current_weight_kg=source.measurement.weight_kg,
+        age=calculate_age(profile.birth_date, date.today()),
+        sex=profile.sex,
+        height_cm=profile.height_cm,
+        available_equipment=resolve_available_equipment(
+            profile.training_location,
+            profile.home_training_setup,
+            profile.available_equipment,
+        ),
+    )
+
+
+def exercise_is_eligible_for_profile(
+    exercise: Exercise,
+    profile: WorkoutGenerationProfile,
+) -> bool:
+    if (
+        not exercise.is_active
+        or not exercise.is_programmable
+        or exercise.needs_review
+        or exercise.content_type is not ExerciseContentType.EXERCISE
+    ):
+        return False
+    return WorkoutCandidateSelector._is_eligible(
+        exercise,
+        available_equipment=WorkoutCandidateSelector._available_equipment(profile),
+        allowed_difficulties=_ALLOWED_DIFFICULTIES[profile.experience_level],
+        excluded_tags=caution_tags_for_training_cautions(profile.training_cautions),
+    )
 
 
 def caution_tags_for_training_cautions(
@@ -78,17 +139,10 @@ class WorkoutCandidateSelector:
                 selectinload(Exercise.labels),
             )
         ).all()
-        available_equipment = self._available_equipment(profile)
-        excluded_tags = caution_tags_for_training_cautions(profile.training_cautions)
         candidates = [
             self._to_candidate(exercise)
             for exercise in exercises
-            if self._is_eligible(
-                exercise,
-                available_equipment=available_equipment,
-                allowed_difficulties=_ALLOWED_DIFFICULTIES[profile.experience_level],
-                excluded_tags=excluded_tags,
-            )
+            if exercise_is_eligible_for_profile(exercise, profile)
         ]
         capped = self._cap_for_movement_coverage(candidates, profile.experience_level)
         soft_cautions = tuple(
@@ -210,3 +264,7 @@ class WorkoutCandidateSelector:
         if self._maximum_candidates is None:
             return tuple(selected)
         return tuple(selected[: self._maximum_candidates])
+
+
+def current_generation_profile(db: Session, user_id: UUID) -> WorkoutGenerationProfile:
+    return generation_profile_from_snapshot(get_profile(db, user_id))
