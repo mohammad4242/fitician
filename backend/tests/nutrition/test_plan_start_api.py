@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, time, timedelta
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -13,6 +14,7 @@ from app.nutrition.enums import (
     NutritionPlanRole,
 )
 from app.nutrition.models import (
+    NutritionEstimate,
     NutritionPlanGeneration,
     NutritionWeeklyPlan,
     NutritionWeeklyPlanDay,
@@ -58,6 +60,28 @@ def _ready_plan(client: TestClient, db: Session) -> dict[str, object]:
     persisted.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
     db.commit()
     return plan
+
+
+def _add_medication_to_safety_context(client: TestClient) -> str:
+    response = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            "conditions": [],
+            "medications": [{"name": "داروی روزانه", "dosage": "10 mg", "notes": None}],
+            "dangerous_food_reaction_history": False,
+            "pregnant": False,
+            "breastfeeding": False,
+            "eating_disorder_diagnosed": False,
+            "eating_disorder_active_symptoms": False,
+            "emergency_or_danger_symptoms": False,
+            "complex_medication_food_interaction": False,
+            "physician_dietary_restrictions": None,
+            "other_relevant_condition": None,
+        },
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["id"]
 
 
 def test_ready_plan_start_sets_anchor_timestamp_and_realigns_template_dates(
@@ -108,6 +132,87 @@ def test_unapproved_required_review_plan_cannot_start(client: TestClient, db: Se
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "NUTRITION_PLAN_NOT_READY"
+
+
+def test_plan_with_changed_medical_context_cannot_start(client: TestClient, db: Session) -> None:
+    plan = _ready_plan(client, db)
+    _add_medication_to_safety_context(client)
+
+    response = client.post(
+        f"/api/v1/nutrition/plans/{plan['id']}/start",
+        headers=ORIGIN,
+        json={"start_date": date.today().isoformat(), "timezone": "UTC"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED"
+
+
+def test_changing_only_plan_safety_id_does_not_refresh_medical_context(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _ready_plan(client, db)
+    current_safety_id = _add_medication_to_safety_context(client)
+    persisted = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted is not None
+    persisted.safety_decision_id = UUID(current_safety_id)
+    db.commit()
+
+    response = client.post(
+        f"/api/v1/nutrition/plans/{plan['id']}/start",
+        headers=ORIGIN,
+        json={"start_date": date.today().isoformat(), "timezone": "UTC"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED"
+
+
+def test_plan_cannot_start_when_current_safety_decision_is_hard_blocked(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _ready_plan(client, db)
+    changed_safety = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            "conditions": [],
+            "medications": [],
+            "dangerous_food_reaction_history": False,
+            "pregnant": False,
+            "breastfeeding": False,
+            "eating_disorder_diagnosed": False,
+            "eating_disorder_active_symptoms": False,
+            "emergency_or_danger_symptoms": True,
+            "complex_medication_food_interaction": False,
+            "physician_dietary_restrictions": None,
+            "other_relevant_condition": None,
+        },
+    )
+    assert changed_safety.status_code == 200, changed_safety.text
+    assert changed_safety.json()["outcome"] == "unsupported_or_hard_blocked"
+    current_safety_id = UUID(changed_safety.json()["id"])
+    persisted = db.get(NutritionWeeklyPlan, plan["id"])
+    assert persisted is not None
+    generation = persisted.generation
+    estimate = db.get(NutritionEstimate, persisted.estimate_id)
+    assert generation is not None
+    assert estimate is not None
+    persisted.safety_decision_id = current_safety_id
+    generation.safety_decision_id = current_safety_id
+    estimate.safety_decision_id = current_safety_id
+    db.commit()
+
+    response = client.post(
+        f"/api/v1/nutrition/plans/{plan['id']}/start",
+        headers=ORIGIN,
+        json={"start_date": date.today().isoformat(), "timezone": "UTC"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_PLAN_SAFETY_BLOCKED"
 
 
 def test_reference_comparison_plan_cannot_start(client: TestClient, db: Session) -> None:

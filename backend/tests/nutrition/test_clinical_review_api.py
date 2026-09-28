@@ -455,6 +455,57 @@ def test_approval_requires_claim_and_activates_exact_due_revision(
     }
 
 
+def test_physician_cannot_approve_plan_after_medical_context_changes(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db)
+    changed_safety = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            "conditions": [],
+            "medications": [{"name": "داروی روزانه", "dosage": "10 mg", "notes": None}],
+            "dangerous_food_reaction_history": False,
+            "pregnant": False,
+            "breastfeeding": False,
+            "eating_disorder_diagnosed": False,
+            "eating_disorder_active_symptoms": False,
+            "emergency_or_danger_symptoms": False,
+            "complex_medication_food_interaction": False,
+            "physician_dietary_restrictions": None,
+            "other_relevant_condition": None,
+        },
+    )
+    assert changed_safety.status_code == 200, changed_safety.text
+    physician = _login_physician(client, db, "stale-plan-physician@example.com")
+    db.add(UserProfile(user_id=physician.id, display_name="دکتر بازبین"))
+    db.flush()
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+    claimed = client.post(
+        f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+        headers=ORIGIN,
+    )
+    assert claimed.status_code == 200, claimed.text
+
+    response = client.post(
+        f"/api/v1/nutrition/physician/plans/{plan['id']}/action",
+        headers=ORIGIN,
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "action": "approve",
+            "notes": "تأیید",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED"
+
+
 def test_physician_queue_views_move_a_case_from_pending_to_claimed_to_approved(
     client: TestClient,
     db: Session,

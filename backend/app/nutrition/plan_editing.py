@@ -25,6 +25,11 @@ from app.nutrition.enums import (
     NutritionPlanRole,
     SafetyOutcome,
 )
+from app.nutrition.medical_context import (
+    current_medical_safety_decision,
+    medical_context_is_blocked,
+    plan_uses_current_medical_context,
+)
 from app.nutrition.models import (
     NutritionCatalogueFood,
     NutritionMealFeedback,
@@ -1137,6 +1142,14 @@ def physician_action(
         raise PlanEditError("REVIEW_NOT_CLAIMED")
     if action != "start_review" and plan.review.physician_user_id != physician_id:
         raise PlanEditError("REVIEW_ASSIGNED_TO_ANOTHER_PHYSICIAN")
+    if action == "approve":
+        if plan.review.status != NutritionPlanReviewStatus.IN_REVIEW:
+            raise PlanEditError("REVIEW_NOT_IN_PROGRESS")
+        decision = current_medical_safety_decision(db, plan.user_id, lock_profile=True)
+        if not plan_uses_current_medical_context(db, plan, decision):
+            raise PlanEditError("NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED")
+        if decision is not None and medical_context_is_blocked(decision):
+            raise PlanEditError("NUTRITION_PLAN_SAFETY_BLOCKED")
     normalized_notes = notes.strip() if notes else None
     normalized_internal_notes = internal_notes.strip() if internal_notes else None
     if action in {"request_changes", "reject"} and not normalized_notes:

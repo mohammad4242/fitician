@@ -1948,6 +1948,12 @@ def _plan_edit_error(error: PlanEditError) -> HTTPException:
         "STALE_PLAN_REVISION": (
             "نسخه برنامه تغییر کرده است. صفحه را به‌روزرسانی کن و دوباره تلاش کن."
         ),
+        "NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED": (
+            "اطلاعات پزشکی پس از تولید این برنامه تغییر کرده است؛ این نسخه قابل تأیید نیست."
+        ),
+        "NUTRITION_PLAN_SAFETY_BLOCKED": (
+            "با توجه به اطلاعات پزشکی فعلی، تأیید این برنامه مجاز نیست."
+        ),
         "MEAL_NOT_FOUND": "وعده موردنظر دیگر در این نسخه وجود ندارد.",
         "MEAL_LOCKED": "این وعده قفل است و ابتدا باید قفل آن را باز کنی.",
         "INCOMPATIBLE_MEAL_REPLACEMENT": "این وعده جایگزین با نقش وعده سازگار نیست.",

@@ -304,6 +304,89 @@ def test_safety_reassessment_keeps_append_only_decisions(client: TestClient, db:
     assert db.get(MedicalConditionPolicy, "medical-condition-v1") is not None
 
 
+def test_identical_normalized_medical_context_reuses_safety_decision(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = register(client, "same-medical-context@example.com")
+    select_nutrition_mode(client)
+    assert (
+        client.put("/api/v1/profile/shared", headers=ORIGIN, json=shared_payload()).status_code
+        == 200
+    )
+    initial = {
+        **standard_safety_payload(),
+        "conditions": [{"code": "lipid_disorder", "details": "تحت کنترل"}],
+        "medications": [
+            {"name": "داروی اول", "dosage": "10 mg", "notes": None},
+            {"name": "داروی دوم", "dosage": None, "notes": "مصرف شب"},
+        ],
+    }
+    first = client.put("/api/v1/nutrition/safety", headers=ORIGIN, json=initial)
+    repeated = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            **standard_safety_payload(),
+            "conditions": [{"code": "lipid_disorder", "details": "  تحت کنترل  "}],
+            "medications": [
+                {"name": "داروی دوم", "dosage": None, "notes": "مصرف شب"},
+                {"name": "داروی اول", "dosage": " 10 mg ", "notes": None},
+            ],
+        },
+    )
+
+    assert first.status_code == 200
+    assert repeated.status_code == 200
+    assert repeated.json()["id"] == first.json()["id"]
+    assert (
+        len(
+            db.scalars(
+                select(NutritionSafetyDecision).where(NutritionSafetyDecision.user_id == user_id)
+            ).all()
+        )
+        == 1
+    )
+
+
+def test_changed_medical_details_create_new_decision_at_same_safety_level(
+    client: TestClient,
+    db: Session,
+) -> None:
+    user_id = register(client, "same-risk-medical-change@example.com")
+    select_nutrition_mode(client)
+    assert (
+        client.put("/api/v1/profile/shared", headers=ORIGIN, json=shared_payload()).status_code
+        == 200
+    )
+    first = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            **standard_safety_payload(),
+            "conditions": [{"code": "lipid_disorder", "details": "وضعیت قبلی"}],
+        },
+    )
+    changed = client.put(
+        "/api/v1/nutrition/safety",
+        headers=ORIGIN,
+        json={
+            **standard_safety_payload(),
+            "conditions": [{"code": "lipid_disorder", "details": "وضعیت جدید"}],
+        },
+    )
+
+    assert first.status_code == changed.status_code == 200
+    assert first.json()["outcome"] == changed.json()["outcome"]
+    assert first.json()["id"] != changed.json()["id"]
+    assert db.scalar(
+        select(NutritionSafetyDecision.id)
+        .where(NutritionSafetyDecision.user_id == user_id)
+        .order_by(NutritionSafetyDecision.revision.desc())
+        .limit(1)
+    ) == UUID(changed.json()["id"])
+
+
 def test_nutrition_profile_persists_budget_and_normalized_food_constraints(
     client: TestClient,
     db: Session,

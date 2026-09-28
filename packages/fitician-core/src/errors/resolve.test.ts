@@ -79,6 +79,25 @@ describe("resolveAppError", () => {
   });
 
   it.each([
+    ["NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED", "اطلاعات پزشکی", "Medical information"],
+    ["NUTRITION_PLAN_SAFETY_BLOCKED", "وضعیت ایمنی", "safety status"],
+  ])("resolves current medical-context code %s for web and mobile", (code, faText, enText) => {
+    const persian = resolveAppError(
+      new ApiError(409, "private medical detail", null, code),
+      { audience: "member", context: "nutrition", locale: "fa" },
+    );
+    const english = resolveAppError(
+      new ApiError(409, "private medical detail", null, code),
+      { audience: "member", context: "nutrition", locale: "en" },
+    );
+
+    expect(persian.message).toContain(faText);
+    expect(english.message).toContain(enText);
+    expect(persian.message).not.toContain("private medical detail");
+    expect(english.message).not.toContain("private medical detail");
+  });
+
+  it.each([
     ["ACTIVE_PLAN_REQUIRED", "برنامه تأییدشده و فعال"],
     ["STRICT_BUDGET_EXCEEDED", "بودجه غذایی تعیین‌شده"],
     ["PROTEIN_MINIMUM_EXCEEDS_CALORIE_BUDGET", "حداقل پروتئین"],

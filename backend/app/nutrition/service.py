@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import cast
 from uuid import UUID
@@ -30,6 +31,7 @@ from app.nutrition.exceptions import (
     SharedProfileRequiredError,
 )
 from app.nutrition.food_catalogue import normalize_food_alias
+from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.models import (
     NutritionCatalogueFood,
     NutritionCatalogueMeal,
@@ -152,6 +154,26 @@ def save_safety_profile(
         .where(NutritionMedicalProfile.user_id == user_id)
         .with_for_update()
     )
+    evaluation = evaluate_safety(_safety_answers(payload))
+    existing_conditions = db.scalars(
+        select(NutritionMedicalCondition).where(NutritionMedicalCondition.user_id == user_id)
+    ).all()
+    existing_medications = db.scalars(
+        select(NutritionMedication).where(NutritionMedication.user_id == user_id)
+    ).all()
+    current = current_medical_safety_decision(db, user_id)
+    if (
+        current is not None
+        and current.medical_condition_policy_version == evaluation.policy_version
+        and _same_medical_context(
+            payload,
+            medical,
+            existing_conditions,
+            existing_medications,
+        )
+    ):
+        return current
+
     values = {
         "dangerous_food_reaction_history": payload.dangerous_food_reaction_history,
         "pregnant": payload.pregnant,
@@ -170,7 +192,6 @@ def save_safety_profile(
         for field_name, value in values.items():
             setattr(medical, field_name, value)
 
-    evaluation = evaluate_safety(_safety_answers(payload))
     try:
         db.flush()
         db.execute(
@@ -220,16 +241,78 @@ def save_safety_profile(
 
 
 def current_safety_decision(db: Session, user_id: UUID) -> NutritionSafetyDecision:
-    decision = db.scalar(
-        select(NutritionSafetyDecision)
-        .where(NutritionSafetyDecision.user_id == user_id)
-        .options(selectinload(NutritionSafetyDecision.reasons))
-        .order_by(NutritionSafetyDecision.revision.desc())
-        .limit(1)
-    )
+    decision = current_medical_safety_decision(db, user_id)
     if decision is None:
         raise SafetyDecisionNotFoundError
     return decision
+
+
+def _same_medical_context(
+    payload: SafetyProfileInput,
+    medical: NutritionMedicalProfile | None,
+    conditions: Sequence[NutritionMedicalCondition],
+    medications: Sequence[NutritionMedication],
+) -> bool:
+    if medical is None:
+        return False
+    boolean_fields = (
+        "dangerous_food_reaction_history",
+        "pregnant",
+        "breastfeeding",
+        "eating_disorder_diagnosed",
+        "eating_disorder_active_symptoms",
+        "emergency_or_danger_symptoms",
+        "complex_medication_food_interaction",
+    )
+    if any(
+        getattr(medical, field_name) != getattr(payload, field_name)
+        for field_name in boolean_fields
+    ):
+        return False
+    text_fields = ("physician_dietary_restrictions", "other_relevant_condition")
+    if any(
+        _normalized_medical_value(getattr(medical, field_name))
+        != _normalized_medical_value(getattr(payload, field_name))
+        for field_name in text_fields
+    ):
+        return False
+    existing_condition_values = sorted(
+        (item.code.value, _normalized_medical_value(item.details)) for item in conditions
+    )
+    submitted_condition_values = sorted(
+        (item.code.value, _normalized_medical_value(item.details)) for item in payload.conditions
+    )
+    if existing_condition_values != submitted_condition_values:
+        return False
+    existing_medication_values = sorted(
+        [
+            (
+                _normalized_medical_value(item.name),
+                _normalized_medical_value(item.dosage),
+                _normalized_medical_value(item.notes),
+            )
+            for item in medications
+        ],
+        key=lambda values: tuple(value or "" for value in values),
+    )
+    submitted_medication_values = sorted(
+        [
+            (
+                _normalized_medical_value(item.name),
+                _normalized_medical_value(item.dosage),
+                _normalized_medical_value(item.notes),
+            )
+            for item in payload.medications
+        ],
+        key=lambda values: tuple(value or "" for value in values),
+    )
+    return existing_medication_values == submitted_medication_values
+
+
+def _normalized_medical_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.strip() or None
 
 
 def safety_response(decision: NutritionSafetyDecision) -> SafetyDecisionResponse:

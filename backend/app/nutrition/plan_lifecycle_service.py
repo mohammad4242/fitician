@@ -17,6 +17,11 @@ from app.nutrition.exceptions import (
     NutritionPlanStartConflictError,
     NutritionPlanStartNotFoundError,
 )
+from app.nutrition.medical_context import (
+    current_medical_safety_decision,
+    medical_context_is_blocked,
+    plan_uses_current_medical_context,
+)
 from app.nutrition.models import (
     NutritionPlanGeneration,
     NutritionWeeklyPlan,
@@ -139,6 +144,21 @@ def start_nutrition_plan(
         raise NutritionPlanStartNotFoundError
     plan = _load_owned_plan(db, user_id=user_id, plan_id=plan_id, lock=True)
     _ensure_selected_member_plan(plan)
+    if plan.lifecycle_status is not NutritionPlanLifecycleStatus.ACTIVE:
+        decision = current_medical_safety_decision(db, user_id, lock_profile=True)
+        if not plan_uses_current_medical_context(db, plan, decision):
+            raise NutritionPlanStartConflictError(
+                "NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED",
+                (
+                    "اطلاعات پزشکی پس از تولید این برنامه تغییر کرده است. "
+                    "برنامه‌ای تازه بر اساس اطلاعات فعلی دریافت کن."
+                ),
+            )
+        if decision is not None and medical_context_is_blocked(decision):
+            raise NutritionPlanStartConflictError(
+                "NUTRITION_PLAN_SAFETY_BLOCKED",
+                "با توجه به اطلاعات پزشکی فعلی، شروع این برنامه مجاز نیست.",
+            )
     should_start = _ensure_startable_lifecycle(plan, start_date)
 
     if should_start:

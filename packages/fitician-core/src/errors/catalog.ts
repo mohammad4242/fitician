@@ -329,6 +329,13 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("برنامه آماده نیست", "Plan is not ready"),
     text("این برنامه غذایی هنوز آماده شروع نیست.", "This nutrition plan is not ready to start yet."),
   ),
+  NUTRITION_PLAN_MEDICAL_CONTEXT_CHANGED: entry(
+    text("اطلاعات پزشکی برنامه به‌روز نیست", "Plan medical information is outdated"),
+    text(
+      "اطلاعات پزشکی پس از تولید برنامه تغییر کرده است. برای ادامه، برنامه‌ای تازه بر اساس اطلاعات فعلی بسازید.",
+      "Medical information changed after this plan was generated. Create a new plan using the current information to continue.",
+    ),
+  ),
   NUTRITION_PLAN_ALREADY_STARTED: entry(
     text("برنامه قبلاً شروع شده است", "Plan already started"),
     text("این برنامه غذایی قبلاً با تاریخ دیگری شروع شده است.", "This nutrition plan has already been started on another date."),
