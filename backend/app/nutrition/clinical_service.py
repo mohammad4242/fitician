@@ -168,6 +168,11 @@ def _link_lab_request(
 ) -> None:
     if request is None:
         return
+    if request.status in {
+        NutritionLabRequestStatus.REVIEWED,
+        NutritionLabRequestStatus.CANCELLED,
+    }:
+        raise ClinicalError("LAB_REQUEST_NOT_OPEN")
     link_id = (document.id, request.id)
     if db.get(NutritionLabDocumentRequest, link_id) is not None:
         return
@@ -179,7 +184,8 @@ def _link_lab_request(
     )
     if document.request_id is None:
         document.request_id = request.id
-    request.status = NutritionLabRequestStatus.UPLOADED
+    if request.status is NutritionLabRequestStatus.REQUESTED:
+        request.status = NutritionLabRequestStatus.UPLOADED
 
 
 def _resume_review_if_lab_requests_resolved(
@@ -269,6 +275,12 @@ async def upload_lab(
         if len(requests_by_id) != len(submitted_request_ids):
             raise ClinicalError("LAB_REQUEST_NOT_FOUND")
         requests = [requests_by_id[request_uuid] for request_uuid in submitted_request_ids]
+        if any(
+            request.status
+            in {NutritionLabRequestStatus.REVIEWED, NutritionLabRequestStatus.CANCELLED}
+            for request in requests
+        ):
+            raise ClinicalError("LAB_REQUEST_NOT_OPEN")
     duplicate = db.scalar(
         select(NutritionLabDocument)
         .where(

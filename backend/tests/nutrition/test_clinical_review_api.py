@@ -453,6 +453,63 @@ def test_resolving_requests_waits_for_last_lab_request_before_resuming(
     )
 
 
+def test_upload_cannot_reopen_cancelled_lab_request(
+    client: TestClient,
+    db: Session,
+) -> None:
+    plan = _member_plan(client, db)
+    _login_physician(client, db, "cancelled-upload-physician@example.com")
+    review = next(
+        item
+        for item in client.get("/api/v1/nutrition/physician/reviews").json()
+        if item["plan_id"] == plan["id"]
+    )
+    claimed = client.post(
+        f"/api/v1/nutrition/physician/reviews/{review['review_id']}/claim",
+        headers=ORIGIN,
+    )
+    assert claimed.status_code == 200, claimed.text
+    requested = client.post(
+        f"/api/v1/nutrition/physician/plans/{plan['id']}/request-labs",
+        headers=ORIGIN,
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "requested_tests": ["CBC"],
+            "user_visible_reason": "برای بررسی تکمیلی",
+        },
+    )
+    assert requested.status_code == 200, requested.text
+
+    cancelled = client.put(
+        f"/api/v1/nutrition/physician/lab-requests/{requested.json()['id']}",
+        headers=ORIGIN,
+        json={"status": "cancelled"},
+    )
+    assert cancelled.status_code == 200, cancelled.text
+
+    assert client.post("/api/v1/auth/logout", headers=ORIGIN).status_code == 204
+    logged_in = client.post(
+        "/api/v1/auth/login",
+        headers=ORIGIN,
+        json={"email": "clinical-member@example.com", "password": "long password"},
+    )
+    assert logged_in.status_code == 200, logged_in.text
+    uploaded = client.post(
+        "/api/v1/nutrition/labs",
+        headers=ORIGIN,
+        files=[
+            ("file", ("cancelled.pdf", b"%PDF-1.4\ncancelled\n%%EOF", "application/pdf")),
+            ("request_ids", (None, requested.json()["id"])),
+        ],
+    )
+
+    assert uploaded.status_code == 409
+    assert uploaded.json()["detail"]["code"] == "LAB_REQUEST_NOT_OPEN"
+    persisted_request = db.get(NutritionLabRequest, requested.json()["id"])
+    assert persisted_request is not None
+    assert persisted_request.status is NutritionLabRequestStatus.CANCELLED
+
+
 def test_non_physician_cannot_access_review_queue(client: TestClient, db: Session) -> None:
     _member_plan(client, db)
     response = client.get("/api/v1/nutrition/physician/reviews")
