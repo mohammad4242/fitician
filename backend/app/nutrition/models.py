@@ -2131,6 +2131,12 @@ class NutritionOperationalEvent(Base):
 
 class NutritionTargetUpdateConsent(Base):
     __tablename__ = "nutrition_target_update_consents"
+    __table_args__ = (
+        UniqueConstraint("user_id", "progress_signature", name="uq_nutrition_progress_consent"),
+    )
+
+    progress_signature: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    progress_snapshot: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(

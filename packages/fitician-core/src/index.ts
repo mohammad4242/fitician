@@ -269,3 +269,5 @@ export type {
 export { workoutGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";
 export { createCommunicationApi, createMessageRequestId } from "./communication";
 export type { Conversation, ProgramMessage, NotificationInbox, PersonalNotificationSettings, PersonalNotificationInput, ConversationKind, CommunicationRequest } from "./communication";
+
+export * from "./nutrition-progress-review.js";

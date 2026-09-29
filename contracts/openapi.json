@@ -16619,6 +16619,244 @@
         "title": "NutritionProgramWrite",
         "type": "object"
       },
+      "NutritionProgressConfirmationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "expected_plan_id": {
+            "format": "uuid",
+            "title": "Expected Plan Id",
+            "type": "string"
+          },
+          "signature": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_plan_id",
+          "signature",
+          "confirmed"
+        ],
+        "title": "NutritionProgressConfirmationInput",
+        "type": "object"
+      },
+      "NutritionProgressConfirmationResponse": {
+        "properties": {
+          "estimate_id": {
+            "format": "uuid",
+            "title": "Estimate Id",
+            "type": "string"
+          },
+          "needs_new_plan": {
+            "title": "Needs New Plan",
+            "type": "boolean"
+          },
+          "targets_updated": {
+            "title": "Targets Updated",
+            "type": "boolean"
+          },
+          "user_confirmed": {
+            "title": "User Confirmed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "estimate_id",
+          "targets_updated",
+          "needs_new_plan",
+          "user_confirmed"
+        ],
+        "title": "NutritionProgressConfirmationResponse",
+        "type": "object"
+      },
+      "NutritionProgressReviewResponse": {
+        "properties": {
+          "adherence_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adherence Percent"
+          },
+          "average_logged_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Logged Kcal"
+          },
+          "can_confirm": {
+            "default": false,
+            "title": "Can Confirm",
+            "type": "boolean"
+          },
+          "checked_in_days": {
+            "default": 0,
+            "title": "Checked In Days",
+            "type": "integer"
+          },
+          "current_calories": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Calories"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FitnessGoal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "logged_days": {
+            "default": 0,
+            "title": "Logged Days",
+            "type": "integer"
+          },
+          "observed_kg_per_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Kg Per Week"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "policy_version": {
+            "default": "nutrition-progress-review-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "proposed_calories": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Calories"
+          },
+          "proposed_rate_kg_per_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed Rate Kg Per Week"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "reliable_logged_days": {
+            "default": 0,
+            "title": "Reliable Logged Days",
+            "type": "integer"
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "insufficient_data",
+              "continue",
+              "improve_adherence",
+              "adjustment_available",
+              "specialist_review",
+              "cooldown",
+              "new_plan_required"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_kg_per_week": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Kg Per Week"
+          },
+          "weighing_days": {
+            "default": 0,
+            "title": "Weighing Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "start",
+          "end",
+          "plan_id",
+          "goal"
+        ],
+        "title": "NutritionProgressReviewResponse",
+        "type": "object"
+      },
       "NutritionRecentFoodResponse": {
         "properties": {
           "display_name": {
@@ -37644,6 +37882,78 @@
           }
         ],
         "summary": "Update Nutrition Profile",
+        "tags": [
+          "nutrition"
+        ]
+      }
+    },
+    "/api/v1/nutrition/progress-review": {
+      "get": {
+        "operationId": "read_progress_review_api_v1_nutrition_progress_review_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NutritionProgressReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Progress Review",
+        "tags": [
+          "nutrition"
+        ]
+      }
+    },
+    "/api/v1/nutrition/progress-review/confirm": {
+      "post": {
+        "operationId": "confirm_progress_review_api_v1_nutrition_progress_review_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionProgressConfirmationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NutritionProgressConfirmationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Progress Review",
         "tags": [
           "nutrition"
         ]

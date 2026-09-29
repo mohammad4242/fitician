@@ -1,3 +1,4 @@
+import { NutritionProgressReview } from "./NutritionProgressReview";
 import { WeightTrend } from "./WeightTrend";
 import { useQuery } from "@tanstack/react-query";
 import { formatPersianDate } from "@fitician/core";
@@ -201,6 +202,7 @@ function AdherenceBody({
           ))}
         </View>
       )}
+      <NutritionProgressReview />
       <WeightTrend measurements={adherence.weight_trend} />
       <View style={styles.historyBlock}>
         <Text style={styles.cardSubtitle}>تاریخچه ثبت‌ها</Text>

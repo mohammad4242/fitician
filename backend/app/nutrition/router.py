@@ -28,7 +28,7 @@ from app.admin.media import (
     store_image_upload,
 )
 from app.auth.cookies import require_trusted_origin
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_authenticated_mutation
 from app.auth.models import User
 from app.cache.service import CacheResult
 from app.config import Settings, get_settings
@@ -198,6 +198,7 @@ from app.nutrition.program_catalogue import (
     restore_program,
     update_program,
 )
+from app.nutrition.progress_review import confirm_progress, review_progress
 from app.nutrition.schemas import (
     AdminFoodCataloguePageResponse,
     CatalogueConsumptionInput,
@@ -244,6 +245,9 @@ from app.nutrition.schemas import (
     NutritionProgramPageResponse,
     NutritionProgramResponse,
     NutritionProgramWrite,
+    NutritionProgressConfirmationInput,
+    NutritionProgressConfirmationResponse,
+    NutritionProgressReviewResponse,
     NutritionRecentFoodResponse,
     NutritionReviewClaimResponse,
     NutritionSupplementCatalogueResponse,
@@ -3157,3 +3161,25 @@ def acknowledge_supplement_order(
         return acknowledge_order(db, user.id, order_id, payload.adherence_note)
     except SupplementError as error:
         raise _supplement_error(error) from None
+
+
+@router.get("/progress-review", response_model=NutritionProgressReviewResponse)
+def read_progress_review(db: DatabaseSession, user: CurrentUser) -> NutritionProgressReviewResponse:
+    return review_progress(db, user.id)
+
+
+@router.post(
+    "/progress-review/confirm",
+    response_model=NutritionProgressConfirmationResponse,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
+def confirm_progress_review(
+    payload: NutritionProgressConfirmationInput, db: DatabaseSession, user: CurrentUser
+) -> NutritionProgressConfirmationResponse:
+    require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_MANAGE)
+    try:
+        return confirm_progress(
+            db, user.id, payload.expected_plan_id, payload.signature, payload.confirmed
+        )
+    except AdherenceError as error:
+        raise HTTPException(409, detail={"code": error.code}) from None

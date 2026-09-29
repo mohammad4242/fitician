@@ -1,3 +1,4 @@
+import { NutritionProgressReview } from "./NutritionProgressReview";
 import { WeightTrend } from "./WeightTrend";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -666,6 +667,7 @@ export function NutritionTrackingPage() {
               </>}
             </article>)}
           </div>
+          <NutritionProgressReview />
           <WeightTrend measurements={adherence?.weight_trend ?? []} english={!fa} timezone={resolvedIanaTimeZone()} />
           <details className="nutrition-adherence-history"><summary>{l("تاریخچه ثبت‌ها", "Entry history")}</summary>{history.length === 0 ? <p>{l("در این بازه ثبتی وجود ندارد.", "There are no entries in this range.")}</p> : history.map((day) => <article key={day.entry_date}><strong>{day.entry_date}</strong><span>{day.entries.length} {l("مورد", "entries")}</span></article>)}</details>
         </div>

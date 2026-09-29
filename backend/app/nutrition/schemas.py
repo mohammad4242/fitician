@@ -1620,3 +1620,48 @@ class SupplementTransitionInput(BaseModel):
 
 class SupplementAcknowledgementInput(BaseModel):
     adherence_note: str | None = Field(default=None, max_length=1000)
+
+
+class NutritionProgressReviewResponse(BaseModel):
+    status: Literal[
+        "insufficient_data",
+        "continue",
+        "improve_adherence",
+        "adjustment_available",
+        "specialist_review",
+        "cooldown",
+        "new_plan_required",
+    ]
+    start: date
+    end: date
+    plan_id: UUID | None
+    goal: FitnessGoal | None
+    checked_in_days: int = 0
+    logged_days: int = 0
+    reliable_logged_days: int = 0
+    adherence_percent: float | None = None
+    average_logged_kcal: float | None = None
+    weighing_days: int = 0
+    observed_kg_per_week: float | None = None
+    target_kg_per_week: float | None = None
+    current_calories: float | None = None
+    proposed_calories: float | None = None
+    proposed_rate_kg_per_week: float | None = None
+    can_confirm: bool = False
+    signature: str | None = None
+    reason_codes: list[str] = Field(default_factory=list)
+    policy_version: str = "nutrition-progress-review-v1"
+
+
+class NutritionProgressConfirmationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_plan_id: UUID
+    signature: str = Field(pattern=r"^[0-9a-f]{64}$")
+    confirmed: bool
+
+
+class NutritionProgressConfirmationResponse(BaseModel):
+    estimate_id: UUID
+    targets_updated: bool
+    needs_new_plan: bool
+    user_confirmed: bool

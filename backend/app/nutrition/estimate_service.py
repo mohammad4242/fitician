@@ -149,7 +149,9 @@ def get_structured_exercise(db: Session, user_id: UUID) -> StructuredExerciseRes
     return _resolve_exercise(db, _required_profile(db, user_id)).response()
 
 
-def create_estimate(db: Session, user_id: UUID) -> NutritionEstimateResponse:
+def create_estimate(
+    db: Session, user_id: UUID, *, commit: bool = True
+) -> NutritionEstimateResponse:
     context = _estimate_context(db, user_id)
     existing = db.scalar(
         select(NutritionEstimate)
@@ -220,9 +222,14 @@ def create_estimate(db: Session, user_id: UUID) -> NutritionEstimateResponse:
     )
     db.add(estimate)
     try:
-        db.commit()
+        if commit:
+            db.commit()
+        else:
+            db.flush()
     except IntegrityError:
         db.rollback()
+        if not commit:
+            raise
         raced = db.scalar(
             select(NutritionEstimate)
             .where(

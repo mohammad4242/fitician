@@ -2872,6 +2872,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/nutrition/progress-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Progress Review */
+        get: operations["read_progress_review_api_v1_nutrition_progress_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/nutrition/progress-review/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Progress Review */
+        post: operations["confirm_progress_review_api_v1_nutrition_progress_review_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/nutrition/review-requirement": {
         parameters: {
             query?: never;
@@ -9523,6 +9557,101 @@ export type components = {
              * @default false
              */
             post_workout_enabled: boolean;
+        };
+        /** NutritionProgressConfirmationInput */
+        NutritionProgressConfirmationInput: {
+            /** Confirmed */
+            confirmed: boolean;
+            /**
+             * Expected Plan Id
+             * Format: uuid
+             */
+            expected_plan_id: string;
+            /** Signature */
+            signature: string;
+        };
+        /** NutritionProgressConfirmationResponse */
+        NutritionProgressConfirmationResponse: {
+            /**
+             * Estimate Id
+             * Format: uuid
+             */
+            estimate_id: string;
+            /** Needs New Plan */
+            needs_new_plan: boolean;
+            /** Targets Updated */
+            targets_updated: boolean;
+            /** User Confirmed */
+            user_confirmed: boolean;
+        };
+        /** NutritionProgressReviewResponse */
+        NutritionProgressReviewResponse: {
+            /** Adherence Percent */
+            adherence_percent?: number | null;
+            /** Average Logged Kcal */
+            average_logged_kcal?: number | null;
+            /**
+             * Can Confirm
+             * @default false
+             */
+            can_confirm: boolean;
+            /**
+             * Checked In Days
+             * @default 0
+             */
+            checked_in_days: number;
+            /** Current Calories */
+            current_calories?: number | null;
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            goal: components["schemas"]["FitnessGoal"] | null;
+            /**
+             * Logged Days
+             * @default 0
+             */
+            logged_days: number;
+            /** Observed Kg Per Week */
+            observed_kg_per_week?: number | null;
+            /** Plan Id */
+            plan_id: string | null;
+            /**
+             * Policy Version
+             * @default nutrition-progress-review-v1
+             */
+            policy_version: string;
+            /** Proposed Calories */
+            proposed_calories?: number | null;
+            /** Proposed Rate Kg Per Week */
+            proposed_rate_kg_per_week?: number | null;
+            /** Reason Codes */
+            reason_codes?: string[];
+            /**
+             * Reliable Logged Days
+             * @default 0
+             */
+            reliable_logged_days: number;
+            /** Signature */
+            signature?: string | null;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "insufficient_data" | "continue" | "improve_adherence" | "adjustment_available" | "specialist_review" | "cooldown" | "new_plan_required";
+            /** Target Kg Per Week */
+            target_kg_per_week?: number | null;
+            /**
+             * Weighing Days
+             * @default 0
+             */
+            weighing_days: number;
         };
         /** NutritionRecentFoodResponse */
         NutritionRecentFoodResponse: {
@@ -19191,6 +19320,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NutritionProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_progress_review_api_v1_nutrition_progress_review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NutritionProgressReviewResponse"];
+                };
+            };
+        };
+    };
+    confirm_progress_review_api_v1_nutrition_progress_review_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NutritionProgressConfirmationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NutritionProgressConfirmationResponse"];
                 };
             };
             /** @description Validation Error */
