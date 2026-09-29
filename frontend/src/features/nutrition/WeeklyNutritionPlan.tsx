@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -91,6 +92,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => {
+      <ConversationPanel kind="nutrition" planId={plan.id} />
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", closeOnEscape);
     };

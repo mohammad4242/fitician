@@ -65,6 +65,7 @@ from app.nutrition.router import router as nutrition_router
 from app.observability.logging import configure_structured_logging, log_event
 from app.observability.metrics import MetricsRegistry, route_label_from_scope
 from app.profile.router import router as profile_router
+from app.program_conversations.router import router as program_conversations_router
 from app.program_timeline.router import router as program_timeline_router
 from app.workout_cycles.router import router as workout_cycles_router
 from app.workout_reviews.router import (
@@ -509,6 +510,7 @@ def create_app(
     app.include_router(program_timeline_router)
     app.include_router(nutrition_router)
     app.include_router(notifications_router)
+    app.include_router(program_conversations_router)
     app.include_router(workout_plans_router)
     app.include_router(workout_reviews_router)
     app.include_router(workout_member_reviews_router)

@@ -1,16 +1,23 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_mobile_session
+from app.auth.dependencies import (
+    get_current_mobile_session,
+    get_current_user,
+    require_authenticated_mutation,
+)
+from app.auth.models import User
 from app.auth.service import MobileAccessContext
 from app.database.session import get_db
 
+from .inbox import inbox_page, mark_inbox_read
 from .schemas import (
     NotificationDeviceResponse,
     NotificationDeviceTokenUpsertRequest,
+    NotificationInboxPage,
     NotificationPreferencesResponse,
     NotificationPreferencesUpdateRequest,
 )
@@ -26,6 +33,7 @@ from .service import (
 
 router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
 DatabaseSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentMobileSession = Annotated[MobileAccessContext, Depends(get_current_mobile_session)]
 
 
@@ -75,15 +83,36 @@ def remove_notification_device(
 @router.get("/preferences", response_model=NotificationPreferencesResponse)
 def read_notification_preferences(
     db: DatabaseSession,
-    session: CurrentMobileSession,
+    user: CurrentUser,
 ) -> NotificationPreferencesResponse:
-    return get_notification_preferences(db, session.user.id)
+    return get_notification_preferences(db, user.id)
 
 
-@router.put("/preferences", response_model=NotificationPreferencesResponse)
+@router.put(
+    "/preferences",
+    response_model=NotificationPreferencesResponse,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
 def write_notification_preferences(
     payload: NotificationPreferencesUpdateRequest,
     db: DatabaseSession,
-    session: CurrentMobileSession,
+    user: CurrentUser,
 ) -> NotificationPreferencesResponse:
-    return update_notification_preferences(db, session.user.id, payload)
+    return update_notification_preferences(db, user.id, payload)
+
+
+@router.get("/inbox", response_model=NotificationInboxPage)
+def read_inbox(
+    db: DatabaseSession,
+    user: CurrentUser,
+    before: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> NotificationInboxPage:
+    return inbox_page(db, user.id, before, limit)
+
+
+@router.put(
+    "/inbox/{item_id}/read", status_code=204, dependencies=[Depends(require_authenticated_mutation)]
+)
+def read_inbox_item(item_id: UUID, db: DatabaseSession, user: CurrentUser) -> None:
+    mark_inbox_read(db, user.id, item_id)

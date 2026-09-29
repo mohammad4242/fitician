@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -40,6 +41,7 @@ export function NutritionDoctorSupervision({ plan }: { readonly plan: WeeklyPlan
       title="تحت نظر پزشک"
       trailing={isPending ? <Text style={styles.pendingHeader}>● در انتظار پزشک</Text> : null}
     >
+      {plan && <ConversationPanel kind="nutrition" planId={plan.id} />}
       <View style={styles.itemGrid}>
         <DoctorItem
           icon="supplement"

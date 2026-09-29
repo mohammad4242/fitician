@@ -6,9 +6,14 @@ export type NotificationRoutePath =
   | "/member/body-analysis-history"
   | "/member/nutrition"
   | "/member/workouts"
-  | "/physician";
+  | "/physician"
+  | "/notifications";
 
 const notificationRoutes: Readonly<Record<string, NotificationRoutePath>> = {
+  program_message: "/notifications",
+  training_reminder: "/member/workouts",
+  nutrition_reminder: "/member/nutrition",
+  return_reminder: "/member",
   body_analysis_completed: "/member/body-analysis-history",
   body_analysis_failed: "/member/body-analysis-history",
   cycle_completion_feedback_due: "/member/workouts",
@@ -28,6 +33,7 @@ const notificationRoutes: Readonly<Record<string, NotificationRoutePath>> = {
 };
 
 const notificationRoutePaths = new Set<NotificationRoutePath>([
+  "/notifications",
   "/coach",
   "/member",
   "/member/body-analysis-history",

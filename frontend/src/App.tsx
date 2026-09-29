@@ -1,3 +1,5 @@
+import { NotificationsPage } from "./features/communication/NotificationsPage";
+import { ConversationPage } from "./features/communication/ConversationPage";
 import { lazy, Suspense, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
@@ -87,6 +89,8 @@ export function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<CompletedAppShellRoute />}>
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/conversation/:kind/:reviewId" element={<ConversationPage />} />
           <Route path="/plans" element={deferred(<PlansPage />)} />
           <Route path="/billing/checkout/:offerCode" element={deferred(<CheckoutPage />)} />
           <Route path="/billing/checkout-result" element={deferred(<CheckoutResultPage />)} />

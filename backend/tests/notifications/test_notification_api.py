@@ -150,7 +150,7 @@ def test_registration_reassigns_token_between_users_without_exposing_it(
     assert all("token" not in device for device in listed_a.json() + listed_b.json())
 
 
-def test_notification_endpoints_require_native_bearer_auth(client: TestClient) -> None:
+def test_notification_devices_require_native_bearer_auth(client: TestClient) -> None:
     _register(client, "cookie-member@example.com")
     client.post(
         "/api/v1/auth/register",
@@ -158,7 +158,7 @@ def test_notification_endpoints_require_native_bearer_auth(client: TestClient) -
         json={"email": "cookie-member-2@example.com", "password": "long password"},
     )
 
-    response = client.get("/api/v1/notifications/preferences")
+    response = client.get("/api/v1/notifications/devices")
 
     assert response.status_code == 401
     assert response.json()["detail"]["code"] == "BEARER_AUTHENTICATION_REQUIRED"

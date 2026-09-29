@@ -71,3 +71,10 @@ it("extracts notification data without trusting arbitrary routes or resource ids
   expect(isNotificationRoutePath("/member/workouts")).toBe(true);
   expect(notificationPathFromResponse(null)).toBeNull();
 });
+
+it("routes personal reminders and program messages to authenticated app screens", () => {
+  expect(notificationPathFromData({ event_type: "training_reminder" })).toBe("/member/workouts");
+  expect(notificationPathFromData({ event_type: "nutrition_reminder" })).toBe("/member/nutrition");
+  expect(notificationPathFromData({ event_type: "program_message" })).toBe("/notifications");
+  expect(notificationPathFromData({ event_type: "return_reminder" })).toBe("/member");
+});

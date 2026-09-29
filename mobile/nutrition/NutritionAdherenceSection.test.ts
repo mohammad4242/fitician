@@ -10,7 +10,9 @@ it("ports adherence history with the backend causality notice", async () => {
 
   expect(source).toMatch(/getAdherence/);
   expect(source).toMatch(/getTrackingHistory/);
-  expect(source).toMatch(/weight_causality_claimed/);
+  expect(source).toMatch(/<WeightTrend measurements=\{adherence.weight_trend\}/);
+  const trend = await readFile(resolve(nutritionDirectory, "WeightTrend.tsx"), "utf8");
+  expect(trend).toContain("weight changes alone do not prove dietary effects");
   expect(source).toMatch(/tracking_completeness/);
   expect(source).toMatch(/insufficient_data/);
 });

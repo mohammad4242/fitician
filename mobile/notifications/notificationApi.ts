@@ -3,7 +3,9 @@ import { Platform } from "react-native";
 
 export type NotificationDevice = components["schemas"]["NotificationDeviceResponse"];
 export type NotificationPreferences = components["schemas"]["NotificationPreferencesResponse"];
-export type NotificationPreferencesUpdate = components["schemas"]["NotificationPreferencesUpdateRequest"];
+type NotificationUpdateWire = components["schemas"]["NotificationPreferencesUpdateRequest"];
+type NewPreferenceFlags = "messages" | "training_reminders" | "nutrition_reminders" | "return_reminders";
+export type NotificationPreferencesUpdate = Omit<NotificationUpdateWire, NewPreferenceFlags> & Partial<Pick<NotificationUpdateWire, NewPreferenceFlags>>;
 export type NotificationTokenProvider = "fcm" | "apns";
 
 export function notificationProviderForPlatform(platform: string): NotificationTokenProvider {

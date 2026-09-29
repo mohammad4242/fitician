@@ -142,6 +142,21 @@ class NotificationPreference(Base):
     nutrition_updates: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default="true", nullable=False
     )
+    messages: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default="true", nullable=False
+    )
+    training_reminders: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    nutrition_reminders: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    return_reminders: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    training_time: Mapped[str | None] = mapped_column(String(5))
+    nutrition_time: Mapped[str | None] = mapped_column(String(5))
+    reminder_timezone: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -259,3 +274,23 @@ class NotificationEventDelivery(Base):
     )
 
     event: Mapped[NotificationOutboxEvent] = relationship(back_populates="deliveries")
+
+
+class NotificationInboxItem(Base):
+    __tablename__ = "notification_inbox_items"
+    __table_args__ = (
+        UniqueConstraint("user_id", "deduplication_key", name="uq_notification_inbox_dedup"),
+        Index("ix_notification_inbox_user_created", "user_id", "created_at"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)
+    deduplication_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

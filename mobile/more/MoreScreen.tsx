@@ -1,3 +1,4 @@
+import { NotificationsLink } from "../communication/NotificationsLink";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Image, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -130,6 +131,7 @@ export function MoreScreen() {
 
   return (
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
+      <NotificationsLink />
       <PageHeading title="بیشتر" />
 
       <Card

@@ -1,3 +1,5 @@
+import { NotificationsLink } from "../communication/NotificationsLink";
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -540,7 +542,8 @@ export function PhysicianNutritionReviewScreen() {
   }
 
   if (accessState.status === "loading") {
-    return <Screen contentWidth="reading"><Skeleton height={260} /></Screen>;
+    return <Screen contentWidth="reading">
+      <NotificationsLink /><Skeleton height={260} /></Screen>;
   }
   if (accessState.status === "error" && accessState.data === undefined) {
     return (
@@ -606,6 +609,7 @@ export function PhysicianNutritionReviewScreen() {
           {selected === undefined && detailState.status === "error" ? (
             <Notice actionLabel="تلاش دوباره" message={detailState.error.message} onAction={() => void detailQuery.refetch()} variant="danger" />
           ) : null}
+          {selected !== undefined && <ConversationPanel kind="nutrition" planId={selected.id} />}
           {selected !== undefined ? (
             <PhysicianReviewDetail
               busy={busy}

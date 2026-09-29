@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useState } from "react";
 
 import { ReviewDisclosure } from "../../shared/ReviewDisclosure";
@@ -76,6 +77,7 @@ export function CoachReviewCase({
 
   return (
     <article className="coach-review-case" data-testid="coach-review-case">
+      <ConversationPanel kind="workout" reviewId={selected.id} />
       <div className="coach-review-case-header" data-testid="coach-review-case-header">
         <SpecialistCaseHeader
           avatar={<ProfilePhotoAvatar label={memberName} size="md" url={selected.member_profile_photo_url} />}
@@ -99,7 +101,7 @@ export function CoachReviewCase({
         ariaLabel={fa ? "بخش‌های پرونده تمرینی" : "Workout case sections"}
         className="coach-review-case-tabs"
         fa={fa}
-        onChange={setActiveTab}
+        onChange={(id) => { const tab = tabs.find(tab => tab.id === id); if (tab) setActiveTab(tab.id); }}
         panelIdPrefix="coach-case-panel"
         tabIdPrefix="coach-case-tab"
         tabs={tabs.map((tab) => ({ id: tab.id, label: fa ? tab.fa : tab.en }))}

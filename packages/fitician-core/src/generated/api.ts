@@ -1655,6 +1655,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Inbox */
+        get: operations["read_inbox_api_v1_notifications_inbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/inbox/{item_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Read Inbox Item */
+        put: operations["read_inbox_item_api_v1_notifications_inbox__item_id__read_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/preferences": {
         parameters: {
             query?: never;
@@ -3385,6 +3419,58 @@ export type paths = {
         get?: never;
         /** Update Timezone */
         put: operations["update_timezone_api_v1_profile_timezone_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/program-conversations/{kind}/{review_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Conversation */
+        get: operations["read_conversation_api_v1_program_conversations__kind___review_id__get"];
+        put?: never;
+        /** Send Message */
+        post: operations["send_message_api_v1_program_conversations__kind___review_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/program-conversations/{kind}/{review_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark Read */
+        put: operations["mark_read_api_v1_program_conversations__kind___review_id__read_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/program-conversations/{kind}/by-plan/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read By Plan */
+        get: operations["read_by_plan_api_v1_program_conversations__kind__by_plan__plan_id__get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -6816,6 +6902,24 @@ export type components = {
             /** Protein G */
             protein_g?: number | null;
         };
+        /** ConversationResponse */
+        ConversationResponse: {
+            /** Available */
+            available: boolean;
+            /** Messages */
+            messages: components["schemas"]["MessageResponse"][];
+            /** Older Cursor */
+            older_cursor?: string | null;
+            /** Review Id */
+            review_id: string | null;
+            /** Unread Count */
+            unread_count: number;
+            /**
+             * Viewer Id
+             * Format: uuid
+             */
+            viewer_id: string;
+        };
         /**
          * CookingEquipment
          * @enum {string}
@@ -7992,6 +8096,36 @@ export type components = {
             /** Notes */
             notes?: string | null;
         };
+        /** MessageInput */
+        MessageInput: {
+            /** Body */
+            body: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** MessageResponse */
+        MessageResponse: {
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Sender Id
+             * Format: uuid
+             */
+            sender_id: string;
+        };
         /**
          * MetabolicBasis
          * @enum {string}
@@ -8327,6 +8461,36 @@ export type components = {
             /** Token */
             token: string;
         };
+        /** NotificationInboxPage */
+        NotificationInboxPage: {
+            /** Items */
+            items: components["schemas"]["NotificationInboxResponse"][];
+            /** Older Cursor */
+            older_cursor?: string | null;
+            /** Unread Count */
+            unread_count: number;
+        };
+        /** NotificationInboxResponse */
+        NotificationInboxResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Event Type */
+            event_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Read At */
+            read_at: string | null;
+        };
         /** NotificationPreferencesResponse */
         NotificationPreferencesResponse: {
             /** Approved Plans */
@@ -8337,12 +8501,38 @@ export type components = {
             cycle_reminders: boolean;
             /** Enabled */
             enabled: boolean;
+            /**
+             * Messages
+             * @default true
+             */
+            messages: boolean;
+            /**
+             * Nutrition Reminders
+             * @default false
+             */
+            nutrition_reminders: boolean;
+            /** Nutrition Time */
+            nutrition_time?: string | null;
             /** Nutrition Updates */
             nutrition_updates: boolean;
             /** Physician Decisions */
             physician_decisions: boolean;
+            /** Reminder Timezone */
+            reminder_timezone?: string | null;
             /** Required Reviews */
             required_reviews: boolean;
+            /**
+             * Return Reminders
+             * @default false
+             */
+            return_reminders: boolean;
+            /**
+             * Training Reminders
+             * @default false
+             */
+            training_reminders: boolean;
+            /** Training Time */
+            training_time?: string | null;
             /** Updated At */
             updated_at: string | null;
         };
@@ -8357,14 +8547,40 @@ export type components = {
             /** Enabled */
             enabled: boolean;
             /**
+             * Messages
+             * @default true
+             */
+            messages: boolean;
+            /**
+             * Nutrition Reminders
+             * @default false
+             */
+            nutrition_reminders: boolean;
+            /** Nutrition Time */
+            nutrition_time?: string | null;
+            /**
              * Nutrition Updates
              * @default true
              */
             nutrition_updates: boolean;
             /** Physician Decisions */
             physician_decisions: boolean;
+            /** Reminder Timezone */
+            reminder_timezone?: string | null;
             /** Required Reviews */
             required_reviews: boolean;
+            /**
+             * Return Reminders
+             * @default false
+             */
+            return_reminders: boolean;
+            /**
+             * Training Reminders
+             * @default false
+             */
+            training_reminders: boolean;
+            /** Training Time */
+            training_time?: string | null;
         };
         /** NutritionAdaptivePreferencesResponse */
         NutritionAdaptivePreferencesResponse: {
@@ -10521,6 +10737,14 @@ export type components = {
             used: number;
             /** Window Days */
             window_days: number;
+        };
+        /** ReadInput */
+        ReadInput: {
+            /**
+             * Message Id
+             * Format: uuid
+             */
+            message_id: string;
         };
         /** RecentTrainingHistory */
         RecentTrainingHistory: {
@@ -16487,6 +16711,67 @@ export interface operations {
             };
         };
     };
+    read_inbox_api_v1_notifications_inbox_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationInboxPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_inbox_item_api_v1_notifications_inbox__item_id__read_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_notification_preferences_api_v1_notifications_preferences_get: {
         parameters: {
             query?: never;
@@ -20149,6 +20434,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimezoneResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_conversation_api_v1_program_conversations__kind___review_id__get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                kind: "workout" | "nutrition";
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_program_conversations__kind___review_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "workout" | "nutrition";
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_read_api_v1_program_conversations__kind___review_id__read_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "workout" | "nutrition";
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_by_plan_api_v1_program_conversations__kind__by_plan__plan_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "workout" | "nutrition";
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationResponse"];
                 };
             };
             /** @description Validation Error */

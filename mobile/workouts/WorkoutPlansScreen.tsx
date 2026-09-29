@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { workoutGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
@@ -475,6 +476,7 @@ export function WorkoutPlansScreen() {
 
   return (
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
+      {activePlan && <ConversationPanel kind="workout" planId={activePlan.id} />}
       {generationAccessReady && !canGenerateEntitled ? (
         <Notice
           message="برای ساخت برنامه تمرینی جدید، دسترسی تمرین لازم است. برنامه‌ها و تاریخچه قبلی همچنان قابل مشاهده‌اند."

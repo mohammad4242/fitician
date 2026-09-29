@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useState, type ReactNode } from "react";
 
 import { formatIsoDate, formatPersianDate } from "@fitician/core";
@@ -103,6 +104,7 @@ export function PhysicianReviewCase({
 
   return (
     <article className="physician-review-case" data-testid="physician-review-case">
+      <ConversationPanel kind="nutrition" reviewId={review.review_id} />
       <div className="physician-review-case-header" data-testid="physician-review-case-header">
         <SpecialistCaseHeader
           avatar={<ProfilePhotoAvatar label={memberName} size="md" url={review.member_profile_photo_url} />}
@@ -127,7 +129,7 @@ export function PhysicianReviewCase({
         ariaLabel={fa ? "بخش‌های پرونده تغذیه" : "Nutrition case sections"}
         className="physician-case-tabs"
         fa={fa}
-        onChange={setActiveTab}
+        onChange={(id) => { const tab = tabs.find(tab => tab.id === id); if (tab) setActiveTab(tab.id); }}
         panelIdPrefix="physician-case-panel"
         tabIdPrefix="physician-case-tab"
         tabs={tabs.map((tab) => ({ id: tab.id, label: tabTitle(tab.id) }))}

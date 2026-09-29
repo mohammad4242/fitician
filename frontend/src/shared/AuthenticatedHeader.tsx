@@ -97,6 +97,7 @@ export function AuthenticatedHeader() {
       active: location.pathname.startsWith("/body-progress"),
       visible: hasTraining,
     },
+    { to: "/notifications", label: i18n.resolvedLanguage === "en" ? "Notifications" : "اعلان‌ها", active: location.pathname === "/notifications", visible: true },
     {
       to: status === "ready" ? "/profile" : "/onboarding",
       label: status === "ready" ? t("header.profile") : t("header.completeProfile"),

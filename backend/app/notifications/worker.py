@@ -29,15 +29,19 @@ from .models import (
     NotificationOutboxEvent,
     NotificationPreference,
 )
+from .personal_reminders import enqueue_personal_reminders, personal_event_is_current
 from .provider import NotificationProvider, NotificationProviderName, NotificationSendOutcome
 from .reminders import enqueue_due_cycle_reminders
 
 logger = logging.getLogger(__name__)
 
-NotificationProviders = NotificationProvider | Mapping[
-    NotificationProviderName,
-    NotificationProvider,
-]
+NotificationProviders = (
+    NotificationProvider
+    | Mapping[
+        NotificationProviderName,
+        NotificationProvider,
+    ]
+)
 
 
 def claim_outbox_events(
@@ -98,6 +102,13 @@ def process_outbox_event(
         db.rollback()
         return False
 
+    if not personal_event_is_current(db, event, now):
+        event.status = "processed"
+        event.processed_at = now
+        event.locked_at = None
+        event.locked_by = None
+        db.commit()
+        return True
     preference = db.get(NotificationPreference, event.user_id)
     preference_field = PREFERENCE_FIELDS.get(event.category)
     if preference_field is None:
@@ -261,6 +272,22 @@ def process_notification_delivery(
         db.commit()
         return True
 
+    preference = db.get(NotificationPreference, event.user_id)
+    preference_field = PREFERENCE_FIELDS.get(event.category)
+    if not personal_event_is_current(db, event, now) or (
+        preference is not None
+        and (
+            not preference.enabled
+            or (preference_field is not None and not getattr(preference, preference_field))
+        )
+    ):
+        delivery.status = "dead_letter"
+        delivery.dead_letter_at = now
+        delivery.last_error = "NOTIFICATION_NO_LONGER_DUE"
+        delivery.locked_at = None
+        delivery.locked_by = None
+        db.commit()
+        return True
     selected_provider = _provider_for_token(provider, token.provider)
     if selected_provider is None:
         delivery.status = "pending"
@@ -387,6 +414,7 @@ def run_notification_once(
 ) -> int:
     current = now or datetime.now(UTC)
     reminders = enqueue_due_cycle_reminders(db, now=current)
+    reminders += enqueue_personal_reminders(db, now=current)
     processed = run_outbox_once(
         db,
         worker_id=worker_id,

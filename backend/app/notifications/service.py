@@ -169,6 +169,13 @@ def _preferences_response(
         cycle_reminders=preferences.cycle_reminders,
         physician_decisions=preferences.physician_decisions,
         nutrition_updates=preferences.nutrition_updates,
+        messages=preferences.messages,
+        training_reminders=preferences.training_reminders,
+        nutrition_reminders=preferences.nutrition_reminders,
+        return_reminders=preferences.return_reminders,
+        training_time=preferences.training_time,
+        nutrition_time=preferences.nutrition_time,
+        reminder_timezone=preferences.reminder_timezone,
         updated_at=preferences.updated_at,
     )
 
@@ -197,6 +204,21 @@ def update_notification_preferences(
     preferences.cycle_reminders = payload.cycle_reminders
     preferences.physician_decisions = payload.physician_decisions
     preferences.nutrition_updates = payload.nutrition_updates
+    for field in (
+        "messages",
+        "training_reminders",
+        "nutrition_reminders",
+        "return_reminders",
+        "training_time",
+        "nutrition_time",
+        "reminder_timezone",
+    ):
+        if field in payload.model_fields_set:
+            setattr(preferences, field, getattr(payload, field))
+    if preferences.training_reminders and not preferences.training_time:
+        preferences.training_time = "09:00"
+    if preferences.nutrition_reminders and not preferences.nutrition_time:
+        preferences.nutrition_time = "09:00"
     preferences.updated_at = now
     db.commit()
     db.refresh(preferences)

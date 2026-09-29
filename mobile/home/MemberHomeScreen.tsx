@@ -1,3 +1,4 @@
+import { NotificationsLink } from "../communication/NotificationsLink";
 import { useQuery } from "@tanstack/react-query";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
@@ -212,6 +213,7 @@ export function MemberHomeScreen() {
 
   return (
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
+      <NotificationsLink />
       <PageHeading
         action={<Pressable
           accessibilityLabel="باز کردن پروفایل"

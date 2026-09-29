@@ -111,3 +111,7 @@ export function useAuth(): AuthContextValue {
   }
   return context;
 }
+
+export function useAuthIdentity(): string | null {
+  return useContext(AuthContext)?.user?.id ?? null;
+}

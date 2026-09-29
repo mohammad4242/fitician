@@ -131,3 +131,13 @@ def get_current_mobile_session(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return context
+
+
+def require_authenticated_mutation(
+    request: Request, authentication: CurrentAuthentication, settings: AppSettings
+) -> None:
+    """Require a trusted origin for cookies; verified native bearer tokens need no CSRF guard."""
+    if not authentication.via_bearer:
+        from app.auth.cookies import require_trusted_origin
+
+        require_trusted_origin(request, settings)

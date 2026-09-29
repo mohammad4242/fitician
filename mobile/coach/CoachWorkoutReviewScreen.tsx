@@ -1,3 +1,5 @@
+import { NotificationsLink } from "../communication/NotificationsLink";
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -338,6 +340,7 @@ export function CoachWorkoutReviewScreen() {
 
   return (
     <Screen contentWidth="reading">
+      <NotificationsLink />
       <PageHeading
         action={<Button label="بازگشت" onPress={goBack} variant="ghost" />}
         eyebrow="میز کار مربی"
@@ -384,6 +387,7 @@ export function CoachWorkoutReviewScreen() {
             {selected === undefined && detailState.status === "error" ? (
               <Notice actionLabel="تلاش دوباره" message={detailState.error.message} onAction={() => void detailQuery.refetch()} variant="danger" />
             ) : null}
+          {selected !== undefined && <ConversationPanel kind="workout" reviewId={selected.id} />}
             {selected !== undefined && draft !== null ? (
               <CoachReviewDetail
                 busy={busy}

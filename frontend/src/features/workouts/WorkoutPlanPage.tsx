@@ -1,3 +1,4 @@
+import { ConversationPanel } from "../communication/ConversationPanel";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -538,6 +539,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           locale={isEnglish ? "en" : "fa"}
         />
 
+        {activePlan !== null && <ConversationPanel kind="workout" planId={activePlan.id} />}
         {!isViewingHistorical && memberReview !== null && (
           <MemberWorkoutReviewCard
             review={memberReview}

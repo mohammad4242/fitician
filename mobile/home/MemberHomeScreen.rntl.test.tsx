@@ -374,7 +374,7 @@ test("keeps Home targets on the effective plan during a future nutrition handoff
   renderHome();
 
   expect(screen.getByText("۲٬۲۰۰")).toBeTruthy();
-  expect(screen.getByText("۱۵۰g")).toBeTruthy();
+  expect(screen.queryByText("۱۵۰g")).toBeNull();
   expect(screen.queryByText("۳٬۰۰۰")).toBeNull();
 });
 

@@ -9504,6 +9504,63 @@
         "title": "ConsumptionEntryEditInput",
         "type": "object"
       },
+      "ConversationResponse": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageResponse"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "older_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Older Cursor"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          },
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          },
+          "viewer_id": {
+            "format": "uuid",
+            "title": "Viewer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_id",
+          "available",
+          "viewer_id",
+          "messages",
+          "unread_count"
+        ],
+        "title": "ConversationResponse",
+        "type": "object"
+      },
       "CookingEquipment": {
         "enum": [
           "stove",
@@ -12710,6 +12767,59 @@
         "title": "MedicationInput",
         "type": "object"
       },
+      "MessageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body",
+          "request_id"
+        ],
+        "title": "MessageInput",
+        "type": "object"
+      },
+      "MessageResponse": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "sender_id": {
+            "format": "uuid",
+            "title": "Sender Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "body",
+          "created_at",
+          "sender_id"
+        ],
+        "title": "MessageResponse",
+        "type": "object"
+      },
       "MetabolicBasis": {
         "enum": [
           "female_coefficient",
@@ -13589,6 +13699,83 @@
         "title": "NotificationDeviceTokenUpsertRequest",
         "type": "object"
       },
+      "NotificationInboxPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationInboxResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "older_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Older Cursor"
+          },
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread_count"
+        ],
+        "title": "NotificationInboxPage",
+        "type": "object"
+      },
+      "NotificationInboxResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          }
+        },
+        "required": [
+          "id",
+          "event_type",
+          "payload",
+          "created_at",
+          "read_at"
+        ],
+        "title": "NotificationInboxResponse",
+        "type": "object"
+      },
       "NotificationPreferencesResponse": {
         "properties": {
           "approved_plans": {
@@ -13607,6 +13794,27 @@
             "title": "Enabled",
             "type": "boolean"
           },
+          "messages": {
+            "default": true,
+            "title": "Messages",
+            "type": "boolean"
+          },
+          "nutrition_reminders": {
+            "default": false,
+            "title": "Nutrition Reminders",
+            "type": "boolean"
+          },
+          "nutrition_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nutrition Time"
+          },
           "nutrition_updates": {
             "title": "Nutrition Updates",
             "type": "boolean"
@@ -13615,9 +13823,41 @@
             "title": "Physician Decisions",
             "type": "boolean"
           },
+          "reminder_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Timezone"
+          },
           "required_reviews": {
             "title": "Required Reviews",
             "type": "boolean"
+          },
+          "return_reminders": {
+            "default": false,
+            "title": "Return Reminders",
+            "type": "boolean"
+          },
+          "training_reminders": {
+            "default": false,
+            "title": "Training Reminders",
+            "type": "boolean"
+          },
+          "training_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Time"
           },
           "updated_at": {
             "anyOf": [
@@ -13664,6 +13904,27 @@
             "title": "Enabled",
             "type": "boolean"
           },
+          "messages": {
+            "default": true,
+            "title": "Messages",
+            "type": "boolean"
+          },
+          "nutrition_reminders": {
+            "default": false,
+            "title": "Nutrition Reminders",
+            "type": "boolean"
+          },
+          "nutrition_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nutrition Time"
+          },
           "nutrition_updates": {
             "default": true,
             "title": "Nutrition Updates",
@@ -13673,9 +13934,41 @@
             "title": "Physician Decisions",
             "type": "boolean"
           },
+          "reminder_timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Timezone"
+          },
           "required_reviews": {
             "title": "Required Reviews",
             "type": "boolean"
+          },
+          "return_reminders": {
+            "default": false,
+            "title": "Return Reminders",
+            "type": "boolean"
+          },
+          "training_reminders": {
+            "default": false,
+            "title": "Training Reminders",
+            "type": "boolean"
+          },
+          "training_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Training Time"
           }
         },
         "required": [
@@ -20348,6 +20641,21 @@
           "reset_at"
         ],
         "title": "QuotaStatusResponse",
+        "type": "object"
+      },
+      "ReadInput": {
+        "additionalProperties": false,
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "title": "ReadInput",
         "type": "object"
       },
       "RecentTrainingHistory": {
@@ -33223,6 +33531,114 @@
         ]
       }
     },
+    "/api/v1/notifications/inbox": {
+      "get": {
+        "operationId": "read_inbox_api_v1_notifications_inbox_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationInboxPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Inbox",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/inbox/{item_id}/read": {
+      "put": {
+        "operationId": "read_inbox_item_api_v1_notifications_inbox__item_id__read_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Inbox Item",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/notifications/preferences": {
       "get": {
         "operationId": "read_notification_preferences_api_v1_notifications_preferences_get",
@@ -39121,6 +39537,290 @@
         "summary": "Update Timezone",
         "tags": [
           "profile"
+        ]
+      }
+    },
+    "/api/v1/program-conversations/{kind}/by-plan/{plan_id}": {
+      "get": {
+        "operationId": "read_by_plan_api_v1_program_conversations__kind__by_plan__plan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workout",
+                "nutrition"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read By Plan",
+        "tags": [
+          "program-conversations"
+        ]
+      }
+    },
+    "/api/v1/program-conversations/{kind}/{review_id}": {
+      "get": {
+        "operationId": "read_conversation_api_v1_program_conversations__kind___review_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workout",
+                "nutrition"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Conversation",
+        "tags": [
+          "program-conversations"
+        ]
+      },
+      "post": {
+        "operationId": "send_message_api_v1_program_conversations__kind___review_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workout",
+                "nutrition"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Send Message",
+        "tags": [
+          "program-conversations"
+        ]
+      }
+    },
+    "/api/v1/program-conversations/{kind}/{review_id}/read": {
+      "put": {
+        "operationId": "mark_read_api_v1_program_conversations__kind___review_id__read_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "workout",
+                "nutrition"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Read",
+        "tags": [
+          "program-conversations"
         ]
       }
     },

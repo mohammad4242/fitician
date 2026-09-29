@@ -267,3 +267,5 @@ export type {
 } from "./errors";
 
 export { workoutGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";
+export { createCommunicationApi, createMessageRequestId } from "./communication";
+export type { Conversation, ProgramMessage, NotificationInbox, PersonalNotificationSettings, PersonalNotificationInput, ConversationKind, CommunicationRequest } from "./communication";

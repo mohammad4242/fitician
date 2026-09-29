@@ -18,6 +18,30 @@ class NotificationCopy:
 
 
 _COPY: dict[str, NotificationCopy] = {
+    "program_message": NotificationCopy(
+        title="پیام جدید",
+        body="یک پیام درباره برنامه شما آماده است.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"kind", "review_id"}),
+    ),
+    "training_reminder": NotificationCopy(
+        title="وقت تمرین",
+        body="جلسه امروزت را در برنامه ببین.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"local_date", "due_at", "session_id"}),
+    ),
+    "nutrition_reminder": NotificationCopy(
+        title="برنامه تغذیه امروز",
+        body="برنامه تغذیه امروزت را مرور کن.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"local_date", "due_at"}),
+    ),
+    "return_reminder": NotificationCopy(
+        title="ادامه مسیر",
+        body="برای ادامه، وضعیت برنامه‌ات را مرور کن.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"local_date", "due_at"}),
+    ),
     "workout_plan_approved": NotificationCopy(
         title="برنامه آماده است",
         body="برنامه تمرینی شما برای استفاده آماده شده است.",
@@ -124,6 +148,10 @@ _COPY: dict[str, NotificationCopy] = {
 
 
 PREFERENCE_FIELDS: dict[str, str] = {
+    "messages": "messages",
+    "training_reminders": "training_reminders",
+    "nutrition_reminders": "nutrition_reminders",
+    "return_reminders": "return_reminders",
     "approved_plans": "approved_plans",
     "required_reviews": "required_reviews",
     "body_analysis": "body_analysis",

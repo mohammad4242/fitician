@@ -265,7 +265,7 @@ beforeEach(() => {
     listPhotoEstimates: jest.fn<(limit?: number) => Promise<unknown>>().mockResolvedValue([]),
   };
   mockCreateTrackingApi.mockReturnValue(trackingApi as never);
-  mockCreateCatalogueApi.mockReturnValue({ getFoodCatalogue: jest.fn().mockResolvedValue({ items: [catalogueFood, secondCatalogueFood], total: 2 }) } as never);
+  mockCreateCatalogueApi.mockReturnValue({ getFoodCatalogue: jest.fn(() => Promise.resolve({ items: [catalogueFood, secondCatalogueFood], total: 2 })) } as never);
   mockCreateNutritionApi.mockReturnValue({ getCurrentEstimate: jest.fn() } as never);
   mockUseQueryClient.mockReturnValue(queryClient as never);
   mockUseMobileAuth.mockReturnValue({
