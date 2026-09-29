@@ -46,15 +46,16 @@ test("renders requested, recommended, and safety-applied weekly rates", () => {
   expect(screen.getByText("۰٫۸ کیلوگرم/هفته")).toBeTruthy();
 });
 
-test("uses the direct-rate wording for an explicit override", () => {
+test("keeps safety adjustment visible for a user requested rate", () => {
   render(
     <NutritionWeightRateCard
       estimate={estimateWithRate({ weight_rate_mode: "user_override" })}
     />,
   );
 
-  expect(screen.getByText("نرخ دلخواه من")).toBeTruthy();
-  expect(screen.getByText("مقدار اعمال‌شده (نرخ مستقیم)")).toBeTruthy();
+  expect(screen.getByText("تنظیم‌شده برای ایمنی خودکار")).toBeTruthy();
+  expect(screen.getByText("مقدار اعمال‌شده (تنظیم ایمنی)")).toBeTruthy();
+  expect(screen.queryByText("مقدار اعمال‌شده (نرخ مستقیم)")).toBeNull();
 });
 
 test("keeps the RTL title group intact before the opposite-side mode controls", () => {

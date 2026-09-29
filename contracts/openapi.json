@@ -24489,6 +24489,23 @@
             "title": "Item Kind",
             "type": "string"
           },
+          "measurement_basis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "raw",
+                  "dry",
+                  "cooked",
+                  "as_purchased"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measurement Basis"
+          },
           "name_en": {
             "title": "Name En",
             "type": "string"

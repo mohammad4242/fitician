@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import {
   FITICIAN_WEEKDAY_LABELS_FA,
+  foodMeasurementBasisLabel,
   formatIsoDate,
   formatPersianDate,
   formatTehranDateTimeForLocale,
@@ -392,7 +393,7 @@ export function WeeklyNutritionPlan({ plan, language, isReferencePlan = false, t
                 {meal.foods.map((food) => (
                   <li key={`${meal.id}-${food.food_id ?? food.slug}`}>
                     <span>{language === "en" ? food.name_en : food.name_fa}</span>
-                    <strong>{number.format(food.grams)} {l("گرم", "g")}</strong>
+                    <strong>{number.format(food.grams)} {l("گرم", "g")} · {foodMeasurementBasisLabel(food.measurement_basis, language)}</strong>
                   </li>
                 ))}
               </ul>
@@ -592,7 +593,7 @@ function FreeMealCard({ meal, entryDate, language }: { meal: WeeklyPlan["days"][
       setActualTotal(summary.actual_totals.energy_kcal ?? 0);
     } finally { setSaving(false); }
   }
-  const plannedCalories = meal.nutrient_totals.energy_kcal;
+  const plannedCalories = meal.target_distribution.goal_calories;
   return <details className="weekly-plan__meal weekly-plan__free-meal">
     <summary className="weekly-plan__meal-summary">
       <div className="weekly-plan__meal-heading">
@@ -605,6 +606,7 @@ function FreeMealCard({ meal, entryDate, language }: { meal: WeeklyPlan["days"][
       </div>
     </summary>
     <div className="weekly-plan__meal-content">
+      <p>{l("این مقدار، سهم برنامه‌ریزی‌شده وعده آزاد است؛ مصرف واقعی را جداگانه ثبت کن.", "This is the Free Meal allowance; record actual intake separately.")} {l("پروتئین هدف", "Protein target")}: {meal.target_distribution.protein ?? "—"} g</p>
       <p>{l("لطفاً جهت محاسبه کالری روزانه از وعده آزاد عکس بگیرید و اطلاعات مهم وعده آزاد را اینجا وارد کنید.", "Optionally take a photo, then enter the Free Meal nutrition details here.")}</p>
       <div className="weekly-plan__free-fields">{fields.map(([key, label, unit]) => <label key={key}><i aria-hidden="true" /><span>{label}</span><input aria-label={label} min="0" type="number" value={values[key]} onChange={(event) => setValues((current) => ({ ...current, [key]: event.target.value }))} /><b>{unit}</b></label>)}</div>
       <div className="weekly-plan__meal-actions"><Link to={`/nutrition-tracking?freeMealId=${meal.id}&entryDate=${entryDate}&return=${encodeURIComponent("/nutrition-estimate")}`}>{l("محاسبه با عکس اختیاری", "Optional photo estimate")}</Link><button disabled={saving} type="button" onClick={() => void save()}>{saving ? l("در حال ثبت…", "Saving…") : l("ثبت وعده آزاد", "Save Free Meal")}</button></div>

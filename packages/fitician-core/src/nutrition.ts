@@ -155,6 +155,7 @@ export type WeeklyPlanFood = {
   name_fa: string;
   name_en: string;
   grams: number;
+  measurement_basis?: "raw" | "dry" | "cooked" | "as_purchased" | null;
   cost_irr: number;
   nutrients: Record<string, number>;
   prepared_recipe?: {
@@ -163,6 +164,15 @@ export type WeeklyPlanFood = {
     cost_irr_per_100g: number;
   } | null;
 };
+
+export function foodMeasurementBasisLabel(basis: string | null | undefined, language: "fa" | "en" = "fa"): string {
+  const labels: Record<string, [string, string]> = {
+    raw: ["وزن خام", "Raw weight"], dry: ["وزن خشک", "Dry weight"],
+    cooked: ["وزن پخته", "Cooked weight"], as_purchased: ["وزن هنگام خرید", "As purchased weight"],
+  };
+  const label = basis ? labels[basis] : undefined;
+  return label?.[language === "en" ? 1 : 0] ?? (language === "en" ? "Weight basis unknown" : "مبنای وزن نامشخص");
+}
 
 export type MealFeedbackType =
   | "liked"

@@ -12102,6 +12102,8 @@ export type components = {
              * @enum {string}
              */
             item_kind: "food" | "prepared_recipe";
+            /** Measurement Basis */
+            measurement_basis?: ("raw" | "dry" | "cooked" | "as_purchased") | null;
             /** Name En */
             name_en: string;
             /** Name Fa */

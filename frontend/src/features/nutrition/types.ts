@@ -158,6 +158,7 @@ export type WeeklyPlanFood = {
   name_fa: string;
   name_en: string;
   grams: number;
+  measurement_basis?: "raw" | "dry" | "cooked" | "as_purchased" | null;
   cost_irr: number;
   nutrients: Record<string, number>;
   prepared_recipe?: {

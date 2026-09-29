@@ -28,10 +28,9 @@ export function NutritionWeightRateCard({
   if (requested === null && recommended === null && applied === null) return null;
 
   const rateMode = snapshot?.weight_rate_mode === "user_override" ? "user_override" : "safe";
-  const isOverride = rateMode === "user_override"
-    || estimate.confidence_reasons.includes("WEIGHT_RATE_USER_OVERRIDE_APPLIED");
-  const isClamped = !isOverride
-    && estimate.confidence_reasons.includes("WEIGHT_RATE_CLAMPED_FOR_AUTOMATIC_SAFETY");
+  const isClamped = estimate.confidence_reasons.includes("WEIGHT_RATE_CLAMPED_FOR_AUTOMATIC_SAFETY");
+  const isOverride = !isClamped && (rateMode === "user_override"
+    || estimate.confidence_reasons.includes("WEIGHT_RATE_USER_OVERRIDE_APPLIED"));
 
   return (
     <Card accessibilityLabel="نرخ تغییر وزن هفتگی" style={styles.card}>

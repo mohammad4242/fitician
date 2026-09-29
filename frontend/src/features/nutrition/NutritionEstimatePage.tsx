@@ -1641,12 +1641,11 @@ function WeightRateCard({
 
   const rateMode: "safe" | "user_override" =
     snapshot["weight_rate_mode"] === "user_override" ? "user_override" : "safe";
-  const isOverride =
+  const isClamped = estimate.confidence_reasons.includes("WEIGHT_RATE_CLAMPED_FOR_AUTOMATIC_SAFETY");
+  const isOverride = !isClamped && (
     rateMode === "user_override" ||
-    estimate.confidence_reasons.includes("WEIGHT_RATE_USER_OVERRIDE_APPLIED");
-  const isClamped =
-    !isOverride &&
-    estimate.confidence_reasons.includes("WEIGHT_RATE_CLAMPED_FOR_AUTOMATIC_SAFETY");
+    estimate.confidence_reasons.includes("WEIGHT_RATE_USER_OVERRIDE_APPLIED")
+  );
 
   async function handleSwitchMode(newMode: "safe" | "user_override") {
     if (newMode === rateMode || switching) return;

@@ -834,15 +834,15 @@ it("renders weekly weight rate card with requested, recommended, and applied rat
   expect(screen.getByText("۰٫۸ کیلوگرم/هفته")).toBeInTheDocument();
 });
 
-it("renders weight rate card in user override mode with override badge", async () => {
+it("keeps safety adjustment visible in user requested rate mode", async () => {
   await i18n.changeLanguage("fa");
   const overrideEstimate: NutritionEstimate = {
     ...estimate,
-    confidence_reasons: ["complete_anthropometrics", "WEIGHT_RATE_USER_OVERRIDE_APPLIED"],
+    confidence_reasons: ["complete_anthropometrics", "WEIGHT_RATE_CLAMPED_FOR_AUTOMATIC_SAFETY"],
     input_snapshot: {
       requested_weight_change_kg_per_week: "1.8",
       recommended_weight_change_kg_per_week: "0.5",
-      applied_weight_change_kg_per_week: "1.8",
+      applied_weight_change_kg_per_week: "0.4",
       weight_rate_mode: "user_override",
     },
   };
@@ -853,8 +853,8 @@ it("renders weight rate card in user override mode with override badge", async (
 
   expect(await screen.findByRole("heading", { name: "تغذیه" })).toBeInTheDocument();
   expect(await screen.findByRole("region", { name: "نرخ تغییر وزن هفتگی" })).toBeInTheDocument();
-  expect(screen.getByText("نرخ دلخواه من")).toBeInTheDocument();
-  expect(screen.getByText("مقدار اعمال‌شده (نرخ مستقیم)")).toBeInTheDocument();
+  expect(screen.getByText("تنظیم‌شده برای ایمنی خودکار")).toBeInTheDocument();
+  expect(screen.getByText("مقدار اعمال‌شده (تنظیم ایمنی)")).toBeInTheDocument();
 });
 
 it("shows only one plan when cost gap is below 1M Toman (< 10M IRR)", async () => {

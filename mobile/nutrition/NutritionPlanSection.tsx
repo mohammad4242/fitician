@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FITICIAN_WEEKDAY_LABELS_FA,
+  foodMeasurementBasisLabel,
   formatPersianDate,
   formatPersianDateWithWeekday,
   formatTehranDateTime,
@@ -1027,7 +1028,7 @@ function NutritionMealCard({
   return (
     <DisclosureCard
       leading={<NutritionThumbnail imageUrl={meal.image_url} name={mealName} style={styles.mealThumbnail} />}
-      summary={`${mealRoleLabel(meal.slot_role)} · ${formatNutritionNumber(meal.nutrient_totals.energy_kcal ?? 0)} kcal · ${formatNutritionPlanMoney(meal.cost_irr)}`}
+      summary={`${mealRoleLabel(meal.slot_role)} · ${formatNutritionNumber(meal.slot_role === "free_meal" ? meal.target_distribution.goal_calories ?? 0 : meal.nutrient_totals.energy_kcal ?? 0)} kcal · ${formatNutritionPlanMoney(meal.cost_irr)}`}
       style={styles.mealCard}
       title={mealName}
     >
@@ -1043,13 +1044,13 @@ function NutritionMealCard({
                   style={styles.foodThumbnail}
                 />
                 <Text style={styles.foodName}>{food.name_fa || food.name_en}</Text>
-                <Text style={styles.foodAmount}>{formatNutritionNumber(food.grams)} گرم</Text>
+                <Text style={styles.foodAmount}>{formatNutritionNumber(food.grams)} گرم · {foodMeasurementBasisLabel(food.measurement_basis)}</Text>
               </View>
               <PreparedRecipeSummary summary={preparedRecipePresentation(food)} />
             </View>
           ))}
         </View>
-      ) : <Text style={styles.bodyText}>جزئیات این وعده هنوز در دسترس نیست.</Text>}
+      ) : <Text style={styles.bodyText}>{meal.slot_role === "free_meal" ? "این مقدار، سهم برنامه‌ریزی‌شده وعده آزاد است؛ مصرف واقعی را جداگانه ثبت کن." : "جزئیات این وعده هنوز در دسترس نیست."}</Text>}
       {mealMacroEntries.length > 0 ? (
         <View style={[styles.mealNutrients, RTL_ROW]}>
           {mealMacroEntries.map((nutrient) => (

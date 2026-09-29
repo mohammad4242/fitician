@@ -476,6 +476,30 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
     text("ساخت برنامه کامل نشد", "Plan generation constraints"),
     text("ساخت برنامه با یکی از محدودیت‌های فعلی کامل نشد.", "The plan could not be generated because of one of the current constraints."),
   ),
+  MICRONUTRIENT_ADEQUACY_REVIEW_REQUIRED: entry(
+    text("بررسی تغذیه‌ای لازم است", "Nutrition review required"),
+    text("پس از تنظیم مقدار غذاها، دریافت بعضی ریزمغذی‌ها هنوز پایین است. برنامه باید توسط متخصص بررسی شود.", "Some micronutrient intakes remain low after portion adjustment. A nutrition specialist should review this plan."),
+  ),
+  ALLERGEN_SAFE_CATALOGUE_COVERAGE_REQUIRED: entry(
+    text("غذاهای ایمن کافی نیست", "Insufficient verified allergy-safe foods"),
+    text("برای حساسیت‌های شما، غذاهای سازگار با اطلاعات تأییدشده کافی نیست. اطلاعات غذاها باید بررسی شود.", "There are not enough compatible foods with verified allergen information for your allergies. The food information needs review."),
+  ),
+  PLAN_EDIT_NUTRITION_CONSTRAINT_VIOLATION: entry(
+    text("تغییر برنامه قابل قبول نیست", "Plan change is not acceptable"),
+    text("این تغییر تعادل یا ایمنی برنامه را به هم می‌زند. جایگزین دیگری انتخاب کنید یا با متخصص بررسی کنید.", "This change compromises the plan's nutritional balance or safety. Choose another replacement or consult a specialist."),
+  ),
+  FOOD_REPLACEMENT_INCOMPATIBLE: entry(
+    text("جایگزین غذا سازگار نیست", "Incompatible food replacement"),
+    text("این دو غذا نقش تغذیه‌ای یکسانی ندارند. جایگزین مناسب دیگری انتخاب کنید.", "These foods have different nutritional roles. Choose another compatible replacement."),
+  ),
+  FOOD_PORTION_OUTSIDE_BOUNDS: entry(
+    text("مقدار غذا مناسب نیست", "Food portion is outside its limits"),
+    text("این مقدار خارج از اندازه قابل قبول این غذاست. مقدار یا جایگزین دیگری انتخاب کنید.", "This quantity is outside the food's acceptable portion range. Choose another quantity or replacement."),
+  ),
+  MEAL_REPETITION_LIMIT_EXCEEDED: entry(
+    text("تنوع وعده‌ها کافی نیست", "Insufficient meal variety"),
+    text("با سقف تکرار انتخاب‌شده، وعده‌های سازگار کافی نیست. تنوع غذاها یا سقف تکرار را بازبینی کنید.", "There are not enough compatible meals within your repetition limit. Review the food selection or repetition limit."),
+  ),
   STRICT_BUDGET_EXCEEDED: entry(
     text("بودجه سخت‌گیرانه کافی نیست", "Strict budget exceeded"),
     text("هزینه برنامه‌ای که با شرایط فعلی ساخته شد از بودجه غذایی تعیین‌شده بیشتر است. بودجه را افزایش بده یا حالت بودجه را از سخت‌گیرانه به انعطاف‌پذیر تغییر بده.", "The generated plan exceeds your current strict food budget. Increase the budget or switch to flexible budget mode."),

@@ -45,6 +45,7 @@ const food = (id: string, name: string, grams = 90) => ({
   name_fa: name,
   name_en: name,
   grams,
+  measurement_basis: "dry" as const,
   cost_irr: 100_000,
   nutrients: { energy_kcal: 150, protein_g: 30 },
 });
@@ -359,4 +360,18 @@ it("shows an error message when PDF download fails", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.",
   );
+});
+
+it("shows the free meal allowance without pre-filling actual intake", async () => {
+  const current = plan();
+  current.days[0].meals = [{ ...current.days[0].meals[0], slot_role: "free_meal", foods: [], nutrient_totals: {}, target_distribution: { goal_calories: 700, protein: 30 } }];
+  render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={current} /></MemoryRouter>);
+  const card = (await screen.findByText("Free Meal")).closest("details")!;
+  expect(within(card).getByText(/700 kcal/)).toBeInTheDocument();
+  expect(within(card).getByLabelText("Calories")).toHaveValue(null);
+});
+
+it("labels a dry portion on the displayed plan", async () => {
+  render(<MemoryRouter><WeeklyNutritionPlan language="en" plan={plan()} /></MemoryRouter>);
+  expect(await screen.findAllByText(/Dry weight/)).not.toHaveLength(0);
 });

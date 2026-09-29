@@ -271,3 +271,5 @@ export { createCommunicationApi, createMessageRequestId } from "./communication"
 export type { Conversation, ProgramMessage, NotificationInbox, PersonalNotificationSettings, PersonalNotificationInput, ConversationKind, CommunicationRequest } from "./communication";
 
 export * from "./nutrition-progress-review.js";
+
+export { foodMeasurementBasisLabel } from "./nutrition";
