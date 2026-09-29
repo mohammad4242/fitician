@@ -1639,6 +1639,12 @@ class NutritionWeeklyPlanFood(Base):
     nutrient_snapshot: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     price_snapshot: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     recipe_snapshot: Mapped[dict[str, object] | None] = mapped_column(JSON)
+    quantity_snapshot: Mapped[dict[str, object]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+        server_default=sql_text("'{}'"),
+    )
 
 
 class NutritionWeeklyPlanNutrient(Base):

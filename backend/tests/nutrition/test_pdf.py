@@ -21,6 +21,13 @@ from app.nutrition.schemas import (
 )
 
 
+def test_pdf_labels_the_quantity_measurement_basis() -> None:
+    plan = _mock_plan()
+    food = plan.days[0].meals[0].foods[0]
+    plan.days[0].meals[0].foods[0] = food.model_copy(update={"measurement_basis": "dry"})
+    assert "وزن خشک" in build_nutrition_plan_html(plan)
+
+
 def _mock_plan() -> WeeklyPlanResponse:
     now = datetime(2026, 9, 7, 10, 0, 0, tzinfo=UTC)
     day1_meals = [
@@ -39,7 +46,7 @@ def _mock_plan() -> WeeklyPlanResponse:
                 "energy_kcal": 420.0,
                 "protein_g": 28.0,
                 "carbohydrate_g": 18.0,
-                "fat_g": 26.0,
+                "total_fat_g": 26.0,
             },
             cost_irr=450000,
             is_locked=False,
@@ -79,7 +86,7 @@ def _mock_plan() -> WeeklyPlanResponse:
                 "energy_kcal": 650.0,
                 "protein_g": 52.0,
                 "carbohydrate_g": 75.0,
-                "fat_g": 16.0,
+                "total_fat_g": 16.0,
             },
             cost_irr=1200000,
             is_locked=False,
@@ -114,7 +121,7 @@ def _mock_plan() -> WeeklyPlanResponse:
                 "energy_kcal": 2100.0,
                 "protein_g": 140.0,
                 "carbohydrate_g": 220.0,
-                "fat_g": 65.0,
+                "total_fat_g": 65.0,
             },
             cost_irr=2500000,
             meals=day1_meals,

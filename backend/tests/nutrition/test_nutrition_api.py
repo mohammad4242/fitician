@@ -514,8 +514,7 @@ def test_canonical_food_and_meal_preferences_are_persisted_and_projected(
     ]
     assert len(canonical_rows) == 2
     assert all(
-        (row.catalogue_food_id is None) != (row.catalogue_meal_id is None)
-        for row in canonical_rows
+        (row.catalogue_food_id is None) != (row.catalogue_meal_id is None) for row in canonical_rows
     )
 
 
@@ -755,4 +754,4 @@ def test_target_weight_rate_user_override_flow(client: TestClient) -> None:
     est_data = est_res.json()
     assert est_data["input_snapshot"]["weight_rate_mode"] == "user_override"
     assert est_data["input_snapshot"]["requested_weight_change_kg_per_week"] == "1.8"
-    assert est_data["input_snapshot"]["applied_weight_change_kg_per_week"] == "1.8"
+    assert est_data["input_snapshot"]["applied_weight_change_kg_per_week"] == "0.4"

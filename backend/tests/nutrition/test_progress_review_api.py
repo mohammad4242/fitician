@@ -24,8 +24,11 @@ def _plan(client, db):
     from sqlalchemy import select
 
     from app.nutrition.models import NutritionProfile
+    from app.profile.models import UserProfile
 
     nutrition_profile = db.scalar(select(NutritionProfile))
+    # History dates and noon weigh-ins use UTC; keep the user's review clock aligned.
+    db.get(UserProfile, nutrition_profile.user_id).timezone = "UTC"
     nutrition_profile.target_weight_change_kg_per_week = Decimal(".3")
     db.commit()
     _seed_foods_and_prices(db)
@@ -50,6 +53,17 @@ def test_review_does_not_treat_missing_records_as_zero_intake(client, db):
     assert response.json()["observed_kg_per_week"] is None
     assert response.json()["average_logged_kcal"] is None
     assert response.json()["can_confirm"] is False
+
+
+def test_rapid_weight_loss_triggers_review_even_with_uncertain_intake(client, db):
+    plan = _plan(client, db)
+    _history(db, plan, confidence="medium", rate=-2)
+    response = client.get("/api/v1/nutrition/progress-review")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "specialist_review"
+    assert "RAPID_WEIGHT_LOSS_REQUIRES_REVIEW" in body["reason_codes"]
+    assert body["can_confirm"] is False
 
 
 def _history(db, plan, *, status="on_plan", confidence="high", rate=0):

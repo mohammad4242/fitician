@@ -1,6 +1,34 @@
+from dataclasses import replace
 from decimal import Decimal
 
 from app.nutrition.portion_solver import PortionVariable, solve_portions
+
+
+def test_solver_can_trade_foods_without_breaking_energy_bounds() -> None:
+    low = replace(
+        _variable(),
+        key="low",
+        grams=Decimal("100"),
+        nutrients_per_gram=(("energy_kcal", Decimal("2")), ("calcium_mg", Decimal("0"))),
+    )
+    high = replace(
+        low,
+        key="high",
+        grams=Decimal("50"),
+        nutrients_per_gram=(("energy_kcal", Decimal("2")), ("calcium_mg", Decimal("5"))),
+    )
+    result = solve_portions(
+        variables=(low, high),
+        initial_totals={"energy_kcal": Decimal("300"), "calcium_mg": Decimal("250")},
+        targets={"energy_kcal": Decimal("300"), "calcium_mg": Decimal("500")},
+        minimums={"energy_kcal": Decimal("300")},
+        maximums={"energy_kcal": Decimal("300")},
+        upper_limits={},
+        increment_g=Decimal("5"),
+        maximum_iterations=40,
+    )
+    assert result.final_totals["energy_kcal"] == Decimal("300")
+    assert result.final_totals["calcium_mg"] >= Decimal("500")
 
 
 def _variable(*, maximum: str = "150") -> PortionVariable:

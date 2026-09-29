@@ -621,7 +621,7 @@ def test_no_compatible_substitute_returns_a_precise_failure() -> None:
             "requested_template_id": requested.meal_id,
             "candidate_template_id": dinner.meal_id,
             "eligible_alternative_count": "0",
-            "reason_code": "SLOT_CATEGORY_MISMATCH+REPETITION_LIMIT_EXCEEDED",
+            "reason_code": "SLOT_CATEGORY_MISMATCH",
         },
     )
 

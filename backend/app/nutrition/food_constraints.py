@@ -244,9 +244,11 @@ def normalize_food_constraints(
                     labels = list(declared_tags) if isinstance(declared_tags, (list, tuple)) else []
                     if term:
                         labels.append(str(term))
+                    resolved_group = False
                     for label in labels:
                         allergen = _CANONICAL_ALLERGEN_ALIASES.get(_clean_term(str(label)))
                         if allergen is not None:
+                            resolved_group = True
                             results.append(
                                 NormalizedFoodConstraint(
                                     code=allergen.value,
@@ -255,6 +257,15 @@ def normalize_food_constraints(
                                     raw_label=str(label),
                                 )
                             )
+                    if not resolved_group:
+                        results.append(
+                            NormalizedFoodConstraint(
+                                code="UNRESOLVED_HARD_FOOD_CONSTRAINT",
+                                severity=ConstraintSeverity.HARD,
+                                source=kind_str,
+                                raw_label=str(term) if term else None,
+                            )
+                        )
                 continue
             if canonical_meal_id is not None and kind_str in {"allergy", "intolerance"}:
                 tags = item.get("allergen_tags", ()) if isinstance(item, dict) else ()
@@ -267,7 +278,7 @@ def normalize_food_constraints(
                             raw_label=str(term) if term else None,
                         )
                     )
-                for tag in tags:
+                for tag in tags if isinstance(tags, (list, tuple)) else ():
                     results.append(
                         NormalizedFoodConstraint(
                             code=str(tag),

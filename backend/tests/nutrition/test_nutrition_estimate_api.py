@@ -308,3 +308,20 @@ def test_estimate_mutations_require_authentication_and_trusted_origin(
         == 403
     )
     assert client.post("/api/v1/nutrition/estimates").status_code == 403
+
+
+def test_weight_rate_policy_version_changes_estimate_cache_key(client, db, monkeypatch) -> None:
+    import app.nutrition.estimate_service as service
+
+    create_nutrition_member(client, "weight-policy-cache@example.com")
+    client.put("/api/v1/nutrition/structured-exercise", headers=ORIGIN, json={"trains": False})
+    monkeypatch.setattr(service, "WEIGHT_RATE_POLICY_VERSION", "nutrition-weight-rate-v1")
+    old = client.post("/api/v1/nutrition/estimates", headers=ORIGIN)
+    assert old.status_code == 201
+    monkeypatch.setattr(service, "WEIGHT_RATE_POLICY_VERSION", "nutrition-weight-rate-v2")
+    current = client.get("/api/v1/nutrition/estimates/current")
+    assert current.json()["is_stale"] is True
+    new = client.post("/api/v1/nutrition/estimates", headers=ORIGIN)
+    assert new.status_code == 201
+    assert new.json()["id"] != old.json()["id"]
+    assert new.json()["revision"] == old.json()["revision"] + 1

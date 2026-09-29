@@ -30,6 +30,7 @@ from app.nutrition.candidate_selection import (
     evaluate_candidate,
     failure_reason_counts,
 )
+from app.nutrition.catalogue_constraints import constraints_for_items
 from app.nutrition.enums import (
     DietaryPattern,
     FoodItemKind,
@@ -55,7 +56,6 @@ from app.nutrition.exceptions import (
     StructuredExerciseRequiredError,
     WeeklyPlanBundleNotFoundError,
 )
-from app.nutrition.food_constraints import normalize_food_constraints
 from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.models import (
     NutritionCatalogueFood,
@@ -82,15 +82,19 @@ from app.nutrition.nutrition_request import (
     build_normalized_nutrition_request,
 )
 from app.nutrition.plan_comparison import compare_plans
+from app.nutrition.plan_nutrients import recalculated_nutrient
+from app.nutrition.plan_validation import NUTRIENT_CODES
 from app.nutrition.planner_engine import (
     GenerationOutcome,
     PlannedFood,
+    PlannedMeal,
     PlannerFood,
     PlannerInput,
     PlannerMealIngredient,
     PlannerMealTemplate,
     PlannerPreparedRecipe,
     PlannerResult,
+    _effective_daily_totals,
     plan_week,
 )
 from app.nutrition.planner_policy import (
@@ -465,34 +469,7 @@ def generate_weekly_plan(
     food_items = db.scalars(
         select(NutritionFoodItem).where(NutritionFoodItem.user_id == user_id)
     ).all()
-    raw_constraints = [
-        {
-            "kind": item.kind.value,
-            "term": item.name,
-            "details": item.details,
-            "catalogue_food_id": item.catalogue_food_id,
-            "catalogue_meal_id": item.catalogue_meal_id,
-        }
-        for item in food_items
-    ]
-    # A selected catalogue food identifies an allergen source, not just one SKU.
-    for raw in raw_constraints:
-        if raw["kind"] not in {"allergy", "intolerance"}:
-            continue
-        food = (
-            db.get(NutritionCatalogueFood, raw["catalogue_food_id"])
-            if raw["catalogue_food_id"]
-            else None
-        )
-        if food is not None:
-            raw["allergen_tags"] = list(food.allergen_tags)
-        elif raw["catalogue_meal_id"]:
-            meal = db.get(NutritionCatalogueMeal, raw["catalogue_meal_id"])
-            if meal is not None:
-                raw["allergen_tags"] = sorted(
-                    {tag for item in meal.items for tag in item.food.allergen_tags}
-                )
-    normalized_constraints = normalize_food_constraints(raw_constraints)
+    normalized_constraints = constraints_for_items(db, food_items)
     unresolved_hard = tuple(
         c for c in normalized_constraints if c.code == "UNRESOLVED_HARD_FOOD_CONSTRAINT"
     )
@@ -581,6 +558,13 @@ def generate_weekly_plan(
         "weekly_budget_irr": weekly_budget,
         "budget_mode": profile.budget_style.value,
         "daily_targets": _json_decimal_map(targets),
+        "maintenance_calories": str(
+            next(
+                row.preferred_value
+                for row in estimate.targets
+                if row.metric == NutritionTargetMetric.TDEE
+            )
+        ),
         "daily_minimums": _json_decimal_map(minimums),
         "daily_maximums": _json_decimal_map(maximums),
         "micronutrient_targets": _json_decimal_map(micro_targets),
@@ -592,6 +576,7 @@ def generate_weekly_plan(
                 "term": getattr(c, "raw_label", None) or getattr(c, "raw_term", None),
                 "severity": c.severity.value if hasattr(c.severity, "value") else str(c.severity),
                 "code": c.code,
+                "catalogue_food_id": c.canonical_food_id,
             }
             for c in normalized_constraints
         ],
@@ -632,6 +617,11 @@ def generate_weekly_plan(
     }
     base_planner_input = PlannerInput(
         daily_targets=targets,
+        maintenance_calories=next(
+            row.preferred_value
+            for row in estimate.targets
+            if row.metric == NutritionTargetMetric.TDEE
+        ),
         micronutrient_targets=micro_targets,
         micronutrient_upper_limits=upper_limits,
         daily_minimums=minimums,
@@ -1132,6 +1122,7 @@ def _construct_frozen_base_blueprint(
 ) -> tuple[BasePlanBlueprint | None, tuple[CandidateEvaluation, ...], int]:
     evaluations: list[CandidateEvaluation] = []
     proposals_by_code: dict[str, ProgramCandidate] = {}
+    successful: list[BasePlanBlueprint] = []
     fallback_batches_used = 0
     batch_size = INITIAL_PROGRAM_BATCH_SIZE
     num_candidates = len(candidates)
@@ -1206,11 +1197,24 @@ def _construct_frozen_base_blueprint(
                     fallback_batches_used=fallback_batches_used,
                     initial_budget_result=candidate_result,
                 )
-                return blueprint, tuple(evaluations), fallback_batches_used
+                successful.append(blueprint)
+        if successful:
+            admitted = [evaluation for evaluation in evaluations if evaluation.quality is not None]
+            best = min(
+                admitted,
+                key=lambda evaluation: evaluation.quality.sort_key() if evaluation.quality else (),
+            )
+            selected = next(item for item in successful if item.program_code == best.program_code)
+            return (
+                replace(selected, evaluations=tuple(evaluations)),
+                tuple(evaluations),
+                fallback_batches_used,
+            )
 
     # Low-budget fallback: If no candidate succeeded under budget constraints,
     # find a safe candidate blueprint that succeeds in IDEAL_REFERENCE mode.
     # This provides a valid Ideal plan while setting budget_plan = None.
+    ideal_blueprints: list[tuple[CandidateQuality, BasePlanBlueprint]] = []
     for evaluation in evaluations:
         fallback_prop = proposals_by_code.get(evaluation.program_code)
         if fallback_prop is None:
@@ -1259,7 +1263,20 @@ def _construct_frozen_base_blueprint(
                 fallback_batches_used=fallback_batches_used,
                 initial_budget_result=evaluation.result,
             )
-            return blueprint, tuple(evaluations), fallback_batches_used
+            ideal_evaluation = evaluate_candidate(
+                fallback_prop,
+                candidate_result_ideal,
+                weekly_budget_irr=Decimal(weekly_budget),
+                preference_snapshot=preference_snapshot,
+            )
+            assert ideal_evaluation.quality is not None
+            ideal_blueprints.append((ideal_evaluation.quality, blueprint))
+    if ideal_blueprints:
+        _, best_blueprint = min(
+            ideal_blueprints,
+            key=lambda pair: pair[0].sort_key(NutritionOptimizationMode.IDEAL_REFERENCE),
+        )
+        return best_blueprint, tuple(evaluations), fallback_batches_used
 
     return None, tuple(evaluations), fallback_batches_used
 
@@ -1891,7 +1908,9 @@ def _persist_successful_plan(
                 day_index=day.day_index,
                 plan_date=start_date + timedelta(days=day.day_index),
                 cost_irr=int(day.cost_irr),
-                nutrient_totals=_json_nutrient_pairs(day.nutrients),
+                nutrient_totals={
+                    code: str(value) for code, value in _effective_daily_totals(day).items()
+                },
                 meals=[
                     NutritionWeeklyPlanMeal(
                         catalogue_meal_id=(
@@ -1901,7 +1920,7 @@ def _persist_successful_plan(
                         slot_role=meal.role,
                         slot_index=meal.slot_index,
                         target_distribution=_meal_target_distribution(
-                            input_snapshot, meal.role, profile
+                            input_snapshot, meal.role, profile, meal=meal
                         ),
                         nutrient_totals=_json_nutrient_pairs(meal.nutrients),
                         cost_irr=int(meal.cost_irr),
@@ -1926,6 +1945,12 @@ def _persist_successful_plan(
                                     }
                                 ),
                                 recipe_snapshot=food.recipe_snapshot,
+                                quantity_snapshot={
+                                    "measurement_basis": food.measurement_basis,
+                                    "min_grams": str(food.min_grams),
+                                    "max_grams": str(food.max_grams),
+                                    "functional_role": food.functional_role,
+                                },
                             )
                             for food in meal.foods
                         ],
@@ -2054,7 +2079,9 @@ def _persist_ideal_plan(
                 day_index=day.day_index,
                 plan_date=start_date + timedelta(days=day.day_index),
                 cost_irr=int(day.cost_irr),
-                nutrient_totals=_json_nutrient_pairs(day.nutrients),
+                nutrient_totals={
+                    code: str(value) for code, value in _effective_daily_totals(day).items()
+                },
                 meals=[
                     NutritionWeeklyPlanMeal(
                         catalogue_meal_id=(
@@ -2064,7 +2091,7 @@ def _persist_ideal_plan(
                         slot_role=meal.role,
                         slot_index=meal.slot_index,
                         target_distribution=_meal_target_distribution(
-                            input_snapshot, meal.role, profile
+                            input_snapshot, meal.role, profile, meal=meal
                         ),
                         nutrient_totals=_json_nutrient_pairs(meal.nutrients),
                         cost_irr=int(meal.cost_irr),
@@ -2089,6 +2116,12 @@ def _persist_ideal_plan(
                                     }
                                 ),
                                 recipe_snapshot=food.recipe_snapshot,
+                                quantity_snapshot={
+                                    "measurement_basis": food.measurement_basis,
+                                    "min_grams": str(food.min_grams),
+                                    "max_grams": str(food.max_grams),
+                                    "functional_role": food.functional_role,
+                                },
                             )
                             for food in meal.foods
                         ],
@@ -2175,6 +2208,7 @@ def _planner_foods(
                 dietary_patterns=tuple(food.dietary_patterns),
                 allergen_tags=tuple(food.allergen_tags or []),
                 allergen_metadata_verified=bool(food.allergen_metadata_verified),
+                measurement_basis=food.measurement_basis.value,
             )
         )
         snapshots.append(
@@ -2596,7 +2630,13 @@ def weekly_plan_response(
                 data_confidence=nutrient.data_confidence,
                 explanation_codes=nutrient.explanation_codes,
             )
-            for nutrient in plan.nutrients
+            for stored_nutrient in plan.nutrients
+            for nutrient in [
+                recalculated_nutrient(stored_nutrient, plan.days, plan.input_snapshot)
+                if stored_nutrient.nutrient_code == "total_fat"
+                and stored_nutrient.planned_value == 0
+                else stored_nutrient
+            ]
         },
         days=[
             WeeklyPlanDayResponse(
@@ -2632,6 +2672,9 @@ def weekly_plan_response(
                                     else None
                                 ),
                                 grams=float(food.grams),
+                                measurement_basis=(food.quantity_snapshot or {}).get(
+                                    "measurement_basis"
+                                ),
                                 cost_irr=food.cost_irr,
                                 nutrients=_float_map(food.nutrient_snapshot),
                                 prepared_recipe=_public_prepared_recipe_summary(
@@ -2715,8 +2758,22 @@ def _generation_response(
 
 
 def _meal_target_distribution(
-    snapshot: dict[str, object], role: str, profile: NutritionProfile
+    snapshot: dict[str, object],
+    role: str,
+    profile: NutritionProfile,
+    *,
+    meal: PlannedMeal | None = None,
 ) -> dict[str, str]:
+    if meal is not None and meal.role == "free_meal":
+        reserves = dict(meal.reserved_macro_targets)
+        return {
+            "goal_calories": str(meal.reserved_energy_kcal),
+            **{
+                code: str(reserves[nutrient_code])
+                for code, nutrient_code in NUTRIENT_CODES.items()
+                if nutrient_code in reserves
+            },
+        }
     raw_targets = snapshot["daily_targets"]
     if not isinstance(raw_targets, dict):
         return {}

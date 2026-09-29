@@ -18,6 +18,7 @@ from app.nutrition.models import (
     NutritionLabDocument,
     NutritionLabRequest,
     NutritionPlanPhysicianReview,
+    NutritionProfile,
     NutritionReviewAuditEvent,
     NutritionWeeklyPlan,
 )
@@ -39,6 +40,11 @@ def _member_plan(
     _register_and_estimate(client, db, email)
     if seed_catalogue:
         _seed_foods_and_prices(db)
+    else:
+        user = db.scalar(select(User).where(User.email == email))
+        profile = db.get(NutritionProfile, user.id)
+        profile.maximum_meal_repetition_per_week = 7
+        db.commit()
     response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert response.status_code == 201
     return response.json()["plan"]

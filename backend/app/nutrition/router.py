@@ -1962,6 +1962,14 @@ def _plan_edit_error(error: PlanEditError) -> HTTPException:
     if error.code == "PHYSICIAN_ROLE_REQUIRED":
         status_code = status.HTTP_403_FORBIDDEN
     messages = {
+        "PLAN_EDIT_NUTRITION_CONSTRAINT_VIOLATION": (
+            "این تغییر تعادل یا ایمنی برنامه غذایی را به هم می‌زند. "
+            "جایگزین دیگری انتخاب کن یا با متخصص بررسی کن."
+        ),
+        "FOOD_REPLACEMENT_INCOMPATIBLE": (
+            "این دو غذا نقش تغذیه‌ای یکسانی ندارند؛ جایگزین مناسب دیگری انتخاب کن."
+        ),
+        "FOOD_PORTION_OUTSIDE_BOUNDS": "مقدار پیشنهادی خارج از اندازه قابل‌قبول این غذاست.",
         "PLAN_REVIEW_IN_PROGRESS": (
             "این نسخه در حال بررسی پزشک است و تا پایان بررسی نمی‌توان وعده‌های آن را تغییر داد."
         ),

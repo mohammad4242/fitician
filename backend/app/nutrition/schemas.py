@@ -895,6 +895,7 @@ class WeeklyPlanFoodResponse(BaseModel):
     name_en: str
     image_url: str | None = None
     grams: float
+    measurement_basis: Literal["raw", "dry", "cooked", "as_purchased"] | None = None
     cost_irr: int
     nutrients: dict[str, float]
     prepared_recipe: WeeklyPlanPreparedRecipeSummary | None = None

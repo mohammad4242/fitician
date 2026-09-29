@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from app.nutrition.enums import NutritionBudgetTier
 
-PLANNER_POLICY_VERSION = "weekly-planner-v1"
+PLANNER_POLICY_VERSION = "weekly-planner-shared-admission-v2"
 MEAL_DISTRIBUTION_POLICY_VERSION = "meal-distribution-v1"
 PORTION_POLICY_VERSION = "bounded-portion-solver-v1"
 PLANNER_VERSION = "nutrition-planner-portion-solver-v2"
@@ -14,7 +14,7 @@ BUDGET_OPTIMIZER_POLICY_VERSION = "deterministic-budget-optimizer-v1"
 PROGRAM_SELECTION_POLICY_VERSION = "nutrition-program-selection-v3"
 PROGRAM_COSTING_POLICY_VERSION = "nutrition-program-costing-v1"
 GOAL_STRATEGY_VERSION = "nutrition-goal-strategy-v1"
-WEIGHT_RATE_POLICY_VERSION = "nutrition-weight-rate-v1"
+WEIGHT_RATE_POLICY_VERSION = "nutrition-weight-rate-v2"
 MACRO_RESOLUTION_POLICY_VERSION = "nutrition-macro-resolution-v2"
 
 ECONOMY_MONTHLY_MAX_IRR = 130_000_000
@@ -42,7 +42,10 @@ class PlannerPolicy:
     maximum_snack_portion_g: Decimal = Decimal("500")
     maximum_repair_iterations: int = 3
     repair_portion_g: Decimal = Decimal("50")
-    calorie_tolerance_ratio: Decimal = Decimal("0.20")
+    calorie_tolerance_ratio: Decimal = Decimal("0.05")
+    daily_calorie_tolerance_ratio: Decimal = Decimal("0.10")
+    energy_delta_tolerance_ratio: Decimal = Decimal("0.25")
+    micronutrient_review_ratio: Decimal = Decimal("0.75")
     macro_tolerance_ratio: Decimal = Decimal("0.10")
     micronutrient_data_completeness_threshold: Decimal = Decimal("0.80")
     maximum_price_age_hours: int = 168

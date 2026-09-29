@@ -631,19 +631,16 @@ def _valid_candidate_days(
     *,
     enforce_repetition: bool = True,
 ) -> bool:
-    from app.nutrition.planner_engine import (
-        _sum_nutrients,
-        _upper_limit_exceeded,
-        _validate_nutritional_feasibility,
-    )
+    from app.nutrition.plan_validation import validate_plan_totals
+    from app.nutrition.planner_engine import _effective_daily_totals
 
     if enforce_repetition and _repetition_penalty(days, inputs) > 0:
         return False
-    totals = _sum_nutrients(day.nutrients for day in days)
-    daily_average = {code: value / Decimal("7") for code, value in totals.items()}
-    return not _upper_limit_exceeded(
-        inputs, daily_average
-    ) and not _validate_nutritional_feasibility(inputs, daily_average, policy)
+    return not validate_plan_totals(
+        inputs,
+        [_effective_daily_totals(day) for day in days],
+        policy,
+    )
 
 
 def _valid_repair_days(
@@ -727,8 +724,8 @@ def _weekly_cost(days: tuple[PlannedDay, ...]) -> Decimal:
 def _meal_target_kcal(inputs: PlannerInput, day_index: int, meal: PlannedMeal) -> Decimal:
     if inputs.template_schedule is not None:
         schedule = inputs.template_schedule[day_index]
-        real_slots = [slot for slot in schedule if slot[1] is not None]
-        snack_count = sum(role == "snack" for role, _template_id, _category in real_slots)
+        real_slots = list(schedule)
+        snack_count = sum(category == "snack" for _role, _template_id, category in real_slots)
         main_count = len(real_slots) - snack_count
         snack_share = Decimal("0.15") if snack_count else ZERO
         if meal.role == "snack" and snack_count:

@@ -336,16 +336,31 @@ def _render_meal(meal: WeeklyPlanMealResponse, media_reader: PublicMediaReader) 
     food_items: list[str] = []
     for food in meal.foods:
         name = escape(food.name_fa)
+        basis_label = {
+            "raw": "وزن خام",
+            "dry": "وزن خشک",
+            "cooked": "وزن پخته",
+            "as_purchased": "وزن هنگام خرید",
+        }.get(food.measurement_basis or "", "مبنای وزن نامشخص")
         if food.grams > 0:
-            food_items.append(f"{name} ({_fa_number(round(food.grams))} گرم)")
+            food_items.append(f"{name} ({_fa_number(round(food.grams))} گرم) — {basis_label}")
         else:
             food_items.append(name)
     foods_str = " + ".join(food_items) if food_items else "—"
 
-    cal = round(meal.nutrient_totals.get("energy_kcal", 0))
-    pro = round(meal.nutrient_totals.get("protein_g", 0), 1)
-    carb = round(meal.nutrient_totals.get("carbohydrate_g", 0), 1)
-    fat = round(meal.nutrient_totals.get("fat_g", 0), 1)
+    totals = meal.nutrient_totals
+    if meal.slot_role == "free_meal":
+        foods_str = "سهم برنامه‌ریزی‌شده؛ مصرف واقعی را جداگانه ثبت کن."
+        totals = {
+            "energy_kcal": meal.target_distribution.get("goal_calories", 0),
+            "protein_g": meal.target_distribution.get("protein", 0),
+            "carbohydrate_g": meal.target_distribution.get("carbohydrate", 0),
+            "total_fat_g": meal.target_distribution.get("total_fat", 0),
+        }
+    cal = round(totals.get("energy_kcal", 0))
+    pro = round(totals.get("protein_g", 0), 1)
+    carb = round(totals.get("carbohydrate_g", 0), 1)
+    fat = round(totals.get("total_fat_g", 0), 1)
 
     macros_html = (
         f'<span class="macro-chip macro-cal">{_fa_number(cal)} کیلوکالری</span>'
@@ -377,7 +392,7 @@ def _render_day(day: WeeklyPlanDayResponse, media_reader: PublicMediaReader) -> 
     cal = round(day.nutrient_totals.get("energy_kcal", 0))
     pro = round(day.nutrient_totals.get("protein_g", 0), 1)
     carb = round(day.nutrient_totals.get("carbohydrate_g", 0), 1)
-    fat = round(day.nutrient_totals.get("fat_g", 0), 1)
+    fat = round(day.nutrient_totals.get("total_fat_g", 0), 1)
 
     day_macros_html = (
         f'<span class="day-macro-item">کالری: {_fa_number(cal)} kcal</span>'

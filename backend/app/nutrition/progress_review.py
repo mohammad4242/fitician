@@ -65,7 +65,17 @@ def weight_rate(points: list[tuple[date, Decimal]], start: date, end: date) -> D
     if max(weight for _, weight in ordered) - min(weight for _, weight in ordered) > median(
         weight for _, weight in ordered
     ) * Decimal(".1"):
-        return None
+        # A large range may be a real sustained trend. Reject erratic extremes,
+        # not a coherent trend that needs a safety review.
+        origin = ordered[0][0]
+        xs = [Decimal((day - origin).days) for day, _ in ordered]
+        ys = [weight for _, weight in ordered]
+        mean_x, mean_y = sum(xs, Decimal()) / len(xs), sum(ys, Decimal()) / len(ys)
+        xx = sum(((x - mean_x) ** 2 for x in xs), Decimal())
+        yy = sum(((y - mean_y) ** 2 for y in ys), Decimal())
+        xy = sum(((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys, strict=True)), Decimal())
+        if xx == 0 or yy == 0 or xy * xy / (xx * yy) < Decimal(".9"):
+            return None
     first_day = sum((Decimal(day.toordinal()) for day, _ in first), Decimal()) / len(first)
     last_day = sum((Decimal(day.toordinal()) for day, _ in last), Decimal()) / len(last)
     return (
@@ -146,6 +156,21 @@ def review_progress(
     result.weighing_days = len({day for day, _ in weights})
     observed = weight_rate(weights, start, end)
     result.observed_kg_per_week = float(observed) if observed is not None else None
+    if observed is not None:
+        baseline_weight = Decimal(str(median(weight for _, weight in weights if weight > 0)))
+        gain_ratio = (
+            Decimal(".005")
+            if profile.fitness_goal and profile.fitness_goal.value == "build_muscle"
+            else Decimal(".01")
+        )
+        if observed < -baseline_weight * Decimal(".01") or observed > baseline_weight * gain_ratio:
+            result.status = "specialist_review"
+            result.reason_codes = [
+                "RAPID_WEIGHT_LOSS_REQUIRES_REVIEW"
+                if observed < 0
+                else "RAPID_WEIGHT_GAIN_REQUIRES_REVIEW"
+            ]
+            return result
     valid_checkins = {row.entry_date: row for row in checkins if row.status.value != "not_recorded"}
     result.checked_in_days = len(valid_checkins)
     result.adherence_percent = (

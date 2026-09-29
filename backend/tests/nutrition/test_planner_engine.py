@@ -66,7 +66,9 @@ def _input(**changes: object):
         "liked_food_ids": (),
         "disliked_food_ids": (),
         "dietary_pattern": "omnivore",
-        "maximum_meal_repetition_per_week": 2,
+        # This small fixture has only one snack and three main templates.
+        # Restrictive cap behavior is exercised separately with feasible catalogues.
+        "maximum_meal_repetition_per_week": 21,
     }
     values.update(changes)
     return PlannerInput(**values)  # type: ignore[arg-type]
@@ -842,7 +844,7 @@ def test_weekly_budget_repairs_prepared_recipes_to_cheaper_valid_variants() -> N
         ("free_meal", None, "dinner"),
     )
     inputs = _input(
-        daily_targets={"goal_calories": Decimal("500")},
+        daily_targets={"goal_calories": Decimal("620")},
         micronutrient_targets={},
         micronutrient_upper_limits={},
         daily_minimums={},
@@ -1205,7 +1207,7 @@ def test_strict_budget_is_hard_and_flexible_budget_has_a_versioned_cap() -> None
     )
 
     assert strict.outcome is GenerationOutcome.INFEASIBLE
-    assert strict.reason_codes == ("INSUFFICIENT_LOW_COST_TEMPLATE_COVERAGE",)
+    assert strict.reason_codes == ("STRICT_BUDGET_NO_FEASIBLE_REPAIR",)
     assert flexible.outcome is GenerationOutcome.SUCCESS
     assert flexible.budget_status in {"within_budget", "flexible_overage"}
 

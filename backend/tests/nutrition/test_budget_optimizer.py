@@ -351,7 +351,7 @@ def test_optimizer_recomputes_day_nutrients_after_a_repair() -> None:
 
 def test_optimizer_respects_repetition_when_repairing() -> None:
     expensive_food = _food("expensive-food", price="100")
-    cheap_foods = tuple(_food(f"cheap-food-{index}", price="10") for index in range(1, 4))
+    cheap_foods = tuple(_food(f"cheap-food-{index}", price="10") for index in range(1, 5))
     expensive = _template("expensive-template", expensive_food.food_id)
     cheap_templates = tuple(
         _template(f"cheap-template-{index}", food.food_id)
@@ -408,8 +408,8 @@ def test_impossible_strict_budget_has_explicit_failure_and_minimum_cost_diagnost
     )
 
     assert result.failure_code == "STRICT_BUDGET_NO_FEASIBLE_REPAIR"
-    assert result.diagnostics["minimum_feasible_weekly_cost_irr"] == "61000"
-    assert result.diagnostics["budget_gap_irr"] == "60000"
+    assert result.diagnostics["minimum_feasible_weekly_cost_irr"] == "70000"
+    assert result.diagnostics["budget_gap_irr"] == "69000"
     assert result.diagnostics["feasibility_search_exhaustive"] == "false"
 
 

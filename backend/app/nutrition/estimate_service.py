@@ -36,6 +36,7 @@ from app.nutrition.models import (
     NutritionSafetyDecision,
     NutritionStructuredExercise,
 )
+from app.nutrition.planner_policy import WEIGHT_RATE_POLICY_VERSION
 from app.nutrition.schemas import (
     NutritionEstimateResponse,
     NutritionMicronutrientTargetResponse,
@@ -195,7 +196,7 @@ def create_estimate(
         snapshot["applied_weight_change_kg_per_week"] = (
             str(rate_res.applied_kg_per_week) if rate_res.applied_kg_per_week is not None else None
         )
-        snapshot["weight_rate_policy_version"] = "nutrition-weight-rate-v1"
+        snapshot["weight_rate_policy_version"] = WEIGHT_RATE_POLICY_VERSION
         snapshot["goal_strategy_version"] = "nutrition-goal-strategy-v1"
         snapshot["goal_strategy_reason_codes"] = list(result.goal_strategy.goal_reason_codes)
         confidence_reasons.extend(rate_res.warning_codes)
@@ -392,6 +393,7 @@ def _estimate_context(db: Session, user_id: UUID) -> EstimateContext:
         "safety_outcome": safety.outcome.value,
         "medical_policy_version": safety.medical_condition_policy_version,
         "nutrition_policy_version": POLICY_VERSION,
+        "weight_rate_policy_version": WEIGHT_RATE_POLICY_VERSION,
         "goal_contract_version": GOAL_CONTRACT_VERSION,
         "training_alignment_warning_codes": list(training_alignment.warning_codes),
         "training_alignment_explanation_codes": list(training_alignment.explanation_codes),

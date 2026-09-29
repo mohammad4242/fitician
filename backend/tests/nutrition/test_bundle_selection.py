@@ -11,7 +11,6 @@ from app.entitlements.enums import AccessPackageCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError
 from app.entitlements.models import EntitlementUsageEvent
 from app.nutrition.enums import (
-    MealSlotRole,
     NutritionPlanBudgetStatus,
     NutritionPlanLifecycleStatus,
     NutritionPlanRole,
@@ -26,17 +25,19 @@ from app.nutrition.models import (
     NutritionPlanGeneration,
     NutritionSafetyDecision,
     NutritionWeeklyPlan,
-    NutritionWeeklyPlanDay,
-    NutritionWeeklyPlanMeal,
 )
-from app.nutrition.plan_editing import confirm_remove_meal
+from app.nutrition.plan_editing import confirm_replace_meal
 from app.nutrition.plan_service import (
     latest_plan_bundle,
     latest_weekly_plan,
     select_bundle_plan,
 )
 from app.nutrition.planner_policy import PLANNER_POLICY_VERSION, PLANNER_VERSION
-from tests.nutrition.test_weekly_plan_api import _register_and_estimate
+from tests.nutrition.test_weekly_plan_api import (
+    ORIGIN,
+    _register_and_estimate,
+    _seed_foods_and_prices,
+)
 
 
 def _seed_test_bundle(
@@ -204,38 +205,38 @@ def test_select_bundle_plan_by_id(client: TestClient, db: Session) -> None:
 def test_editing_selected_plan_tracks_revision_and_preserves_bundle_candidates(
     client: TestClient, db: Session
 ) -> None:
-    user, bundle, budget_plan, ideal_plan = _seed_test_bundle(client, db)
+    _register_and_estimate(
+        client,
+        db,
+        "valid-bundle-edit@example.com",
+        meals=2,
+        snacks=1,
+        package=AccessPackageCode.NUTRITION,
+    )
+    _seed_foods_and_prices(db)
+    response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert response.status_code == 201, response.text
+    body = response.json()
+    budget_plan = db.get(NutritionWeeklyPlan, body["budget_plan"]["id"])
+    ideal_plan = db.get(NutritionWeeklyPlan, body["ideal_plan"]["id"])
+    user = db.get(User, budget_plan.user_id)
+    bundle = db.get(NutritionPlanBundle, budget_plan.generation.bundle_id)
     bundle_id = bundle.id
     selected_role = bundle.selected_plan_role
     selected_at = bundle.selected_at
     comparison_snapshot = dict(bundle.comparison_snapshot or {})
     budget_plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
-    day = NutritionWeeklyPlanDay(
-        plan_id=budget_plan.id,
-        day_index=0,
-        plan_date=date.today(),
-        cost_irr=25_000_000,
-        nutrient_totals={"calories": "500"},
-        meals=[
-            NutritionWeeklyPlanMeal(
-                slot_role=MealSlotRole.MAIN_MEAL,
-                slot_index=0,
-                target_distribution={},
-                nutrient_totals={"calories": "500"},
-                cost_irr=25_000_000,
-            )
-        ],
+    meal = budget_plan.days[0].meals[0]
+    replacement = next(
+        candidate
+        for day in budget_plan.days
+        for candidate in day.meals
+        if candidate.id != meal.id
+        and candidate.catalogue_meal_id == meal.catalogue_meal_id
+        and candidate.nutrient_totals == meal.nutrient_totals
     )
-    db.add(day)
-    db.commit()
-    meal_id = day.meals[0].id
-
-    revision = confirm_remove_meal(
-        db,
-        user.id,
-        budget_plan.id,
-        budget_plan.id,
-        meal_id,
+    revision = confirm_replace_meal(
+        db, user.id, budget_plan.id, budget_plan.id, meal.id, replacement.id
     )
 
     db.refresh(bundle)

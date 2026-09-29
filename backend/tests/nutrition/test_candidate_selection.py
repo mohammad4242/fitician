@@ -2,6 +2,8 @@ from dataclasses import replace
 from decimal import Decimal
 from uuid import UUID
 
+import pytest
+
 from app.nutrition.candidate_selection import evaluate_candidate, select_best_candidate
 from app.nutrition.enums import NutritionDietStyle
 from app.nutrition.models import NutritionProgram
@@ -54,6 +56,57 @@ def _success(*, calories: str, cost: str) -> PlannerResult:
             "total_fat": _comparison("60", "60"),
         },
     )
+
+
+@pytest.mark.parametrize("budget_available", [True, False])
+def test_blueprint_compares_successful_candidates_in_initial_batch(
+    monkeypatch, budget_available
+) -> None:
+    from app.nutrition import plan_service
+    from app.nutrition.enums import BudgetStyle, MainMealCountBucket, SnackCountBucket
+    from app.nutrition.models import NutritionProfile
+    from tests.nutrition.test_planner_engine import _input
+
+    proposals = (_proposal("FIRST", 0), _proposal("BETTER", 1))
+    profile = NutritionProfile(
+        main_meal_count_bucket=MainMealCountBucket.THREE,
+        snack_count_bucket=SnackCountBucket.ONE,
+        budget_style=BudgetStyle.STRICT,
+    )
+    monkeypatch.setattr(plan_service, "adapt_program", lambda program, *_: program)
+    monkeypatch.setattr(
+        plan_service,
+        "_template_schedule",
+        lambda program: ((("main_meal", program.code, "lunch"),),) * 7,
+    )
+    monkeypatch.setattr(
+        plan_service,
+        "plan_week",
+        lambda inputs, *_args, **_kwargs: (
+            PlannerResult(
+                outcome=GenerationOutcome.INFEASIBLE,
+                reason_codes=("STRICT_BUDGET_NO_FEASIBLE_REPAIR",),
+            )
+            if not budget_available and inputs.optimization_mode.value == "budget_constrained"
+            else _success(
+                calories="1950" if inputs.template_schedule[0][0][1] == "FIRST" else "2000",
+                cost="400",
+            )
+        ),
+    )
+    blueprint, evaluations, _ = plan_service._construct_frozen_base_blueprint(
+        candidates=proposals,
+        base_input=_input(),
+        profile=profile,
+        foods=(),
+        meal_templates=(),
+        preference_snapshot=build_preference_snapshot(),
+        weekly_budget=1000,
+        optimization_cache={},
+    )
+    assert blueprint is not None
+    assert blueprint.program_code == "BETTER"
+    assert len(evaluations) == 2
 
 
 def _success_with_meals(*meal_ids: str, calories: str = "2000") -> PlannerResult:

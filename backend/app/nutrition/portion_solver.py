@@ -116,7 +116,56 @@ def solve_portions(
                 if best is None or candidate_key[:3] < best[:3]:
                     best = candidate_key
         if best is None or best[0] >= current_score:
-            break
+            # Coordinate moves can stall at the energy boundary. Trade two
+            # existing ingredients at roughly equal energy, keeping every
+            # portion bound and upper limit in the same objective.
+            pair_best = None
+            for first in ordered:
+                first_energy = dict(first.nutrients_per_gram).get("energy_kcal", ZERO)
+                if first_energy <= ZERO:
+                    continue
+                for second in ordered:
+                    second_energy = dict(second.nutrients_per_gram).get("energy_kcal", ZERO)
+                    if first.key == second.key or second_energy <= ZERO:
+                        continue
+                    for direction in (-ONE, ONE):
+                        first_after = current[first.key] + direction * increment_g
+                        second_after = _quantize(
+                            current[second.key]
+                            - direction * increment_g * first_energy / second_energy,
+                            increment_g,
+                        )
+                        if not first.min_grams <= first_after <= first.max_grams:
+                            continue
+                        if not second.min_grams <= second_after <= second.max_grams:
+                            continue
+                        if second_after == current[second.key]:
+                            continue
+                        candidate = {**current, first.key: first_after, second.key: second_after}
+                        totals = _totals(base_totals, ordered, candidate)
+                        score = _score(
+                            totals, candidate, ordered, targets, minimums, maximums, upper_limits
+                        )
+                        pair_key = (score, first.key, second.key, first_after, second_after)
+                        if score < current_score and (pair_best is None or pair_key < pair_best):
+                            pair_best = pair_key
+            if pair_best is None:
+                break
+            current_score, first_key, second_key, first_after, second_after = pair_best
+            for key, after in ((first_key, first_after), (second_key, second_after)):
+                variable = next(variable for variable in ordered if variable.key == key)
+                actions.append(
+                    PortionAdjustmentAction(
+                        day_index=variable.day_index,
+                        role=variable.role,
+                        slot_index=variable.slot_index,
+                        food_id=variable.food_id,
+                        before_grams=current[key],
+                        after_grams=after,
+                    )
+                )
+                current[key] = after
+            continue
         _, key, after, _ = best
         before = current[key]
         current[key] = after
@@ -190,6 +239,14 @@ def _score(
         (max(limit - totals.get(code, ZERO), ZERO) for code, limit in minimums.items()),
         ZERO,
     )
+    reference_gap = sum(
+        (
+            max(target - totals.get(code, ZERO), ZERO) / max(target, ONE)
+            for code, target in targets.items()
+            if code not in {"energy_kcal", "protein_g", "carbohydrate_g", "total_fat_g", "fibre_g"}
+        ),
+        ZERO,
+    )
     deviations = tuple(
         abs(totals.get(code, ZERO) - target) / max(target, ONE)
         for code, target in sorted(targets.items())
@@ -216,6 +273,7 @@ def _score(
         safety_excess,
         maximum_excess,
         minimum_deficit,
+        reference_gap,
         max_deviation,
         total_deviation,
         fibre_deficit,

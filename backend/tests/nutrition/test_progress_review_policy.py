@@ -28,6 +28,24 @@ def test_stale_or_short_weight_history_cannot_produce_a_rate():
         )
         is None
     )
+
+
+def test_coherent_rapid_loss_is_retained_for_safety_review():
+    start = date(2026, 9, 1)
+    points = [
+        (start + timedelta(days=day), Decimal("80") - Decimal(day) * 2 / 7)
+        for day in [0, 7, 20, 27]
+    ]
+    assert weight_rate(points, start, start + timedelta(days=27)) == Decimal("-2.000")
+
+
+def test_isolated_extreme_weighing_is_not_a_coherent_rapid_trend():
+    start = date(2026, 9, 1)
+    points = [
+        (start + timedelta(days=day), Decimal(weight))
+        for day, weight in [(0, 80), (7, 80), (20, 80), (27, 120)]
+    ]
+    assert weight_rate(points, start, start + timedelta(days=27)) is None
     assert (
         weight_rate(
             [(start + timedelta(days=i), Decimal(80)) for i in [0, 5, 10, 15]],

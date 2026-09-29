@@ -14,6 +14,7 @@ from app.nutrition.food_constraints import (
     NormalizedFoodConstraint,
     evaluate_food_constraints,
 )
+from app.nutrition.plan_validation import validate_nutrient_totals, validate_plan_totals
 from app.nutrition.planner_policy import DEFAULT_POLICY, PlannerPolicy
 from app.nutrition.portion_solver import (
     PortionAdjustmentAction,
@@ -77,6 +78,7 @@ class PlannerFood:
     dietary_patterns: tuple[str, ...] = ("omnivore", "vegetarian", "vegan")
     allergen_tags: tuple[str, ...] = ()
     allergen_metadata_verified: bool = False
+    measurement_basis: str | None = None
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,7 @@ class PlannerInput:
     preference_snapshot: PreferenceSnapshot | None = None
     food_constraints: tuple[NormalizedFoodConstraint, ...] = ()
     optimization_mode: NutritionOptimizationMode = NutritionOptimizationMode.BUDGET_CONSTRAINED
+    maintenance_calories: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.optimization_mode == NutritionOptimizationMode.BUDGET_CONSTRAINED:
@@ -169,6 +172,7 @@ class PlannedFood:
     functional_role: str | None
     item_kind: str = "food"
     recipe_snapshot: dict[str, object] | None = None
+    measurement_basis: str | None = None
 
 
 @dataclass(frozen=True)
@@ -180,6 +184,8 @@ class PlannedMeal:
     foods: tuple[PlannedFood, ...]
     cost_irr: Decimal
     nutrients: tuple[tuple[str, Decimal], ...]
+    reserved_energy_kcal: Decimal = ZERO
+    reserved_macro_targets: tuple[tuple[str, Decimal], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -287,6 +293,13 @@ def plan_week(
         policy,
     )
     if not main_templates or (inputs.snacks_per_day and not snack_templates):
+        if any(
+            constraint.source in {"allergy", "intolerance"}
+            for constraint in inputs.food_constraints
+        ):
+            return _failure(
+                GenerationOutcome.SAFETY_BLOCKED, "ALLERGEN_SAFE_CATALOGUE_COVERAGE_REQUIRED"
+            )
         if (
             _hard_excluded_food_ids(inputs)
             or _hard_excluded_meal_ids(inputs)
@@ -417,8 +430,7 @@ def _evaluate_built_days(
         for _ in range(policy.maximum_combined_repair_passes):
             days, actions, portion_reasons = _repair_portions(days, inputs, foods_by_id, policy)
             portion_actions.extend(actions)
-            weekly_totals = _sum_nutrients(day.nutrients for day in days)
-            daily_average = {code: value / Decimal("7") for code, value in weekly_totals.items()}
+            daily_average = _effective_daily_average(days)
             validation = _validate_nutritional_feasibility(inputs, daily_average, policy)
             upper_limit_exceeded = _upper_limit_exceeded(inputs, daily_average)
             if not validation and not upper_limit_exceeded:
@@ -458,8 +470,7 @@ def _evaluate_built_days(
             )
             portion_actions.extend(actions)
             portion_reasons = tuple(dict.fromkeys((*portion_reasons, *post_portion_reasons)))
-            weekly_totals = _sum_nutrients(day.nutrients for day in days)
-            daily_average = {code: value / Decimal("7") for code, value in weekly_totals.items()}
+            daily_average = _effective_daily_average(days)
             validation = _validate_nutritional_feasibility(inputs, daily_average, policy)
             upper_limit_exceeded = _upper_limit_exceeded(inputs, daily_average)
             allowance = Decimal(inputs.weekly_budget_irr or 0)
@@ -469,20 +480,31 @@ def _evaluate_built_days(
                 else Decimal("1") + policy.flexible_budget_overage_cap
             )
             budget_valid = (
-                budget_result.failure_code is None and budget_result.final_cost_irr <= budget_cap
+                budget_result.failure_code is None
+                and sum((day.cost_irr for day in days), ZERO) <= budget_cap
             )
             if not validation and not upper_limit_exceeded and budget_valid:
                 break
-        cost = (
-            budget_result.final_cost_irr
-            if budget_result is not None
-            else sum((day.cost_irr for day in days), ZERO)
-        )
+        cost = sum((day.cost_irr for day in days), ZERO)
 
-    weekly_totals = _sum_nutrients(day.nutrients for day in days)
-    daily_average = {code: value / Decimal("7") for code, value in weekly_totals.items()}
+    daily_average = _effective_daily_average(days)
     data_completeness = _nutrient_data_completeness(days, inputs)
+    validation = validate_plan_totals(
+        inputs,
+        [_effective_daily_totals(day) for day in days],
+        policy,
+        template_ids=[meal.template_id for day in days for meal in day.meals if meal.template_id],
+        data_completeness=data_completeness,
+    )
     comparisons = _comparisons(inputs, daily_average, data_completeness, policy)
+    if any(meal.role == "free_meal" for day in days for meal in day.meals):
+        comparisons = {
+            code: replace(row, data_confidence="medium")
+            if code in {"goal_calories", "protein", "carbohydrate", "total_fat"}
+            else row
+            for code, row in comparisons.items()
+        }
+
     min_feasible_cost = (
         budget_result.minimum_feasible_weekly_cost_irr if budget_result is not None else None
     )
@@ -496,7 +518,7 @@ def _evaluate_built_days(
             reason_codes=(
                 ("NUTRIENT_UPPER_LIMIT_EXCEEDED",)
                 if upper_limit_exceeded
-                else portion_reasons or validation
+                else tuple(dict.fromkeys((*validation, *portion_reasons)))
             ),
             nutrient_comparisons=comparisons,
             repair_actions=repairs,
@@ -731,9 +753,8 @@ def _preference_avoidance_reason(inputs: PlannerInput) -> str:
 def _is_food_blocked(food: PlannerFood, inputs: PlannerInput) -> bool:
     if _excluded(food, inputs.excluded_terms):
         return True
-    if (
-        food.food_id in _hard_excluded_food_ids(inputs)
-        or food.food_id in _disliked_food_ids(inputs)
+    if food.food_id in _hard_excluded_food_ids(inputs) or food.food_id in _disliked_food_ids(
+        inputs
     ):
         return True
     if inputs.food_constraints:
@@ -768,9 +789,7 @@ def _rank_candidates(
         )
         preference = (
             Decimal("1") if food.food_id in _preference_ids(inputs, "liked_food_ids") else ZERO
-        ) - (
-            Decimal("1") if food.food_id in _disliked_food_ids(inputs) else ZERO
-        )
+        ) - (Decimal("1") if food.food_id in _disliked_food_ids(inputs) else ZERO)
         if inputs.food_constraints:
             decision = evaluate_food_constraints(
                 constraints=inputs.food_constraints,
@@ -1138,7 +1157,7 @@ def _build_scheduled_day_variants(
     requested_by_id = {template.meal_id: template for template in all_templates}
     schedule = inputs.template_schedule or ()
     pending_slots = _pending_schedule_slots(schedule)
-    initial_usage = _scheduled_template_usage(schedule, by_id)
+    initial_usage: dict[str, int] = {}
     empty_days = tuple(() for _ in schedule)
     states: tuple[PartialWeekVariant, ...] = (
         PartialWeekVariant(
@@ -1174,6 +1193,7 @@ def _build_scheduled_day_variants(
             original_available = (
                 requested_candidate is not None
                 and requested_candidate.template.category == category
+                and usage.get(requested_id, 0) < inputs.maximum_meal_repetition_per_week
             )
             options: tuple[EligibleMealTemplate, ...]
             if original_available:
@@ -1187,8 +1207,8 @@ def _build_scheduled_day_variants(
                     category=category,
                     items=(),
                 )
-                real_slots = [item for item in schedule[day_index] if item[1] is not None]
-                snack_count = sum(item[0] == "snack" for item in real_slots)
+                real_slots = list(schedule[day_index])
+                snack_count = sum(item[2] == "snack" for item in real_slots)
                 main_count = len(real_slots) - snack_count
                 snack_share = policy.snack_energy_share if snack_count else ZERO
                 target_kcal = (
@@ -1242,7 +1262,7 @@ def _build_scheduled_day_variants(
                         day_index=day_index,
                         role=role,
                         slot_index=slot_index,
-                        requested_template_id=requested_id,
+                        requested_template_id=requested_id or "",
                         category=category,
                         diagnostics=substitution_rejection_diagnostics(
                             requested,
@@ -1252,6 +1272,11 @@ def _build_scheduled_day_variants(
                     )
                     continue
             for candidate in options:
+                if (
+                    usage.get(candidate.template.meal_id, 0)
+                    >= inputs.maximum_meal_repetition_per_week
+                ):
+                    continue
                 selected_days = [list(day) for day in state.days_built]
                 selected_days[day_index].append(candidate.template.meal_id)
                 action = None
@@ -1278,8 +1303,8 @@ def _build_scheduled_day_variants(
                 _candidate_energy, _candidate_protein, candidate_cost = template_reference_metrics(
                     candidate
                 )
-                real_slots = [item for item in schedule[day_index] if item[1] is not None]
-                snack_count = sum(item[0] == "snack" for item in real_slots)
+                real_slots = list(schedule[day_index])
+                snack_count = sum(item[2] == "snack" for item in real_slots)
                 main_count = len(real_slots) - snack_count
                 snack_share = policy.snack_energy_share if snack_count else ZERO
                 target_kcal = (
@@ -1327,7 +1352,7 @@ def _build_scheduled_day_variants(
                                     candidate.template.meal_id: usage.get(
                                         candidate.template.meal_id, 0
                                     )
-                                    + (0 if original_available else 1),
+                                    + 1,
                                 }.items()
                             )
                         ),
@@ -1336,7 +1361,14 @@ def _build_scheduled_day_variants(
         if not next_states:
             if first_failure is not None:
                 raise first_failure
-            break
+            raise NoCompatibleTemplateSubstituteError(
+                day_index=day_index,
+                role=role,
+                slot_index=slot_index,
+                requested_template_id=requested_id or "",
+                category=category,
+                diagnostics=(),
+            )
         states = tuple(
             sorted(
                 next_states,
@@ -1441,9 +1473,8 @@ def _materialize_scheduled_days(
     meal_cache = meal_cache if meal_cache is not None else {}
     days: list[PlannedDay] = []
     for day_index, schedule in enumerate(inputs.template_schedule or ()):
-        real_slots = [slot for slot in schedule if slot[1] is not None]
-        snack_count = sum(role == "snack" for role, _, _ in real_slots)
-        main_count = len(real_slots) - snack_count
+        snack_count = sum(category == "snack" for _, _, category in schedule)
+        main_count = len(schedule) - snack_count
         snack_share = policy.snack_energy_share if snack_count else ZERO
         main_kcal = (
             inputs.daily_targets["goal_calories"] * (Decimal("1") - snack_share) / main_count
@@ -1471,6 +1502,20 @@ def _materialize_scheduled_days(
                         foods=(),
                         cost_irr=ZERO,
                         nutrients=(),
+                        reserved_energy_kcal=snack_kcal if category == "snack" else main_kcal,
+                        reserved_macro_targets=tuple(
+                            (
+                                TARGET_NUTRIENT_CODES[code],
+                                value
+                                * (
+                                    (snack_share / snack_count)
+                                    if category == "snack"
+                                    else (ONE - snack_share) / main_count
+                                ),
+                            )
+                            for code, value in inputs.daily_targets.items()
+                            if code in {"protein", "carbohydrate", "total_fat"}
+                        ),
                     )
                 )
                 continue
@@ -1585,6 +1630,7 @@ def _portion_for_template_item(
         min_grams=effective_min,
         max_grams=effective_max,
         functional_role=item.functional_role,
+        measurement_basis=food.measurement_basis,
     )
 
 
@@ -1695,6 +1741,7 @@ def optimize_prepared_recipe(
         max_grams=calculation.final_cooked_yield_grams,
         functional_role=None,
         item_kind="prepared_recipe",
+        measurement_basis="cooked",
         recipe_snapshot={
             "revision_id": recipe.revision_id,
             "calculation_version": calculation.calculation_version,
@@ -1708,6 +1755,7 @@ def optimize_prepared_recipe(
                     "slug": foods[food_id].slug,
                     "name_fa": foods[food_id].name_fa,
                     "name_en": foods[food_id].name_en,
+                    "measurement_basis": foods[food_id].measurement_basis,
                     "grams": selected_grams[food_id],
                     "cost_irr": str(
                         foods[food_id].price_irr_per_gram * Decimal(selected_grams[food_id])
@@ -1749,6 +1797,22 @@ def _meal(
         cost_irr=sum((food.cost_irr for food in foods), ZERO),
         nutrients=tuple(sorted(nutrients.items())),
     )
+
+
+def _effective_daily_totals(day: PlannedDay) -> dict[str, Decimal]:
+    totals = dict(day.nutrients)
+    totals["energy_kcal"] = totals.get("energy_kcal", ZERO) + sum(
+        (meal.reserved_energy_kcal for meal in day.meals), ZERO
+    )
+    for meal in day.meals:
+        for code, value in meal.reserved_macro_targets:
+            totals[code] = totals.get(code, ZERO) + value
+    return totals
+
+
+def _effective_daily_average(days: tuple[PlannedDay, ...]) -> dict[str, Decimal]:
+    totals = _sum_nutrients(tuple(_effective_daily_totals(day).items()) for day in days)
+    return {code: value / Decimal(len(days)) for code, value in totals.items()}
 
 
 def _day(day_index: int, meals: tuple[PlannedMeal, ...]) -> PlannedDay:
@@ -1888,6 +1952,7 @@ def _repair_portions(
         if TARGET_NUTRIENT_CODES.get(code, code)
         in {"energy_kcal", "protein_g", "carbohydrate_g", "total_fat_g", "fibre_g"}
     }
+    target_values.update(inputs.micronutrient_targets)
     minimum_values = {
         TARGET_NUTRIENT_CODES.get(code, code): value
         for code, value in inputs.daily_minimums.items()
@@ -1896,6 +1961,14 @@ def _repair_portions(
         TARGET_NUTRIENT_CODES.get(code, code): value
         for code, value in inputs.daily_maximums.items()
     }
+    goal = inputs.daily_targets["goal_calories"]
+    tolerance = goal * policy.calorie_tolerance_ratio
+    if inputs.maintenance_calories is not None and inputs.maintenance_calories != goal:
+        tolerance = min(
+            tolerance, abs(inputs.maintenance_calories - goal) * policy.energy_delta_tolerance_ratio
+        )
+    minimum_values["energy_kcal"] = goal - tolerance
+    maximum_values["energy_kcal"] = goal + tolerance
     upper_limits = dict(inputs.micronutrient_upper_limits)
     repaired_days = list(days)
     actions: list[PortionAdjustmentAction] = []
@@ -1937,7 +2010,7 @@ def _repair_portions(
             continue
         solver_result = solve_portions(
             variables=tuple(variables),
-            initial_totals=dict(day.nutrients),
+            initial_totals=_effective_daily_totals(day),
             targets=target_values,
             minimums=minimum_values,
             maximums=maximum_values,
@@ -2080,6 +2153,7 @@ def _nutrient_data_completeness(
     known_energy = {code: ZERO for code in requested}
     for day in days:
         for meal in day.meals:
+            total_energy += meal.reserved_energy_kcal
             for food in meal.foods:
                 nutrients = dict(food.nutrients)
                 energy = nutrients.get("energy_kcal", ZERO)
@@ -2097,26 +2171,7 @@ def _validate_nutritional_feasibility(
     daily_average: dict[str, Decimal],
     policy: PlannerPolicy,
 ) -> tuple[str, ...]:
-    goal = inputs.daily_targets["goal_calories"]
-    energy = daily_average.get("energy_kcal", ZERO)
-    reasons: list[str] = []
-    if goal > ZERO and abs(energy - goal) / goal > policy.calorie_tolerance_ratio:
-        reasons.append("CALORIE_TARGET_OUTSIDE_TOLERANCE")
-    if any(
-        daily_average.get(TARGET_NUTRIENT_CODES.get(code, code), ZERO)
-        < minimum * (Decimal("1") - policy.macro_tolerance_ratio)
-        for code, minimum in inputs.daily_minimums.items()
-        if code in {"protein", "carbohydrate", "total_fat"}
-    ):
-        reasons.append("MACRONUTRIENT_FLOOR_NOT_MET")
-    if any(
-        daily_average.get(TARGET_NUTRIENT_CODES.get(code, code), ZERO)
-        > maximum * (Decimal("1") + policy.macro_tolerance_ratio)
-        for code, maximum in inputs.daily_maximums.items()
-        if code in {"carbohydrate", "total_fat"}
-    ):
-        reasons.append("MACRONUTRIENT_MAXIMUM_EXCEEDED")
-    return tuple(reasons)
+    return validate_nutrient_totals(inputs, daily_average, policy)
 
 
 def _upper_limit_exceeded(inputs: PlannerInput, daily_average: dict[str, Decimal]) -> bool:
@@ -2156,6 +2211,8 @@ def _warning_codes(
         for signature in set(signatures)
     ):
         warnings.append("REPETITION_LIMIT_RELAXED")
+    if any(meal.reserved_energy_kcal > ZERO for day in days for meal in day.meals):
+        warnings.append("FREE_MEAL_ENERGY_RESERVED_NUTRIENTS_UNKNOWN")
     if inputs.optimization_mode == NutritionOptimizationMode.BUDGET_CONSTRAINED:
         target_protein = inputs.daily_targets.get("protein", ZERO)
         if target_protein > ZERO and daily_average.get("protein_g", ZERO) < target_protein:

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -15,6 +16,7 @@ from app.notifications.models import NotificationOutboxEvent
 from app.nutrition.candidate_selection import quality_for_result
 from app.nutrition.enums import NutritionPlanLifecycleStatus, NutritionPlanReviewStatus
 from app.nutrition.models import (
+    NutritionCatalogueFood,
     NutritionMealFeedback,
     NutritionPlanBundle,
     NutritionPlanPhysicianReview,
@@ -55,6 +57,58 @@ def _generated_plan(
     return response.json()["plan"]
 
 
+def _safe_replacement_id(plan, meal_id):
+    target = next(meal for day in plan["days"] for meal in day["meals"] if meal["id"] == meal_id)
+    return next(
+        meal["id"]
+        for day in plan["days"]
+        for meal in day["meals"]
+        if meal["id"] != meal_id
+        and meal["catalogue_meal_id"] == target["catalogue_meal_id"]
+        and meal["nutrient_totals"] == target["nutrient_totals"]
+    )
+
+
+def _equivalent_food_variant(client, db, plan):
+    """Provide a distinct, composition-equivalent food for revision/entitlement tests."""
+    stored = db.get(NutritionWeeklyPlan, UUID(plan["id"]))
+    target_id = UUID(plan["days"][0]["meals"][0]["foods"][0]["food_id"])
+    target_meal_id = UUID(plan["days"][0]["meals"][0]["id"])
+    target = next(
+        food
+        for day in stored.days
+        for meal in day.meals
+        for food in meal.foods
+        if meal.id == target_meal_id and food.food_id == target_id
+    )
+    catalogue = db.get(NutritionCatalogueFood, target_id)
+    variant = NutritionCatalogueFood(
+        slug="equivalent-revision-food",
+        name_fa=target.food_name_fa,
+        name_en="Equivalent food",
+        verification_status=catalogue.verification_status,
+        source_name=catalogue.source_name,
+        source_reference=catalogue.source_reference,
+        source_food_id="equivalent-test",
+    )
+    db.add(variant)
+    db.flush()
+    source = next(
+        food
+        for day in stored.days
+        for meal in day.meals
+        for food in meal.foods
+        if meal.id != target_meal_id
+        and food.food_id == target_id
+        and food.grams == target.grams
+        and food.nutrient_snapshot == target.nutrient_snapshot
+    )
+    source.food_id = variant.id
+    source.food_slug = variant.slug
+    db.commit()
+    return client.get(f"/api/v1/nutrition/plans/{plan['id']}").json()
+
+
 def _expire_physician_review_quota(db: Session, user_id: UUID) -> None:
     usage = db.scalars(
         select(EntitlementUsageEvent).where(
@@ -66,6 +120,37 @@ def _expire_physician_review_quota(db: Session, user_id: UUID) -> None:
     for event in usage:
         event.occurred_at = datetime.now(UTC) - timedelta(days=29)
     db.commit()
+
+
+def test_removing_a_main_meal_cannot_persist_an_inadequate_revision(client, db) -> None:
+    plan = _generated_plan(client, db)
+    meal = next(row for row in plan["days"][0]["meals"] if row["slot_role"] == "main_meal")
+    before = db.scalar(select(func.count()).select_from(NutritionWeeklyPlan))
+    response = client.post(
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/confirm",
+        headers=ORIGIN,
+        json={"expected_plan_revision_id": plan["id"], "meal_id": meal["id"]},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "PLAN_EDIT_NUTRITION_CONSTRAINT_VIOLATION"
+    assert db.scalar(select(func.count()).select_from(NutritionWeeklyPlan)) == before
+
+
+def test_oil_is_not_offered_as_a_chicken_replacement(client, db) -> None:
+    plan = _generated_plan(client, db)
+    meal, target = next(
+        (meal, food)
+        for day in plan["days"]
+        for meal in day["meals"]
+        for food in meal["foods"]
+        if "chicken" in food["slug"]
+    )
+    response = client.get(
+        f"/api/v1/nutrition/plans/{plan['id']}/food-replacement-options",
+        params={"meal_id": meal["id"], "food_id": target["food_id"]},
+    )
+    assert response.status_code == 200
+    assert all("oil" not in food["slug"] for food in response.json()["options"])
 
 
 def test_shopping_list_uses_exact_quantities_and_snapshot_costs(
@@ -282,17 +367,25 @@ def test_plan_defining_edit_creates_immutable_revision_and_rejects_stale_confirm
     _expire_physician_review_quota(db, source_plan.user_id)
     meal_id = plan["days"][0]["meals"][0]["id"]
     preview = client.post(
-        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/preview",
-        params={"meal_id": meal_id},
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/preview",
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "meal_id": meal_id,
+            "replacement_meal_id": _safe_replacement_id(plan, meal_id),
+        },
     )
     assert preview.status_code == 200
     assert preview.json()["change_kind"] == "plan_defining"
     assert preview.json()["requires_physician_review"] is True
 
     confirmed = client.post(
-        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/confirm",
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/confirm",
         headers=ORIGIN,
-        json={"expected_plan_revision_id": plan["id"], "meal_id": meal_id},
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "meal_id": meal_id,
+            "replacement_meal_id": _safe_replacement_id(plan, meal_id),
+        },
     )
     assert confirmed.status_code == 200, confirmed.text
     revised = confirmed.json()
@@ -302,10 +395,10 @@ def test_plan_defining_edit_creates_immutable_revision_and_rejects_stale_confirm
     assert revised_plan is not None and revised_plan.generation is not None
     assert revised_plan.generation.bundle_id is None
     assert revised["review_status"] == "pending"
-    assert revised["weekly_cost_irr"] < plan["weekly_cost_irr"]
+    assert revised["weekly_cost_irr"] == plan["weekly_cost_irr"]
     assert (
         revised["nutrients"]["goal_calories"]["planned"]
-        < plan["nutrients"]["goal_calories"]["planned"]
+        == plan["nutrients"]["goal_calories"]["planned"]
     )
 
     old_review = db.scalar(
@@ -324,9 +417,13 @@ def test_plan_defining_edit_creates_immutable_revision_and_rejects_stale_confirm
     assert latest.json()["id"] == revised["id"]
 
     stale = client.post(
-        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/confirm",
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/confirm",
         headers=ORIGIN,
-        json={"expected_plan_revision_id": revised["id"], "meal_id": meal_id},
+        json={
+            "expected_plan_revision_id": revised["id"],
+            "meal_id": meal_id,
+            "replacement_meal_id": _safe_replacement_id(plan, meal_id),
+        },
     )
     assert stale.status_code == 409
     assert stale.json()["detail"]["code"] == "STALE_PLAN_REVISION"
@@ -335,7 +432,7 @@ def test_plan_defining_edit_creates_immutable_revision_and_rejects_stale_confirm
 def test_review_required_edit_without_entitlement_is_atomic(
     client: TestClient, db: Session
 ) -> None:
-    plan = _generated_plan(client, db)
+    plan = _equivalent_food_variant(client, db, _generated_plan(client, db))
     source = db.scalar(select(NutritionWeeklyPlan).where(NutritionWeeklyPlan.id == plan["id"]))
     assert source is not None
     assert source.review is not None
@@ -365,7 +462,7 @@ def test_review_required_edit_without_entitlement_is_atomic(
         candidate
         for day in plan["days"]
         for candidate in day["meals"]
-        if candidate["slot_role"] == meal["slot_role"] and candidate["id"] != meal["id"]
+        if candidate["id"] == _safe_replacement_id(plan, meal["id"])
     )
     target_food = meal["foods"][0]
     replacement_food = next(
@@ -373,12 +470,12 @@ def test_review_required_edit_without_entitlement_is_atomic(
         for day in plan["days"]
         for candidate_meal in day["meals"]
         for food in candidate_meal["foods"]
-        if food["food_id"] != target_food["food_id"]
+        if food["slug"] == "equivalent-revision-food"
     )
     previews = (
         client.post(
             f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/preview",
-            params={"meal_id": meal["id"]},
+            params={"meal_id": meal["id"], "replacement_meal_id": same_role_replacement["id"]},
         ),
         client.post(
             f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/preview",
@@ -398,8 +495,12 @@ def test_review_required_edit_without_entitlement_is_atomic(
             },
         ),
     )
-    assert all(response.status_code == 200 for response in previews)
-    assert all(response.json()["requires_physician_review"] is True for response in previews)
+    assert previews[0].status_code == 409
+    assert previews[0].json()["detail"]["code"] == "PLAN_EDIT_NUTRITION_CONSTRAINT_VIOLATION"
+    assert all(response.status_code == 200 for response in previews[1:]), [
+        response.json() for response in previews
+    ]
+    assert all(response.json()["requires_physician_review"] is True for response in previews[1:])
 
     plan_ids_before = set(
         db.scalars(select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id))
@@ -408,15 +509,14 @@ def test_review_required_edit_without_entitlement_is_atomic(
         db.scalars(
             select(EntitlementUsageEvent.id).where(
                 EntitlementUsageEvent.user_id == user_id,
-                EntitlementUsageEvent.entitlement_key
-                == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
             )
         )
     )
     notification_count_before = db.scalar(
-        select(func.count()).select_from(NotificationOutboxEvent).where(
-            NotificationOutboxEvent.event_type == "nutrition_review_required"
-        )
+        select(func.count())
+        .select_from(NotificationOutboxEvent)
+        .where(NotificationOutboxEvent.event_type == "nutrition_review_required")
     )
     original_review_status = source.review.status
     original_lifecycle = source.lifecycle_status
@@ -424,9 +524,13 @@ def test_review_required_edit_without_entitlement_is_atomic(
     original_bundle_role = bundle.selected_plan_role
 
     denied = client.post(
-        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/confirm",
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/confirm",
         headers=ORIGIN,
-        json={"expected_plan_revision_id": plan["id"], "meal_id": meal["id"]},
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "meal_id": meal["id"],
+            "replacement_meal_id": same_role_replacement["id"],
+        },
     )
 
     assert denied.status_code == 403
@@ -440,23 +544,32 @@ def test_review_required_edit_without_entitlement_is_atomic(
     assert bundle is not None
     assert bundle.selected_plan_id == original_bundle_pointer
     assert bundle.selected_plan_role == original_bundle_role
-    assert set(
-        db.scalars(select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id))
-    ) == plan_ids_before
-    assert set(
-        db.scalars(
-            select(EntitlementUsageEvent.id).where(
-                EntitlementUsageEvent.user_id == user_id,
-                EntitlementUsageEvent.entitlement_key
-                == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+    assert (
+        set(
+            db.scalars(select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id))
+        )
+        == plan_ids_before
+    )
+    assert (
+        set(
+            db.scalars(
+                select(EntitlementUsageEvent.id).where(
+                    EntitlementUsageEvent.user_id == user_id,
+                    EntitlementUsageEvent.entitlement_key
+                    == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                )
             )
         )
-    ) == usage_ids_before
-    assert db.scalar(
-        select(func.count()).select_from(NotificationOutboxEvent).where(
-            NotificationOutboxEvent.event_type == "nutrition_review_required"
+        == usage_ids_before
+    )
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(NotificationOutboxEvent)
+            .where(NotificationOutboxEvent.event_type == "nutrition_review_required")
         )
-    ) == notification_count_before
+        == notification_count_before
+    )
 
 
 def test_member_revision_consumes_physician_quota_and_partial_regeneration_is_blocked(
@@ -490,18 +603,25 @@ def test_member_revision_consumes_physician_quota_and_partial_regeneration_is_bl
         .where(NutritionWeeklyPlan.user_id == user_id)
     ).all()
     assert initial_reviews == []
-    assert db.scalars(
-        select(EntitlementUsageEvent).where(
-            EntitlementUsageEvent.user_id == user_id,
-            EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
-        )
-    ).all() == []
+    assert (
+        db.scalars(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.user_id == user_id,
+                EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+            )
+        ).all()
+        == []
+    )
 
     meal_id = plan["days"][0]["meals"][0]["id"]
     first_revision = client.post(
-        f"/api/v1/nutrition/plans/{plan['id']}/edits/remove-meal/confirm",
+        f"/api/v1/nutrition/plans/{plan['id']}/edits/replace-meal/confirm",
         headers=ORIGIN,
-        json={"expected_plan_revision_id": plan["id"], "meal_id": meal_id},
+        json={
+            "expected_plan_revision_id": plan["id"],
+            "meal_id": meal_id,
+            "replacement_meal_id": _safe_replacement_id(plan, meal_id),
+        },
     )
     assert first_revision.status_code == 200, first_revision.text
     revised = first_revision.json()
@@ -521,14 +641,17 @@ def test_member_revision_consumes_physician_quota_and_partial_regeneration_is_bl
     ).all()
     assert len(usage) == 1
     assert usage[0].resource_key == f"nutrition-plan:{revised_id}:revision:{revised['revision']}"
-    assert db.scalar(
-        select(NotificationOutboxEvent).where(
-            NotificationOutboxEvent.user_id == physician.id,
-            NotificationOutboxEvent.event_type == "nutrition_review_required",
-            NotificationOutboxEvent.deduplication_key
-            == f"nutrition-review:{review.id}:required",
+    assert (
+        db.scalar(
+            select(NotificationOutboxEvent).where(
+                NotificationOutboxEvent.user_id == physician.id,
+                NotificationOutboxEvent.event_type == "nutrition_review_required",
+                NotificationOutboxEvent.deduplication_key
+                == f"nutrition-review:{review.id}:required",
+            )
         )
-    ) is not None
+        is not None
+    )
     first_revision_plan_ids = set(
         db.scalars(
             select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id)
@@ -546,38 +669,50 @@ def test_member_revision_consumes_physician_quota_and_partial_regeneration_is_bl
     assert exhausted.json()["detail"]["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
     db.refresh(review)
     assert review.status is NutritionPlanReviewStatus.PENDING
-    assert set(
-        db.scalars(
-            select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id)
-        ).all()
-    ) == first_revision_plan_ids
-    assert len(
-        db.scalars(
-            select(NutritionPlanPhysicianReview)
-            .join(
-                NutritionWeeklyPlan,
-                NutritionWeeklyPlan.id == NutritionPlanPhysicianReview.plan_id,
-            )
-            .where(NutritionWeeklyPlan.user_id == user_id)
-        ).all()
-    ) == 1
-    assert len(
-        db.scalars(
-            select(EntitlementUsageEvent).where(
-                EntitlementUsageEvent.user_id == user_id,
-                EntitlementUsageEvent.entitlement_key
-                == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
-            )
-        ).all()
-    ) == 1
-    assert len(
-        db.scalars(
-            select(NotificationOutboxEvent).where(
-                NotificationOutboxEvent.user_id == physician.id,
-                NotificationOutboxEvent.event_type == "nutrition_review_required",
-            )
-        ).all()
-    ) == 1
+    assert (
+        set(
+            db.scalars(
+                select(NutritionWeeklyPlan.id).where(NutritionWeeklyPlan.user_id == user_id)
+            ).all()
+        )
+        == first_revision_plan_ids
+    )
+    assert (
+        len(
+            db.scalars(
+                select(NutritionPlanPhysicianReview)
+                .join(
+                    NutritionWeeklyPlan,
+                    NutritionWeeklyPlan.id == NutritionPlanPhysicianReview.plan_id,
+                )
+                .where(NutritionWeeklyPlan.user_id == user_id)
+            ).all()
+        )
+        == 1
+    )
+    assert (
+        len(
+            db.scalars(
+                select(EntitlementUsageEvent).where(
+                    EntitlementUsageEvent.user_id == user_id,
+                    EntitlementUsageEvent.entitlement_key
+                    == EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                )
+            ).all()
+        )
+        == 1
+    )
+    assert (
+        len(
+            db.scalars(
+                select(NotificationOutboxEvent).where(
+                    NotificationOutboxEvent.user_id == physician.id,
+                    NotificationOutboxEvent.event_type == "nutrition_review_required",
+                )
+            ).all()
+        )
+        == 1
+    )
 
 
 def test_meal_replacement_preview_and_confirmation_create_revision(
@@ -616,7 +751,9 @@ def test_meal_replacement_preview_and_confirmation_create_revision(
 def test_food_replacement_and_partial_regeneration_preserve_immutable_history(
     client: TestClient, db: Session
 ) -> None:
-    plan = _generated_plan(client, db, package=AccessPackageCode.NUTRITION)
+    plan = _equivalent_food_variant(
+        client, db, _generated_plan(client, db, package=AccessPackageCode.NUTRITION)
+    )
     source = db.get(NutritionWeeklyPlan, UUID(plan["id"]))
     assert source is not None and source.review is None
     target_meal = plan["days"][0]["meals"][0]
@@ -626,7 +763,7 @@ def test_food_replacement_and_partial_regeneration_preserve_immutable_history(
         for day in plan["days"]
         for meal in day["meals"]
         for food in meal["foods"]
-        if food["food_id"] != target_food["food_id"]
+        if food["slug"] == "equivalent-revision-food"
     )
     payload = {
         "expected_plan_revision_id": plan["id"],
@@ -693,7 +830,16 @@ def test_physician_quantity_edit_rebinds_review_to_new_revision(
         )
     ).all()
     meal = plan["days"][0]["meals"][0]
-    food = meal["foods"][0]
+    food = next(food for food in meal["foods"] if "rice" in food["slug"])
+    stored_food = next(
+        food_row
+        for day in persisted_plan.days
+        for meal_row in day.meals
+        for food_row in meal_row.foods
+        if str(food_row.food_id) == food["food_id"]
+    )
+    maximum = Decimal(str(stored_food.quantity_snapshot["max_grams"]))
+    new_grams = stored_food.grams + 1 if stored_food.grams + 1 <= maximum else stored_food.grams - 1
 
     response = client.post(
         f"/api/v1/nutrition/physician/plans/{plan['id']}/edits/food-quantity",
@@ -702,7 +848,7 @@ def test_physician_quantity_edit_rebinds_review_to_new_revision(
             "expected_plan_revision_id": plan["id"],
             "meal_id": meal["id"],
             "food_id": food["food_id"],
-            "grams": float(food["grams"]) + 10,
+            "grams": float(new_grams),
         },
     )
 

@@ -31,6 +31,7 @@ from app.nutrition.models import (
     NutritionFoodPriceReference,
     NutritionPlanGeneration,
     NutritionPlanPhysicianReview,
+    NutritionProfile,
     NutritionProgram,
     NutritionProgramDay,
     NutritionProgramSlot,
@@ -159,6 +160,10 @@ def _register_and_estimate(
 
 
 def _seed_foods_and_prices(db: Session) -> None:
+    # This API fixture has only one template per category. A cap of three
+    # cannot cover a seven-day week; variety is tested with richer catalogues.
+    for profile in db.scalars(select(NutritionProfile)).all():
+        profile.maximum_meal_repetition_per_week = 7
     rows = (
         ("task6-chicken", "مرغ", (FoodRole.MAIN_PROTEIN,), "165", "31", "0", "3.6", "20"),
         ("task6-lentils", "عدس", (FoodRole.MAIN_PROTEIN,), "116", "9", "20", "0.4", "19"),
@@ -343,6 +348,7 @@ def test_generation_returns_visible_seven_day_draft_and_creates_review(
     assert body["plan"]["lifecycle_status"] == "pending_physician_review"
     assert body["plan"]["is_user_visible"] is True
     assert body["plan"]["review_status"] == "pending"
+
     assert body["plan"]["physician_approved"] is False
     assert len(body["plan"]["days"]) == 7
     assert all(
@@ -456,9 +462,7 @@ def test_plan_reports_preference_refresh_after_profile_preference_changes(
     assert latest.json()["preference_refresh_required"] is True
 
 
-def test_base_nutrition_activates_without_physician_review(
-    client: TestClient, db: Session
-) -> None:
+def test_base_nutrition_activates_without_physician_review(client: TestClient, db: Session) -> None:
     email = "base-nutrition-entitlement@example.com"
     _register_and_estimate(
         client,
@@ -487,11 +491,14 @@ def test_base_nutrition_activates_without_physician_review(
         assert selection.json()["plan"]["lifecycle_status"] == "ready_to_start"
     else:
         assert body["plan"]["lifecycle_status"] == "ready_to_start"
-    assert db.scalar(
-        select(NutritionPlanPhysicianReview).where(
-            NutritionPlanPhysicianReview.plan_id == body["plan"]["id"]
+    assert (
+        db.scalar(
+            select(NutritionPlanPhysicianReview).where(
+                NutritionPlanPhysicianReview.plan_id == body["plan"]["id"]
+            )
         )
-    ) is None
+        is None
+    )
     catalogue_meals = {
         str(meal.id): meal for meal in db.scalars(select(NutritionCatalogueMeal)).all()
     }
@@ -601,7 +608,11 @@ def test_generation_evaluates_every_program_and_persists_only_the_best_result(
 
     def fake_plan_week(inputs, foods, meal_templates, policy=plan_service.DEFAULT_POLICY, **kwargs):
         calls.append((inputs, foods, meal_templates, policy))
-        return results[(len(calls) - 1) % len(results)]
+        return (
+            results[1]
+            if inputs.optimization_mode.value == "ideal_reference"
+            else results[(len(calls) - 1) % len(results)]
+        )
 
     monkeypatch.setattr(plan_service, "plan_week", fake_plan_week)
 
@@ -614,20 +625,20 @@ def test_generation_evaluates_every_program_and_persists_only_the_best_result(
     assert response.json()["ideal_plan"] is not None
     assert response.json()["ideal_plan"]["input_snapshot"]["nutrition_program_code"] == "TEST-B"
     assert response.json()["comparison"] is not None
-    assert len(calls) == 3
+    assert len(calls) == 4
     assert len(db.scalars(select(NutritionWeeklyPlan)).all()) == 2
     generation = db.scalar(
         select(NutritionPlanGeneration).where(NutritionPlanGeneration.plan_role == "budget")
     )
     assert generation is not None
     trace = generation.diagnostic_snapshot["selection_trace"]
-    assert trace["proposed_candidate_count"] == 2
-    assert trace["evaluated_candidate_count"] == 2
-    assert trace["successful_candidate_count"] == 1
+    assert trace["proposed_candidate_count"] == 3
+    assert trace["evaluated_candidate_count"] == 3
+    assert trace["successful_candidate_count"] == 2
     assert trace["first_valid_program_code"] == "TEST-B"
     assert trace["selected_program_code"] == "TEST-B"
     assert trace["selected_differs_from_first_valid"] is False
-    assert len(trace["candidates"]) == 2
+    assert len(trace["candidates"]) == 3
     assert "preference_and_feedback_penalty" in trace["selected_quality"]
     assert "repetition_penalty" in trace["selected_quality"]
     assert trace["selected_quality_not_worse_than_first_valid"] is True
@@ -804,3 +815,85 @@ def test_download_nutrition_plan_pdf(client: TestClient, db: Session) -> None:
 
     missing_resp = client.get("/api/v1/nutrition/plans/018f0000-0000-7000-8000-000000000000/pdf")
     assert missing_resp.status_code == 404
+
+
+def test_plan_foods_snapshot_measurement_basis(client: TestClient, db: Session) -> None:
+    _register_and_estimate(client, db, "measurement-basis@example.com", meals=2, snacks=1)
+    _seed_foods_and_prices(db)
+    rice = db.scalar(
+        select(NutritionCatalogueFood).where(NutritionCatalogueFood.slug == "task6-rice")
+    )
+    assert rice is not None
+    from app.nutrition.enums import FoodMeasurementBasis
+
+    rice.measurement_basis = FoodMeasurementBasis.DRY
+    db.commit()
+    generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()["plan"]
+    rice_food = next(
+        food
+        for day in generated["days"]
+        for meal in day["meals"]
+        for food in meal["foods"]
+        if food["slug"] == "task6-rice"
+    )
+    assert rice_food["measurement_basis"] == "dry"
+    rice.measurement_basis = FoodMeasurementBasis.RAW
+    db.commit()
+    fetched = client.get(f"/api/v1/nutrition/plans/{generated['id']}").json()
+    assert (
+        next(
+            food
+            for day in fetched["days"]
+            for meal in day["meals"]
+            for food in meal["foods"]
+            if food["slug"] == "task6-rice"
+        )["measurement_basis"]
+        == "dry"
+    )
+
+
+def test_read_repairs_legacy_zero_fat_aggregate_without_changing_foods(client, db) -> None:
+    _register_and_estimate(client, db, "legacy-fat@example.com", meals=2, snacks=1)
+    _seed_foods_and_prices(db)
+    generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()["plan"]
+    plan = db.get(NutritionWeeklyPlan, generated["id"])
+    assert plan is not None
+    row = next(row for row in plan.nutrients if row.nutrient_code == "total_fat")
+    expected = row.planned_value
+    row.planned_value = Decimal("0")
+    db.commit()
+    fetched = client.get(f"/api/v1/nutrition/plans/{plan.id}").json()
+    assert Decimal(str(fetched["nutrients"]["total_fat"]["planned"])) == expected
+
+
+def test_free_meal_allowance_is_persisted_once_in_daily_planning_totals(client, db) -> None:
+    _register_and_estimate(client, db, "free-allowance-totals@example.com", meals=2, snacks=1)
+    _seed_foods_and_prices(db)
+    program = db.scalar(select(NutritionProgram).where(NutritionProgram.code == "TST-PROGRAM"))
+    slot = next(slot for slot in program.days[0].slots if slot.category == MealCategory.LUNCH)
+    slot.kind = NutritionProgramSlotKind.FREE_MEAL
+    slot.meal_id = None
+    db.commit()
+    response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert response.status_code == 201
+    plan = response.json()["plan"]
+    assert plan is not None, response.json()
+    day = next(
+        day
+        for day in plan["days"]
+        if any(meal["slot_role"] == "free_meal" for meal in day["meals"])
+    )
+    free = next(meal for meal in day["meals"] if meal["slot_role"] == "free_meal")
+    assert free["foods"] == []
+    assert free["nutrient_totals"] == {}
+    known = sum(meal["nutrient_totals"].get("energy_kcal", 0) for meal in day["meals"])
+    assert (
+        abs(
+            day["nutrient_totals"]["energy_kcal"]
+            - known
+            - free["target_distribution"]["goal_calories"]
+        )
+        < 0.01
+    )
+    average = sum(day["nutrient_totals"]["energy_kcal"] for day in plan["days"]) / 7
+    assert abs(plan["nutrients"]["goal_calories"]["planned"] - average) < 0.01
