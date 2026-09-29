@@ -126,7 +126,8 @@ def _safety_check(
             continue
         for code, value in order.nutrient_contribution.items():
             supplement_totals[code] = supplement_totals.get(code, Decimal()) + Decimal(str(value))
-    food_daily = {row.nutrient_code: row.planned_value / Decimal("7") for row in plan.nutrients}
+    # Planned values are daily averages, already divided by seven by the planner.
+    food_daily = {row.nutrient_code: row.planned_value for row in plan.nutrients}
     targets = db.scalars(
         select(NutritionEstimateMicronutrientTarget).where(
             NutritionEstimateMicronutrientTarget.estimate_id == plan.estimate_id,
