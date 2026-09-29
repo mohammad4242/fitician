@@ -1,0 +1,21 @@
+import { jest, it, expect } from "@jest/globals";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { RemoteFoodSelector } from "./RemoteFoodSelector";
+jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: () => ({ request: mockRequest }) }));
+jest.mock("./nutritionCatalogueApi", () => ({ createNutritionCatalogueApi: () => ({ getFoodCatalogue: mockFetchFoods }) }));
+const mockRequest = jest.fn();
+const mockFetchFoods = jest.fn<() => Promise<{ items: unknown[]; total: number }>>();
+it("searches beyond the initial page and preserves the selected food", async () => {
+  const food = { id: "outside-first-40", name_fa: "غذای دور", name_en: "Remote food" };
+  mockFetchFoods.mockResolvedValue({ items: [], total: 0 }).mockImplementationOnce(() => Promise.resolve({ items: [], total: 0 }));
+  const select = jest.fn();
+  const view = render(<RemoteFoodSelector foods={[]} onSelect={select} selectedFoodId={null} />);
+  fireEvent.press(view.getByText("انتخاب کن…"));
+  await waitFor(() => expect(mockFetchFoods).toHaveBeenCalled());
+  mockFetchFoods.mockResolvedValue({ items: [food], total: 1 });
+  fireEvent.changeText(view.getByLabelText("جست‌وجوی غذا"), "غذای دور");
+  await waitFor(() => expect(mockFetchFoods).toHaveBeenCalledWith({ page: 1, pageSize: 40, query: "غذای دور" }));
+  await waitFor(() => expect(view.getByText("غذای دور")).toBeTruthy());
+  fireEvent.press(view.getByText("غذای دور"));
+  expect(select).toHaveBeenCalledWith(food.id, food);
+});

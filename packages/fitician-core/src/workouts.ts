@@ -7,6 +7,9 @@ export type WorkoutPlanExercise = {
   id: string;
   order_index: number;
   section?: "main" | "core";
+  warmup_sets?: number;
+  load_guidance?: string;
+  progression_rule?: string;
   sets: number;
   prescription_mode?: PrescriptionMode;
   reps_min: number | null;
@@ -145,6 +148,7 @@ export type WorkoutDay = {
   title_en: string;
   title_fa: string;
   estimated_duration_minutes: number;
+  cardio?: Record<string, unknown> | null;
   weekday?: number | null;
   exercises: WorkoutPlanExercise[];
   ai_coach_explanation_fa?: string | null;

@@ -2,7 +2,7 @@ import {
   formatIsoDate,
   formatPersianDateWithWeekday,
   nutritionProgressTone,
-  nutritionTargetToExpenditureRatio,
+  nutritionIntakeToTargetRatio,
   type NutritionProgressTone,
 } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
@@ -203,11 +203,9 @@ export function DashboardPage() {
   );
   const actual = hasActual ? trackedTotals : null;
   const hasNutritionTarget = nutritionTarget.energy_kcal !== null;
-  const nutritionProgress = nutritionTargetToExpenditureRatio(nutritionTarget.energy_kcal, tdeeTarget);
+  const nutritionProgress = nutritionIntakeToTargetRatio(actual?.energy_kcal, nutritionTarget.energy_kcal);
   const nutritionTone = nutritionProgressTone(nutritionProgress);
-  const aboveExpenditureCalories = nutritionTarget.energy_kcal !== null && tdeeTarget !== null
-    ? Math.max(0, nutritionTarget.energy_kcal - tdeeTarget)
-    : 0;
+
   const format = (value: number) => Math.round(value).toLocaleString(locale);
   const displayName = profile?.display_name ?? (english ? "there" : "دوست");
   const avatarInitial = displayName.trim().charAt(0).toLocaleUpperCase(locale);
@@ -361,16 +359,16 @@ export function DashboardPage() {
                   <ProgressRing
                     animateOnMount
                     color={nutritionRingColors[nutritionTone]}
-                    value={nutritionTarget.energy_kcal ?? 0}
-                    max={tdeeTarget ?? 0}
+                    value={actual?.energy_kcal ?? 0}
+                    max={nutritionTarget.energy_kcal ?? 0}
                     label={english ? "Today's calorie progress" : "پیشرفت کالری امروز"}
                   />
                 </div>
-                {aboveExpenditureCalories > 0 && <p className="command-card__overage">{english ? `${format(aboveExpenditureCalories)} kcal above estimated daily expenditure` : `${format(aboveExpenditureCalories)} کیلوکالری بالاتر از مصرف تقریبی روزانه`}</p>}
+                <p>{actual === null ? (english ? "Intake not recorded" : "مصرف امروز ثبت نشده") : `${english ? "Logged" : "ثبت‌شده"}: ${format(actual.energy_kcal ?? 0)} kcal · ${english ? "Remaining" : "باقی‌مانده"}: ${format(Math.max(0, (nutritionTarget.energy_kcal ?? 0) - (actual.energy_kcal ?? 0)))} kcal · ${english ? "Above target" : "بالاتر از هدف"}: ${format(Math.max(0, (actual.energy_kcal ?? 0) - (nutritionTarget.energy_kcal ?? 0)))} kcal`}</p>
                 <div className="fitician-metric-strip">
-                  <span><strong>{formatMetric(actual?.protein_g ?? nutritionTarget.protein_g, format)}</strong><small>{english ? "Protein" : "پروتئین"}</small></span>
-                  <span><strong>{formatMetric(actual?.carbohydrate_g ?? nutritionTarget.carbohydrate_g, format)}</strong><small>{english ? "Carbs" : "کربوهیدرات"}</small></span>
-                  <span><strong>{formatMetric(actual?.total_fat_g ?? nutritionTarget.total_fat_g, format)}</strong><small>{english ? "Fat" : "چربی"}</small></span>
+                  <span><strong>{formatMetric(actual?.protein_g, format)}</strong><small>{english ? "Protein" : "پروتئین"}</small></span>
+                  <span><strong>{formatMetric(actual?.carbohydrate_g, format)}</strong><small>{english ? "Carbs" : "کربوهیدرات"}</small></span>
+                  <span><strong>{formatMetric(actual?.total_fat_g, format)}</strong><small>{english ? "Fat" : "چربی"}</small></span>
                 </div>
               </> : <span className="command-card__empty">{t(`dashboard.nutritionState.${nutritionState}`)}</span>}
             </Link>

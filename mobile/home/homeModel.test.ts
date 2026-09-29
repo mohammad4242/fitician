@@ -31,7 +31,7 @@ it("uses the exact timeline session instead of the first workout day", () => {
   expect(summary.nextSession?.workout_day_id).toBe("day-2");
 });
 
-it("prefers daily plan totals and calculates progress from target versus TDEE", () => {
+it("prefers daily plan totals and calculates progress from logged intake versus daily target", () => {
   const summary = nutritionSummary(
     {
       days: [{
@@ -68,7 +68,7 @@ it("prefers daily plan totals and calculates progress from target versus TDEE", 
   expect(summary.targetCalories).toBe(2200);
   expect(summary.estimatedDailyExpenditureCalories).toBe(2557);
   expect(summary.consumedCalories).toBe(880);
-  expect(summary.progress).toBeCloseTo(2200 / 2557);
+  expect(summary.progress).toBeCloseTo(880 / 2200);
   expect(summary.protein).toBe(64);
   expect(summary.carbohydrate).toBe(90);
   expect(summary.fat).toBe(22);
@@ -93,9 +93,9 @@ it("uses estimate metric names when the daily plan has no nutrient totals", () =
 
   expect(summary.targetCalories).toBe(2778);
   expect(summary.estimatedDailyExpenditureCalories).toBe(2557);
-  expect(summary.protein).toBe(145);
-  expect(summary.carbohydrate).toBe(240);
-  expect(summary.fat).toBe(70);
+  expect(summary.protein).toBeNull();
+  expect(summary.carbohydrate).toBeNull();
+  expect(summary.fat).toBeNull();
 });
 
 it("uses the recurring timeline target on nutrition day eight", () => {
@@ -126,7 +126,7 @@ it("uses the recurring timeline target on nutrition day eight", () => {
   );
 
   expect(summary.targetCalories).toBe(2_100);
-  expect(summary.protein).toBe(140);
+  expect(summary.protein).toBeNull();
 });
 
 it("uses effective today totals instead of the selected future plan during a handoff", () => {
@@ -155,7 +155,7 @@ it("uses effective today totals instead of the selected future plan during a han
   );
 
   expect(summary.targetCalories).toBe(2_200);
-  expect(summary.protein).toBe(150);
+  expect(summary.protein).toBeNull();
 });
 
 it("returns an empty nutrition state when neither plan nor estimate exists", () => {
@@ -167,7 +167,7 @@ it("returns an empty nutrition state when neither plan nor estimate exists", () 
   });
 });
 
-it("keeps gain and loss nutrition progress independent from tracked intake", () => {
+it("uses actual intake for both gain and loss nutrition targets", () => {
   const estimate = {
     targets: {
       tdee: { preferred: 2400 },
@@ -205,6 +205,17 @@ it("keeps gain and loss nutrition progress independent from tracked intake", () 
     "2026-09-09",
   );
 
-  expect(gainSummary.progress).toBeCloseTo(3000 / 2400);
-  expect(lossSummary.progress).toBeCloseTo(1800 / 2400);
+  expect(gainSummary.progress).toBeCloseTo(1800 / 3000);
+  expect(lossSummary.progress).toBeCloseTo(2000 / 1800);
+});
+
+it("does not invent consumed calories when intake is unrecorded", () => {
+  const summary = nutritionSummary(null, { targets: { goal_calories: { preferred: 2000 } } } as never, null, "2026-09-09");
+  expect(summary.consumedCalories).toBeNull();
+  expect(summary.progress).toBe(0);
+});
+it("preserves intake above target instead of hiding excess", () => {
+  const summary = nutritionSummary(null, { targets: { goal_calories: { preferred: 2000 } } } as never,
+    { actual_totals: { energy_kcal: 2400 }, entries: [{}], check_in_status: null, data_status: "sufficient" } as never, "2026-09-09");
+  expect(summary.progress).toBe(1.2);
 });

@@ -24,10 +24,7 @@ const nutritionRingColors: Record<NutritionProgressTone, string> = {
 export function NutritionSummaryCard({ error = false, errorMessage, loading, summary, timeline }: NutritionSummaryCardProps) {
   const router = useRouter();
   const hasTarget = summary.targetCalories !== null;
-  const aboveExpenditureCalories = summary.targetCalories !== null
-    && summary.estimatedDailyExpenditureCalories !== null
-    ? Math.max(0, summary.targetCalories - summary.estimatedDailyExpenditureCalories)
-    : 0;
+
 
   if (loading && !hasTarget) return <StateSkeleton variant="card" />;
 
@@ -85,9 +82,7 @@ export function NutritionSummaryCard({ error = false, errorMessage, loading, sum
                 progress={summary.progress}
               />
             </View>
-            {aboveExpenditureCalories > 0 ? (
-              <Text style={styles.overageText}>{formatNumber(aboveExpenditureCalories)} کالری بالاتر از مصرف تقریبی روزانه</Text>
-            ) : null}
+            <Text style={styles.overageText}>{summary.consumedCalories === null ? "مصرف امروز ثبت نشده" : `ثبت‌شده: ${formatNumber(summary.consumedCalories)} · باقی‌مانده: ${formatNumber(Math.max(0, (summary.targetCalories ?? 0) - summary.consumedCalories))} · بالاتر از هدف: ${formatNumber(Math.max(0, summary.consumedCalories - (summary.targetCalories ?? 0)))} کالری`}</Text>
             <MetricStrip
               items={[
                 { accent: fiticianTokens.colors.aqua, label: "پروتئین", value: formatMetric(summary.protein) },

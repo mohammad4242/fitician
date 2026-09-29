@@ -258,13 +258,13 @@ test("uses blue at the exact 60 percent nutrition progress boundary", () => {
   expect(screen.UNSAFE_getAllByType(Circle)[1].props.stroke).toBe(fiticianTokens.colors.blue);
 });
 
-test("uses danger for a gain target above estimated expenditure", () => {
+test("uses danger when actual intake exceeds the daily target", () => {
   render(
     <NutritionSummaryCard
       loading={false}
       summary={{
         carbohydrate: 180,
-        consumedCalories: 2200,
+        consumedCalories: 3750,
         estimatedDailyExpenditureCalories: 2400,
         fat: 62,
         progress: 1.25,
@@ -276,7 +276,7 @@ test("uses danger for a gain target above estimated expenditure", () => {
   );
 
   expect(screen.UNSAFE_getAllByType(Circle)[1].props.stroke).toBe(fiticianTokens.colors.danger);
-  expect(screen.getByText("۶۰۰ کالری بالاتر از مصرف تقریبی روزانه")).toBeTruthy();
+  expect(screen.getByText(/بالاتر از هدف: ۷۵۰/)).toBeTruthy();
   expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" }).props.accessibilityValue)
     .toEqual({ max: 100, min: 0, now: 100 });
 });

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
+import { workoutGuidance, cardioGuidance, formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
@@ -1270,6 +1270,7 @@ function WorkoutDays({ plan, isEnglish, titleId, interactive, presentation }: { 
                     {(isEnglish ? item.notes_en : item.notes_fa) !== null && (
                       <p>{isEnglish ? item.notes_en : item.notes_fa}</p>
                     )}
+                    {workoutGuidance(item, isEnglish ? "en" : "fa").map((line) => <p key={line}>{line}</p>)}
                     <Link to={`/exercises/${item.exercise.slug}`}>{t("workoutPlan.detail")}</Link>
                     {item.alternatives.length > 0 && (
                       <details className="workout-alternatives">
@@ -1311,6 +1312,7 @@ function WorkoutDays({ plan, isEnglish, titleId, interactive, presentation }: { 
               <div><p>{t("workoutPlan.aiCoach")}</p><strong>{day.ai_coach_explanation_fa}</strong></div>
             </aside>
           )}
+          {cardioGuidance(day.cardio, isEnglish ? "en" : "fa") && <p>{cardioGuidance(day.cardio, isEnglish ? "en" : "fa")}</p>}
           {renderExercises(mainExercises)}
           {coreExercises.length > 0 && (
             <section className="workout-day__section" aria-labelledby={`workout-day-${day.day_number}-core-title`}>

@@ -1,3 +1,4 @@
+import { WeightTrend } from "./WeightTrend";
 import { useQuery } from "@tanstack/react-query";
 import { formatPersianDate } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
@@ -200,15 +201,7 @@ function AdherenceBody({
           ))}
         </View>
       )}
-      {adherence.weight_trend.length > 0 ? (
-        <Notice
-          message={adherence.weight_causality_claimed
-            ? "روند وزن کنار پایبندی نمایش داده می‌شود؛ این نمایش به‌تنهایی رابطه علت و معلولی را ثابت نمی‌کند."
-            : "روند وزن کنار پایبندی نمایش داده می‌شود و به‌تنهایی رابطه علت و معلولی را ثابت نمی‌کند."}
-          title="یادآوری درباره روند وزن"
-          variant="info"
-        />
-      ) : null}
+      <WeightTrend measurements={adherence.weight_trend} />
       <View style={styles.historyBlock}>
         <Text style={styles.cardSubtitle}>تاریخچه ثبت‌ها</Text>
         {historyState === "error" && history.length === 0 ? (

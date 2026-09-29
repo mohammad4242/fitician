@@ -213,11 +213,11 @@ it("uses the current scientific estimate when no weekly plan exists", async () =
   expect(screen.queryByText("۱٬۱۰۰")).not.toBeInTheDocument();
   expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute(
     "aria-valuenow",
-    "2200",
+    "1100",
   );
   expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute(
     "aria-valuemax",
-    "2557",
+    "2200",
   );
 });
 
@@ -239,7 +239,7 @@ it("shows the target calories while retaining tracked macro totals", async () =>
   expect(await screen.findByText("۲٬۴۰۰")).toBeInTheDocument();
   expect(screen.queryByText("۱٬۲۰۰")).not.toBeInTheDocument();
   expect(screen.getByText("۸۰g")).toBeInTheDocument();
-  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuemax", "2800");
+  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuemax", "2400");
 });
 
 it("uses the effective nutrition plan for today during a future handoff", async () => {
@@ -390,7 +390,7 @@ it("keeps workout, nutrition, and quick actions in the required priority", async
   expect(nutrition.compareDocumentPosition(quickActions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
-it("uses target-to-TDEE progress before and after food is tracked", async () => {
+it("shows zero progress when no intake is recorded", async () => {
   profile.productMode = "both";
   workoutApi.getActiveWorkoutPlan.mockResolvedValue(null);
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue({
@@ -408,11 +408,11 @@ it("uses target-to-TDEE progress before and after food is tracked", async () => 
 
   expect(await screen.findByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute(
     "aria-valuenow",
-    "2200",
+    "0",
   );
   expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute(
     "aria-valuemax",
-    "2600",
+    "2200",
   );
 });
 
@@ -431,7 +431,7 @@ it("uses the blue tone at the exact 60 percent boundary and animates Home entry"
   });
   nutritionApi.getDailyTracking.mockResolvedValue({
     data_status: "sufficient",
-    actual_totals: { energy_kcal: 1200, protein_g: 65, carbohydrate_g: 140, total_fat_g: 34 },
+    actual_totals: { energy_kcal: 1080, protein_g: 65, carbohydrate_g: 140, total_fat_g: 34 },
     entries: [{ id: "entry-1" }],
   });
 
@@ -440,11 +440,11 @@ it("uses the blue tone at the exact 60 percent boundary and animates Home entry"
   const ring = await screen.findByRole("progressbar", { name: "پیشرفت کالری امروز" });
   expect(ring).toHaveClass("fitician-progress-ring--mount-animated");
   expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-blue)");
-  expect(ring).toHaveAttribute("aria-valuenow", "1800");
-  expect(ring).toHaveAttribute("aria-valuemax", "3000");
+  expect(ring).toHaveAttribute("aria-valuenow", "1080");
+  expect(ring).toHaveAttribute("aria-valuemax", "1800");
 });
 
-it("caps a gain target ring while showing the target above estimated expenditure", async () => {
+it("caps actual intake progress and displays calories above target", async () => {
   profile.productMode = "both";
   workoutApi.getActiveWorkoutPlan.mockResolvedValue(null);
   nutritionApi.getCurrentNutritionEstimate.mockResolvedValue({
@@ -459,7 +459,7 @@ it("caps a gain target ring while showing the target above estimated expenditure
   });
   nutritionApi.getDailyTracking.mockResolvedValue({
     data_status: "sufficient",
-    actual_totals: { energy_kcal: 2200, protein_g: 145, carbohydrate_g: 300, total_fat_g: 76 },
+    actual_totals: { energy_kcal: 3300, protein_g: 145, carbohydrate_g: 300, total_fat_g: 76 },
     entries: [{ id: "entry-1" }],
   });
 
@@ -467,10 +467,10 @@ it("caps a gain target ring while showing the target above estimated expenditure
 
   const ring = await screen.findByRole("progressbar", { name: "پیشرفت کالری امروز" });
   expect(ring).toHaveTextContent("100%");
-  expect(ring).toHaveAttribute("aria-valuenow", "3000");
-  expect(ring).toHaveAttribute("aria-valuemax", "2400");
+  expect(ring).toHaveAttribute("aria-valuenow", "3300");
+  expect(ring).toHaveAttribute("aria-valuemax", "3000");
   expect(ring.style.getPropertyValue("--ring-color")).toBe("var(--fitician-danger)");
-  expect(screen.getByText("۶۰۰ کیلوکالری بالاتر از مصرف تقریبی روزانه")).toBeInTheDocument();
+  expect(screen.getByText(/بالاتر از هدف: ۳۰۰/)).toBeInTheDocument();
 });
 
 it("shows estimated daily expenditure beside the calorie goal", async () => {
@@ -491,8 +491,8 @@ it("shows estimated daily expenditure beside the calorie goal", async () => {
 
   expect(await screen.findByText("۲٬۸۳۴")).toBeInTheDocument();
   expect(screen.getByText("مصرف تقریبی روزانه")).toBeInTheDocument();
-  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuenow", "2567");
-  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuemax", "2834");
+  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuenow", "0");
+  expect(screen.getByRole("progressbar", { name: "پیشرفت کالری امروز" })).toHaveAttribute("aria-valuemax", "2567");
 });
 
 it("hides estimated daily expenditure when TDEE is unavailable", async () => {

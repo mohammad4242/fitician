@@ -1,3 +1,4 @@
+import { RemoteFoodSelector as FoodSelector } from "./RemoteFoodSelector";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
@@ -112,6 +113,7 @@ export function NutritionTrackingSection() {
   const [actionBusy, setActionBusy] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState<CheckInStatus | null>(null);
   const [sourceFilter, setSourceFilter] = useState<EntrySource | "all">("all");
+  const [selectedFoodSnapshot, setSelectedFoodSnapshot] = useState<FoodCatalogueItem | null>(null);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
   const [catalogueSearch, setCatalogueSearch] = useState("");
   const [catalogueGrams, setCatalogueGrams] = useState("100");
@@ -149,7 +151,7 @@ export function NutritionTrackingSection() {
     photoUploading,
   );
 
-  const selectedFood = catalogueFoods.find((food) => food.id === selectedFoodId) ?? null;
+  const selectedFood = selectedFoodSnapshot?.id === selectedFoodId ? selectedFoodSnapshot : catalogueFoods.find((food) => food.id === selectedFoodId) ?? null;
   const visibleEntries = daily?.entries.filter(
     (entry) => sourceFilter === "all"
       || (sourceFilter === "photo_estimated_confirmed"
@@ -539,7 +541,7 @@ export function NutritionTrackingSection() {
           onAddCatalogue={() => void addCatalogueFood()}
           onAddQuick={() => void addQuickApproximation()}
           onCatalogueSearchChange={setCatalogueSearch}
-          onFoodChange={setSelectedFoodId}
+          onFoodChange={(id, food) => { setSelectedFoodId(id); setSelectedFoodSnapshot(food ?? null); }}
           onGramsChange={setCatalogueGrams}
           onQuickCaloriesChange={setQuickCalories}
           onRecentFood={(foodId, grams) => void addRecentFood(foodId, grams)}
@@ -770,7 +772,7 @@ function ManualEntryPanel({
   readonly onAddCatalogue: () => void;
   readonly onAddQuick: () => void;
   readonly onCatalogueSearchChange: (value: string) => void;
-  readonly onFoodChange: (foodId: string) => void;
+  readonly onFoodChange: (foodId: string, food?: FoodCatalogueItem) => void;
   readonly onGramsChange: (value: string) => void;
   readonly onQuickCaloriesChange: (value: string) => void;
   readonly onRecentFood: (foodId: string, grams: number | null) => void;
@@ -852,94 +854,6 @@ function ManualEntryPanel({
         <Button disabled={actionBusy} label="ثبت تقریبی" onPress={onAddQuick} />
       </View>
     </Card>
-  );
-}
-
-function FoodSelector({
-  foods,
-  onSearchChange,
-  onSelect,
-  searchable = false,
-  search,
-  selectedFoodId,
-  testID,
-}: {
-  readonly foods: readonly FoodCatalogueItem[];
-  readonly onSearchChange?: (value: string) => void;
-  readonly onSelect: (foodId: string) => void;
-  readonly searchable?: boolean;
-  readonly search?: string;
-  readonly selectedFoodId: string | null;
-  readonly testID?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [localSearch, setLocalSearch] = useState("");
-  const query = search ?? localSearch;
-  const selectedFood = foods.find((food) => food.id === selectedFoodId) ?? null;
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const visibleFoods = foods
-    .filter((food) => normalizedQuery.length === 0
-      || food.name_fa.toLocaleLowerCase().includes(normalizedQuery)
-      || food.name_en.toLocaleLowerCase().includes(normalizedQuery))
-    .slice(0, 12);
-  const selectorLabel = selectedFood === null ? "انتخاب ماده غذایی" : `ماده غذایی: ${selectedFood.name_fa}`;
-
-  function changeSearch(value: string): void {
-    setLocalSearch(value);
-    onSearchChange?.(value);
-  }
-
-  function selectFood(foodId: string): void {
-    onSelect(foodId);
-    setOpen(false);
-    setLocalSearch("");
-    onSearchChange?.("");
-  }
-
-  return (
-    <View style={styles.selectorField}>
-      <Text style={styles.fieldLabel}>انتخاب ماده غذایی</Text>
-      <Pressable
-        accessibilityLabel={selectorLabel}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open, selected: selectedFood !== null }}
-        onPress={() => setOpen((current) => !current)}
-        style={styles.selectorButton}
-        testID={testID}
-      >
-        <Text style={[styles.selectorText, selectedFood === null && styles.selectorPlaceholder]}>
-          {selectedFood?.name_fa ?? "انتخاب کن…"}
-        </Text>
-        <AppIcon color={fiticianTokens.colors.aqua} name={open ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.sm} />
-      </Pressable>
-      {open ? (
-        <View style={styles.selectorOptions}>
-          {searchable ? (
-            <TextField
-              accessibilityLabel="جستجوی ماده غذایی"
-              label="جستجو"
-              onChangeText={changeSearch}
-              value={query}
-            />
-          ) : null}
-          {visibleFoods.length === 0 ? <Text style={styles.mutedText}>غذایی پیدا نشد.</Text> : null}
-          {visibleFoods.map((food) => (
-            <Pressable
-              accessibilityLabel={food.name_fa}
-              accessibilityRole="button"
-              accessibilityState={{ selected: selectedFoodId === food.id }}
-              key={food.id}
-              onPress={() => selectFood(food.id)}
-              style={[styles.selectorOption, selectedFoodId === food.id && styles.selectorOptionSelected]}
-            >
-              <Text style={[styles.selectorOptionText, selectedFoodId === food.id && styles.selectorOptionTextSelected]}>
-                {food.name_fa}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import { nutritionTargetToExpenditureRatio } from "@fitician/core";
+import { nutritionIntakeToTargetRatio } from "@fitician/core";
 import type { TimelineNutrition, TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
 import type { NutritionDailyTracking } from "../nutrition/nutritionTrackingApi";
 import type { NutritionEstimate } from "../nutrition/nutritionApi";
@@ -77,9 +77,6 @@ export function nutritionSummary(
     ?? {};
   const targets = estimate?.targets ?? {};
   const targetCalories = numberValue(planned.energy_kcal) ?? firstTarget(targets.goal_calories);
-  const targetProtein = numberValue(planned.protein_g) ?? firstTarget(targets.protein);
-  const targetCarbohydrate = numberValue(planned.carbohydrate_g) ?? firstTarget(targets.carbohydrate);
-  const targetFat = numberValue(planned.total_fat_g) ?? firstTarget(targets.total_fat);
   const estimatedDailyExpenditureCalories = firstTarget(targets.tdee);
   const hasActual = tracking != null && (
     tracking.data_status === "sufficient"
@@ -99,11 +96,11 @@ export function nutritionSummary(
           : "ready";
 
   return {
-    carbohydrate: numberValue(actual?.carbohydrate_g) ?? targetCarbohydrate,
+    carbohydrate: numberValue(actual?.carbohydrate_g),
     consumedCalories,
-    fat: numberValue(actual?.total_fat_g) ?? targetFat,
-    protein: numberValue(actual?.protein_g) ?? targetProtein,
-    progress: nutritionTargetToExpenditureRatio(targetCalories, estimatedDailyExpenditureCalories),
+    fat: numberValue(actual?.total_fat_g),
+    protein: numberValue(actual?.protein_g),
+    progress: nutritionIntakeToTargetRatio(consumedCalories, targetCalories),
     status,
     targetCalories,
     estimatedDailyExpenditureCalories,

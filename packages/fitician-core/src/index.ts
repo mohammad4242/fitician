@@ -218,6 +218,7 @@ export type {
 export {
   clampNutritionProgress,
   nutritionTargetToExpenditureRatio,
+  nutritionIntakeToTargetRatio,
   nutritionProgressTone,
 } from "./nutrition-progress";
 export type { NutritionProgressTone } from "./nutrition-progress";
@@ -264,3 +265,5 @@ export type {
   ResolvedAppError,
   ResolvedFieldError,
 } from "./errors";
+
+export { workoutGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";

@@ -28,3 +28,5 @@ export function nutritionProgressTone(progress: number): NutritionProgressTone {
   if (normalized < 0.9) return "blue";
   return "red";
 }
+
+export const nutritionIntakeToTargetRatio = nutritionTargetToExpenditureRatio;

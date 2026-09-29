@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import { workoutGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import type { WorkoutGenerationMethod } from "@fitician/core/profile";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -1195,6 +1195,7 @@ function WorkoutDayCard({
           {day.ai_coach_explanation_fa ? (
             <Notice message={day.ai_coach_explanation_fa} title="توضیح این جلسه" variant="info" />
           ) : null}
+          {cardioGuidance(day.cardio, languageForDirection()) ? <Text style={styles.exerciseNote}>{cardioGuidance(day.cardio, languageForDirection())}</Text> : null}
           {mainExercises.map((exercise) => (
             <WorkoutExerciseRow
               exercise={exercise}
@@ -1331,6 +1332,7 @@ function WorkoutExerciseRow({
             </View>
           )}
         </View>
+        {workoutGuidance(exercise, language).map((line) => <Text key={line} style={styles.exerciseNote}>{line}</Text>)}
         {exercise.notes_fa ? <Text style={styles.exerciseNote}>{exercise.notes_fa}</Text> : null}
         <Pressable
           accessibilityLabel={actionCopy.detail}

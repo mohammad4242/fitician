@@ -265,7 +265,7 @@ beforeEach(() => {
     listPhotoEstimates: jest.fn<(limit?: number) => Promise<unknown>>().mockResolvedValue([]),
   };
   mockCreateTrackingApi.mockReturnValue(trackingApi as never);
-  mockCreateCatalogueApi.mockReturnValue({ getFoodCatalogue: jest.fn() } as never);
+  mockCreateCatalogueApi.mockReturnValue({ getFoodCatalogue: jest.fn().mockResolvedValue({ items: [catalogueFood, secondCatalogueFood], total: 2 }) } as never);
   mockCreateNutritionApi.mockReturnValue({ getCurrentEstimate: jest.fn() } as never);
   mockUseQueryClient.mockReturnValue(queryClient as never);
   mockUseMobileAuth.mockReturnValue({
@@ -382,7 +382,7 @@ test("sends the unchanged catalogue payload from the compact manual selector", a
   renderTracking();
   fireEvent.press(screen.getByRole("button", { name: "ثبت دستی" }));
   fireEvent.press(screen.getByTestId("nutrition-catalogue-selector"));
-  fireEvent.press(screen.getByRole("button", { name: "برنج" }));
+  fireEvent.press(await screen.findByRole("button", { name: "برنج" }));
   fireEvent.changeText(screen.getByLabelText("مقدار به گرم"), "175");
   fireEvent.press(screen.getByLabelText("ثبت از کاتالوگ"));
 
