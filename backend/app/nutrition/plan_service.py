@@ -475,6 +475,23 @@ def generate_weekly_plan(
         }
         for item in food_items
     ]
+    # A selected catalogue food identifies an allergen source, not just one SKU.
+    for raw in raw_constraints:
+        if raw["kind"] not in {"allergy", "intolerance"}:
+            continue
+        food = (
+            db.get(NutritionCatalogueFood, raw["catalogue_food_id"])
+            if raw["catalogue_food_id"]
+            else None
+        )
+        if food is not None:
+            raw["allergen_tags"] = list(food.allergen_tags)
+        elif raw["catalogue_meal_id"]:
+            meal = db.get(NutritionCatalogueMeal, raw["catalogue_meal_id"])
+            if meal is not None:
+                raw["allergen_tags"] = sorted(
+                    {tag for item in meal.items for tag in item.food.allergen_tags}
+                )
     normalized_constraints = normalize_food_constraints(raw_constraints)
     unresolved_hard = tuple(
         c for c in normalized_constraints if c.code == "UNRESOLVED_HARD_FOOD_CONSTRAINT"
@@ -499,7 +516,9 @@ def generate_weekly_plan(
         return _generation_response(generation, None)
     preference_snapshot = load_preference_snapshot(db, user_id, food_items)
     exclusions = tuple(
-        item.normalized_name for item in food_items if item.kind in _HARD_EXCLUSION_KINDS
+        item.normalized_name
+        for item in food_items
+        if item.kind in _HARD_EXCLUSION_KINDS
         and item.catalogue_food_id is None
         and item.catalogue_meal_id is None
     )
@@ -2500,7 +2519,9 @@ def weekly_plan_response(
                 select(NutritionCatalogueFood.id, NutritionCatalogueFood.image_path).where(
                     NutritionCatalogueFood.id.in_(food_ids)
                 )
-            ).tuples().all()
+            )
+            .tuples()
+            .all()
         )
 
     review_status = plan.review.status.value if plan.review else "missing"

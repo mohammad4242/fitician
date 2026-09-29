@@ -114,7 +114,7 @@ def test_user_override_mode() -> None:
     assert res_safe.was_clamped
     assert res_safe.calorie_delta_kcal_per_day == Decimal("-600")
 
-    # User override mode respects user's 2.0 kg/week request directly
+    # User request never bypasses automatic safety limits.
     res_override = resolve_weight_rate(
         goal="lose_weight",
         body_weight_kg=Decimal("80"),
@@ -123,8 +123,7 @@ def test_user_override_mode() -> None:
         training_experience="intermediate",
         rate_mode="user_override",
     )
-    assert not res_override.was_clamped
-    assert res_override.applied_kg_per_week == Decimal("2.0")
-    assert res_override.calorie_delta_kcal_per_day == Decimal("-2200")
-    assert "WEIGHT_RATE_USER_OVERRIDE_APPLIED" in res_override.warning_codes
+    assert res_override.was_clamped
+    assert res_override.calorie_delta_kcal_per_day == Decimal("-600")
+    assert "WEIGHT_RATE_USER_REQUEST_WITH_SAFETY_LIMITS" in res_override.warning_codes
     assert "WEIGHT_RATE_ABOVE_RECOMMENDED" in res_override.warning_codes

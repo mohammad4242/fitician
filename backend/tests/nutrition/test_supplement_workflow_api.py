@@ -125,6 +125,31 @@ def test_combined_exposure_over_upper_limit_is_hard_blocked(
     assert "upper_limit" not in response.text
 
 
+def test_food_daily_average_is_not_divided_again_for_supplement_safety(
+    client: TestClient, db: Session
+) -> None:
+    plan, _physician = _setup(client, db)
+    calcium = next(row for row in plan.nutrients if row.nutrient_code == "calcium_mg")
+    calcium.planned_value = Decimal("1200")
+    target = db.scalar(
+        select(NutritionEstimateMicronutrientTarget).where(
+            NutritionEstimateMicronutrientTarget.estimate_id == plan.estimate_id,
+            NutritionEstimateMicronutrientTarget.nutrient_code == "calcium",
+        )
+    )
+    assert target is not None
+    target.upper_limit_value = Decimal("2500")
+    target.upper_limit_scope = MicronutrientUpperLimitScope.TOTAL_INTAKE.value
+    supplement = _catalogue(db, amount=2000)
+    response = client.post(
+        f"/api/v1/nutrition/physician/plans/{plan.id}/supplement-orders",
+        headers=ORIGIN,
+        json=_payload(str(supplement.id)),
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "SUPPLEMENT_UPPER_LIMIT_HARD_BLOCK"
+
+
 def test_assigned_physician_lists_and_modifies_plan_supplement_orders(
     client: TestClient, db: Session
 ) -> None:

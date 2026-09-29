@@ -239,6 +239,43 @@ def normalize_food_constraints(
                         raw_label=str(term) if term else None,
                     )
                 )
+                if kind_str in {"allergy", "intolerance"}:
+                    declared_tags = item.get("allergen_tags", ()) if isinstance(item, dict) else ()
+                    labels = list(declared_tags) if isinstance(declared_tags, (list, tuple)) else []
+                    if term:
+                        labels.append(str(term))
+                    for label in labels:
+                        allergen = _CANONICAL_ALLERGEN_ALIASES.get(_clean_term(str(label)))
+                        if allergen is not None:
+                            results.append(
+                                NormalizedFoodConstraint(
+                                    code=allergen.value,
+                                    severity=ConstraintSeverity.HARD,
+                                    source=kind_str,
+                                    raw_label=str(label),
+                                )
+                            )
+                continue
+            if canonical_meal_id is not None and kind_str in {"allergy", "intolerance"}:
+                tags = item.get("allergen_tags", ()) if isinstance(item, dict) else ()
+                if not tags:
+                    results.append(
+                        NormalizedFoodConstraint(
+                            code="UNRESOLVED_HARD_FOOD_CONSTRAINT",
+                            severity=ConstraintSeverity.HARD,
+                            source=kind_str,
+                            raw_label=str(term) if term else None,
+                        )
+                    )
+                for tag in tags:
+                    results.append(
+                        NormalizedFoodConstraint(
+                            code=str(tag),
+                            severity=ConstraintSeverity.HARD,
+                            source=kind_str,
+                            raw_label=str(tag),
+                        )
+                    )
                 continue
             if canonical_meal_id is not None:
                 continue
@@ -417,6 +454,14 @@ def evaluate_food_constraints(
             continue
 
         is_allergen_code = any(allergen.value == constraint.code for allergen in CanonicalAllergen)
+
+        if (
+            constraint.severity == ConstraintSeverity.HARD
+            and constraint.source in {"allergy", "intolerance"}
+            and is_allergen_code
+            and not allergen_metadata_verified
+        ):
+            hard_reasons.append("ALLERGEN_METADATA_UNVERIFIED")
 
         matched = False
         if is_allergen_code:

@@ -575,7 +575,7 @@ def _recalculated_nutrient(
         "goal_calories": "energy_kcal",
         "protein": "protein_g",
         "carbohydrate": "carbohydrate_g",
-        "total_fat": "fat_g",
+        "total_fat": "total_fat_g",
         "fibre": "fibre_g",
     }
     planned = sum(

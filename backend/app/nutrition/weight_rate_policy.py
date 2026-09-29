@@ -116,14 +116,10 @@ def resolve_weight_rate(
         and requested_kg_per_week is not None
     )
 
-    if is_override and requested_kg_per_week is not None:
-        # Dual Mode: User override directly applies requested rate
-        applied_rate = requested_kg_per_week
-        applied_delta = requested_rate_delta_kcal_per_day(requested_kg_per_week)
-        calorie_delta = -applied_delta if is_loss else applied_delta
-        was_clamped = False
-        warnings.append("WEIGHT_RATE_USER_OVERRIDE_APPLIED")
-    elif is_loss:
+    if is_override:
+        warnings.append("WEIGHT_RATE_USER_REQUEST_WITH_SAFETY_LIMITS")
+
+    if is_loss:
         effective_requested = (
             requested_kg_per_week if requested_kg_per_week is not None else recommended_rate
         )
