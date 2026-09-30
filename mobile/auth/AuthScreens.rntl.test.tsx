@@ -337,7 +337,7 @@ test("discards a Google credential returned after email sign-in", async () => {
 test("preserves scrolling and email touch submission at small height with large fonts", async () => {
   const originalWindow = Dimensions.get("window");
   const originalScreen = Dimensions.get("screen");
-  Dimensions.set({ window: { width: 320, height: 320, scale: 1, fontScale: 2 }, screen: { width: 320, height: 480, scale: 1, fontScale: 2 } });
+  act(() => Dimensions.set({ window: { width: 320, height: 320, scale: 1, fontScale: 2 }, screen: { width: 320, height: 480, scale: 1, fontScale: 2 } }));
   try {
     mockGoogleCredential.mockImplementation(() => new Promise(() => undefined));
     const view = renderScreen(<SignInScreen />, 320, 320);
@@ -351,7 +351,7 @@ test("preserves scrolling and email touch submission at small height with large 
     fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
     fireEvent.press(screen.getByRole("button", { name: "ورود به فیتیشن" }));
     await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: "person@example.com", password: "abcdefgh" }));
-  } finally { Dimensions.set({ window: originalWindow, screen: originalScreen }); }
+  } finally { act(() => Dimensions.set({ window: originalWindow, screen: originalScreen })); }
 });
 
 test("stops the Google loader at the native deadline and leaves email enabled", async () => {

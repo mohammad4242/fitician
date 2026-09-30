@@ -124,3 +124,27 @@ test("supports existing-account login, Google, and inline phone OTP resend", asy
     jest.useRealTimers();
   }
 });
+
+test("keeps email login enabled during a pending Google request and ignores its late token", async () => {
+  let settle!: (token: string) => void;
+  mockGoogleCredential.mockImplementation(() => new Promise((resolve) => { settle = resolve; }));
+  const onAuthenticated = jest.fn();
+  renderAccount(onAuthenticated);
+  fireEvent.press(screen.getByRole("button", { name: "قبلاً حساب ساخته‌ام" }));
+  fireEvent.press(screen.getByRole("button", { name: "Google" }));
+  expect(screen.getByRole("button", { name: "Google" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "ورود و ذخیره پاسخ‌ها" })).not.toBeDisabled();
+  fireEvent.changeText(screen.getAllByLabelText("ایمیل")[1], "person@example.com");
+  fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
+  fireEvent.press(screen.getByRole("button", { name: "ورود و ذخیره پاسخ‌ها" }));
+  await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalled());
+  await act(async () => { settle("late-token"); });
+  expect(mockAuth.signInWithGoogle).not.toHaveBeenCalled();
+  expect(onAuthenticated).toHaveBeenCalledTimes(1);
+});
+
+test("disables unconfigured Google on public account entry", () => {
+  mockUseGoogleSignIn.mockReturnValue({ available: false, ready: false, signIn: mockGoogleCredential });
+  renderAccount();
+  expect(screen.getByRole("button", { name: "Google" })).toBeDisabled();
+});
