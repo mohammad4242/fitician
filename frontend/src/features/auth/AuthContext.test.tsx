@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "./AuthContext";
 afterEach(() => vi.restoreAllMocks());
 
 function Probe() {
-  const { user, loading, startupError, login, loginWithPhone, loginWithGoogle } = useAuth();
+  const { user, loading, startupError, login, loginWithPhone, loginWithGoogle, refreshCurrentUser, logout } = useAuth();
   return (
     <div>
       <span>
@@ -18,6 +18,8 @@ function Probe() {
             ? "startup-error"
             : (user?.email ?? user?.phone_number ?? "guest")}
       </span>
+      <button onClick={() => void refreshCurrentUser?.()}>refresh</button>
+      <button onClick={() => void logout()}>logout</button>
       <button
         type="button"
         onClick={() => login({ email: "member@example.com", password: "password" })}
@@ -142,4 +144,42 @@ it("stores the authenticated user after Google authentication", async () => {
 
   expect(api.loginWithGoogle).toHaveBeenCalledWith("signed-google-id-token");
   expect(await screen.findByText("google@example.com")).toBeInTheDocument();
+});
+
+
+it("does not restore the old user after logout and a late profile refresh", async () => {
+  const oldUser = { id: "old", email: "old@example.com", phone_number: null,
+    created_at: "2026-07-24T00:00:00Z", is_admin: false };
+  let resolveRefresh!: (user: typeof oldUser) => void;
+  vi.spyOn(api, "getCurrentUser").mockResolvedValueOnce(oldUser)
+    .mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
+  vi.spyOn(api, "logout").mockResolvedValue(undefined);
+  const user = userEvent.setup();
+  render(<AuthProvider><Probe /></AuthProvider>);
+  await screen.findByText(oldUser.email);
+  await user.click(screen.getByText("refresh"));
+  await user.click(screen.getByText("logout"));
+  await screen.findByText("guest");
+  await act(async () => resolveRefresh(oldUser));
+  expect(screen.getByText("guest")).toBeInTheDocument();
+});
+
+
+it("does not replace a newly signed-in account with a stale profile refresh", async () => {
+  const oldUser = { id: "old", email: "old@example.com", phone_number: null,
+    created_at: "2026-07-24T00:00:00Z", is_admin: false };
+  let resolveRefresh!: (user: typeof oldUser) => void;
+  vi.spyOn(api, "getCurrentUser").mockResolvedValueOnce(oldUser)
+    .mockImplementationOnce(() => new Promise(resolve => { resolveRefresh = resolve; }));
+  vi.spyOn(api, "logout").mockResolvedValue(undefined);
+  vi.spyOn(api, "login").mockResolvedValue({ ...oldUser, id: "new", email: "member@example.com" });
+  const user = userEvent.setup();
+  render(<AuthProvider><Probe /></AuthProvider>);
+  await screen.findByText(oldUser.email);
+  await user.click(screen.getByText("refresh"));
+  await user.click(screen.getByText("logout"));
+  await user.click(screen.getByRole("button", { name: /^login$/ }));
+  await screen.findByText("member@example.com");
+  await act(async () => resolveRefresh(oldUser));
+  expect(screen.getByText("member@example.com")).toBeInTheDocument();
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1168,4 +1168,25 @@ describe("Food photo nutrition estimation redesigned flow", () => {
       expect(api.confirmFoodPhoto).toHaveBeenCalledWith("estimate-direct", today)
     );
   });
+});
+
+
+it("writes check-ins to the date currently displayed by tracking", async () => {
+  vi.mocked(api.saveDailyCheckIn).mockResolvedValue(summary);
+  render(<MemoryRouter initialEntries={["/nutrition-tracking?entryDate=2026-09-28"]}><NutritionTrackingPage /></MemoryRouter>);
+  await waitFor(() => expect(api.getDailyTracking).toHaveBeenCalledWith("2026-09-28"));
+  fireEvent.click(screen.getByRole("button", { name: "Off plan" }));
+  await waitFor(() => expect(api.saveDailyCheckIn).toHaveBeenCalledWith("2026-09-28", "off_plan"));
+});
+
+it("refreshes the tracking date when the page returns after midnight", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
+    render(<MemoryRouter><NutritionTrackingPage /></MemoryRouter>);
+    await waitFor(() => expect(api.getDailyTracking).toHaveBeenCalledWith("2026-09-29"));
+    vi.setSystemTime(new Date("2026-09-30T12:00:00Z"));
+    await act(async () => { window.dispatchEvent(new Event("focus")); });
+    await waitFor(() => expect(api.getDailyTracking).toHaveBeenCalledWith("2026-09-30"));
+  } finally { vi.useRealTimers(); }
 });

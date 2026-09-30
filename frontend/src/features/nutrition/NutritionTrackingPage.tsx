@@ -7,6 +7,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { resolvedIanaTimeZone, formatTehranDateForLocale } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
+import { useLocalDate } from "../../shared/useLocalDate";
+
 import { AppIcon } from "../../shared/AppIcon";
 import { webErrorMessage } from "../../shared/appError";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
@@ -23,8 +25,6 @@ import "./nutritionEstimate.css";
 
 type EntryMode = "manual" | "photo" | null;
 
-const today = localIsoDate();
-const weekAgo = shiftLocalDate(today, -6);
 const foodPhotoPollIntervalMs = 2_500;
 
 function shiftLocalDate(value: string, days: number): string {
@@ -76,6 +76,7 @@ function formatFoodPhotoDate(value: string | undefined, locale: string): string 
 }
 
 export function NutritionTrackingPage() {
+  const today = useLocalDate();
   const { i18n } = useTranslation();
   const { loading: entitlementsLoading, hasEntitlement } = useEntitlements();
   const fa = i18n.language === "fa";
@@ -95,7 +96,7 @@ export function NutritionTrackingPage() {
   const [photoHistory, setPhotoHistory] = useState<FoodPhotoEstimate[]>([]);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [adherence, setAdherence] = useState<NutritionAdherence | null>(null);
-  const [rangeStart, setRangeStart] = useState(weekAgo);
+  const [rangeStart, setRangeStart] = useState(() => shiftLocalDate(today, -6));
   const [foods, setFoods] = useState<api.CatalogueFood[]>([]);
   const [foodId, setFoodId] = useState("");
   const [grams, setGrams] = useState("100");
@@ -119,10 +120,10 @@ export function NutritionTrackingPage() {
     .catch((cause) => setError(resolveError(cause, l("دریافت اطلاعات ممکن نشد.", "Could not load tracking."))))
     .finally(() => setLoading(false)), [entryDate, l, resolveError]);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { void api.getNutritionAdherence(rangeStart, today).then(setAdherence).catch((cause) => setError(resolveError(cause, l("روند پایبندی دریافت نشد.", "Could not load adherence trend.")))); }, [l, rangeStart, resolveError]);
+  useEffect(() => { void api.getNutritionAdherence(rangeStart, today).then(setAdherence).catch((cause) => setError(resolveError(cause, l("روند پایبندی دریافت نشد.", "Could not load adherence trend.")))); }, [l, rangeStart, resolveError, today]);
   useEffect(() => { void api.listCatalogueFoods().then((items) => { setFoods(items); setFoodId(items[0]?.id ?? ""); }).catch((cause) => setError(resolveError(cause, l("کاتالوگ مواد غذایی دریافت نشد.", "Could not load the food catalogue.")))); }, [l, resolveError]);
   useEffect(() => { void api.listRecentFoods().then(setRecentFoods).catch((cause) => setError(resolveError(cause, l("غذاهای اخیر دریافت نشدند.", "Could not load recent foods.")))); }, [l, resolveError]);
-  useEffect(() => { void api.getTrackingHistory(rangeStart, today).then(setHistory).catch((cause) => setError(resolveError(cause, l("سوابق تغذیه دریافت نشد.", "Could not load tracking history.")))); }, [l, rangeStart, resolveError]);
+  useEffect(() => { void api.getTrackingHistory(rangeStart, today).then(setHistory).catch((cause) => setError(resolveError(cause, l("سوابق تغذیه دریافت نشد.", "Could not load tracking history.")))); }, [l, rangeStart, resolveError, today]);
   useEffect(() => {
     let active = true;
     void api.listFoodPhotoEstimates().then((items) => {
@@ -156,7 +157,7 @@ export function NutritionTrackingPage() {
 
   async function checkIn(status: DailyTrackingSummary["check_in_status"]) {
     setBusy(true); setError(null);
-    try { setSummary(await api.saveDailyCheckIn(today, status)); }
+    try { setSummary(await api.saveDailyCheckIn(entryDate, status)); }
     catch (cause) { setError(resolveError(cause, l("برای این گزینه باید برنامه تأییدشده و فعال داشته باشی.", "This option requires an approved active plan."))); }
     finally { setBusy(false); }
   }
@@ -166,7 +167,7 @@ export function NutritionTrackingPage() {
     if (!value) return;
     setBusy(true);
     try {
-      await api.addQuickApproximation({ entry_date: today, display_name: l("وعده تقریبی", "Approximate meal"), calories: value, protein_g: null });
+      await api.addQuickApproximation({ entry_date: entryDate, display_name: l("وعده تقریبی", "Approximate meal"), calories: value, protein_g: null });
       setCalories(""); await load();
     } catch (cause) {
       setError(resolveError(cause, l("ثبت تقریبی انجام نشد.", "The quick estimate could not be saved.")));
@@ -206,7 +207,7 @@ export function NutritionTrackingPage() {
   async function addCatalogueFood() {
     if (!foodId || Number(grams) <= 0) return;
     setBusy(true);
-    try { await api.addCatalogueFoodEntry({ entry_date: today, food_id: foodId, grams: Number(grams), note: null }); await load(); }
+    try { await api.addCatalogueFoodEntry({ entry_date: entryDate, food_id: foodId, grams: Number(grams), note: null }); await load(); }
     catch (cause) { setError(resolveError(cause, l("ثبت ماده غذایی انجام نشد.", "The food could not be added."))); }
     finally { setBusy(false); }
   }
@@ -214,7 +215,7 @@ export function NutritionTrackingPage() {
   async function addRecentFood(item: Awaited<ReturnType<typeof api.listRecentFoods>>[number]) {
     setBusy(true);
     try {
-      await api.addCatalogueFoodEntry({ entry_date: today, food_id: item.food_id, grams: item.last_quantity_grams ?? 100, note: null });
+      await api.addCatalogueFoodEntry({ entry_date: entryDate, food_id: item.food_id, grams: item.last_quantity_grams ?? 100, note: null });
       await load();
     } catch (cause) {
       setError(resolveError(cause, l("ثبت غذای اخیر انجام نشد.", "The recent food could not be added.")));
@@ -297,7 +298,7 @@ export function NutritionTrackingPage() {
   async function adjustPlanned(entry: DailyTrackingSummary["entries"][number], status: "adjusted" | "skipped") {
     if (!entry.planned_meal_id) return;
     setBusy(true);
-    try { setSummary(await api.adjustPlannedMeal(entry.planned_meal_id, { entry_date: today, status, portion_ratio: status === "adjusted" ? 0.5 : null })); }
+    try { setSummary(await api.adjustPlannedMeal(entry.planned_meal_id, { entry_date: entryDate, status, portion_ratio: status === "adjusted" ? 0.5 : null })); }
     catch (cause) { setError(resolveError(cause, l("وضعیت وعده تغییر نکرد.", "The planned meal was not changed."))); }
     finally { setBusy(false); }
   }
@@ -314,7 +315,7 @@ export function NutritionTrackingPage() {
     }
   }
 
-  const todayAdherence = adherence?.days.find((day) => day.date === today);
+  const todayAdherence = adherence?.days.find((day) => day.date === entryDate);
   const visibleEntries = summary?.entries.filter((entry) => {
     if (sourceFilter === "all") return true;
     if (sourceFilter === "photo_estimated_confirmed") {

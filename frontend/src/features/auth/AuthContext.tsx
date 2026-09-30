@@ -90,7 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(await api.loginWithGoogle(credential));
       },
       refreshCurrentUser: async () => {
-        setUser(await api.getCurrentUser());
+        const generation = requestGeneration.current;
+        const currentUser = await api.getCurrentUser();
+        if (generation === requestGeneration.current) setUser(currentUser);
       },
       logout: async () => {
         cancelStartupRequest();

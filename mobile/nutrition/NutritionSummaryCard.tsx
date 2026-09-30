@@ -1,4 +1,4 @@
-import { localIsoDate } from "@fitician/core/local-date";
+import { useLocalDate } from "../platform/useLocalDate";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -60,7 +60,7 @@ function NutritionEstimateSummaryCard({
   readonly timeline?: TimelineNutrition | null;
 }) {
   const auth = useMobileAuth();
-  const entryDate = useMemo(localIsoDate, []);
+  const entryDate = useLocalDate();
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
     [auth.download, auth.request],

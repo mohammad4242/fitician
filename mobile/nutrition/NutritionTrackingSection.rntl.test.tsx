@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import * as ImagePicker from "expo-image-picker";
+import { AppState } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 jest.mock("@tanstack/react-query", () => ({
@@ -599,4 +600,34 @@ test("saves the selected daily check-in with the existing API payload", async ()
 
 afterEach(() => {
   jest.useRealTimers();
+});
+
+
+test("updates the tracking query date across midnight while mounted", async () => {
+  renderTracking();
+  const next = new Date("2026-09-10T08:00:00.000Z");
+  await act(async () => {
+    jest.setSystemTime(next);
+    jest.advanceTimersByTime(30_000);
+  });
+  expect(mockUseQuery.mock.calls.some(([options]) =>
+    JSON.stringify(options.queryKey).includes("2026-09-10")
+  )).toBe(true);
+});
+
+
+test("refreshes the date immediately on foreground without waiting for the timer", async () => {
+  const listener = jest.spyOn(AppState, "addEventListener");
+  try {
+    renderTracking();
+    await act(async () => {
+      jest.setSystemTime(new Date("2026-09-10T08:00:00.000Z"));
+      for (const [event, callback] of listener.mock.calls) {
+        if (event === "change") callback("active");
+      }
+    });
+    expect(mockUseQuery.mock.calls.some(([options]) =>
+      JSON.stringify(options.queryKey).includes("2026-09-10")
+    )).toBe(true);
+  } finally { listener.mockRestore(); }
 });

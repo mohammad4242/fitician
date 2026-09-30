@@ -3,6 +3,7 @@ import { WeightTrend } from "./WeightTrend";
 import { useQuery } from "@tanstack/react-query";
 import { formatPersianDate } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
+import { useLocalDate } from "../platform/useLocalDate";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -37,7 +38,7 @@ export function NutritionAdherenceSection({
 }: NutritionAdherenceSectionProps = {}) {
   const auth = useMobileAuth();
   const connectivityStatus = useConnectivityStatus();
-  const today = useMemo(localIsoDate, []);
+  const today = useLocalDate();
   const [rangeStart, setRangeStart] = useState(() => daysAgoIsoDate(6));
   const api = useMemo(
     () => createNutritionTrackingApi(auth.request, auth.download),
