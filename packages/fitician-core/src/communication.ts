@@ -31,3 +31,18 @@ export function createCommunicationApi(request: CommunicationRequest) {
     savePreferences: (input: PersonalNotificationInput) => request<PersonalNotificationSettings>({ method: "PUT", path: "/api/v1/notifications/preferences", body: { ...input } }),
   };
 }
+
+
+/** Keep cached pages only when they overlap the latest server page. */
+export function mergeConversationLatest(previous: Conversation | null, latest: Conversation): Conversation {
+  if (!previous || previous.review_id !== latest.review_id
+    || !previous.messages.some(message => latest.messages.some(next => next.id === message.id))) {
+    // Disjoint pages may contain a missing middle range. Reset to the newest
+    // contiguous page so its server cursor can recover that range.
+    return latest;
+  }
+  const messages = new Map(previous.messages.map(message => [message.id, message]));
+  for (const message of latest.messages) messages.set(message.id, message);
+  return { ...latest, older_cursor: previous.older_cursor, messages: [...messages.values()].sort((a, b) =>
+    Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id)) };
+}

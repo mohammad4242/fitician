@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { ConversationPanel } from "./ConversationPanel";
 import { request } from "../../shared/apiClient";
@@ -31,4 +31,27 @@ it("handles an invalid conversation response without rendering stale messages", 
   render(<ConversationPanel kind="workout" reviewId="review" />);
   await screen.findByText(/دریافت گفت‌وگو ناموفق/);
   expect(screen.getByLabelText("متن پیام")).toBeDisabled();
+});
+
+
+it("can page into messages missed while the app was away", async () => {
+  vi.useFakeTimers();
+  const messages = (start: number, end: number) => Array.from({ length: end - start + 1 }, (_, index) => ({
+    id: String(start + index), body: `message-${start + index}`, sender_id: "other",
+    created_at: new Date(Date.UTC(2026, 8, 30, 0, 0, start + index)).toISOString(),
+  }));
+  const base = { available: true, review_id: "review", viewer_id: "member", unread_count: 0 };
+  vi.mocked(request).mockResolvedValueOnce({ ...base, messages: messages(1, 50), older_cursor: null })
+    .mockResolvedValueOnce({ ...base, messages: messages(101, 150), older_cursor: "101" })
+    .mockResolvedValue({ ...base, messages: messages(51, 100), older_cursor: "51" });
+  vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+  try {
+    render(<ConversationPanel kind="workout" reviewId="review" initiallyOpen />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { vi.advanceTimersByTime(10_000); });
+    fireEvent.click(screen.getByRole("button", { name: "پیام‌های قبلی" }));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByText("message-51")).toBeInTheDocument();
+    expect(screen.getByText("message-150")).toBeInTheDocument();
+  } finally { vi.useRealTimers(); vi.restoreAllMocks(); }
 });

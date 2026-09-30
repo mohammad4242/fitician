@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createMessageRequestId, type Conversation, type ConversationKind } from "@fitician/core";
+import { createMessageRequestId, mergeConversationLatest, type Conversation, type ConversationKind } from "@fitician/core";
 import { useTranslation } from "react-i18next";
 import { useAuthIdentity } from "../auth/AuthContext";
 import { communicationApi as api } from "./api";
@@ -27,7 +27,7 @@ export function ConversationPanel({ kind, reviewId, planId, initiallyOpen = fals
       try {
         const loaded = await api.conversation(kind, { reviewId, planId });
         if (epoch.current !== current) return;
-        setData(previous => previous?.review_id === loaded.review_id ? { ...loaded, older_cursor: previous.messages.length ? previous.older_cursor : loaded.older_cursor, messages: [...previous.messages.filter(message => !loaded.messages.some(next => next.id === message.id)), ...loaded.messages] } : loaded); setError("");
+        setData(previous => mergeConversationLatest(previous, loaded)); setError("");
       } catch {
         if (epoch.current === current) { setError(en ? "Could not load conversation; retry." : "دریافت گفت‌وگو ناموفق؛ دوباره تلاش کن."); }
       }
@@ -56,7 +56,7 @@ export function ConversationPanel({ kind, reviewId, planId, initiallyOpen = fals
       if (epoch.current !== current) return;
       sent = true; setDraft(""); pending.current = null;
       const loaded = await api.conversation(kind, { reviewId: data.review_id });
-      if (epoch.current === current) setData(previous => previous?.review_id === loaded.review_id ? { ...loaded, older_cursor: previous.messages.length ? previous.older_cursor : loaded.older_cursor, messages: [...previous.messages.filter(message => !loaded.messages.some(next => next.id === message.id)), ...loaded.messages] } : loaded);
+      if (epoch.current === current) setData(previous => mergeConversationLatest(previous, loaded));
     } catch {
       if (epoch.current === current) setError(sent ? l("پیام ارسال شد؛ تاریخچه به‌روز نشد.", "Message sent; history could not refresh.") : l("ارسال ناموفق؛ دوباره تلاش کن.", "Send failed; retry."));
     } finally {

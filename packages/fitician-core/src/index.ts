@@ -267,7 +267,7 @@ export type {
 } from "./errors";
 
 export { workoutGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";
-export { createCommunicationApi, createMessageRequestId } from "./communication";
+export { createCommunicationApi, createMessageRequestId, mergeConversationLatest } from "./communication";
 export type { Conversation, ProgramMessage, NotificationInbox, PersonalNotificationSettings, PersonalNotificationInput, ConversationKind, CommunicationRequest } from "./communication";
 
 export * from "./nutrition-progress-review.js";
