@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 
@@ -76,7 +76,17 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
   const [phoneStep, setPhoneStep] = useState<PhoneStep>("request");
   const [countdown, setCountdown] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const googleAttempt = useRef(0);
+  const googleInFlight = useRef(false);
+  useEffect(() => () => { googleAttempt.current += 1; }, []);
+
+  function cancelGoogleAttempt() {
+    googleAttempt.current += 1;
+    googleInFlight.current = false;
+    setGoogleBusy(false);
+  }
 
   useEffect(() => {
     if (countdown <= 0) return undefined;
@@ -112,6 +122,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
       setError("تکرار رمز عبور با رمز عبور یکسان نیست.");
       return;
     }
+    cancelGoogleAttempt();
     void finish(auth.user === null
       ? accountMode === "register"
         ? auth.register({ email: email.trim(), password })
@@ -127,6 +138,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
     }
     const normalized = normalizePhoneNumber(phoneNumber);
     if (phoneStep === "request") {
+      cancelGoogleAttempt();
       setBusy(true);
       setError(null);
       void auth.sendPhoneOtp(normalized)
@@ -144,6 +156,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
       setError(otpError);
       return;
     }
+    cancelGoogleAttempt();
     void finish(auth.user === null
       ? auth.verifyPhoneOtp(normalized, normalizePhoneNumber(code))
       : Promise.resolve());
@@ -160,10 +173,25 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
       .finally(() => setBusy(false));
   }
 
-  function submitGoogle() {
-    void finish(
-      google.signIn().then((credential) => auth.signInWithGoogle(credential)),
-    );
+  async function submitGoogle() {
+    if (!google.available || !google.ready || googleInFlight.current || busy || auth.busy) return;
+    const attempt = ++googleAttempt.current;
+    googleInFlight.current = true;
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      const credential = await google.signIn();
+      if (attempt !== googleAttempt.current) return;
+      await auth.signInWithGoogle(credential);
+      if (attempt === googleAttempt.current) onAuthenticated();
+    } catch (authenticationError) {
+      if (attempt === googleAttempt.current) setError(authErrorMessage(authenticationError, "google"));
+    } finally {
+      if (attempt === googleAttempt.current) {
+        googleInFlight.current = false;
+        setGoogleBusy(false);
+      }
+    }
   }
 
   function selectMethod(nextMethod: AccountMethod) {
@@ -234,10 +262,10 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
       <View accessibilityLabel="روش‌های ورود" style={[styles.accountProviders, compactLayout && styles.accountProvidersCompact]} testID="public-account-providers">
         <View style={[styles.accountProvider, compactLayout && styles.accountProviderCompact]}>
           <Button
-            disabled={google.available && !google.ready}
+            disabled={!google.available || !google.ready || busy || auth.busy || googleBusy}
             label={copy.google}
-            loading={busy}
-            onPress={submitGoogle}
+            loading={googleBusy}
+            onPress={() => void submitGoogle()}
             style={styles.providerButton}
             variant="secondary"
           />
