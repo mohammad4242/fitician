@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
+import { Dimensions, KeyboardAvoidingView, ScrollView } from "react-native";
+import { requestAndroidGoogleIdToken } from "./googleNativeCredential";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { PublicSignupCampaign, TransportRequest } from "@fitician/core";
 
@@ -67,11 +69,11 @@ const registerCampaign = {
   show_on_register: true,
 };
 
-function renderScreen(screenComponent: React.ReactElement) {
+function renderScreen(screenComponent: React.ReactElement, height = 800, width = 390) {
   return render(
     <SafeAreaProvider
       initialMetrics={{
-        frame: { height: 800, width: 390, x: 0, y: 0 },
+        frame: { height, width, x: 0, y: 0 },
         insets: { bottom: 0, left: 0, right: 0, top: 0 },
       }}
     >
@@ -286,4 +288,88 @@ test("preserves the public onboarding source through Register", async () => {
     pathname: "/onboarding",
     params: { source: "public-onboarding" },
   });
+});
+
+for (const state of [{ available: false, ready: true }, { available: true, ready: false }]) {
+  test(`disables Google when unavailable or not ready ${JSON.stringify(state)}`, () => {
+    mockUseGoogleSignIn.mockReturnValue({ ...state, signIn: mockGoogleCredential });
+    renderSignIn();
+    const button = screen.getByRole("button", { name: "ادامه با گوگل" });
+    expect(button.props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(button);
+    expect(mockGoogleCredential).not.toHaveBeenCalled();
+  });
+}
+
+test("keeps email usable while Google is pending and after Google rejects", async () => {
+  let reject!: (error: Error) => void;
+  mockGoogleCredential.mockImplementation(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+  renderSignIn();
+  const googleButton = () => screen.getByRole("button", { name: "ادامه با گوگل" });
+  fireEvent.press(googleButton());
+  expect(googleButton().props.accessibilityState).toMatchObject({ busy: true, disabled: true });
+  fireEvent.press(googleButton());
+  expect(mockGoogleCredential).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("button", { name: "ورود به فیتیشن" }).props.accessibilityState.disabled).toBe(false);
+  await act(async () => { reject(new Error("failed")); });
+  expect(googleButton().props.accessibilityState.busy).toBe(false);
+  fireEvent.changeText(screen.getAllByLabelText("ایمیل")[1], "person@example.com");
+  fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
+  fireEvent.press(screen.getByRole("button", { name: "ورود به فیتیشن" }));
+  await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalled());
+});
+
+test("discards a Google credential returned after email sign-in", async () => {
+  let settle!: (token: string) => void;
+  mockGoogleCredential.mockImplementation(() => new Promise((resolve) => { settle = resolve; }));
+  renderSignIn();
+  fireEvent.press(screen.getByRole("button", { name: "ادامه با گوگل" }));
+  fireEvent.changeText(screen.getAllByLabelText("ایمیل")[1], "person@example.com");
+  fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
+  fireEvent.press(screen.getByRole("button", { name: "ورود به فیتیشن" }));
+  await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalled());
+  await act(async () => { settle("late-google-credential"); });
+  expect(mockAuth.signInWithGoogle).not.toHaveBeenCalled();
+  expect(mockReplace).toHaveBeenCalledTimes(1);
+});
+
+// RNTL verifies the scrolling/touch contract, not native layout geometry.
+test("preserves scrolling and email touch submission at small height with large fonts", async () => {
+  const originalWindow = Dimensions.get("window");
+  const originalScreen = Dimensions.get("screen");
+  Dimensions.set({ window: { width: 320, height: 320, scale: 1, fontScale: 2 }, screen: { width: 320, height: 480, scale: 1, fontScale: 2 } });
+  try {
+    mockGoogleCredential.mockImplementation(() => new Promise(() => undefined));
+    const view = renderScreen(<SignInScreen />, 320, 320);
+    const scroll = view.UNSAFE_getByType(ScrollView);
+    expect(scroll.props.scrollEnabled).not.toBe(false);
+    expect(scroll.props.keyboardShouldPersistTaps).toBe("handled");
+    expect(view.UNSAFE_getByType(KeyboardAvoidingView).props.enabled).toBe(true);
+    fireEvent.press(screen.getByRole("button", { name: "ادامه با گوگل" }));
+    fireEvent.scroll(scroll, { nativeEvent: { contentOffset: { y: 500, x: 0 }, contentSize: { height: 1200, width: 320 }, layoutMeasurement: { height: 320, width: 320 } } });
+    fireEvent.changeText(screen.getAllByLabelText("ایمیل")[1], "person@example.com");
+    fireEvent.changeText(screen.getByLabelText("رمز عبور"), "abcdefgh");
+    fireEvent.press(screen.getByRole("button", { name: "ورود به فیتیشن" }));
+    await waitFor(() => expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({ email: "person@example.com", password: "abcdefgh" }));
+  } finally { Dimensions.set({ window: originalWindow, screen: originalScreen }); }
+});
+
+test("stops the Google loader at the native deadline and leaves email enabled", async () => {
+  jest.useFakeTimers();
+  try {
+    mockGoogleCredential.mockImplementation(() => requestAndroidGoogleIdToken({
+      configure: () => undefined,
+      checkPlayServices: () => new Promise(() => undefined),
+      signIn: async () => ({ data: null, type: "cancelled" }),
+      createAccount: async () => ({ data: null, type: "cancelled" }),
+      presentExplicitSignIn: async () => ({ data: null, type: "cancelled" }),
+    }, "web.apps.googleusercontent.com"));
+    renderSignIn();
+    fireEvent.press(screen.getByRole("button", { name: "ادامه با گوگل" }));
+    await act(async () => { await jest.advanceTimersByTimeAsync(45_000); });
+    expect(screen.getByRole("button", { name: "ادامه با گوگل" }).props.accessibilityState.busy).toBe(false);
+    expect(screen.getByRole("button", { name: "ورود به فیتیشن" }).props.accessibilityState.disabled).toBe(false);
+    expect(screen.getByText(/مهلت ورود با گوگل تمام شد/u)).toBeTruthy();
+    expect(mockAuth.signInWithGoogle).not.toHaveBeenCalled();
+  } finally { jest.useRealTimers(); }
 });

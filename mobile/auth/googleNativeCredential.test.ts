@@ -87,3 +87,38 @@ it("rejects a success response that contains no ID token", async () => {
     "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
   );
 });
+
+for (const stage of ["checkPlayServices", "signIn", "createAccount", "presentExplicitSignIn"] as const) {
+  it(`times out a pending ${stage} and ignores its late result`, async () => {
+    vi.useFakeTimers();
+    try {
+      const api = createApi();
+      api.signIn.mockResolvedValue(noSavedCredential());
+      api.createAccount.mockResolvedValue(noSavedCredential());
+      let settle!: (value: never) => void;
+      api[stage].mockImplementation(() => new Promise((resolve) => { settle = resolve; }));
+      const result = requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com");
+      const assertion = expect(result).rejects.toThrow("مهلت ورود با گوگل تمام شد");
+      await vi.advanceTimersByTimeAsync(45_000);
+      await assertion;
+      await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).rejects.toThrow("درخواست قبلی");
+      settle(success("late-token") as never);
+      await vi.runAllTimersAsync();
+      if (stage === "checkPlayServices") expect(api.signIn).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { vi.useRealTimers(); }
+  });
+}
+
+it.each([
+  ["PLAY_SERVICES_NOT_AVAILABLE", "سرویس‌های گوگل"],
+  ["Google Play Services are not available (status=1).", "سرویس‌های گوگل"],
+  ["DEVELOPER_ERROR", "پیکربندی"],
+  ["[10] Developer console is not set up correctly", "پیکربندی"],
+  ["SIGN_IN_CANCELLED", "لغو شد"],
+  ["Network error", "اتصال"],
+])("maps native failure %s without exposing native details", async (message, expected) => {
+  const api = createApi();
+  api.signIn.mockRejectedValue(new Error(message));
+  await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).rejects.toThrow(expected);
+});

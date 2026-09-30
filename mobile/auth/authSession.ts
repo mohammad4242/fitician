@@ -15,6 +15,7 @@ import type {
 
 import { MobileAuthClient } from "./authClient";
 import { createMobileAuthApi, type MobileAuthApi, type MobileClientMetadataSource } from "./authApi";
+import { withGoogleSignInTimeout } from "./googleCredential";
 import type { AppleAuthCredential } from "./appleCredential";
 
 export type MobileAuthSessionStatus = "loading" | "signed_in" | "signed_out";
@@ -104,7 +105,7 @@ export class MobileAuthSession {
   }
 
   async signInWithGoogle(credential: string): Promise<User> {
-    return this.authenticate(() => this.api.signInWithGoogle(credential));
+    return this.authenticate(() => withGoogleSignInTimeout(() => this.api.signInWithGoogle(credential), 30_000));
   }
 
   async signInWithApple(credential: AppleAuthCredential): Promise<User> {

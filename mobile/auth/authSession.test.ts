@@ -147,3 +147,28 @@ it("registers through the shared endpoint and then establishes native tokens", a
   expect(calls).toEqual(["register", "password"]);
   expect(session.getSnapshot()).toMatchObject({ status: "signed_in" });
 });
+
+it("resets Google busy after an exchange timeout and never adopts late tokens", async () => {
+  vi.useFakeTimers();
+  try {
+    let settle!: (value: MobileAuthTokens) => void;
+    const googleApi = api();
+    googleApi.signInWithGoogle = () => new Promise((resolve) => { settle = resolve; });
+    const write = vi.fn().mockResolvedValue(undefined);
+    const session = new MobileAuthSession({ api: googleApi, transport: transport(), refreshTokenStorage: {
+      clear: async () => undefined, read: async () => null, write,
+    } });
+    const attempt = session.signInWithGoogle("google-token");
+    const assertion = expect(attempt).rejects.toThrow("مهلت ورود با گوگل تمام شد");
+    expect(session.getSnapshot().busy).toBe(true);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await assertion;
+    expect(session.getSnapshot().busy).toBe(false);
+    await session.signInWithPassword({ email: "member@example.com", password: "abcdefgh" });
+    expect(write).toHaveBeenCalledTimes(1);
+    settle({ ...tokens, refresh_token: "late-google-token" });
+    await vi.runAllTimersAsync();
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(session.getSnapshot().busy).toBe(false);
+  } finally { vi.useRealTimers(); }
+});
