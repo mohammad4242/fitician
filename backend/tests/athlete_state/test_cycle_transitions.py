@@ -145,9 +145,13 @@ def test_high_adherence_and_good_recovery_allow_conservative_progression(db: Ses
     assert result.plan.status is WorkoutPlanStatus.PENDING_REVIEW
     assert provider.calls == 0
 
-    previous_total = sum(decision.volume_context.previous_effective_sets_by_muscle.values())
-    proposed_total = sum(_effective_metrics(result.plan).values())
-    assert proposed_total <= previous_total * (1 + RULESET.max_previous_volume_increase)
+    # The fixture prescribes only chest work. Historical aggregate values for
+    # absent muscles must not masquerade as a previous training baseline.
+    # The engine's progression cap applies per muscle with known prior volume.
+    proposed = _effective_metrics(result.plan)
+    for muscle, previous in decision.volume_context.previous_effective_sets_by_muscle.items():
+        if previous > 0:
+            assert proposed.get(muscle, 0) <= previous * (1 + RULESET.max_previous_volume_increase)
 
 
 def test_low_adherence_does_not_become_a_completed_volume_baseline(db: Session) -> None:

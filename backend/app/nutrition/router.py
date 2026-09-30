@@ -1915,6 +1915,11 @@ def read_plan_revision(
 ) -> WeeklyPlanResponse:
     try:
         return weekly_plan_by_id(db, user.id, UUID(plan_id))
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
+        ) from None
     except (ValueError, WeeklyPlanNotFoundError):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1936,6 +1941,11 @@ def download_nutrition_plan_pdf(
 ) -> StreamingResponse:
     try:
         plan = weekly_plan_by_id(db, user.id, UUID(plan_id))
+    except NutritionPlanStartConflictError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": error.message},
+        ) from None
     except (ValueError, WeeklyPlanNotFoundError):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

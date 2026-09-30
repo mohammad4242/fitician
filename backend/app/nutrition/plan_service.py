@@ -1732,6 +1732,7 @@ def weekly_plan_by_id(db: Session, user_id: UUID, plan_id: UUID) -> WeeklyPlanRe
     )
     if plan is None:
         raise WeeklyPlanNotFoundError
+    _ensure_nutrition_plan_read_allowed(db, user_id)
     return weekly_plan_response(plan, db=db)
 
 

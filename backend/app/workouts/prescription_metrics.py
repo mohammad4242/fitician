@@ -91,18 +91,9 @@ def refreshed_prescription_metrics(
             session_indexes[muscle].append(day.day_number)
 
     volume = calculate_effective_volume(programmed, ruleset)
-    direct_sets = _preserve_unrepresented_historical_metrics(
-        volume.direct_sets_by_muscle,
-        prior_metrics.get("weekly_direct_sets_by_muscle"),
-    )
-    secondary_sets = _preserve_unrepresented_historical_metrics(
-        _metric_values(volume.secondary_sets_by_muscle),
-        prior_metrics.get("weekly_fractional_sets_by_muscle"),
-    )
-    effective_sets = _preserve_unrepresented_historical_metrics(
-        _metric_values(volume.effective_sets_by_muscle),
-        prior_metrics.get("weekly_effective_sets_by_muscle"),
-    )
+    direct_sets = dict(volume.direct_sets_by_muscle)
+    secondary_sets = _metric_values(volume.secondary_sets_by_muscle)
+    effective_sets = _metric_values(volume.effective_sets_by_muscle)
     metrics: dict[str, object] = {
         "weekly_direct_sets_by_muscle": _complete_metrics(direct_sets),
         "weekly_fractional_sets_by_muscle": complete_tracked_metrics(secondary_sets),
@@ -356,26 +347,6 @@ def _cardio_duration(day: WorkoutDay) -> int:
 
 def _metric_values(values: Mapping[str, int | float]) -> dict[str, int | float]:
     return {key: value for key, value in values.items()}
-
-
-def _preserve_unrepresented_historical_metrics(
-    current: Mapping[str, int | float],
-    historical: object,
-) -> dict[str, int | float]:
-    merged = dict(current)
-    if not isinstance(historical, dict):
-        return merged
-    for raw_muscle, raw_value in historical.items():
-        muscle = str(raw_muscle)
-        if (
-            muscle in merged
-            or isinstance(raw_value, bool)
-            or not isinstance(raw_value, (int, float))
-        ):
-            continue
-        if raw_value > 0:
-            merged[muscle] = raw_value
-    return merged
 
 
 def _complete_metrics(values: Mapping[str, int | float]) -> dict[str, int | float]:

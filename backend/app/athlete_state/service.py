@@ -39,6 +39,7 @@ from app.workout_cycles.models import (
     WorkoutCycle,
     WorkoutCycleFeedback,
     WorkoutCycleWeeklyCheckIn,
+    WorkoutCycleWeeklyCheckInPainLimitation,
     WorkoutExercisePreference,
     WorkoutExerciseReplacement,
     WorkoutExerciseSafetySignal,
@@ -78,9 +79,8 @@ class AthleteStateBuilder:
         comparisons = self._comparisons(user_id, cycle_ids)
         profile = self._profile(user_id)
         plans = self._plans(user_id)
-        pain_sensitive_exercises = self._unique_ids(
-            signal.original_exercise_id for signal in safety_signals
-        )
+        safety_context = self._safety_context(safety_signals, check_ins)
+        pain_sensitive_exercises = tuple(context.exercise_id for context in safety_context)
 
         return AthleteState(
             user_id=user_id,
@@ -110,7 +110,7 @@ class AthleteStateBuilder:
                 preferences, excluded_ids=pain_sensitive_exercises
             ),
             replacement_context=self._replacement_context(replacements),
-            safety_context=self._safety_context(safety_signals),
+            safety_context=safety_context,
             pain_sensitive_exercises=pain_sensitive_exercises,
             priority_muscles=self._feedback_muscles(feedbacks, "lagging_muscles"),
             progressing_muscles=self._feedback_muscles(feedbacks, "progressed_muscles"),
@@ -184,6 +184,11 @@ class AthleteStateBuilder:
         return list(
             self._db.scalars(
                 select(WorkoutCycleWeeklyCheckIn)
+                .options(
+                    selectinload(WorkoutCycleWeeklyCheckIn.pain_limitation).selectinload(
+                        WorkoutCycleWeeklyCheckInPainLimitation.workout_plan_exercise
+                    )
+                )
                 .join(WorkoutCycle, WorkoutCycle.id == WorkoutCycleWeeklyCheckIn.cycle_id)
                 .where(
                     WorkoutCycleWeeklyCheckIn.user_id == user_id,
@@ -503,6 +508,7 @@ class AthleteStateBuilder:
     @staticmethod
     def _safety_context(
         signals: list[WorkoutExerciseSafetySignal],
+        check_ins: Iterable[WorkoutCycleWeeklyCheckIn] = (),
     ) -> tuple[AthleteStateSafetyContext, ...]:
         grouped: dict[UUID, dict[str, object]] = {}
         for signal in signals:
@@ -517,6 +523,16 @@ class AthleteStateBuilder:
             assert isinstance(replacement_ids, list)
             signal_ids.append(signal.id)
             replacement_ids.append(signal.source_replacement_id)
+
+        for check_in in check_ins:
+            pain = check_in.pain_limitation
+            if not check_in.has_pain_or_limitation or pain is None:
+                continue
+            entry = grouped.setdefault(
+                pain.workout_plan_exercise.exercise_id,
+                {"signal_count": 0, "signal_ids": [], "replacement_ids": []},
+            )
+            entry["signal_count"] = cast(int, entry["signal_count"]) + 1
 
         contexts = []
         for exercise_id, entry in grouped.items():
