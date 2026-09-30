@@ -34,9 +34,16 @@ export async function withGoogleSignInTimeout<T>(
   timeoutMs = GOOGLE_SIGN_IN_TIMEOUT_MS,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = Date.now() + timeoutMs;
+  const ensureWithinDeadline = () => {
+    if (Date.now() >= deadline) throw new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE);
+  };
   try {
     return await Promise.race([
-      Promise.resolve().then(operation),
+      Promise.resolve().then(operation).then(
+        (result) => { ensureWithinDeadline(); return result; },
+        (error: unknown) => { ensureWithinDeadline(); throw error; },
+      ),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => reject(new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE)), timeoutMs);
       }),

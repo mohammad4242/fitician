@@ -122,3 +122,20 @@ it.each([
   api.signIn.mockRejectedValue(new Error(message));
   await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).rejects.toThrow(expected);
 });
+
+it("does not open fallback sheets after a wall-clock deadline with suspended timers", async () => {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(0);
+    const api = createApi();
+    let settle!: (response: AndroidGoogleSignInResponse) => void;
+    api.signIn.mockImplementation(() => new Promise((resolve) => { settle = resolve; }));
+    const result = requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com");
+    await Promise.resolve();
+    vi.setSystemTime(46_000);
+    settle(noSavedCredential());
+    await expect(result).rejects.toThrow("مهلت ورود با گوگل تمام شد");
+    expect(api.createAccount).not.toHaveBeenCalled();
+    expect(api.presentExplicitSignIn).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});

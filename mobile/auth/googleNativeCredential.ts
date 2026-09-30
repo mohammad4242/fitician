@@ -1,4 +1,4 @@
-import { GOOGLE_TIMEOUT_MESSAGE, GoogleSignInFlowError, withGoogleSignInTimeout } from "./googleCredential";
+import { GOOGLE_SIGN_IN_TIMEOUT_MS, GOOGLE_TIMEOUT_MESSAGE, GoogleSignInFlowError, withGoogleSignInTimeout } from "./googleCredential";
 
 export interface AndroidGoogleSignInResponse {
   readonly data: { readonly idToken?: unknown } | null;
@@ -56,8 +56,9 @@ export async function requestAndroidGoogleIdToken(
   }
   pendingApis.add(api);
   let active = true;
+  const deadline = Date.now() + GOOGLE_SIGN_IN_TIMEOUT_MS;
   const ensureActive = () => {
-    if (!active) throw new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE);
+    if (!active || Date.now() >= deadline) throw new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE);
   };
   const operation = (async () => {
     api.configure({ webClientId: audience });
