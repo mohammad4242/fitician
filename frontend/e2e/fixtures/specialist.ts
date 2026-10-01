@@ -73,6 +73,26 @@ export async function apiJson<T>(
   return JSON.parse(body) as T;
 }
 
+async function registerE2EAccount(context: BrowserContext, email: string): Promise<{ id: string }> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await apiResponse(context, "/api/v1/auth/register", {
+      method: "POST",
+      data: { email, password: E2E_PASSWORD },
+    });
+    const body = await response.text();
+    if (response.ok()) return JSON.parse(body) as { id: string };
+    if (response.status() !== 429 || attempt === 4) {
+      throw new Error(`POST /api/v1/auth/register failed with ${response.status()}: ${body}`);
+    }
+    const retryAfter = Number(response.headers()["retry-after"] ?? "");
+    const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 15_000)
+      : 2_000 * (attempt + 1);
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMs));
+  }
+  throw new Error("E2E registration retry loop exhausted");
+}
+
 async function prepareE2EUser(
   email: string,
   options: AccountOptions,
@@ -117,10 +137,7 @@ export async function createE2EAccount(
     window.localStorage.setItem("fitician-language", "fa");
   });
   const email = `${label}-${randomUUID()}@example.com`;
-  await apiJson<{ id: string }>(context, "/api/v1/auth/register", {
-    method: "POST",
-    data: { email, password: E2E_PASSWORD },
-  });
+  await registerE2EAccount(context, email);
   const prepared = await prepareE2EUser(email, options);
   const current = await apiJson<{ id: string }>(context, "/api/v1/auth/me");
   if (current.id !== prepared.id) throw new Error(`E2E fixture user mismatch for ${email}`);
