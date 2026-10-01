@@ -1459,14 +1459,20 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
 function WorkoutExecutionGuide({ plan, isEnglish }: { plan: WorkoutPlan; isEnglish: boolean }) {
   const { t } = useTranslation();
   return (
-    <aside className="workout-guidance" aria-labelledby="workout-guidance-title">
-      <div><span aria-hidden="true">↗</span><h2 id="workout-guidance-title">{t("workoutPlan.beforeStart")}</h2></div>
-      <ul>
-        {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), isEnglish ? "en" : "fa").map(line => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    </aside>
+    <details className="workout-guidance">
+      <summary className="workout-guidance__header">
+        <span aria-hidden="true">↗</span>
+        <h2>{t("workoutPlan.beforeStart")}</h2>
+        <AppIcon name="chevron" className="workout-guidance__chevron" />
+      </summary>
+      <div className="workout-guidance__body">
+        <ul>
+          {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), isEnglish ? "en" : "fa").map(line => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 

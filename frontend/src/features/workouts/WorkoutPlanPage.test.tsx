@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import i18n from "../../i18n";
 import { ApiError } from "../../shared/apiClient";
 import {
+  workoutExecutionGuidance,
   formatPersianDate,
   formatPersianDateWithWeekday,
   formatTehranDateTimeForLocale,
@@ -1591,4 +1592,30 @@ it("keeps exercise notes and RIR but moves general guidance out of exercise card
   expect(card).not.toHaveTextContent("تکرار دیگر");
   expect(card).not.toHaveTextContent("گرم‌کردن");
   expect(screen.getAllByText(/RIR 1/)).toHaveLength(1);
+});
+
+
+it.each(["fa", "en"] as const)("collapses the execution guide by default and toggles unchanged %s guidance", async language => {
+  await i18n.changeLanguage(language);
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  const user = userEvent.setup();
+  const rendered = render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+  const title = language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه";
+  const heading = await screen.findByText(title);
+  const summary = heading.closest("summary")!;
+  const guide = heading.closest("details")!;
+  expect(guide).not.toBeNull();
+  expect(rendered.container.querySelectorAll(".workout-guidance")).toHaveLength(1);
+  expect(guide).not.toHaveAttribute("open");
+  const lines = workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), language);
+  for (const line of lines) expect(within(guide).getByText(line)).not.toBeVisible();
+
+  await user.click(summary);
+  expect(guide).toHaveAttribute("open");
+  expect(within(guide).getAllByRole("listitem").map(item => item.textContent)).toEqual(lines);
+  for (const line of lines) expect(within(guide).getByText(line)).toBeVisible();
+
+  await user.click(summary);
+  expect(guide).not.toHaveAttribute("open");
+  for (const line of lines) expect(within(guide).getByText(line)).not.toBeVisible();
 });

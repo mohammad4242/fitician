@@ -682,14 +682,29 @@ function coachQuotaMessage(resetAt: string | null): string {
 
 function WorkoutExecutionGuide({ plan }: { readonly plan: WorkoutPlan }) {
   const language = languageForDirection();
+  const [expanded, setExpanded] = useState(false);
+  const title = language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه";
   return (
     <View testID="workout-execution-guide" style={[styles.executionGuide, language === "en" && styles.executionGuideEnglish]}>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, language === "en" && styles.executionGuideTitleEnglish]}>
-        {language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه"}
-      </Text>
-      {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), language).map(line => (
-        <Text key={line} style={[styles.executionGuideLine, language === "en" && styles.executionGuideLineEnglish]}>{line}</Text>
-      ))}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded }}
+        onPress={() => setExpanded(value => !value)}
+        style={({ pressed }) => [styles.executionGuideHeader, language === "en" && styles.executionGuideHeaderEnglish, pressed && styles.executionGuideHeaderPressed]}
+      >
+        <Text style={[styles.executionGuideTitle, language === "en" && styles.executionGuideTitleEnglish]}>
+          {title}
+        </Text>
+        <AppIcon color={fiticianTokens.colors.muted} name={expanded ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.sm} />
+      </Pressable>
+      {expanded ? (
+        <View style={styles.executionGuideBody}>
+          {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), language).map(line => (
+            <Text key={line} style={[styles.executionGuideLine, language === "en" && styles.executionGuideLineEnglish]}>{line}</Text>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1589,8 +1604,6 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 
 const styles = StyleSheet.create({
   executionGuide: {
-    padding: fiticianTokens.spacing[4],
-    gap: fiticianTokens.spacing[2],
     borderRadius: fiticianTokens.radii.medium,
     borderWidth: 1,
     borderColor: fiticianTokens.colors.line,
@@ -1603,6 +1616,32 @@ const styles = StyleSheet.create({
     borderRightColor: fiticianTokens.colors.line,
     borderLeftWidth: 3,
     borderLeftColor: fiticianTokens.colors.coral,
+  },
+  executionGuideHeader: {
+    direction: "rtl",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: fiticianTokens.spacing[2],
+    minHeight: 48,
+    paddingHorizontal: fiticianTokens.spacing[4],
+    paddingVertical: fiticianTokens.spacing[2],
+    borderRadius: fiticianTokens.radii.medium,
+  },
+  executionGuideHeaderEnglish: { direction: "ltr" },
+  executionGuideHeaderPressed: { backgroundColor: fiticianTokens.colors.surfaceSubtle },
+  executionGuideTitle: {
+    flex: 1,
+    color: fiticianTokens.colors.ink,
+    fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
+    fontSize: fiticianTokens.typography.fontSize.h3,
+    lineHeight: 28,
+    textAlign: "auto",
+    writingDirection: "rtl",
+  },
+  executionGuideBody: {
+    paddingHorizontal: fiticianTokens.spacing[4],
+    paddingBottom: fiticianTokens.spacing[4],
+    gap: fiticianTokens.spacing[2],
   },
   executionGuideTitleEnglish: {
     fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,

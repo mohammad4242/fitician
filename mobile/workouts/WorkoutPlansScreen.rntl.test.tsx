@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import { formatPersianDateWithWeekday, formatTehranDateTime, type BinaryDownload } from "@fitician/core";
+import { workoutExecutionGuidance, formatPersianDateWithWeekday, formatTehranDateTime, type BinaryDownload } from "@fitician/core";
 import { Alert, Linking } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { TimelineWorkout, TimelineWorkoutSession } from "@fitician/core/program-timeline";
@@ -1283,6 +1283,7 @@ test("shows one execution guide and preserves specific notes in compact exercise
   expect(tree.indexOf("راهنمای اجرای برنامه")).toBeLessThan(tree.indexOf("workout-plan-view-active-plan"));
   expect(tree.indexOf("راهنمای اجرای برنامه")).toBeLessThan(tree.indexOf("تأییدشده توسط"));
   expect(screen.getAllByText("راهنمای اجرای برنامه")).toHaveLength(1);
+  fireEvent.press(screen.getByRole("button", { name: "راهنمای اجرای برنامه" }));
   expect(screen.getAllByText(/RIR 1/)).toHaveLength(1);
   const note = screen.getByText("مکث در پایین حرکت");
   expect(note).toBeTruthy();
@@ -1294,4 +1295,33 @@ test("does not show execution guidance without a plan", () => {
   mockActivePlan = null;
   renderWorkoutPlans();
   expect(screen.queryByText("راهنمای اجرای برنامه")).toBeNull();
+});
+
+
+test.each(["fa", "en"] as const)("toggles the initially collapsed execution guide with unchanged %s content", language => {
+  mockLanguageForDirection.mockReturnValue(language);
+  mockActivePlan = makePlan("active", [makePlanExercise("guide-item", makeExercise("guide-squat", "اسکوات", "Squat"), [])]);
+  const rendered = renderWorkoutPlans();
+  const title = language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه";
+  const guide = screen.getByTestId("workout-execution-guide");
+  const header = screen.getByRole("button", { name: title });
+  const lines = workoutExecutionGuidance(mockActivePlan.days.flatMap(day => day.exercises), language);
+  expect(screen.getAllByTestId("workout-execution-guide")).toHaveLength(1);
+  expect(screen.getByText(title)).toBeTruthy();
+  expect(header.props.accessibilityState).toEqual({ expanded: false });
+  for (const line of lines) expect(within(guide).queryByText(line)).toBeNull();
+
+  fireEvent.press(header);
+  expect(header.props.accessibilityState).toEqual({ expanded: true });
+  for (const line of lines) expect(within(guide).getByText(line)).toBeTruthy();
+
+  fireEvent.press(header);
+  expect(header.props.accessibilityState).toEqual({ expanded: false });
+  for (const line of lines) expect(within(guide).queryByText(line)).toBeNull();
+
+  fireEvent.press(header);
+  rendered.unmount();
+  renderWorkoutPlans();
+  expect(screen.getByRole("button", { name: title }).props.accessibilityState).toEqual({ expanded: false });
+  for (const line of lines) expect(screen.queryByText(line)).toBeNull();
 });
