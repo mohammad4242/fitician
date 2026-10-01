@@ -53,7 +53,7 @@ def normal_budgets(replicas: int) -> tuple[ServiceBudget, ...]:
         ),
         ServiceBudget(
             "notification-worker",
-            env_int("NOTIFICATION_WORKER_MEMORY_MIB", 96),
+            env_int("NOTIFICATION_WORKER_MEMORY_MIB", 128),
             env_float("NOTIFICATION_WORKER_CPUS", 0.10),
         ),
         ServiceBudget(

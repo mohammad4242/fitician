@@ -287,7 +287,7 @@ services:
       retries: 3
       start_period: 60s
     stop_grace_period: 30s
-    mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-96m}
+    mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-128m}
     cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.10}
     restart: unless-stopped
 

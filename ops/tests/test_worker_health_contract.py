@@ -35,7 +35,8 @@ class WorkerHealthContractTests(unittest.TestCase):
                 self.assertIn("tmpfs:", service_block)
                 if compose_name == "compose.prod.yaml":
                     self.assertIn("timeout: 3s", service_block)
-                    self.assertIn("start_period: 15s", service_block)
+                    startup_grace = "60s" if service == "notification-worker" else "15s"
+                    self.assertIn(f"start_period: {startup_grace}", service_block)
 
     def test_worker_healthcheck_validates_fresh_matching_live_heartbeat(self) -> None:
         script = ROOT / "backend/app/jobs/worker-healthcheck.sh"
