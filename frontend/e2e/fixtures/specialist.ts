@@ -217,11 +217,11 @@ export async function setupNutritionMember(
   await apiJson(context, "/api/v1/nutrition/profile", {
     method: "PUT",
     data: {
-      daily_activity_level: "sedentary",
-      individual_monthly_food_budget_irr: 100_000_000,
+      daily_activity_level: "moderate",
+      individual_monthly_food_budget_irr: 1_000_000_000,
       budget_style: "strict",
-      meals_per_day: 2,
-      snacks_per_day: 1,
+      meals_per_day: 3,
+      snacks_per_day: 2,
       preferred_plan_start_day: "saturday",
       plan_style: "balanced",
       cooking_skill: "basic",

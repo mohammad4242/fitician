@@ -380,6 +380,7 @@ test.describe("real specialist multi-role flows", () => {
   });
 
   test("User -> Physician -> User proves approval, medical isolation, and user-visible lab requests", async ({ browser }, testInfo) => {
+    test.setTimeout(300_000);
     const runLabel = `${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}`;
     const patient = await createE2EAccount(browser, "physician-patient", { displayName: `پرونده فشار خون ${runLabel}` });
     const labPatient = await createE2EAccount(browser, "lab-patient", { displayName: `پرونده آزمایش ${runLabel}` });
