@@ -109,6 +109,8 @@ it("uses the web-like workout page hierarchy without cinematic overview componen
     '<View testID="workout-plan-controls"',
     "<GenerationMethodSelector",
     "<PlanOverview",
+    "<WorkoutExecutionGuide",
+    "<CoachReviewBanner",
     "<PlanView",
     "<WorkoutPlanTools",
     "<WorkoutHistory",
@@ -126,7 +128,6 @@ it("uses the web-like workout page hierarchy without cinematic overview componen
   const overviewHierarchy = [
     "styles.pageHeader",
     "<PlanContextStrip",
-    "<CoachReviewBanner",
   ];
   const overviewPositions = overviewHierarchy.map((marker) => overview.indexOf(marker));
   expect(overviewPositions.every((position) => position >= 0)).toBe(true);
