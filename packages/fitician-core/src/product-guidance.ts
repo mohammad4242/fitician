@@ -1,13 +1,44 @@
-export function workoutGuidance(item: { warmup_sets?: number; rir?: number | null; load_guidance?: string; progression_rule?: string }, locale: "fa" | "en"): string[] {
-  const en = locale === "en";
-  const number = (value: number) => value.toLocaleString(en ? "en-US" : "fa-IR");
-  const lines: string[] = [];
-  if (item.warmup_sets && item.warmup_sets > 0) lines.push(en ? `${number(item.warmup_sets)} warm-up sets before working sets; gradually increase the load.` : `${number(item.warmup_sets)} ست گرم‌کردن پیش از ست‌های اصلی؛ وزنه را تدریجی افزایش بده.`);
-  if (item.rir != null) lines.push(en ? `Finish each set with about ${number(item.rir)} repetitions still possible with good technique (RIR).` : `هر ست را وقتی تمام کن که حدود ${number(item.rir)} تکرار دیگر با فرم درست می‌توانی انجام بدهی (RIR).`);
-  if (item.load_guidance) lines.push(item.load_guidance === "Select a load that preserves the target RIR." ? (en ? "Choose a weight that lets you reach the prescribed repetitions while keeping the stated repetitions in reserve." : "وزنه‌ای انتخاب کن که تکرارهای برنامه را با تعداد تکرار ذخیرهٔ مشخص‌شده انجام بدهی.") : item.load_guidance);
-  if (item.progression_rule === "double_progression_v1") lines.push(en ? "When all working sets reach the top of the rep range with the prescribed reserve and good technique for two sessions, increase the weight by the smallest available increment." : "وقتی در دو جلسه همهٔ ست‌های اصلی را تا بالای بازهٔ تکرار، با فرم درست و تکرار ذخیرهٔ تعیین‌شده انجام دادی، وزنه را به اندازهٔ کوچک‌ترین افزایش موجود بالا ببر.");
-  else if (item.progression_rule && item.progression_rule !== "legacy") lines.push(item.progression_rule);
-  return lines;
+import fa from "./i18n/fa";
+import en from "./i18n/en";
+
+type ExecutionGuideExercise = {
+  exercise?: { name_fa?: string | null; name_en?: string | null };
+  warmup_sets?: number;
+  load_guidance?: string;
+  progression_rule?: string;
+};
+
+/** Shared program guidance; prescriptions and exercise-specific notes remain untouched. */
+export function workoutExecutionGuidance(items: readonly ExecutionGuideExercise[], locale: "fa" | "en"): string[] {
+  const english = locale === "en";
+  const copy = (english ? en : fa).translation.workoutPlan.guidance;
+  const lines = [copy.form, copy.warmup, copy.rir, copy.load, copy.progress, copy.recovery, copy.pain];
+  const instructions = new Map<string, Set<string>>();
+  const add = (text: string, name: string) => {
+    const normalized = text.trim().replace(/\s+/g, " ");
+    if (!normalized) return;
+    const names = instructions.get(normalized) ?? new Set<string>();
+    if (name) names.add(name);
+    instructions.set(normalized, names);
+  };
+  let bodyweight = false;
+  for (const item of items) {
+    const name = (english ? item.exercise?.name_en || item.exercise?.name_fa : item.exercise?.name_fa || item.exercise?.name_en) ?? "";
+    if (item.warmup_sets && item.warmup_sets > 0) {
+      const count = item.warmup_sets.toLocaleString(english ? "en-US" : "fa-IR");
+      add(english ? `${count} warm-up sets before working sets.` : `${count} ست گرم‌کردن پیش از ست‌های اصلی.`, name);
+    }
+    const load = item.load_guidance?.trim();
+    const rule = item.progression_rule?.trim();
+    if (load === "Use a bodyweight variation that preserves the target RIR." || rule === "bodyweight_double_progression_v1") bodyweight = true;
+    if (load && load !== "Select a load that preserves the target RIR." && load !== "Use a bodyweight variation that preserves the target RIR.") add(load, name);
+    if (rule && !["legacy", "double_progression_v1", "bodyweight_double_progression_v1"].includes(rule)) add(rule, name);
+  }
+  if (bodyweight) lines.push(copy.bodyweight);
+  for (const [text, names] of instructions) {
+    lines.push(names.size ? `${[...names].join(english ? ", " : "، ")}: ${text}` : text);
+  }
+  return [...new Set(lines)];
 }
 export function cardioGuidance(cardio: Record<string, unknown> | null | undefined, locale: "fa" | "en"): string | null {
   if (!cardio || typeof cardio.duration_minutes !== "number" || cardio.duration_minutes <= 0) return null;

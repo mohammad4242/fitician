@@ -1051,13 +1051,13 @@ it("keeps a failed deletion visible and exposes a retryable error", async () => 
   expect(screen.getByRole("button", { name: "حذف دائمی" })).toBeEnabled();
 });
 
-it("shows the fixed start guide and a generate action when no plan exists", async () => {
+it("shows no execution guide when no plan exists", async () => {
   api.getActiveWorkoutPlan.mockResolvedValue(null);
   const user = userEvent.setup();
   render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
 
   expect(await screen.findByRole("heading", { name: "برنامه تمرینی من" })).toHaveClass("fitician-display");
-  expect(screen.getByText("قبل از شروع")).toBeInTheDocument();
+  expect(screen.queryByText("راهنمای اجرای برنامه")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "ساخت برنامه" }));
 
   expect(api.generateWorkoutPlan).toHaveBeenCalledOnce();
@@ -1085,8 +1085,10 @@ it("shows plan context without cinematic background media", async () => {
   expect(screen.getByRole("list", { name: "روزهای تمرین تو" })).toBeInTheDocument();
   expect(document.querySelector("video")).not.toBeInTheDocument();
   const schedule = screen.getByRole("list", { name: "روزهای تمرین تو" });
-  const guidance = screen.getByText("قبل از شروع");
-  expect(schedule.compareDocumentPosition(guidance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const guidance = screen.getByText("راهنمای اجرای برنامه");
+  expect(screen.getAllByText("راهنمای اجرای برنامه")).toHaveLength(1);
+  expect(guidance.compareDocumentPosition(screen.getByText("برنامه آماده اجراست")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(guidance.compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 it("shows the internal engine as the displayed plan's pre-plan source", async () => {
@@ -1576,4 +1578,17 @@ it("keeps the active plan visible and offers retry when generation fails", async
   await user.click(screen.getByRole("button", { name: "دوباره تلاش کنید" }));
 
   expect(api.generateWorkoutPlan).toHaveBeenCalledTimes(2);
+});
+
+it("keeps exercise notes and RIR but moves general guidance out of exercise cards", async () => {
+  const item = plan.days[0]!.exercises[0]!;
+  api.getActiveWorkoutPlan.mockResolvedValue({ ...plan, days: [{ ...plan.days[0]!, exercises: [{ ...item, warmup_sets: 2, load_guidance: "Select a load that preserves the target RIR.", progression_rule: "double_progression_v1" }] }] });
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+  const note = await screen.findByText("کنترل‌شده حرکت کن.");
+  const card = note.closest("li")!;
+  expect(card).toHaveTextContent("RIR");
+  expect(card).not.toHaveTextContent("دو جلسه");
+  expect(card).not.toHaveTextContent("تکرار دیگر");
+  expect(card).not.toHaveTextContent("گرم‌کردن");
+  expect(screen.getAllByText(/RIR 1/)).toHaveLength(1);
 });

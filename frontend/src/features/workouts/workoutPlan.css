@@ -117,13 +117,11 @@
 .workout-ai-coach__icon { color: var(--fitician-aqua); }
 .workout-ai-coach :where(p, strong) { margin: 0; font-size: .75rem; line-height: 1.55; }
 .workout-ai-coach p { color: var(--fitician-aqua); }
-.workout-secondary { margin-top: .65rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
-.workout-secondary > summary { padding: .85rem 1rem; color: var(--fitician-muted); font-size: .8rem; font-weight: 850; cursor: pointer; }
-.workout-secondary__content { padding: 0 .75rem .75rem; }
-.workout-guidance, .workout-version-history { margin-top: .65rem; padding: .85rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-sm); background: var(--fitician-surface); }
+.workout-guidance { padding: 1rem 1.15rem; border: 1px solid var(--fitician-line); border-inline-start: 3px solid var(--fitician-coral); border-radius: var(--fitician-radius-sm); background: var(--fitician-surface); }
+.workout-version-history { margin-top: .65rem; padding: .85rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-sm); background: var(--fitician-surface); }
 .workout-guidance > div { display: flex; align-items: center; gap: .5rem; }
 .workout-guidance h2, .workout-version-history h2 { margin: 0; font-size: .95rem; }
-.workout-guidance ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .4rem 1rem; margin: .65rem 0 0; padding: 0; color: var(--fitician-muted); font-size: .72rem; list-style: none; }
+.workout-guidance ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem 1.5rem; margin: .65rem 0 0; padding: 0; color: var(--fitician-muted); font-size: .8rem; line-height: 1.7; list-style: none; }
 .workout-guidance li::before { margin-inline-end: .35rem; color: var(--fitician-coral); content: "•"; }
 .workout-generation-method { display: grid; gap: .4rem; margin: .55rem 0 .75rem; }
 .workout-generation-method h2 { margin: 0; font-size: .78rem; font-weight: 850; }
@@ -241,3 +239,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .workout-plan-shell * { transition: none !important; animation: none !important; } }
+
+.workout-guidance li { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .workout-guidance { padding: .85rem; } .workout-guidance ul { grid-template-columns: 1fr; gap: .45rem; } }

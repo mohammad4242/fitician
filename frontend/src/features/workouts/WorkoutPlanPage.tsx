@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { workoutGuidance, cardioGuidance, formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
+import { workoutExecutionGuidance, cardioGuidance, formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
 import { ApiError } from "../../shared/apiClient";
@@ -565,6 +565,13 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             </header>
           )}
 
+        {displayedPlan !== null && (
+          <>
+            <WorkoutExecutionGuide plan={displayedPlan} isEnglish={isEnglish} />
+            <CoachReviewBanner plan={displayedPlan} isEnglish={isEnglish} historical={isViewingHistorical} />
+          </>
+        )}
+
         {state === "ready" && liveTimeline !== null && currentPlan !== null && (
           <WorkoutTimelineCard
             timeline={liveTimeline}
@@ -697,103 +704,96 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           />
         </section>
 
-        <details className="workout-secondary">
-          <summary>{l("جزئیات و تنظیمات برنامه", "Plan details and settings")}</summary>
-          <div className="workout-secondary__content">
-            <FixedGuidance />
-            {displayedPlan?.ai_coach_program_explanation_fa && (
-              <aside className="workout-ai-coach" aria-label={t("workoutPlan.aiCoach")}>
-                <span className="workout-ai-coach__icon" aria-hidden="true">✦</span>
-                <div><p>{t("workoutPlan.aiCoach")}</p><strong>{displayedPlan.ai_coach_program_explanation_fa}</strong></div>
-              </aside>
-            )}
-            {(memberHistory.length > 0 || isViewingHistorical) && (
-              <section className="workout-version-history" aria-labelledby="workout-version-history-title">
-                <div><p className="eyebrow eyebrow--accent">{l("نسخه‌های برنامه", "Plan versions")}</p><h2 id="workout-version-history-title">{l("تاریخچه برنامه", "Plan history")}</h2></div>
-                {isViewingHistorical && <button type="button" onClick={() => setSelectedHistoricalPlan(null)}>{l("بازگشت به برنامه فعلی", "Return to current plan")}</button>}
-                <div className="workout-version-history__list">
-                  {memberHistory.map((version, index) => {
-                    const label = version.coach_review.state === "coach_approved"
-                      ? l("نسخه تأیید مربی", "Coach-approved version")
-                      : version.coach_review.state === "coach_rejected"
-                        ? l("نسخه برگشت‌داده‌شده برای اصلاح", "Returned for correction")
-                        : l("نسخه اولیه", "Initial version");
-                    const canDelete = isDeletableVersion(version);
-                    const planNumber = new Intl.NumberFormat(isEnglish ? "en-US" : "fa-IR").format(index + 1);
-                    const planNumberLabel = l(`برنامه شماره ${planNumber}`, `Plan ${planNumber}`);
-                    const timestamp = formatMemberTimestamp(version.created_at, isEnglish);
-                    const isExpanded = expandedVersionId === version.id;
-                    const detailsId = `workout-version-details-${version.id}`;
-                    const detail = versionDetails[version.id];
-                    const detailError = versionDetailErrors[version.id];
-                    return (
-                      <article className={`workout-version-history__item${isExpanded ? " workout-version-history__item--expanded" : ""}`} key={version.id}>
-                        <button
-                          type="button"
-                          className="workout-version-history__toggle"
-                          aria-expanded={isExpanded}
-                          aria-controls={detailsId}
-                          aria-busy={loadingVersionId === version.id}
-                          aria-label={`${planNumberLabel} — ${label} — ${timestamp}`}
-                          onClick={() => toggleVersion(version.id)}
-                        >
-                          <span className="workout-version-history__number">{planNumberLabel}</span>
-                          <strong>{timestamp}</strong>
-                          <span className="workout-version-history__status">{version.is_active ? l("فعال", "Active") : l("آرشیو", "Archived")}</span>
-                          <span className="workout-version-history__chevron" aria-hidden="true">{isExpanded ? "−" : "+"}</span>
-                        </button>
-                        {isExpanded && (
-                          <div className="workout-version-history__details" id={detailsId}>
-                            {loadingVersionId === version.id && <p className="workout-version-history__loading" role="status">{l("در حال دریافت اطلاعات برنامه…", "Loading plan overview…")}</p>}
-                            {detailError !== undefined && (
-                              <div className="workout-version-history__error">
-                                <AppErrorNotice
-                                  audience="member"
-                                  context="workout"
-                                  error={detailError}
-                                  locale={isEnglish ? "en" : "fa"}
-                                />
-                                <button type="button" onClick={() => loadVersionDetail(version.id)}>{l("تلاش دوباره", "Try again")}</button>
-                              </div>
-                            )}
-                            {detail !== undefined && (
-                              <>
-                                <WorkoutPlanHistoryOverview plan={detail} isEnglish={isEnglish} />
-                                <div className="workout-version-history__actions">
-                                  <button
-                                    type="button"
-                                    className="workout-version-history__inspect"
-                                    disabled={selectingVersionId !== null}
-                                    onClick={() => selectVersion(version)}
-                                  >
-                                    {l("مشاهده نسخه کامل", "View full version")}
-                                  </button>
-                                  {canDelete && (
-                                    <button
-                                      type="button"
-                                      className="workout-version-history__delete"
-                                      aria-label={l("حذف نسخه قدیمی برنامه", "Delete old plan version")}
-                                      disabled={deletingVersionId === version.id}
-                                      aria-busy={deletingVersionId === version.id}
-                                      onClick={() => openDeleteDialog(version)}
-                                    >
-                                      {l("حذف نسخه", "Delete version")}
-                                    </button>
-                                  )}
-                                </div>
-                              </>
-                            )}
+        {displayedPlan?.ai_coach_program_explanation_fa && (
+          <aside className="workout-ai-coach" aria-label={t("workoutPlan.aiCoach")}>
+            <span className="workout-ai-coach__icon" aria-hidden="true">✦</span>
+            <div><p>{t("workoutPlan.aiCoach")}</p><strong>{displayedPlan.ai_coach_program_explanation_fa}</strong></div>
+          </aside>
+        )}
+        {(memberHistory.length > 0 || isViewingHistorical) && (
+          <section className="workout-version-history" aria-labelledby="workout-version-history-title">
+            <div><p className="eyebrow eyebrow--accent">{l("نسخه‌های برنامه", "Plan versions")}</p><h2 id="workout-version-history-title">{l("تاریخچه برنامه", "Plan history")}</h2></div>
+            {isViewingHistorical && <button type="button" onClick={() => setSelectedHistoricalPlan(null)}>{l("بازگشت به برنامه فعلی", "Return to current plan")}</button>}
+            <div className="workout-version-history__list">
+              {memberHistory.map((version, index) => {
+                const label = version.coach_review.state === "coach_approved"
+                  ? l("نسخه تأیید مربی", "Coach-approved version")
+                  : version.coach_review.state === "coach_rejected"
+                    ? l("نسخه برگشت‌داده‌شده برای اصلاح", "Returned for correction")
+                    : l("نسخه اولیه", "Initial version");
+                const canDelete = isDeletableVersion(version);
+                const planNumber = new Intl.NumberFormat(isEnglish ? "en-US" : "fa-IR").format(index + 1);
+                const planNumberLabel = l(`برنامه شماره ${planNumber}`, `Plan ${planNumber}`);
+                const timestamp = formatMemberTimestamp(version.created_at, isEnglish);
+                const isExpanded = expandedVersionId === version.id;
+                const detailsId = `workout-version-details-${version.id}`;
+                const detail = versionDetails[version.id];
+                const detailError = versionDetailErrors[version.id];
+                return (
+                  <article className={`workout-version-history__item${isExpanded ? " workout-version-history__item--expanded" : ""}`} key={version.id}>
+                    <button
+                      type="button"
+                      className="workout-version-history__toggle"
+                      aria-expanded={isExpanded}
+                      aria-controls={detailsId}
+                      aria-busy={loadingVersionId === version.id}
+                      aria-label={`${planNumberLabel} — ${label} — ${timestamp}`}
+                      onClick={() => toggleVersion(version.id)}
+                    >
+                      <span className="workout-version-history__number">{planNumberLabel}</span>
+                      <strong>{timestamp}</strong>
+                      <span className="workout-version-history__status">{version.is_active ? l("فعال", "Active") : l("آرشیو", "Archived")}</span>
+                      <span className="workout-version-history__chevron" aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                    </button>
+                    {isExpanded && (
+                      <div className="workout-version-history__details" id={detailsId}>
+                        {loadingVersionId === version.id && <p className="workout-version-history__loading" role="status">{l("در حال دریافت اطلاعات برنامه…", "Loading plan overview…")}</p>}
+                        {detailError !== undefined && (
+                          <div className="workout-version-history__error">
+                            <AppErrorNotice
+                              audience="member"
+                              context="workout"
+                              error={detailError}
+                              locale={isEnglish ? "en" : "fa"}
+                            />
+                            <button type="button" onClick={() => loadVersionDetail(version.id)}>{l("تلاش دوباره", "Try again")}</button>
                           </div>
                         )}
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-          </div>
-        </details>
-
+                        {detail !== undefined && (
+                          <>
+                            <WorkoutPlanHistoryOverview plan={detail} isEnglish={isEnglish} />
+                            <div className="workout-version-history__actions">
+                              <button
+                                type="button"
+                                className="workout-version-history__inspect"
+                                disabled={selectingVersionId !== null}
+                                onClick={() => selectVersion(version)}
+                              >
+                                {l("مشاهده نسخه کامل", "View full version")}
+                              </button>
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  className="workout-version-history__delete"
+                                  aria-label={l("حذف نسخه قدیمی برنامه", "Delete old plan version")}
+                                  disabled={deletingVersionId === version.id}
+                                  aria-busy={deletingVersionId === version.id}
+                                  onClick={() => openDeleteDialog(version)}
+                                >
+                                  {l("حذف نسخه", "Delete version")}
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
       {deleteDialogVersion !== null && versionDetails[deleteDialogVersion.id] !== undefined && (
         <WorkoutPlanDeleteDialog
@@ -989,7 +989,6 @@ function WorkoutPlanOverview({
         </span>
       </section>
 
-      <CoachReviewBanner plan={plan} isEnglish={isEnglish} historical={historical} />
       {historical && <p className="workout-plan-readonly" role="note">{l("این نسخه فقط برای مشاهده است.", "This version is read-only.")}</p>}
     </section>
   );
@@ -1272,7 +1271,6 @@ function WorkoutDays({ plan, isEnglish, titleId, interactive, presentation }: { 
                     {(isEnglish ? item.notes_en : item.notes_fa) !== null && (
                       <p>{isEnglish ? item.notes_en : item.notes_fa}</p>
                     )}
-                    {workoutGuidance(item, isEnglish ? "en" : "fa").map((line) => <p key={line}>{line}</p>)}
                     <Link to={`/exercises/${item.exercise.slug}`}>{t("workoutPlan.detail")}</Link>
                     {item.alternatives.length > 0 && (
                       <details className="workout-alternatives">
@@ -1458,14 +1456,14 @@ function WorkoutExerciseReplacementFlow({ item, isEnglish }: { item: WorkoutPlan
   );
 }
 
-function FixedGuidance() {
+function WorkoutExecutionGuide({ plan, isEnglish }: { plan: WorkoutPlan; isEnglish: boolean }) {
   const { t } = useTranslation();
   return (
     <aside className="workout-guidance" aria-labelledby="workout-guidance-title">
       <div><span aria-hidden="true">↗</span><h2 id="workout-guidance-title">{t("workoutPlan.beforeStart")}</h2></div>
       <ul>
-        {(["form", "warmup", "progress", "recovery", "pain"] as const).map((item) => (
-          <li key={item}>{t(`workoutPlan.guidance.${item}`)}</li>
+        {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), isEnglish ? "en" : "fa").map(line => (
+          <li key={line}>{line}</li>
         ))}
       </ul>
     </aside>

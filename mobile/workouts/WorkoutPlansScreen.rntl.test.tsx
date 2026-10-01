@@ -993,7 +993,8 @@ test("starts the existing replacement workflow from an executable exercise actio
 
   renderWorkoutPlans();
 
-  expect(screen.getByRole("link", { name: "مشاهده جزئیات حرکت" })).toBeTruthy();
+  fireEvent.press(screen.getByRole("link", { name: "مشاهده جزئیات حرکت" }), { stopPropagation: jest.fn() });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: "/member/exercises/[slug]", params: { slug: original.slug } });
   const replacementAction = screen
     .getAllByRole("button", { name: "حرکت جایگزین" })
     .find((action) => action.props.accessibilityLabel === "حرکت جایگزین");
@@ -1273,3 +1274,24 @@ function makeHistoryVersion(
     status,
   };
 }
+
+test("shows one execution guide and preserves specific notes in compact exercise rows", () => {
+  const item = { ...makePlanExercise("guide-item", makeExercise("guide-squat", "اسکوات", "Squat"), []), notes_fa: "مکث در پایین حرکت", warmup_sets: 2, progression_rule: "double_progression_v1", load_guidance: "Select a load that preserves the target RIR." };
+  mockActivePlan = makePlan("active", [item, { ...item, id: "guide-item-2", notes_fa: null }]);
+  const rendered = renderWorkoutPlans();
+  const tree = JSON.stringify(rendered.toJSON());
+  expect(tree.indexOf("راهنمای اجرای برنامه")).toBeLessThan(tree.indexOf("workout-plan-view-active-plan"));
+  expect(tree.indexOf("راهنمای اجرای برنامه")).toBeLessThan(tree.indexOf("تأییدشده توسط"));
+  expect(screen.getAllByText("راهنمای اجرای برنامه")).toHaveLength(1);
+  expect(screen.getAllByText(/RIR 1/)).toHaveLength(1);
+  const note = screen.getByText("مکث در پایین حرکت");
+  expect(note).toBeTruthy();
+  expect(within(note.parent!).queryByText(/RIR 1|دو جلسه|ست گرم‌کردن/)).toBeNull();
+  expect(screen.getAllByText("RIR")).toHaveLength(2);
+  expect(screen.queryByText(/هر ست را وقتی تمام کن/)).toBeNull();
+});
+test("does not show execution guidance without a plan", () => {
+  mockActivePlan = null;
+  renderWorkoutPlans();
+  expect(screen.queryByText("راهنمای اجرای برنامه")).toBeNull();
+});

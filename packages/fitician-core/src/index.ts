@@ -266,7 +266,7 @@ export type {
   ResolvedFieldError,
 } from "./errors";
 
-export { workoutGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";
+export { workoutExecutionGuidance, cardioGuidance, weightTrendPoints } from "./product-guidance";
 export { createCommunicationApi, createMessageRequestId, mergeConversationLatest } from "./communication";
 export type { Conversation, ProgramMessage, NotificationInbox, PersonalNotificationSettings, PersonalNotificationInput, ConversationKind, CommunicationRequest } from "./communication";
 

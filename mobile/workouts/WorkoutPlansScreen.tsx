@@ -1,6 +1,6 @@
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { workoutGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import { workoutExecutionGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import type { WorkoutGenerationMethod } from "@fitician/core/profile";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -542,6 +542,13 @@ export function WorkoutPlansScreen() {
         </View>
       )}
 
+      {displayedPlan !== undefined && displayedPlan !== null ? (
+        <>
+          <WorkoutExecutionGuide plan={displayedPlan} />
+          <CoachReviewBanner historical={isViewingHistorical} plan={displayedPlan} />
+        </>
+      ) : null}
+
       {connectivityStatus === "offline" && displayedPlan !== undefined ? (
         <PlanInlineNotice message="اتصال اینترنت برقرار نیست؛ آخرین برنامهٔ ذخیره‌شده نمایش داده می‌شود." variant="offline" />
       ) : null}
@@ -673,6 +680,20 @@ function coachQuotaMessage(resetAt: string | null): string {
   return `سهم بازبینی مربی در این بازه تمام شده است؛ امکان درخواست بعدی از ${formatTehranDateTime(resetAt)} ممکن است.`;
 }
 
+function WorkoutExecutionGuide({ plan }: { readonly plan: WorkoutPlan }) {
+  const language = languageForDirection();
+  return (
+    <View testID="workout-execution-guide" style={[styles.executionGuide, language === "en" && styles.executionGuideEnglish]}>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, language === "en" && styles.executionGuideTitleEnglish]}>
+        {language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه"}
+      </Text>
+      {workoutExecutionGuidance(plan.days.flatMap(day => day.exercises), language).map(line => (
+        <Text key={line} style={[styles.executionGuideLine, language === "en" && styles.executionGuideLineEnglish]}>{line}</Text>
+      ))}
+    </View>
+  );
+}
+
 function PlanOverview({
   historical,
   plan,
@@ -692,7 +713,6 @@ function PlanOverview({
         </View>
       </View>
       <PlanContextStrip historical={historical} plan={plan} />
-      <CoachReviewBanner historical={historical} plan={plan} />
       {historical ? <Text style={styles.readOnlyNotice}>این نسخه فقط برای مشاهده است.</Text> : null}
     </View>
   );
@@ -1334,8 +1354,7 @@ function WorkoutExerciseRow({
             </View>
           )}
         </View>
-        {workoutGuidance(exercise, language).map((line) => <Text key={line} style={styles.exerciseNote}>{line}</Text>)}
-        {exercise.notes_fa ? <Text style={styles.exerciseNote}>{exercise.notes_fa}</Text> : null}
+        {(language === "en" ? exercise.notes_en : exercise.notes_fa) ? <Text style={styles.exerciseNote}>{language === "en" ? exercise.notes_en : exercise.notes_fa}</Text> : null}
         <Pressable
           accessibilityLabel={actionCopy.detail}
           accessibilityRole="link"
@@ -1569,6 +1588,36 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 }
 
 const styles = StyleSheet.create({
+  executionGuide: {
+    padding: fiticianTokens.spacing[4],
+    gap: fiticianTokens.spacing[2],
+    borderRadius: fiticianTokens.radii.medium,
+    borderWidth: 1,
+    borderColor: fiticianTokens.colors.line,
+    backgroundColor: fiticianTokens.colors.surface,
+    borderRightWidth: 3,
+    borderRightColor: fiticianTokens.colors.coral,
+  },
+  executionGuideEnglish: {
+    borderRightWidth: 1,
+    borderRightColor: fiticianTokens.colors.line,
+    borderLeftWidth: 3,
+    borderLeftColor: fiticianTokens.colors.coral,
+  },
+  executionGuideTitleEnglish: {
+    fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
+    textAlign: "left",
+    writingDirection: "ltr",
+  },
+  executionGuideLine: {
+    color: fiticianTokens.colors.muted,
+    fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "right",
+    writingDirection: "rtl",
+  },
+  executionGuideLineEnglish: { fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish, textAlign: "left", writingDirection: "ltr" },
   aiCard: {
     borderColor: fiticianTokens.colors.aqua,
     gap: fiticianTokens.spacing[2],

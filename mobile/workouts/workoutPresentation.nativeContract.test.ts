@@ -341,3 +341,13 @@ it("keeps executable replacement on the existing cycle flow and blocks non-execu
   expect(source).toContain("setAlternativesExpanded");
   expect(source).toContain("onOpenAlternative");
 });
+
+it("places one execution guide before the timeline and keeps rows free of general guidance", async () => {
+  const source = await readFile(new URL("./WorkoutPlansScreen.tsx", import.meta.url), "utf8");
+  expect(source.match(/<WorkoutExecutionGuide /g)).toHaveLength(1);
+  expect(source.indexOf("<WorkoutExecutionGuide ")).toBeGreaterThan(source.indexOf("<PlanOverview "));
+  expect(source.indexOf("<WorkoutExecutionGuide ")).toBeLessThan(source.indexOf("<WorkoutTimelineCard\n"));
+  const row = source.slice(source.indexOf("function WorkoutExerciseRow"), source.indexOf("function ReadOnly", source.indexOf("function WorkoutExerciseRow")));
+  expect(row).not.toContain("workoutGuidance(");
+  expect(row).toContain("notes_fa");
+});
