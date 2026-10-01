@@ -32,9 +32,13 @@ def trigger_retention_cleanup(settings: Settings, *, now: datetime | None = None
                 if latest is not None and latest.date() >= current.date():
                     return False
                 cleanup_private_nutrition_files(db, settings, now=current)
+                connection.commit()
                 return True
         finally:
+            if connection.in_transaction():
+                connection.rollback()
             connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": _LOCK_KEY})
+            connection.commit()
 
 
 async def retention_scheduler_loop(

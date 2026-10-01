@@ -11,6 +11,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.auth.dependencies import require_authenticated_mutation
 from app.body_analysis.enums import SpecialistRole
 from app.body_analysis.models import UserSpecialistRole
+from app.nutrition.clinical_service import is_physician
 from app.nutrition.models import NutritionPlanPhysicianReview, NutritionWeeklyPlan
 from app.workout_reviews.dependencies import AuthenticatedUser, DatabaseSession
 from app.workout_reviews.models import WorkoutPlanReview
@@ -91,12 +92,13 @@ def _participants(
             raise HTTPException(404, detail={"code": "CONVERSATION_NOT_FOUND"})
         member_id = plan.user_id
         specialist_id = review.physician_user_id
-    role = SpecialistRole.COACH if kind == "workout" else SpecialistRole.PHYSICIAN
-    role_exists = (
-        specialist_id is not None
-        and db.scalar(
+    role_exists = specialist_id is not None and (
+        is_physician(db, specialist_id)
+        if kind == "nutrition"
+        else db.scalar(
             select(UserSpecialistRole.user_id).where(
-                UserSpecialistRole.user_id == specialist_id, UserSpecialistRole.role == role
+                UserSpecialistRole.user_id == specialist_id,
+                UserSpecialistRole.role == SpecialistRole.COACH,
             )
         )
         is not None

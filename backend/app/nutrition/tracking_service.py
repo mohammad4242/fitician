@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.nutrition.calendar import effective_nutrition_plan_for_date, nutrition_pattern_day_index
@@ -68,29 +68,37 @@ def submit_check_in(
             NutritionDailyCheckIn.entry_date == entry_date,
         )
     )
-    plan = None
-    if status in {NutritionDailyCheckInStatus.ON_PLAN, NutritionDailyCheckInStatus.MOSTLY_ON_PLAN}:
+    plan_revision_id = existing.plan_revision_id if existing else None
+    # Prefill once. Later status/note updates must keep the recorded intake and
+    # its original revision, including portions the user adjusted or skipped.
+    if plan_revision_id is None and status in {
+        NutritionDailyCheckInStatus.ON_PLAN,
+        NutritionDailyCheckInStatus.MOSTLY_ON_PLAN,
+    }:
         plan = _active_plan_for_date(db, user_id, entry_date)
         if plan is None:
             raise TrackingError("ACTIVE_PLAN_REQUIRED")
+        plan_revision_id = plan.id
         day_index = nutrition_pattern_day_index(plan.start_date, entry_date)
         day = next((row for row in plan.days if row.day_index == day_index), None)
         if day is None:
             raise TrackingError("ACTIVE_PLAN_DAY_NOT_FOUND")
-        db.execute(
-            delete(NutritionConsumptionEntry).where(
-                NutritionConsumptionEntry.user_id == user_id,
-                NutritionConsumptionEntry.entry_date == entry_date,
-                NutritionConsumptionEntry.source.in_(
-                    [
-                        NutritionConsumptionSource.PLANNED_CONFIRMED,
-                        NutritionConsumptionSource.PLANNED_ADJUSTED,
-                    ]
-                ),
-            )
+        recorded_meal_ids = set(
+            db.scalars(
+                select(NutritionConsumptionEntry.planned_meal_id).where(
+                    NutritionConsumptionEntry.user_id == user_id,
+                    NutritionConsumptionEntry.entry_date == entry_date,
+                    NutritionConsumptionEntry.source.in_(
+                        [
+                            NutritionConsumptionSource.PLANNED_CONFIRMED,
+                            NutritionConsumptionSource.PLANNED_ADJUSTED,
+                        ]
+                    ),
+                )
+            ).all()
         )
         for meal in day.meals:
-            if meal.slot_role is MealSlotRole.FREE_MEAL:
+            if meal.slot_role is MealSlotRole.FREE_MEAL or meal.id in recorded_meal_ids:
                 continue
             db.add(
                 NutritionConsumptionEntry(
@@ -112,13 +120,13 @@ def submit_check_in(
             user_id=user_id,
             entry_date=entry_date,
             status=status,
-            plan_revision_id=plan.id if plan else None,
+            plan_revision_id=plan_revision_id,
             note=note,
         )
         db.add(existing)
     else:
         existing.status = status
-        existing.plan_revision_id = plan.id if plan else None
+        existing.plan_revision_id = plan_revision_id
         existing.note = note
     db.commit()
     return daily_summary(db, user_id, entry_date)

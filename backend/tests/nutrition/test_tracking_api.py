@@ -414,3 +414,46 @@ def test_member_can_adjust_and_skip_planned_meal_on_active_revision(
     )
     assert skipped.status_code == 200
     assert all(item["planned_meal_id"] != meal["id"] for item in skipped.json()["entries"])
+
+
+def test_off_plan_check_in_keeps_edited_meal_when_changed_to_on_plan(
+    client: TestClient, db: Session
+) -> None:
+    plan_json, _food = _setup(client, db)
+    plan = db.get(NutritionWeeklyPlan, plan_json["id"])
+    assert plan is not None and plan.review is not None
+    plan.lifecycle_status = NutritionPlanLifecycleStatus.ACTIVE
+    plan.review.status = NutritionPlanReviewStatus.APPROVED
+    db.commit()
+    entry_date = plan.start_date.isoformat()
+    meals = plan_json["days"][0]["meals"]
+    edited_meal_id = meals[0]["id"]
+
+    first = client.put(
+        "/api/v1/nutrition/tracking/check-in",
+        headers=ORIGIN,
+        json={"entry_date": entry_date, "status": "off_plan"},
+    )
+    assert first.status_code == 200, first.text
+    edited = client.put(
+        f"/api/v1/nutrition/tracking/planned-meals/{edited_meal_id}",
+        headers=ORIGIN,
+        json={"entry_date": entry_date, "status": "adjusted", "portion_ratio": 0.5},
+    )
+    assert edited.status_code == 200, edited.text
+    original_entry = next(
+        item for item in edited.json()["entries"] if item["planned_meal_id"] == edited_meal_id
+    )
+    assert original_entry["source"] == "planned_adjusted"
+
+    changed = client.put(
+        "/api/v1/nutrition/tracking/check-in",
+        headers=ORIGIN,
+        json={"entry_date": entry_date, "status": "on_plan"},
+    )
+    assert changed.status_code == 200, changed.text
+    body = changed.json()
+    entries_by_meal = {item["planned_meal_id"]: item for item in body["entries"]}
+    assert body["plan_revision_id"] == str(plan.id)
+    assert entries_by_meal[edited_meal_id] == original_entry
+    assert all(meal["id"] in entries_by_meal for meal in meals)

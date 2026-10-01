@@ -776,11 +776,14 @@ def confirm_photo(
     db: Session, user_id: UUID, estimate_id: UUID, entry_date: date
 ) -> list[dict[str, object]]:
     row = db.scalar(
-        select(NutritionFoodPhotoEstimate).where(
+        select(NutritionFoodPhotoEstimate)
+        .where(
             NutritionFoodPhotoEstimate.id == estimate_id,
             NutritionFoodPhotoEstimate.user_id == user_id,
             NutritionFoodPhotoEstimate.status == "estimated",
         )
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if row is None:
         raise FoodPhotoError("FOOD_PHOTO_ESTIMATE_NOT_FOUND")
@@ -870,11 +873,14 @@ def confirm_photo(
 
 def confirm_photo_macro_preview(db: Session, user_id: UUID, estimate_id: UUID) -> dict[str, float]:
     row = db.scalar(
-        select(NutritionFoodPhotoEstimate).where(
+        select(NutritionFoodPhotoEstimate)
+        .where(
             NutritionFoodPhotoEstimate.id == estimate_id,
             NutritionFoodPhotoEstimate.user_id == user_id,
             NutritionFoodPhotoEstimate.status == "estimated",
         )
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if row is None:
         raise FoodPhotoError("FOOD_PHOTO_ESTIMATE_NOT_FOUND")

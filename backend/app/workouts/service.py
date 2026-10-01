@@ -82,7 +82,7 @@ from app.workouts.candidate_selector import (
     caution_tags_for_training_cautions,
     generation_profile_from_snapshot,
 )
-from app.workouts.enums import WorkoutPlanStatus
+from app.workouts.enums import WorkoutGenerationStatus, WorkoutPlanStatus
 from app.workouts.models import WorkoutDay, WorkoutPlan, WorkoutPlanExercise, WorkoutPlanGeneration
 from app.workouts.prescription_metrics import metrics_for_reviewed_plan
 from app.workouts.program_engine.body_analysis import applicable_body_analysis_influence
@@ -1113,6 +1113,17 @@ class WorkoutGenerationService:
         review_required: bool,
     ) -> None:
         try:
+            # Read the database status without flushing the delayed request's ORM state.
+            # Hold the generation lock through activation/quota consumption and commit.
+            with self._db.no_autoflush:
+                status = self._db.scalar(
+                    select(WorkoutPlanGeneration.status)
+                    .where(WorkoutPlanGeneration.id == generation.id)
+                    .with_for_update()
+                )
+            if status is not WorkoutGenerationStatus.GENERATING:
+                self._db.rollback()
+                raise WorkoutGenerationFailedError(error_code="STALE_GENERATION_RECOVERED")
             if review_required:
                 persist_pending_review_plan(self._db, plan, generation)
                 consume_quota(
@@ -1582,6 +1593,15 @@ class WorkoutGenerationService:
         diagnostics: list[dict[str, object]],
     ) -> None:
         try:
+            with self._db.no_autoflush:
+                status = self._db.scalar(
+                    select(WorkoutPlanGeneration.status)
+                    .where(WorkoutPlanGeneration.id == generation.id)
+                    .with_for_update()
+                )
+            if status is not WorkoutGenerationStatus.GENERATING:
+                self._db.rollback()
+                return
             if generation not in self._db:
                 generation = self._db.get(WorkoutPlanGeneration, generation.id) or generation
             fail_generation(

@@ -9,6 +9,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.auth.models import User
 from app.nutrition.clinical_service import ClinicalError, require_physician
 from app.nutrition.enums import MicronutrientUpperLimitScope, NutritionSupplementOrderStatus
 from app.nutrition.models import (
@@ -92,6 +93,9 @@ def _safety_check(
     *,
     excluding_order_id: UUID | None = None,
 ) -> dict[str, object]:
+    # A patient's orders may belong to different plans or physicians. Serialize
+    # their exposure checks through the patient row until the mutation commits.
+    db.scalar(select(User.id).where(User.id == plan.user_id).with_for_update())
     safety = db.scalar(
         select(NutritionSafetyDecision)
         .where(NutritionSafetyDecision.id == plan.safety_decision_id)
@@ -276,10 +280,13 @@ def transition_order(
     except ClinicalError as error:
         raise SupplementError("PHYSICIAN_ROLE_REQUIRED") from error
     row = db.scalar(
-        select(NutritionSupplementOrder).where(
+        select(NutritionSupplementOrder)
+        .where(
             NutritionSupplementOrder.id == order_id,
             NutritionSupplementOrder.physician_user_id == physician_id,
         )
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if row is None or row.supplement_id is None or row.daily_units is None:
         raise SupplementError("SUPPLEMENT_ORDER_NOT_FOUND")
@@ -360,10 +367,13 @@ def update_order(
     except ClinicalError as error:
         raise SupplementError("PHYSICIAN_ROLE_REQUIRED") from error
     row = db.scalar(
-        select(NutritionSupplementOrder).where(
+        select(NutritionSupplementOrder)
+        .where(
             NutritionSupplementOrder.id == order_id,
             NutritionSupplementOrder.physician_user_id == physician_id,
         )
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if row is None or row.status not in {
         NutritionSupplementOrderStatus.PRESCRIBED,
