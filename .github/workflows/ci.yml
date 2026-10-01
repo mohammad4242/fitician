@@ -405,6 +405,7 @@ jobs:
     needs: [changes, frontend]
     env:
       E2E_DATABASE_URL: postgresql+psycopg://fitician:fitician@127.0.0.1:5432/fitician_e2e
+      AUTH_REGISTER_IP_LIMIT: "1000"
     services:
       postgres:
         image: postgres:18-alpine
