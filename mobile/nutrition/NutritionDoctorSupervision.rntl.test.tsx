@@ -7,6 +7,9 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: jest.fn(() => ({ push: mockPush })) }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
+jest.mock("../auth/MobileAuthProvider", () => ({
+  useMobileAuth: jest.fn(() => ({ request: jest.fn(), user: null })),
+}));
 
 function findAncestorStyle(node: ReactTestInstance, key: string): Record<string, unknown> {
   let current = node.parent;
