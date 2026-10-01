@@ -682,6 +682,21 @@ class WorkoutGenerationService:
         metrics = metrics_for_reviewed_plan(cycle.workout_plan)
         if metrics is None:
             metrics = cycle.workout_plan.aggregate_metrics
+        else:
+            persisted_metrics = cycle.workout_plan.aggregate_metrics
+            for metric_key in (
+                "weekly_direct_sets_by_muscle",
+                "weekly_effective_sets_by_muscle",
+            ):
+                persisted_values = persisted_metrics.get(metric_key)
+                refreshed_values = metrics.get(metric_key)
+                if isinstance(persisted_values, dict) and isinstance(refreshed_values, dict):
+                    merged_values = dict(refreshed_values)
+                    for muscle, persisted_value in persisted_values.items():
+                        refreshed_value = refreshed_values.get(muscle)
+                        if not isinstance(refreshed_value, (int, float)) or refreshed_value <= 0:
+                            merged_values[muscle] = persisted_value
+                    metrics[metric_key] = merged_values
         direct = self._volume_metrics(
             metrics.get("weekly_direct_sets_by_muscle")
             or metrics.get("planned_direct_sets_by_muscle")
