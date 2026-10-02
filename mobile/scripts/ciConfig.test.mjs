@@ -7,8 +7,18 @@ import test from "node:test";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
+async function frontendWorkflow(router) {
+  const job = router.match(/\n  frontend:\n(?<body>[\s\S]*?)(?=\n  [\w-]+:|$)/u)?.groups?.body;
+  assert.ok(job, "frontend router job must be present");
+  const target = job.match(/uses:\s*\.\/(\.github\/workflows\/[\w-]+\.yml)/u)?.[1];
+  assert.ok(target, "frontend checks must be connected through a reusable workflow");
+  return { job, source: await readFile(resolve(root, target), "utf8") };
+}
+
 test("CI covers every Phase 14 release gate", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
+  const frontend = await frontendWorkflow(workflow);
+  const checks = `${workflow}\n${frontend.source}`;
   for (const requiredCheck of [
     "uv run pytest",
     "npm run test --workspace frontend",
@@ -27,7 +37,7 @@ test("CI covers every Phase 14 release gate", async () => {
     "audit:dependencies",
     "security:secrets",
   ]) {
-    assert.match(workflow, new RegExp(requiredCheck.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")), requiredCheck);
+    assert.match(checks, new RegExp(requiredCheck.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")), requiredCheck);
   }
 });
 
@@ -39,15 +49,16 @@ test("CI uses read-only permissions and a clean dependency install", async () =>
 
 test("CI invokes the frontend workspace by its real package name", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
+  const frontend = await frontendWorkflow(workflow);
   const frontendPackage = JSON.parse(
     await readFile(resolve(root, "frontend/package.json"), "utf8"),
   );
 
   assert.equal(frontendPackage.name, "frontend");
-  assert.match(workflow, /npm run test --workspace frontend/u);
-  assert.match(workflow, /npm run lint --workspace frontend/u);
-  assert.match(workflow, /npm run build --workspace frontend/u);
-  assert.doesNotMatch(workflow, /--workspace @fitician\/frontend/u);
+  assert.match(frontend.source, /npm run test --workspace frontend/u);
+  assert.match(frontend.source, /npm run lint --workspace frontend/u);
+  assert.match(frontend.source, /npm run build --workspace frontend/u);
+  assert.doesNotMatch(frontend.source, /--workspace @fitician\/frontend/u);
 });
 
 test("CI keeps the backend lockfile tracked for frozen installs", async () => {
@@ -97,16 +108,22 @@ test("CI builds the shared core package before mobile tests", async () => {
   assert.ok(coreBuildIndex < mobileTestIndex, "core must be built before mobile tests");
 });
 
-test("CI builds the shared core package before frontend tests", async () => {
+test("CI supplies built shared core before frontend tests", async () => {
   const workflow = await readFile(resolve(root, ".github/workflows/ci.yml"), "utf8");
-  const frontendJob = workflow.match(/\n  frontend:\n(?<body>[\s\S]*?)\n  shared:/u)?.groups?.body;
-
-  assert.ok(frontendJob, "frontend job must be present");
-  const coreBuildIndex = frontendJob.indexOf("npm run build:core");
-  const frontendTestIndex = frontendJob.indexOf("npm run test --workspace frontend");
-
-  assert.ok(coreBuildIndex >= 0, "frontend job must build core");
-  assert.ok(coreBuildIndex < frontendTestIndex, "core must be built before frontend tests");
+  const frontend = await frontendWorkflow(workflow);
+  const verification = frontend.source.match(/\n  frontend-verification:\n(?<body>[\s\S]*?)(?=\n  [\w-]+:|$)/u)?.groups?.body;
+  assert.ok(verification, "frontend verification job must be present");
+  const coreBuildIndex = verification.indexOf("npm run build:core");
+  const downloadIndex = verification.indexOf("actions/download-artifact@v4");
+  const frontendTestIndex = verification.indexOf("npm run test --workspace frontend");
+  assert.ok(coreBuildIndex >= 0 && frontendTestIndex > coreBuildIndex, "fallback core build precedes tests");
+  assert.ok(downloadIndex >= 0 && frontendTestIndex > downloadIndex, "validated core artifact precedes tests");
+  assert.match(verification, /if: inputs\.core_artifact == ''/u);
+  assert.match(verification, /if: inputs\.core_artifact != ''/u);
+  assert.match(verification, /path: packages\/fitician-core\/dist/u);
+  assert.match(frontend.job, /needs: \[changes, secrets, shared\]/u);
+  assert.match(frontend.job, /core_artifact:.*github\.sha/u);
+  assert.match(frontend.job, /needs\.shared\.result == 'success'/u);
 });
 
 test("CI uses the React Native Node floor and Expo CI prebuild mode", async () => {

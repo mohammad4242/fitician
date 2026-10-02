@@ -52,6 +52,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.4"
+      - name: Test connected workflow release contracts
+        run: node --test mobile/scripts/ciConfig.test.mjs
       - name: Test deterministic classifier
         run: python3 -m unittest ops/tests/test_ci_classifier.py ops/tests/test_backend_quality.py ops/tests/test_ci_release_gate.py ops/tests/test_component_workflows.py -q
       - name: Classify changed paths
