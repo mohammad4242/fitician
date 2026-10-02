@@ -5,7 +5,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 
 - [x] Phase 1: Support domain/API/security; commit `ebf53598`, 66 backend tests.
 - [x] Phase 2: Shared Help registry/search/API; public Web Help and member Web/Mobile ticket list/create/thread; More entry points; focused Core/Web/native rendering tests.
-- [ ] Phase 3: Web admin queue/search/status/reply, authorization rendering tests.
+- [x] Phase 3: Web admin queue/search/status/reply, authorization rendering tests.
 - [ ] Phase 4: Canonical public contact config, placeholder removal, Web/native notification and app-link routing; release metadata validation.
 - [ ] Phase 5: Owner-scoped Progress overview context/ranges/product modes; bounded aggregate services and generated contract.
 - [ ] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
@@ -19,3 +19,5 @@ Each phase uses focused red/green tests, named staging, Conventional Commit and 
 Full affected verification occurs when the feature is coherent. No production deploy/store publication.
 Approved public support email: `fitician.fit@gmail.com` (user confirmed).
 Phase 2 verification: Core shared search/API 3 tests; Web Help/tickets 5 tests; Mobile Help/tickets/retry 3 native tests; Web and Mobile typechecks; focused Web lint.
+
+Phase 3: admin-only routes, filtered/paginated queue, safe ticket thread and status controls. No profile/health API calls.

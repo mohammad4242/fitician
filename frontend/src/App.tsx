@@ -74,6 +74,7 @@ const ResetPasswordPage = lazy(() => import("./features/auth/ResetPasswordPage")
 const VerifyEmailPage = lazy(() => import("./features/auth/VerifyEmailPage").then(({ VerifyEmailPage }) => ({ default: VerifyEmailPage })));
 const WorkoutPlanPage = lazy(() => import("./features/workouts/WorkoutPlanPage").then(({ WorkoutPlanPage }) => ({ default: WorkoutPlanPage })));
 
+const AdminSupportPage = lazy(() => import("./features/support/AdminSupportPage").then(m => ({ default: m.AdminSupportPage })));
 const HelpCenterPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.HelpCenterPage })));
 const MyTicketsPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.MyTicketsPage })));
 const NewTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.NewTicketPage })));
@@ -113,6 +114,8 @@ export function AppRoutes() {
           <Route path="/physician/nutrition" element={deferred(<PhysicianNutritionReviewPage />)} />
         </Route>
         <Route element={<AdminRoute />}>
+          <Route path="/admin/support" element={deferred(<AdminSupportPage />)} />
+          <Route path="/admin/support/:ticketId" element={deferred(<SupportTicketPage admin />)} />
           <Route path="/admin/ai-settings" element={deferred(<AdminAiSettingsPage />)} />
           <Route path="/admin/billing" element={deferred(<AdminSubscriptionCenterPage />)}>
             <Route index element={<Navigate to="offers" replace />} />

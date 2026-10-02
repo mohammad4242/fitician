@@ -103,6 +103,7 @@ export function MorePage() {
             <MoreGroup title={l("فضاهای تخصصی", "Workspaces")}>
               {isCoach && <MoreLink to="/coach/workouts" icon="profile" title={l("فضای مربی", "Coach workspace")} />}
               {isPhysician && <MoreLink to="/physician/nutrition" icon="profile" title={l("فضای پزشک", "Physician workspace")} />}
+              {user.is_admin && <MoreLink to="/admin/support" icon="shield" title={l("پشتیبانی", "Support workspace")} />}
               {user.is_admin && <MoreLink to="/admin/training-program-templates" icon="dumbbell" title={l("کتابخانه برنامه‌های تمرینی", "Training program library")} />}
               {user.is_admin && <MoreLink to="/admin/nutrition-programs" icon="nutrition" title={l("کاتالوگ برنامه‌های غذایی", "Nutrition program catalogue")} />}
               {user.is_admin && <MoreLink to="/admin/nutrition-monitoring" icon="settings" title={l("پایش تغذیه", "Nutrition monitoring")} />}
