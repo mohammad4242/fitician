@@ -93,8 +93,51 @@ else
     --compose-file "$compose_file" --env-file "$app_dir/.env"
 fi
 
+# Capture persistent component versions before selecting a full release. Component
+# releases do not alter the full-release marker or worker/agent image versions.
+read_previous_tag() {
+  value=$(awk -F= -v key="$1" '$1 == key {print $2}' "$env_file" | tail -n 1)
+  if [ -z "$value" ]; then value=$previous_image_tag; fi
+  if [ -n "$value" ]; then printf '%s' "$value" | grep -Eq '^[0-9a-f]{40}$'; fi
+  printf '%s' "$value"
+}
+previous_frontend_tag=$(read_previous_tag FRONTEND_IMAGE_TAG)
+previous_api_tag=$(read_previous_tag BACKEND_API_IMAGE_TAG)
+previous_worker_tag=$(read_previous_tag WORKER_IMAGE_TAG)
+previous_agent_tag=$(read_previous_tag AGENT_IMAGE_TAG)
+# Capture the running immutable versions too, including releases made by the old
+# manual frontend workflow (which did not persist a component tag).
+running_previous_tag() {
+  service=$1
+  fallback=$2
+  if [ "$initial_deploy" = true ]; then printf '%s' "$fallback"; return; fi
+  id=$(IMAGE_TAG="$previous_image_tag" docker compose -f "$compose_file" ps -q "$service")
+  test -n "$id"
+  actual=$(docker inspect --format '{{.Config.Image}}' "$id")
+  tag=${actual##*:}
+  printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$' || {
+    echo "Running $service does not use an immutable SHA" >&2; return 1;
+  }
+  printf '%s' "$tag"
+}
+previous_frontend_tag=$(running_previous_tag frontend "$previous_frontend_tag")
+previous_api_tag=$(running_previous_tag backend "$previous_api_tag")
+previous_worker_tag=$(running_previous_tag scheduler "$previous_worker_tag")
+previous_agent_tag=$(running_previous_tag agent-service "$previous_agent_tag")
+if [ "$initial_deploy" != true ]; then
+  test "$(running_previous_tag backend-2 "$previous_api_tag")" = "$previous_api_tag"
+  for worker in food-photo-worker body-analysis-worker notification-worker; do
+    test "$(running_previous_tag "$worker" "$previous_worker_tag")" = "$previous_worker_tag"
+  done
+fi
+frontend_tag=$image_tag
+api_tag=$image_tag
+worker_tag=$image_tag
+agent_tag=$image_tag
+
 compose() {
-  IMAGE_TAG="$image_tag" docker compose -f "$compose_file" "$@"
+  FRONTEND_IMAGE_TAG="$frontend_tag" BACKEND_API_IMAGE_TAG="$api_tag" \
+  WORKER_IMAGE_TAG="$worker_tag" AGENT_IMAGE_TAG="$agent_tag" IMAGE_TAG="$image_tag" docker compose -f "$compose_file" "$@"
 }
 
 rollback() {
@@ -110,6 +153,10 @@ rollback() {
   rollback_current_revision=$(compose exec -T db sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version"')
   image_tag="$previous_image_tag"
+  frontend_tag=$previous_frontend_tag
+  api_tag=$previous_api_tag
+  worker_tag=$previous_worker_tag
+  agent_tag=$previous_agent_tag
   if [ -n "$rollback_compose_file" ] && [ -f "$rollback_compose_file" ]; then
     cp "$rollback_compose_file" "$compose_file"
   fi
@@ -123,6 +170,20 @@ rollback() {
   fi
   compose up -d --wait --remove-orphans
   verify_runtime
+  # Preserve actual mixed versions, including legacy manual frontend releases.
+  restored_env=$(mktemp "$app_dir/.env.rollback.XXXXXXXX")
+  awk -v frontend="$frontend_tag" -v api="$api_tag" \
+      -v worker="$worker_tag" -v agent="$agent_tag" '
+    /^(FRONTEND_IMAGE_TAG|BACKEND_API_IMAGE_TAG|WORKER_IMAGE_TAG|AGENT_IMAGE_TAG)=/ {next}
+    {print}
+    END {
+      print "FRONTEND_IMAGE_TAG=" frontend
+      print "BACKEND_API_IMAGE_TAG=" api
+      print "WORKER_IMAGE_TAG=" worker
+      print "AGENT_IMAGE_TAG=" agent
+    }
+  ' "$env_file" > "$restored_env"
+  mv "$restored_env" "$env_file"
 }
 
 capture_failure_diagnostics() {
@@ -143,6 +204,8 @@ capture_failure_diagnostics() {
 }
 
 verify_runtime() {
+  FRONTEND_IMAGE_TAG="$frontend_tag" BACKEND_API_IMAGE_TAG="$api_tag" \
+  WORKER_IMAGE_TAG="$worker_tag" AGENT_IMAGE_TAG="$agent_tag" \
   COMPOSE_FILE="$compose_file" IMAGE_TAG="$image_tag" sh "$app_dir/ops/verify-production.sh"
 }
 
@@ -194,6 +257,7 @@ fi
 
 next_env=$(mktemp "$app_dir/.env.XXXXXXXX")
 awk -v tag="$image_tag" '
+  /^(FRONTEND_IMAGE_TAG|BACKEND_API_IMAGE_TAG|WORKER_IMAGE_TAG|AGENT_IMAGE_TAG)=/ {next}
   /^IMAGE_TAG=/ {print "IMAGE_TAG=" tag; found=1; next}
   {print}
   END {if (!found) print "IMAGE_TAG=" tag}

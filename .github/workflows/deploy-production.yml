@@ -38,10 +38,6 @@ permissions:
   contents: read
   actions: read
 
-concurrency:
-  group: fitician-production
-  queue: max
-
 jobs:
   automatic_images_gate:
     name: Confirm immutable images were published
@@ -54,24 +50,22 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       images_ready: ${{ steps.inspect-images.outputs.ready }}
+      release_path: ${{ steps.inspect-images.outputs.release_path }}
+      deploy_frontend: ${{ steps.inspect-images.outputs.deploy_frontend }}
+      deploy_backend: ${{ steps.inspect-images.outputs.deploy_backend }}
+      shared_validated: ${{ steps.inspect-images.outputs.shared_validated }}
+      backend_tests: ${{ steps.inspect-images.outputs.backend_tests }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Inspect image job in this exact CI run
         id: inspect-images
         env:
           GH_TOKEN: ${{ github.token }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
-        run: |
-          set -euo pipefail
-          image_conclusions="$(gh api \
-            --paginate \
-            --jq '.jobs[] | select(.name == "Build and publish immutable production images") | .conclusion' \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${CI_RUN_ID}/jobs?per_page=100&filter=latest")"
-          if printf '%s\n' "$image_conclusions" | grep -Fxq success; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'The CI run did not publish immutable production images; automatic deployment is skipped.'
-          fi
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$RELEASE_SHA"
 
   automatic_deploy_gate:
     name: Check automatic first scalability gate
@@ -81,7 +75,8 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
-      needs.automatic_images_gate.outputs.images_ready == 'true'
+      needs.automatic_images_gate.outputs.images_ready == 'true' &&
+      needs.automatic_images_gate.outputs.release_path == 'full'
     needs: automatic_images_gate
     runs-on: ubuntu-latest
     environment: production
@@ -135,6 +130,10 @@ jobs:
 
   deploy:
     name: Deploy immutable images to VPS
+    concurrency:
+      group: fitician-production
+      cancel-in-progress: false
+      queue: max
     needs: [automatic_images_gate, automatic_deploy_gate]
     if: >-
       always() && !cancelled() &&
@@ -145,6 +144,7 @@ jobs:
         github.event.workflow_run.head_repository.full_name == github.repository &&
         needs.automatic_images_gate.result == 'success' &&
         needs.automatic_images_gate.outputs.images_ready == 'true' &&
+        needs.automatic_images_gate.outputs.release_path == 'full' &&
         needs.automatic_deploy_gate.result == 'success' &&
         needs.automatic_deploy_gate.outputs.deploy == 'true'))
     runs-on: ubuntu-latest
@@ -160,6 +160,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.IMAGE_TAG }}
+
+      - name: Require successful Full CI release evidence for exact SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          run_id="$CI_RUN_ID"
+          if [ -z "$run_id" ]; then
+            run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=$IMAGE_TAG&branch=main&status=success&per_page=100" \
+              --jq '.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch") | .id' | head -n 1)
+          fi
+          test -n "$run_id"
+          python3 ops/ci-release-gate.py --run-id "$run_id" --sha "$IMAGE_TAG" --require-full
 
       - name: Verify first scalability acceptance evidence
         if: github.event_name == 'workflow_dispatch' && inputs.first_scalability_release_approved
@@ -250,3 +264,24 @@ jobs:
         run: |
           ssh "$VPS_USER@$VPS_HOST" \
             "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' ROLLBACK_COMPOSE_FILE='$VPS_APP_DIR/.compose.prod.rollback.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
+
+  deploy-frontend-component:
+    if: needs.automatic_images_gate.outputs.release_path == 'component' && needs.automatic_images_gate.outputs.deploy_frontend == 'true'
+    needs: automatic_images_gate
+    uses: ./.github/workflows/deploy-component.yml
+    with:
+      component: frontend
+      image_tag: ${{ github.event.workflow_run.head_sha }}
+      shared_validated: ${{ needs.automatic_images_gate.outputs.shared_validated == 'true' }}
+    secrets: inherit
+
+  deploy-backend-component:
+    if: needs.automatic_images_gate.outputs.release_path == 'component' && needs.automatic_images_gate.outputs.deploy_backend == 'true'
+    needs: automatic_images_gate
+    uses: ./.github/workflows/deploy-component.yml
+    with:
+      component: backend
+      image_tag: ${{ github.event.workflow_run.head_sha }}
+      validated_tests: ${{ needs.automatic_images_gate.outputs.backend_tests }}
+      shared_validated: ${{ needs.automatic_images_gate.outputs.shared_validated == 'true' }}
+    secrets: inherit

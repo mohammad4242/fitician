@@ -32,6 +32,16 @@ require_healthy() {
   fi
 }
 
+configured_tag() {
+  value=$(printenv "$1" || true)
+  if [ -z "$value" ] && [ -f "$app_dir/.env" ]; then
+    value=$(awk -F= -v key="$1" '$1 == key {print $2}' "$app_dir/.env" | tail -n 1)
+  fi
+  if [ -z "$value" ]; then value=$image_tag; fi
+  printf '%s' "$value" | grep -Eq '^[0-9a-f]{40}$' || return 1
+  printf '%s' "$value"
+}
+
 require_image_tag() {
   service=$1
   id=$(container_id "$service")
@@ -40,8 +50,14 @@ require_image_tag() {
     return 1
   fi
   image=$(docker inspect --format '{{.Config.Image}}' "$id")
+  case "$service" in
+    frontend) expected_tag=$(configured_tag FRONTEND_IMAGE_TAG) ;;
+    backend|backend-2) expected_tag=$(configured_tag BACKEND_API_IMAGE_TAG) ;;
+    agent-service) expected_tag=$(configured_tag AGENT_IMAGE_TAG) ;;
+    *) expected_tag=$(configured_tag WORKER_IMAGE_TAG) ;;
+  esac
   case "$image" in
-    *:"$image_tag") ;;
+    *:"$expected_tag") ;;
     *)
       echo "Immutable image mismatch: $service uses $image" >&2
       return 1

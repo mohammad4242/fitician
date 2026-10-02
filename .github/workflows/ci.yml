@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "23 0 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -13,19 +15,18 @@ on:
         options:
           - full
           - release
-          - mobile-resume
         default: full
 
 permissions:
   contents: read
 
 concurrency:
-  group: fitician-ci-${{ github.workflow }}-${{ github.ref }}
+  group: fitician-ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'development' }}
   cancel-in-progress: true
 
 jobs:
   changes:
-    name: Detect changed areas
+    name: Select validation and release path
     runs-on: ubuntu-latest
     outputs:
       run_backend: ${{ steps.classify.outputs.run_backend }}
@@ -39,254 +40,48 @@ jobs:
       run_scalability: ${{ steps.classify.outputs.run_scalability }}
       run_multi_replica: ${{ steps.classify.outputs.run_multi_replica }}
       deployable: ${{ steps.classify.outputs.deployable }}
+      full_ci_required: ${{ steps.classify.outputs.full_ci_required }}
+      deploy_frontend: ${{ steps.classify.outputs.deploy_frontend }}
+      deploy_backend: ${{ steps.classify.outputs.deploy_backend }}
+      deploy_agent: ${{ steps.classify.outputs.deploy_agent }}
+      backend_tests: ${{ steps.classify.outputs.backend_tests }}
+      backend_domains: ${{ steps.classify.outputs.backend_domains }}
+      path: ${{ steps.classify.outputs.path }}
+      base_sha: ${{ steps.classify.outputs.base_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Test deterministic classifier
+        run: python3 -m unittest ops/tests/test_ci_classifier.py ops/tests/test_backend_quality.py ops/tests/test_ci_release_gate.py ops/tests/test_component_workflows.py -q
       - name: Classify changed paths
         id: classify
         env:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE_SHA: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HEAD_SHA: ${{ github.sha }}
           DISPATCH_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import fnmatch
-          import os
-          import subprocess
-
-          scopes = (
-              "run_backend",
-              "run_frontend",
-              "run_frontend_browser",
-              "run_shared",
-              "run_mobile",
-              "run_android",
-              "run_dependencies",
-              "run_production_contract",
-              "run_scalability",
-              "run_multi_replica",
-          )
-          outputs = {scope: False for scope in scopes}
-          outputs["deployable"] = False
-
-          def changed_paths() -> list[str]:
-              event = os.environ["EVENT_NAME"]
-              if event == "push":
-                  base = os.environ.get("BEFORE_SHA", "")
-                  head = os.environ["HEAD_SHA"]
-                  if not head:
-                      raise SystemExit("Push event is missing github.sha")
-                  if not base or set(base) == {"0"}:
-                      raw = subprocess.check_output(
-                          ["git", "ls-tree", "-r", "--name-only", "-z", head]
-                      )
-                  else:
-                      raw = subprocess.check_output(
-                          ["git", "diff", "--no-renames", "--name-only", "-z", base, head]
-                      )
-              elif event == "pull_request":
-                  base = os.environ.get("BASE_SHA", "")
-                  head = os.environ.get("PR_HEAD_SHA", "")
-                  if not base or not head:
-                      raise SystemExit("Pull request event is missing its base or head SHA")
-                  raw = subprocess.check_output(
-                      ["git", "diff", "--no-renames", "--name-only", "-z", base, head]
-                  )
-              else:
-                  raise SystemExit(f"Unsupported event for changed-path detection: {event}")
-              return [os.fsdecode(path) for path in raw.split(b"\0") if path]
-
-          def test_or_docs_only(path: str) -> bool:
-              parts = path.lower().split("/")
-              basename = parts[-1]
-              if any(
-                  part in {"test", "tests", "test-results", "__tests__", "e2e", "coverage"}
-                  for part in parts
-              ):
-                  return True
-              if ".test." in basename or ".spec." in basename:
-                  return True
-              if basename.startswith(("test_", "test.")) or basename.endswith("_test.py"):
-                  return True
-              if basename in {"readme.md", "changelog.md"}:
-                  return True
-              return path.startswith(
-                  ("frontend/docs/", "packages/fitician-core/docs/", "agent-service/docs/")
-              )
-
-          def is_npm_dependency_input(path: str) -> bool:
-              if path in {
-                  "package.json",
-                  "package-lock.json",
-                  "npm-shrinkwrap.json",
-                  ".npmrc",
-                  "mobile/package.json",
-                  "mobile/package-lock.json",
-                  "mobile/npm-shrinkwrap.json",
-                  "mobile/.npmrc",
-                  "packages/fitician-core/package.json",
-              }:
-                  return True
-              return path.startswith("mobile/modules/") and path.endswith(
-                  ("/package.json", "/package-lock.json", "/npm-shrinkwrap.json")
-              )
-
-          def is_android_sensitive(path: str) -> bool:
-              if path in {
-                  "package.json",
-                  "package-lock.json",
-                  "npm-shrinkwrap.json",
-                  ".npmrc",
-                  "mobile/.npmrc",
-                  "mobile/app.json",
-                  "mobile/app.config.js",
-                  "mobile/app.config.ts",
-                  "mobile/eas.json",
-                  "mobile/package.json",
-                  "mobile/metro.config.cjs",
-                  "mobile/config/productionApiConfig.ts",
-                  "packages/fitician-core/package.json",
-              }:
-                  return True
-              return (
-                  path.startswith((
-                      "mobile/android/",
-                      "mobile/plugins/",
-                      "mobile/modules/",
-                      "mobile/assets/branding/",
-                      "mobile/assets/fonts/",
-                  ))
-                  or fnmatch.fnmatchcase(path, "mobile/app.config.*")
-                  or fnmatch.fnmatchcase(path, "mobile/metro.config.*")
-                  or fnmatch.fnmatchcase(path, "mobile/babel.config.*")
-                  or path.startswith("mobile/") and path.endswith(("/package-lock.json", "/npm-shrinkwrap.json"))
-              )
-
-          def is_topology_input(path: str) -> bool:
-              basename = path.rsplit("/", 1)[-1]
-              return (
-                  path.startswith(("agent-service/", "ops/", "docker/"))
-                  or path == "Caddyfile"
-                  or path.startswith("Caddyfile.")
-                  or basename.startswith("compose") and basename.endswith((".yaml", ".yml"))
-                  or path in {
-                      ".dockerignore",
-                      "backend/Dockerfile",
-                      "backend/.dockerignore",
-                      "agent-service/Dockerfile",
-                      "agent-service/.dockerignore",
-                  }
-              )
-
-          def is_production_contract_input(path: str) -> bool:
-              return (
-                  is_topology_input(path)
-                  or path in {"frontend/Dockerfile", "frontend/nginx.conf"}
-              )
-
-          def is_deployable_input(path: str) -> bool:
-              if path in {
-                  "package.json",
-                  "package-lock.json",
-                  "frontend/Dockerfile",
-                  "frontend/nginx.conf",
-                  "backend/Dockerfile",
-                  "backend/.dockerignore",
-                  "backend/pyproject.toml",
-                  "backend/alembic.ini",
-                  "agent-service/Dockerfile",
-                  "agent-service/.dockerignore",
-                  "agent-service/pyproject.toml",
-                  "agent-service/uv.lock",
-                  "agent-service/docker/entrypoint.sh",
-                  "compose.prod.yaml",
-                  "Caddyfile",
-                  ".dockerignore",
-                  "ops/backup-production.sh",
-                  "ops/check-db-connection-budget.py",
-                  "ops/check-runtime-capacity.py",
-                  "ops/deploy-production.sh",
-                  "ops/verify-production.sh",
-                  "ops/redis/redis.conf",
-              }:
-                  return True
-              if path.startswith(("backend/app/", "backend/alembic/", "agent-service/app/")):
-                  return not test_or_docs_only(path)
-              if path.startswith("frontend/"):
-                  return (
-                      path not in {"frontend/package-lock.json", "frontend/Dockerfile.dev"}
-                      and not test_or_docs_only(path)
-                  )
-              if path.startswith("packages/fitician-core/") and not test_or_docs_only(path):
-                  return True
-              if path.startswith("agent-service/docker/") and not test_or_docs_only(path):
-                  return True
-              if path in {"packages/fitician-core/src/generated/api.ts"}:
-                  return True
-              return False
-
-          mode = os.environ.get("DISPATCH_MODE", "")
-          if os.environ["EVENT_NAME"] == "workflow_dispatch":
-              if mode in {"full", "release"}:
-                  outputs.update({scope: True for scope in scopes})
-              elif mode != "mobile-resume":
-                  raise SystemExit(f"Unsupported workflow_dispatch mode: {mode}")
-          else:
-              paths = changed_paths()
-              backend = any(path.startswith("backend/") for path in paths)
-              frontend = any(path.startswith("frontend/") for path in paths)
-              core = any(path.startswith("packages/fitician-core/") for path in paths)
-              workspace = any(
-                  path in {"package.json", "package-lock.json", ".npmrc"} for path in paths
-              )
-              contracts = any(
-                  path.startswith("contracts/")
-                  or path in {
-                      "scripts/generate-openapi.mjs",
-                      "scripts/openapi_generation.test.mjs",
-                      "frontend/src/api/generated/api.ts",
-                  }
-                  for path in paths
-              )
-              workflows = any(path.startswith(".github/workflows/") for path in paths)
-              topology = any(is_topology_input(path) for path in paths)
-              production_contract = any(is_production_contract_input(path) for path in paths)
-              android = workspace or any(is_android_sensitive(path) for path in paths)
-              mobile = core or workspace or any(path.startswith("mobile/") for path in paths)
-              shared = backend or core or workspace or contracts
-              frontend_checks = frontend or core or workspace
-
-              outputs.update(
-                  {
-                      "run_backend": backend,
-                      "run_frontend": frontend_checks,
-                      "run_frontend_browser": frontend_checks,
-                      "run_shared": shared,
-                      "run_mobile": mobile,
-                      "run_android": android,
-                      "run_dependencies": any(is_npm_dependency_input(path) for path in paths),
-                      "run_production_contract": production_contract,
-                      "run_scalability": backend or topology,
-                      "run_multi_replica": backend or topology,
-                      "deployable": any(is_deployable_input(path) for path in paths),
-                  }
-              )
-              if workflows:
-                  outputs.update({scope: True for scope in scopes})
-
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output_file:
-              for name, value in outputs.items():
-                  print(f"{name}={'true' if value else 'false'}", file=output_file)
-          PY
+          if [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
+            python3 ops/ci-classify.py --full --output .ci-evidence/release-plan.json
+          elif [ "$EVENT_NAME" = pull_request ]; then
+            base=$(git merge-base "$BASE_SHA" HEAD)
+            python3 ops/ci-classify.py --base "$base" --output .ci-evidence/release-plan.json
+          else
+            python3 ops/ci-classify.py --base "$BEFORE_SHA" --output .ci-evidence/release-plan.json
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-release-plan
+          include-hidden-files: true
+          path: .ci-evidence/release-plan.json
+          retention-days: 30
+          if-no-files-found: error
 
   backend:
     name: Backend tests
-    if: ${{ needs.changes.outputs.run_backend == 'true' }}
+    if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
     needs: changes
     runs-on: ubuntu-latest
     services:
@@ -382,21 +177,28 @@ jobs:
           NUTRITION_AUDIT_DATABASE_URL: postgresql+psycopg://fitician:fitician@localhost:5432/fitician_nutrition_audit
 
   frontend:
-    name: Frontend tests, lint, and build
-    if: ${{ needs.changes.outputs.run_frontend == 'true' }}
-    needs: changes
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20.19.4"
-          cache: npm
-      - run: npm ci
-      - run: npm run build:core
-      - run: npm run test --workspace frontend
-      - run: npm run lint --workspace frontend
-      - run: npm run build --workspace frontend
+    name: Frontend component
+    if: always() && !cancelled() && needs.changes.outputs.run_frontend == 'true' && needs.secrets.result == 'success' && (needs.changes.outputs.run_shared != 'true' || needs.shared.result == 'success')
+    needs: [changes, secrets, shared]
+    # A skipped shared job is expected for an isolated frontend change.
+    uses: ./.github/workflows/frontend-only.yml
+    with:
+      called_by_router: true
+      core_artifact: ${{ needs.changes.outputs.run_shared == 'true' && format('fitician-core-{0}', github.sha) || '' }}
+      publish_image: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')) && needs.changes.outputs.full_ci_required != 'true' && needs.changes.outputs.deploy_frontend == 'true' }}
+    secrets: inherit
+
+  backend-component:
+    name: Backend component
+    if: needs.changes.outputs.run_backend == 'true' && needs.changes.outputs.full_ci_required != 'true'
+    needs: [changes, secrets]
+    uses: ./.github/workflows/backend-only.yml
+    with:
+      domains: ${{ needs.changes.outputs.backend_domains }}
+      test_scope: ${{ needs.changes.outputs.backend_tests }}
+      base_sha: ${{ needs.changes.outputs.base_sha }}
+      publish_image: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy_backend == 'true' }}
+    secrets: inherit
 
   frontend-browser:
     name: Frontend browser regression (Chromium and WebKit)
@@ -436,7 +238,10 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: npm ci
       - run: uv sync --directory backend --frozen --extra dev
-      - run: npm run build:core
+      - uses: actions/download-artifact@v4
+        with:
+          name: fitician-core-${{ github.sha }}
+          path: packages/fitician-core/dist
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e --workspace frontend
 
@@ -454,15 +259,25 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: latest
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
       - run: npm ci
+      - run: npm run build:core
       - run: npm run test:core
       - run: npm run check:openapi
       - run: npm run test:contracts
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-core-${{ github.sha }}
+          path: packages/fitician-core/dist
+          if-no-files-found: error
+          retention-days: 3
+
   mobile:
     name: Mobile tests and validation
-    if: ${{ needs.changes.outputs.run_mobile == 'true' }}
-    needs: changes
+    if: always() && !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.run_mobile == 'true' && (needs.changes.outputs.run_shared != 'true' || needs.shared.result == 'success')
+    needs: [changes, shared]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -471,56 +286,13 @@ jobs:
           node-version: "20.19.4"
           cache: npm
       - run: npm ci
-      - run: npm run build:core
-      - run: npm run test --workspace @fitician/mobile
-      - run: npm run test:native --workspace @fitician/mobile
-      - run: npm run test:mobile:foundation
-      - run: npm run typecheck:mobile
-      - run: npm run validate:mobile
-
-  mobile-resume-guard:
-    name: Validate mobile-only resume diff
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'mobile-resume' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        if: needs.changes.outputs.run_shared == 'true'
         with:
-          fetch-depth: 0
-      - name: Require the previously validated parent and approved file allowlist
-        env:
-          EXPECTED_PARENT_SHA: 42f3d0735bac940c29bee446ca5dde798b4f3b38
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git rev-parse "${GITHUB_SHA}^")" = "$EXPECTED_PARENT_SHA"
-          git cat-file -e "${EXPECTED_PARENT_SHA}^{commit}"
-          expected_files="$(printf '%s\n' \
-            '.github/workflows/ci.yml' \
-            'mobile/scripts/appConfigPlatform.test.mjs' | LC_ALL=C sort)"
-          changed_files="$(git diff --name-only "$EXPECTED_PARENT_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
-          if [ "$changed_files" != "$expected_files" ]; then
-            echo "mobile-resume permits only these changed files:" >&2
-            printf '%s\n' "$expected_files" >&2
-            echo "actual changed files:" >&2
-            printf '%s\n' "$changed_files" >&2
-            exit 1
-          fi
-          git diff --check "$EXPECTED_PARENT_SHA" "$GITHUB_SHA"
-
-  mobile-resume:
-    name: Mobile resume tests and validation
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'mobile-resume' && github.ref == 'refs/heads/main' }}
-    needs: mobile-resume-guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20.19.4"
-          cache: npm
-      - run: npm ci
+          name: fitician-core-${{ github.sha }}
+          path: packages/fitician-core/dist
       - run: npm run build:core
+        if: needs.changes.outputs.run_shared != 'true'
       - run: npm run test --workspace @fitician/mobile
       - run: npm run test:native --workspace @fitician/mobile
       - run: npm run test:mobile:foundation
@@ -571,7 +343,7 @@ jobs:
 
   secrets:
     name: Secret scan
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || inputs.mode == 'release' }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -774,42 +546,15 @@ jobs:
   container-images:
     name: Build and publish immutable production images
     if: >-
-      always() && !cancelled() &&
-      github.ref == 'refs/heads/main' &&
-      (
-        (github.event_name == 'push' &&
-         needs.changes.result == 'success' &&
-         needs.changes.outputs.deployable == 'true' &&
-         needs.secrets.result == 'success' &&
-         (needs.changes.outputs.run_backend != 'true' || needs.backend.result == 'success') &&
-         (needs.changes.outputs.run_frontend != 'true' || needs.frontend.result == 'success') &&
-         (needs.changes.outputs.run_frontend_browser != 'true' || needs.frontend-browser.result == 'success') &&
-         (needs.changes.outputs.run_shared != 'true' || needs.shared.result == 'success') &&
-         (needs.changes.outputs.run_mobile != 'true' || needs.mobile.result == 'success') &&
-         (needs.changes.outputs.run_android != 'true' || needs.android.result == 'success') &&
-         (needs.changes.outputs.run_dependencies != 'true' || needs.dependencies.result == 'success') &&
-         (needs.changes.outputs.run_production_contract != 'true' || needs.production-contract.result == 'success') &&
-         (needs.changes.outputs.run_scalability != 'true' || needs.scalability-contract.result == 'success') &&
-         (needs.changes.outputs.run_multi_replica != 'true' || needs.multi-replica-smoke.result == 'success')) ||
-        (github.event_name == 'workflow_dispatch' &&
-         inputs.mode == 'mobile-resume' &&
-         needs.mobile-resume-guard.result == 'success' &&
-         needs.mobile-resume.result == 'success') ||
-        (github.event_name == 'workflow_dispatch' &&
-         inputs.mode == 'release' &&
-         needs.changes.result == 'success' &&
-         needs.secrets.result == 'success' &&
-         needs.backend.result == 'success' &&
-         needs.frontend.result == 'success' &&
-         needs.frontend-browser.result == 'success' &&
-         needs.shared.result == 'success' &&
-         needs.mobile.result == 'success' &&
-         needs.android.result == 'success' &&
-         needs.dependencies.result == 'success' &&
-         needs.production-contract.result == 'success' &&
-         needs.scalability-contract.result == 'success' &&
-         needs.multi-replica-smoke.result == 'success')
-      )
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.full_ci_required == 'true' &&
+      needs.secrets.result == 'success' &&
+      needs.backend.result == 'success' && needs.frontend.result == 'success' &&
+      needs.frontend-browser.result == 'success' && needs.shared.result == 'success' &&
+      needs.mobile.result == 'success' && needs.android.result == 'success' &&
+      needs.dependencies.result == 'success' && needs.production-contract.result == 'success' &&
+      needs.scalability-contract.result == 'success' && needs.multi-replica-smoke.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs:
       - changes
       - backend
@@ -823,8 +568,6 @@ jobs:
       - production-contract
       - scalability-contract
       - multi-replica-smoke
-      - mobile-resume-guard
-      - mobile-resume
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -861,6 +604,7 @@ jobs:
               ;;
           esac
       - uses: docker/login-action@v3
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -869,7 +613,8 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          push: true
+          push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') }}
+          load: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full') }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:main
@@ -904,6 +649,7 @@ jobs:
               grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" /usr/share/nginx/html/assets >/dev/null
             '
       - name: Push verified frontend image
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           IMAGE_TAG: ${{ github.sha }}
@@ -915,7 +661,8 @@ jobs:
         with:
           context: ./agent-service
           file: ./agent-service/Dockerfile
-          push: true
+          push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') }}
+          load: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full') }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:main

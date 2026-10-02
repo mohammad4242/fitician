@@ -35,9 +35,21 @@ class DeployProductionTests(unittest.TestCase):
             "docker",
             """#!/bin/sh
 printf '%s\\n' "$*" >> "$FAKE_STATE_DIR/calls"
+printf '%s,%s,%s,%s\\n' "${FRONTEND_IMAGE_TAG:-}" "${BACKEND_API_IMAGE_TAG:-}" \
+  "${WORKER_IMAGE_TAG:-}" "${AGENT_IMAGE_TAG:-}" >> "$FAKE_STATE_DIR/tags"
 case "$*" in
-  *' ps --status running --services'*) printf '%s\n' backend backend-2 redis food-photo-worker body-analysis-worker notification-worker scheduler frontend caddy ;;
-  *' ps -q '*) printf '%s\n' fake-container ;;
+  *' ps --status running --services'*)
+    printf '%s\n' backend backend-2 redis food-photo-worker body-analysis-worker \
+      notification-worker scheduler frontend caddy ;;
+  *' ps -q '*) for argument do service=$argument; done; printf 'container-%s\n' "$service" ;;
+  *Config.Image*)
+    for argument do id=$argument; done
+    case "$id" in
+      container-frontend) tag=${FAKE_FRONTEND_TAG:-$FAKE_OLD_TAG} ;;
+      container-backend*) tag=${FAKE_API_TAG:-$FAKE_OLD_TAG} ;;
+      *) tag=$FAKE_OLD_TAG ;;
+    esac
+    printf 'example/fitician:%s\n' "$tag" ;;
   *' up '*)
     if [ "${FAKE_UP_FAIL_NEW:-}" = true ] && [ "$IMAGE_TAG" = "${FAKE_NEW_TAG}" ]; then
       exit 3
@@ -68,7 +80,8 @@ esac
                 "#!/usr/bin/env python3\n"
                 "import os, sys\n"
                 "with open(os.environ['FAKE_STATE_DIR'] + '/calls', 'a') as stream:\n"
-                "    stream.write(sys.argv[0].split('/')[-1] + ' ' + ' '.join(sys.argv[1:]) + '\\n')\n"
+                "    stream.write(sys.argv[0].split('/')[-1] + ' ' + "
+                "' '.join(sys.argv[1:]) + '\\n')\n"
                 "raise SystemExit(0)\n"
             )
             script.chmod(0o755)
@@ -104,11 +117,27 @@ esac
 
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = (self.workspace / "calls").read_text().splitlines()
-        self.assertLess(calls.index("backup"), next(i for i, call in enumerate(calls) if " up " in call))
+        self.assertLess(
+            calls.index("backup"),
+            next(i for i, call in enumerate(calls) if " up " in call),
+        )
         self.assertEqual((self.workspace / ".deployed-image-tag").read_text(), NEW_TAG + "\n")
         self.assertIn("OTHER_VALUE=keep", (self.workspace / ".env").read_text())
         self.assertIn("IMAGE_TAG=" + NEW_TAG, (self.workspace / ".env").read_text())
         self.assertIn("verify-production", calls)
+
+    def test_mixed_component_tags_are_restored_on_full_failure(self) -> None:
+        frontend = "c" * 40
+        api = "d" * 40
+        with (self.workspace / ".env").open("a") as stream:
+            stream.write(f"FRONTEND_IMAGE_TAG={frontend}\nBACKEND_API_IMAGE_TAG={api}\n")
+        self.env.update(FAKE_UP_FAIL_NEW="true", FAKE_FRONTEND_TAG=frontend, FAKE_API_TAG=api)
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        tags = (self.workspace / "tags").read_text()
+        self.assertIn(f"{NEW_TAG},{NEW_TAG},{NEW_TAG},{NEW_TAG}", tags)
+        self.assertIn(f"{frontend},{api},{OLD_TAG},{OLD_TAG}", tags)
+        self.assertIn(f"FRONTEND_IMAGE_TAG={frontend}", (self.workspace / ".env").read_text())
 
     def test_pending_schema_change_blocks_automatic_rollout_after_backup(self) -> None:
         self.env["FAKE_SCHEMA_HEAD"] = "20260918_156"
@@ -118,7 +147,9 @@ esac
         self.assertEqual((self.workspace / ".deployed-image-tag").read_text(), OLD_TAG + "\n")
         self.assertNotIn(" up ", (self.workspace / "calls").read_text())
 
-    def test_failed_rollout_restores_previous_image_without_changing_release_marker(self) -> None:
+    def test_failed_rollout_restores_previous_image_without_changing_release_marker(
+        self,
+    ) -> None:
         self.env["FAKE_UP_FAIL_NEW"] = "true"
 
         result = self._run()
@@ -157,7 +188,9 @@ esac
         calls = (self.workspace / "calls").read_text().splitlines()
         self.assertEqual(sum(" up " in call for call in calls), 1)
 
-    def test_initial_deploy_waits_for_database_health_before_checking_users(self) -> None:
+    def test_initial_deploy_waits_for_database_health_before_checking_users(
+        self,
+    ) -> None:
         (self.workspace / ".deployed-image-tag").unlink()
         self.env["INITIAL_DEPLOY"] = "true"
 
@@ -172,7 +205,9 @@ esac
         self.assertIn("up -d --wait db", calls[database_start])
         self.assertLess(database_start, restored_users_check)
 
-    def test_first_scalability_release_is_blocked_without_acceptance_evidence(self) -> None:
+    def test_first_scalability_release_is_blocked_without_acceptance_evidence(
+        self,
+    ) -> None:
         (self.workspace / ".scalability-foundation-accepted").unlink()
 
         result = self._run()
@@ -190,7 +225,9 @@ esac
         self.assertIn("invalid scalability acceptance marker", result.stderr)
         self.assertNotIn("backup", (self.workspace / "calls").read_text())
 
-    def test_approved_first_scalability_release_persists_acceptance_marker(self) -> None:
+    def test_approved_first_scalability_release_persists_acceptance_marker(
+        self,
+    ) -> None:
         marker = self.workspace / ".scalability-foundation-accepted"
         marker.unlink()
         self.env["FIRST_SCALABILITY_RELEASE_APPROVED"] = "true"
@@ -217,7 +254,9 @@ esac
             (self.workspace / "calls").read_text(),
         )
 
-    def test_missing_redis_password_is_generated_once_without_changing_other_values(self) -> None:
+    def test_missing_redis_password_is_generated_once_without_changing_other_values(
+        self,
+    ) -> None:
         first = self._run()
 
         self.assertEqual(first.returncode, 0, first.stderr)

@@ -1,6 +1,17 @@
 name: Fitician Frontend Only CI
 
 on:
+  workflow_call:
+    inputs:
+      core_artifact:
+        type: string
+        default: ''
+      called_by_router:
+        type: boolean
+        default: false
+      publish_image:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       deploy_production:
@@ -13,9 +24,32 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
+  manual-scope:
+    if: github.event_name == 'workflow_dispatch' && !inputs.called_by_router
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require safe frontend source changes
+        run: |
+          python3 ops/ci-classify.py --base "${GITHUB_SHA}^" --output .ci-evidence/manual-plan.json
+          python3 - <<'PY'
+          import json
+          plan = json.load(open('.ci-evidence/manual-plan.json'))
+          if plan['path'] != 'frontend':
+              raise SystemExit('Use Full CI for this SHA; manual frontend releases require safe frontend-only changes')
+          PY
+      - name: Scan manual release for secrets
+        run: npm run security:secrets
   frontend-verification:
     name: Frontend verification
+    needs: manual-scope
+    if: always() && !cancelled() && (needs.manual-scope.result == 'success' || needs.manual-scope.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,13 +60,20 @@ jobs:
           node-version: 20.19.4
           cache: npm
       - run: npm ci
+      - uses: actions/download-artifact@v4
+        if: inputs.core_artifact != ''
+        with:
+          name: ${{ inputs.core_artifact }}
+          path: packages/fitician-core/dist
       - run: npm run build:core
+        if: inputs.core_artifact == ''
       - run: npm run test --workspace frontend
       - run: npm run lint --workspace frontend
       - run: npm run build --workspace frontend
 
   frontend-image:
     name: Build, verify, and push frontend image
+    if: inputs.publish_image || (github.event_name == 'workflow_dispatch' && !inputs.called_by_router)
     needs: frontend-verification
     runs-on: ubuntu-latest
     permissions:
@@ -112,128 +153,11 @@ jobs:
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
 
   deploy-frontend-production:
-    name: Deploy verified frontend only
-    if: inputs.deploy_production
+    if: github.event_name == 'workflow_dispatch' && !inputs.called_by_router && inputs.deploy_production && github.ref == 'refs/heads/main'
     needs: frontend-image
-    runs-on: ubuntu-latest
-    environment: production
-    concurrency:
-      group: fitician-production
-      cancel-in-progress: false
-    permissions:
-      contents: read
-    env:
-      IMAGE_TAG: ${{ github.sha }}
-      PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag || '' }}
-    steps:
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-      - name: Pin VPS host key
-        env:
-          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-        run: |
-          test -n "$VPS_KNOWN_HOSTS"
-          mkdir -p "$HOME/.ssh"
-          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-      - name: Validate deployment inputs
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
-        run: |
-          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
-          printf '%s' "$PREVIOUS_IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
-          test "$IMAGE_TAG" != "$PREVIOUS_IMAGE_TAG"
-          test -n "$VPS_HOST"
-          test -n "$VPS_USER"
-          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
-      - name: Authenticate VPS Docker client
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ vars.VPS_USER }}
-        run: |
-          test -n "$DOCKERHUB_USERNAME"
-          test -n "$DOCKERHUB_TOKEN"
-          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
-            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
-      - name: Deploy only frontend and preserve other services
-        id: deploy-frontend
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
-        run: |
-          ssh "$VPS_USER@$VPS_HOST" \
-            "VPS_APP_DIR='$VPS_APP_DIR' IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' bash -s" <<'REMOTE'
-          set -euo pipefail
-
-          compose() {
-            local tag="$1"
-            shift
-            (cd "$VPS_APP_DIR" && IMAGE_TAG="$tag" docker compose -f compose.prod.yaml "$@")
-          }
-          non_frontend_service_ids() {
-            local tag="$1"
-            local id service
-            while IFS= read -r id; do
-              [ -n "$id" ] || continue
-              service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
-              [ "$service" = frontend ] || printf '%s:%s\n' "$service" "$id"
-            done < <(compose "$tag" ps -q) | sort
-          }
-          rollback_frontend() {
-            compose "$PREVIOUS_IMAGE_TAG" pull frontend
-            compose "$PREVIOUS_IMAGE_TAG" up -d --no-deps --wait frontend
-          }
-
-          before_ids=$(non_frontend_service_ids "$PREVIOUS_IMAGE_TAG")
-          compose "$IMAGE_TAG" pull frontend
-          if ! compose "$IMAGE_TAG" up -d --no-deps --wait frontend; then
-            echo "Frontend health check failed; restoring the previous image" >&2
-            rollback_frontend || true
-            exit 1
-          fi
-
-          after_ids=$(non_frontend_service_ids "$IMAGE_TAG")
-          if [ "$before_ids" != "$after_ids" ]; then
-            echo "A non-frontend service changed during the frontend deployment" >&2
-            rollback_frontend || true
-            exit 1
-          fi
-
-          frontend_id=$(compose "$IMAGE_TAG" ps -q frontend)
-          test -n "$frontend_id"
-          test "$(docker inspect --format '{{.State.Health.Status}}' "$frontend_id")" = healthy
-          actual_image=$(docker inspect --format '{{.Config.Image}}' "$frontend_id")
-          expected_image=$(compose "$IMAGE_TAG" config --images | grep '/fitician-frontend:')
-          test "$actual_image" = "$expected_image"
-          echo "Frontend image is healthy; all other service container IDs are unchanged."
-          REMOTE
-          echo "deployed=true" >> "$GITHUB_OUTPUT"
-      - name: Verify production HTML ownership tag
-        run: |
-          for attempt in 1 2 3 4 5 6; do
-            if html=$(curl --fail --silent --show-error --location \
-              -H 'Cache-Control: no-cache' --max-time 20 https://fitician.fit/); then
-              count=$(printf '%s' "$html" | grep -F -o '<meta name="enamad" content="74257848" />' | wc -l | tr -d ' ')
-              if [ "$count" = 1 ]; then
-                echo "Production HTML contains the ownership tag exactly once."
-                exit 0
-              fi
-            fi
-            sleep 5
-          done
-          echo "Production HTML does not contain the ownership tag exactly once." >&2
-          exit 1
-      - name: Roll back frontend if public verification fails
-        if: failure() && steps.deploy-frontend.outputs.deployed == 'true'
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ vars.VPS_USER }}
-          VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
-        run: |
-          ssh "$VPS_USER@$VPS_HOST" \
-            "cd '$VPS_APP_DIR' && IMAGE_TAG='$PREVIOUS_IMAGE_TAG' docker compose -f compose.prod.yaml pull frontend && IMAGE_TAG='$PREVIOUS_IMAGE_TAG' docker compose -f compose.prod.yaml up -d --no-deps --wait frontend"
+    uses: ./.github/workflows/deploy-component.yml
+    with:
+      component: frontend
+      image_tag: ${{ github.sha }}
+      previous_image_tag: ${{ inputs.previous_image_tag || '' }}
+    secrets: inherit

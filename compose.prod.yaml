@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   agent-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${AGENT_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     environment:
       AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
       HOME: /home/agent
@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
   migrations:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -86,7 +86,7 @@ services:
     restart: "no"
 
   backend:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${BACKEND_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -142,7 +142,7 @@ services:
       service: backend
 
   food-photo-worker:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -181,7 +181,7 @@ services:
     restart: unless-stopped
 
   body-analysis-worker:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -221,7 +221,7 @@ services:
     restart: unless-stopped
 
   scheduler:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -260,7 +260,7 @@ services:
     restart: unless-stopped
 
   notification-worker:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ./.env
     environment:
@@ -292,7 +292,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-frontend:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-frontend:${FRONTEND_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     depends_on:
       backend:
         condition: service_healthy

@@ -6,7 +6,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/verify-production.sh"
 TAG = "b" * 40
@@ -33,7 +32,12 @@ class VerifyProductionTests(unittest.TestCase):
 case "$*" in
   *' ps -q '*) for argument do service=$argument; done; printf 'container-%s\n' "$service" ;;
   *State.Health.Status*) printf '%s\n' "${FAKE_HEALTH:-healthy}" ;;
-  *Config.Image*) printf 'registry/fitician:%s\n' "$IMAGE_TAG" ;;
+  *Config.Image*)
+    for argument do id=$argument; done
+    tag=$IMAGE_TAG
+    if [ "$id" = container-frontend ]; then tag=${FAKE_FRONTEND_TAG:-$IMAGE_TAG}; fi
+    printf 'registry/fitician:%s\n' "$tag" ;;
+
   *' exec -T db '*'SELECT version_num'*) printf '20260918_158\n' ;;
   *' run --rm --no-deps migrations alembic heads'*) printf '20260918_158 (head)\n' ;;
   *' exec -T caddy '*) printf 'example.com' ;;
@@ -62,6 +66,13 @@ exit 0
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Production topology verified", result.stdout)
+
+    def test_persisted_component_versions_are_verified_without_exporting_them(self) -> None:
+        frontend = "c" * 40
+        (self.workspace / ".env").write_text(f"FRONTEND_IMAGE_TAG={frontend}\n")
+        self.env["FAKE_FRONTEND_TAG"] = frontend
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_unhealthy_worker_fails_deployment_verification(self) -> None:
         self.env["FAKE_HEALTH"] = "unhealthy"

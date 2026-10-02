@@ -1,0 +1,115 @@
+name: Deploy verified component
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        type: string
+        required: true
+      image_tag:
+        type: string
+        required: true
+      previous_image_tag:
+        type: string
+        default: ''
+      validated_tests:
+        type: string
+        default: '[]'
+      shared_validated:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.component }} only
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: fitician-production
+      cancel-in-progress: false
+      queue: max
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      COMPONENT: ${{ inputs.component }}
+      PREVIOUS_IMAGE_TAG: ${{ inputs.previous_image_tag }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.image_tag }}
+          fetch-depth: 0
+      - name: Verify exact SHA and safe deployment inputs
+        run: |
+          test "$(git rev-parse HEAD)" = "$IMAGE_TAG"
+          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          test "$COMPONENT" = frontend || test "$COMPONENT" = backend
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+          printf '%s' "$VPS_USER" | grep -Eq '^[A-Za-z0-9._-]+$'
+          printf '%s' "$DOCKERHUB_USERNAME" | grep -Eq '^[A-Za-z0-9._-]+$'
+          test -n "$VPS_HOST"
+          if [ -n "$PREVIOUS_IMAGE_TAG" ]; then
+            printf '%s' "$PREVIOUS_IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          fi
+      - name: Skip obsolete release candidates
+        id: current
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" = "$IMAGE_TAG" ]; then
+            echo 'eligible=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'A newer main SHA exists; obsolete component release skipped.'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: webfactory/ssh-agent@v0.9.0
+        if: steps.current.outputs.eligible == 'true'
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Pin VPS host key
+        if: steps.current.outputs.eligible == 'true'
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Inspect actual running component SHA
+        if: steps.current.outputs.eligible == 'true'
+        id: baseline
+        run: |
+          tag=$(ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='$COMPONENT' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' INSPECT_ONLY=true bash -s" \
+            < ops/deploy-component.sh)
+          printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Verify cumulative scope since running SHA
+        if: steps.current.outputs.eligible == 'true'
+        env:
+          BASE_TAG: ${{ steps.baseline.outputs.tag }}
+          VALIDATED_TESTS: ${{ inputs.validated_tests }}
+          SHARED_VALIDATED: ${{ inputs.shared_validated }}
+        run: |
+          python3 ops/check-component-release.py --component "$COMPONENT" \
+            --base "$BASE_TAG" --head "$IMAGE_TAG" \
+            --validated-tests "$VALIDATED_TESTS" --shared-validated "$SHARED_VALIDATED"
+      - name: Authenticate VPS Docker client
+        if: steps.current.outputs.eligible == 'true'
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          test -n "$DOCKERHUB_TOKEN"
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+      - name: Deploy, verify isolation and HTTPS, rollback on failure
+        if: steps.current.outputs.eligible == 'true'
+        env:
+          CURRENT_TAG: ${{ steps.baseline.outputs.tag }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='$COMPONENT' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' EXPECTED_CURRENT_TAG='$CURRENT_TAG' bash -s" \
+            < ops/deploy-component.sh
