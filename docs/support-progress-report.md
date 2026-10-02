@@ -162,7 +162,9 @@ No production images/tags/digests were created for this release, no deployment w
 started, and no post-deployment health/version/route acceptance is claimed.
 Support Center and My Progress are **not deployed** by this workflow.
 
-Safest next action: wait for an official patched node-forge release, update the
-compatible dependency/lockfile, pass the unchanged audit and full CI, then use the
-existing immutable-image and production-deployment workflows. No local backport,
-security exception, test deletion or gate weakening is authorized or implemented.
+The initial instruction was to wait for an official release. The latest user instruction
+explicitly authorizes a reviewed upstream backport as the last option and requires
+completing the gated production release. See `mobile-dependency-security.md` for the
+reproduced six findings, official-parent investigation, exact upstream patch and
+verification. The current backport passes the unchanged high/critical threshold with
+additional source/resolution/regression validation. Full CI and deployment remain pending.

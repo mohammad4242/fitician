@@ -16,7 +16,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 - [ ] Phase 11: Combined regression review, affected backend suites/Core/Web/native tests, lint/typecheck/build, migration/OpenAPI contracts, final CI.
 
 Each phase uses focused red/green tests, named staging, Conventional Commit and push.
-Full affected verification occurs when the feature is coherent. No production deploy/store publication.
+Full affected verification occurs when the feature is coherent. Production deployment is now authorized through the existing gated workflow; store publication remains separate.
 Approved public support email: `fitician.fit@gmail.com` (user confirmed).
 Phase 2 verification: Core shared search/API 3 tests; Web Help/tickets 5 tests; Mobile Help/tickets/retry 3 native tests; Web and Mobile typechecks; focused Web lint.
 
@@ -47,3 +47,9 @@ Dependency audit confirms transitive node-forge 1.4.0, no patched upstream relea
 high=6. Image publication explicitly requires dependency-audit success, so release
 stops at that mandatory gate. No images/deployment/post-deployment acceptance.
 Unrelated worktree files preserved; Phase 11 remains blocked until upstream fix.
+
+Phase 11 dependency remediation: the latest instruction authorizes an exact reviewed
+upstream backport when official compatible upgrades cannot fix the graph. See
+`mobile-dependency-security.md`. Audit high=0, critical=0; full local backend verification passes (4312 tests,
+one existing opt-in live-provider test skipped). Full CI and production release
+verification remain in progress.

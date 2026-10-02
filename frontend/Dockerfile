@@ -10,6 +10,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/package.json
 COPY packages/fitician-core/package.json packages/fitician-core/package.json
+COPY vendor vendor
 RUN npm ci
 
 COPY frontend frontend

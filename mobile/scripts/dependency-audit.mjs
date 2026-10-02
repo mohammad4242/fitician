@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { verifyForgeBackport } from "./verify-forge-backport.mjs";
+
 const mobileRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const projectRoot = resolve(mobileRoot, "..");
 const severities = ["info", "low", "moderate", "high", "critical"];
@@ -28,6 +30,7 @@ export function assertAuditPolicy(report) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  verifyForgeBackport();
   const result = spawnSync(
     "npm",
     ["audit", "--workspace=@fitician/mobile", "--omit=dev", "--json"],
