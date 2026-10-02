@@ -159,10 +159,24 @@ def test_plateau_review_is_read_only_and_confirmation_is_explicit_and_idempotent
     assert target["is_stale"] is False
     from datetime import UTC, datetime
 
+    from app.entitlements.enums import EntitlementCode
+    from app.entitlements.models import EntitlementUsageEvent
     from app.nutrition.progress_review import review_progress
 
     later = review_progress(db, plan.user_id, now=datetime.now(UTC) + timedelta(days=8))
     assert later.status == "new_plan_required"
+    blocked = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert blocked.status_code == 429
+    assert blocked.json()["detail"]["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
+    usage = db.scalar(
+        select(EntitlementUsageEvent).where(
+            EntitlementUsageEvent.user_id == plan.user_id,
+            EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PLAN_GENERATE.value,
+        )
+    )
+    assert usage is not None
+    usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
+    db.commit()
     generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert generated.status_code == 201, generated.text
     new_plan = generated.json()["plan"]

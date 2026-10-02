@@ -28,6 +28,11 @@ jest.mock("expo-video", () => {
   };
 });
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
+jest.mock("../communication/ConversationPanel", () => {
+  const React = jest.requireActual("react") as typeof import("react");
+  const { View } = jest.requireActual("react-native") as typeof import("react-native");
+  return { ConversationPanel: ({ planId }: { planId: string }) => React.createElement(View, { testID: "workout-conversation", accessibilityLabel: planId }) };
+});
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
 jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
 jest.mock("../ui/rtl", () => ({
@@ -1324,4 +1329,31 @@ test.each(["fa", "en"] as const)("toggles the initially collapsed execution guid
   renderWorkoutPlans();
   expect(screen.getByRole("button", { name: title }).props.accessibilityState).toEqual({ expanded: false });
   for (const line of lines) expect(screen.queryByText(line)).toBeNull();
+});
+
+
+test("places the current-plan conversation immediately after workout history", () => {
+  mockActivePlan = makePlan("active", []);
+  mockHistory = [makeHistoryVersion("active-plan", "active"), makeHistoryVersion("superseded-plan", "superseded")];
+  renderWorkoutPlans();
+  const history = screen.getByTestId("workout-history");
+  const conversation = screen.getByTestId("workout-conversation");
+  const siblings = conversation.parent!.children;
+  expect(siblings.indexOf(conversation)).toBeGreaterThan(siblings.indexOf(history));
+  expect(siblings.at(-1)).toBe(conversation);
+  expect(conversation.props.accessibilityLabel).toBe(mockActivePlan.id);
+});
+
+
+test("allows admin generation even when the coach review quota is exhausted", () => {
+  mockActivePlan = makePlan("active", []);
+  mockUseMobileAuth.mockReturnValue({ user: { id: "admin", is_admin: true }, request: mockRequest, download: mockDownload, status: "signed_in" } as never);
+  mockUseMobileEntitlements.mockReturnValue({
+    hasEntitlement: () => true, loading: false, snapshot: {} as never,
+    quotaFor: () => ({ remaining: 0, reset_at: "2026-10-15T10:00:00Z" }),
+    refresh: jest.fn(), retry: jest.fn(), error: null,
+  } as never);
+  renderWorkoutPlans();
+  expect(screen.queryByText("سهم بازبینی مربی فعلاً تمام شده")).toBeNull();
+  expect(screen.getByRole("button", { name: "به‌روزرسانی برنامه" }).props.accessibilityState.disabled).toBe(false);
 });

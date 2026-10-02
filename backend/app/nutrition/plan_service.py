@@ -358,6 +358,9 @@ def generate_weekly_plan(
     now: datetime | None = None,
 ) -> WeeklyPlanGenerationResponse:
     reference = now or datetime.now(UTC)
+    require_quota_available(db, user_id, EntitlementCode.NUTRITION_PLAN_GENERATE, now=reference)
+    user = db.get(User, user_id)
+    generation_admin_exempt = user is not None and user.is_admin
     safety = current_safety_decision(db, user_id)
     if (
         safety.outcome is SafetyOutcome.AUTOMATIC_DRAFT_REQUIRES_PHYSICIAN_REVIEW
@@ -978,14 +981,23 @@ def generate_weekly_plan(
                     else NutritionPlanRole.IDEAL_REFERENCE.value
                 ),
                 physician_review_allowed=physician_review_allowed,
+                generation_admin_exempt=generation_admin_exempt,
                 bundle_plans=tuple(
                     plan for plan in (budget_plan_model, ideal_plan_model) if plan is not None
                 ),
             )
 
     try:
+        if budget_plan_model is not None or ideal_plan_model is not None:
+            consume_quota(
+                db,
+                user_id,
+                EntitlementCode.NUTRITION_PLAN_GENERATE,
+                f"nutrition-plan-bundle:{bundle.id}",
+                now=now,
+            )
         db.commit()
-    except SQLAlchemyError:
+    except (SQLAlchemyError, EntitlementQuotaExceededError, EntitlementRequiredError):
         db.rollback()
         raise
 
@@ -1558,6 +1570,7 @@ def _finalize_selected_plan(
     target_role: str,
     physician_review_allowed: bool,
     bundle_plans: tuple[NutritionWeeklyPlan, ...],
+    generation_admin_exempt: bool = False,
     now: datetime | None = None,
 ) -> None:
     """Make one bundle candidate the member's usable plan atomically."""
@@ -1591,12 +1604,13 @@ def _finalize_selected_plan(
     if physician_review_allowed:
         if target_plan.review is None:
             try:
-                require_quota_available(
-                    db,
-                    target_plan.user_id,
-                    EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
-                    now=reference,
-                )
+                if not generation_admin_exempt:
+                    require_quota_available(
+                        db,
+                        target_plan.user_id,
+                        EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                        now=reference,
+                    )
                 target_plan.lifecycle_status = NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW
                 target_plan.review = NutritionPlanPhysicianReview(
                     status=NutritionPlanReviewStatus.PENDING,
@@ -1622,14 +1636,15 @@ def _finalize_selected_plan(
                         deduplication_key=f"nutrition-review:{review.id}:required",
                         payload=payload,
                     )
-                consume_quota(
-                    db,
-                    target_plan.user_id,
-                    EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
-                    f"nutrition-plan:{target_plan.id}:revision:{target_plan.revision}",
-                    occurred_at=reference,
-                    now=reference,
-                )
+                if not generation_admin_exempt:
+                    consume_quota(
+                        db,
+                        target_plan.user_id,
+                        EntitlementCode.NUTRITION_PHYSICIAN_REVIEW,
+                        f"nutrition-plan:{target_plan.id}:revision:{target_plan.revision}",
+                        occurred_at=reference,
+                        now=reference,
+                    )
             except EntitlementQuotaExceededError:
                 db.rollback()
                 raise

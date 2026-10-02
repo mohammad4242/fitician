@@ -27,12 +27,13 @@ test("retains retry identity and gracefully rejects an invalid response", async 
   fireEvent.press(screen.getByText("ارسال"));
   await waitFor(() => expect(bodies).toHaveLength(2));
   expect(bodies[0]).toEqual(bodies[1]);
+  await waitFor(() => expect(screen.getByLabelText("متن پیام").props.value).toBe(""));
 });
 test("shows a recoverable error for malformed responses", async () => {
   jest.mocked(useMobileAuth).mockReturnValue({ user: { id: "member" }, request: jest.fn(async () => ({})) } as never);
   render(<ConversationPanel initiallyOpen kind="nutrition" reviewId="review" />);
   await screen.findByText(/دریافت گفت‌وگو ناموفق/);
-  expect(screen.getByLabelText("متن پیام").props.editable).toBe(false);
+  expect(screen.queryByLabelText("متن پیام")).toBeNull();
 });
 
 
@@ -62,4 +63,36 @@ test("recovers messages missed between disjoint latest pages", async () => {
     if (state) Object.defineProperty(AppState, "currentState", state);
     jest.useRealTimers();
   }
+});
+
+
+test.each(["workout", "nutrition"] as const)("collapses %s and removes unavailable composer controls", async kind => {
+  const request = jest.fn(async () => ({ available: false, review_id: null, viewer_id: "member", messages: [], unread_count: 0 }));
+  jest.mocked(useMobileAuth).mockReturnValue({ user: { id: "member" }, request } as never);
+  render(<ConversationPanel kind={kind} planId="active" />);
+  const header = screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" });
+  expect(header.props.accessibilityState.expanded).toBe(false);
+  fireEvent.press(header);
+  expect(screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" }).props.accessibilityState.expanded).toBe(true);
+  await screen.findByText(kind === "workout"
+    ? "ارسال پیام پس از تخصیص مربی برای برنامه‌ی شما فعال می‌شود."
+    : "ارسال پیام پس از تخصیص متخصص این برنامه فعال می‌شود.");
+  expect(screen.queryByLabelText("متن پیام")).toBeNull();
+  expect(screen.queryByRole("button", { name: "ارسال" })).toBeNull();
+});
+
+
+test("keeps unread messages until opened and renders long multiline messages", async () => {
+  const body = "First line\n" + "long ".repeat(100);
+  const request = jest.fn(async (input: { method?: string }) => input.method === "PUT" ? undefined : ({
+    available: true, review_id: "review", viewer_id: "member", unread_count: 2,
+    messages: [{ id: "unread", body, sender_id: "other", created_at: "2026-10-01T10:00:00Z" }],
+  }));
+  jest.mocked(useMobileAuth).mockReturnValue({ user: { id: "member" }, request } as never);
+  render(<ConversationPanel kind="workout" planId="active" />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" }).props.accessibilityHint).toBe("2 پیام خوانده‌نشده"));
+  expect(request.mock.calls.some(([input]) => input.method === "PUT")).toBe(false);
+  fireEvent.press(screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" }));
+  await screen.findByText(body);
+  await waitFor(() => expect(screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" }).props.accessibilityHint).toBeUndefined());
 });

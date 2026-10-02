@@ -124,7 +124,8 @@ export function WorkoutPlansScreen() {
   const deviceTimezone = resolvedIanaTimeZone();
   const canGenerateEntitled = entitlements.hasEntitlement("training.plan.generate");
   const coachReviewQuota = entitlements.quotaFor("training.coach_review");
-  const coachQuotaExhausted = entitlements.hasEntitlement("training.coach_review")
+  const coachQuotaExhausted = auth.user?.is_admin !== true
+    && entitlements.hasEntitlement("training.coach_review")
     && coachReviewQuota !== null
     && coachReviewQuota.remaining <= 0;
   const generationAccessReady = entitlements.snapshot !== null && !entitlements.loading;
@@ -476,7 +477,6 @@ export function WorkoutPlansScreen() {
 
   return (
     <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
-      {activePlan && <ConversationPanel kind="workout" planId={activePlan.id} />}
       {generationAccessReady && !canGenerateEntitled ? (
         <Notice
           message="برای ساخت برنامه تمرینی جدید، دسترسی تمرین لازم است. برنامه‌ها و تاریخچه قبلی همچنان قابل مشاهده‌اند."
@@ -669,6 +669,7 @@ export function WorkoutPlansScreen() {
         }}
         selectedPlanId={selectedPlanId}
       />
+      {activePlan && <ConversationPanel kind="workout" planId={activePlan.id} />}
     </Screen>
   );
 }
@@ -1515,7 +1516,7 @@ function WorkoutHistory({
   if (versions.length === 0 && !isViewingHistorical) return null;
 
   return (
-    <View style={styles.historySection}>
+    <View testID="workout-history" style={styles.historySection}>
       <View style={styles.historyHeader}>
         <Text style={styles.sectionTitle}>تاریخچهٔ برنامه‌ها</Text>
         {isViewingHistorical ? (

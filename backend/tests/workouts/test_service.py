@@ -13,7 +13,7 @@ from app.body_analysis.enums import BodyAnalysisStatus
 from app.body_analysis.models import BodyAnalysis
 from app.body_photos.enums import BodyPhotoPurpose, BodyPhotoSessionState
 from app.body_photos.models import BodyPhotoSession
-from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.enums import AccessPackageCode, EntitlementCode, GrantSource
 from app.entitlements.exceptions import EntitlementQuotaExceededError
 from app.entitlements.models import EntitlementUsageEvent
 from app.entitlements.service import grant_package
@@ -124,6 +124,7 @@ def _user_with_profile(db: Session, *, pure_bodyweight: bool = False) -> User:
             plan_duration_weeks=4,
         )
     )
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
     db.add(BodyMeasurement(user_id=user.id, weight_kg=Decimal("75")))
     db.flush()
     return user
@@ -1318,6 +1319,13 @@ def test_deterministic_generation_persists_exact_profile_weekdays_and_invalidate
 
     profile.preferred_weekdays = [0, 1, 3, 4]
     db.flush()
+    with pytest.raises(EntitlementQuotaExceededError):
+        second = asyncio.run(service.generate(user.id))
+    for usage in db.query(EntitlementUsageEvent).filter_by(
+        user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value
+    ):
+        usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
+    db.commit()
     second = asyncio.run(service.generate(user.id))
 
     assert not second.reused
@@ -1443,6 +1451,13 @@ def test_review_policy_is_part_of_generation_reuse_compatibility(db: Session) ->
         source=GrantSource.MANUAL,
         starts_at=datetime.now(UTC),
     )
+    with pytest.raises(EntitlementQuotaExceededError):
+        coached = asyncio.run(service.generate(user.id, review_required=True))
+    for usage in db.query(EntitlementUsageEvent).filter_by(
+        user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value
+    ):
+        usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
+    db.commit()
     coached = asyncio.run(service.generate(user.id, review_required=True))
 
     assert not coached.reused
@@ -1560,6 +1575,19 @@ def test_ai_generation_reuses_the_current_pending_plan(
     assert provider.calls == 1
     assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 1
     assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 1
+
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+    first.plan.generation_signature = "c" * 64
+    db.commit()
+    with pytest.raises(EntitlementQuotaExceededError) as error:
+        asyncio.run(service.generate(user.id, review_required=True))
+    assert error.value.entitlement is EntitlementCode.TRAINING_PLAN_GENERATE
+    assert provider.calls == 1
 
 
 @pytest.mark.parametrize(
@@ -1777,6 +1805,12 @@ def test_failed_replacement_preserves_previous_active_plan(
     generation = db.query(WorkoutPlanGeneration).filter_by(user_id=user.id).one()
     assert generation.status is WorkoutGenerationStatus.FAILED
     assert generation.error_code == "PROGRAM_VALIDATION_FAILED"
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 0
+    )
     stored = db.get(WorkoutPlan, active_plan.id)
     assert stored is not None
     assert stored.status is WorkoutPlanStatus.ACTIVE
@@ -1956,6 +1990,13 @@ def test_specialist_correction_changes_signature_and_marks_active_plan_stale(
     )
 
     active = service.get_active(user.id)
+    with pytest.raises(EntitlementQuotaExceededError):
+        replacement = asyncio.run(service.generate(user.id))
+    for usage in db.query(EntitlementUsageEvent).filter_by(
+        user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value
+    ):
+        usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
+    db.commit()
     replacement = asyncio.run(service.generate(user.id))
 
     assert active is not None and active.is_stale
@@ -2270,3 +2311,72 @@ def test_all_six_supported_bodyweight_combinations_use_fixed_route_without_engin
     assert result.plan.model_id == expected_slug
     assert result.plan.aggregate_metrics["template_slug"] == expected_slug
     assert len(result.plan.days) == training_days
+
+
+@pytest.mark.parametrize("pure_bodyweight", [False, True])
+def test_weekly_generation_consumes_only_new_plan_and_resets(db: Session, pure_bodyweight) -> None:
+    user = _user_with_profile(db, pure_bodyweight=pure_bodyweight)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    (_seed_bodyweight_template_catalog if pure_bodyweight else _seed_candidates)(db)
+    service = _service(db)
+    first = asyncio.run(service.generate(user.id))
+    assert not first.reused
+    assert asyncio.run(service.generate(user.id)).reused
+    events = (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .all()
+    )
+    assert len(events) == 1
+    assert events[0].resource_key == f"workout-plan:{first.plan.id}"
+    first.plan.generation_signature = "c" * 64
+    db.commit()
+    with pytest.raises(EntitlementQuotaExceededError) as error:
+        asyncio.run(service.generate(user.id))
+    assert error.value.entitlement is EntitlementCode.TRAINING_PLAN_GENERATE
+    events[0].occurred_at = datetime.now(UTC) - timedelta(days=7, seconds=1)
+    db.commit()
+    second = asyncio.run(service.generate(user.id))
+    assert not second.reused
+    assert second.plan.id != first.plan.id
+
+
+@pytest.mark.parametrize("pure_bodyweight", [False, True])
+def test_admin_can_generate_repeated_coach_plans(db: Session, pure_bodyweight) -> None:
+    user = _user_with_profile(db, pure_bodyweight=pure_bodyweight)
+    user.is_admin = True
+    grant_package(db, user.id, AccessPackageCode.TRAINING_COACH)
+    (_seed_bodyweight_template_catalog if pure_bodyweight else _seed_candidates)(db)
+    service = _service(db)
+    first = asyncio.run(service.generate(user.id, review_required=True))
+    first.plan.generation_signature = "c" * 64
+    db.commit()
+    second = asyncio.run(service.generate(user.id, review_required=True))
+    assert not second.reused
+    assert second.plan.id != first.plan.id
+    assert second.plan.status is WorkoutPlanStatus.PENDING_REVIEW
+    assert db.query(WorkoutPlanReview).count() == 2
+    assert db.query(EntitlementUsageEvent).count() == 0
+
+
+def test_final_workout_quota_check_rolls_back_plan_with_correct_error(db, monkeypatch) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    service = _service(db)
+    persist = service._persist_generated_plan
+
+    def competing_success(plan, generation, *, review_required):
+        workout_service_module.consume_quota(
+            db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE, "workout-plan:competing"
+        )
+        db.commit()
+        persist(plan, generation, review_required=review_required)
+
+    monkeypatch.setattr(service, "_persist_generated_plan", competing_success)
+    with pytest.raises(EntitlementQuotaExceededError) as error:
+        asyncio.run(service.generate(user.id))
+    assert error.value.entitlement is EntitlementCode.TRAINING_PLAN_GENERATE
+    assert db.query(WorkoutPlan).count() == 0
+    generation = db.query(WorkoutPlanGeneration).one()
+    assert generation.status is WorkoutGenerationStatus.FAILED
+    assert generation.error_code == "ENTITLEMENT_QUOTA_EXCEEDED"

@@ -539,7 +539,6 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
           locale={isEnglish ? "en" : "fa"}
         />
 
-        {activePlan !== null && <ConversationPanel kind="workout" planId={activePlan.id} />}
         {!isViewingHistorical && memberReview !== null && (
           <MemberWorkoutReviewCard
             review={memberReview}
@@ -794,6 +793,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             </div>
           </section>
         )}
+        {activePlan !== null && <ConversationPanel kind="workout" planId={activePlan.id} />}
       </main>
       {deleteDialogVersion !== null && versionDetails[deleteDialogVersion.id] !== undefined && (
         <WorkoutPlanDeleteDialog

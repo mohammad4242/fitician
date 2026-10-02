@@ -53,6 +53,9 @@ const memberReviewApi = vi.hoisted(() => ({
   rejectMemberWorkoutReview: vi.fn(),
 }));
 
+vi.mock("../communication/ConversationPanel", () => ({
+  ConversationPanel: ({ planId }: { planId: string }) => <section data-testid="workout-conversation" data-plan-id={planId}>گفت‌وگو درباره برنامه</section>,
+}));
 vi.mock("./api", () => api);
 vi.mock("../programTimeline/api", () => ({
   getProgramTimelineToday: api.getProgramTimelineToday,
@@ -1618,4 +1621,16 @@ it.each(["fa", "en"] as const)("collapses the execution guide by default and tog
   await user.click(summary);
   expect(guide).not.toHaveAttribute("open");
   for (const line of lines) expect(within(guide).getByText(line)).not.toBeVisible();
+});
+
+
+it("places the current-plan conversation after the complete history", async () => {
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getWorkoutPlanHistory.mockResolvedValue([{ id: "historical", status: "superseded", is_active: false, created_at: "2026-07-01T10:00:00Z", plan_duration_weeks: 4, coach_review: { state: "not_required" } }]);
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+  const history = (await screen.findByText("تاریخچه برنامه")).closest("section")!;
+  const conversation = screen.getByTestId("workout-conversation");
+  expect(history.compareDocumentPosition(conversation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(conversation).toHaveAttribute("data-plan-id", plan.id);
+  expect(conversation.parentElement?.lastElementChild).toBe(conversation);
 });

@@ -83,10 +83,14 @@ def _register_and_complete_profile(
 
 
 def _revoke_launch_trial(db: Session, user_id: UUID) -> None:
-    trial = db.query(UserAccessGrant).filter_by(
-        user_id=user_id,
-        package_code=AccessPackageCode.LAUNCH_TRIAL,
-    ).one_or_none()
+    trial = (
+        db.query(UserAccessGrant)
+        .filter_by(
+            user_id=user_id,
+            package_code=AccessPackageCode.LAUNCH_TRIAL,
+        )
+        .one_or_none()
+    )
     if trial is not None:
         trial.revoked_at = datetime.now(UTC)
     db.flush()
@@ -1241,9 +1245,7 @@ def test_generate_exposes_preferred_calendar_conflict_reason(
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["code"] == "UNSATISFIED_CONSTRAINT"
-    assert detail["meta"] == {
-        "reason_codes": ["PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"]
-    }
+    assert detail["meta"] == {"reason_codes": ["PREFERRED_WEEKDAYS_RECOVERY_CONFLICT"]}
     assert detail["message"] == "No safe workout layout satisfies all required session constraints"
 
 
@@ -1309,3 +1311,37 @@ def test_generate_maps_provider_failures_to_safe_statuses(
 
     assert response.status_code == expected_status
     assert "error_code" not in response.json()
+
+
+def test_real_generation_quota_error_is_structured_and_reuse_is_free(client, db) -> None:
+    from app.entitlements.enums import EntitlementCode
+    from app.entitlements.models import EntitlementUsageEvent
+
+    user_id = _register_and_complete_profile(client, "workout-weekly-quota@example.com")
+    _revoke_launch_trial(db, user_id)
+    _grant_training_access(db, user_id)
+    _store_program_engine_catalog(db)
+    first = client.post(
+        "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": 11}
+    )
+    assert first.status_code == 200, first.json()
+    reused = client.post(
+        "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": 11}
+    )
+    assert reused.status_code == 200
+    assert reused.json()["reused"] is True
+    blocked = client.post(
+        "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": 12}
+    )
+    assert blocked.status_code == 429, blocked.json()
+    detail = blocked.json()["detail"]
+    assert detail["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
+    assert detail["meta"]["entitlement"] == EntitlementCode.TRAINING_PLAN_GENERATE.value
+    assert detail["meta"]["reset_at"]
+    assert int(blocked.headers["Retry-After"]) > 0
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )

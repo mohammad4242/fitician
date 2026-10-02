@@ -1,14 +1,16 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 import app.nutrition.plan_service as plan_service
 from app.auth.models import User
-from app.entitlements.enums import AccessPackageCode, GrantSource
+from app.entitlements.enums import AccessPackageCode, EntitlementCode, GrantSource
+from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
 from app.entitlements.service import grant_package
 from app.nutrition.enums import (
     EstimateConfidence,
@@ -29,6 +31,7 @@ from app.nutrition.models import (
     NutritionFoodComposition,
     NutritionFoodItem,
     NutritionFoodPriceReference,
+    NutritionPlanBundle,
     NutritionPlanGeneration,
     NutritionPlanPhysicianReview,
     NutritionProfile,
@@ -665,6 +668,15 @@ def test_generation_aggregates_all_candidate_failures_without_persisting_a_plan(
     assert response.json()["outcome"] == "infeasible"
     assert response.json()["plan"] is None
     assert db.scalar(select(NutritionWeeklyPlan)) is None
+    assert (
+        db.scalar(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.entitlement_key
+                == EntitlementCode.NUTRITION_PLAN_GENERATE.value
+            )
+        )
+        is None
+    )
     generation = db.scalar(select(NutritionPlanGeneration))
     assert generation is not None
     trace = generation.diagnostic_snapshot["selection_trace"]
@@ -686,6 +698,15 @@ def test_missing_price_coverage_is_a_generation_not_a_plan(client: TestClient, d
     assert response.json()["plan"] is None
     assert db.scalar(select(NutritionPlanGeneration)) is not None
     assert db.scalar(select(NutritionWeeklyPlan)) is None
+    assert (
+        db.scalar(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.entitlement_key
+                == EntitlementCode.NUTRITION_PLAN_GENERATE.value
+            )
+        )
+        is None
+    )
 
 
 def test_latest_and_history_keep_old_snapshot_when_market_price_changes(
@@ -796,6 +817,15 @@ def test_safety_block_is_persisted_without_creating_a_plan(client: TestClient, d
     assert response.json()["plan"] is None
     assert db.scalar(select(NutritionPlanGeneration)) is not None
     assert db.scalar(select(NutritionWeeklyPlan)) is None
+    assert (
+        db.scalar(
+            select(EntitlementUsageEvent).where(
+                EntitlementUsageEvent.entitlement_key
+                == EntitlementCode.NUTRITION_PLAN_GENERATE.value
+            )
+        )
+        is None
+    )
 
 
 def test_download_nutrition_plan_pdf(client: TestClient, db: Session) -> None:
@@ -897,3 +927,75 @@ def test_free_meal_allowance_is_persisted_once_in_daily_planning_totals(client, 
     )
     average = sum(day["nutrient_totals"]["energy_kcal"] for day in plan["days"]) / 7
     assert abs(plan["nutrients"]["goal_calories"]["planned"] - average) < 0.01
+
+
+@pytest.mark.parametrize("admin", [False, True])
+def test_weekly_full_generation_quota_and_admin_review_exemption(client, db, admin) -> None:
+    email = "weekly-full-quota@example.com"
+    _register_and_estimate(client, db, email)
+    user = db.scalar(select(User).where(User.email == email))
+    user.is_admin = admin
+    if not admin:
+        # Base nutrition isolates the independent 7-day generation policy from review quota.
+        for grant in db.scalars(select(UserAccessGrant).where(UserAccessGrant.user_id == user.id)):
+            grant.revoked_at = datetime.now(UTC)
+        grant_package(db, user.id, AccessPackageCode.NUTRITION)
+    db.commit()
+    _seed_foods_and_prices(db)
+    first = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert first.status_code == 201
+    assert first.json()["outcome"] == "success"
+    assert first.json()["budget_plan"] is not None
+    assert first.json()["ideal_plan"] is not None
+    assert db.query(NutritionWeeklyPlan).count() == 2
+    events = db.scalars(
+        select(EntitlementUsageEvent).where(
+            EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PLAN_GENERATE.value
+        )
+    ).all()
+    assert len(events) == (0 if admin else 1)
+    if not admin:
+        assert events[0].resource_key == f"nutrition-plan-bundle:{first.json()['bundle_id']}"
+    second = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    if admin:
+        assert second.status_code == 201
+        assert second.json()["outcome"] == "success"
+        assert db.query(NutritionPlanPhysicianReview).count() == 2
+        assert db.query(EntitlementUsageEvent).count() == 0
+    else:
+        assert second.status_code == 429
+        assert second.json()["detail"]["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
+        assert second.json()["detail"]["meta"]["reset_at"]
+        assert int(second.headers["Retry-After"]) > 0
+        events[0].occurred_at = datetime.now(UTC) - timedelta(days=7, seconds=1)
+        db.commit()
+        third = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+        assert third.status_code == 201
+        assert third.json()["outcome"] == "success"
+
+
+def test_final_nutrition_quota_check_rolls_back_the_entire_bundle(client, db, monkeypatch):
+    from app.entitlements.exceptions import EntitlementQuotaExceededError
+    from app.entitlements.service import consume_quota
+
+    _register_and_estimate(client, db, "nutrition-quota-race@example.com")
+    _seed_foods_and_prices(db)
+    user = db.scalar(select(User).where(User.email == "nutrition-quota-race@example.com"))
+    consume_quota(
+        db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE, "nutrition-plan-bundle:competing"
+    )
+    db.commit()
+    check = plan_service.require_quota_available
+
+    def stale_precheck(session, user_id, code, **kwargs):
+        if code is EntitlementCode.NUTRITION_PLAN_GENERATE:
+            return None  # Simulate another request consuming after this request's precheck.
+        return check(session, user_id, code, **kwargs)
+
+    monkeypatch.setattr(plan_service, "require_quota_available", stale_precheck)
+    with pytest.raises(EntitlementQuotaExceededError) as error:
+        plan_service.generate_weekly_plan(db, user.id, physician_review_allowed=False)
+    assert error.value.entitlement is EntitlementCode.NUTRITION_PLAN_GENERATE
+    assert db.query(NutritionWeeklyPlan).count() == 0
+    assert db.query(NutritionPlanBundle).count() == 0
+    assert db.query(EntitlementUsageEvent).count() == 1

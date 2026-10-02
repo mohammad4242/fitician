@@ -103,6 +103,8 @@ PACKAGE_CATALOG: Final = MappingProxyType(
 
 QUOTA_POLICIES: Final = MappingProxyType(
     {
+        EntitlementCode.TRAINING_PLAN_GENERATE: QuotaPolicy(limit=1, window_days=7),
+        EntitlementCode.NUTRITION_PLAN_GENERATE: QuotaPolicy(limit=1, window_days=7),
         EntitlementCode.BODY_ANALYSIS_RUN: QuotaPolicy(limit=1, window_days=7),
         EntitlementCode.TRAINING_COACH_REVIEW: QuotaPolicy(limit=1, window_days=28),
         EntitlementCode.NUTRITION_PHYSICIAN_REVIEW: QuotaPolicy(limit=1, window_days=28),

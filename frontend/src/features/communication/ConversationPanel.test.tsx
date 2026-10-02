@@ -24,13 +24,14 @@ it("retries a failed message with the same request identity", async () => {
   fireEvent.click(screen.getByRole("button", { name: "ارسال" }));
   await waitFor(() => expect(bodies).toHaveLength(2));
   expect(JSON.parse(bodies[0]!).request_id).toBe(JSON.parse(bodies[1]!).request_id);
+  await waitFor(() => expect(screen.getByLabelText("متن پیام")).toHaveValue(""));
 });
 
 it("handles an invalid conversation response without rendering stale messages", async () => {
   vi.mocked(request).mockResolvedValue({ unexpected: true });
-  render(<ConversationPanel kind="workout" reviewId="review" />);
+  render(<ConversationPanel kind="workout" reviewId="review" initiallyOpen />);
   await screen.findByText(/دریافت گفت‌وگو ناموفق/);
-  expect(screen.getByLabelText("متن پیام")).toBeDisabled();
+  expect(screen.queryByLabelText("متن پیام")).not.toBeInTheDocument();
 });
 
 
@@ -54,4 +55,45 @@ it("can page into messages missed while the app was away", async () => {
     expect(screen.getByText("message-51")).toBeInTheDocument();
     expect(screen.getByText("message-150")).toBeInTheDocument();
   } finally { vi.useRealTimers(); vi.restoreAllMocks(); }
+});
+
+
+it.each(["workout", "nutrition"] as const)("shows a collapsed accessible %s header and a real unavailable state", async kind => {
+  vi.mocked(request).mockResolvedValue({ available: false, review_id: null, viewer_id: "member", messages: [], unread_count: 0 });
+  render(<ConversationPanel kind={kind} planId="active" />);
+  const header = screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" });
+  expect(header).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(header);
+  expect(header).toHaveAttribute("aria-expanded", "true");
+  await screen.findByText(kind === "workout"
+    ? "ارسال پیام پس از تخصیص مربی برای برنامه‌ی شما فعال می‌شود."
+    : "ارسال پیام پس از تخصیص متخصص این برنامه فعال می‌شود.");
+  expect(screen.queryByLabelText("متن پیام")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "ارسال" })).not.toBeInTheDocument();
+});
+
+it("keeps unread context, multiline bubbles and initiallyOpen", async () => {
+  vi.mocked(request).mockImplementation(async path => path.endsWith("/read") ? undefined as never : ({
+    available: true, review_id: "review", viewer_id: "member", unread_count: 2,
+    messages: [{ id: "message", sender_id: "other", body: "First line\n" + "long ".repeat(100), created_at: "2026-10-01T10:00:00Z" }],
+  }) as never);
+  const { container } = render(<ConversationPanel kind="workout" reviewId="review" initiallyOpen />);
+  expect(screen.getByRole("button", { name: /گفت‌وگو درباره برنامه/ })).toHaveAttribute("aria-expanded", "true");
+  await screen.findByText(/First line/);
+  expect(container.querySelector(".conversation-panel__bubble--other p")?.textContent).toContain("First line\n");
+  await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/read"), expect.anything()));
+});
+
+
+it("only reads unread messages after expanding the header", async () => {
+  vi.mocked(request).mockReset();
+  vi.mocked(request).mockImplementation(async (_path, options) => options?.method === "PUT" ? undefined as never : ({
+    available: true, review_id: "review", viewer_id: "member", unread_count: 2,
+    messages: [{ id: "unread", body: "Hello", sender_id: "other", created_at: "2026-10-01T10:00:00Z" }],
+  }) as never);
+  render(<ConversationPanel kind="workout" planId="active" />);
+  await screen.findByLabelText("2 پیام خوانده‌نشده");
+  expect(vi.mocked(request).mock.calls.some(([, options]) => options?.method === "PUT")).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "گفت‌وگو درباره برنامه" }));
+  await waitFor(() => expect(screen.queryByLabelText("2 پیام خوانده‌نشده")).not.toBeInTheDocument());
 });

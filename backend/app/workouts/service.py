@@ -19,6 +19,7 @@ from app.ai.schemas import (
     ProviderErrorCode,
     WorkoutProviderError,
 )
+from app.auth.models import User
 from app.body_analysis.providers import ProviderRoutingPreferences
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
@@ -371,6 +372,7 @@ class WorkoutGenerationService:
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
 
         self._enforce_cooldown(request.user_id)
+        require_quota_available(self._db, request.user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(request.user_id, review_required)
         generation = self._start_generation(request.user_id, len(catalog))
         started_at = perf_counter()
@@ -507,6 +509,7 @@ class WorkoutGenerationService:
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
 
         self._enforce_cooldown(user_id)
+        require_quota_available(self._db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(user_id, review_required)
         if generation is None:
             generation = self._start_generation(user_id, len(catalog))
@@ -700,7 +703,10 @@ class WorkoutGenerationService:
                         merged_values = dict(refreshed_values)
                         for muscle, persisted_value in persisted_values.items():
                             refreshed_value = refreshed_values.get(muscle)
-                            if not isinstance(refreshed_value, (int, float)) or refreshed_value <= 0:
+                            if (
+                                not isinstance(refreshed_value, (int, float))
+                                or refreshed_value <= 0
+                            ):
                                 merged_values[muscle] = persisted_value
                         metrics[metric_key] = merged_values
         direct = self._volume_metrics(
@@ -816,6 +822,7 @@ class WorkoutGenerationService:
         ):
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
         self._enforce_cooldown(user_id)
+        require_quota_available(self._db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(user_id, review_required)
         catalog = {item.id: item for item in self._load_catalog(profile.sex)}
         payloads = tuple(
@@ -1119,7 +1126,8 @@ class WorkoutGenerationService:
         return generation_profile_from_snapshot(source)
 
     def _require_coach_review_quota(self, user_id: UUID, review_required: bool) -> None:
-        if review_required:
+        user = self._db.get(User, user_id)
+        if review_required and not (user is not None and user.is_admin):
             require_quota_available(
                 self._db,
                 user_id,
@@ -1147,21 +1155,33 @@ class WorkoutGenerationService:
                 raise WorkoutGenerationFailedError(error_code="STALE_GENERATION_RECOVERED")
             if review_required:
                 persist_pending_review_plan(self._db, plan, generation)
-                consume_quota(
-                    self._db,
-                    plan.user_id,
-                    EntitlementCode.TRAINING_COACH_REVIEW,
-                    f"workout-plan:{plan.id}",
-                )
+                user = self._db.get(User, plan.user_id)
+                if not (user is not None and user.is_admin):
+                    consume_quota(
+                        self._db,
+                        plan.user_id,
+                        EntitlementCode.TRAINING_COACH_REVIEW,
+                        f"workout-plan:{plan.id}",
+                    )
             else:
                 activate_plan(self._db, plan, generation)
+            consume_quota(
+                self._db,
+                plan.user_id,
+                EntitlementCode.TRAINING_PLAN_GENERATE,
+                f"workout-plan:{plan.id}",
+            )
             self._db.commit()
-        except (EntitlementQuotaExceededError, EntitlementRequiredError):
+        except (EntitlementQuotaExceededError, EntitlementRequiredError) as error:
             self._db.rollback()
             self._mark_failure(
                 generation,
-                "COACH_REVIEW_QUOTA_EXCEEDED",
-                "Coach review capacity is not available for this generation.",
+                (
+                    "COACH_REVIEW_QUOTA_EXCEEDED"
+                    if error.entitlement is EntitlementCode.TRAINING_COACH_REVIEW
+                    else "ENTITLEMENT_QUOTA_EXCEEDED"
+                ),
+                "Plan generation capacity is not available for this generation.",
                 [],
             )
             raise

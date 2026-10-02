@@ -144,3 +144,93 @@ def test_consumption_does_not_commit_the_callers_transaction(db: Session, monkey
     )
 
     assert commit_calls == 0
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        EntitlementCode.TRAINING_PLAN_GENERATE,
+        EntitlementCode.NUTRITION_PLAN_GENERATE,
+    ],
+)
+def test_full_generation_rolling_boundary_and_idempotency(db: Session, code) -> None:
+    user = make_user(db)
+    now = datetime.now(UTC)
+    assert consume_quota(db, user.id, code, "plan:first", now=now)
+    assert not consume_quota(db, user.id, code, "plan:first", now=now)
+    with pytest.raises(EntitlementQuotaExceededError):
+        require_quota_available(db, user.id, code, now=now + timedelta(days=7, microseconds=-1))
+    assert consume_quota(db, user.id, code, "plan:second", now=now + timedelta(days=7))
+
+
+def test_generation_quotas_are_independent_and_admin_exemption_is_narrow(db: Session) -> None:
+    user = make_user(db)
+    for code in (EntitlementCode.TRAINING_PLAN_GENERATE, EntitlementCode.NUTRITION_PLAN_GENERATE):
+        assert consume_quota(db, user.id, code, "plan:first")
+    user.is_admin = True
+    db.flush()
+    for code in (EntitlementCode.TRAINING_PLAN_GENERATE, EntitlementCode.NUTRITION_PLAN_GENERATE):
+        assert quota_status(db, user.id, code) is None
+        require_quota_available(db, user.id, code)
+        assert not consume_quota(db, user.id, code, "plan:admin")
+    consume_quota(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN, "analysis:first")
+    with pytest.raises(EntitlementQuotaExceededError):
+        require_quota_available(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
+
+
+@pytest.mark.parametrize("same_resource", [False, True])
+def test_concurrent_generation_consumption_is_serialized(db: Session, same_resource) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    from sqlalchemy import create_engine, delete
+
+    from tests.conftest import TEST_DATABASE_URL
+
+    engine = create_engine(TEST_DATABASE_URL)
+    with Session(engine) as setup:
+        user = User(email="concurrent-generation@example.com", password_hash="hash")
+        setup.add(user)
+        setup.flush()
+        grant_package(setup, user.id, AccessPackageCode.TRAINING)
+        user_id = user.id
+        setup.commit()
+    barrier = Barrier(2)
+
+    def generate(index):
+        with Session(engine) as session:
+            require_quota_available(session, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
+            barrier.wait(timeout=10)
+            try:
+                consumed = consume_quota(
+                    session,
+                    user_id,
+                    EntitlementCode.TRAINING_PLAN_GENERATE,
+                    f"workout-plan:{0 if same_resource else index}",
+                )
+                session.commit()
+                return "consumed" if consumed else "duplicate"
+            except EntitlementQuotaExceededError:
+                session.rollback()
+                return "blocked"
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(generate, (1, 2)))
+        assert sorted(results) == sorted(["consumed", "duplicate" if same_resource else "blocked"])
+        with Session(engine) as session:
+            assert (
+                len(
+                    session.scalars(
+                        select(EntitlementUsageEvent).where(
+                            EntitlementUsageEvent.user_id == user_id
+                        )
+                    ).all()
+                )
+                == 1
+            )
+    finally:
+        with Session(engine) as cleanup:
+            cleanup.execute(delete(User).where(User.id == user_id))
+            cleanup.commit()
+        engine.dispose()

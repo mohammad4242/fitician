@@ -32,10 +32,9 @@ def test_products_returns_catalog_without_prices(client: TestClient) -> None:
     trial = next(item for item in products if item["code"] == "launch_trial")
     assert trial["kind"] == "trial"
     assert trial["is_purchasable"] is False
-    assert {
-        policy["entitlement"]
-        for policy in trial["quota_policies"]
-    } == {
+    assert {policy["entitlement"] for policy in trial["quota_policies"]} == {
+        EntitlementCode.TRAINING_PLAN_GENERATE.value,
+        EntitlementCode.NUTRITION_PLAN_GENERATE.value,
         EntitlementCode.BODY_ANALYSIS_RUN.value,
         EntitlementCode.TRAINING_COACH_REVIEW.value,
         EntitlementCode.NUTRITION_PHYSICIAN_REVIEW.value,

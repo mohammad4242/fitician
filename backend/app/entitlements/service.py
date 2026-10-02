@@ -180,11 +180,16 @@ def quota_status(
     if policy is None:
         return None
 
+    if code in {EntitlementCode.TRAINING_PLAN_GENERATE, EntitlementCode.NUTRITION_PLAN_GENERATE}:
+        user = db.get(User, user_id)
+        if user is not None and user.is_admin:
+            return None
+
     window_start = reference - timedelta(days=policy.window_days)
     base_filter = (
         EntitlementUsageEvent.user_id == user_id,
         EntitlementUsageEvent.entitlement_key == code.value,
-        EntitlementUsageEvent.occurred_at >= window_start,
+        EntitlementUsageEvent.occurred_at > window_start,
         EntitlementUsageEvent.occurred_at <= reference,
     )
     used = (
@@ -260,7 +265,8 @@ def consume_quota(
 
     require_entitlement(db, user_id, code, now=reference)
     status = quota_status(db, user_id, code, now=reference)
-    assert status is not None
+    if status is None:  # Only full-plan generation policies exempt admins.
+        return False
     if status.remaining <= 0:
         raise EntitlementQuotaExceededError(status.entitlement, status.reset_at, now=reference)
 
