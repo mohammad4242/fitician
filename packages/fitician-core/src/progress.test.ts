@@ -34,3 +34,22 @@ it("shares one authoritative overview and canonical measurement endpoint", async
     body: { shoulder_width_cm: 45 },
   });
 });
+it("keeps categorical recovery on its explicit reported-state scale", () => {
+  const chart = chartGeometry(
+    [
+      [
+        { date: "2026-10-01", value: 3 },
+        { date: "2026-10-02", value: 3 },
+      ],
+    ],
+    320,
+    200,
+    [1, 3],
+  );
+  expect(chart.minY).toBe(1);
+  expect(chart.maxY).toBe(3);
+  expect(chart.lines[0].points).toHaveLength(2);
+  expect(
+    chart.lines[0].points.every((point) => point.y === chart.padding.top),
+  ).toBe(true);
+});

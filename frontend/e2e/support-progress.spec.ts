@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+// API fixtures must remain visible to routing after public-page service worker registration.
+test.use({ serviceWorkers: "block" });
 
 async function mockCompletedMember(page: Page) {
   await page.route("**/api/**", (route) =>

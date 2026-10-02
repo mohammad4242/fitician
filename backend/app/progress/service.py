@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.body_analysis.models import BodyAnalysis
 from app.body_photos.models import BodyPhotoSession
@@ -74,6 +74,13 @@ def overview(
     cycle = (
         db.scalar(
             select(WorkoutCycle)
+            .options(
+                load_only(
+                    WorkoutCycle.start_date,
+                    WorkoutCycle.duration_weeks,
+                    WorkoutCycle.workout_plan_id,
+                )
+            )
             .where(
                 WorkoutCycle.user_id == user_id, WorkoutCycle.status == WorkoutCycleStatus.ACTIVE
             )
@@ -90,6 +97,7 @@ def overview(
     nutrition_plan = (
         db.scalar(
             select(NutritionWeeklyPlan)
+            .options(load_only(NutritionWeeklyPlan.id, NutritionWeeklyPlan.start_date))
             .where(
                 NutritionWeeklyPlan.user_id == user_id,
                 NutritionWeeklyPlan.lifecycle_status == NutritionPlanLifecycleStatus.ACTIVE,
@@ -136,6 +144,14 @@ def overview(
         sessions = list(
             db.scalars(
                 select(WorkoutCycleSession)
+                .options(
+                    load_only(
+                        WorkoutCycleSession.scheduled_date,
+                        WorkoutCycleSession.status,
+                        WorkoutCycleSession.created_at,
+                        WorkoutCycleSession.reschedule_history_started_at,
+                    )
+                )
                 .join(WorkoutCycle)
                 .where(
                     WorkoutCycle.user_id == user_id,
@@ -156,6 +172,7 @@ def overview(
             weeks[week_start(session.scheduled_date)].append(session)
         feedback = db.scalar(
             select(WorkoutCycleFeedback)
+            .options(load_only(WorkoutCycleFeedback.strength_progress))
             .join(WorkoutCycle)
             .where(
                 WorkoutCycle.user_id == user_id,
@@ -227,6 +244,14 @@ def overview(
         )
         checkins = db.scalars(
             select(WorkoutCycleWeeklyCheckIn)
+            .options(
+                load_only(
+                    WorkoutCycleWeeklyCheckIn.submitted_at,
+                    WorkoutCycleWeeklyCheckIn.week_number,
+                    WorkoutCycleWeeklyCheckIn.recovery_rating,
+                    WorkoutCycleWeeklyCheckIn.perceived_difficulty,
+                )
+            )
             .where(
                 WorkoutCycleWeeklyCheckIn.user_id == user_id,
                 WorkoutCycleWeeklyCheckIn.submitted_at

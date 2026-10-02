@@ -59,6 +59,33 @@ test("retries a failed request with the same id", async () => {
   expect(request.mock.calls[0]).toEqual(request.mock.calls[1]);
   fireEvent.press(screen.getByRole("button", { name: "فارسی" }));
 });
+test("clears private tickets immediately when the account changes", async () => {
+  const request = jest.fn(async () => ({
+    items: [
+      {
+        id: "first-ticket",
+        subject: "Private request",
+        category: "technical",
+        status: "open",
+        last_activity_at: "2026-10-01T10:00:00Z",
+      },
+    ],
+    older_cursor: null,
+  }));
+  jest
+    .mocked(useMobileAuth)
+    .mockReturnValue({ user: { id: "first" }, request } as never);
+  const view = render(<SupportScreen mode="tickets" />);
+  expect(await screen.findByText("Private request")).toBeTruthy();
+  jest
+    .mocked(useMobileAuth)
+    .mockReturnValue({
+      user: { id: "second" },
+      request: jest.fn(() => new Promise(() => undefined)),
+    } as never);
+  view.rerender(<SupportScreen mode="tickets" />);
+  expect(screen.queryByText("Private request")).toBeNull();
+});
 test("supports English Help content and LTR headings", () => {
   jest
     .mocked(useMobileAuth)

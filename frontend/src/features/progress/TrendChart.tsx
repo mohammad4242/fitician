@@ -15,7 +15,12 @@ export function TrendChart({
   valueLabels?: Record<number, string>;
   onSelect?: (index: number) => void;
 }) {
-  const chart = chartGeometry(series, 680, 245),
+  const chart = chartGeometry(
+      series,
+      680,
+      245,
+      valueLabels ? [1, 3] : undefined,
+    ),
     [selected, setSelected] = useState<number | null>(null),
     format = (value: number) =>
       valueLabels?.[value] ??

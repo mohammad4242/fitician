@@ -88,6 +88,7 @@ export const progressCopy = {
     target: "کالری هدف",
     actual: "کالری دریافتی",
     weight: "وزن",
+    weightChange: "تغییر وزن",
     waist: "دور کمر",
     hip: "دور باسن",
     shoulder_width: "پهنای سرشانه",
@@ -109,7 +110,7 @@ export const progressCopy = {
     completed: "جلسه انجام‌شده",
     skipped: "انجام‌نشده",
     overdue: "عقب‌افتاده",
-    rescheduled: "جلسه جابه‌جاشده",
+    rescheduled: "جلسه‌های جابه‌جا‌شده توسط شما",
     adherence: "پایبندی به جلسه‌های موعدرسیده",
     noTraining: "پس از شروع برنامه، وضعیت جلسه‌ها اینجا نمایش داده می‌شود.",
     noRecovery:
@@ -162,6 +163,7 @@ export const progressCopy = {
     target: "Target calories",
     actual: "Recorded calories",
     weight: "Weight",
+    weightChange: "Weight change",
     waist: "Waist circumference",
     hip: "Hip circumference",
     shoulder_width: "Shoulder width",
@@ -184,7 +186,7 @@ export const progressCopy = {
     completed: "Completed sessions",
     skipped: "Skipped",
     overdue: "Overdue",
-    rescheduled: "Rescheduled sessions",
+    rescheduled: "Sessions you rescheduled",
     adherence: "Adherence to due sessions",
     noTraining: "Start a plan to see your session progress.",
     noRecovery: "Your recovery will appear after your first weekly check-in.",
@@ -279,6 +281,7 @@ export function progressSummary(
   const c = progressCopy[language],
     n = (v: number) =>
       new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(v);
+  if (data.training && data.training.planned_sessions === 0) lines.push(c.noTraining);
   if (data.training && data.training.due_sessions > 0)
     lines.push(
       language === "fa"
@@ -321,6 +324,7 @@ export function chartGeometry(
   series: readonly (readonly ChartDatum[])[],
   width: number,
   height: number,
+  yDomain?: readonly [number, number],
 ) {
   const padding = { left: 48, right: 14, top: 18, bottom: 32 };
   const times = series
@@ -336,8 +340,8 @@ export function chartGeometry(
   const low = values.length ? Math.min(...values) : 0,
     high = values.length ? Math.max(...values) : 1;
   const margin = Math.max((high - low) * 0.15, high * 0.02, 1),
-    minY = Math.max(0, low - margin),
-    maxY = high + margin;
+    minY = yDomain?.[0] ?? Math.max(0, low - margin),
+    maxY = yDomain?.[1] ?? high + margin;
   const lines = series.map((line) => {
     const points: ChartPoint[] = [],
       segments: ChartPoint[][] = [];

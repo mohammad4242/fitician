@@ -36,13 +36,20 @@ import { Screen } from "../ui/layout";
 import { getTextDirectionStyle } from "../ui/rtl";
 import { useMemberFeatureLanguage } from "../ui/useMemberFeatureLanguage";
 import { fiticianTokens as tokens } from "../ui/tokens";
-export function SupportScreen({
-  mode = "home",
-  ticketId,
-}: {
+type SupportScreenProps = {
   mode?: "home" | "tickets" | "new" | "detail";
   ticketId?: string;
-}) {
+};
+export function SupportScreen(props: SupportScreenProps) {
+  const auth = useMobileAuth();
+  return (
+    <SupportContent
+      key={`${auth.user?.id}:${props.mode}:${props.ticketId}`}
+      {...props}
+    />
+  );
+}
+function SupportContent({ mode = "home", ticketId }: SupportScreenProps) {
   const auth = useMobileAuth(),
     router = useRouter(),
     api = useMemo(() => createSupportApi(auth.request), [auth.request]),

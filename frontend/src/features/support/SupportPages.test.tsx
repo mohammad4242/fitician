@@ -118,3 +118,22 @@ it("shows approved public contacts and never requests anonymous tickets", () => 
   );
   expect(mocks.list).not.toHaveBeenCalled();
 });
+it("clears the previous member's tickets immediately on account change", async () => {
+  mocks.user = { id: "first" };
+  mocks.list.mockResolvedValue({ items: [ticket], older_cursor: null });
+  const tree = (
+    <MemoryRouter>
+      <MyTicketsPage />
+    </MemoryRouter>
+  );
+  const view = render(tree);
+  expect(await screen.findByText("Login help")).toBeInTheDocument();
+  mocks.user = { id: "second" };
+  mocks.list.mockImplementation(() => new Promise(() => undefined));
+  view.rerender(
+    <MemoryRouter>
+      <MyTicketsPage />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByText("Login help")).not.toBeInTheDocument();
+});

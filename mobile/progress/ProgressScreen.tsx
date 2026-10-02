@@ -42,6 +42,10 @@ const AnalysisDetails = lazy(() =>
   })),
 );
 export function ProgressScreen() {
+  const auth = useMobileAuth();
+  return <ProgressContent key={auth.user?.id} />;
+}
+function ProgressContent() {
   const auth = useMobileAuth(),
     access = useMobileEntitlements(),
     router = useRouter(),
@@ -171,6 +175,7 @@ export function ProgressScreen() {
               {progressSummary(data, language)
                 .slice(0, 2)
                 .map((value) => line(value, value))}
+              {data.context.current_program_id && line(c.program)}
               {data.context.week_number != null &&
                 line(`${c.programWeek} ${number(data.context.week_number)}`)}
               {line(
@@ -210,9 +215,18 @@ export function ProgressScreen() {
                 </Card>
               )}
               <Card style={styles.metric} direction={direction}>
-                {heading(c.weight)}
+                {heading(
+                  data.body_measurements.weight.delta == null
+                    ? c.weight
+                    : c.weightChange,
+                )}
                 <Text style={[styles.value, textStyle]}>
-                  {number(data.body_measurements.weight.delta, true)} kg
+                  {number(
+                    data.body_measurements.weight.delta ??
+                      data.body_measurements.weight.latest_value,
+                    data.body_measurements.weight.delta != null,
+                  )}{" "}
+                  kg
                 </Text>
                 {line(
                   data.body_measurements.weight.delta == null

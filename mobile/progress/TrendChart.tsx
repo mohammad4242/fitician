@@ -19,7 +19,7 @@ export function TrendChart({
   onSelect?: (index: number) => void;
 }) {
   const [width, setWidth] = useState(300),
-    chart = chartGeometry(series, width, 200),
+    chart = chartGeometry(series, width, 200, valueLabels ? [1, 3] : undefined),
     colors = [tokens.colors.aqua, tokens.colors.coral],
     number = (v: number) =>
       valueLabels?.[v] ??

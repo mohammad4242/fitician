@@ -5,7 +5,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
 from app.nutrition.adherence_policy import CALORIE_ALIGNMENT_LOWER, CALORIE_ALIGNMENT_UPPER
 from app.nutrition.calendar import nutrition_pattern_day_index
@@ -33,7 +33,17 @@ def nutrition_series(
     db: Session, user_id: UUID, start: date, end: date, today: date, zone: ZoneInfo
 ) -> ProgressNutrition:
     entries = db.scalars(
-        select(NutritionConsumptionEntry).where(
+        select(NutritionConsumptionEntry)
+        .options(
+            load_only(
+                NutritionConsumptionEntry.entry_date,
+                NutritionConsumptionEntry.plan_revision_id,
+                NutritionConsumptionEntry.nutrients,
+                NutritionConsumptionEntry.confidence,
+                NutritionConsumptionEntry.user_confirmed,
+            )
+        )
+        .where(
             NutritionConsumptionEntry.user_id == user_id,
             NutritionConsumptionEntry.entry_date >= start,
             NutritionConsumptionEntry.entry_date <= min(end, today),
@@ -45,7 +55,15 @@ def nutrition_series(
     checkins = {
         c.entry_date: c
         for c in db.scalars(
-            select(NutritionDailyCheckIn).where(
+            select(NutritionDailyCheckIn)
+            .options(
+                load_only(
+                    NutritionDailyCheckIn.entry_date,
+                    NutritionDailyCheckIn.plan_revision_id,
+                    NutritionDailyCheckIn.status,
+                )
+            )
+            .where(
                 NutritionDailyCheckIn.user_id == user_id,
                 NutritionDailyCheckIn.entry_date >= start,
                 NutritionDailyCheckIn.entry_date <= min(end, today),
@@ -104,15 +122,29 @@ def nutrition_series(
     plans = {
         p.id: p
         for p in db.scalars(
-            select(NutritionWeeklyPlan).where(
-                NutritionWeeklyPlan.user_id == user_id, NutritionWeeklyPlan.id.in_(ids)
+            select(NutritionWeeklyPlan)
+            .options(
+                load_only(
+                    NutritionWeeklyPlan.id,
+                    NutritionWeeklyPlan.start_date,
+                    NutritionWeeklyPlan.revision,
+                )
             )
+            .where(NutritionWeeklyPlan.user_id == user_id, NutritionWeeklyPlan.id.in_(ids))
         )
     }
     targets = {
         (p.plan_id, p.day_index): energy(p.nutrient_totals.get("energy_kcal"))
         for p in db.scalars(
-            select(NutritionWeeklyPlanDay).where(NutritionWeeklyPlanDay.plan_id.in_(plans))
+            select(NutritionWeeklyPlanDay)
+            .options(
+                load_only(
+                    NutritionWeeklyPlanDay.plan_id,
+                    NutritionWeeklyPlanDay.day_index,
+                    NutritionWeeklyPlanDay.nutrient_totals,
+                )
+            )
+            .where(NutritionWeeklyPlanDay.plan_id.in_(plans))
         )
     }
     decision = current_medical_safety_decision(db, user_id)

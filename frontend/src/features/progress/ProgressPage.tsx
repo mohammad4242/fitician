@@ -34,6 +34,10 @@ const AnalysisDetails = lazy(() =>
   })),
 );
 export function ProgressPage() {
+  const { user } = useAuth();
+  return <ProgressContent key={user?.id} />;
+}
+function ProgressContent() {
   const { i18n, t } = useTranslation(),
     language = i18n.resolvedLanguage === "en" ? "en" : "fa",
     c = progressCopy[language],
@@ -199,9 +203,17 @@ export function ProgressPage() {
               </article>
             )}
             <article className="progress-card">
-              <span>{c.weight}</span>
+              <span>
+                {data.body_measurements.weight.delta == null
+                  ? c.weight
+                  : c.weightChange}
+              </span>
               <strong>
-                {number(data.body_measurements.weight.delta, true)}{" "}
+                {number(
+                  data.body_measurements.weight.delta ??
+                    data.body_measurements.weight.latest_value,
+                  data.body_measurements.weight.delta != null,
+                )}{" "}
                 <small>kg</small>
               </strong>
               <small>
