@@ -96,6 +96,7 @@ export const progressCopy = {
     noBody: "با ثبت اندازه، روند تغییراتت اینجا نمایش داده می‌شود.",
     onePoint: "برای نمایش روند، حداقل یک ثبت دیگر لازم است.",
     noIntake: "برای این روز مصرفی ثبت نشده است.",
+    invalidIntake: "کالری برخی ثبت‌ها مشخص نیست؛ مجموع قابل محاسبه نیست.",
     noNutrition:
       "بعد از چند روز ثبت تغذیه، روند کالری و پایبندی اینجا نمایش داده می‌شود.",
     coverage: "روزهای ثبت‌شده",
@@ -169,6 +170,8 @@ export const progressCopy = {
     noBody: "Record a measurement to see your trend here.",
     onePoint: "One more measurement is needed to show a trend.",
     noIntake: "No intake was recorded for this day.",
+    invalidIntake:
+      "Some recorded calories are unknown; a total cannot be calculated.",
     noNutrition:
       "After a few days of tracking, calorie trends and alignment will appear here.",
     coverage: "Recorded days",
@@ -215,6 +218,17 @@ export const progressCopy = {
     selfReported: "Strength progress · self-reported at cycle end",
   },
 } as const;
+export const selfReportedProgressLabels: Record<
+  "fa" | "en",
+  Record<string, string>
+> = {
+  fa: {
+    declined: "کاهش داشته",
+    unchanged: "بدون تغییر",
+    improved: "بهبود داشته",
+  },
+  en: { declined: "Declined", unchanged: "Unchanged", improved: "Improved" },
+};
 export const recoveryLabels = {
   fa: { good: "خوب", average: "متوسط", poor: "ضعیف" },
   en: { good: "Good", average: "Average", poor: "Poor" },
@@ -265,7 +279,7 @@ export function progressSummary(
   const c = progressCopy[language],
     n = (v: number) =>
       new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(v);
-  if (data.training)
+  if (data.training && data.training.due_sessions > 0)
     lines.push(
       language === "fa"
         ? `${n(data.training.completed_sessions)} جلسه از ${n(data.training.due_sessions)} جلسه موعدرسیده را انجام داده‌ای.`

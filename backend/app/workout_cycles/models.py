@@ -167,6 +167,9 @@ class WorkoutCycleSession(Base):
     )
     week_number: Mapped[int] = mapped_column(Integer, nullable=False)
     session_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    reschedule_history_started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     scheduled_date: Mapped[date] = mapped_column(nullable=False)
     status: Mapped[WorkoutCycleSessionStatus] = mapped_column(
         Enum(
@@ -758,3 +761,19 @@ class WorkoutExerciseSafetySignal(Base):
     original_exercise: Mapped[Exercise] = relationship(foreign_keys=[original_exercise_id])
     replacement_exercise: Mapped[Exercise] = relationship(foreign_keys=[replacement_exercise_id])
     source_replacement: Mapped[WorkoutExerciseReplacement] = relationship()
+
+
+class WorkoutSessionRescheduleEvent(Base):
+    __tablename__ = "workout_session_reschedule_events"
+    __table_args__ = (
+        Index("ix_workout_reschedule_session_date", "session_id", "occurred_at"),
+        CheckConstraint("from_date != to_date", name="ck_workout_reschedule_real_change"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    session_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workout_cycle_sessions.id", ondelete="CASCADE"), nullable=False
+    )
+    from_date: Mapped[date] = mapped_column(nullable=False)
+    to_date: Mapped[date] = mapped_column(nullable=False)
+    is_requested: Mapped[bool] = mapped_column(nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

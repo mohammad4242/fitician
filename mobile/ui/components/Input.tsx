@@ -15,6 +15,7 @@ import { fiticianTokens } from "../tokens";
 
 export interface FormFieldProps {
   readonly children: ReactNode;
+  readonly direction?: "rtl" | "ltr";
   readonly description?: string;
   readonly error?: string;
   readonly label?: string;
@@ -24,6 +25,7 @@ export interface FormFieldProps {
 
 export function FormField({
   children,
+  direction = "rtl",
   description,
   error,
   label,
@@ -33,16 +35,16 @@ export function FormField({
   const statusMessage = error ?? description;
 
   return (
-    <View style={[styles.field, RTL_LAYOUT, style]}>
+    <View style={[styles.field, RTL_LAYOUT, {direction}, style]}>
       {label ? (
-        <Text style={styles.label}>
+        <Text style={[styles.label, getTextDirectionStyle(direction)]}>
           {label}
           {required ? <Text style={styles.required}> *</Text> : null}
         </Text>
       ) : null}
       {children}
       {statusMessage ? (
-        <Text style={[styles.status, error ? styles.error : styles.description]}>{statusMessage}</Text>
+        <Text style={[styles.status, getTextDirectionStyle(direction), error ? styles.error : styles.description]}>{statusMessage}</Text>
       ) : null}
     </View>
   );
@@ -56,6 +58,7 @@ export interface TextFieldProps extends Omit<TextInputProps, "accessibilityLabel
   readonly required?: boolean;
   readonly style?: StyleProp<TextStyle>;
   readonly textDirection?: "auto" | "ltr" | "rtl";
+  readonly labelDirection?: "rtl" | "ltr";
 }
 
 function resolveTextDirection(
@@ -92,6 +95,7 @@ export function TextField({
   required = false,
   style,
   textDirection,
+  labelDirection = "rtl",
   ...textInputProps
 }: TextFieldProps) {
   const resolvedTextDirection = resolveTextDirection(textDirection, textInputProps);
@@ -100,7 +104,7 @@ export function TextField({
     : getTextDirectionStyle(resolvedTextDirection);
 
   return (
-    <FormField error={error} description={hint} label={label} required={required}>
+    <FormField direction={labelDirection} error={error} description={hint} label={label} required={required}>
       <TextInput
         {...textInputProps}
         allowFontScaling={textInputProps.allowFontScaling ?? true}

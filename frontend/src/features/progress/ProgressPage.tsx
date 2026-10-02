@@ -15,6 +15,7 @@ import {
   progressSummary,
   goalLabels,
   recoveryLabels,
+  selfReportedProgressLabels,
   difficultyLabels,
   resolvedIanaTimeZone,
   type BodyMetric,
@@ -205,7 +206,9 @@ export function ProgressPage() {
               </strong>
               <small>
                 {data.body_measurements.weight.delta == null
-                  ? c.onePoint
+                  ? data.body_measurements.weight.points.length
+                    ? c.onePoint
+                    : c.noBody
                   : date(data.context.start_date) +
                     " — " +
                     date(data.context.end_date)}
@@ -349,7 +352,9 @@ export function ProgressPage() {
                   </span>
                   <span>
                     {calorieDay.actual_kcal == null
-                      ? c.noIntake
+                      ? calorieDay.logging_state === "invalid"
+                        ? c.invalidIntake
+                        : c.noIntake
                       : `${c.actual}: ${number(calorieDay.actual_kcal)} kcal`}
                   </span>
                   {calorieDay.actual_kcal != null &&
@@ -449,10 +454,9 @@ export function ProgressPage() {
                   {training.self_reported_cycle_progress && (
                     <p>
                       {c.selfReported}:{" "}
-                      {t(
-                        `workoutCycle.feedbackOptions.progress.${training.self_reported_cycle_progress}`,
-                        training.self_reported_cycle_progress,
-                      )}
+                      {selfReportedProgressLabels[language][
+                        training.self_reported_cycle_progress
+                      ] ?? training.self_reported_cycle_progress}
                     </p>
                   )}
                 </details>
@@ -480,6 +484,11 @@ export function ProgressPage() {
                         ]}
                         labels={[c.recovery]}
                         unit=""
+                        valueLabels={{
+                          1: recoveryLabels[language].poor,
+                          2: recoveryLabels[language].average,
+                          3: recoveryLabels[language].good,
+                        }}
                         language={language}
                       />
                     )}

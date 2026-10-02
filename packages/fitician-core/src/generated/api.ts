@@ -11208,6 +11208,8 @@ export type components = {
             overdue_sessions: number;
             /** Planned Sessions */
             planned_sessions: number;
+            /** Reschedule History From */
+            reschedule_history_from?: string | null;
             /** Rescheduled Sessions */
             rescheduled_sessions?: number | null;
             /** Self Reported Cycle Progress */

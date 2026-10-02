@@ -21306,6 +21306,18 @@
             "title": "Planned Sessions",
             "type": "integer"
           },
+          "reschedule_history_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reschedule History From"
+          },
           "rescheduled_sessions": {
             "anyOf": [
               {

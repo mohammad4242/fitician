@@ -36,6 +36,7 @@ class ProgressTraining(BaseModel):
     skipped_sessions: int
     overdue_sessions: int
     rescheduled_sessions: int | None = None
+    reschedule_history_from: datetime | None = None
     adherence_percent: float | None
     denominator: Literal["elapsed_scheduled_dates_plus_resolved_today"] = (
         "elapsed_scheduled_dates_plus_resolved_today"

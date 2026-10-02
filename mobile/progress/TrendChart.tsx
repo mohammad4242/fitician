@@ -9,18 +9,21 @@ export function TrendChart({
   unit,
   language,
   onSelect,
+  valueLabels,
 }: {
   series: ChartDatum[][];
   labels: string[];
   unit: string;
   language: "fa" | "en";
+  valueLabels?: Record<number, string>;
   onSelect?: (index: number) => void;
 }) {
   const [width, setWidth] = useState(300),
     chart = chartGeometry(series, width, 200),
     colors = [tokens.colors.aqua, tokens.colors.coral],
     number = (v: number) =>
-      new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(v),
+      valueLabels?.[v] ??
+      new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(v),
     date = (v: number) =>
       new Intl.DateTimeFormat(language, {
         month: "short",
@@ -41,7 +44,12 @@ export function TrendChart({
         viewBox={`0 0 ${width} 200`}
         accessibilityLabel={labels.join(" / ")}
       >
-        {[0, 0.5, 1].map((f) => {
+        {(valueLabels
+          ? Object.keys(valueLabels)
+              .map(Number)
+              .map((v) => (chart.maxY - v) / (chart.maxY - chart.minY))
+          : [0, 0.5, 1]
+        ).map((f) => {
           const y =
             chart.padding.top +
             f * (chart.height - chart.padding.top - chart.padding.bottom);
@@ -50,7 +58,11 @@ export function TrendChart({
               key={f}
               y={y}
               width={width}
-              value={number(chart.maxY - f * (chart.maxY - chart.minY))}
+              value={number(
+                valueLabels
+                  ? Math.round(chart.maxY - f * (chart.maxY - chart.minY))
+                  : chart.maxY - f * (chart.maxY - chart.minY),
+              )}
             />
           );
         })}

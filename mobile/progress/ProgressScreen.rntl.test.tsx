@@ -1,3 +1,7 @@
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(async () => null),
+  setItemAsync: jest.fn(async () => undefined),
+}));
 import {
   fireEvent,
   render,
@@ -97,4 +101,17 @@ test("shows a recoverable error", async () => {
       screen.getByText("دریافت پیشرفت ناموفق بود. دوباره تلاش کن."),
     ).toBeTruthy(),
   );
+});
+test("offers English presentation with LTR text", async () => {
+  const request = jest.fn(async () => data);
+  jest
+    .mocked(useMobileAuth)
+    .mockReturnValue({ user: { id: "member" }, request } as never);
+  render(<ProgressScreen />);
+  await screen.findByText("کالری و پایبندی تغذیه");
+  fireEvent.press(screen.getByRole("button", { name: "English" }));
+  expect(screen.getByText("Calories & nutrition adherence")).toBeTruthy();
+  expect(screen.getByRole("header", { name: "My Progress" })).toHaveStyle({
+    writingDirection: "ltr",
+  });
 });

@@ -4,12 +4,13 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.body_analysis.models import BodyAnalysis
 from app.body_photos.models import BodyPhotoSession
-from app.nutrition.enums import NutritionPlanLifecycleStatus
+from app.nutrition.enums import NutritionPlanLifecycleStatus, SafetyOutcome
+from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.models import NutritionWeeklyPlan
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
@@ -31,6 +32,7 @@ from app.workout_cycles.models import (
     WorkoutCycleFeedback,
     WorkoutCycleSession,
     WorkoutCycleWeeklyCheckIn,
+    WorkoutSessionRescheduleEvent,
 )
 
 
@@ -81,6 +83,10 @@ def overview(
         if training_enabled
         else None
     )
+    safety = current_medical_safety_decision(db, user_id) if nutrition_enabled else None
+    nutrition_blocked = (
+        safety is not None and safety.outcome == SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED
+    )
     nutrition_plan = (
         db.scalar(
             select(NutritionWeeklyPlan)
@@ -94,7 +100,7 @@ def overview(
             .order_by(NutritionWeeklyPlan.started_at.desc(), NutritionWeeklyPlan.revision.desc())
             .limit(1)
         )
-        if nutrition_enabled
+        if nutrition_enabled and not nutrition_blocked
         else None
     )
     program_start = (
@@ -161,7 +167,39 @@ def overview(
             .order_by(WorkoutCycleFeedback.submitted_at.desc())
             .limit(1)
         )
+        # A legacy session may have moved out of this period. Current schedule rows
+        # cannot prove that the historical reschedule count was zero.
+        history_from = db.scalar(
+            select(func.max(WorkoutCycleSession.reschedule_history_started_at))
+            .join(WorkoutCycle)
+            .where(
+                WorkoutCycle.user_id == user_id,
+                WorkoutCycleSession.created_at < WorkoutCycleSession.reschedule_history_started_at,
+                WorkoutCycleSession.reschedule_history_started_at
+                > datetime.combine(start, datetime.min.time(), tz),
+            )
+        )
+        rescheduled = (
+            db.scalar(
+                select(func.count(func.distinct(WorkoutSessionRescheduleEvent.session_id)))
+                .join(
+                    WorkoutCycleSession,
+                    WorkoutCycleSession.id == WorkoutSessionRescheduleEvent.session_id,
+                )
+                .join(WorkoutCycle)
+                .where(
+                    WorkoutCycle.user_id == user_id,
+                    WorkoutSessionRescheduleEvent.is_requested.is_(True),
+                    WorkoutSessionRescheduleEvent.occurred_at
+                    >= datetime.combine(start, datetime.min.time(), tz),
+                    WorkoutSessionRescheduleEvent.occurred_at <= current,
+                )
+            )
+            or 0
+        )
         result.training = ProgressTraining(
+            rescheduled_sessions=None if history_from else rescheduled,
+            reschedule_history_from=history_from,
             planned_sessions=len(sessions),
             due_sessions=len(due),
             completed_sessions=completed,

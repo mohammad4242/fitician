@@ -187,3 +187,19 @@ def test_plan_revisions_full_week_missing_invalid_and_timezone(client, db):
         )
     )
     assert any(e.effective_on == (start + timedelta(days=4)).date() for e in history)
+
+
+def test_medical_block_hides_plan_context_and_historical_targets(client, db, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.nutrition.enums import SafetyOutcome
+
+    plan = _plan(client, db)
+    decision = SimpleNamespace(outcome=SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED)
+    monkeypatch.setattr("app.progress.service.current_medical_safety_decision", lambda *_: decision)
+    monkeypatch.setattr(
+        "app.progress.nutrition.current_medical_safety_decision", lambda *_: decision
+    )
+    result = overview(db, plan.user_id, preset="week", timezone="UTC")
+    assert result.context.current_program_id is None
+    assert all(p.target_kcal is None and p.target_plan_id is None for p in result.nutrition.series)

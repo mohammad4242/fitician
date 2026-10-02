@@ -73,3 +73,40 @@ def test_api_authentication_owner_scope_and_timezone(client, db, test_settings):
     assert "user_id" not in payload
     client.cookies.clear()
     assert client.get("/api/v1/progress/overview").status_code == 401
+
+
+@pytest.mark.parametrize("count", [0, 1, 3])
+def test_recovery_observations_and_cross_user_privacy(db, count):
+    from app.workout_cycles.enums import (
+        WorkoutCycleWeeklyCheckInDifficulty,
+        WorkoutCycleWeeklyCheckInRecovery,
+    )
+    from app.workout_cycles.models import WorkoutCycleWeeklyCheckIn
+
+    user = _user(db)
+    make_profile(db, user.id)
+    cycle = begin_cycle(db, user.id, make_plan(db, user.id, weekdays=(0, 2, 4)), date(2026, 9, 12))
+    for i in range(count):
+        db.add(
+            WorkoutCycleWeeklyCheckIn(
+                user_id=user.id,
+                cycle_id=cycle.id,
+                week_number=i + 1,
+                sessions_completed=2,
+                perceived_difficulty=WorkoutCycleWeeklyCheckInDifficulty.APPROPRIATE,
+                recovery_rating=WorkoutCycleWeeklyCheckInRecovery.GOOD,
+                has_pain_or_limitation=False,
+                submitted_at=datetime(2026, 9, 15 + i * 7, tzinfo=UTC),
+            )
+        )
+    db.flush()
+    now = datetime(2026, 10, 2, tzinfo=UTC)
+    result = overview(db, user.id, preset="four_weeks", timezone="UTC", now=now)
+    assert len(result.recovery) == count
+    assert all(p.recovery == "good" for p in result.recovery)
+    other = _user(db)
+    make_profile(db, other.id)
+    other_result = overview(db, other.id, preset="four_weeks", timezone="UTC", now=now)
+    assert other_result.recovery == []
+    assert other_result.context.current_program_id is None
+    assert other_result.training.planned_sessions == 0

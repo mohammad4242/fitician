@@ -17,6 +17,7 @@ import {
   progressSummary,
   goalLabels,
   recoveryLabels,
+  selfReportedProgressLabels,
   difficultyLabels,
   resolvedIanaTimeZone,
   type BodyMetric,
@@ -31,9 +32,10 @@ import { Card } from "../ui/components/Card";
 import { DisclosureCard } from "../ui/components/DisclosureCard";
 import { TextField } from "../ui/components/Input";
 import { Screen } from "../ui/layout";
-import { getTextDirectionStyle, languageForDirection } from "../ui/rtl";
+import { getTextDirectionStyle } from "../ui/rtl";
 import { fiticianTokens as tokens } from "../ui/tokens";
 import { TrendChart } from "./TrendChart";
+import { useMemberFeatureLanguage } from "../ui/useMemberFeatureLanguage";
 const AnalysisDetails = lazy(() =>
   import("../bodyAnalysis/BodyAnalysisHistoryScreen").then((m) => ({
     default: m.BodyAnalysisHistoryScreen,
@@ -44,7 +46,7 @@ export function ProgressScreen() {
     access = useMobileEntitlements(),
     router = useRouter(),
     api = useMemo(() => createProgressApi(auth.request), [auth.request]),
-    language = languageForDirection(),
+    [language, changeLanguage] = useMemberFeatureLanguage(),
     c = progressCopy[language],
     direction = language === "fa" ? "rtl" : "ltr",
     textStyle = getTextDirectionStyle(direction),
@@ -126,6 +128,11 @@ export function ProgressScreen() {
       contentContainerStyle={{ direction }}
     >
       <View style={styles.stack}>
+        <Button
+          variant="ghost"
+          label={language === "fa" ? "English" : "فارسی"}
+          onPress={() => changeLanguage(language === "fa" ? "en" : "fa")}
+        />
         <Text accessibilityRole="header" style={[styles.title, textStyle]}>
           {c.title}
         </Text>
@@ -209,7 +216,9 @@ export function ProgressScreen() {
                 </Text>
                 {line(
                   data.body_measurements.weight.delta == null
-                    ? c.onePoint
+                    ? data.body_measurements.weight.points.length
+                      ? c.onePoint
+                      : c.noBody
                     : c.bodyTrend,
                 )}
               </Card>
@@ -362,7 +371,9 @@ export function ProgressScreen() {
                     )}
                     {line(
                       calorieDay.actual_kcal == null
-                        ? c.noIntake
+                        ? calorieDay.logging_state === "invalid"
+                          ? c.invalidIntake
+                          : c.noIntake
                         : `${c.actual}: ${number(calorieDay.actual_kcal)} kcal`,
                     )}
                     {calorieDay.actual_kcal != null &&
@@ -402,6 +413,10 @@ export function ProgressScreen() {
                 summary={`${c.completed}: ${number(training.completed_sessions)} / ${number(training.due_sessions)}`}
               >
                 {line(c.trainingRule)}
+                {training.self_reported_cycle_progress &&
+                  line(
+                    `${c.selfReported}: ${selfReportedProgressLabels[language][training.self_reported_cycle_progress] ?? training.self_reported_cycle_progress}`,
+                  )}
                 {line(
                   `${c.planned}: ${number(training.planned_sessions)} · ${c.skipped}: ${number(training.skipped_sessions)} · ${c.overdue}: ${number(training.overdue_sessions)}`,
                 )}
@@ -456,6 +471,11 @@ export function ProgressScreen() {
                         ]}
                         labels={[c.recovery]}
                         unit=""
+                        valueLabels={{
+                          1: recoveryLabels[language].poor,
+                          2: recoveryLabels[language].average,
+                          3: recoveryLabels[language].good,
+                        }}
                         language={language}
                       />
                     )}

@@ -1,53 +1,572 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { createMessageRequestId, helpCategories, helpCategoryLabels, searchHelp, supportCopy, supportCategories, supportCategoryLabels, supportStatusLabels, supportStatuses, supportContacts, mergeSupportMessages, type HelpCategory, type SupportCategory, type SupportDetail, type SupportTicket, type SupportLanguage, type SupportStatus } from '@fitician/core';
-import { useAuth } from '../auth/AuthContext';
-import { LanguageSwitcher } from '../../shared/LanguageSwitcher';
-import { supportApi, adminSupportApi } from './api';
-import './support.css';
-function useSupportLanguage() { const {i18n}=useTranslation();return (i18n.resolvedLanguage==='en'?'en':'fa') as SupportLanguage; }
-export function SupportLayout({children,admin=false}:{children:ReactNode;admin?:boolean}) {
- const language=useSupportLanguage(),copy=supportCopy[language],{user}=useAuth();
- return <main className="support-page fitician-page" dir={language==='fa'?'rtl':'ltr'}><header className="support-header"><Link to={user?'/more':'/login'} className="support-brand">Fitician</Link><LanguageSwitcher /></header><nav className="support-nav" aria-label={copy.title}><Link to="/support">{copy.help}</Link>{user&&<><Link to={admin?'/admin/support':'/support/tickets'}>{admin?copy.queue:copy.tickets}</Link>{!admin&&<Link to="/support/new">{copy.create}</Link>}</>}</nav>{children}</main>;
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  createMessageRequestId,
+  helpCategories,
+  helpCategoryLabels,
+  searchHelp,
+  supportCopy,
+  supportCategories,
+  supportCategoryLabels,
+  supportStatusLabels,
+  supportStatuses,
+  supportContacts,
+  mergeSupportMessages,
+  type HelpCategory,
+  type SupportCategory,
+  type SupportDetail,
+  type SupportTicket,
+  type SupportLanguage,
+  type SupportMetadata,
+  type SupportStatus,
+} from "@fitician/core";
+import { useAuth } from "../auth/AuthContext";
+import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
+import { supportApi, adminSupportApi } from "./api";
+import "./support.css";
+function useSupportLanguage() {
+  const { i18n } = useTranslation();
+  return (i18n.resolvedLanguage === "en" ? "en" : "fa") as SupportLanguage;
 }
-export function SupportContacts() { const lang=useSupportLanguage(),c=supportCopy[lang];return <aside className="support-contact"><h2>{c.title}</h2><a href={`mailto:${supportContacts.email}`} dir="ltr">{supportContacts.email}</a><a href={supportContacts.instagramUrl} target="_blank" rel="noopener noreferrer">{c.instagram} <bdi>{supportContacts.instagramHandle}</bdi></a></aside>; }
+export function SupportLayout({
+  children,
+  admin = false,
+}: {
+  children: ReactNode;
+  admin?: boolean;
+}) {
+  const language = useSupportLanguage(),
+    copy = supportCopy[language],
+    { user } = useAuth();
+  return (
+    <main
+      className="support-page fitician-page"
+      dir={language === "fa" ? "rtl" : "ltr"}
+    >
+      <header className="support-header">
+        <Link to={user ? "/more" : "/login"} className="support-brand">
+          Fitician
+        </Link>
+        <LanguageSwitcher />
+      </header>
+      <nav className="support-nav" aria-label={copy.title}>
+        <Link to="/support">{copy.help}</Link>
+        {user && (
+          <>
+            <Link to={admin ? "/admin/support" : "/support/tickets"}>
+              {admin ? copy.queue : copy.tickets}
+            </Link>
+            {!admin && <Link to="/support/new">{copy.create}</Link>}
+          </>
+        )}
+      </nav>
+      {children}
+    </main>
+  );
+}
+export function SupportContacts() {
+  const lang = useSupportLanguage(),
+    c = supportCopy[lang];
+  return (
+    <aside className="support-contact">
+      <h2>{c.title}</h2>
+      <a href={`mailto:${supportContacts.email}`} dir="ltr">
+        {supportContacts.email}
+      </a>
+      <a
+        href={supportContacts.instagramUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {c.instagram} <bdi>{supportContacts.instagramHandle}</bdi>
+      </a>
+    </aside>
+  );
+}
 export function HelpCenterPage() {
- const lang=useSupportLanguage(),c=supportCopy[lang],{user}=useAuth(); const [query,setQuery]=useState(''),[category,setCategory]=useState<HelpCategory>();
- const articles=searchHelp(lang,query,category);
- return <SupportLayout><section className="support-hero"><span>{c.help}</span><h1>{c.hero}</h1><input type="search" aria-label={c.search} placeholder={c.search} value={query} onChange={e=>setQuery(e.target.value)} /></section><div className="support-categories"><button aria-pressed={!category} onClick={()=>setCategory(undefined)}>{c.all}</button>{helpCategories.map(id=><button key={id} aria-pressed={id===category} onClick={()=>setCategory(id)}>{helpCategoryLabels[lang][id]}</button>)}</div><section className="support-articles" aria-label={c.help}>{!articles.length&&<p role="status">{c.noResults}</p>}{articles.map(a=><details key={a.id} id={a.id}><summary>{a.content[lang].title}</summary>{a.content[lang].paragraphs.map((p,i)=><p key={i}>{p}</p>)}</details>)}</section><div className="support-next"><p>{user?c.emptyHint:c.login}</p><Link className="support-primary" to={user?'/support/new':'/login'}>{user?c.create:c.login}</Link></div><SupportContacts /></SupportLayout>;
+  const lang = useSupportLanguage(),
+    c = supportCopy[lang],
+    { user } = useAuth();
+  const [query, setQuery] = useState(""),
+    [category, setCategory] = useState<HelpCategory>();
+  const articles = searchHelp(lang, query, category);
+  return (
+    <SupportLayout>
+      <section className="support-hero">
+        <span>{c.help}</span>
+        <h1>{c.hero}</h1>
+        <input
+          type="search"
+          aria-label={c.search}
+          placeholder={c.search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </section>
+      <div className="support-categories">
+        <button aria-pressed={!category} onClick={() => setCategory(undefined)}>
+          {c.all}
+        </button>
+        {helpCategories.map((id) => (
+          <button
+            key={id}
+            aria-pressed={id === category}
+            onClick={() => setCategory(id)}
+          >
+            {helpCategoryLabels[lang][id]}
+          </button>
+        ))}
+      </div>
+      <section className="support-articles" aria-label={c.help}>
+        {!articles.length && <p role="status">{c.noResults}</p>}
+        {articles.map((a) => (
+          <details key={a.id} id={a.id}>
+            <summary>{a.content[lang].title}</summary>
+            {a.content[lang].paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </details>
+        ))}
+      </section>
+      <div className="support-next">
+        <p>{user ? c.emptyHint : c.login}</p>
+        <Link className="support-primary" to={user ? "/support/new" : "/login"}>
+          {user ? c.create : c.login}
+        </Link>
+      </div>
+      <SupportContacts />
+    </SupportLayout>
+  );
 }
-function ErrorState({retry}:{retry:()=>void}) { const c=supportCopy[useSupportLanguage()];return <div role="alert" className="support-error"><p>{c.error}</p><button onClick={retry}>{c.retry}</button></div>; }
-function Stamp({value}:{value:string}) { const l=useSupportLanguage();return <time dateTime={value}>{new Intl.DateTimeFormat(l,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}</time>; }
+function ErrorState({ retry }: { retry: () => void }) {
+  const c = supportCopy[useSupportLanguage()];
+  return (
+    <div role="alert" className="support-error">
+      <p>{c.error}</p>
+      <button onClick={retry}>{c.retry}</button>
+    </div>
+  );
+}
+function Stamp({ value }: { value: string }) {
+  const l = useSupportLanguage();
+  return (
+    <time dateTime={value}>
+      {new Intl.DateTimeFormat(l, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value))}
+    </time>
+  );
+}
 export function MyTicketsPage() {
- const lang=useSupportLanguage(),c=supportCopy[lang];const [tickets,setTickets]=useState<SupportTicket[]>([]),[cursor,setCursor]=useState<string|null>(null),[state,setState]=useState<'loading'|'ready'|'error'>('loading'); const epoch=useRef(0);
- const load=useCallback(async(before?:string)=>{const generation=++epoch.current;setState('loading');try{const page=await supportApi.list({before});if(generation!==epoch.current)return;setTickets(prev=>before?[...new Map([...prev,...page.items].map(t=>[t.id,t])).values()]:page.items);setCursor(page.older_cursor);setState('ready');}catch{if(generation===epoch.current)setState('error');}},[]);
- useEffect(()=>{void load();return()=>{
- // Invalidate pending API responses when this screen unmounts.
- // eslint-disable-next-line react-hooks/exhaustive-deps
- epoch.current++;};},[load]);
- return <SupportLayout><div className="support-heading"><h1>{c.tickets}</h1><Link className="support-primary" to="/support/new">{c.create}</Link></div>{state==='error'&&<ErrorState retry={()=>void load()} />}{state==='loading'&&<p role="status">{c.loading}</p>}{state==='ready'&&!tickets.length&&<section className="support-empty"><h2>{c.empty}</h2><p>{c.emptyHint}</p></section>}<div className="support-tickets">{tickets.map(t=><Link to={`/support/tickets/${t.id}`} key={t.id}><div><h2>{t.subject}</h2><span>{supportCategoryLabels[lang][t.category]}</span></div><div><span className="support-status" data-status={t.status}>{supportStatusLabels[lang][t.status]}</span><Stamp value={t.last_activity_at} /></div></Link>)}</div>{cursor&&<button disabled={state==='loading'} onClick={()=>void load(cursor)}>{c.older}</button>}</SupportLayout>;
+  const { user } = useAuth();
+  return <MyTicketsContent key={user?.id} />;
+}
+function MyTicketsContent() {
+  const lang = useSupportLanguage(),
+    c = supportCopy[lang];
+  const [tickets, setTickets] = useState<SupportTicket[]>([]),
+    [cursor, setCursor] = useState<string | null>(null),
+    [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const epoch = useRef(0);
+  const load = useCallback(async (before?: string) => {
+    const generation = ++epoch.current;
+    setState("loading");
+    try {
+      const page = await supportApi.list({ before });
+      if (generation !== epoch.current) return;
+      setTickets((prev) =>
+        before
+          ? [
+              ...new Map(
+                [...prev, ...page.items].map((t) => [t.id, t]),
+              ).values(),
+            ]
+          : page.items,
+      );
+      setCursor(page.older_cursor);
+      setState("ready");
+    } catch {
+      if (generation === epoch.current) setState("error");
+    }
+  }, []);
+  useEffect(() => {
+    void load();
+    return () => {
+      // Invalidate pending API responses when this screen unmounts.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      epoch.current++;
+    };
+  }, [load]);
+  return (
+    <SupportLayout>
+      <div className="support-heading">
+        <h1>{c.tickets}</h1>
+        <Link className="support-primary" to="/support/new">
+          {c.create}
+        </Link>
+      </div>
+      {state === "error" && <ErrorState retry={() => void load()} />}
+      {state === "loading" && <p role="status">{c.loading}</p>}
+      {state === "ready" && !tickets.length && (
+        <section className="support-empty">
+          <h2>{c.empty}</h2>
+          <p>{c.emptyHint}</p>
+        </section>
+      )}
+      <div className="support-tickets">
+        {tickets.map((t) => (
+          <Link to={`/support/tickets/${t.id}`} key={t.id}>
+            <div>
+              <h2>{t.subject}</h2>
+              <span>{supportCategoryLabels[lang][t.category]}</span>
+            </div>
+            <div>
+              <span className="support-status" data-status={t.status}>
+                {supportStatusLabels[lang][t.status]}
+              </span>
+              <Stamp value={t.last_activity_at} />
+            </div>
+          </Link>
+        ))}
+      </div>
+      {cursor && (
+        <button
+          disabled={state === "loading"}
+          onClick={() => void load(cursor)}
+        >
+          {c.older}
+        </button>
+      )}
+    </SupportLayout>
+  );
 }
 export function NewTicketPage() {
- const lang=useSupportLanguage(),c=supportCopy[lang],navigate=useNavigate();const [category,setCategory]=useState<SupportCategory>('technical'),[subject,setSubject]=useState(''),[description,setDescription]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(false);const pending=useRef<{key:string;id:string}|null>(null),mounted=useRef(true);
- useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
- async function submit() {if(busy||!subject.trim()||!description.trim())return;const key=JSON.stringify([category,subject.trim(),description.trim()]);if(pending.current?.key!==key)pending.current={key,id:createMessageRequestId()};setBusy(true);setError(false);try{const ticket=await supportApi.create({category,subject:subject.trim(),description:description.trim(),request_id:pending.current.id,metadata:{platform:'web',locale:lang}});if(mounted.current)navigate(`/support/tickets/${ticket.id}`,{replace:true});}catch{if(mounted.current)setError(true);}finally{if(mounted.current)setBusy(false);} }
- return <SupportLayout><h1>{c.create}</h1><form className="support-form" onSubmit={e=>{e.preventDefault();void submit();}}><label>{c.category}<select disabled={busy} value={category} onChange={e=>setCategory(e.target.value as SupportCategory)}>{supportCategories.map(id=><option key={id} value={id}>{supportCategoryLabels[lang][id]}</option>)}</select></label><label>{c.subject}<input required disabled={busy} maxLength={160} value={subject} onChange={e=>setSubject(e.target.value)} /></label><label>{c.description}<textarea required disabled={busy} maxLength={4000} rows={6} value={description} onChange={e=>setDescription(e.target.value)} /></label><p className="support-muted">{c.privacy}</p>{error&&<p role="alert">{c.error}</p>}<button className="support-primary" disabled={busy||!subject.trim()||!description.trim()}>{busy?c.loading:c.create}</button></form></SupportLayout>;
+  const { user } = useAuth();
+  return <NewTicketContent key={user?.id} />;
 }
-export function SupportTicketPage({admin=false}:{admin?:boolean}) {
- const {ticketId=''}=useParams();return <SupportLayout admin={admin}><SupportThread key={ticketId} ticketId={ticketId} admin={admin} /></SupportLayout>;
+function NewTicketContent() {
+  const lang = useSupportLanguage(),
+    c = supportCopy[lang],
+    navigate = useNavigate();
+  const [category, setCategory] = useState<SupportCategory>("technical"),
+    [subject, setSubject] = useState(""),
+    [description, setDescription] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(false);
+  const pending = useRef<{
+      key: string;
+      id: string;
+      metadata: SupportMetadata;
+    } | null>(null),
+    sending = useRef(false),
+    mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  async function submit() {
+    if (sending.current || !subject.trim() || !description.trim()) return;
+    const key = JSON.stringify([category, subject.trim(), description.trim()]);
+    if (pending.current?.key !== key)
+      pending.current = {
+        key,
+        id: createMessageRequestId(),
+        metadata: { platform: "web", locale: lang },
+      };
+    sending.current = true;
+    setBusy(true);
+    setError(false);
+    try {
+      const ticket = await supportApi.create({
+        category,
+        subject: subject.trim(),
+        description: description.trim(),
+        request_id: pending.current.id,
+        metadata: pending.current.metadata,
+      });
+      if (mounted.current)
+        navigate(`/support/tickets/${ticket.id}`, { replace: true });
+    } catch {
+      if (mounted.current) setError(true);
+    } finally {
+      sending.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  return (
+    <SupportLayout>
+      <h1>{c.create}</h1>
+      <form
+        className="support-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <label>
+          {c.category}
+          <select
+            disabled={busy}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as SupportCategory)}
+          >
+            {supportCategories.map((id) => (
+              <option key={id} value={id}>
+                {supportCategoryLabels[lang][id]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {c.subject}
+          <input
+            required
+            disabled={busy}
+            maxLength={160}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
+        </label>
+        <label>
+          {c.description}
+          <textarea
+            required
+            disabled={busy}
+            maxLength={4000}
+            rows={6}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <p className="support-muted">{c.privacy}</p>
+        {error && <p role="alert">{c.error}</p>}
+        <button
+          className="support-primary"
+          disabled={busy || !subject.trim() || !description.trim()}
+        >
+          {busy ? c.loading : c.create}
+        </button>
+      </form>
+    </SupportLayout>
+  );
 }
-export function SupportThread({ticketId,admin=false}:{ticketId:string;admin?:boolean}) {
- const lang=useSupportLanguage(),c=supportCopy[lang],api=admin?adminSupportApi:supportApi;const [detail,setDetail]=useState<SupportDetail|null>(null),[error,setError]=useState(false),[busy,setBusy]=useState(false),[body,setBody]=useState('');const pending=useRef<{body:string;id:string}|null>(null),epoch=useRef(0),sending=useRef(false);
- const load=useCallback(async(before?:string)=>{const generation=++epoch.current;setError(false);try{const next=await api.detail(ticketId,before);if(generation!==epoch.current)return;setDetail(prev=>before&&prev?{...next,messages:mergeSupportMessages(next.messages,prev.messages)}:next);const last=next.messages.at(-1);if(last)void api.read(ticketId,last.id).catch(()=>undefined);}catch{if(generation===epoch.current)setError(true);}},[api,ticketId]);
- useEffect(()=>{void load();return()=>{
- // Invalidate pending API responses when this screen unmounts.
- // eslint-disable-next-line react-hooks/exhaustive-deps
- epoch.current++;};},[load]);
- async function changeStatus(status:SupportStatus) {
- if(sending.current||!detail)return; const key="status:"+status; if(pending.current?.body!==key)pending.current={body:key,id:createMessageRequestId()};sending.current=true;setBusy(true);setError(false);const generation=epoch.current;try{const ticket=await api.status(ticketId,status,pending.current.id);if(generation===epoch.current){setDetail(prev=>prev?{...prev,ticket}:prev);pending.current=null;}}catch{if(generation===epoch.current)setError(true);}finally{sending.current=false;setBusy(false);}
- }
- async function reply() {if(sending.current||!body.trim())return;const text=body.trim();if(pending.current?.body!==text)pending.current={body:text,id:createMessageRequestId()};sending.current=true;setBusy(true);setError(false);const generation=epoch.current;try{const message=await api.reply(ticketId,text,pending.current.id);if(generation!==epoch.current)return;setDetail(prev=>prev?{...prev,ticket:{...prev.ticket,status:admin?'awaiting_user':'open',last_activity_at:message.created_at},messages:mergeSupportMessages(prev.messages,[message])}:prev);setBody('');pending.current=null;void load();}catch{if(generation===epoch.current)setError(true);}finally{sending.current=false;setBusy(false);} }
- if(!detail)return <>{error?<ErrorState retry={()=>void load()} />:<p role="status">{c.loading}</p>}</>;
- return <><header className="support-heading"><div><span>{supportCategoryLabels[lang][detail.ticket.category]}</span><h1>{detail.ticket.subject}</h1><span className="support-status" data-status={detail.ticket.status}>{supportStatusLabels[lang][detail.ticket.status]}</span></div><button onClick={()=>void load()}>{c.refresh}</button></header>{error&&<ErrorState retry={()=>void load()} />}{detail.older_cursor&&<button onClick={()=>void load(detail.older_cursor!)}>{c.older}</button>}{admin&&<label className="support-status-editor">{c.status}<select aria-label={c.status} value={detail.ticket.status} disabled={busy} onChange={e=>void changeStatus(e.target.value as SupportStatus)}>{supportStatuses.map(status=><option key={status} value={status}>{supportStatusLabels[lang][status]}</option>)}</select></label>}<ol className="support-thread" aria-label={c.tickets}>{detail.messages.map(m=><li key={m.id} className={m.sender_role==='admin'?'support-thread__admin':''}><div><strong>{m.sender_role==='admin'?c.admin:c.member}</strong><Stamp value={m.created_at} /></div><p dir="auto">{m.body}</p></li>)}</ol>{detail.ticket.status==='resolved'&&<p className="support-muted">{c.resolved}</p>}{detail.ticket.status==='closed'?<p className="support-muted">{c.closed}</p>:<form className="support-form" onSubmit={e=>{e.preventDefault();void reply();}}><label>{c.message}<textarea disabled={busy} required value={body} maxLength={4000} rows={4} onChange={e=>setBody(e.target.value)} /></label><p className="support-muted">{c.privacy}</p><button className="support-primary" disabled={busy||!body.trim()}>{busy?c.loading:c.send}</button></form>}</>;
+export function SupportTicketPage({ admin = false }: { admin?: boolean }) {
+  const { ticketId = "" } = useParams();
+  const { user } = useAuth();
+  return (
+    <SupportLayout admin={admin}>
+      <SupportThread
+        key={`${user?.id}:${ticketId}`}
+        ticketId={ticketId}
+        admin={admin}
+      />
+    </SupportLayout>
+  );
+}
+export function SupportThread({
+  ticketId,
+  admin = false,
+}: {
+  ticketId: string;
+  admin?: boolean;
+}) {
+  const lang = useSupportLanguage(),
+    c = supportCopy[lang],
+    api = admin ? adminSupportApi : supportApi;
+  const [detail, setDetail] = useState<SupportDetail | null>(null),
+    [error, setError] = useState(false),
+    [busy, setBusy] = useState(false),
+    [body, setBody] = useState("");
+  const pending = useRef<{ body: string; id: string } | null>(null),
+    epoch = useRef(0),
+    sending = useRef(false);
+  const load = useCallback(
+    async (before?: string) => {
+      const generation = ++epoch.current;
+      setError(false);
+      try {
+        const next = await api.detail(ticketId, before);
+        if (generation !== epoch.current) return;
+        setDetail((prev) =>
+          before && prev
+            ? {
+                ...next,
+                messages: mergeSupportMessages(next.messages, prev.messages),
+              }
+            : next,
+        );
+        const last = next.messages.at(-1);
+        if (last) void api.read(ticketId, last.id).catch(() => undefined);
+      } catch {
+        if (generation === epoch.current) setError(true);
+      }
+    },
+    [api, ticketId],
+  );
+  useEffect(() => {
+    void load();
+    return () => {
+      // Invalidate pending API responses when this screen unmounts.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      epoch.current++;
+    };
+  }, [load]);
+  async function changeStatus(status: SupportStatus) {
+    if (sending.current || !detail) return;
+    const key = "status:" + status;
+    if (pending.current?.body !== key)
+      pending.current = { body: key, id: createMessageRequestId() };
+    sending.current = true;
+    setBusy(true);
+    setError(false);
+    const generation = epoch.current;
+    try {
+      const ticket = await api.status(ticketId, status, pending.current.id);
+      if (generation === epoch.current) {
+        setDetail((prev) => (prev ? { ...prev, ticket } : prev));
+        pending.current = null;
+      }
+    } catch {
+      if (generation === epoch.current) setError(true);
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  }
+  async function reply() {
+    if (sending.current || !body.trim()) return;
+    const text = body.trim();
+    if (pending.current?.body !== text)
+      pending.current = { body: text, id: createMessageRequestId() };
+    sending.current = true;
+    setBusy(true);
+    setError(false);
+    const generation = epoch.current;
+    try {
+      const message = await api.reply(ticketId, text, pending.current.id);
+      if (generation !== epoch.current) return;
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              ticket: {
+                ...prev.ticket,
+                status: admin ? "awaiting_user" : "open",
+                last_activity_at: message.created_at,
+              },
+              messages: mergeSupportMessages(prev.messages, [message]),
+            }
+          : prev,
+      );
+      setBody("");
+      pending.current = null;
+      void load();
+    } catch {
+      if (generation === epoch.current) setError(true);
+    } finally {
+      sending.current = false;
+      setBusy(false);
+    }
+  }
+  if (!detail)
+    return (
+      <>
+        {error ? (
+          <ErrorState retry={() => void load()} />
+        ) : (
+          <p role="status">{c.loading}</p>
+        )}
+      </>
+    );
+  return (
+    <>
+      <header className="support-heading">
+        <div>
+          <span>{supportCategoryLabels[lang][detail.ticket.category]}</span>
+          <h1>{detail.ticket.subject}</h1>
+          <span className="support-status" data-status={detail.ticket.status}>
+            {supportStatusLabels[lang][detail.ticket.status]}
+          </span>
+        </div>
+        <button onClick={() => void load()}>{c.refresh}</button>
+      </header>
+      {error && <ErrorState retry={() => void load()} />}
+      {detail.older_cursor && (
+        <button onClick={() => void load(detail.older_cursor!)}>
+          {c.older}
+        </button>
+      )}
+      {admin && (
+        <label className="support-status-editor">
+          {c.status}
+          <select
+            aria-label={c.status}
+            value={detail.ticket.status}
+            disabled={busy}
+            onChange={(e) => void changeStatus(e.target.value as SupportStatus)}
+          >
+            {supportStatuses.map((status) => (
+              <option key={status} value={status}>
+                {supportStatusLabels[lang][status]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <ol className="support-thread" aria-label={c.tickets}>
+        {detail.messages.map((m) => (
+          <li
+            key={m.id}
+            className={m.sender_role === "admin" ? "support-thread__admin" : ""}
+          >
+            <div>
+              <strong>{m.sender_role === "admin" ? c.admin : c.member}</strong>
+              <Stamp value={m.created_at} />
+            </div>
+            <p dir="auto">{m.body}</p>
+          </li>
+        ))}
+      </ol>
+      {detail.ticket.status === "resolved" && (
+        <p className="support-muted">{c.resolved}</p>
+      )}
+      {detail.ticket.status === "closed" ? (
+        <p className="support-muted">{c.closed}</p>
+      ) : (
+        <form
+          className="support-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void reply();
+          }}
+        >
+          <label>
+            {c.message}
+            <textarea
+              disabled={busy}
+              required
+              value={body}
+              maxLength={4000}
+              rows={4}
+              onChange={(e) => setBody(e.target.value)}
+            />
+          </label>
+          <p className="support-muted">{c.privacy}</p>
+          <button className="support-primary" disabled={busy || !body.trim()}>
+            {busy ? c.loading : c.send}
+          </button>
+        </form>
+      )}
+    </>
+  );
 }

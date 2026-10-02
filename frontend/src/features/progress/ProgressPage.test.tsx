@@ -94,9 +94,31 @@ it("renders a retryable error without invented metrics", async () => {
   );
   expect(screen.queryByText("۷۵٪")).not.toBeInTheDocument();
 });
-it('keeps one real measurement as a single point without a delta',async()=>{
- mocks.overview.mockResolvedValue({...data,body_measurements:{...data.body_measurements,weight:{unit:'kg',points:[{recorded_at:'2026-10-01T10:00:00Z',value:80,source:'manual'}],start_value:80,latest_value:80,delta:null}}});
- render(<MemoryRouter><ProgressPage /></MemoryRouter>);
- expect(await screen.findByRole('button',{name:/وزن.*۸۰ kg/})).toBeInTheDocument();
- expect(screen.getAllByText('برای نمایش روند، حداقل یک ثبت دیگر لازم است.').length).toBeGreaterThan(0);
+it("keeps one real measurement as a single point without a delta", async () => {
+  mocks.overview.mockResolvedValue({
+    ...data,
+    body_measurements: {
+      ...data.body_measurements,
+      weight: {
+        unit: "kg",
+        points: [
+          { recorded_at: "2026-10-01T10:00:00Z", value: 80, source: "manual" },
+        ],
+        start_value: 80,
+        latest_value: 80,
+        delta: null,
+      },
+    },
+  });
+  render(
+    <MemoryRouter>
+      <ProgressPage />
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("button", { name: /وزن.*۸۰ kg/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getAllByText("برای نمایش روند، حداقل یک ثبت دیگر لازم است.").length,
+  ).toBeGreaterThan(0);
 });

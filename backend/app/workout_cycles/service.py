@@ -1225,7 +1225,19 @@ def reschedule_current_cycle_session(
         while candidate in terminal_dates:
             candidate += timedelta(days=1)
         shifted_dates.append(candidate)
+    from app.workout_cycles.models import WorkoutSessionRescheduleEvent
+
     for item, next_date in zip(unresolved, shifted_dates, strict=True):
+        if item.scheduled_date != next_date:
+            db.add(
+                WorkoutSessionRescheduleEvent(
+                    session_id=item.id,
+                    from_date=item.scheduled_date,
+                    to_date=next_date,
+                    is_requested=item.id == session.id,
+                    occurred_at=now or datetime.now(UTC),
+                )
+            )
         item.scheduled_date = next_date
     try:
         db.flush()

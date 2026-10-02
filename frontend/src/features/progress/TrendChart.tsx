@@ -6,16 +6,19 @@ export function TrendChart({
   unit,
   language,
   onSelect,
+  valueLabels,
 }: {
   series: ChartDatum[][];
   labels: string[];
   unit: string;
   language: "fa" | "en";
+  valueLabels?: Record<number, string>;
   onSelect?: (index: number) => void;
 }) {
   const chart = chartGeometry(series, 680, 245),
     [selected, setSelected] = useState<number | null>(null),
     format = (value: number) =>
+      valueLabels?.[value] ??
       new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(
         value,
       ),
@@ -32,7 +35,12 @@ export function TrendChart({
         role="group"
         aria-label={labels.join(" / ") + " (" + unit + ")"}
       >
-        {[0, 0.5, 1].map((f) => {
+        {(valueLabels
+          ? Object.keys(valueLabels)
+              .map(Number)
+              .map((v) => (chart.maxY - v) / (chart.maxY - chart.minY))
+          : [0, 0.5, 1]
+        ).map((f) => {
           const y =
               chart.padding.top +
               f * (chart.height - chart.padding.top - chart.padding.bottom),
@@ -52,7 +60,7 @@ export function TrendChart({
                 textAnchor="end"
                 className="progress-chart__label"
               >
-                {format(value)}
+                {format(valueLabels ? Math.round(value) : value)}
               </text>
             </g>
           );
