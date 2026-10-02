@@ -6920,6 +6920,116 @@
         "title": "BodyCompositionMetrics",
         "type": "object"
       },
+      "BodyMeasurementCreated": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Observed Fields",
+            "type": "array"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "recorded_at",
+          "observed_fields"
+        ],
+        "title": "BodyMeasurementCreated",
+        "type": "object"
+      },
+      "BodyMeasurementInput": {
+        "properties": {
+          "hip_circumference_cm": {
+            "anyOf": [
+              {
+                "maximum": 250.0,
+                "minimum": 40.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hip Circumference Cm"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "shoulder_width_cm": {
+            "anyOf": [
+              {
+                "maximum": 80.0,
+                "minimum": 20.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Width Cm"
+          },
+          "waist_circumference_cm": {
+            "anyOf": [
+              {
+                "maximum": 250.0,
+                "minimum": 40.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waist Circumference Cm"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "maximum": 300.0,
+                "minimum": 35.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "BodyMeasurementInput",
+        "type": "object"
+      },
       "BodyMeasurementMetricDelta": {
         "additionalProperties": false,
         "properties": {
@@ -19730,6 +19840,23 @@
             ],
             "title": "Shoulder Circumference Cm"
           },
+          "shoulder_width_cm": {
+            "anyOf": [
+              {
+                "maximum": 80.0,
+                "minimum": 20.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Width Cm"
+          },
           "training_age_months": {
             "anyOf": [
               {
@@ -20010,6 +20137,17 @@
               }
             ],
             "title": "Shoulder Circumference Cm"
+          },
+          "shoulder_width_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Width Cm"
           },
           "training_age_months": {
             "anyOf": [
@@ -20361,6 +20499,23 @@
               }
             ],
             "title": "Shoulder Circumference Cm"
+          },
+          "shoulder_width_cm": {
+            "anyOf": [
+              {
+                "maximum": 80.0,
+                "minimum": 20.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Width Cm"
           },
           "training_age_months": {
             "anyOf": [
@@ -40612,6 +40767,52 @@
           }
         ],
         "summary": "Create",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
+    "/api/v1/profile/body-measurements": {
+      "post": {
+        "operationId": "create_measurement_api_v1_profile_body_measurements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BodyMeasurementInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BodyMeasurementCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Measurement",
         "tags": [
           "profile"
         ]

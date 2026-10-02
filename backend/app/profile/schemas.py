@@ -78,6 +78,9 @@ class ProfileCreate(BaseModel):
         max_digits=5,
         decimal_places=2,
     )
+    shoulder_width_cm: Decimal | None = Field(
+        default=None, ge=Decimal("20"), le=Decimal("80"), max_digits=5, decimal_places=2
+    )
     shoulder_circumference_cm: CircumferenceCm | None = Field(
         default=None, ge=Decimal("40"), le=Decimal("250"), max_digits=5, decimal_places=2
     )
@@ -196,6 +199,9 @@ class ProfileUpdate(BaseModel):
         max_digits=5,
         decimal_places=2,
     )
+    shoulder_width_cm: Decimal | None = Field(
+        default=None, ge=Decimal("20"), le=Decimal("80"), max_digits=5, decimal_places=2
+    )
     shoulder_circumference_cm: CircumferenceCm | None = Field(
         default=None, ge=Decimal("40"), le=Decimal("250"), max_digits=5, decimal_places=2
     )
@@ -293,6 +299,7 @@ class ProfileUpdate(BaseModel):
             "training_age_months",
             "preferred_weekdays",
             "priority_muscles",
+            "shoulder_width_cm",
             "shoulder_circumference_cm",
             "waist_circumference_cm",
             "hip_circumference_cm",
@@ -343,6 +350,7 @@ class ProfileResponse(BaseModel):
     height_cm: int
     current_weight_kg: float
     weight_measured_at: datetime
+    shoulder_width_cm: float | None = None
     shoulder_circumference_cm: float | None
     waist_circumference_cm: float | None
     hip_circumference_cm: float | None

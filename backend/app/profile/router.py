@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.cookies import require_trusted_origin
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_authenticated_mutation
 from app.auth.models import User
 from app.config import Settings, get_settings
 from app.database.session import get_db
@@ -25,6 +25,11 @@ from app.profile.exceptions import (
     ProfileCycleNotFoundError,
     ProfileInvariantError,
     ProfileNotFoundError,
+)
+from app.profile.measurements import (
+    BodyMeasurementCreated,
+    BodyMeasurementInput,
+    record_measurement,
 )
 from app.profile.models import UserProfile, UserProfilePhoto
 from app.profile.photo import (
@@ -168,6 +173,9 @@ def to_response(
         height_cm=profile.height_cm,
         current_weight_kg=float(measurement.weight_kg),
         weight_measured_at=measurement.measured_at,
+        shoulder_width_cm=float(measurement.shoulder_width_cm)
+        if measurement.shoulder_width_cm is not None
+        else None,
         shoulder_circumference_cm=(
             float(measurement.shoulder_circumference_cm)
             if measurement.shoulder_circumference_cm is not None
@@ -524,3 +532,15 @@ def read(db: DatabaseSession, user: CurrentUser) -> ProfileResponse:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "SERVICE_UNAVAILABLE"},
         ) from None
+
+
+@router.post(
+    "/body-measurements",
+    response_model=BodyMeasurementCreated,
+    status_code=201,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
+def create_measurement(
+    payload: BodyMeasurementInput, db: DatabaseSession, user: CurrentUser
+) -> BodyMeasurementCreated:
+    return record_measurement(db, user.id, payload)

@@ -13,6 +13,7 @@ from app.nutrition.enums import NutritionPlanLifecycleStatus
 from app.nutrition.models import NutritionWeeklyPlan
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
+from app.progress.body import body_series
 from app.progress.schemas import (
     AnalysisSummary,
     Preset,
@@ -220,4 +221,5 @@ def overview(
             latest_analysis_id=latest[2],
             latest_status=str(latest[3]) if latest[3] else None,
         )
+    result.body_measurements = body_series(db, user_id, start, min(end, today), tz)
     return result

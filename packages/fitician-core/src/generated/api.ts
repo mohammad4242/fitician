@@ -3355,6 +3355,23 @@ export type paths = {
         patch: operations["update_api_v1_profile_patch"];
         trace?: never;
     };
+    "/api/v1/profile/body-measurements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Measurement */
+        post: operations["create_measurement_api_v1_profile_body_measurements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile/mode": {
         parameters: {
             query?: never;
@@ -6234,6 +6251,37 @@ export type components = {
             body_fat_is_estimate: boolean;
             /** Estimated Body Fat Percent */
             estimated_body_fat_percent?: number | null;
+        };
+        /** BodyMeasurementCreated */
+        BodyMeasurementCreated: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Observed Fields */
+            observed_fields: string[];
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+        };
+        /** BodyMeasurementInput */
+        BodyMeasurementInput: {
+            /** Hip Circumference Cm */
+            hip_circumference_cm?: number | string | null;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Shoulder Width Cm */
+            shoulder_width_cm?: number | string | null;
+            /** Waist Circumference Cm */
+            waist_circumference_cm?: number | string | null;
+            /** Weight Kg */
+            weight_kg?: number | string | null;
         };
         /** BodyMeasurementMetricDelta */
         BodyMeasurementMetricDelta: {
@@ -10759,6 +10807,8 @@ export type components = {
             sex: components["schemas"]["Sex"];
             /** Shoulder Circumference Cm */
             shoulder_circumference_cm?: number | string | null;
+            /** Shoulder Width Cm */
+            shoulder_width_cm?: number | string | null;
             /** Training Age Months */
             training_age_months?: number | null;
             /** Training Cautions */
@@ -10846,6 +10896,8 @@ export type components = {
             sex: components["schemas"]["Sex"];
             /** Shoulder Circumference Cm */
             shoulder_circumference_cm: number | null;
+            /** Shoulder Width Cm */
+            shoulder_width_cm?: number | null;
             /** Training Age Months */
             training_age_months: number | null;
             /** Training Cautions */
@@ -10914,6 +10966,8 @@ export type components = {
             sex?: components["schemas"]["Sex"] | null;
             /** Shoulder Circumference Cm */
             shoulder_circumference_cm?: number | string | null;
+            /** Shoulder Width Cm */
+            shoulder_width_cm?: number | string | null;
             /** Training Age Months */
             training_age_months?: number | null;
             /** Training Cautions */
@@ -20938,6 +20992,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_measurement_api_v1_profile_body_measurements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BodyMeasurementInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BodyMeasurementCreated"];
                 };
             };
             /** @description Validation Error */

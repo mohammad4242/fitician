@@ -16,6 +16,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -241,6 +242,7 @@ class UserProfileTrainingCaution(Base):
 class BodyMeasurement(Base):
     __tablename__ = "body_measurements"
     __table_args__ = (
+        UniqueConstraint("user_id", "observation_request_id", name="uq_body_measurement_request"),
         CheckConstraint(
             "weight_kg BETWEEN 35 AND 300",
             name="ck_body_measurements_weight_kg_range",
@@ -257,6 +259,10 @@ class BodyMeasurement(Base):
             "hip_circumference_cm IS NULL OR hip_circumference_cm BETWEEN 40 AND 250",
             name="ck_body_measurements_hip_circumference_range",
         ),
+        CheckConstraint(
+            "shoulder_width_cm IS NULL OR shoulder_width_cm BETWEEN 20 AND 80",
+            name="ck_body_measurements_shoulder_width_range",
+        ),
         Index("ix_body_measurements_user_id_measured_at", "user_id", "measured_at"),
     )
 
@@ -268,6 +274,9 @@ class BodyMeasurement(Base):
         ForeignKey("workout_cycles.id", ondelete="SET NULL"), nullable=True, index=True
     )
     weight_kg: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    observation_request_id: Mapped[UUID | None] = mapped_column(nullable=True)
+    shoulder_width_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    observed_fields: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     shoulder_circumference_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     waist_circumference_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     hip_circumference_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)

@@ -187,6 +187,7 @@ def create_profile(
     measurement_matches = (
         measurement is not None
         and measurement.weight_kg == payload.current_weight_kg
+        and measurement.shoulder_width_cm == payload.shoulder_width_cm
         and measurement.shoulder_circumference_cm == payload.shoulder_circumference_cm
         and measurement.waist_circumference_cm == payload.waist_circumference_cm
         and measurement.hip_circumference_cm == payload.hip_circumference_cm
@@ -195,6 +196,19 @@ def create_profile(
         measurement = BodyMeasurement(
             user_id=user_id,
             weight_kg=payload.current_weight_kg,
+            shoulder_width_cm=payload.shoulder_width_cm,
+            observed_fields=[
+                field
+                for field, value in {
+                    "weight_kg": payload.current_weight_kg,
+                    "shoulder_width_cm": payload.shoulder_width_cm,
+                    "shoulder_circumference_cm": payload.shoulder_circumference_cm,
+                    "waist_circumference_cm": payload.waist_circumference_cm,
+                    "hip_circumference_cm": payload.hip_circumference_cm,
+                }.items()
+                if value is not None
+                and (measurement is None or value != getattr(measurement, field))
+            ],
             shoulder_circumference_cm=payload.shoulder_circumference_cm,
             waist_circumference_cm=payload.waist_circumference_cm,
             hip_circumference_cm=payload.hip_circumference_cm,
@@ -307,6 +321,7 @@ def update_profile(
         )
     supplied_weight = supplied_fields.pop("current_weight_kg", None)
     circumference_fields = (
+        "shoulder_width_cm",
         "shoulder_circumference_cm",
         "waist_circumference_cm",
         "hip_circumference_cm",
@@ -378,6 +393,17 @@ def update_profile(
         measurement = BodyMeasurement(
             user_id=user_id,
             cycle_id=cycle_id,
+            observed_fields=sorted(
+                (["weight_kg"] if changed_weight else [])
+                + [
+                    field
+                    for field, value in supplied_circumferences.items()
+                    if value is not None and value != getattr(measurement, field)
+                ]
+            ),
+            shoulder_width_cm=supplied_circumferences.get(
+                "shoulder_width_cm", measurement.shoulder_width_cm
+            ),
             weight_kg=supplied_weight if changed_weight else measurement.weight_kg,
             shoulder_circumference_cm=supplied_circumferences.get(
                 "shoulder_circumference_cm", measurement.shoulder_circumference_cm
@@ -517,7 +543,15 @@ def upsert_shared_profile(
         .order_by(BodyMeasurement.measured_at.desc(), BodyMeasurement.id.desc())
     )
     if latest is None or latest.weight_kg != payload.current_weight_kg:
-        latest = BodyMeasurement(user_id=user_id, weight_kg=payload.current_weight_kg)
+        latest = BodyMeasurement(
+            user_id=user_id,
+            weight_kg=payload.current_weight_kg,
+            observed_fields=["weight_kg"],
+            shoulder_width_cm=latest.shoulder_width_cm if latest else None,
+            shoulder_circumference_cm=latest.shoulder_circumference_cm if latest else None,
+            waist_circumference_cm=latest.waist_circumference_cm if latest else None,
+            hip_circumference_cm=latest.hip_circumference_cm if latest else None,
+        )
         db.add(latest)
     try:
         db.flush()

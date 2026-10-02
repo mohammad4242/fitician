@@ -8,7 +8,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 - [x] Phase 3: Web admin queue/search/status/reply, authorization rendering tests.
 - [x] Phase 4: Canonical public contact config, placeholder removal, Web/native notification and app-link routing; release metadata validation.
 - [x] Phase 5: Owner-scoped Progress overview context/ranges/product modes; bounded aggregate services and generated contract.
-- [ ] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
+- [x] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
 - [ ] Phase 7: Durable nutrition activation history and date-correct target/actual series; null intake and shared authoritative adherence.
 - [ ] Phase 8: Web Progress hero/cards, selectable body chart, calorie chart, training/recovery/analysis/insights; rendering tests.
 - [ ] Phase 9: Mobile equivalent; replace tab while retaining Body Analysis routes; native rendering and navigation tests.
@@ -25,3 +25,5 @@ Phase 3: admin-only routes, filtered/paginated queue, safe ticket thread and sta
 Phase 4: single public contact registry consumed by Core and release checks; approved email and Instagram; placeholder social accounts removed; validated UUID ticket destinations for Web/native inbox, push and app links. Core 4 tests, native routing 14 tests, store source 6 tests, Web communication/support 14 tests, both typechecks.
 
 Phase 5: authenticated Progress overview, bounded date presets, product-mode visibility, scheduled/due training denominator, actual weekly check-ins and metadata-only latest Body Analysis. Six backend tests, strict module mypy and Ruff, generated contract checks. Nutrition/body sections are populated in phases 6–7.
+
+Phase 6: canonical `shoulder_width_cm`, per-snapshot explicit observation fields and retry identity; profile measurement API; legacy changed-value series excludes carries and never substitutes shoulder circumference. Shared-profile weight changes preserve other measurement snapshots. UI registration is integrated into Progress in phases 8–9. Backend profile+Progress 176 tests, then 10 focused Progress/migration tests after retry hardening; strict mypy/Ruff and Core build.
