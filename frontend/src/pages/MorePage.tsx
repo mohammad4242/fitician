@@ -90,6 +90,8 @@ export function MorePage() {
             {hasNutrition && <MoreLink to="/nutrition-tracking" icon="target" title={l("ثبت تغذیه", "Nutrition tracking")} subtitle={l("پیگیری ساده وضعیت روز", "Simple daily check-in")} />}
           </MoreGroup>
 
+          <MoreGroup title={l("پشتیبانی و ارتباط با ما", "Support & contact")}><MoreLink to="/support" icon="shield" title={l("مرکز راهنما", "Help Center")} subtitle={l("راهنما و راه‌های تماس", "Help and contact details")} /><MoreLink to="/support/tickets" icon="profile" title={l("تیکت‌های من", "My tickets")} subtitle={l("پیگیری درخواست و پاسخ پشتیبانی", "Requests and support replies")} /><MoreLink to="/support/new" icon="profile" title={l("ارسال درخواست", "Submit a request")} subtitle={l("کمک از تیم فیتیشن", "Get help from Fitician")} /></MoreGroup>
+
           <MoreGroup title={l("حساب", "Account")}>
             <MoreLink to="/profile" icon="profile" title={l("اطلاعات پروفایل", "Profile information")} subtitle={l("مشخصات و تنظیمات برنامه", "Details and plan preferences")} />
             <MoreLink to="/delete-account" icon="lock" title={l("حذف حساب", "Delete account")} subtitle={l("مدیریت درخواست حذف و مهلت بازگشت", "Manage deletion and the grace period")} />

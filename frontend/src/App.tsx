@@ -74,10 +74,16 @@ const ResetPasswordPage = lazy(() => import("./features/auth/ResetPasswordPage")
 const VerifyEmailPage = lazy(() => import("./features/auth/VerifyEmailPage").then(({ VerifyEmailPage }) => ({ default: VerifyEmailPage })));
 const WorkoutPlanPage = lazy(() => import("./features/workouts/WorkoutPlanPage").then(({ WorkoutPlanPage }) => ({ default: WorkoutPlanPage })));
 
+const HelpCenterPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.HelpCenterPage })));
+const MyTicketsPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.MyTicketsPage })));
+const NewTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.NewTicketPage })));
+const SupportTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.SupportTicketPage })));
+
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/delete-account" element={deferred(<AccountDeletionPage />)} />
+      <Route path="/support" element={deferred(<HelpCenterPage />)} />
       <Route path="/privacy" element={deferred(<PrivacyPolicyPage />)} />
       <Route path="/install" element={deferred(<PublicInstallPage />)} />
       <Route path="/verify-email" element={deferred(<VerifyEmailPage />)} />
@@ -88,6 +94,9 @@ export function AppRoutes() {
         <Route path="/reset-password" element={deferred(<ResetPasswordPage />)} />
       </Route>
       <Route element={<ProtectedRoute />}>
+        <Route path="/support/tickets" element={deferred(<MyTicketsPage />)} />
+        <Route path="/support/new" element={deferred(<NewTicketPage />)} />
+        <Route path="/support/tickets/:ticketId" element={deferred(<SupportTicketPage />)} />
         <Route element={<CompletedAppShellRoute />}>
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/conversation/:kind/:reviewId" element={<ConversationPage />} />

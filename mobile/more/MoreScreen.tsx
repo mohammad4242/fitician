@@ -83,6 +83,11 @@ export function MoreScreen() {
   const productItems = getProductItems(snapshot, router);
   const workspaceItems = getWorkspaceItems(snapshot, router);
   const sections: GroupedListSection[] = [
+    { title: "پشتیبانی و ارتباط با ما", items: [
+      moreItem({icon:"shield",title:"مرکز راهنما",subtitle:"راهنما و راه‌های تماس",onPress:()=>router.push("/member/support")}),
+      moreItem({icon:"profile",title:"تیکت‌های من",subtitle:"پیگیری درخواست و پاسخ پشتیبانی",onPress:()=>router.push("/member/support-tickets")}),
+      moreItem({icon:"profile",title:"ارسال درخواست",subtitle:"کمک از تیم فیتیشن",onPress:()=>router.push("/member/support-new")}),
+    ] },
     ...(productItems.length > 0 ? [{ items: productItems, title: "محصول" }] : []),
     {
       items: [
