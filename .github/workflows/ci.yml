@@ -74,6 +74,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: fitician-release-plan
+          overwrite: true
           include-hidden-files: true
           path: .ci-evidence/release-plan.json
           retention-days: 30
@@ -270,6 +271,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: fitician-core-${{ github.sha }}
+          overwrite: true
           path: packages/fitician-core/dist
           if-no-files-found: error
           retention-days: 3

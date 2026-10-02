@@ -64,6 +64,7 @@ class ComponentWorkflowTests(unittest.TestCase):
     def test_exact_run_release_evidence_is_uploaded(self):
         change = job("ci.yml", "changes")
         self.assertIn("name: fitician-release-plan", change)
+        self.assertIn("overwrite: true", change)
         self.assertIn("include-hidden-files: true", change)
         gate = job("deploy-production.yml", "automatic_images_gate")
         self.assertIn("ci-release-gate.py", gate)
@@ -73,6 +74,7 @@ class ComponentWorkflowTests(unittest.TestCase):
         shared = job("ci.yml", "shared")
         self.assertIn("npm run build:core", shared)
         self.assertIn("name: fitician-core-${{ github.sha }}", shared)
+        self.assertIn("overwrite: true", shared)
         self.assertIn("core_artifact:", job("ci.yml", "frontend"))
         self.assertIn("actions/download-artifact@v4", job("ci.yml", "mobile"))
         frontend = (ROOT / ".github/workflows/frontend-only.yml").read_text()
