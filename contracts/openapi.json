@@ -4654,6 +4654,59 @@
         "title": "AnalysisLimitation",
         "type": "string"
       },
+      "AnalysisSummary": {
+        "properties": {
+          "latest_analysis_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Analysis Id"
+          },
+          "latest_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest At"
+          },
+          "latest_session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Session Id"
+          },
+          "latest_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Status"
+          }
+        },
+        "title": "AnalysisSummary",
+        "type": "object"
+      },
       "AppleAuthRequest": {
         "additionalProperties": false,
         "properties": {
@@ -7254,6 +7307,34 @@
         "title": "BodyPhotoView",
         "type": "string"
       },
+      "BodyPoint": {
+        "properties": {
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "legacy_changed_value"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "recorded_at",
+          "value",
+          "source"
+        ],
+        "title": "BodyPoint",
+        "type": "object"
+      },
       "BodyPosition": {
         "enum": [
           "standing",
@@ -8051,6 +8132,69 @@
         "title": "BodyRegionCategory",
         "type": "object"
       },
+      "BodySeries": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "latest_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Value"
+          },
+          "legacy_coverage": {
+            "const": "changed_values_only",
+            "default": "changed_values_only",
+            "title": "Legacy Coverage",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/BodyPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "start_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Value"
+          },
+          "unit": {
+            "enum": [
+              "kg",
+              "cm"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit"
+        ],
+        "title": "BodySeries",
+        "type": "object"
+      },
       "BudgetStyle": {
         "enum": [
           "strict",
@@ -8058,6 +8202,113 @@
         ],
         "title": "BudgetStyle",
         "type": "string"
+      },
+      "CaloriePoint": {
+        "properties": {
+          "actual_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Kcal"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "in_progress": {
+            "title": "In Progress",
+            "type": "boolean"
+          },
+          "logging_state": {
+            "enum": [
+              "missing",
+              "recorded",
+              "invalid"
+            ],
+            "title": "Logging State",
+            "type": "string"
+          },
+          "near_target": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Near Target"
+          },
+          "reliable": {
+            "default": false,
+            "title": "Reliable",
+            "type": "boolean"
+          },
+          "target_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Kcal"
+          },
+          "target_plan_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Plan Id"
+          },
+          "target_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Revision"
+          },
+          "target_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "lifecycle_history",
+                  "recorded_plan_reference"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Source"
+          }
+        },
+        "required": [
+          "date",
+          "target_kcal",
+          "actual_kcal",
+          "logging_state",
+          "in_progress"
+        ],
+        "title": "CaloriePoint",
+        "type": "object"
       },
       "CampaignSurface": {
         "enum": [
@@ -20545,6 +20796,407 @@
         "title": "ProgramTimelineTodayResponse",
         "type": "object"
       },
+      "ProgressBodyMeasurements": {
+        "properties": {
+          "hip": {
+            "$ref": "#/components/schemas/BodySeries"
+          },
+          "shoulder_width": {
+            "$ref": "#/components/schemas/BodySeries"
+          },
+          "waist": {
+            "$ref": "#/components/schemas/BodySeries"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/BodySeries"
+          }
+        },
+        "title": "ProgressBodyMeasurements",
+        "type": "object"
+      },
+      "ProgressContext": {
+        "properties": {
+          "current_cycle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Cycle Id"
+          },
+          "current_program_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Program Id"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "nutrition_enabled": {
+            "title": "Nutrition Enabled",
+            "type": "boolean"
+          },
+          "preset": {
+            "enum": [
+              "week",
+              "four_weeks",
+              "current_program"
+            ],
+            "title": "Preset",
+            "type": "string"
+          },
+          "product_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Mode"
+          },
+          "range_clipped": {
+            "default": false,
+            "title": "Range Clipped",
+            "type": "boolean"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "training_enabled": {
+            "title": "Training Enabled",
+            "type": "boolean"
+          },
+          "week_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Number"
+          }
+        },
+        "required": [
+          "preset",
+          "timezone",
+          "today",
+          "start_date",
+          "end_date",
+          "training_enabled",
+          "nutrition_enabled"
+        ],
+        "title": "ProgressContext",
+        "type": "object"
+      },
+      "ProgressInsight": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "code",
+          "values"
+        ],
+        "title": "ProgressInsight",
+        "type": "object"
+      },
+      "ProgressNutrition": {
+        "properties": {
+          "adherence_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adherence Percent"
+          },
+          "adherent_days": {
+            "title": "Adherent Days",
+            "type": "integer"
+          },
+          "average_actual_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Actual Kcal"
+          },
+          "average_difference_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Difference Kcal"
+          },
+          "average_target_kcal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Target Kcal"
+          },
+          "comparable_days": {
+            "title": "Comparable Days",
+            "type": "integer"
+          },
+          "complete_day_intake_verified": {
+            "const": false,
+            "default": false,
+            "title": "Complete Day Intake Verified",
+            "type": "boolean"
+          },
+          "days_in_range": {
+            "title": "Days In Range",
+            "type": "integer"
+          },
+          "elapsed_days": {
+            "title": "Elapsed Days",
+            "type": "integer"
+          },
+          "logged_days": {
+            "title": "Logged Days",
+            "type": "integer"
+          },
+          "reliable_logged_days": {
+            "title": "Reliable Logged Days",
+            "type": "integer"
+          },
+          "rule": {
+            "const": "confirmed_high_confidence_completed_days_80_to_120_percent",
+            "default": "confirmed_high_confidence_completed_days_80_to_120_percent",
+            "title": "Rule",
+            "type": "string"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/CaloriePoint"
+            },
+            "title": "Series",
+            "type": "array"
+          }
+        },
+        "required": [
+          "series",
+          "days_in_range",
+          "elapsed_days",
+          "logged_days",
+          "reliable_logged_days",
+          "comparable_days",
+          "adherent_days",
+          "adherence_percent",
+          "average_target_kcal",
+          "average_actual_kcal",
+          "average_difference_kcal"
+        ],
+        "title": "ProgressNutrition",
+        "type": "object"
+      },
+      "ProgressOverview": {
+        "properties": {
+          "body_analysis": {
+            "$ref": "#/components/schemas/AnalysisSummary"
+          },
+          "body_measurements": {
+            "$ref": "#/components/schemas/ProgressBodyMeasurements"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ProgressContext"
+          },
+          "insights": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressInsight"
+            },
+            "title": "Insights",
+            "type": "array"
+          },
+          "nutrition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProgressNutrition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recovery": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryPoint"
+            },
+            "title": "Recovery",
+            "type": "array"
+          },
+          "training": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProgressTraining"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "context"
+        ],
+        "title": "ProgressOverview",
+        "type": "object"
+      },
+      "ProgressTraining": {
+        "properties": {
+          "adherence_percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adherence Percent"
+          },
+          "completed_sessions": {
+            "title": "Completed Sessions",
+            "type": "integer"
+          },
+          "denominator": {
+            "const": "elapsed_scheduled_dates_plus_resolved_today",
+            "default": "elapsed_scheduled_dates_plus_resolved_today",
+            "title": "Denominator",
+            "type": "string"
+          },
+          "due_sessions": {
+            "title": "Due Sessions",
+            "type": "integer"
+          },
+          "overdue_sessions": {
+            "title": "Overdue Sessions",
+            "type": "integer"
+          },
+          "planned_sessions": {
+            "title": "Planned Sessions",
+            "type": "integer"
+          },
+          "rescheduled_sessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rescheduled Sessions"
+          },
+          "self_reported_cycle_progress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Self Reported Cycle Progress"
+          },
+          "skipped_sessions": {
+            "title": "Skipped Sessions",
+            "type": "integer"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingWeek"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "planned_sessions",
+          "due_sessions",
+          "completed_sessions",
+          "skipped_sessions",
+          "overdue_sessions",
+          "adherence_percent",
+          "weeks"
+        ],
+        "title": "ProgressTraining",
+        "type": "object"
+      },
       "ProviderDetail": {
         "properties": {
           "credential": {
@@ -20999,6 +21651,47 @@
           }
         },
         "title": "RecentTrainingHistory",
+        "type": "object"
+      },
+      "RecoveryPoint": {
+        "properties": {
+          "difficulty": {
+            "enum": [
+              "too_easy",
+              "easy",
+              "appropriate",
+              "hard",
+              "too_hard"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "recovery": {
+            "enum": [
+              "good",
+              "average",
+              "poor"
+            ],
+            "title": "Recovery",
+            "type": "string"
+          },
+          "week_number": {
+            "title": "Week Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recorded_at",
+          "week_number",
+          "recovery",
+          "difficulty"
+        ],
+        "title": "RecoveryPoint",
         "type": "object"
       },
       "RecoveryRating": {
@@ -24015,6 +24708,30 @@
         ],
         "title": "TrainingTemplateSlotPriority",
         "type": "string"
+      },
+      "TrainingWeek": {
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "planned": {
+            "title": "Planned",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "planned",
+          "completed"
+        ],
+        "title": "TrainingWeek",
+        "type": "object"
       },
       "TrialStateResponse": {
         "additionalProperties": false,
@@ -40565,6 +41282,76 @@
         "summary": "Read Program Timeline Today",
         "tags": [
           "program-timeline"
+        ]
+      }
+    },
+    "/api/v1/progress/overview": {
+      "get": {
+        "operationId": "get_overview_api_v1_progress_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "preset",
+            "required": false,
+            "schema": {
+              "default": "week",
+              "enum": [
+                "week",
+                "four_weeks",
+                "current_program"
+              ],
+              "title": "Preset",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timezone",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Timezone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Overview",
+        "tags": [
+          "progress"
         ]
       }
     },

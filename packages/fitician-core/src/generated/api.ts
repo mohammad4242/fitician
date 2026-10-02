@@ -3529,6 +3529,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/progress/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Overview */
+        get: operations["get_overview_api_v1_progress_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews/body-analyses/{analysis_id}": {
         parameters: {
             query?: never;
@@ -5340,6 +5357,17 @@ export type components = {
          * @enum {string}
          */
         AnalysisLimitation: "blur" | "clothing_occlusion" | "excessive_background_clutter" | "incomplete_view" | "inconsistent_pose" | "lighting" | "low_resolution" | "occlusion" | "perspective" | "pose" | "visibility";
+        /** AnalysisSummary */
+        AnalysisSummary: {
+            /** Latest Analysis Id */
+            latest_analysis_id?: string | null;
+            /** Latest At */
+            latest_at?: string | null;
+            /** Latest Session Id */
+            latest_session_id?: string | null;
+            /** Latest Status */
+            latest_status?: string | null;
+        };
         /** AppleAuthRequest */
         AppleAuthRequest: {
             /** Email */
@@ -6341,6 +6369,21 @@ export type components = {
          * @enum {string}
          */
         BodyPhotoView: "front" | "side" | "back";
+        /** BodyPoint */
+        BodyPoint: {
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "legacy_changed_value";
+            /** Value */
+            value: number;
+        };
         /**
          * BodyPosition
          * @enum {string}
@@ -6640,11 +6683,65 @@ export type components = {
             name_fa: string;
             value: components["schemas"]["BodyRegion"];
         };
+        /** BodySeries */
+        BodySeries: {
+            /** Delta */
+            delta?: number | null;
+            /** Latest Value */
+            latest_value?: number | null;
+            /**
+             * Legacy Coverage
+             * @default changed_values_only
+             * @constant
+             */
+            legacy_coverage: "changed_values_only";
+            /** Points */
+            points?: components["schemas"]["BodyPoint"][];
+            /** Start Value */
+            start_value?: number | null;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "kg" | "cm";
+        };
         /**
          * BudgetStyle
          * @enum {string}
          */
         BudgetStyle: "strict" | "flexible";
+        /** CaloriePoint */
+        CaloriePoint: {
+            /** Actual Kcal */
+            actual_kcal: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** In Progress */
+            in_progress: boolean;
+            /**
+             * Logging State
+             * @enum {string}
+             */
+            logging_state: "missing" | "recorded" | "invalid";
+            /** Near Target */
+            near_target?: boolean | null;
+            /**
+             * Reliable
+             * @default false
+             */
+            reliable: boolean;
+            /** Target Kcal */
+            target_kcal: number | null;
+            /** Target Plan Id */
+            target_plan_id?: string | null;
+            /** Target Revision */
+            target_revision?: number | null;
+            /** Target Source */
+            target_source?: ("lifecycle_history" | "recorded_plan_reference") | null;
+        };
         /**
          * CampaignSurface
          * @enum {string}
@@ -10930,6 +11027,142 @@ export type components = {
             timezone: string;
             workout: components["schemas"]["TimelineWorkoutResponse"];
         };
+        /** ProgressBodyMeasurements */
+        ProgressBodyMeasurements: {
+            hip?: components["schemas"]["BodySeries"];
+            shoulder_width?: components["schemas"]["BodySeries"];
+            waist?: components["schemas"]["BodySeries"];
+            weight?: components["schemas"]["BodySeries"];
+        };
+        /** ProgressContext */
+        ProgressContext: {
+            /** Current Cycle Id */
+            current_cycle_id?: string | null;
+            /** Current Program Id */
+            current_program_id?: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Goal */
+            goal?: string | null;
+            /** Nutrition Enabled */
+            nutrition_enabled: boolean;
+            /**
+             * Preset
+             * @enum {string}
+             */
+            preset: "week" | "four_weeks" | "current_program";
+            /** Product Mode */
+            product_mode?: string | null;
+            /**
+             * Range Clipped
+             * @default false
+             */
+            range_clipped: boolean;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Training Enabled */
+            training_enabled: boolean;
+            /** Week Number */
+            week_number?: number | null;
+        };
+        /** ProgressInsight */
+        ProgressInsight: {
+            /** Code */
+            code: string;
+            /** Values */
+            values: {
+                [key: string]: number | string;
+            };
+        };
+        /** ProgressNutrition */
+        ProgressNutrition: {
+            /** Adherence Percent */
+            adherence_percent: number | null;
+            /** Adherent Days */
+            adherent_days: number;
+            /** Average Actual Kcal */
+            average_actual_kcal: number | null;
+            /** Average Difference Kcal */
+            average_difference_kcal: number | null;
+            /** Average Target Kcal */
+            average_target_kcal: number | null;
+            /** Comparable Days */
+            comparable_days: number;
+            /**
+             * Complete Day Intake Verified
+             * @default false
+             * @constant
+             */
+            complete_day_intake_verified: false;
+            /** Days In Range */
+            days_in_range: number;
+            /** Elapsed Days */
+            elapsed_days: number;
+            /** Logged Days */
+            logged_days: number;
+            /** Reliable Logged Days */
+            reliable_logged_days: number;
+            /**
+             * Rule
+             * @default confirmed_high_confidence_completed_days_80_to_120_percent
+             * @constant
+             */
+            rule: "confirmed_high_confidence_completed_days_80_to_120_percent";
+            /** Series */
+            series: components["schemas"]["CaloriePoint"][];
+        };
+        /** ProgressOverview */
+        ProgressOverview: {
+            body_analysis?: components["schemas"]["AnalysisSummary"];
+            body_measurements?: components["schemas"]["ProgressBodyMeasurements"];
+            context: components["schemas"]["ProgressContext"];
+            /** Insights */
+            insights?: components["schemas"]["ProgressInsight"][];
+            nutrition?: components["schemas"]["ProgressNutrition"] | null;
+            /** Recovery */
+            recovery?: components["schemas"]["RecoveryPoint"][];
+            training?: components["schemas"]["ProgressTraining"] | null;
+        };
+        /** ProgressTraining */
+        ProgressTraining: {
+            /** Adherence Percent */
+            adherence_percent: number | null;
+            /** Completed Sessions */
+            completed_sessions: number;
+            /**
+             * Denominator
+             * @default elapsed_scheduled_dates_plus_resolved_today
+             * @constant
+             */
+            denominator: "elapsed_scheduled_dates_plus_resolved_today";
+            /** Due Sessions */
+            due_sessions: number;
+            /** Overdue Sessions */
+            overdue_sessions: number;
+            /** Planned Sessions */
+            planned_sessions: number;
+            /** Rescheduled Sessions */
+            rescheduled_sessions?: number | null;
+            /** Self Reported Cycle Progress */
+            self_reported_cycle_progress?: string | null;
+            /** Skipped Sessions */
+            skipped_sessions: number;
+            /** Weeks */
+            weeks: components["schemas"]["TrainingWeek"][];
+        };
         /** ProviderDetail */
         ProviderDetail: {
             credential: components["schemas"]["CredentialStatus"];
@@ -11072,6 +11305,26 @@ export type components = {
              * @default false
              */
             recovery_problems: boolean;
+        };
+        /** RecoveryPoint */
+        RecoveryPoint: {
+            /**
+             * Difficulty
+             * @enum {string}
+             */
+            difficulty: "too_easy" | "easy" | "appropriate" | "hard" | "too_hard";
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /**
+             * Recovery
+             * @enum {string}
+             */
+            recovery: "good" | "average" | "poor";
+            /** Week Number */
+            week_number: number;
         };
         /**
          * RecoveryRating
@@ -12089,6 +12342,18 @@ export type components = {
          * @enum {string}
          */
         TrainingTemplateSlotPriority: "core" | "accessory" | "optional";
+        /** TrainingWeek */
+        TrainingWeek: {
+            /** Completed */
+            completed: number;
+            /** Planned */
+            planned: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+        };
         /** TrialStateResponse */
         TrialStateResponse: {
             /** Active */
@@ -21085,6 +21350,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgramTimelineTodayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_overview_api_v1_progress_overview_get: {
+        parameters: {
+            query?: {
+                preset?: "week" | "four_weeks" | "current_program";
+                timezone?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressOverview"];
                 };
             };
             /** @description Validation Error */

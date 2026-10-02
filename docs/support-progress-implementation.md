@@ -7,7 +7,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 - [x] Phase 2: Shared Help registry/search/API; public Web Help and member Web/Mobile ticket list/create/thread; More entry points; focused Core/Web/native rendering tests.
 - [x] Phase 3: Web admin queue/search/status/reply, authorization rendering tests.
 - [x] Phase 4: Canonical public contact config, placeholder removal, Web/native notification and app-link routing; release metadata validation.
-- [ ] Phase 5: Owner-scoped Progress overview context/ranges/product modes; bounded aggregate services and generated contract.
+- [x] Phase 5: Owner-scoped Progress overview context/ranges/product modes; bounded aggregate services and generated contract.
 - [ ] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
 - [ ] Phase 7: Durable nutrition activation history and date-correct target/actual series; null intake and shared authoritative adherence.
 - [ ] Phase 8: Web Progress hero/cards, selectable body chart, calorie chart, training/recovery/analysis/insights; rendering tests.
@@ -23,3 +23,5 @@ Phase 2 verification: Core shared search/API 3 tests; Web Help/tickets 5 tests; 
 Phase 3: admin-only routes, filtered/paginated queue, safe ticket thread and status controls. No profile/health API calls.
 
 Phase 4: single public contact registry consumed by Core and release checks; approved email and Instagram; placeholder social accounts removed; validated UUID ticket destinations for Web/native inbox, push and app links. Core 4 tests, native routing 14 tests, store source 6 tests, Web communication/support 14 tests, both typechecks.
+
+Phase 5: authenticated Progress overview, bounded date presets, product-mode visibility, scheduled/due training denominator, actual weekly check-ins and metadata-only latest Body Analysis. Six backend tests, strict module mypy and Ruff, generated contract checks. Nutrition/body sections are populated in phases 6–7.
