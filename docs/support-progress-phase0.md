@@ -1,7 +1,7 @@
 # Support Center and My Progress: Phase 0
 
 Date: 2026-10-02. Inspected commit: `259817ef` on `main`.
-Status: repository audit complete; architecture below is proposed, awaiting selection.
+Status: repository audit complete; option 1 approved on 2026-10-02.
 This document does not claim implementation, passing feature tests, or runtime acceptance.
 
 ## Repository findings
@@ -176,7 +176,7 @@ push. Full affected validation runs once the feature is coherent. Use the existi
 OpenAPI generator and rebuild Core before client validation. Production deployment
 and store publishing remain separate from implementing and validating these features.
 
-## Decisions needed before implementation
+## Approved architecture
 
 Architecture options:
 1. Canonical records plus provenance and lifecycle events — Recommended.
@@ -188,7 +188,7 @@ where evidence is insufficient. Option 1 preserves these facts for future activi
 No option invents legacy observations or activation history.
 
 The approved public support email must be supplied before contact/release completion.
-Architecture selection also confirms use of the existing reliable-day calorie band,
+Architecture selection confirms use of the existing reliable-day calorie band,
 the explicit denominators above, and authenticated support before profile completion.
 
 ## Verification in Phase 0

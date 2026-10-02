@@ -67,6 +67,8 @@ from app.observability.metrics import MetricsRegistry, route_label_from_scope
 from app.profile.router import router as profile_router
 from app.program_conversations.router import router as program_conversations_router
 from app.program_timeline.router import router as program_timeline_router
+from app.support.router import admin_router as support_admin_router
+from app.support.router import router as support_router
 from app.workout_cycles.router import router as workout_cycles_router
 from app.workout_reviews.router import (
     member_router as workout_member_reviews_router,
@@ -511,6 +513,8 @@ def create_app(
     app.include_router(nutrition_router)
     app.include_router(notifications_router)
     app.include_router(program_conversations_router)
+    app.include_router(support_router)
+    app.include_router(support_admin_router)
     app.include_router(workout_plans_router)
     app.include_router(workout_reviews_router)
     app.include_router(workout_member_reviews_router)

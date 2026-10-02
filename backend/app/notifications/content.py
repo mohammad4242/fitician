@@ -18,6 +18,12 @@ class NotificationCopy:
 
 
 _COPY: dict[str, NotificationCopy] = {
+    "support_ticket_reply": NotificationCopy(
+        title="پاسخ پشتیبانی",
+        body="یک پاسخ جدید به درخواست پشتیبانی شما آماده است.",
+        channel_id="fitician-reminders",
+        allowed_data_keys=frozenset({"ticket_id"}),
+    ),
     "program_message": NotificationCopy(
         title="پیام جدید",
         body="یک پیام درباره برنامه شما آماده است.",

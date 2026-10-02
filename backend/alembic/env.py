@@ -23,6 +23,7 @@ from app.nutrition import models as nutrition_models  # noqa: F401
 from app.profile import models as profile_models  # noqa: F401
 from app.program_conversations import models as conversation_models  # noqa: F401
 from app.rate_limits import models as rate_limit_models  # noqa: F401
+from app.support import models as support_models  # noqa: F401
 from app.training_templates import models as training_template_models  # noqa: F401
 from app.workout_cycles import (
     body_progress_models as workout_cycle_body_progress_models,  # noqa: F401
