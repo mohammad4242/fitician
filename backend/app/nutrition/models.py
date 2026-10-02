@@ -2200,3 +2200,33 @@ class NutritionPhysicianReview(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class NutritionPlanLifecycleEvent(Base):
+    __tablename__ = "nutrition_plan_lifecycle_events"
+    __table_args__ = (
+        Index("ix_nutrition_lifecycle_user_date", "user_id", "effective_on", "occurred_at"),
+        CheckConstraint(
+            "source IN ('transition','legacy_baseline')", name="ck_nutrition_lifecycle_source"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    plan_id: Mapped[UUID] = mapped_column(
+        ForeignKey("nutrition_weekly_plans.id", ondelete="CASCADE"), nullable=False
+    )
+    plan: Mapped[NutritionWeeklyPlan] = relationship()
+    lifecycle_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    is_user_visible: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    start_date: Mapped[date] = mapped_column(nullable=False)
+    effective_on: Mapped[date] = mapped_column(nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(24), nullable=False)
+
+
+# Register with the canonical model module so API, workers and CLI writes share history.
+from app.nutrition.lifecycle_history import register_lifecycle_history  # noqa: E402
+
+register_lifecycle_history()

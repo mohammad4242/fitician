@@ -14,6 +14,7 @@ from app.nutrition.models import NutritionWeeklyPlan
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
 from app.progress.body import body_series
+from app.progress.nutrition import nutrition_series
 from app.progress.schemas import (
     AnalysisSummary,
     Preset,
@@ -220,6 +221,17 @@ def overview(
             latest_at=latest[1],
             latest_analysis_id=latest[2],
             latest_status=str(latest[3]) if latest[3] else None,
+        )
+    if nutrition_enabled:
+        result.nutrition = nutrition_series(db, user_id, start, end, today, tz)
+        result.insights.append(
+            ProgressInsight(
+                code="nutrition_tracking",
+                values={
+                    "logged": result.nutrition.logged_days,
+                    "elapsed": result.nutrition.elapsed_days,
+                },
+            )
         )
     result.body_measurements = body_series(db, user_id, start, min(end, today), tz)
     return result

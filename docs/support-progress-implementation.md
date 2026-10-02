@@ -9,7 +9,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 - [x] Phase 4: Canonical public contact config, placeholder removal, Web/native notification and app-link routing; release metadata validation.
 - [x] Phase 5: Owner-scoped Progress overview context/ranges/product modes; bounded aggregate services and generated contract.
 - [x] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
-- [ ] Phase 7: Durable nutrition activation history and date-correct target/actual series; null intake and shared authoritative adherence.
+- [x] Phase 7: Durable nutrition activation history and date-correct target/actual series; null intake and shared authoritative adherence.
 - [ ] Phase 8: Web Progress hero/cards, selectable body chart, calorie chart, training/recovery/analysis/insights; rendering tests.
 - [ ] Phase 9: Mobile equivalent; replace tab while retaining Body Analysis routes; native rendering and navigation tests.
 - [ ] Phase 10: Durable reschedule events, deep links, accessibility, RTL/LTR, responsive/browser review, bounded queries and empty states.
@@ -27,3 +27,5 @@ Phase 4: single public contact registry consumed by Core and release checks; app
 Phase 5: authenticated Progress overview, bounded date presets, product-mode visibility, scheduled/due training denominator, actual weekly check-ins and metadata-only latest Body Analysis. Six backend tests, strict module mypy and Ruff, generated contract checks. Nutrition/body sections are populated in phases 6–7.
 
 Phase 6: canonical `shoulder_width_cm`, per-snapshot explicit observation fields and retry identity; profile measurement API; legacy changed-value series excludes carries and never substitutes shoulder circumference. Shared-profile weight changes preserve other measurement snapshots. UI registration is integrated into Progress in phases 8–9. Backend profile+Progress 176 tests, then 10 focused Progress/migration tests after retry hardening; strict mypy/Ruff and Core build.
+
+Phase 7: transactional SQLAlchemy lifecycle observations for all existing ORM plan transitions; safe legacy baseline from migration time; date-only pinned legacy evidence; recurring day index from historical start; confirmed/high-confidence 80–120% band centralized with existing review logic. Invalid/missing intake remains null. Today is in progress and excluded from completed-day metrics. Fourteen Progress/migration tests, strict mypy and Ruff. After transaction-ordering and timezone fixes: all 14 Progress tests and 24 nutrition review/editing regression tests passed. Full affected nutrition suites remain required for phase 11.

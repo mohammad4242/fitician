@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.nutrition.adherence_policy import CALORIE_ALIGNMENT_LOWER, CALORIE_ALIGNMENT_UPPER
 from app.nutrition.adherence_service import AdherenceError
 from app.nutrition.calendar import effective_nutrition_plan_for_date, nutrition_pattern_day_index
 from app.nutrition.enums import SafetyOutcome, WeightRateMode
@@ -221,7 +222,9 @@ def review_progress(
             if planned_day
             else Decimal()
         )
-        near_plan += int(target > 0 and Decimal(".8") <= actual / target <= Decimal("1.2"))
+        near_plan += int(
+            target > 0 and CALORIE_ALIGNMENT_LOWER <= actual / target <= CALORIE_ALIGNMENT_UPPER
+        )
     safety = current_safety_decision(db, user_id)
     nutrition_profile = db.get(NutritionProfile, user_id)
     if (
