@@ -37,3 +37,13 @@ Phase 9: native Progress uses shared metric/copy/geometry contracts; compact car
 Phase 10: real session reschedule events with conservative legacy coverage; account-scoped UI state; frozen retry metadata; shared Support/Progress language preference; qualitative recovery chart labels; invalid calorie data distinguished from missing intake. FA/EN public Support and member Progress browser tests passed at 320px/1440px, screenshots reviewed. New migration round-trip and recovery/privacy tests pass; focused Web/native rendering, strict typecheck and lint checks.
 
 Phase 11 verification: 1,328 affected backend tests passed, followed by 22 final Progress/migration/privacy/query-budget checks; Core 127, Mobile logic 619, native rendering 367 plus 8 final focused native checks; Web full suite and final rendering/type/build checks; Mobile foundation 61; 8 Chromium/WebKit FA/EN responsive checks. OpenAPI, secrets, affected mypy/Ruff and Web/Mobile typechecks pass. Account changes remount private feature state; projections omit large plan snapshots; recovery uses a categorical axis. Initial full CI identified a WebKit fixture/service-worker interaction, corrected and reverified locally. CI dependency audit remains blocked by unpatched upstream node-forge advisory; user choice between waiting and a reviewed backport is pending. Phase 11 remains open; no security gate bypass and no production deployment.
+
+
+Release follow-up: option 1 selected (official upstream fix only); production
+release authorized after unchanged gates pass. CI 37007027607 completed with two
+failures. Backend failure was an obsolete exact-column schema contract after
+migration 169; fixed while retaining strict assertions, 25 focused tests pass.
+Dependency audit confirms transitive node-forge 1.4.0, no patched upstream release,
+high=6. Image publication explicitly requires dependency-audit success, so release
+stops at that mandatory gate. No images/deployment/post-deployment acceptance.
+Unrelated worktree files preserved; Phase 11 remains blocked until upstream fix.

@@ -38,7 +38,10 @@ def test_program_timeline_schema_has_required_columns_and_constraints(db: Sessio
         index["name"] for index in inspector.get_indexes("nutrition_weekly_plans")
     }
 
-    session_columns = {column["name"] for column in inspector.get_columns("workout_cycle_sessions")}
+    session_definitions = {
+        column["name"]: column for column in inspector.get_columns("workout_cycle_sessions")
+    }
+    session_columns = set(session_definitions)
     assert session_columns == {
         "id",
         "cycle_id",
@@ -46,12 +49,15 @@ def test_program_timeline_schema_has_required_columns_and_constraints(db: Sessio
         "week_number",
         "session_number",
         "scheduled_date",
+        "reschedule_history_started_at",
         "status",
         "completed_at",
         "skipped_at",
         "created_at",
         "updated_at",
     }
+    assert session_definitions["reschedule_history_started_at"]["nullable"] is False
+    assert session_definitions["reschedule_history_started_at"]["default"] is not None
     check_names = {
         constraint["name"]
         for constraint in inspector.get_check_constraints("workout_cycle_sessions")

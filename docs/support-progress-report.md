@@ -2,7 +2,8 @@
 
 Branch: `feat/support-progress`. Approved architecture: canonical records plus
 measurement provenance and lifecycle/reschedule events. This is a source and test
-report; production deployment and physical-device acceptance are separate.
+report. Production deployment is now authorized, but must wait for successful
+release gates. Physical-device acceptance remains separate.
 
 ## Architecture and modules
 
@@ -121,12 +122,47 @@ Account changes clear private screen state immediately.
 - Dependency CI is blocked by upstream `node-forge` advisory
   [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv), inherited
   through Expo. The advisory and npm registry currently provide no patched release.
-  The security gate remains unchanged; dependency strategy awaits user selection.
+  The security gate remains unchanged. The user selected waiting for the official
+  upstream fix, with no local backport or security-check bypass.
 
 ## Intentional v1 exclusions
 
 Optional support attachments and assignment, article CMS, anonymous ticket creation,
 set-by-set logging, clinical inference, fake historical backfills and LLM insights.
-Production deployment, store publication and physical-device acceptance are not
-part of this source implementation report. Full Definition of Done remains open
-until final required CI is green.
+Production deployment is authorized once the required CI and image gates pass.
+Store publication and physical-device acceptance remain separate. Full Definition
+of Done remains open until required CI is green and the authorized release is verified.
+
+## Phase 11 release-gate investigation
+
+Full CI [37007027607](https://github.com/mohammad4242/fitician/actions/runs/37007027607)
+finished with failure on `a7ba8c3288babd3aa3ddd860fdea1edf731394e8`.
+Every failed job was inspected:
+
+- **Backend tests:** the exact session-column contract in
+  `tests/database/test_program_timeline_migration.py` still expected the pre-169
+  schema. Reproduced locally (1 failed, 2 passed); updated the exact expected set
+  to include the approved history column and added non-null/default assertions.
+  All existing constraints/index assertions remain. Migration/Progress checks:
+  25 passed; focused Ruff passed.
+- **Dependency audit:** high=6, critical=0; transitive `node-forge@1.4.0` through
+  `expo@57.0.22 → @expo/cli@57.0.24` and
+  `expo-updates@57.0.22 → @expo/code-signing-certificates@0.0.6`.
+  Fresh npm audit identifies `isDirect=false` and `fixAvailable=false`.
+  The current npm release is 1.4.0, and the reviewed advisory lists no patched
+  version. The six high findings include dependency propagation from this package.
+
+All other executed jobs passed, including Android debug build, Web/Mobile checks,
+Chromium/WebKit browser regression, shared contracts, secrets, production contracts,
+scalability and two-replica smoke. Production images were skipped. The image gate
+requires `needs.dependencies.result == 'success'`; the audit exits nonzero for high
+or critical findings. This advisory is therefore **blocking**, not a known warning.
+
+No production images/tags/digests were created for this release, no deployment was
+started, and no post-deployment health/version/route acceptance is claimed.
+Support Center and My Progress are **not deployed** by this workflow.
+
+Safest next action: wait for an official patched node-forge release, update the
+compatible dependency/lockfile, pass the unchanged audit and full CI, then use the
+existing immutable-image and production-deployment workflows. No local backport,
+security exception, test deletion or gate weakening is authorized or implemented.
