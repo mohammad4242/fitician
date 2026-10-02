@@ -18,7 +18,7 @@ import { LTR_CENTER_TEXT, RTL_CENTER_TEXT, RTL_LAYOUT, RTL_ROW } from "../rtl";
 
 const NAVIGATION_CONTENT_HEIGHT = 72;
 
-export const MEMBER_TAB_ORDER = ["index", "workouts", "nutrition", "body-analysis", "more"] as const;
+export const MEMBER_TAB_ORDER = ["index", "workouts", "nutrition", "progress", "more"] as const;
 
 type NavigationIconName = "home" | "dumbbell" | "nutrition" | "progress" | "more";
 
@@ -59,7 +59,7 @@ const iconByRoute: Record<string, NavigationIconName> = {
   index: "home",
   workouts: "dumbbell",
   nutrition: "nutrition",
-  "body-analysis": "progress",
+  progress: "progress",
   more: "more",
 };
 
@@ -121,10 +121,10 @@ export function MemberBottomTabBar({ state, descriptors, navigation, insets }: B
             return null;
           }
 
-          const focused = route.key === focusedRouteKey;
+          const focused = route.key === focusedRouteKey || (route.name === "progress" && state.routes[state.index]?.name === "body-analysis");
           const label = getTabLabel(descriptor.options, route.name, focused);
           const color = focused ? fiticianTokens.colors.aqua : fiticianTokens.colors.muted;
-          const isEnglish = route.name === "body-analysis";
+          const isEnglish = false;
 
           const onPress = () => {
             const event = navigation.emit({

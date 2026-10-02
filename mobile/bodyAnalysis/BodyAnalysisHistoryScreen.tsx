@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -21,9 +21,10 @@ import { resolveBodyAnalysisAccessState } from "./bodyAnalysisAccess";
 
 export interface BodyAnalysisHistoryScreenProps {
   readonly tabRoot?: boolean;
+  readonly embedded?: boolean;
 }
 
-export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHistoryScreenProps = {}) {
+export function BodyAnalysisHistoryScreen({ tabRoot = false, embedded = false }: BodyAnalysisHistoryScreenProps = {}) {
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const router = useRouter();
@@ -100,8 +101,8 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
   }
 
   return (
-    <Screen contentContainerStyle={styles.screen}>
-      <BodyAnalysisLandingHero />
+    <HistoryContainer embedded={embedded}>
+      {!embedded && <BodyAnalysisLandingHero />}
 
       {timeline === null && !failed ? (
         <View style={styles.loading}>
@@ -166,9 +167,11 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false }: BodyAnalysisHisto
         onClose={closeDeleteDialog}
         onConfirm={() => void deleteTargetSession()}
       />
-    </Screen>
+    </HistoryContainer>
   );
 }
+
+function HistoryContainer({embedded,children}:{embedded:boolean;children:ReactNode}) { return embedded ? <View style={styles.screen}>{children}</View> : <Screen contentContainerStyle={styles.screen}>{children}</Screen>; }
 
 const styles = StyleSheet.create({
   loading: {

@@ -161,7 +161,7 @@ it("defines web-equivalent member bottom-bar icons and styling", async () => {
   expect(source).toMatch(/index: "home"/);
   expect(source).toMatch(/workouts: "dumbbell"/);
   expect(source).toMatch(/nutrition: "nutrition"/);
-  expect(source).toMatch(/"body-analysis": "progress"/);
+  expect(source).toMatch(/progress: "progress"/);
   expect(source).toMatch(/more: "more"/);
   expect(source).toContain("aquaAtmosphere");
   expect(source).toContain("activeIndicator");
@@ -230,17 +230,18 @@ it("keeps the native profile editor in the member stack and removes its tab rout
   ).resolves.not.toMatch(/RouteEntryScreen/);
 });
 
-it("keeps Body Progress available across ProductMode domains and More as the fifth member tab", async () => {
+it("keeps five Progress member tabs and a hidden Body Analysis compatibility route", async () => {
   const source = await readFile(
     resolve(appRoot, "(member)/member/(tabs)/_layout.tsx"),
     "utf8",
   );
   const tabNames = Array.from(source.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g), (match) => match[1]);
-  expect(tabNames).toEqual(["index", "workouts", "nutrition", "body-analysis", "more"]);
+  expect(tabNames.filter(name => name !== "body-analysis")).toEqual(["index", "workouts", "nutrition", "progress", "more"]);
+  expect(source).toContain('name="body-analysis" options={{href:null}}');
   expect(source).toContain('tabBarLabel: "امروز"');
   expect(source).toContain('tabBarLabel: "تمرین"');
   expect(source).toContain('tabBarLabel: "تغذیه"');
-  expect(source).toContain('tabBarLabel: "تحلیل بدن"');
+  expect(source).toContain('tabBarLabel: "پیشرفت"');
   expect(source).toContain('tabBarLabel: "بیشتر"');
   expect(source).toContain('name="body-analysis"');
   expect(source).toMatch(/name="workouts"[\s\S]*?href: showTraining \? undefined : null/);

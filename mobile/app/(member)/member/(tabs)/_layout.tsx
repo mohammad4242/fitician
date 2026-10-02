@@ -44,12 +44,13 @@ export default function MemberTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="body-analysis"
+        name="progress"
         options={{
-          tabBarLabel: "تحلیل بدن",
-          title: "تحلیل بدن",
+          tabBarLabel: "پیشرفت",
+          title: "پیشرفت",
         }}
       />
+      <Tabs.Screen name="body-analysis" options={{href:null}} />
       <Tabs.Screen
         name="more"
         options={{

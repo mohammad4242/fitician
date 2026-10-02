@@ -11,7 +11,7 @@ Execution: main agent, autonomous through phases 2–11; preserve unrelated WIP.
 - [x] Phase 6: Exact shoulder width and explicit measurement provenance; observation series with truthful legacy coverage; Web/native profile inputs.
 - [x] Phase 7: Durable nutrition activation history and date-correct target/actual series; null intake and shared authoritative adherence.
 - [x] Phase 8: Web Progress hero/cards, selectable body chart, calorie chart, training/recovery/analysis/insights; rendering tests.
-- [ ] Phase 9: Mobile equivalent; replace tab while retaining Body Analysis routes; native rendering and navigation tests.
+- [x] Phase 9: Mobile equivalent; replace tab while retaining Body Analysis routes; native rendering and navigation tests.
 - [ ] Phase 10: Durable reschedule events, deep links, accessibility, RTL/LTR, responsive/browser review, bounded queries and empty states.
 - [ ] Phase 11: Combined regression review, affected backend suites/Core/Web/native tests, lint/typecheck/build, migration/OpenAPI contracts, final CI.
 
@@ -31,3 +31,5 @@ Phase 6: canonical `shoulder_width_cm`, per-snapshot explicit observation fields
 Phase 7: transactional SQLAlchemy lifecycle observations for all existing ORM plan transitions; safe legacy baseline from migration time; date-only pinned legacy evidence; recurring day index from historical start; confirmed/high-confidence 80–120% band centralized with existing review logic. Invalid/missing intake remains null. Today is in progress and excluded from completed-day metrics. Fourteen Progress/migration tests, strict mypy and Ruff. After transaction-ordering and timezone fixes: all 14 Progress tests and 24 nutrition review/editing regression tests passed. Full affected nutrition suites remain required for phase 11.
 
 Phase 8: Web `/progress` and navigation; shared pure chart geometry preserves null gaps and observed timestamps; body selector and explicit measurement form; calorie target/actual tooltip and day control; due-training/recovery summaries; lazy existing Body Analysis page embedded with its full comparison/capture/delete behavior. Core geometry/API tests and 57 Web route/navigation/analysis/Progress tests passed; focused typecheck/lint.
+
+Phase 9: native Progress uses shared metric/copy/geometry contracts; compact cards, body measurement entry, calorie day detail, collapsed training/recovery/analysis. Exactly five visible tabs; hidden legacy Body Analysis tab retains its old route and full capture/history/results. Native Progress and existing analysis rendering tests, 23 navigation tests and Mobile typecheck.
