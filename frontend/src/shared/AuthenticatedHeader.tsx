@@ -93,10 +93,10 @@ export function AuthenticatedHeader() {
       visible: hasNutrition,
     },
     {
-      to: "/body-progress",
-      label: t("header.bodyProgress"),
-      active: location.pathname.startsWith("/body-progress"),
-      visible: hasTraining,
+      to: "/progress",
+      label: t("header.myProgress"),
+      active: location.pathname.startsWith("/progress") || location.pathname.startsWith("/body-progress"),
+      visible: true,
     },
     { to: "/notifications", label: i18n.resolvedLanguage === "en" ? "Notifications" : "اعلان‌ها", active: location.pathname === "/notifications", visible: true },
     {
@@ -237,6 +237,7 @@ function getMobileContext(pathname: string, t: (key: string) => string, isFa: bo
     { prefix: "/dashboard", title: t("header.today") },
     { prefix: "/workout-plan", title: t("header.workoutPlan") },
     { prefix: "/nutrition-estimate", title: t("header.nutritionTargets") },
+    { prefix: "/progress", title: t("header.myProgress") },
     { prefix: "/body-progress", title: t("header.bodyProgress") },
     { prefix: "/more", title: t("header.more") },
   ];

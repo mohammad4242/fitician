@@ -16,7 +16,7 @@ const navigation = [
   { to: "/dashboard", label: "header.today", icon: "home" },
   { to: "/workout-plan", label: "header.workoutPlan", icon: "dumbbell", capability: "training" },
   { to: "/nutrition-estimate", label: "header.nutritionTargets", icon: "nutrition", capability: "nutrition" },
-  { to: "/body-progress", label: "header.bodyProgress", icon: "progress" },
+  { to: "/progress", label: "header.myProgress", icon: "progress" },
   { to: "/more", label: "header.more", icon: "more" },
 ] as const;
 
@@ -74,6 +74,7 @@ function isMoreRoute(pathname: string) {
 }
 
 function isPrimaryRouteActive(route: string, pathname: string) {
+  if (route === "/progress") return pathname.startsWith("/progress") || pathname.startsWith("/body-progress");
   if (route === "/dashboard") return pathname === route;
   if (route === "/more") return isMoreRoute(pathname);
   if (route === "/workout-plan") {

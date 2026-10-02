@@ -745,6 +745,7 @@ const en = {
       nutritionTargets: "Nutrition",
       foodCatalogue: "Food catalogue",
       profile: "Profile",
+      myProgress: "Progress",
       bodyProgress: "Body Analysis",
       more: "More",
       coachWorkspace: "Coach workspace",

@@ -39,16 +39,16 @@ it("shows the five primary combined-mode destinations", () => {
     "href",
     "/nutrition-estimate",
   );
-  expect(screen.getByRole("link", { name: "Body Analysis" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "پیشرفت" })).toHaveAttribute(
     "href",
-    "/body-progress",
+    "/progress",
   );
   expect(screen.getByRole("link", { name: "بیشتر" })).toHaveAttribute("href", "/more");
 });
 
 it.each([
-  ["nutrition", ["امروز", "تغذیه", "Body Analysis", "بیشتر"], ["تمرین"]],
-  ["training", ["امروز", "تمرین", "Body Analysis", "بیشتر"], ["تغذیه"]],
+  ["nutrition", ["امروز", "تغذیه", "پیشرفت", "بیشتر"], ["تمرین"]],
+  ["training", ["امروز", "تمرین", "پیشرفت", "بیشتر"], ["تغذیه"]],
 ] as const)("shows capability-aware links for %s mode", (productMode, visibleLabels, hiddenLabels) => {
   vi.spyOn(profileContextModule, "useOptionalProfile").mockReturnValue({
     profile: null,

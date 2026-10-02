@@ -12,7 +12,8 @@ import { BodyTimeline } from "./BodyTimeline";
 import type { BodyProgressTimelineItem, BodyProgressTimelineResponse } from "./types";
 import "./bodyPhotos.css";
 
-export function BodyProgressPage() {
+export function BodyProgressPage({ embedded = false }: { embedded?: boolean } = {}) {
+  const Container = embedded ? "section" : "main";
   const { t, i18n } = useTranslation();
   const { loading: entitlementsLoading, hasEntitlement, quotaFor } = useEntitlements();
   const [timeline, setTimeline] = useState<BodyProgressTimelineResponse | null>(null);
@@ -107,8 +108,8 @@ export function BodyProgressPage() {
   const isFa = !i18n.resolvedLanguage?.startsWith("en");
 
   return (
-    <main className="body-analysis-home fitician-page">
-      <header className="body-analysis-home__header">
+    <Container className="body-analysis-home fitician-page">
+      {!embedded && <header className="body-analysis-home__header">
         <div className="body-analysis-home__badge">
           <span className="body-analysis-home__badge-dot" aria-hidden="true" />
           <span>{isFa ? "آنالیز هوشمند ترکیب و فرم بدن" : "AI Body Biometrics & Composition"}</span>
@@ -144,7 +145,7 @@ export function BodyProgressPage() {
             </div>
           </div>
         </div>
-      </header>
+      </header>}
 
       {timeline === null && !failed && (
         <div className="body-analysis-home__status-box">
@@ -324,7 +325,7 @@ export function BodyProgressPage() {
           </section>
         </div>
       )}
-    </main>
+    </Container>
   );
 }
 

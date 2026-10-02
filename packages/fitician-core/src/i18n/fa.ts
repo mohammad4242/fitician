@@ -745,6 +745,7 @@ const fa = {
       nutritionTargets: "تغذیه",
       foodCatalogue: "کاتالوگ مواد غذایی",
       profile: "پروفایل",
+      myProgress: "پیشرفت",
       bodyProgress: "Body Analysis",
       more: "بیشتر",
       coachWorkspace: "پنل مربی",

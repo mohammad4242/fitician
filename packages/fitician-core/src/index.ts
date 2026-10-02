@@ -275,3 +275,4 @@ export * from "./nutrition-progress-review.js";
 export { foodMeasurementBasisLabel } from "./nutrition";
 
 export * from "./support.js";
+export * from './progress.js';

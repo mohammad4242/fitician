@@ -75,6 +75,7 @@ const VerifyEmailPage = lazy(() => import("./features/auth/VerifyEmailPage").the
 const WorkoutPlanPage = lazy(() => import("./features/workouts/WorkoutPlanPage").then(({ WorkoutPlanPage }) => ({ default: WorkoutPlanPage })));
 
 const AdminSupportPage = lazy(() => import("./features/support/AdminSupportPage").then(m => ({ default: m.AdminSupportPage })));
+const ProgressPage = lazy(() => import("./features/progress/ProgressPage").then(m => ({default:m.ProgressPage})));
 const HelpCenterPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.HelpCenterPage })));
 const MyTicketsPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.MyTicketsPage })));
 const NewTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.NewTicketPage })));
@@ -161,7 +162,8 @@ export function AppRoutes() {
         </Route>
         <Route element={<CompletedProfileRoute />}>
           <Route element={<CompletedAppShellRoute />}>
-            <Route path="/dashboard" element={deferred(<DashboardPage />)} />
+            <Route path="/progress" element={deferred(<ProgressPage />)} />
+          <Route path="/dashboard" element={deferred(<DashboardPage />)} />
             <Route path="/more" element={deferred(<MorePage />)} />
             <Route path="/profile" element={deferred(<ProfilePage />)} />
             <Route path="/nutrition-profile" element={<NutritionProfileRoute />} />

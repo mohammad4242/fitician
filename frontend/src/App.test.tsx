@@ -264,7 +264,9 @@ it("opens the dashboard after sign-in and keeps profile completion in the accoun
   expect(accountMenu.querySelector('[href="/onboarding"]')).toHaveTextContent("تکمیل پروفایل");
   expect(within(productGroup).getByRole("link", { name: "حرکات" })).toHaveAttribute("href", "/exercises");
   expect(within(accountGroup).getByRole("link", { name: "تکمیل پروفایل" })).toHaveAttribute("href", "/onboarding");
-  expect(within(socialGroup).getAllByRole("link")).toHaveLength(4);
+  expect(within(socialGroup).getByRole("link", { name: "@fitician.fit" })).toHaveAttribute("href", "https://www.instagram.com/fitician.fit/");
+  expect(within(socialGroup).getByRole("link", { name: "fitician.fit@gmail.com" })).toHaveAttribute("href", "mailto:fitician.fit@gmail.com");
+  expect(within(socialGroup).getByRole("link", { name: "پشتیبانی و ارتباط با ما" })).toHaveAttribute("href", "/support");
   expect(screen.getByRole("button", { name: /مقالات روز دنیا/ })).toBeDisabled();
 });
 
