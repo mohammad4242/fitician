@@ -1,3 +1,4 @@
+import { supportTicketDestination } from "@fitician/core";
 import { registerNotifications } from "../notifications/notificationRegistration";
 import { prepareNotifications, getNativePushToken } from "../notifications/notificationPermission";
 import { createNotificationApi } from "../notifications/notificationApi";
@@ -74,7 +75,7 @@ export function NotificationsScreen() {
     {inbox?.items.length === 0 && <Text>اعلانی وجود ندارد.</Text>}
     {inbox?.items.map(item => {
       const data = item.payload.data as Record<string, unknown> | undefined;
-      const destination = item.event_type === "program_message" && (data?.kind === "workout" || data?.kind === "nutrition") && typeof data.review_id === "string" ? `/conversation?kind=${data.kind}&reviewId=${encodeURIComponent(data.review_id)}` : item.event_type === "training_reminder" ? "/member/workouts" : item.event_type === "nutrition_reminder" ? "/member/nutrition" : "/member";
+      const destination = supportTicketDestination(item.event_type,data,"mobile") ?? (item.event_type === "program_message" && (data?.kind === "workout" || data?.kind === "nutrition") && typeof data.review_id === "string" ? `/conversation?kind=${data.kind}&reviewId=${encodeURIComponent(data.review_id)}` : item.event_type === "training_reminder" ? "/member/workouts" : item.event_type === "nutrition_reminder" ? "/member/nutrition" : "/member");
       return <Card key={item.id}><Text style={{ color: fiticianTokens.colors.ink }}>{String(item.payload.title ?? "اعلان")}{!item.read_at ? " · خوانده‌نشده" : ""}</Text><Text style={{ color: fiticianTokens.colors.ink }}>{String(item.payload.body ?? "")}</Text><Button label="مشاهده" onPress={() => { void read(item.id); router.push(destination as Href); }} />{!item.read_at && <Button variant="ghost" label="خواندم" onPress={() => void read(item.id)} />}</Card>;
     })}
     {inbox?.older_cursor && <Button label="اعلان‌های قبلی" onPress={() => void older()} />}

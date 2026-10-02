@@ -1,3 +1,4 @@
+import { supportContacts } from "@fitician/core";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -176,10 +177,9 @@ export function AuthenticatedHeader() {
                 </div>
                 <div className="member-menu__group member-menu__group--social" role="group" aria-label={t("header.socialNetworks")}>
                   <span className="member-menu__section-label">{t("header.socialNetworks")}</span>
-                  <a href="https://instagram.com" target="_blank" rel="noreferrer">Instagram</a>
-                  <a href="https://t.me" target="_blank" rel="noreferrer">Telegram</a>
-                  <a href="https://facebook.com" target="_blank" rel="noreferrer">Facebook</a>
-                  <a href="https://x.com" target="_blank" rel="noreferrer">X</a>
+                  <Link to="/support" onClick={() => setMenuOpen(false)}>{i18n.resolvedLanguage === "en" ? "Support & contact" : "پشتیبانی و ارتباط با ما"}</Link>
+                  <a href={supportContacts.instagramUrl} target="_blank" rel="noreferrer">{supportContacts.instagramHandle}</a>
+                  <a href={`mailto:${supportContacts.email}`} dir="ltr">{supportContacts.email}</a>
                 </div>
                 {user.is_admin && (
                   <div className="member-menu__group" role="group" aria-label={t("header.adminLinks")}>

@@ -1,3 +1,4 @@
+import { normalizeNativeDeepLinkPath } from "./navigation/deepLinks";
 import { expect, it, vi } from "vitest";
 
 const runtime = vi.hoisted(() => ({
@@ -52,4 +53,10 @@ it("leaves the native OAuth callback for Auth Session untouched", async () => {
       path: "fitician:///oauthredirect?error=access_denied&state=state-value",
     }),
   ).resolves.toBeNull();
+});
+it('normalizes support app links without allowing arbitrary ticket paths',()=>{
+ const id='12345678-1234-4234-8234-123456789abc';
+ expect(normalizeNativeDeepLinkPath(`fitician://app/support/tickets/${id}`)).toBe(`/member/support-ticket/${id}`);
+ expect(normalizeNativeDeepLinkPath('fitician://app/support')).toBe('/member/support');
+ expect(normalizeNativeDeepLinkPath('fitician://app/support/tickets/evil')).toBe('/');
 });

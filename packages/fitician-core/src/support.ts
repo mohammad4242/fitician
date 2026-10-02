@@ -65,10 +65,12 @@ export function createSupportApi(request:SupportRequest, admin=false) {
 export function mergeSupportMessages(first:readonly SupportMessage[],second:readonly SupportMessage[]):SupportMessage[] {
  return [...new Map([...first,...second].map(m=>[m.id,m])).values()].sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id.localeCompare(b.id));
 }
-/** Approved Fitician public contacts. No third-party placeholder accounts. */
-export const supportContacts = {
- email:'fitician.fit@gmail.com',
- instagramHandle:'@fitician.fit',
- instagramUrl:'https://www.instagram.com/fitician.fit/',
- supportPath:'/support',
-} as const;
+export { supportContacts } from './public-contacts.js';
+export function isSupportTicketId(value:unknown):value is string {
+ return typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+export function supportTicketDestination(event:string,data:unknown,platform:'web'|'mobile'):string|null {
+ if(event!=='support_ticket_reply'||typeof data!=='object'||data===null)return null;
+ const id=(data as Record<string,unknown>).ticket_id;
+ return isSupportTicketId(id)?`${platform==='web'?'/support/tickets':'/member/support-ticket'}/${id}`:null;
+}

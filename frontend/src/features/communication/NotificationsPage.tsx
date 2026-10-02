@@ -1,3 +1,4 @@
+import { supportTicketDestination } from "@fitician/core";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { resolvedIanaTimeZone, type NotificationInbox, type PersonalNotificationSettings } from "@fitician/core";
@@ -54,7 +55,7 @@ export function NotificationsPage() {
     {inbox?.items.length === 0 && <p>اعلانی وجود ندارد.</p>}
     <ul>{inbox?.items.map(item => {
       const data = item.payload.data as Record<string, unknown> | undefined;
-      const destination = item.event_type === "program_message" && (data?.kind === "workout" || data?.kind === "nutrition") && typeof data.review_id === "string" ? `/conversation/${data.kind}/${encodeURIComponent(data.review_id)}` : item.event_type === "training_reminder" ? "/workout-plan" : item.event_type === "nutrition_reminder" ? "/nutrition-estimate" : "/dashboard";
+      const destination = supportTicketDestination(item.event_type,data,"web") ?? (item.event_type === "program_message" && (data?.kind === "workout" || data?.kind === "nutrition") && typeof data.review_id === "string" ? `/conversation/${data.kind}/${encodeURIComponent(data.review_id)}` : item.event_type === "training_reminder" ? "/workout-plan" : item.event_type === "nutrition_reminder" ? "/nutrition-estimate" : "/dashboard");
       return <li key={item.id}><strong>{String(item.payload.title ?? "اعلان")}{!item.read_at ? " · خوانده‌نشده" : ""}</strong><p>{String(item.payload.body ?? "")}</p><Link to={destination} onClick={() => void read(item.id)}>مشاهده</Link>{!item.read_at && <button type="button" onClick={() => void read(item.id)}>خواندم</button>}</li>;
     })}</ul>
     {inbox?.older_cursor && <button type="button" onClick={() => void older()}>اعلان‌های قبلی</button>}

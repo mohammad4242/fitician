@@ -23,3 +23,10 @@ it("merges paginated support messages without duplicates in chronological order"
   const b = { ...a, id: "b", created_at: "2026-10-02T10:00:00Z" };
   expect(mergeSupportMessages([b], [a, b]).map(m => m.id)).toEqual(["a", "b"]);
 });
+it('validates support reply IDs before creating deep links', async () => {
+ const { supportTicketDestination } = await import('./support.js');
+ const id='12345678-1234-4234-8234-123456789abc';
+ expect(supportTicketDestination('support_ticket_reply',{ticket_id:id},'web')).toBe(`/support/tickets/${id}`);
+ expect(supportTicketDestination('support_ticket_reply',{ticket_id:'../admin'},'mobile')).toBeNull();
+ expect(supportTicketDestination('program_message',{ticket_id:id},'web')).toBeNull();
+});

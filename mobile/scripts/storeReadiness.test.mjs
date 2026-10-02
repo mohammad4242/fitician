@@ -45,7 +45,7 @@ test("production store links resolve to the public privacy and deletion routes",
       production: true,
       env: {
         FITICIAN_PUBLIC_WEB_ORIGIN: "https://fitician.example",
-        FITICIAN_SUPPORT_EMAIL: "support@fitician.example",
+        FITICIAN_SUPPORT_EMAIL: "fitician.fit@gmail.com",
       },
     });
     assert.equal(result.privacyUrl, "https://fitician.example/privacy");

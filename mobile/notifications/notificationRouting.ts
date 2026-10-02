@@ -1,6 +1,8 @@
+import { isSupportTicketId, supportTicketDestination } from "@fitician/core";
 import type { NotificationResponse } from "expo-notifications";
 
 export type NotificationRoutePath =
+  | `/member/support-ticket/${string}`
   | "/coach"
   | "/member"
   | "/member/body-analysis-history"
@@ -43,7 +45,7 @@ const notificationRoutePaths = new Set<NotificationRoutePath>([
 ]);
 
 export function isNotificationRoutePath(value: string): value is NotificationRoutePath {
-  return notificationRoutePaths.has(value as NotificationRoutePath);
+  return notificationRoutePaths.has(value as NotificationRoutePath) || (value.startsWith("/member/support-ticket/") && isSupportTicketId(value.slice("/member/support-ticket/".length)));
 }
 
 export function notificationPathFromData(data: unknown): NotificationRoutePath | null {
@@ -51,6 +53,7 @@ export function notificationPathFromData(data: unknown): NotificationRoutePath |
   const nestedData = isRecord(data.data) ? data.data : data;
   const eventType = nestedData.event_type;
   if (typeof eventType !== "string") return null;
+  if (eventType === "support_ticket_reply") return supportTicketDestination(eventType,nestedData,"mobile") as NotificationRoutePath | null;
   if (eventType === "body_analysis_review_required") {
     const role = nestedData.recipient_role;
     if (role === "coach") return "/coach";

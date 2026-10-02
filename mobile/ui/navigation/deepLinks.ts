@@ -1,3 +1,4 @@
+import { isSupportTicketId } from "@fitician/core";
 import { DEFAULT_APP_LINK_HOST } from "../../config/runtimeConfig";
 
 const deepLinkBase = "fitician://app";
@@ -30,6 +31,8 @@ export function normalizeNativeDeepLinkPath(
   }
 
   const segments = routeSegments(parsed);
+  if (segments.length === 1 && segments[0] === "support") return "/member/support";
+  if (segments.length === 3 && ((segments[0] === "support" && segments[1] === "tickets") || (segments[0] === "member" && segments[1] === "support-ticket")) && isSupportTicketId(segments[2])) return `/member/support-ticket/${segments[2]}`;
   const memberPath = normalizeMemberSegments(segments);
   if (memberPath !== null) return memberPath;
 

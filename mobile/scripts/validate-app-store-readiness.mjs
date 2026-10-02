@@ -1,3 +1,4 @@
+import { supportContacts } from "../../packages/fitician-core/src/public-contacts.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -79,7 +80,8 @@ export async function validateAppStoreReadiness({
       requiredEnvironment(env, "FITICIAN_SUPPORT_URL"),
       "support URL",
     );
-    const supportEmail = requiredEnvironment(env, "FITICIAN_SUPPORT_EMAIL");
+    const supportEmail = env.FITICIAN_SUPPORT_EMAIL?.trim() || supportContacts.email;
+    assert.equal(supportEmail, supportContacts.email, "support email must match approved shared contact configuration");
     assert.match(supportEmail, /^[^\s@]+@[^\s@]+\.[^\s@]+$/u, "support email is invalid");
     const teamId = requiredEnvironment(env, "APPLE_TEAM_ID");
     assert.match(teamId, /^[A-Z0-9]{10}$/u, "Apple Team ID is invalid");

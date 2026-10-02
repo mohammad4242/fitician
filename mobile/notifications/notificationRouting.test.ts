@@ -78,3 +78,10 @@ it("routes personal reminders and program messages to authenticated app screens"
   expect(notificationPathFromData({ event_type: "program_message" })).toBe("/notifications");
   expect(notificationPathFromData({ event_type: "return_reminder" })).toBe("/member");
 });
+it('opens a support ticket directly and rejects unsafe IDs',()=>{
+ const id='12345678-1234-4234-8234-123456789abc';
+ expect(notificationPathFromData({event_type:'support_ticket_reply',ticket_id:id})).toBe(`/member/support-ticket/${id}`);
+ expect(isNotificationRoutePath(`/member/support-ticket/${id}`)).toBe(true);
+ expect(isNotificationRoutePath('/member/support-ticket/../admin')).toBe(false);
+ expect(notificationPathFromData({event_type:'support_ticket_reply',ticket_id:'../admin'})).toBeNull();
+});
