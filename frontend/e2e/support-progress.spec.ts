@@ -10,6 +10,19 @@ async function mockCompletedMember(page: Page) {
       body: JSON.stringify({ detail: "Not available in the browser fixture" }),
     }),
   );
+  await page.route("**/api/v1/entitlements/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        primary_package: "complete",
+        active_packages: ["complete"],
+        trial: { active: false, ends_at: null },
+        grants: [],
+        entitlements: { granted: ["body_analysis.run"], quotas: [] },
+      }),
+    }),
+  );
   await page.route("**/api/v1/auth/me", (route) =>
     route.fulfill({
       status: 200,
@@ -74,7 +87,7 @@ const empty = {
   delta: null,
 };
 for (const language of ["fa", "en"]) {
-  for (const width of [320, 1440]) {
+  for (const width of [320, 360, 390, 430, 768, 1440]) {
     test(`Support and Progress ${language} at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.addInitScript(
@@ -184,6 +197,15 @@ for (const language of ["fa", "en"]) {
           }),
         }),
       );
+      let historyRequests = 0;
+      await page.route("**/api/v1/body-progress/timeline", (route) => {
+        historyRequests++;
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ items: [] }),
+        });
+      });
       await page.goto("/progress");
       await expect(
         page.getByRole("heading", {
@@ -191,7 +213,14 @@ for (const language of ["fa", "en"]) {
           exact: true,
         }),
       ).toBeVisible();
-      await expect(page.locator(".progress-chart")).toHaveCount(2);
+      await expect(
+        page.getByRole("tab", {
+          name: language === "fa" ? "نمای کلی" : "Overview",
+          exact: true,
+        }),
+      ).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator(".progress-overview-card")).toHaveCount(5);
+      await expect(page.locator(".progress-chart")).toHaveCount(0);
       await expect
         .poll(() =>
           page.evaluate(
@@ -203,6 +232,55 @@ for (const language of ["fa", "en"]) {
         path: `test-results/progress-${language}-${width}.png`,
         fullPage: true,
       });
+      expect(historyRequests).toBe(0);
+      for (const category of [
+        "calories",
+        "body",
+        "training",
+        "recovery",
+      ] as const) {
+        await page.locator(`#progress-tab-${category}`).click();
+        await expect(
+          page.locator(`#progress-panel-${category} .progress-detail`),
+        ).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(
+              () => document.documentElement.scrollWidth <= innerWidth,
+            ),
+          )
+          .toBe(true);
+        if (width === 390 || width === 1440)
+          await page.screenshot({
+            path: `test-results/progress-${category}-${language}-${width}.png`,
+            fullPage: true,
+          });
+      }
+      expect(historyRequests).toBe(0);
+      await page.locator("#progress-tab-analysis").click();
+      await expect.poll(() => historyRequests).toBe(1);
+      await expect(page.locator(".body-analysis-empty")).toBeVisible();
+      await page.locator("#progress-tab-overview").click();
+      await page
+        .getByRole("button", {
+          name: language === "fa" ? /کالری و پایبندی/ : /Calories & adherence/,
+        })
+        .click();
+      await expect(page.locator("#progress-tab-calories")).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      await page
+        .getByRole("button", {
+          name:
+            language === "fa"
+              ? /کالری هدف ۲٬۲۰۰.*۲٬۱۴۰/
+              : /Target calories 2,200.*2,140/,
+        })
+        .press("Enter");
+      await expect(page.locator(".progress-point")).toContainText(
+        language === "fa" ? "−۶۰" : "-60",
+      );
     });
   }
 }

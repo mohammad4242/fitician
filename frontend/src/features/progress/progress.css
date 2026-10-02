@@ -1,124 +1,261 @@
 .progress-page {
-  max-width: 1180px;
+  max-width: 1088px;
   margin: auto;
   padding: 24px;
   color: var(--fitician-ink);
 }
-.progress-heading,
-.progress-section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 .progress-heading h1 {
-  font-size: 1.3rem;
-}
-.progress-ranges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  margin: 0 0 12px;
+  font-weight: 750;
 }
 .progress-page button,
-.progress-ranges > a {
-  border: 1px solid var(--fitician-line);
-  border-radius: var(--fitician-radius-md);
-  background: var(--fitician-surface);
-  padding: 10px 16px;
-  min-height: 44px;
-  color: var(--fitician-ink);
+.progress-page select {
   font: inherit;
+  color: var(--fitician-ink);
   cursor: pointer;
-}
-.progress-page button[aria-pressed="true"] {
-  color: var(--fitician-aqua);
-  border-color: var(--fitician-aqua);
+  min-height: 48px;
 }
 .progress-page :focus-visible {
   outline: 2px solid var(--fitician-aqua);
   outline-offset: 3px;
 }
 .progress-page button:disabled {
-  opacity: 0.5;
+  opacity: 0.35;
+  cursor: default;
 }
-.progress-hero {
+.progress-tabs {
   display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  border: 1px solid var(--fitician-line-strong);
-  border-radius: var(--fitician-radius-card);
-  padding: 32px;
-  margin-block: 24px;
-  background: linear-gradient(
-    115deg,
-    var(--fitician-surface),
-    var(--fitician-petrol)
-  );
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 20px;
+  border-bottom: 1px solid var(--fitician-line);
+  scrollbar-width: none;
+  scroll-padding: 16px;
 }
-.progress-hero h2 {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  margin-block: 12px;
+.progress-tabs::-webkit-scrollbar {
+  display: none;
 }
-.progress-hero p {
-  margin-block: 8px;
+.progress-tabs button {
+  flex-shrink: 0;
+  padding: 10px 2px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
   color: var(--fitician-muted);
-  line-height: 1.8;
-}
-.progress-hero aside {
-  display: grid;
-  gap: 8px;
-  align-content: center;
+  white-space: nowrap;
   font-size: 0.9rem;
+}
+.progress-tabs button[aria-selected="true"] {
+  color: var(--fitician-aqua);
+  border-bottom-color: var(--fitician-aqua);
+  font-weight: 700;
+}
+.progress-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 18px;
+  font-size: 0.78rem;
   color: var(--fitician-muted);
 }
-.progress-metrics {
+.progress-toolbar select {
+  background: var(--fitician-surface);
+  border: 1px solid var(--fitician-line);
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  max-width: 165px;
+}
+.progress-overview {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.progress-page .progress-overview-card {
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+  padding: 18px 20px;
+  border: 1px solid var(--fitician-line);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(80 223 206 / 4%), transparent 65%),
+    var(--fitician-surface);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+  min-width: 0;
+  gap: 14px;
+  transition:
+    background 0.16s,
+    border-color 0.16s;
+}
+.progress-overview-card:hover {
+  border-color: var(--fitician-line-strong);
+  background-color: var(--fitician-petrol);
+}
+.progress-overview-card__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.94rem;
+  font-weight: 650;
+  width: 100%;
+}
+.progress-chevron {
+  font-size: 26px;
+  line-height: 20px;
+  color: var(--fitician-muted);
+  font-weight: 400;
+}
+.progress-overview-card__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+.progress-overview-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.progress-overview-card__copy strong {
+  font-size: clamp(1.12rem, 2vw, 1.55rem);
+  font-weight: 750;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.progress-overview-card__copy > span {
+  color: var(--fitician-muted);
+  font-size: 0.78rem;
+}
+.progress-overview-card__copy small {
+  color: var(--fitician-muted);
+  font-size: 0.7rem;
+  line-height: 1.8;
+  max-width: 27ch;
+}
+.progress-mini {
+  width: 32%;
+  max-width: 150px;
+  height: 88px;
+  flex-shrink: 0;
+  overflow: visible;
+  direction: ltr;
 }
 .progress-card {
   background: var(--fitician-surface);
   border: 1px solid var(--fitician-line);
-  border-radius: var(--fitician-radius-card);
+  border-radius: 22px;
   padding: 24px;
-  margin-block: 0 20px;
   min-width: 0;
 }
 .progress-card h2 {
-  font-size: 1.1rem;
-  margin-block: 0 20px;
+  font-size: 1.05rem;
+  margin: 4px 0 18px;
 }
-.progress-card p,
-.progress-card li {
-  line-height: 1.9;
+.progress-card p {
   color: var(--fitician-muted);
+  line-height: 1.8;
+  font-size: 0.85rem;
 }
-.progress-card details {
-  margin-block: 16px;
+.progress-card button {
+  background: var(--fitician-surface-raised);
+  border: 1px solid var(--fitician-line);
+  border-radius: 12px;
+  padding: 8px 14px;
 }
 .progress-card summary {
   cursor: pointer;
-  min-height: 44px;
-  padding-block: 10px;
-  font-weight: 600;
+  min-height: 48px;
+  padding-block: 14px;
+  font-size: 0.78rem;
+  color: var(--fitician-muted);
 }
-.progress-metrics .progress-card {
+.progress-card details {
+  margin-top: 14px;
+  border-top: 1px solid var(--fitician-line);
+}
+.progress-metric-selector {
+  display: flex;
+  overflow-x: auto;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 22px;
+  background: var(--fitician-surface-subtle);
+  border-radius: 14px;
+}
+.progress-metric-selector button {
+  border: 0;
+  white-space: nowrap;
+  background: transparent;
+  font-size: 0.8rem;
+  flex: 1 0 auto;
+}
+.progress-metric-selector button[aria-pressed="true"] {
+  background: var(--fitician-surface-raised);
+  color: var(--fitician-aqua);
+}
+.progress-detail-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.progress-detail-metric strong {
+  font-size: 2rem;
+  font-weight: 750;
+}
+.progress-detail-metric small {
+  font-size: 1rem;
+  color: var(--fitician-muted);
+}
+.progress-detail-metric > span {
+  font-size: 0.85rem;
+  color: var(--fitician-aqua);
+}
+.progress-stats {
   display: grid;
-  gap: 12px;
-  align-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
 }
-.progress-metrics strong {
-  font-size: 1.7rem;
+.progress-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.progress-metrics small {
+.progress-stat > span {
+  font-size: 0.75rem;
+  color: var(--fitician-muted);
+}
+.progress-stat > strong {
+  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  font-variant-numeric: tabular-nums;
+}
+.progress-point {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--fitician-surface-raised);
   font-size: 0.8rem;
   color: var(--fitician-muted);
-  line-height: 1.7;
+  margin: 18px 0;
 }
-.progress-metrics p {
-  margin: 0;
-  font-size: 0.85rem;
+.progress-point time {
+  flex-basis: 100%;
+  color: var(--fitician-ink);
+}
+.progress-point b {
+  color: var(--fitician-ink);
+  font-weight: 650;
 }
 .progress-chart {
   margin: 20px 0;
@@ -127,12 +264,13 @@
 .progress-chart svg {
   width: 100%;
   height: auto;
-  overflow: visible;
   font-family: inherit;
+  overflow: visible;
 }
 .progress-chart__grid {
   stroke: var(--fitician-line);
-  stroke-width: 1;
+  stroke-width: 0.7;
+  stroke-dasharray: 3 5;
 }
 .progress-chart__label {
   fill: var(--fitician-muted);
@@ -151,119 +289,111 @@
   stroke: none;
   cursor: pointer;
 }
+.progress-chart .progress-chart__hit:focus {
+  stroke: var(--fitician-ink);
+  stroke-width: 1;
+  outline: none;
+}
 .progress-chart__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  font-size: 0.85rem;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--fitician-muted);
 }
 .progress-chart__legend span::before {
   content: "";
   display: inline-block;
-  width: 18px;
+  width: 16px;
   height: 3px;
   background: var(--fitician-aqua);
-  margin-inline-end: 8px;
+  margin-inline-end: 7px;
   vertical-align: middle;
 }
 .progress-chart__legend .progress-chart__legend-1::before {
   background: var(--fitician-coral);
 }
+.progress-chart__legend .progress-chart__legend-planned::before {
+  background: var(--fitician-line);
+  height: 8px;
+}
 .progress-chart__legend small {
   margin-inline-start: auto;
+}
+.progress-training-chart {
+  display: flex;
+  direction: ltr;
+  gap: 24px;
+  padding: 20px 4px;
+  overflow-x: auto;
+}
+.progress-training-week {
+  display: flex;
+  flex: 1 0 85px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+.progress-training-week time {
+  font-size: 0.7rem;
   color: var(--fitician-muted);
 }
-.progress-value {
+.progress-training-bars {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-block: 20px;
-}
-.progress-value strong {
-  font-size: 1.5rem;
-}
-.progress-value small {
-  font-size: 0.9rem;
-}
-.progress-value span {
-  color: var(--fitician-aqua);
-}
-.progress-point {
-  background: var(--fitician-surface-subtle);
-  border-radius: var(--fitician-radius-md);
-  padding: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.9rem;
-}
-.progress-point strong {
+  align-items: end;
+  justify-content: center;
+  height: 145px;
   width: 100%;
+  gap: 6px;
+  border-bottom: 1px solid var(--fitician-line);
 }
-.progress-empty {
-  padding-block: 32px;
+.progress-training-bars i {
+  width: 22px;
+  background: var(--fitician-line);
+  border-radius: 7px 7px 0 0;
 }
-.progress-nutrition-summary {
+.progress-training-bars i + i {
+  background: var(--fitician-aqua);
+}
+.progress-small-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 24px;
-  font-size: 0.9rem;
-}
-.progress-day-selector {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  margin-block: 20px;
-}
-.progress-day-selector input {
-  flex: 1;
-  direction: ltr;
-  accent-color: var(--fitician-aqua);
-}
-.progress-secondary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-.progress-week-bars {
-  display: grid;
-  gap: 16px;
-  margin-block: 20px;
-}
-.progress-week-bars > div {
-  display: grid;
-  grid-template-columns: 100px 1fr auto;
-  gap: 12px;
-  align-items: center;
+  gap: 18px;
+  padding: 18px 0 0;
   font-size: 0.85rem;
+  color: var(--fitician-muted);
 }
-.progress-week-bars > div > div {
-  height: 18px;
-  position: relative;
-  direction: ltr;
+.progress-small-stats b {
+  color: var(--fitician-ink);
+  margin-inline-start: 6px;
 }
-.progress-week-bars__planned,
-.progress-week-bars__completed {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 18px;
-  border-radius: 4px;
-  background: var(--fitician-line-strong);
+.progress-history > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--fitician-line);
+  font-size: 0.8rem;
 }
-.progress-week-bars__completed {
-  background: var(--fitician-aqua);
-  height: 8px;
-  top: 5px;
+.progress-history time {
+  margin-inline-end: auto;
+  color: var(--fitician-muted);
+}
+.progress-history span {
+  color: var(--fitician-muted);
+}
+.progress-empty,
+.progress-note {
+  color: var(--fitician-muted);
+  font-size: 0.8rem;
+  margin-block: 16px;
 }
 .progress-measurement-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  padding-block: 20px;
-  border-block: 1px solid var(--fitician-line);
-  margin-block: 16px;
+  margin-top: 16px;
 }
 .progress-measurement-form p {
   grid-column: 1/-1;
@@ -271,12 +401,13 @@
 .progress-measurement-form label {
   display: grid;
   gap: 8px;
+  font-size: 0.8rem;
 }
 .progress-measurement-form input {
   background: var(--fitician-surface-subtle);
   color: var(--fitician-ink);
   border: 1px solid var(--fitician-line);
-  border-radius: var(--fitician-radius-md);
+  border-radius: 12px;
   padding: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -284,47 +415,43 @@
   direction: ltr;
 }
 .progress-skeleton {
-  border: 1px solid var(--fitician-line);
-  padding: 48px;
-  border-radius: var(--fitician-radius-card);
-  margin-block: 24px;
+  padding: 24px;
+  color: var(--fitician-muted);
 }
-.progress-card .body-analysis-home {
+.progress-analysis .body-analysis-home {
   padding: 0;
   min-height: 0;
-}
-.progress-card .body-analysis-home__hero {
-  display: none;
 }
 @media (max-width: 700px) {
   .progress-page {
     padding: 16px;
   }
-  .progress-hero {
-    padding: 24px;
-    flex-direction: column;
+  .progress-overview {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .progress-page .progress-overview-card {
+    padding: 16px 18px;
+    gap: 10px;
   }
   .progress-card {
     padding: 18px;
   }
-  .progress-secondary {
-    grid-template-columns: 1fr;
+  .progress-overview-card__copy strong {
+    font-size: 1.2rem;
   }
-  .progress-metrics {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+  .progress-tabs {
+    gap: 22px;
   }
-  .progress-metrics .progress-card {
-    padding: 16px;
+  .progress-stats {
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .progress-metrics strong {
-    font-size: 1.35rem;
-  }
-  .progress-week-bars > div {
-    grid-template-columns: 80px 1fr auto;
+  .progress-stats .progress-stat:first-child {
+    grid-column: 1/-1;
   }
   .progress-chart__label {
-    font-size: 16px;
+    font-size: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -332,4 +459,43 @@
     animation: none;
     transition: none;
   }
+}
+.progress-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.progress-toolbar select {
+  appearance: none;
+  color-scheme: dark;
+  background: var(--fitician-surface);
+  padding-inline-end: 30px;
+}
+.progress-toolbar label {
+  position: relative;
+}
+.progress-toolbar label::after {
+  content: "⌄";
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 12px;
+  pointer-events: none;
+  color: var(--fitician-muted);
+}
+.progress-tabs button {
+  min-width: 48px;
+}
+/* The whole plot chooses the nearest date; keyboard targets stay usable at dense ranges. */
+.progress-chart .progress-chart__hit {
+  pointer-events: none;
+}
+.progress-chevron {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
