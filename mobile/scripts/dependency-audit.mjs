@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { verifyBracesPatch } from "./verify-braces-patch.mjs";
 import { verifyForgeBackport } from "./verify-forge-backport.mjs";
 
 const mobileRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,6 +32,7 @@ export function assertAuditPolicy(report) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   verifyForgeBackport();
+  verifyBracesPatch();
   const result = spawnSync(
     "npm",
     ["audit", "--workspace=@fitician/mobile", "--omit=dev", "--json"],

@@ -13,7 +13,11 @@
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "3.15.2"
     },
-    "node-forge": "$node-forge"
+    "node-forge": "$node-forge",
+    "braces": "$braces",
+    "minimatch@5.1.9": {
+      "brace-expansion": "2.1.7"
+    }
   },
   "engines": {
     "node": ">=20.19.4"
@@ -40,6 +44,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "braces": "file:vendor/braces-3.0.4-fitician.1.tgz",
     "node-forge": "file:vendor/node-forge-1.4.1-fitician.1.tgz"
   }
 }
