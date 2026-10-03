@@ -54,7 +54,9 @@ the ordinary encrypted pg_dump pipeline. It retains the existing operator
 recipient, uploads through the normal script, downloads that exact object, and
 compares encrypted SHA-256 hashes. It decrypts directly into pg_restore in an
 isolated PostgreSQL container: no network, no production volume mounts, no host
-port, no persistent test volume. The temporary key and encrypted local test files
+port, no persistent test volume. Test PGDATA lives only in the disposable container
+writable layer, so its pages can be reclaimed; a small tmpfs covers the image
+default volume mount to prevent anonymous volume creation. The temporary key and encrypted local test files
 are removed after completion. Restoring uses `--exit-on-error`; table counts,
 Alembic revision, cgroup OOM counters, production start times, memory headroom,
 and service readiness are checked without printing personal records.

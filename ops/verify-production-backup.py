@@ -151,7 +151,9 @@ try:
         "--cpus",
         "0.5",
         "--tmpfs",
-        "/var/lib/postgresql:rw,size=512m",
+        "/var/lib/postgresql:rw,size=16m",
+        "-e",
+        "PGDATA=/fitician-restore-data",
         "-e",
         "POSTGRES_HOST_AUTH_METHOD=trust",
         "-e",
@@ -187,8 +189,33 @@ try:
         stderr=subprocess.PIPE,
     )
     decrypt.stdout.close()
-    restore.communicate()
-    decrypt.communicate()
+    restore_errors = restore.communicate()[1]
+    decrypt_errors = decrypt.communicate()[1]
+    if restore.returncode != 0 or decrypt.returncode != 0:
+        failed = inspect(name)
+        failed_events = run(
+            "docker", "exec", name, "cat", "/sys/fs/cgroup/memory.events", check=False
+        ).stdout
+        error_lines = restore_errors.decode(errors="replace").splitlines()
+        error_text = "\n".join(error_lines)
+        error_categories = {
+            "connectionLost": "server closed" in error_text,
+            "diskFull": "No space left" in error_text,
+            "archiveInvalid": "valid archive" in error_text,
+            "copyFailed": "COPY failed" in error_text,
+        }
+        print(
+            json.dumps(
+                {
+                    "restoreExit": restore.returncode,
+                    "decryptExit": decrypt.returncode,
+                    "restoreOomKilled": failed["State"]["OOMKilled"],
+                    "restoreMemoryEvents": failed_events,
+                    "errorCategories": error_categories,
+                }
+            ),
+            flush=True,
+        )
     assert restore.returncode == 0 and decrypt.returncode == 0, (
         "Backup restore failed (data-bearing errors not printed)"
     )
