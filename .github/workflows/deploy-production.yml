@@ -253,6 +253,8 @@ jobs:
           scp ops/backup-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/backup-production.sh"
           scp ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/check-db-connection-budget.py"
           scp ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/check-runtime-capacity.py"
+          scp ops/cleanup-production-images.py "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/cleanup-production-images.py"
+          scp ops/verify-production-backup.py "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/verify-production-backup.py"
           scp ops/verify-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/ops/verify-production.sh"
           scp ops/deploy-production.sh "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/.deploy-production.sh"
 

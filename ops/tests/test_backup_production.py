@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import fcntl
 import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/backup-production.sh"
@@ -61,6 +61,20 @@ fi
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.workspace / "uploaded.age").read_bytes(), b"AGE:PGDUMP")
+        self.assertEqual(list(self.workspace.glob(".db-backup.*.age")), [])
+
+    def test_concurrent_backup_is_rejected_before_dump_or_upload(self) -> None:
+        with (self.workspace / ".db-backup.lock").open("w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.workspace / "uploaded.age").exists())
+
+    def test_failed_dump_never_uploads_partial_encrypted_backup(self) -> None:
+        self._command("docker", '#!/bin/sh\nprintf "PARTIAL"\nexit 7\n')
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.workspace / "uploaded.age").exists())
         self.assertEqual(list(self.workspace.glob(".db-backup.*.age")), [])
 
     def test_failed_encryption_never_uploads(self) -> None:

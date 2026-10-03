@@ -273,6 +273,16 @@ if [ "$first_scalability_release" = true ]; then
     > "$next_scalability_marker"
   mv "$next_scalability_marker" "$scalability_marker"
 fi
+# Preserve the exact currently deployed and preceding component SHAs for cleanup.
+next_retention=$(mktemp "$app_dir/.image-retention.XXXXXXXX")
+printf '%s\n' "$image_tag" "$previous_frontend_tag" "$previous_api_tag" \
+  "$previous_worker_tag" "$previous_agent_tag" | sort -u > "$next_retention"
+if [ "$(wc -l < "$next_retention")" -ge 2 ]; then
+  mv "$next_retention" "$app_dir/.image-cleanup-protected-shas"
+else
+  rm -f "$next_retention"
+fi
+
 if [ -n "$rollback_compose_file" ]; then
   rm -f "$rollback_compose_file"
 fi

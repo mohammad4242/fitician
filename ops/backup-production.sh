@@ -17,11 +17,17 @@ fi
 : "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}"
 : "${AWS_DEFAULT_REGION:?AWS_DEFAULT_REGION is required}"
 
-for command in docker age aws stat; do
+for command in docker age aws stat flock; do
   command -v "$command" >/dev/null || { echo "$command is required" >&2; exit 1; }
 done
 
 umask 077
+# The deploy hook and scheduled backup must not allocate two large COPY streams.
+exec 9>"$app_dir/.db-backup.lock"
+if ! flock -n 9; then
+  echo "Another database backup is running; retry after it completes" >&2
+  exit 1
+fi
 encrypted=$(mktemp "$app_dir/.db-backup.XXXXXXXX.age")
 trap 'rm -f "$encrypted"' EXIT
 

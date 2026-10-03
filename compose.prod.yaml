@@ -12,7 +12,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-    mem_limit: ${POSTGRES_MEMORY_LIMIT:-320m}
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-512m}
     cpus: ${POSTGRES_CPU_LIMIT:-0.35}
     restart: unless-stopped
 
@@ -133,7 +133,7 @@ services:
       timeout: 5s
       retries: 12
     stop_grace_period: 45s
-    mem_limit: ${BACKEND_MEMORY_LIMIT:-704m}
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-512m}
     cpus: ${BACKEND_CPU_LIMIT:-0.40}
     restart: unless-stopped
 

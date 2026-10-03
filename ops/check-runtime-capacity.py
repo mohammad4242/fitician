@@ -33,13 +33,13 @@ class ServiceBudget:
 
 def normal_budgets(replicas: int) -> tuple[ServiceBudget, ...]:
     return (
-        ServiceBudget("db", env_int("POSTGRES_MEMORY_MIB", 320), env_float("POSTGRES_CPUS", 0.35)),
+        ServiceBudget("db", env_int("POSTGRES_MEMORY_MIB", 512), env_float("POSTGRES_CPUS", 0.35)),
         ServiceBudget("redis", env_int("REDIS_MEMORY_MIB", 192), env_float("REDIS_CPUS", 0.10)),
         ServiceBudget(
             "agent-service", env_int("AGENT_MEMORY_MIB", 448), env_float("AGENT_CPUS", 0.40)
         ),
         ServiceBudget(
-            "backend", env_int("BACKEND_MEMORY_MIB", 704), env_float("BACKEND_CPUS", 0.40), replicas
+            "backend", env_int("BACKEND_MEMORY_MIB", 512), env_float("BACKEND_CPUS", 0.40), replicas
         ),
         ServiceBudget(
             "body-analysis-worker",

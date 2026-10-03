@@ -32,6 +32,14 @@ class RuntimeCapacityTests(unittest.TestCase):
         self.assertEqual(payload["services"]["notification-worker"]["cpus_each"], 0.1)
         self.assertTrue(payload["within_budget"])
 
+    def test_backup_budget_fits_physical_four_gb_host(self) -> None:
+        result = self._run("--host-memory-mib", "3915")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["services"]["db"]["memory_mib_each"], 512)
+        self.assertEqual(payload["services"]["backend"]["memory_mib_each"], 512)
+        self.assertGreaterEqual(payload["memory_headroom_mib"], 750)
+
     def test_third_backend_replica_exceeds_the_4_gib_budget(self) -> None:
         result = self._run("--replicas", "3")
 
