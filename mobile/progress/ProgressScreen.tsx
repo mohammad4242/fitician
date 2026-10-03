@@ -101,9 +101,11 @@ function ProgressContent() {
           />
         </View>
         <ScrollView
+          key={`categories-${direction}`}
+          testID="progress-category-tabs"
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.tabs}
+          style={[styles.tabs, { direction }]}
           contentContainerStyle={[styles.tabRow, { direction }]}
         >
           {progressTabs(data).map(({ id, disabled }) => (
@@ -134,7 +136,10 @@ function ProgressContent() {
             : c[preset]}
         </Text>
         <ScrollView
+          key={`period-${direction}`}
+          testID="progress-period-tabs"
           horizontal
+          style={{ direction }}
           showsHorizontalScrollIndicator={false}
           accessibilityLabel={p.period}
           contentContainerStyle={[styles.ranges, { direction }]}

@@ -289,3 +289,17 @@ test("selects calorie dates by tap and preserves missing intake", async () => {
   expect(screen.getByText("برای این روز مصرفی ثبت نشده است.")).toBeTruthy();
   expect(screen.queryByText(/−۶۰ kcal/)).toBeNull();
 });
+
+test("horizontal navigation viewport follows the selected language", async () => {
+  const request = jest.fn(async () => data);
+  jest.mocked(useMobileAuth).mockReturnValue({ user: { id: "member" }, request } as never);
+  render(<ProgressScreen />);
+  await screen.findByText("کالری و پایبندی");
+  expect(screen.getByTestId("progress-category-tabs")).toHaveStyle({ direction: "rtl" });
+  expect(screen.getByTestId("progress-period-tabs")).toHaveStyle({ direction: "rtl" });
+  fireEvent.press(screen.getByRole("button", { name: "English" }));
+  expect(screen.getByTestId("progress-category-tabs")).toHaveStyle({ direction: "ltr" });
+  expect(screen.getByTestId("progress-period-tabs")).toHaveStyle({ direction: "ltr" });
+  expect(screen.getByRole("tab", { name: "Overview" }).props.accessibilityState.selected).toBe(true);
+  expect(request).toHaveBeenCalledTimes(1);
+});
