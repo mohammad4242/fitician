@@ -81,7 +81,7 @@ it("keeps promotional food photos out of the native bundle", async () => {
   expect(home).not.toContain("home-food.webp");
   expect(landing).not.toContain("landing/food.webp");
   expect(mealRoute).toContain("<AppIcon");
-  expect(landing).toContain('testID="public-entry-meal-nutrition-icon"');
+  expect(landing).not.toContain("public-entry-meal-nutrition-icon");
   expect(home).not.toContain("homeFoodImage");
 });
 

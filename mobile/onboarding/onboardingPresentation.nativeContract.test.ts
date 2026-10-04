@@ -14,14 +14,9 @@ it("keeps onboarding guided, native, and RTL-friendly", async () => {
   const publicAccountSource = await readFile(resolve(import.meta.dirname, "public/PublicAccountStep.tsx"), "utf8");
 
   expect(entrySource).toMatch(/PublicLandingScreen/);
-  expect(landingSource).toMatch(/landfilm\.mp4/);
-  expect(landingSource).toMatch(/public-entry-film/);
-  expect(landingSource).toMatch(/const landing = authCopy\.landing/);
-  expect(landingSource).toMatch(/landing\.hero\.title/);
-  expect(landingSource).toMatch(/landing\.process\.title/);
-  expect(landingSource).toMatch(/landing\.intelligence\.title/);
-  expect(landingSource).toMatch(/Animated\.ScrollView/);
-  expect(landingSource).not.toMatch(/pillRow/);
+  expect(landingSource).toContain('pic_land.jpg');
+  expect(landingSource).toContain('/public-onboarding');
+  expect(landingSource).not.toMatch(/ScrollView|WebView/);
   expect(source).toMatch(/getOnboardingSteps/);
   expect(source).toMatch(/ProgressBar/);
   expect(source).toMatch(/questionIndex/);

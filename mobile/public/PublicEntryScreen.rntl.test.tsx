@@ -1,137 +1,67 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
+import { Image, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native";
-import type { ReactTestInstance } from "react-test-renderer";
-import type { PublicSignupCampaign, TransportRequest } from "@fitician/core";
 
 jest.mock("expo-router", () => ({ useRouter: jest.fn() }));
-const mockPublicCampaignRequest = jest.fn<
-  (request: TransportRequest) => Promise<PublicSignupCampaign | null>
->();
-jest.mock("../auth/MobileAuthProvider", () => ({
-  useMobileAuth: () => ({ request: mockPublicCampaignRequest }),
-}));
-jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
-jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({ play: () => undefined }) }));
-jest.mock("react-native-reanimated", () => {
-  const ReactNative = require("react-native");
-  const immediate = (processor: () => unknown) => processor();
-  return {
-    __esModule: true,
-    default: {
-      ScrollView: ReactNative.ScrollView,
-      View: ReactNative.View,
-      createAnimatedComponent: (Component: unknown) => Component,
-    },
-    useAnimatedProps: immediate,
-    useAnimatedScrollHandler: () => jest.fn(),
-    useAnimatedStyle: immediate,
-    useDerivedValue: (processor: () => unknown) => ({ value: processor() }),
-    useSharedValue: (value: unknown) => ({ value }),
-  };
-});
-
 import { useRouter } from "expo-router";
-
 import PublicEntryScreen from "../app/(public)/index";
 
 const mockPush = jest.fn();
-const mockUseRouter = jest.mocked(useRouter);
+beforeEach(() => {
+  mockPush.mockClear();
+  jest.mocked(useRouter).mockReturnValue({ push: mockPush } as never);
+});
 
-function findAncestorStyle(node: ReactTestInstance, key: string): Record<string, unknown> {
-  let current = node.parent;
-  while (current !== null) {
-    const style = StyleSheet.flatten(current.props.style) as Record<string, unknown> | undefined;
-    if (style?.[key] !== undefined) return style;
-    current = current.parent;
-  }
-  throw new Error(`Ancestor style ${key} not found`);
-}
-
-function renderEntry() {
+function renderEntry(bottom = 0, width = 360, height = 800) {
   return render(
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { height: 800, width: 360, x: 0, y: 0 },
-        insets: { bottom: 0, left: 0, right: 0, top: 0 },
-      }}
-    >
+    <SafeAreaProvider initialMetrics={{
+      frame: { height, width, x: 0, y: 0 },
+      insets: { bottom, left: 0, right: 0, top: 44 },
+    }}>
       <PublicEntryScreen />
     </SafeAreaProvider>,
   );
 }
 
-beforeEach(() => {
-  mockPush.mockClear();
-  mockUseRouter.mockReturnValue({ push: mockPush } as never);
-  mockPublicCampaignRequest.mockReset();
-  mockPublicCampaignRequest.mockImplementation(() => new Promise<never>(() => undefined));
+test("renders the centered local welcome artwork without marketing or scroll UI", () => {
+  renderEntry();
+  const background = screen.getByTestId("public-entry-background");
+  expect(background.props.source).toEqual(require("../assets/landing/pic_land.jpg"));
+  expect(background.props.resizeMode).toBe("cover");
+  expect(screen.UNSAFE_getAllByType(Image)).toHaveLength(1);
+  expect(screen.UNSAFE_queryByType(ScrollView)).toBeNull();
+  for (const id of ["public-entry-film", "public-entry-process", "public-entry-meal-scan",
+    "public-entry-body-analysis", "public-entry-menu", "signup-campaign-card"]) {
+    expect(screen.queryByTestId(id)).toBeNull();
+  }
+  expect(screen.getAllByRole("button")).toHaveLength(2);
 });
 
-test("shows an active Landing Signup Bonus without changing scroll actions", async () => {
-  const campaign: PublicSignupCampaign = {
-    code: "landing-bonus",
-    package_code: "complete",
-    duration_days: 42,
-    term_weeks: 6,
-    available_until: null,
-    public_badge_fa: "هدیه ثبت‌نام",
-    public_badge_en: "Signup Gift",
-    public_title_fa: "دوره کامل مهمان فیتیشن",
-    public_title_en: "Your complete program is on us",
-    public_message_fa: "ثبت‌نام کن و شروع کن.",
-    public_message_en: "Create your account and start.",
-    public_cta_fa: "هدیه‌ام رو بگیر",
-    public_cta_en: "Claim my gift",
-    show_on_landing: true,
-    show_on_register: true,
-  };
-  mockPublicCampaignRequest.mockResolvedValueOnce(campaign);
+test("starts existing public onboarding", () => {
   renderEntry();
-
-  expect(await screen.findByTestId("signup-campaign-card")).toBeTruthy();
-  expect(screen.getByText("دوره کامل مهمان فیتیشن")).toBeTruthy();
+  fireEvent.press(screen.getByRole("button", { name: "شروع کنیم" }));
+  expect(mockPush).toHaveBeenCalledWith("/public-onboarding");
 });
 
-test("keeps the Web hero hierarchy in a concise native entry", () => {
+test("shows the login prompt and opens existing sign-in", () => {
   renderEntry();
-
-  expect(screen.getByTestId("public-entry-brand-mark")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-brand-mark-image")).toBeTruthy();
-  expect(screen.getByRole("header", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeTruthy();
-  expect(screen.getByText("تمرین و تغذیه‌ای متناسب با بدن، هدف و مسیر تو.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "برنامه من را بساز" })).toBeTruthy();
-  expect(screen.getByRole("header", { name: "برنامه تمرینی، تحت نظر مربی" })).toBeTruthy();
-  expect(screen.getByRole("header", { name: "برنامه تغذیه، تحت نظر پزشک" })).toBeTruthy();
-  expect(screen.getByText("MEAL PHOTO ANALYSIS")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-process")).toBeTruthy();
-  expect(screen.getByText("فیتیشن چگونه برنامه تو را می‌سازد")).toBeTruthy();
-  expect(screen.getByText("تو را می‌شناسیم")).toBeTruthy();
-  expect(screen.getByText("همراه پیشرفتت تنظیم می‌کنیم")).toBeTruthy();
-  expect(findAncestorStyle(screen.getByText("تو را می‌شناسیم"), "flexDirection")).toMatchObject({ flexDirection: "row" });
-});
-
-test("renders the Web cinematic film and scroll-driven landing story", () => {
-  renderEntry();
-
-  expect(screen.getByTestId("public-entry-scroll")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-film")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-meal-scan")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-meal-nutrition-icon")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-process-step-understand")).toBeTruthy();
-  expect(screen.getByTestId("public-entry-body-analysis")).toBeTruthy();
-});
-
-test("keeps native entry actions connected to public onboarding and auth", () => {
-  renderEntry();
-
-  fireEvent.press(screen.getByRole("button", { name: "برنامه من را بساز" }));
-  fireEvent.press(screen.getByRole("button", { name: "باز کردن منو" }));
+  expect(screen.getByText("حساب داری؟ ورود")).toBeTruthy();
+  expect(screen.getByText("ورود")).toBeTruthy();
   fireEvent.press(screen.getByRole("button", { name: "ورود" }));
-
-  expect(mockPush.mock.calls).toEqual([
-    ["/public-onboarding"],
-    ["/auth/sign-in"],
-  ]);
+  expect(mockPush).toHaveBeenCalledWith("/auth/sign-in");
 });
+
+test.each([[360, 800, 24], [390, 844, 34], [412, 915, 24], [430, 932, 34]])(
+  "keeps touch targets and safe-area clearance at %sx%s (bottom %s)",
+  (width, height, bottom) => {
+    renderEntry(bottom, width, height);
+    const start = screen.getByTestId("public-entry-start");
+    const login = screen.getByTestId("public-entry-sign-in");
+    expect(StyleSheet.flatten(start.props.style)).toMatchObject({ minHeight: 60, width: "86%" });
+    expect(StyleSheet.flatten(login.props.style).minHeight).toBeGreaterThanOrEqual(48);
+    const area = screen.getByTestId("public-entry-actions");
+    expect(StyleSheet.flatten(area.props.style).paddingBottom).toBe(bottom + 24);
+    expect(StyleSheet.flatten(area.props.style).gap).toBe(16);
+  },
+);
