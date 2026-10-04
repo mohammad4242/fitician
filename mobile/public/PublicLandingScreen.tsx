@@ -17,8 +17,8 @@ export function PublicLandingScreen() {
       <Image
         accessible={false}
         resizeMode="cover"
-        source={require("../assets/landing/pic_land.jpg")}
-        style={StyleSheet.absoluteFill}
+        source={require("../assets/landing/pic_land.png")}
+        style={styles.background}
         testID="public-entry-background"
       />
       <View
@@ -55,6 +55,11 @@ export function PublicLandingScreen() {
 }
 
 const styles = StyleSheet.create({
+  background: {
+    ...StyleSheet.absoluteFill,
+    width: "100%",
+    height: "100%",
+  },
   root: {
     backgroundColor: "#000000",
     flex: 1,

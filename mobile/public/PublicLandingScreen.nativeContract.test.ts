@@ -4,8 +4,8 @@ import { expect, it } from "vitest";
 
 it("bundles only the local welcome artwork for the native entry", async () => {
   const source = await readFile(resolve(import.meta.dirname, "PublicLandingScreen.tsx"), "utf8");
-  expect(source).toContain('require("../assets/landing/pic_land.jpg")');
-  expect(await readdir(resolve(import.meta.dirname, "../assets/landing"))).toEqual(["pic_land.jpg"]);
+  expect(source).toContain('require("../assets/landing/pic_land.png")');
+  expect(await readdir(resolve(import.meta.dirname, "../assets/landing"))).toEqual(["pic_land.png"]);
   expect(source).not.toMatch(/ScrollView|expo-video|reanimated|SignupCampaign|useMobileAuth|authCopy|BrandMark/);
   expect(source).toContain('backgroundColor: "#000000"');
 });

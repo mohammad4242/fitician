@@ -27,8 +27,12 @@ function renderEntry(bottom = 0, width = 360, height = 800) {
 test("renders the centered local welcome artwork without marketing or scroll UI", () => {
   renderEntry();
   const background = screen.getByTestId("public-entry-background");
-  expect(background.props.source).toEqual(require("../assets/landing/pic_land.jpg"));
+  expect(background.props.source).toEqual(require("../assets/landing/pic_land.png"));
   expect(background.props.resizeMode).toBe("cover");
+  expect(StyleSheet.flatten(background.props.style)).toMatchObject({
+    width: "100%",
+    height: "100%",
+  });
   expect(screen.UNSAFE_getAllByType(Image)).toHaveLength(1);
   expect(screen.UNSAFE_queryByType(ScrollView)).toBeNull();
   for (const id of ["public-entry-film", "public-entry-process", "public-entry-meal-scan",

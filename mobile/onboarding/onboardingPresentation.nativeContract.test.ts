@@ -14,7 +14,7 @@ it("keeps onboarding guided, native, and RTL-friendly", async () => {
   const publicAccountSource = await readFile(resolve(import.meta.dirname, "public/PublicAccountStep.tsx"), "utf8");
 
   expect(entrySource).toMatch(/PublicLandingScreen/);
-  expect(landingSource).toContain('pic_land.jpg');
+  expect(landingSource).toContain('pic_land.png');
   expect(landingSource).toContain('/public-onboarding');
   expect(landingSource).not.toMatch(/ScrollView|WebView/);
   expect(source).toMatch(/getOnboardingSteps/);
