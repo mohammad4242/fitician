@@ -129,7 +129,7 @@ it.each(["preview", "production"] as const)(
   },
 );
 
-it("does not apply the global screenshot block to development activities", () => {
+it.each(["development", "preview", "production"] as const)("removes the legacy screenshot block for %s activities", (environment) => {
   type MainActivityProject = {
     language: "kt";
     contents: string;
@@ -160,15 +160,16 @@ it("does not apply the global screenshot block to development activities", () =>
         "}",
       ].join("\n"),
     },
-    "development",
+    environment,
   );
 
   expect(project.contents).not.toContain(androidHardening.SCREENSHOT_POLICY_MARKER);
   expect(project.contents).not.toContain("FLAG_SECURE");
+  expect(project.contents).not.toContain("import android.view.WindowManager");
 });
 
 it.each(["preview", "production"] as const)(
-  "keeps the global screenshot block for %s activities",
+  "allows screenshots for fresh %s activities",
   (environment) => {
     type MainActivityProject = { language: "kt"; contents: string };
     const applyScreenshotPolicy = (
@@ -197,7 +198,49 @@ it.each(["preview", "production"] as const)(
       environment,
     );
 
-    expect(project.contents).toContain(androidHardening.SCREENSHOT_POLICY_MARKER);
-    expect(project.contents).toContain("FLAG_SECURE");
+    expect(project.contents).not.toContain(androidHardening.SCREENSHOT_POLICY_MARKER);
+    expect(project.contents).not.toContain("FLAG_SECURE");
   },
 );
+
+it.each(["development", "preview", "production"] as const)(
+  "removes the legacy Java screenshot block for %s without changing other activity code",
+  (environment) => {
+    const contents = [
+      "import android.os.Bundle;",
+      "import android.view.WindowManager;",
+      "class MainActivity {",
+      "  protected void onCreate(Bundle savedInstanceState) {",
+      `    ${androidHardening.SCREENSHOT_POLICY_MARKER}`,
+      "    getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);",
+      "    super.onCreate(savedInstanceState);",
+      "  }",
+      "}",
+    ].join("\n");
+    const project = androidHardening.applyAndroidScreenshotPolicy(
+      { language: "java", contents },
+      environment,
+    );
+    expect(project.contents).not.toContain("FLAG_SECURE");
+    expect(project.contents).not.toContain("import android.view.WindowManager");
+    expect(project.contents).toContain("super.onCreate(savedInstanceState);");
+    expect(androidHardening.applyAndroidScreenshotPolicy(
+      { ...project }, environment,
+    ).contents).toBe(project.contents);
+  },
+);
+
+it("preserves WindowManager imports used by unrelated activity behavior", () => {
+  const project = androidHardening.applyAndroidScreenshotPolicy({
+    language: "kt",
+    contents: [
+      "import android.view.WindowManager",
+      `// Fitician sensitive-screen screenshot policy`,
+      "window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)",
+      "window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)",
+    ].join("\n"),
+  }, "production");
+  expect(project.contents).not.toContain("FLAG_SECURE");
+  expect(project.contents).toContain("import android.view.WindowManager");
+  expect(project.contents).toContain("FLAG_KEEP_SCREEN_ON");
+});

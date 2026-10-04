@@ -190,55 +190,18 @@ function removeScreenshotPolicyLines(contents: string): string {
       && trimmed !== screenshotFlag
       && trimmed !== javaScreenshotFlag;
   });
-  const result = lines.join("\n");
-  return result.includes("WindowManager")
-    ? result
-    : result.split(/\r?\n/u)
-      .filter((line) => !/^\s*import android\.view\.WindowManager;?\s*$/u.test(line))
-      .join("\n");
+  const importPattern = /^\s*import android\.view\.WindowManager;?\s*$/u;
+  const resultWithoutImport = lines.filter((line) => !importPattern.test(line)).join("\n");
+  return resultWithoutImport.includes("WindowManager")
+    ? lines.join("\n")
+    : resultWithoutImport;
 }
 
 export function applyAndroidScreenshotPolicy<T extends AndroidMainActivityProject>(
   project: T,
-  environment: AndroidBuildEnvironment,
+  _environment: AndroidBuildEnvironment,
 ): T {
-  if (environment === "development") {
-    project.contents = removeScreenshotPolicyLines(project.contents);
-    return project;
-  }
-
-  if (project.contents.includes(SCREENSHOT_POLICY_MARKER)) {
-    return project;
-  }
-
-  if (project.language === "kt") {
-    const contents = project.contents.includes("import android.view.WindowManager")
-      ? project.contents
-      : project.contents.replace(
-          "import android.os.Bundle",
-          "import android.os.Bundle\nimport android.view.WindowManager",
-        );
-    project.contents = contents.replace(
-      "  override fun onCreate(savedInstanceState: Bundle?) {",
-      `  override fun onCreate(savedInstanceState: Bundle?) {
-    ${SCREENSHOT_POLICY_MARKER}
-    ${screenshotFlag}`,
-    );
-  } else {
-    const contents = project.contents.includes("import android.view.WindowManager;")
-      ? project.contents
-      : project.contents.replace(
-          "import android.os.Bundle;",
-          "import android.os.Bundle;\nimport android.view.WindowManager;",
-        );
-    project.contents = contents.replace(
-      "  protected void onCreate(Bundle savedInstanceState) {",
-      `  protected void onCreate(Bundle savedInstanceState) {
-    ${SCREENSHOT_POLICY_MARKER}
-    ${javaScreenshotFlag}`,
-    );
-  }
-
+  project.contents = removeScreenshotPolicyLines(project.contents);
   return project;
 }
 
