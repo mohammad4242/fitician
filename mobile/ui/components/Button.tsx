@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -13,7 +15,6 @@ import {
 } from "react-native";
 
 import { RTL_CENTER_TEXT, RTL_ROW } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -32,7 +33,7 @@ export type ButtonProps = Omit<
   readonly variant?: ButtonVariant;
 };
 
-const variantStyles: Record<ButtonVariant, ViewStyle> = {
+const createVariantStyles = (fiticianTokens: FiticianTokens): Record<ButtonVariant, ViewStyle> => ({
   danger: {
     backgroundColor: fiticianTokens.colors.danger,
   },
@@ -51,22 +52,22 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     borderColor: fiticianTokens.colors.lineStrong,
     borderWidth: 1,
   },
-};
+});
 
-const variantTextStyles: Record<ButtonVariant, TextStyle> = {
+const createVariantTextStyles = (fiticianTokens: FiticianTokens): Record<ButtonVariant, TextStyle> => ({
   danger: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onDanger,
   },
   ghost: {
     color: fiticianTokens.colors.mist,
   },
   primary: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   secondary: {
     color: fiticianTokens.colors.mist,
   },
-};
+});
 
 function resolvePressableStyle(
   style: ButtonProps["style"],
@@ -87,11 +88,16 @@ export function Button({
   variant = "primary",
   ...pressableProps
 }: ButtonProps) {
+  const fiticianTokens = useThemeTokens();
+  const variantStyles = useThemeStyles(createVariantStyles);
+  const variantTextStyles = useThemeStyles(createVariantTextStyles);
+  const styles = useThemeStyles(createStyles);
+
   const unavailable = disabled || loading;
   const text = children ?? label;
   const indicatorColor = variant === "secondary" || variant === "ghost"
-    ? fiticianTokens.colors.aqua
-    : fiticianTokens.colors.canvas;
+    ? fiticianTokens.colors.accentInk
+    : variant === "danger" ? fiticianTokens.colors.onDanger : fiticianTokens.colors.onAccent;
 
   return (
     <Pressable
@@ -123,7 +129,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   base: {
     ...RTL_ROW,
     alignItems: "center",
@@ -154,4 +160,4 @@ const styles = StyleSheet.create({
     opacity: 0.86,
     transform: [{ scale: fiticianTokens.motion.pressedScale }],
   },
-});
+}));

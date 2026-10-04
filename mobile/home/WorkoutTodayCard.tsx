@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { formatPersianDateWithWeekday } from "@fitician/core";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -7,7 +9,6 @@ import type { WorkoutDay } from "../workouts/workoutApi";
 import { Button, CinematicSurface, StateSkeleton } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
 import { RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import type { HomeWorkoutSummary } from "./homeModel";
 import { getHomeHeroLayout } from "./homePresentation";
 
@@ -21,6 +22,8 @@ export interface WorkoutTodayCardProps {
 }
 
 export function WorkoutTodayCard({ day, errorMessage, state, summary }: WorkoutTodayCardProps) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const { width } = useWindowDimensions();
   const stacked = getHomeHeroLayout(width) === "stacked";
@@ -170,7 +173,7 @@ function stateLabel(state: WorkoutHomeState, hasDay: boolean): string {
   return "برنامه فعال";
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   action: {
     alignSelf: "stretch",
     marginTop: "auto",
@@ -191,7 +194,7 @@ const styles = StyleSheet.create({
   },
   dayLine: { alignItems: "center", flexDirection: "row", gap: fiticianTokens.spacing[2] },
   dayNumber: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.h3,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -214,7 +217,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -293,4 +296,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
     justifyContent: "space-between",
   },
-});
+}));

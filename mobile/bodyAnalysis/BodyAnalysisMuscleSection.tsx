@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMemo, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import {
@@ -24,7 +26,6 @@ import {
   SectionHeader,
   SegmentedControl,
 } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import { bodyResultAssets } from "./bodyAnalysisAssets";
 import {
   bodyAreaLabel,
@@ -64,6 +65,8 @@ export function BodyAnalysisMuscleSection({
 }: {
   readonly experience: BodyAnalysisExperienceV4;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [activeView, setActiveView] = useState<BodyMapView>("front");
   const [selectedArea, setSelectedArea] = useState<BodyAnalysisExperienceRegion["area"] | null>(null);
   const sex = bodyMapSex(experience.input_snapshot.sex);
@@ -260,6 +263,8 @@ function RegionSummaryCard({
   readonly regions: readonly BodyAnalysisExperienceRegion[];
   readonly title: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.summaryCard}>
       <Text style={styles.summaryTitle}>{title}</Text>
@@ -279,7 +284,7 @@ function RegionSummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -334,7 +339,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[1],
   },
   mapEyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
     fontSize: 10,
     letterSpacing: 1.4,
@@ -462,4 +467,4 @@ const styles = StyleSheet.create({
   summaryStack: {
     gap: fiticianTokens.spacing[2],
   },
-});
+}));

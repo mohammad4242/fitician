@@ -1,11 +1,15 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { createCommunicationApi, createMessageRequestId, mergeConversationLatest, type Conversation, type ConversationKind } from "@fitician/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { AppIcon, Button, Card, TextField } from "../ui/components";
 import { getTextDirectionStyle, languageForDirection } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 export function ConversationPanel({ kind, reviewId, planId, initiallyOpen = false }: { initiallyOpen?: boolean; kind: ConversationKind; reviewId?: string; planId?: string }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const api = useMemo(() => createCommunicationApi(auth.request), [auth.request]);
   const identity = auth.user?.id;
@@ -80,7 +84,7 @@ export function ConversationPanel({ kind, reviewId, planId, initiallyOpen = fals
       accessibilityLabel={l("گفت‌وگو درباره برنامه", "Program conversation")}
       accessibilityHint={data?.unread_count ? l(`${data.unread_count} پیام خوانده‌نشده`, `${data.unread_count} unread messages`) : undefined}
       onPress={() => setOpen(value => !value)} style={({ pressed }) => [styles.toggle, pressed && styles.pressed]}>
-      <View style={styles.icon}><AppIcon name="feedback" color={fiticianTokens.colors.aqua} size={20} /></View>
+      <View style={styles.icon}><AppIcon name="feedback" color={fiticianTokens.colors.accentInk} size={20} /></View>
       <Text style={[styles.title, textStyle]}>{l("گفت‌وگو درباره برنامه", "Program conversation")}</Text>
       {!!data?.unread_count && <View style={styles.unreadBadge}><Text style={[styles.unreadText, textStyle]}>{data.unread_count.toLocaleString(en ? "en-US" : "fa-IR")}</Text></View>}
       <AppIcon name={open ? "chevronUp" : "chevronDown"} color={fiticianTokens.colors.muted} size={20} style={styles.chevron} />
@@ -110,15 +114,15 @@ export function ConversationPanel({ kind, reviewId, planId, initiallyOpen = fals
   </Card>;
 }
 
-const t = fiticianTokens;
-const styles = StyleSheet.create({
+
+const createStyles = (t: FiticianTokens) => (StyleSheet.create({
   container: { padding: 0, minWidth: 0, overflow: "hidden" },
   toggle: { flexDirection: "row", alignItems: "center", gap: t.spacing[3], padding: t.spacing[4], minHeight: 64 },
   pressed: { backgroundColor: t.colors.surfaceInteractive },
   icon: { width: 36, height: 36, alignItems: "center", justifyContent: "center", backgroundColor: t.colors.aquaAtmosphere, borderRadius: t.radii.small },
   title: { flex: 1, flexShrink: 1, color: t.colors.ink, fontSize: t.typography.fontSize.body, fontWeight: "700" },
   unreadBadge: { minWidth: 24, minHeight: 24, paddingHorizontal: t.spacing[2], alignItems: "center", justifyContent: "center", borderRadius: t.radii.pill, backgroundColor: t.colors.aqua },
-  unreadText: { color: t.colors.canvas, fontSize: t.typography.fontSize.xs, fontWeight: "700" },
+  unreadText: { color: t.colors.onAccent, fontSize: t.typography.fontSize.xs, fontWeight: "700" },
   chevron: { flexShrink: 0 },
   content: { borderTopWidth: 1, borderTopColor: t.colors.line, padding: t.spacing[3], gap: t.spacing[3] },
   locked: { flexDirection: "row", alignItems: "center", gap: t.spacing[3] },
@@ -137,4 +141,4 @@ const styles = StyleSheet.create({
   sendAction: { alignSelf: "flex-end", minWidth: 96 },
   error: { gap: t.spacing[2], padding: t.spacing[3], borderRadius: t.radii.small, backgroundColor: t.colors.dangerSurface },
   errorText: { color: t.colors.danger, fontSize: t.typography.fontSize.sm, lineHeight: 24 },
-});
+}));

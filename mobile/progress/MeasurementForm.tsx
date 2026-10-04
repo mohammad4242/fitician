@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
@@ -10,7 +12,6 @@ import {
 } from "@fitician/core";
 import { Button } from "../ui/components/Button";
 import { TextField } from "../ui/components/Input";
-import { fiticianTokens as tokens } from "../ui/tokens";
 export function MeasurementForm({
   language,
   api,
@@ -20,6 +21,8 @@ export function MeasurementForm({
   api: ReturnType<typeof createProgressApi>;
   onSaved: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const c = progressCopy[language],
     [values, setValues] = useState<Record<BodyMetric, string>>({
       weight: "",
@@ -108,7 +111,7 @@ export function MeasurementForm({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens: FiticianTokens) => (StyleSheet.create({
   stack: { gap: 16 },
   text: {
     color: tokens.colors.muted,
@@ -116,4 +119,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 24,
   },
-});
+}));

@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
 
-import { fiticianTokens } from "../ui/tokens";
+import { fiticianTokens, type FiticianTokens } from "../ui/tokens";
 
-export const authStyles = StyleSheet.create({
+export const createAuthStyles = (fiticianTokens: FiticianTokens) => StyleSheet.create({
   brand: {
     color: fiticianTokens.colors.ink,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -75,7 +75,7 @@ export const authStyles = StyleSheet.create({
     width: "100%",
   },
   inlineLink: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -86,7 +86,7 @@ export const authStyles = StyleSheet.create({
     writingDirection: "rtl",
   },
   link: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -107,3 +107,5 @@ export const authStyles = StyleSheet.create({
     paddingTop: fiticianTokens.spacing[4],
   },
 });
+
+export const authStyles = createAuthStyles(fiticianTokens);

@@ -1,8 +1,9 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import { BrandMark } from "./BrandMark";
 
 export interface ScreenHeaderProps {
@@ -22,6 +23,8 @@ export function ScreenHeader({
   subtitle,
   title,
 }: ScreenHeaderProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.header, RTL_LAYOUT, compact && styles.compact]}>
       <View style={[styles.topRow, RTL_ROW]}>
@@ -37,7 +40,7 @@ export function ScreenHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   compact: {
     gap: fiticianTokens.spacing[2],
   },
@@ -52,7 +55,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -80,4 +83,4 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minHeight: fiticianTokens.layout.minimumTouchTarget,
   },
-});
+}));

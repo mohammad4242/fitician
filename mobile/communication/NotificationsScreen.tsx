@@ -1,3 +1,4 @@
+import { useThemeTokens } from "../ui/theme/ThemeProvider";
 import { supportTicketDestination } from "@fitician/core";
 import { registerNotifications } from "../notifications/notificationRegistration";
 import { prepareNotifications, getNativePushToken } from "../notifications/notificationPermission";
@@ -9,8 +10,9 @@ import { useRouter, type Href } from "expo-router";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { Button, Card, PageHeading, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 export function NotificationsScreen() {
+  const fiticianTokens = useThemeTokens();
+
   const auth = useMobileAuth();
   const identity = auth.user?.id;
   const router = useRouter();
@@ -71,8 +73,8 @@ export function NotificationsScreen() {
   }
   return <Screen><PageHeading title={`اعلان‌ها و یادآوری‌ها${inbox?.unread_count ? ` (${inbox.unread_count})` : ""}`} />
     {error && <><Text accessibilityRole="alert" style={{ color: fiticianTokens.colors.danger }}>{error}</Text><Button label="تلاش دوباره" onPress={() => setAttempt(value => value + 1)} /></>}
-    {!inbox && !error && <Text>در حال دریافت…</Text>}
-    {inbox?.items.length === 0 && <Text>اعلانی وجود ندارد.</Text>}
+    {!inbox && !error && <Text style={{ color: fiticianTokens.colors.ink }}>در حال دریافت…</Text>}
+    {inbox?.items.length === 0 && <Text style={{ color: fiticianTokens.colors.ink }}>اعلانی وجود ندارد.</Text>}
     {inbox?.items.map(item => {
       const data = item.payload.data as Record<string, unknown> | undefined;
       const destination = supportTicketDestination(item.event_type,data,"mobile") ?? (item.event_type === "program_message" && (data?.kind === "workout" || data?.kind === "nutrition") && typeof data.review_id === "string" ? `/conversation?kind=${data.kind}&reviewId=${encodeURIComponent(data.review_id)}` : item.event_type === "training_reminder" ? "/member/workouts" : item.event_type === "nutrition_reminder" ? "/member/nutrition" : "/member");
@@ -87,7 +89,7 @@ export function NotificationsScreen() {
       <TextField label="ساعت تمرین" accessibilityLabel="ساعت تمرین" value={settings.training_time ?? "09:00"} onChangeText={value => setSettings({ ...settings, training_time: value || null })} textDirection="ltr" />
       <TextField label="ساعت تغذیه" accessibilityLabel="ساعت تغذیه" value={settings.nutrition_time ?? "09:00"} onChangeText={value => setSettings({ ...settings, nutrition_time: value || null })} textDirection="ltr" />
       <TextField label="منطقه زمانی" accessibilityLabel="منطقه زمانی" value={settings.reminder_timezone ?? resolvedIanaTimeZone()} onChangeText={value => setSettings({ ...settings, reminder_timezone: value })} textDirection="ltr" />
-      <Button disabled={busy} label="ذخیره تنظیمات" onPress={() => void save()} />{saved && <Text accessibilityRole="alert">تنظیمات ذخیره شد.</Text>}
+      <Button disabled={busy} label="ذخیره تنظیمات" onPress={() => void save()} />{saved && <Text accessibilityRole="alert" style={{ color: fiticianTokens.colors.success }}>تنظیمات ذخیره شد.</Text>}
       <Text style={{ color: fiticianTokens.colors.ink }}>اعلان بیرون اپ با اجازهٔ سیستم‌عامل و ثبت دستگاه ارسال می‌شود. یادآوری‌های جدید اختیاری هستند.</Text>
     </View></Card>}
   </Screen>;

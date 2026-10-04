@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -12,7 +14,6 @@ import {
 import type { BodyPhoto, BodyPhotoView } from "@fitician/core/body-photos";
 
 import type { PrivateBodyPhotoUris } from "./bodyPhotoPrivateMedia";
-import { fiticianTokens } from "../ui/tokens";
 
 const views: readonly BodyPhotoView[] = ["front", "side", "back"];
 
@@ -31,6 +32,8 @@ export function BodyBeforeAfterComparison({
   readonly currentDate: string;
   readonly previousDate: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const availableViews = useMemo(
     () => views.filter((view) => (
       beforePhotos.some((photo) => photo.view === view) || afterPhotos.some((photo) => photo.view === view)
@@ -153,7 +156,7 @@ function viewLabel(view: BodyPhotoView): string {
   return "پشت";
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   afterLabel: {
     right: 10,
   },
@@ -186,7 +189,7 @@ const styles = StyleSheet.create({
     width: 2,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -264,7 +267,7 @@ const styles = StyleSheet.create({
   },
   stage: {
     aspectRatio: 1 / 1.25,
-    backgroundColor: fiticianTokens.colors.canvas,
+    backgroundColor: fiticianTokens.colors.mediaCanvas,
     borderRadius: fiticianTokens.radii.large,
     direction: "ltr",
     overflow: "hidden",
@@ -316,7 +319,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   viewButtonTextSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   views: {
     alignSelf: "flex-start",
@@ -328,4 +331,4 @@ const styles = StyleSheet.create({
     gap: 2,
     padding: 2,
   },
-});
+}));

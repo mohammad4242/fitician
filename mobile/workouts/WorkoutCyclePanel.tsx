@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatTehranDateTime } from "@fitician/core";
 import { useEffect, useMemo, useState } from "react";
@@ -16,7 +18,6 @@ import {
 } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import type { WorkoutPlan } from "./workoutApi";
 import {
   createWorkoutCycleApi,
@@ -106,6 +107,8 @@ export function WorkoutCyclePanel({
   readonly timeline?: TimelineWorkout | null;
   readonly timelineCardProps?: Omit<WorkoutTimelineCardProps, "timeline">;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const connectivityStatus = useConnectivityStatus();
   const api = useMemo(
@@ -174,6 +177,8 @@ export function WorkoutCyclePanel({
 }
 
 function CycleSummary({ cycle }: { readonly cycle: WorkoutCycleCurrent }) {
+  const styles = useThemeStyles(createStyles);
+
   const week = workoutCycleWeekDisplay(cycle);
   return (
     <View style={styles.summaryCard}>
@@ -215,6 +220,8 @@ function WeeklyCheckInPanel({
   readonly cycle: WorkoutCycleCurrent;
   readonly plan: WorkoutPlan;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const queryClient = useQueryClient();
   const queryKey = workoutKeys.weeklyCheckIn(cycle.cycle_id);
   const query = useQuery({ queryFn: api.getWeeklyCheckIn, queryKey });
@@ -375,6 +382,8 @@ function ReplacementPanel({
   readonly initialRequestId?: number;
   readonly plan: WorkoutPlan;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const options = useMemo(
     () => plan.days.flatMap((day) => day.exercises).filter((exercise) => exercise.alternatives.length > 0),
     [plan],
@@ -648,6 +657,9 @@ export function CompletionFeedbackToolCell({
 }: {
   readonly controller: CompletionFeedbackController;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const locked = controller.state === "hidden";
   return (
     <Pressable
@@ -659,7 +671,7 @@ export function CompletionFeedbackToolCell({
       testID="workout-plan-feedback-tool"
     >
       <View style={styles.feedbackIconFrame}>
-        <AppIcon color={fiticianTokens.colors.aqua} name="feedback" size={fiticianTokens.iconSize.md} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="feedback" size={fiticianTokens.iconSize.md} />
         {locked ? (
           <View style={styles.lockBadge} testID="workout-plan-feedback-lock">
             <AppIcon color={fiticianTokens.colors.ink} name="lock" size={11} />
@@ -677,6 +689,8 @@ export function CompletionFeedbackDetails({
 }: {
   readonly controller: CompletionFeedbackController;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (controller.state === "hidden") {
     if (!controller.lockedInfoOpen) return null;
     const weeks = formatPersianNumber(controller.durationWeeks, { maximumFractionDigits: 0 });
@@ -825,6 +839,8 @@ function ChoiceGroup<TValue extends string>({
   readonly options: readonly Choice<TValue>[];
   readonly selected: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.formGroup}>
       {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
@@ -870,7 +886,7 @@ function recoveryLabel(value: "good" | "average" | "poor"): string {
   return recoveryChoices.find((choice) => choice.value === value)?.label ?? value;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   bodyText: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -906,7 +922,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   choiceTextSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   cycleStatus: {
@@ -1017,7 +1033,7 @@ const styles = StyleSheet.create({
     marginTop: fiticianTokens.spacing[4],
   },
   sectionEyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     textAlign: "auto",
@@ -1092,7 +1108,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   summaryMetricValueAqua: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: 18,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1107,11 +1123,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   weekBadge: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

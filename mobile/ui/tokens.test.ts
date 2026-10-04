@@ -44,3 +44,15 @@ it("exposes typed native spacing, radii, typography, motion, and layout tokens",
   expect(fiticianTokens.iconSize).toMatchObject({ sm: 18, md: 22, lg: 28 });
   expect(fiticianTokens.layout.minimumTouchTarget).toBe(48);
 });
+
+it("shares geometry and brand Aqua between explicit palettes", async () => {
+  const { darkColors, lightColors, getThemeTokens } = await import("./tokens");
+  expect(lightColors).toMatchObject({ canvas: "#f5faf8", surface: "#ffffff", ink: "#102422", onAccent: "#020607", aqua: "#50dfce" });
+  expect(darkColors.onAccent).toBe("#020607");
+  expect(lightColors.aqua).toBe(darkColors.aqua);
+  expect(lightColors.mediaCanvas).toBe(darkColors.mediaCanvas);
+  for (const key of ["spacing", "radii", "typography", "layout", "motion", "iconSize"] as const) {
+    expect(getThemeTokens("light")[key]).toBe(getThemeTokens("dark")[key]);
+  }
+  expect(getThemeTokens("light").shadows.card.opacity).toBeLessThan(getThemeTokens("dark").shadows.card.opacity);
+});

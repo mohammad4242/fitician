@@ -1,10 +1,11 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { formatPersianDateWithWeekday } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Button, Card, Notice, PersianDatePicker } from "../ui/components";
 import { formatPersianNumber } from "../ui/locale";
-import { fiticianTokens } from "../ui/tokens";
 import { workoutTimelinePresentation } from "./workoutCycleModel";
 
 export interface WorkoutTimelineCardProps {
@@ -40,6 +41,8 @@ export function WorkoutTimelineCard({
   onSkipSession,
   onStart,
 }: WorkoutTimelineCardProps) {
+  const styles = useThemeStyles(createStyles);
+
   const presentation = workoutTimelinePresentation(timeline);
   const session = presentation.focusedSession;
   const startDateLabel = formatWorkoutDate(startDate);
@@ -172,6 +175,8 @@ function SessionContent({
   readonly onRescheduleSession: (sessionId: string, scheduledDate: string) => void;
   readonly onSkipSession: (sessionId: string) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <>
       <Text style={styles.eyebrow}>هفته {formatPersianNumber(session.week_number, { maximumFractionDigits: 0 })} از {formatPersianNumber(durationWeeks, { maximumFractionDigits: 0 })}</Text>
@@ -234,7 +239,7 @@ function formatWorkoutDate(value: string): string | null {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     gap: fiticianTokens.spacing[2],
   },
@@ -251,7 +256,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -275,4 +280,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

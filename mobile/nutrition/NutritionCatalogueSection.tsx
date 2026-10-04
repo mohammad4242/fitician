@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
@@ -24,7 +26,6 @@ import {
 } from "../ui/components";
 import { classifyMobileStateError, getMobileViewState } from "../ui/requestState";
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import {
   createNutritionCatalogueApi,
   type AdminFoodCatalogueItem,
@@ -107,6 +108,8 @@ function AdminNutritionErrorNotice({ error }: { readonly error: AdminSheetError 
 }
 
 export function NutritionCatalogueSection({ initialMode }: { readonly initialMode?: CatalogueMode } = {}) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -358,6 +361,8 @@ export function NutritionCatalogueSection({ initialMode }: { readonly initialMod
 }
 
 function FoodCatalogueHero({ onBack }: { readonly onBack: () => void }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.foodHero, RTL_ROW]}>
       <Text accessibilityRole="header" style={[styles.foodHeroTitle, RTL_TEXT]}>کاتالوگ مواد غذایی</Text>
@@ -369,6 +374,8 @@ function FoodCatalogueHero({ onBack }: { readonly onBack: () => void }) {
 }
 
 function MealCatalogueHero() {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.mealHero, RTL_LAYOUT]}>
       <Text style={[styles.mealHeroEyebrow, RTL_TEXT]}>ترکیب‌های کنترل‌شده تغذیه</Text>
@@ -419,6 +426,8 @@ function FoodCatalogueView({
   readonly searchInput: string;
   readonly state: ReturnType<typeof getMobileViewState<FoodCataloguePageData>>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading" && page === undefined) {
     return (
       <View style={styles.foodCatalogueStack}>
@@ -541,6 +550,8 @@ function MealCatalogueView({
   readonly page: ReturnType<typeof stateData<MealCataloguePage>>;
   readonly state: ReturnType<typeof getMobileViewState<MealCataloguePage>>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={420} />;
   if (state.status === "error" && page === undefined) {
     return (
@@ -598,6 +609,8 @@ function FoodCatalogueCard({
   readonly price?: FoodCataloguePrice;
   readonly researchState?: FoodResearchState;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const defaultPortion = selectDefaultFoodPortion(food);
   const calories = foodCatalogueCalories(food);
   const adminFood = isAdmin
@@ -675,6 +688,8 @@ function MealCategoryFilter({
   readonly category: MealCatalogueCategory | null;
   readonly onCategoryChange: (category: MealCatalogueCategory | null) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.mealFilter}>
       <Text style={[styles.mealFilterLabel, RTL_TEXT]}>دسته‌بندی وعده‌ها:</Text>
@@ -707,6 +722,8 @@ function MealChip({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -724,6 +741,9 @@ function MealCatalogueCard({
 }: {
   readonly meal: MealCatalogueItem;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [expanded, setExpanded] = useState(false);
   const statusContainerStyle = meal.verification_status === "verified"
     ? styles.mealStatusVerified
@@ -761,7 +781,7 @@ function MealCatalogueCard({
           </Text>
         </View>
         <View style={styles.mealDisclosureIcon}>
-          <AppIcon color={fiticianTokens.colors.aqua} name={expanded ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.md} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name={expanded ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.md} />
         </View>
       </Pressable>
       {expanded ? (
@@ -781,6 +801,8 @@ function MealCatalogueCard({
 }
 
 function MealIngredientRow({ item }: { readonly item: MealCatalogueItem["items"][number] }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.mealIngredient, RTL_LAYOUT]}>
       <Text style={[styles.mealIngredientName, RTL_TEXT]}>{item.food_name_fa}</Text>
@@ -813,6 +835,8 @@ function mealStatusLabel(status: MealCatalogueItem["verification_status"]): stri
 }
 
 function FoodDetailsSheet({ food, onClose }: { readonly food: CatalogueFoodItem | null; readonly onClose: () => void }) {
+  const styles = useThemeStyles(createStyles);
+
   const [commonPortionSelected, setCommonPortionSelected] = useState(true);
 
   const defaultPortion = food === null ? null : selectDefaultFoodPortion(food);
@@ -893,6 +917,9 @@ function FoodCatalogueToolbar({
   readonly onSearchSubmit: () => void;
   readonly searchInput: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.foodToolbar}>
       <View style={[styles.foodSearchRow, RTL_LAYOUT]} testID="food-search-row">
@@ -941,6 +968,8 @@ function FoodCatalogueToolbar({
 }
 
 function FoodCategoryChip({ label, onPress, selected }: { readonly label: string; readonly onPress: () => void; readonly selected: boolean }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -964,6 +993,8 @@ function FoodPagination({
   readonly page: number;
   readonly pageCount: number;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.foodPagination, RTL_ROW]}>
       <FoodActionButton disabled={page === 1} label="قبلی" onPress={onPrevious} />
@@ -988,6 +1019,8 @@ function FoodActionButton({
   readonly onPress: () => void;
   readonly variant?: "amber" | "danger" | "default";
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const unavailable = disabled || busy;
   return (
     <Pressable
@@ -1011,6 +1044,8 @@ function FoodPriceTicket({
   readonly price?: FoodCataloguePrice;
   readonly researchState?: FoodResearchState;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const isResearching = researchState?.status === "researching";
   const hasResearchError = researchState?.status === "error";
   const displayPrice = price === undefined ? null : priceInToman(price);
@@ -1110,6 +1145,8 @@ function AddFoodSheet({
   readonly onSaved: () => void;
   readonly visible: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [identity, setIdentity] = useState({
     category: "",
     name_en: "",
@@ -1255,6 +1292,8 @@ function FoodImageSheet({
   readonly onClose: () => void;
   readonly onSaved: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [asset, setAsset] = useState<CatalogueFoodImageAsset | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1342,6 +1381,8 @@ function PriceOverrideSheet({
   readonly onClose: () => void;
   readonly onSaved: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [price, setPrice] = useState(() => {
     const value = food === null ? null : priceInToman(food.price);
     return value === null ? "" : String(value);
@@ -1483,6 +1524,8 @@ function DeleteFoodSheet({
   readonly onClose: () => void;
   readonly onDelete: (food: AdminFoodCatalogueItem) => Promise<void>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<AdminSheetError | null>(null);
 
@@ -1521,6 +1564,8 @@ function DeleteFoodSheet({
 }
 
 function BasisChoice({ label, onPress, selected }: { readonly label: string; readonly onPress: () => void; readonly selected: boolean }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -1534,6 +1579,8 @@ function BasisChoice({ label, onPress, selected }: { readonly label: string; rea
 }
 
 function SummaryRow({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLabel}>{label}</Text>
@@ -1555,10 +1602,10 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   mealCard: {
-    backgroundColor: "rgba(10,31,30,0.75)",
-    borderColor: "rgba(234,244,241,0.12)",
+    backgroundColor: fiticianTokens.colors.catalogueSurface,
+    borderColor: fiticianTokens.colors.line,
     borderRadius: fiticianTokens.radii.card,
     borderTopColor: fiticianTokens.colors.aqua,
     borderTopWidth: 6,
@@ -1582,13 +1629,13 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[1],
   },
   mealHeroDescription: {
-    color: "rgba(232,244,241,0.78)",
+    color: fiticianTokens.colors.line,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     lineHeight: 26,
   },
   mealHeroEyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1621,8 +1668,8 @@ const styles = StyleSheet.create({
   },
   mealChip: {
     alignItems: "center",
-    backgroundColor: "rgba(10,31,30,0.65)",
-    borderColor: "rgba(234,244,241,0.14)",
+    backgroundColor: fiticianTokens.colors.catalogueChip,
+    borderColor: fiticianTokens.colors.line,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
     justifyContent: "center",
@@ -1642,7 +1689,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   mealChipTextSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
   },
   mealSummary: {
@@ -1671,7 +1718,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   mealCode: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1704,21 +1751,21 @@ const styles = StyleSheet.create({
     borderColor: "rgba(16,185,129,0.30)",
   },
   mealStatusVerifiedText: {
-    color: "#10b981",
+    color: fiticianTokens.colors.successStrong,
   },
   mealStatusDraft: {
     backgroundColor: "rgba(245,158,11,0.15)",
     borderColor: "rgba(245,158,11,0.30)",
   },
   mealStatusDraftText: {
-    color: "#f59e0b",
+    color: fiticianTokens.colors.amber,
   },
   mealStatusRetired: {
     backgroundColor: "rgba(148,163,184,0.15)",
     borderColor: "rgba(148,163,184,0.30)",
   },
   mealStatusRetiredText: {
-    color: "#94a3b8",
+    color: fiticianTokens.colors.muted,
   },
   mealDisclosureIcon: {
     alignItems: "center",
@@ -1727,7 +1774,7 @@ const styles = StyleSheet.create({
     width: 28,
   },
   mealDetails: {
-    borderTopColor: "rgba(234,244,241,0.10)",
+    borderTopColor: fiticianTokens.colors.line,
     borderTopWidth: 1,
     gap: fiticianTokens.spacing[3],
     marginTop: fiticianTokens.spacing[4],
@@ -1738,8 +1785,8 @@ const styles = StyleSheet.create({
   },
   mealIngredient: {
     alignItems: "stretch",
-    backgroundColor: "rgba(6,21,20,0.55)",
-    borderColor: "rgba(234,244,241,0.10)",
+    backgroundColor: fiticianTokens.colors.surfaceSubtle,
+    borderColor: fiticianTokens.colors.line,
     borderRadius: 12,
     borderWidth: 1,
     gap: fiticianTokens.spacing[1],
@@ -1784,7 +1831,7 @@ const styles = StyleSheet.create({
     borderColor: "#ffd798",
   },
   foodActionAmberText: {
-    color: "#ffd798",
+    color: fiticianTokens.colors.warningBright,
   },
   foodActionButton: {
     alignItems: "center",
@@ -1802,13 +1849,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(248,113,113,0.68)",
   },
   foodActionDangerText: {
-    color: "#fca5a5",
+    color: fiticianTokens.colors.dangerSoft,
   },
   foodActionDisabled: {
     opacity: 0.46,
   },
   foodActionText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1835,7 +1882,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   foodAddButtonText: {
-    color: "#13201c",
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1851,7 +1898,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   foodBackButtonText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1864,7 +1911,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   foodCard: {
-    backgroundColor: "#0a1b1a",
+    backgroundColor: fiticianTokens.colors.foodCard,
     borderColor: "rgba(50,216,204,0.32)",
     borderRadius: 20,
     borderWidth: 1,
@@ -1879,7 +1926,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   foodCardCategory: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1951,7 +1998,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   foodCaloriesValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1960,8 +2007,8 @@ const styles = StyleSheet.create({
   },
   foodChip: {
     alignItems: "center",
-    backgroundColor: "rgba(10,31,30,0.72)",
-    borderColor: "rgba(234,244,241,0.16)",
+    backgroundColor: fiticianTokens.colors.surfaceTranslucent,
+    borderColor: fiticianTokens.colors.line,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
     justifyContent: "center",
@@ -1978,8 +2025,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   foodChipSelected: {
-    backgroundColor: "#32d8cc",
-    borderColor: "#32d8cc",
+    backgroundColor: fiticianTokens.colors.aqua,
+    borderColor: fiticianTokens.colors.aqua,
   },
   foodChipText: {
     color: fiticianTokens.colors.ink,
@@ -1989,7 +2036,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   foodChipTextSelected: {
-    color: "#09201d",
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
   },
   foodHero: {
@@ -2015,7 +2062,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   foodMacroCellDivider: {
-    borderLeftColor: "rgba(234,244,241,0.14)",
+    borderLeftColor: fiticianTokens.colors.line,
     borderLeftWidth: 1,
   },
   foodMacroLabel: {
@@ -2026,9 +2073,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   foodMacroStrip: {
-    borderBottomColor: "rgba(234,244,241,0.14)",
+    borderBottomColor: fiticianTokens.colors.line,
     borderBottomWidth: 1,
-    borderTopColor: "rgba(234,244,241,0.14)",
+    borderTopColor: fiticianTokens.colors.line,
     borderTopWidth: 1,
     flexDirection: "row",
     minHeight: 58,
@@ -2055,20 +2102,20 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   foodPriceError: {
-    color: "#991b1b",
+    color: fiticianTokens.colors.danger,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 18,
   },
   foodPriceMeta: {
-    color: "#624b28",
+    color: fiticianTokens.colors.amber,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 18,
   },
   foodPriceMissing: {
-    backgroundColor: "rgba(234,244,241,0.06)",
-    borderColor: "rgba(234,244,241,0.16)",
+    backgroundColor: fiticianTokens.colors.line,
+    borderColor: fiticianTokens.colors.line,
   },
   foodPriceTicket: {
     backgroundColor: "#ffd798",
@@ -2090,7 +2137,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,215,152,0.35)",
   },
   foodPriceTitle: {
-    color: "#624b28",
+    color: fiticianTokens.colors.amber,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2099,7 +2146,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   foodPriceUnit: {
-    color: "#624b28",
+    color: fiticianTokens.colors.amber,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 18,
@@ -2107,7 +2154,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   foodPriceValue: {
-    color: "#13201c",
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -2117,7 +2164,7 @@ const styles = StyleSheet.create({
   },
   foodSearchButton: {
     alignItems: "center",
-    backgroundColor: "#32d8cc",
+    backgroundColor: fiticianTokens.colors.aqua,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 0,
     borderTopLeftRadius: 12,
@@ -2127,17 +2174,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   foodSearchButtonText: {
-    color: "#09201d",
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
     lineHeight: 21,
   },
   foodSearchInput: {
-    backgroundColor: "#061513",
+    backgroundColor: fiticianTokens.colors.surfaceSubtle,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 12,
-    borderColor: "rgba(234,244,241,0.16)",
+    borderColor: fiticianTokens.colors.line,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 12,
     borderWidth: 1,
@@ -2156,8 +2203,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   foodToolbar: {
-    backgroundColor: "rgba(4,17,16,0.92)",
-    borderColor: "rgba(234,244,241,0.12)",
+    backgroundColor: fiticianTokens.colors.surfaceTranslucent,
+    borderColor: fiticianTokens.colors.line,
     borderRadius: 18,
     borderWidth: 1,
     gap: fiticianTokens.spacing[3],
@@ -2165,7 +2212,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   quoteRow: {
-    backgroundColor: "rgba(10,31,30,0.70)",
+    backgroundColor: fiticianTokens.colors.surfaceRaised,
     borderColor: fiticianTokens.colors.line,
     borderRadius: fiticianTokens.radii.small,
     borderWidth: 1,
@@ -2183,7 +2230,7 @@ const styles = StyleSheet.create({
   },
   basisChoice: {
     alignItems: "center",
-    backgroundColor: "rgba(10,31,30,0.70)",
+    backgroundColor: fiticianTokens.colors.surfaceRaised,
     borderColor: fiticianTokens.colors.line,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
@@ -2204,7 +2251,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   basisChoiceTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   basisChoices: {
     flexWrap: "wrap",
@@ -2218,7 +2265,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(248,113,113,0.36)",
     borderRadius: fiticianTokens.radii.medium,
     borderWidth: 1,
-    color: "#fecaca",
+    color: fiticianTokens.colors.dangerMuted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     lineHeight: 23,
@@ -2237,7 +2284,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   sheetFileName: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     lineHeight: 22,
@@ -2274,7 +2321,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(50,216,204,0.28)",
     borderRadius: fiticianTokens.radii.small,
     borderWidth: 1,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2312,4 +2359,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

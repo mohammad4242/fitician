@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +17,6 @@ import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { Button, Card, Notice } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import {
   PROFILE_PHOTO_PICKER_OPTIONS,
   createProfilePhotoUploadJob,
@@ -43,6 +44,9 @@ export function ProfilePhotoControl({
   label,
   onChanged,
 }: ProfilePhotoControlProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const runtime = getMobileRuntimeConfig();
   const [url, setUrl] = useState<string | null>(initialUrl ?? null);
@@ -162,7 +166,7 @@ export function ProfilePhotoControl({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     alignItems: "center",
     flexDirection: "row",
@@ -177,7 +181,7 @@ const styles = StyleSheet.create({
     width: 56,
   },
   avatarText: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h2,
     textAlign: "center",
@@ -236,4 +240,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

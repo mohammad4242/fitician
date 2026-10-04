@@ -1,10 +1,11 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { resolvePublicMediaUrl } from "../config/publicMediaUrl";
 import { AppIcon, Media } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 
 export interface NutritionThumbnailProps {
   readonly imageUrl: string | null | undefined;
@@ -14,6 +15,9 @@ export interface NutritionThumbnailProps {
 }
 
 export function NutritionThumbnail({ imageUrl, name, shape = "rounded", style }: NutritionThumbnailProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const runtime = getMobileRuntimeConfig();
   const normalizedImageUrl = imageUrl?.trim() || null;
   const [failed, setFailed] = useState(normalizedImageUrl === null);
@@ -36,7 +40,7 @@ export function NutritionThumbnail({ imageUrl, name, shape = "rounded", style }:
   if (resolvedImageUrl === null || failed) {
     return (
       <View accessibilityLabel={`تصویر ${name} موجود نیست`} accessibilityRole="image" style={[styles.frame, shape === "circle" && styles.circle, style]}>
-        <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={fiticianTokens.iconSize.lg} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="nutrition" size={fiticianTokens.iconSize.lg} />
         <Text style={styles.fallbackText}>تصویر موجود نیست</Text>
       </View>
     );
@@ -57,14 +61,14 @@ export function NutritionThumbnail({ imageUrl, name, shape = "rounded", style }:
       />
       {loading ? (
         <View pointerEvents="none" style={styles.loadingOverlay}>
-          <ActivityIndicator accessibilityLabel="در حال بارگذاری تصویر" color={fiticianTokens.colors.aqua} />
+          <ActivityIndicator accessibilityLabel="در حال بارگذاری تصویر" color={fiticianTokens.colors.accentInk} />
         </View>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   fallbackText: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -99,4 +103,4 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
   },
-});
+}));

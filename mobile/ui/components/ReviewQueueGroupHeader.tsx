@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   formatPersianDate,
   reviewQueueWeekLabel,
@@ -6,7 +8,6 @@ import {
 import type { ReactNode } from "react";
 import { StyleSheet } from "react-native";
 
-import { fiticianTokens } from "../tokens";
 import { DisclosureCard } from "./DisclosureCard";
 
 export type ReviewQueueGroupHeaderProps = {
@@ -15,6 +16,8 @@ export type ReviewQueueGroupHeaderProps = {
 };
 
 export function ReviewQueueGroupHeader({ children, group }: ReviewQueueGroupHeaderProps) {
+  const styles = useThemeStyles(createStyles);
+
   const title = group.kind === "day" ? "امروز" : reviewQueueWeekLabel(group.weekOffset, "fa");
   const dateRange = group.kind === "day"
     ? formatPersianDate(group.date)
@@ -27,7 +30,7 @@ export function ReviewQueueGroupHeader({ children, group }: ReviewQueueGroupHead
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.medium,
@@ -37,4 +40,4 @@ const styles = StyleSheet.create({
     backgroundColor: fiticianTokens.colors.surfaceTranslucent,
     width: "100%",
   },
-});
+}));

@@ -33,3 +33,15 @@ it("covers the dark Fitician canvas with the audited semantic colors", () => {
     { background: fiticianTokens.colors.canvas, foreground: fiticianTokens.colors.amber },
   ]));
 });
+
+it.each(["dark", "light"] as const)("audits normal text, links, placeholders and status colors in %s", async theme => {
+  const { getThemeTokens } = await import("./tokens");
+  const c = getThemeTokens(theme).colors;
+  for (const background of [c.canvas, c.surface, c.surfaceSubtle, c.surfaceRaised]) {
+    for (const foreground of [c.ink, c.muted, c.accentInk, c.danger, c.success, c.amber]) {
+      expect(contrastRatio(foreground, background), `${theme}: ${foreground} on ${background}`).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+  expect(contrastRatio(c.onAccent, c.aqua)).toBeGreaterThanOrEqual(4.5);
+  expect(contrastRatio(c.onDanger, c.danger)).toBeGreaterThanOrEqual(4.5);
+});

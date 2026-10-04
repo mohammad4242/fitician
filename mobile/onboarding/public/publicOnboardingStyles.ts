@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
 
-import { fiticianTokens } from "../../ui/tokens";
+import { fiticianTokens, type FiticianTokens } from "../../ui/tokens";
 
-export const publicOnboardingStyles = StyleSheet.create({
+export const createPublicOnboardingStyles = (fiticianTokens: FiticianTokens) => StyleSheet.create({
   accountSurface: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.canvas,
@@ -86,7 +86,7 @@ export const publicOnboardingStyles = StyleSheet.create({
   },
   accountModeToggle: {
     alignSelf: "center",
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -340,10 +340,10 @@ export const publicOnboardingStyles = StyleSheet.create({
     borderColor: fiticianTokens.colors.aqua,
   },
   choiceIconText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   choiceIconTextSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   choiceLabel: {
     color: fiticianTokens.colors.ink,
@@ -531,7 +531,7 @@ export const publicOnboardingStyles = StyleSheet.create({
     color: fiticianTokens.colors.ink,
   },
   stageLabelComplete: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   stageMarker: {
     alignItems: "center",
@@ -558,10 +558,10 @@ export const publicOnboardingStyles = StyleSheet.create({
     textAlign: "center",
   },
   stageMarkerTextActive: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   stageMarkerTextComplete: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   stageRow: {
     direction: "rtl",
@@ -578,7 +578,7 @@ export const publicOnboardingStyles = StyleSheet.create({
   },
   textButton: {
     alignSelf: "flex-start",
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -617,3 +617,5 @@ export const publicOnboardingStyles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
   },
 });
+
+export const publicOnboardingStyles = createPublicOnboardingStyles(fiticianTokens);

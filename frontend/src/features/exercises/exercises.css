@@ -22,11 +22,11 @@
   gap: clamp(2rem, 6vw, 7rem);
   padding: clamp(2rem, 5vw, 4.5rem);
   border-radius: 2.4rem 2.4rem 0.55rem 2.4rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background:
     linear-gradient(115deg, transparent 64%, rgb(56 183 165 / 12%) 64%),
     var(--petrol-900);
-  box-shadow: 0 1.5rem 4rem rgb(18 51 50 / 14%);
+  box-shadow: 0 1.5rem 4rem rgb(var(--fitician-shadow-rgb) / calc(14% * var(--fitician-shadow-strength)));
 }
 
 .exercise-catalog-hero > :not(.member-header-media) {
@@ -49,7 +49,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 
 .exercise-catalog-hero > p {
   margin: 0;
-  color: rgb(255 255 255 / 70%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 70%));
   font-size: 1.02rem;
   line-height: 1.9;
 }
@@ -104,7 +104,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   margin-block-end: 1.25rem;
   padding: 0.85rem 1rem;
   border-inline-start: 0.3rem solid var(--saffron);
-  background: rgb(255 255 255 / 68%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 68%));
 }
 
 .catalog-special-filters p {
@@ -134,7 +134,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 
 .catalog-special-filters button.is-active {
   border-color: var(--petrol-900);
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -143,8 +143,8 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   margin-block-start: 1.25rem;
   padding: clamp(1.25rem, 3vw, 2rem);
   border: 1px solid var(--line);
-  background: rgb(255 255 255 / 82%);
-  box-shadow: 0 1rem 3rem rgb(18 51 50 / 5%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 82%));
+  box-shadow: 0 1rem 3rem rgb(var(--fitician-shadow-rgb) / calc(5% * var(--fitician-shadow-strength)));
 }
 
 .catalog-stage {
@@ -168,7 +168,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   display: grid;
   place-items: center;
   border-radius: 50% 50% 0.2rem 50%;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
   font-size: 0.78rem;
   font-weight: 850;
@@ -226,7 +226,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 }
 
 .catalog-content-switcher button.is-active {
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -319,7 +319,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 .muscle-button.is-active,
 .focus-button.is-active {
   border-color: var(--petrol-900);
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -346,7 +346,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 .region-button.is-active small,
 .muscle-button.is-active small,
 .focus-button.is-active small {
-  color: rgb(255 255 255 / 58%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 58%));
 }
 
 .exercise-filters {
@@ -398,7 +398,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   padding-inline: 1rem;
   border: 1px solid var(--fitician-aqua);
   border-radius: 0.7rem;
-  color: var(--fitician-petrol);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   font-weight: 820;
   text-decoration: none;
@@ -457,7 +457,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   border: 1px solid var(--line);
   border-radius: 1.5rem 1.5rem 0.35rem;
   background: var(--paper);
-  box-shadow: 0 0.8rem 2rem rgb(18 51 50 / 6%);
+  box-shadow: 0 0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(6% * var(--fitician-shadow-strength)));
   transition:
     border-color 180ms ease,
     transform 180ms ease,
@@ -466,7 +466,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 
 .exercise-card:hover {
   border-color: rgb(56 183 165 / 60%);
-  box-shadow: 0 1.2rem 2.6rem rgb(18 51 50 / 10%);
+  box-shadow: 0 1.2rem 2.6rem rgb(var(--fitician-shadow-rgb) / calc(10% * var(--fitician-shadow-strength)));
 }
 @media (hover: hover) and (pointer: fine) {
   .exercise-card:hover { transform: translateY(-3px); }
@@ -559,7 +559,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   justify-content: space-between;
   padding-inline: 0.85rem;
   border-radius: 0.7rem 0.7rem 0.2rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
   font-size: 0.78rem;
   font-weight: 820;
@@ -568,7 +568,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 
 .exercise-card__edit {
   margin-block-start: 0.55rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: transparent;
 }
 
@@ -595,7 +595,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   padding-block: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-bottom));
   padding-left: max(1.25rem, env(safe-area-inset-left));
   padding-right: max(1.25rem, env(safe-area-inset-right));
-  background: rgb(1 10 12 / 72%);
+  background: var(--fitician-palette-surface-translucent, rgb(1 10 12 / 72%));
   backdrop-filter: blur(10px) saturate(.8);
 }
 
@@ -610,7 +610,7 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
   border-radius: 1.35rem;
   color: var(--fitician-text);
   background: linear-gradient(145deg, color-mix(in srgb, var(--fitician-danger) 7%, var(--fitician-surface)), var(--fitician-surface) 48%);
-  box-shadow: 0 2rem 6rem rgb(0 0 0 / 48%);
+  box-shadow: 0 2rem 6rem rgb(var(--fitician-shadow-rgb) / calc(48% * var(--fitician-shadow-strength)));
   animation: exercise-delete-enter 180ms ease-out both;
 }
 
@@ -626,8 +626,8 @@ html[dir="rtl"] .exercise-catalog-hero h1 {
 .exercise-delete-dialog footer button { min-height: 3rem; border-radius: .9rem; font: inherit; font-weight: 850; cursor: pointer; }
 .exercise-delete-dialog footer button:disabled { cursor: wait; opacity: .68; }
 .exercise-delete-dialog__cancel { border: 1px solid var(--fitician-line-strong); color: var(--fitician-text); background: transparent; }
-.exercise-delete-dialog__confirm { border: 1px solid var(--fitician-danger); color: #190603; background: linear-gradient(135deg, #ff9b7f, var(--fitician-danger)); box-shadow: 0 .65rem 1.6rem color-mix(in srgb, var(--fitician-danger) 24%, transparent); }
-.exercise-delete-dialog footer button:focus-visible { outline: 3px solid color-mix(in srgb, var(--fitician-aqua) 65%, transparent); outline-offset: 2px; }
+.exercise-delete-dialog__confirm { border: 1px solid var(--fitician-danger); color: var(--fitician-on-danger); background: var(--fitician-danger-button-fill); box-shadow: 0 .65rem 1.6rem color-mix(in srgb, var(--fitician-danger) 24%, transparent); }
+.exercise-delete-dialog footer button:focus-visible { outline: 3px solid color-mix(in srgb, var(--fitician-accent-ink) 65%, transparent); outline-offset: 2px; }
 
 @keyframes exercise-delete-enter {
   from { opacity: 0; transform: translateY(.65rem) scale(.985); }
@@ -673,7 +673,7 @@ html[dir="ltr"] .exercise-card__link span {
   border: 1px dashed var(--line);
   border-radius: 1.5rem 1.5rem 0.35rem;
   color: var(--muted);
-  background: rgb(255 255 255 / 60%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 60%));
   text-align: center;
 }
 
@@ -766,7 +766,7 @@ html[dir="ltr"] .exercise-card__link span {
 }
 
 .exercise-catalog-hero {
-  background: rgb(10 31 30 / 52%);
+  background: var(--fitician-palette-surface-translucent, rgb(10 31 30 / 52%));
   backdrop-filter: blur(8px);
 }
 
@@ -794,7 +794,7 @@ html[dir="ltr"] .exercise-card__link span {
   display: grid;
   place-items: center;
   border-radius: 50% 50% 0.25rem 50%;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--persimmon);
   font-size: 2rem;
   font-weight: 900;
@@ -904,7 +904,7 @@ html[dir="ltr"] .exercise-card__link span {
 
 .exercise-media-presentation-toggle button[aria-pressed="true"] {
   border-color: var(--fitician-aqua);
-  color: var(--fitician-petrol);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
@@ -992,7 +992,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
 .exercise-safety {
   border-color: rgb(244 185 66 / 55%);
   border-radius: 2rem 2rem 0.45rem;
-  background: #fffbef;
+  background: var(--fitician-palette-surface, #fffbef);
 }
 
 .exercise-detail-section-heading {
@@ -1007,7 +1007,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
   display: grid;
   place-items: center;
   border-radius: 50% 50% 0.2rem 50%;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--turquoise-dark);
   font-weight: 900;
 }
@@ -1039,7 +1039,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
 
 .exercise-detail-accordion > summary::after {
   margin-inline-start: auto;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   content: "+";
   font-size: 1.6rem;
   font-weight: 400;
@@ -1051,7 +1051,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
 }
 
 .exercise-detail-accordion > summary:focus-visible {
-  outline: 3px solid var(--fitician-aqua);
+  outline: 3px solid var(--fitician-accent-ink);
   outline-offset: -3px;
 }
 
@@ -1059,7 +1059,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
   grid-column: 2;
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
-  background: rgb(11 32 31 / 91%);
+  background: var(--fitician-palette-surface-translucent, rgb(11 32 31 / 91%));
   box-shadow: var(--fitician-shadow-soft);
 }
 
@@ -1111,7 +1111,7 @@ html[dir="rtl"] .exercise-detail-heading h1 {
   gap: 2rem;
   padding-inline: 1.2rem;
   border-radius: 0.9rem 0.9rem 0.25rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
   font-size: 0.82rem;
   font-weight: 820;
@@ -1133,10 +1133,10 @@ html[dir="ltr"] .exercise-detail-back span {
   overflow: hidden;
   padding: clamp(2rem, 5vw, 4rem);
   border-radius: 2rem 0.5rem 2rem 2rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-800);
   text-decoration: none;
-  box-shadow: 0 1.2rem 3rem rgb(18 51 50 / 12%);
+  box-shadow: 0 1.2rem 3rem rgb(var(--fitician-shadow-rgb) / calc(12% * var(--fitician-shadow-strength)));
 }
 
 .catalog-dashboard-card__copy h2,
@@ -1158,7 +1158,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .catalog-dashboard-card__copy > p:last-child {
   max-width: 44rem;
   margin-block-start: 0.9rem;
-  color: rgb(255 255 255 / 68%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 68%));
   line-height: 1.8;
 }
 
@@ -1315,7 +1315,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
   box-shadow: var(--fitician-shadow);
 }
 .exercise-catalog-hero h1 { font-size: clamp(3.8rem, 8vw, 6.8rem); letter-spacing: 0; }
-.exercise-catalog-hero > p { color: rgb(234 244 241 / 74%); }
+.exercise-catalog-hero > p { color: var(--fitician-palette-muted, rgb(234 244 241 / 74%)); }
 .catalog-stage,
 .catalog-results { border: 0; border-radius: var(--fitician-radius-card); box-shadow: var(--fitician-shadow); }
 .catalog-stage__heading > span { color: var(--fitician-coral); background: rgb(246 120 89 / 12%); }
@@ -1324,8 +1324,8 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .region-button,
 .muscle-button { border-radius: 1rem; }
 .region-button[aria-pressed="true"],
-.muscle-button[aria-pressed="true"] { border-color: var(--fitician-aqua); color: var(--fitician-petrol); background: var(--fitician-aqua); }
-.exercise-card { border: 0; border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 9%); }
+.muscle-button[aria-pressed="true"] { border-color: var(--fitician-aqua); color: var(--fitician-on-accent); background: var(--fitician-aqua); }
+.exercise-card { border: 0; border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(9% * var(--fitician-shadow-strength))); }
 .exercise-card__media { border-radius: 1rem; }
 .exercise-detail-sheet { border: 0; border-radius: var(--fitician-radius-card); box-shadow: var(--fitician-shadow); }
 .exercise-detail-heading { background: var(--fitician-mist); }
@@ -1363,7 +1363,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
   border: 1px solid var(--fitician-line-strong);
   background:
     linear-gradient(125deg, rgb(80 223 206 / 10%), transparent 52%),
-    rgb(7 23 22 / 88%);
+    var(--fitician-palette-surface-translucent, rgb(7 23 22 / 88%));
   box-shadow: var(--fitician-shadow-soft);
   backdrop-filter: blur(14px);
 }
@@ -1404,7 +1404,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-detail-message {
   border: 1px solid var(--fitician-line);
   color: var(--fitician-ink);
-  background: rgb(11 32 31 / 91%);
+  background: var(--fitician-palette-surface-translucent, rgb(11 32 31 / 91%));
   box-shadow: var(--fitician-shadow-soft);
 }
 
@@ -1441,7 +1441,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .region-button[aria-pressed="true"],
 .muscle-button[aria-pressed="true"] {
   border-color: var(--fitician-aqua);
-  color: var(--fitician-petrol);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
@@ -1461,14 +1461,14 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 .exercise-card {
   border: 1px solid var(--fitician-line);
   color: var(--fitician-ink);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2%) 0%, transparent 100%), var(--fitician-surface);
+  background: linear-gradient(180deg, rgb(var(--fitician-highlight-rgb) / 2%) 0%, transparent 100%), var(--fitician-surface);
   box-shadow: var(--fitician-shadow-card);
   transition: border-color var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease), box-shadow var(--fitician-duration-fast) var(--fitician-ease);
 }
 
 .exercise-card:hover {
   border-color: var(--fitician-line-strong);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  box-shadow: 0 12px 32px rgb(var(--fitician-shadow-rgb) / calc(35% * var(--fitician-shadow-strength)));
 }
 @media (hover: hover) and (pointer: fine) {
   .exercise-card:hover { transform: translateY(-2px); }
@@ -1480,7 +1480,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-card__link,
 .exercise-detail-back {
-  color: var(--fitician-petrol);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
@@ -1554,7 +1554,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 
 .exercise-detail-accordion > summary::after {
   margin-inline-start: auto;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   content: "+";
   font-size: 1.6rem;
   font-weight: 400;
@@ -1566,7 +1566,7 @@ html[dir="rtl"] .catalog-dashboard-card__copy h2 {
 }
 
 .exercise-detail-accordion > summary:focus-visible {
-  outline: 3px solid var(--fitician-aqua);
+  outline: 3px solid var(--fitician-accent-ink);
   outline-offset: -3px;
 }
 

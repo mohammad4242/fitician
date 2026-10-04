@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs";
 import { type ReactNode, useContext, useEffect } from "react";
 import {
@@ -13,7 +15,6 @@ import { Circle, Path, Svg } from "react-native-svg";
 import { BottomTabBarHeightCallbackContext } from "expo-router/build/react-navigation/bottom-tabs";
 import { useIsKeyboardShown } from "expo-router/build/react-navigation/bottom-tabs/utils/useIsKeyboardShown";
 
-import { fiticianTokens } from "../tokens";
 import { LTR_CENTER_TEXT, RTL_CENTER_TEXT, RTL_LAYOUT, RTL_ROW } from "../rtl";
 
 const NAVIGATION_CONTENT_HEIGHT = 72;
@@ -64,6 +65,9 @@ const iconByRoute: Record<string, NavigationIconName> = {
 };
 
 export function MemberBottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const isKeyboardShown = useIsKeyboardShown();
   const focusedRouteKey = state.routes[state.index]?.key;
@@ -122,8 +126,8 @@ export function MemberBottomTabBar({ state, descriptors, navigation, insets }: B
           }
 
           const focused = route.key === focusedRouteKey || (route.name === "progress" && state.routes[state.index]?.name === "body-analysis");
-          const label = getTabLabel(descriptor.options, route.name, focused);
-          const color = focused ? fiticianTokens.colors.aqua : fiticianTokens.colors.muted;
+          const label = getTabLabel(descriptor.options, route.name, focused, fiticianTokens);
+          const color = focused ? fiticianTokens.colors.accentInk : fiticianTokens.colors.muted;
           const isEnglish = false;
 
           const onPress = () => {
@@ -187,12 +191,13 @@ export function MemberBottomTabBar({ state, descriptors, navigation, insets }: B
 function getTabLabel(
   options: BottomTabBarProps["descriptors"][string]["options"],
   routeName: string,
-  focused: boolean,
+  focused: boolean, fiticianTokens: FiticianTokens
 ): string {
+
   const label = typeof options.tabBarLabel === "function"
     ? options.tabBarLabel({
       children: options.title ?? routeName,
-      color: focused ? fiticianTokens.colors.aqua : fiticianTokens.colors.muted,
+      color: focused ? fiticianTokens.colors.accentInk : fiticianTokens.colors.muted,
       focused,
       position: "below-icon",
     })
@@ -224,7 +229,7 @@ function MemberNavigationIcon({ color, name }: MemberNavigationIconProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   bar: {
     backgroundColor: fiticianTokens.colors.canvas,
     borderTopColor: fiticianTokens.colors.line,
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   activeLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   activeIndicator: {
@@ -285,4 +290,4 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 34,
   },
-});
+}));

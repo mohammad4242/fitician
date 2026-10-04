@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   StyleSheet,
@@ -28,6 +30,8 @@ export function Skeleton({
   style,
   width = "100%",
 }: SkeletonProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View
       accessible
@@ -50,7 +54,7 @@ export interface NoticeProps {
   readonly variant?: NoticeVariant;
 }
 
-const noticeStyles: Record<NoticeVariant, ViewStyle> = {
+const createNoticeStyles = (fiticianTokens: FiticianTokens): Record<NoticeVariant, ViewStyle> => ({
   danger: {
     backgroundColor: fiticianTokens.colors.dangerSurface,
     borderColor: fiticianTokens.colors.danger,
@@ -71,7 +75,7 @@ const noticeStyles: Record<NoticeVariant, ViewStyle> = {
     backgroundColor: fiticianTokens.colors.warningSurface,
     borderColor: fiticianTokens.colors.amber,
   },
-};
+});
 
 export function Notice({
   actionLabel,
@@ -82,6 +86,9 @@ export function Notice({
   technicalDetails,
   variant = "info",
 }: NoticeProps) {
+  const noticeStyles = useThemeStyles(createNoticeStyles);
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View
       accessibilityLiveRegion={variant === "danger" ? "assertive" : "polite"}
@@ -120,6 +127,8 @@ export interface EmptyStateProps {
 }
 
 export function EmptyState({ actionLabel, children, onAction, title }: EmptyStateProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.emptyState, RTL_LAYOUT]}>
       <Text style={styles.noticeTitle}>{title}</Text>
@@ -131,7 +140,7 @@ export function EmptyState({ actionLabel, children, onAction, title }: EmptyStat
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   emptyState: {
     alignItems: "center",
     gap: fiticianTokens.spacing[3],
@@ -188,4 +197,4 @@ const styles = StyleSheet.create({
     backgroundColor: fiticianTokens.colors.surfaceRaised,
     opacity: 0.78,
   },
-});
+}));

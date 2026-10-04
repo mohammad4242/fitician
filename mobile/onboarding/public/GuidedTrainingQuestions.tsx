@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../ui/theme/ThemeProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -14,7 +15,7 @@ import {
 
 import { Button, TextField } from "../../ui/components";
 import { PublicChoiceCard, PublicQuestionFrame } from "./PublicQuestionFrame";
-import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
+import { createPublicOnboardingStyles } from "./publicOnboardingStyles";
 import { usePublicAutoAdvance } from "./usePublicAutoAdvance";
 
 type TrainingField =
@@ -110,6 +111,8 @@ export function GuidedTrainingQuestions({
   onRegisterBack,
   values,
 }: GuidedTrainingQuestionsProps) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
   const [index, setIndex] = useState(0);
   const [trainingAgeError, setTrainingAgeError] = useState<string | null>(null);
   const { resetAdvancing, selectAndAdvance } = usePublicAutoAdvance();

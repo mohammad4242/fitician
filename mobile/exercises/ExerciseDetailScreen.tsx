@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +25,6 @@ import {
 import { getMobileViewState } from "../ui/requestState";
 import { Screen } from "../ui/layout";
 import { languageForDirection, type MobileLanguage } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import {
   createExerciseApi,
   type ExerciseDetail,
@@ -165,6 +166,8 @@ const englishExerciseValues: Readonly<Record<string, string>> = {
 };
 
 export function ExerciseDetailScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ slug?: string | string[] }>();
@@ -343,6 +346,8 @@ function ExerciseMediaPanel({
   readonly runtimeApiBaseUrl: string;
   readonly runtimePublicMediaBaseUrl: string | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const name = exerciseTitle(detail.name_fa, detail.name_en, language);
   return (
     <Card style={[styles.mediaCard, language === "en" && styles.mediaCardEnglish]} variant="hero">
@@ -374,6 +379,8 @@ function ExerciseMediaPanel({
 }
 
 function ExerciseInformation({ detail, language }: { readonly detail: ExerciseDetail; readonly language: MobileLanguage }) {
+  const styles = useThemeStyles(createStyles);
+
   const copy = detailCopy[language];
   const instructions = language === "en" && detail.instructions_en.length > 0
     ? detail.instructions_en
@@ -434,6 +441,8 @@ function InstructionList({
   readonly title: string;
   readonly warning?: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const isEnglish = language === "en";
   return (
     <DisclosureCard
@@ -463,6 +472,8 @@ function InstructionList({
 }
 
 function InfoRow({ label, language, value }: { readonly label: string; readonly language: MobileLanguage; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.infoRow, language === "en" && styles.infoRowEnglish]}>
       {language === "en" ? (
@@ -481,6 +492,8 @@ function InfoRow({ label, language, value }: { readonly label: string; readonly 
 }
 
 function DetailSkeleton() {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.skeletonGroup}>
       <Skeleton height={232} />
@@ -516,7 +529,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   backButton: {
     minHeight: fiticianTokens.layout.minimumTouchTarget,
     paddingHorizontal: fiticianTokens.spacing[3],
@@ -543,7 +556,7 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   breadcrumbLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -616,7 +629,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.aqua,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -700,4 +713,4 @@ const styles = StyleSheet.create({
   warningCard: {
     borderColor: fiticianTokens.colors.amber,
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Camera,
@@ -23,7 +25,6 @@ import type { Sex } from "@fitician/core/profile";
 
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { AppIcon, Button, Notice, PageHeading } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import {
   GHOST_SCALE_MAX,
   GHOST_SCALE_MIN,
@@ -82,6 +83,9 @@ export function BodyPhotoCapture({
   sex,
   view,
 }: BodyPhotoCaptureProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const { canRequestPermission, hasPermission, requestPermission } = useCameraPermission();
   const [captureMode, setCaptureMode] = useState<"camera" | "library">(initialCaptureMode);
   const [cameraPosition, setCameraPosition] = useState<CameraPosition>("front");
@@ -391,7 +395,7 @@ export function BodyPhotoCapture({
           {captureMode === "camera" ? cameraContent : (
             <View style={styles.libraryCaptureDeck}>
               <View style={styles.libraryGuideBadge}>
-                <AppIcon color={fiticianTokens.colors.aqua} name="target" size={20} />
+                <AppIcon color={fiticianTokens.colors.accentInk} name="target" size={20} />
               </View>
               <Text style={styles.libraryGuideTitle}>{bodyPhotoCopy.headlessInstruction}</Text>
               <Text style={styles.cameraMessageBody}>{replaceView(bodyPhotoCopy.uploadExistingPhoto, viewLabel(view))}</Text>
@@ -529,6 +533,9 @@ function liveWarningLabel(warning: LiveWarning): string {
 }
 
 export function PhotoClothingGuide() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View accessibilityLabel="لباس و پوشش مناسب" style={styles.clothingGuide}>
       <View style={styles.clothingHeader}>
@@ -544,12 +551,15 @@ export function PhotoClothingGuide() {
 }
 
 function HeadlessPhotoGuide() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const retained = ["shouldersArms", "waistHips", "legsKnees", "anklesFeet"] as const;
   return (
     <View accessibilityLabel={bodyPhotoCopy.headlessGuideLabel} style={styles.headlessGuide}>
       <View style={styles.headlessHeader}>
         <View style={styles.headlessBadge}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={18} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="shield" size={18} />
         </View>
         <View style={styles.headlessCopy}>
           <Text style={styles.headlessTitle}>{bodyPhotoCopy.headlessInstruction}</Text>
@@ -575,6 +585,8 @@ function CaptureStepIndicator({
   readonly completedViews: readonly BodyPhotoView[];
   readonly currentView: BodyPhotoView;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View accessible accessibilityLabel="مراحل ثبت عکس" style={styles.stepList}>
       {(["front", "side", "back"] as const).map((step, index) => {
@@ -627,7 +639,7 @@ function deleteLocalFile(uri: string): void {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -662,7 +674,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   captureBadge: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -778,13 +790,13 @@ const styles = StyleSheet.create({
     top: 0,
   },
   countdownText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
     fontSize: 92,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -823,7 +835,7 @@ const styles = StyleSheet.create({
     width: 44,
   },
   libraryGuideTitle: {
-    color: fiticianTokens.colors.ink,
+    color: fiticianTokens.colors.mediaInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -831,7 +843,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   retainedCheck: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -863,7 +875,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   scaleValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.body,
     minWidth: 54,
@@ -874,7 +886,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   stage: {
-    backgroundColor: fiticianTokens.colors.surfaceSubtle,
+    backgroundColor: fiticianTokens.colors.mediaCanvas,
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.large,
     borderWidth: 1,
@@ -924,7 +936,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   stepLabelActive: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   stepLabelCompleted: {
     color: fiticianTokens.colors.success,
@@ -941,4 +953,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

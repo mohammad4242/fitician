@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
@@ -22,7 +24,6 @@ import { Button } from "../ui/components/Button";
 import { Card } from "../ui/components/Card";
 import { DisclosureCard } from "../ui/components/DisclosureCard";
 import { getTextDirectionStyle } from "../ui/rtl";
-import { fiticianTokens as t } from "../ui/tokens";
 import { TrendChart } from "./TrendChart";
 import { MeasurementForm } from "./MeasurementForm";
 type Props = {
@@ -39,6 +40,9 @@ export default function ProgressDetails({
   api,
   onSaved,
 }: Props) {
+  const t = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const c = progressCopy[language],
     p = progressPresentationCopy[language],
     n = (v: number | null | undefined, signed = false) =>
@@ -283,7 +287,7 @@ export default function ProgressDetails({
               </ScrollView>
               <View style={styles.row}>
                 {line(`▥ ${p.planned}`)}
-                <Text style={[styles.text, text, { color: t.colors.aqua }]}>
+                <Text style={[styles.text, text, { color: t.colors.accentInk }]}>
                   ▥ {p.completed}
                 </Text>
               </View>
@@ -353,7 +357,7 @@ export default function ProgressDetails({
   }
   return line(p.notAvailable);
 }
-const styles = StyleSheet.create({
+const createStyles = (t: FiticianTokens) => (StyleSheet.create({
   stack: { gap: 16 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
   metricRow: { flexDirection: "row", gap: 4 },
@@ -425,4 +429,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: t.colors.line,
   },
-});
+}));

@@ -1,9 +1,10 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { StyleSheet, Text, View } from "react-native";
 import { type ReactNode } from "react";
 
 import { BrandMark, Card } from "../components";
 import { Screen } from "../layout";
-import { fiticianTokens } from "../tokens";
 
 export interface RouteEntryScreenProps {
   readonly children?: ReactNode;
@@ -12,6 +13,8 @@ export interface RouteEntryScreenProps {
 }
 
 export function RouteEntryScreen({ children, description, title }: RouteEntryScreenProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Screen contentContainerStyle={styles.screen} contentWidth="reading" scroll={false}>
       <View style={styles.content}>
@@ -28,7 +31,7 @@ export function RouteEntryScreen({ children, description, title }: RouteEntryScr
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   brandRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -61,4 +64,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

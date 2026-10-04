@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { NutritionProgressReview } from "./NutritionProgressReview";
 import { WeightTrend } from "./WeightTrend";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +15,6 @@ import { connectivityMonitor, type ConnectivityStatus } from "../platform/connec
 import { Card, DisclosureCard, EmptyState, Notice, PersianDatePicker, Skeleton } from "../ui/components";
 import { RTL_LAYOUT, RTL_TEXT } from "../ui/rtl";
 import { getMobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   adherencePercentLabel,
   checkInStatusLabel,
@@ -36,6 +37,8 @@ export function NutritionAdherenceSection({
   embedded = false,
   onTodayPlannedCaloriesChange,
 }: NutritionAdherenceSectionProps = {}) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const connectivityStatus = useConnectivityStatus();
   const today = useLocalDate();
@@ -188,6 +191,8 @@ function AdherenceBody({
   readonly historyQuery: { refetch: () => Promise<unknown> };
   readonly historyState: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.body}>
       <Text style={styles.bodyText}>دقت ثبت، وضعیت وعده‌ها و فاصله مصرف واقعی از برنامه را در یک بازه ببین.</Text>
@@ -226,6 +231,8 @@ function AdherenceDayCard({
 }: {
   readonly day: NonNullable<Awaited<ReturnType<NutritionTrackingApi["getAdherence"]>>>["days"][number];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.dayCard}>
       <View style={styles.sectionHeading}>
@@ -250,6 +257,8 @@ function AdherenceDayCard({
 }
 
 function AdherenceMetric({ label, value }: { readonly label: string; readonly value: number | null }) {
+  const styles = useThemeStyles(createStyles);
+
   const numeric = value === null || !Number.isFinite(value) ? null : Math.max(0, Math.min(100, value));
   return (
     <View style={styles.metricBlock}>
@@ -265,6 +274,8 @@ function AdherenceMetric({ label, value }: { readonly label: string; readonly va
 }
 
 function HistoryRow({ day }: { readonly day: NutritionDailyTracking }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.historyRow}>
       <View style={styles.headingCopy}>
@@ -305,7 +316,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     gap: fiticianTokens.spacing[3],
   },
@@ -342,7 +353,7 @@ const styles = StyleSheet.create({
     padding: fiticianTokens.spacing[3],
   },
   dayDate: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     writingDirection: "ltr",
@@ -436,7 +447,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   metricValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -477,4 +488,4 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.h3,
     lineHeight: 28,
   },
-});
+}));

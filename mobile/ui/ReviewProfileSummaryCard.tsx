@@ -1,3 +1,5 @@
+import { useThemeStyles } from "./theme/ThemeProvider";
+import type { FiticianTokens } from "./tokens";
 import {
   formatPersianDate,
   formatTehranDateTime,
@@ -10,7 +12,6 @@ import { StyleSheet, Text, View } from "react-native";
 import { Card, DisclosureCard, MetricStrip } from "./components";
 import { formatPersianNumber } from "./locale";
 import { RTL_LAYOUT, RTL_TEXT } from "./rtl";
-import { fiticianTokens } from "./tokens";
 
 type ReviewProfileSummary = components["schemas"]["ReviewProfileSummary"];
 type ReviewProfileNutrition = NonNullable<ReviewProfileSummary["nutrition"]>;
@@ -48,6 +49,8 @@ export function ReviewProfileSummaryCard({
 }: {
   readonly summary: ReviewProfileSummary | null | undefined;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (summary === null || summary === undefined) return null;
   const cautions = summary.training_cautions ?? [];
   const limitation = summary.physical_limitations?.trim();
@@ -144,6 +147,8 @@ export function ReviewProfileSummaryCard({
 }
 
 function NutritionSection({ nutrition }: { readonly nutrition: ReviewProfileNutrition }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.section}>
       <SummaryGrid entries={[
@@ -207,6 +212,8 @@ function NutritionSection({ nutrition }: { readonly nutrition: ReviewProfileNutr
 }
 
 function MedicalSection({ medical }: { readonly medical: ReviewProfileMedical }) {
+  const styles = useThemeStyles(createStyles);
+
   const activeFlags = Object.entries(medical.flags ?? {}).filter(([, active]) => active);
   return (
     <View style={styles.section}>
@@ -243,6 +250,8 @@ function MedicalSection({ medical }: { readonly medical: ReviewProfileMedical })
 }
 
 function SummaryGrid({ entries }: { readonly entries: readonly (readonly [string, string | null | undefined])[] }) {
+  const styles = useThemeStyles(createStyles);
+
   const visible = entries.filter(([, value]) => value !== null && value !== undefined && value !== "");
   return (
     <View style={styles.grid}>
@@ -304,7 +313,7 @@ function yesNo(value: boolean): string {
   return value ? "بله" : "خیر";
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   alert: {
     backgroundColor: fiticianTokens.colors.warningSurface,
     borderColor: fiticianTokens.colors.amber,
@@ -375,7 +384,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -398,12 +407,12 @@ const styles = StyleSheet.create({
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   star: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontSize: fiticianTokens.typography.fontSize.h2,
   },
   subheading: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -421,4 +430,4 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
   },
-});
+}));

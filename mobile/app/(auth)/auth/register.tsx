@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../../ui/theme/ThemeProvider";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, Text, View } from "react-native";
@@ -8,7 +9,7 @@ import { AuthFormSection, AuthScaffold } from "../../../auth/AuthScaffold";
 import { onboardingRoute, publicOnboardingParams } from "../../../auth/authRoute";
 import { authCopy, mobileAuthCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
-import { authStyles } from "../../../auth/authStyles";
+import { createAuthStyles } from "../../../auth/authStyles";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
 import { SignupCampaignCard } from "../../../campaigns/SignupCampaignCard";
 import { usePublicSignupCampaign } from "../../../campaigns/usePublicSignupCampaign";
@@ -21,6 +22,8 @@ interface RegisterFormValues {
 }
 
 export default function RegisterScreen() {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   const router = useRouter();
   const params = useLocalSearchParams<{ source?: string }>();
   const auth = useMobileAuth();

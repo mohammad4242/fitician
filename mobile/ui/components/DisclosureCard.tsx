@@ -1,7 +1,8 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { getRowDirectionStyle, getTextDirectionStyle, type FiticianDirection } from "../rtl";
-import { fiticianTokens as tokens } from "../tokens";
 import type { FiticianIconName } from "../icons";
 import { AppIcon } from "./AppIcon";
 import { Card } from "./Card";
@@ -22,6 +23,9 @@ export interface DisclosureCardProps {
 
 export function DisclosureCard({ title, summary, icon, leading, trailing, children,
   expanded, defaultExpanded = false, direction = "rtl", onExpandedChange, style }: DisclosureCardProps) {
+  const tokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [open, setOpen] = useState(defaultExpanded);
   const visible = expanded ?? open;
   // Keep visited forms mounted so closing a group cannot discard local edits.
@@ -42,13 +46,13 @@ export function DisclosureCard({ title, summary, icon, leading, trailing, childr
         }}
         style={({ pressed }) => [styles.header, getRowDirectionStyle(direction), pressed && styles.pressed]}
       >
-        {leading ?? (icon ? <AppIcon name={icon} color={tokens.colors.aqua} /> : null)}
+        {leading ?? (icon ? <AppIcon name={icon} color={tokens.colors.accentInk} /> : null)}
         <View style={styles.copy}>
           <Text style={[styles.title, direction === "ltr" && styles.titleLtr, textStyle]}>{title}</Text>
           {summary ? <Text style={[styles.summary, direction === "ltr" && styles.summaryLtr, textStyle]}>{summary}</Text> : null}
         </View>
         {trailing}
-        <AppIcon name={visible ? "chevronUp" : "chevronDown"} color={tokens.colors.aqua} />
+        <AppIcon name={visible ? "chevronUp" : "chevronDown"} color={tokens.colors.accentInk} />
       </Pressable>
       {visible || visited ? (
         <View accessibilityElementsHidden={!visible} importantForAccessibility={visible ? "auto" : "no-hide-descendants"}
@@ -58,7 +62,7 @@ export function DisclosureCard({ title, summary, icon, leading, trailing, childr
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (tokens: FiticianTokens) => (StyleSheet.create({
   card: { padding: 0, overflow: "hidden" },
   header: { minHeight: tokens.layout.minimumTouchTarget, padding: tokens.spacing[3], gap: tokens.spacing[3], alignItems: "center" },
   copy: { alignItems: "stretch", flex: 1, minWidth: 0, gap: tokens.spacing[1] },
@@ -69,4 +73,4 @@ const styles = StyleSheet.create({
   body: { padding: tokens.spacing[4], gap: tokens.spacing[3], borderTopWidth: 1, borderTopColor: tokens.colors.line },
   hidden: { display: "none" },
   pressed: { opacity: 0.8 },
-});
+}));

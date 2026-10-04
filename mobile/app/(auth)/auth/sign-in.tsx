@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../../ui/theme/ThemeProvider";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -9,7 +10,7 @@ import { AuthFormSection, AuthScaffold } from "../../../auth/AuthScaffold";
 import { onboardingRoute, publicOnboardingParams } from "../../../auth/authRoute";
 import { authCopy, mobileAuthCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
-import { authStyles } from "../../../auth/authStyles";
+import { createAuthStyles } from "../../../auth/authStyles";
 import { GoogleBrandIcon } from "../../../auth/GoogleBrandIcon";
 import { useAppleSignIn } from "../../../auth/AppleSignIn";
 import { useGoogleSignIn } from "../../../auth/GoogleSignIn";
@@ -34,6 +35,8 @@ interface PhoneSignInFormValues {
 }
 
 export default function SignInScreen() {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   const router = useRouter();
   const auth = useMobileAuth();
   const apple = useAppleSignIn();

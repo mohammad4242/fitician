@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../../ui/theme/ThemeProvider";
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
@@ -5,7 +6,7 @@ import { View } from "react-native";
 import { Button, Notice } from "../../../ui/components";
 import { AuthScaffold } from "../../../auth/AuthScaffold";
 import { authCopy } from "../../../auth/copy";
-import { authStyles } from "../../../auth/authStyles";
+import { createAuthStyles } from "../../../auth/authStyles";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
 
 type VerificationStatus = "checking" | "invalid" | "success";
@@ -15,6 +16,8 @@ function firstParam(value: string | string[] | undefined): string {
 }
 
 export default function VerifyEmailScreen() {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   const router = useRouter();
   const auth = useMobileAuth();
   const params = useLocalSearchParams<{ token?: string }>();

@@ -1,7 +1,8 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { RTL_LAYOUT, RTL_TEXT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export interface SectionHeaderProps {
   readonly actionLabel?: string;
@@ -11,6 +12,8 @@ export interface SectionHeaderProps {
 }
 
 export function SectionHeader({ actionLabel, eyebrow, onAction, title }: SectionHeaderProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.container, RTL_LAYOUT]}>
       <View style={styles.copy}>
@@ -26,7 +29,7 @@ export function SectionHeader({ actionLabel, eyebrow, onAction, title }: Section
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   action: {
     alignItems: "center",
     minHeight: fiticianTokens.layout.minimumTouchTarget,
@@ -36,7 +39,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -67,4 +70,4 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.h2,
     lineHeight: 32,
   },
-});
+}));

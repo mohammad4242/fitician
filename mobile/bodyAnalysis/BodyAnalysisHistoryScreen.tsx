@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -8,7 +10,6 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Notice, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { BodyAnalysisDeleteDialog } from "./BodyAnalysisDeleteDialog";
 import { BodyAnalysisAccessNotice } from "./BodyAnalysisAccessNotice";
@@ -25,6 +26,8 @@ export interface BodyAnalysisHistoryScreenProps {
 }
 
 export function BodyAnalysisHistoryScreen({ tabRoot = false, embedded = false }: BodyAnalysisHistoryScreenProps = {}) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const router = useRouter();
@@ -171,9 +174,11 @@ export function BodyAnalysisHistoryScreen({ tabRoot = false, embedded = false }:
   );
 }
 
-function HistoryContainer({embedded,children}:{embedded:boolean;children:ReactNode}) { return embedded ? <View style={styles.screen}>{children}</View> : <Screen contentContainerStyle={styles.screen}>{children}</Screen>; }
+function HistoryContainer({embedded,children}:{embedded:boolean;children:ReactNode}) {
+  const styles = useThemeStyles(createStyles);
+ return embedded ? <View style={styles.screen}>{children}</View> : <Screen contentContainerStyle={styles.screen}>{children}</Screen>; }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   loading: {
     gap: fiticianTokens.spacing[4],
     paddingVertical: fiticianTokens.spacing[5],
@@ -197,4 +202,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

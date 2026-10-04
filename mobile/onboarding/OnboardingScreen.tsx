@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch, type Control, type FieldPath, type FieldValues } from "react-hook-form";
 import {
@@ -48,7 +50,6 @@ import {
 import { formatPersianNumber } from "../ui/locale";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   NativeOnboardingController,
   type NutritionSafetyResult,
@@ -250,6 +251,9 @@ function firstParam(value: string | string[] | undefined): string {
 }
 
 export function OnboardingScreen() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ source?: string }>();
@@ -421,7 +425,7 @@ export function OnboardingScreen() {
   if (loading || state === null) {
     return (
       <Screen contentWidth="reading" contentContainerStyle={styles.loadingScreen}>
-        <ActivityIndicator accessibilityLabel="در حال آماده‌سازی" color={fiticianTokens.colors.aqua} />
+        <ActivityIndicator accessibilityLabel="در حال آماده‌سازی" color={fiticianTokens.colors.accentInk} />
         <Text style={styles.loadingText}>در حال آماده‌سازی مسیر شخصی تو…</Text>
         {error ? <Notice message={error} variant="danger" /> : null}
       </Screen>
@@ -540,6 +544,9 @@ export function ModeStage({
   readonly copy?: ModeStageCopy;
   readonly onSelect: (mode: ProductMode) => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <StageFrame
       description={copy?.description}
@@ -566,7 +573,7 @@ export function ModeStage({
             </View>
             <View style={[styles.modeIcon, option.mode === "both" && styles.modeIconRecommended]}>
               <AppIcon
-                color={option.mode === "both" ? fiticianTokens.colors.amber : fiticianTokens.colors.aqua}
+                color={option.mode === "both" ? fiticianTokens.colors.amber : fiticianTokens.colors.accentInk}
                 name={option.icon}
                 size={fiticianTokens.iconSize.lg}
               />
@@ -590,6 +597,8 @@ export function SharedProfileStage({
   readonly onBack: () => boolean;
   readonly onSubmit: (profile: Parameters<NativeOnboardingController["saveSharedProfile"]>[0]) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, getValues, setError } = useForm<ProfileFormValues>({ defaultValues: initialValues });
   const submit = () => {
     const values = getValues();
@@ -690,6 +699,8 @@ export function TrainingProfileStage({
   readonly onBack: () => boolean;
   readonly onSubmit: (profile: ProfileInput) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, getValues, setError, setValue } = useForm<ProfileFormValues>({ defaultValues: initialValues });
   const location = useWatch({ control, name: "training_location" });
   const trainingDays = useWatch({ control, name: "training_days_per_week" });
@@ -821,6 +832,8 @@ export function SafetyStage({
   readonly onBack: () => boolean;
   readonly onSubmit: (safety: SafetyProfileInput) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, handleSubmit } = useForm<SafetyFormValues>({ defaultValues: initialValues });
 
   return (
@@ -893,6 +906,8 @@ export function ExerciseStage({
   readonly onBack: () => boolean;
   readonly onSubmit: (exercise: StructuredExerciseInput) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, handleSubmit } = useForm<ExerciseFormValues>({ defaultValues: initialValues });
   const trains = useWatch({ control, name: "trains" });
   return (
@@ -956,6 +971,8 @@ export function NutritionBasicsStage({
   readonly onSubmit: (basics: NutritionBasicsDraft) => void;
   readonly searchOptions: NutritionCatalogueApi["getOptions"];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, getValues, setError } = useForm<NutritionBasicsFormValues>({ defaultValues: initialValues });
   const submit = () => {
     const values = getValues();
@@ -1054,6 +1071,8 @@ export function NutritionPreferencesStage({
   readonly onSubmit: (nutrition: NutritionProfileInput) => void;
   readonly searchOptions: NutritionCatalogueApi["getOptions"];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const { control, getValues, setError } = useForm<NutritionPreferencesFormValues>({ defaultValues: initialValues });
   const checkIn = useWatch({ control, name: "daily_check_in_enabled" });
   const submit = () => {
@@ -1178,6 +1197,8 @@ export function ReviewStage({
   readonly onComplete: () => void;
   readonly state: OnboardingState;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <StageFrame
       description="پاسخ‌ها ثبت شده‌اند. بعد از تأیید، فیتیشن مسیرت را بر اساس اطلاعات بک‌اند ادامه می‌دهد."
@@ -1226,6 +1247,8 @@ function StageFrame({
   readonly progress?: string;
   readonly title: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.stage}>
       <View style={styles.heading}>
@@ -1253,6 +1276,8 @@ function ActionBar({
   readonly onNext: AsyncAction | (() => void);
   readonly nextLabel: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.actions}>
       <Button disabled={busy} label={nextLabel} loading={busy} onPress={() => void onNext()} style={styles.nextButton} />
@@ -1274,6 +1299,8 @@ function GuidedQuestionFlow({
   readonly onBack?: () => boolean;
   readonly onSubmit: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [questionIndex, setQuestionIndex] = useState(0);
   const questionCount = Math.max(1, children.length);
   const progress = getQuestionProgress(questionIndex, questionCount);
@@ -1314,6 +1341,8 @@ function GuidedQuestionFlow({
 }
 
 function ReviewRow({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.reviewRow}>
       <Text style={styles.reviewLabel}>{label}</Text>
@@ -1515,6 +1544,9 @@ function ToggleField({
   readonly label: string;
   readonly name: SafetyBooleanName | "trains" | "daily_check_in_enabled";
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Controller
       control={control as unknown as Control<FieldValues>}
@@ -1558,6 +1590,8 @@ function ChoiceButtons({
   readonly options: readonly ChoiceOption[];
   readonly value: readonly string[] | string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const selected = Array.isArray(value) ? value : [value];
   return (
     <View style={styles.choiceField}>
@@ -1694,14 +1728,14 @@ export function nutritionPreferencesFormValuesForState(
   };
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: fiticianTokens.spacing[3],
     justifyContent: "flex-start",
   },
   backLink: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1745,7 +1779,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   choiceTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   description: {
@@ -1811,7 +1845,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   modeAccent: {
-    backgroundColor: fiticianTokens.colors.coral,
+    backgroundColor: fiticianTokens.colors.coralFill,
     borderRadius: fiticianTokens.radii.pill,
     height: 56,
     width: 5,
@@ -1891,7 +1925,7 @@ const styles = StyleSheet.create({
     minHeight: 220,
   },
   questionEyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1951,7 +1985,7 @@ const styles = StyleSheet.create({
     paddingBottom: fiticianTokens.spacing[3],
   },
   reviewValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2006,4 +2040,4 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: fiticianTokens.spacing[3],
   },
-});
+}));

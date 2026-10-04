@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resolvedIanaTimeZone } from "@fitician/core";
 import { useRouter } from "expo-router";
@@ -16,7 +18,6 @@ import { AppIcon, Button, Card, Notice, PageHeading, Skeleton, TextField } from 
 import { Screen } from "../ui/layout";
 import { formatPersianNumber } from "../ui/locale";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   canGenerateNutritionEstimate,
   formatNutritionNumber,
@@ -82,6 +83,8 @@ const exerciseSourceLabels: Readonly<Record<string, string>> = {
 };
 
 export function NutritionFoundationScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -218,6 +221,9 @@ function NutritionDailyTools({
   readonly onOpenCatalogue: () => void;
   readonly onOpenTracking: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.dailyTools}>
       <Card
@@ -227,11 +233,11 @@ function NutritionDailyTools({
         variant="hero"
       >
         <View style={styles.dailyToolCopy}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={fiticianTokens.iconSize.lg} style={styles.dailyToolIcon} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="nutrition" size={fiticianTokens.iconSize.lg} style={styles.dailyToolIcon} />
           <Text style={styles.dailyToolTitle}>ثبت تغذیه</Text>
           <Text style={styles.dailyToolSubtitle}>دستی یا با عکس</Text>
         </View>
-        <AppIcon color={fiticianTokens.colors.aqua} name="arrowLeft" size={fiticianTokens.iconSize.md} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="arrowLeft" size={fiticianTokens.iconSize.md} />
       </Card>
       <Card
         accessibilityLabel="کاتالوگ"
@@ -267,6 +273,8 @@ function NutritionEstimateState({
   readonly onRetry: () => void;
   readonly state: MobileViewState<NutritionEstimate | null>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (hasEstimate || state.status === "loading") return null;
   if (state.status === "offline") {
     return <Notice message="برای دریافت برآورد تغذیه به اینترنت وصل شو." variant="offline" />;
@@ -301,6 +309,8 @@ export function NutritionProfileSection({
   readonly onRetry: () => void;
   readonly state: MobileViewState<NutritionProfile | null>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const profile = viewData(state);
   if (state.status === "loading") return <Skeleton height={190} />;
   if (state.status === "error" && profile === undefined) {
@@ -349,6 +359,8 @@ export function SafetySection({
   readonly connectivityStatus: ConnectivityStatus;
   readonly state: MobileViewState<SafetyDecision | null>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const queryClient = useQueryClient();
   const decision = viewData(state);
   const [editing, setEditing] = useState(false);
@@ -477,6 +489,8 @@ function SafetyEditor({
   readonly preview: SafetyEvaluation | null;
   readonly saving: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const booleanFields: readonly { readonly label: string; readonly name: keyof SafetyFormValues }[] = [
     { label: "سابقه واکنش خطرناک غذایی", name: "dangerous_food_reaction_history" },
     { label: "بارداری", name: "pregnant" },
@@ -545,6 +559,8 @@ function SafetyEditor({
 }
 
 export function StructuredExerciseSection({ state }: { readonly state: MobileViewState<StructuredExercise | null> }) {
+  const styles = useThemeStyles(createStyles);
+
   const exercise = viewData(state);
   if (state.status === "loading") return <Skeleton height={105} />;
   if (state.status === "error" && exercise === undefined) {
@@ -600,6 +616,8 @@ export function NutritionEstimateSection({
   readonly safety: SafetyDecision | null;
   readonly state: MobileViewState<NutritionEstimate | null>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const queryClient = useQueryClient();
   const estimate = viewData(state);
   const [error, setError] = useState<string | null>(null);
@@ -676,6 +694,8 @@ export function NutritionEstimateSection({
 }
 
 function TargetRow({ row }: { readonly row: NutritionTargetRow }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.targetRow}>
       <Text style={styles.targetLabel}>{row.label}</Text>
@@ -697,6 +717,8 @@ function ChoiceButtons({
   readonly options: readonly ChoiceOption[];
   readonly selected: readonly string[];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.formGroup}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -732,6 +754,9 @@ function SafetyToggle({
   readonly onChange: (value: boolean) => void;
   readonly value: boolean;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable accessibilityRole="switch" accessibilityState={{ checked: value, disabled }} disabled={disabled} onPress={() => onChange(!value)} style={styles.toggleRow}>
       <Switch
@@ -747,6 +772,8 @@ function SafetyToggle({
 }
 
 function SummaryRow({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLabel}>{label}</Text>
@@ -803,7 +830,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actionRow: {
     gap: fiticianTokens.spacing[2],
   },
@@ -882,7 +909,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   choiceTextSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   fieldLabel: {
@@ -926,7 +953,7 @@ const styles = StyleSheet.create({
     color: fiticianTokens.colors.danger,
   },
   statusText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     flexShrink: 1,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
@@ -988,4 +1015,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
     minHeight: fiticianTokens.layout.minimumTouchTarget,
   },
-});
+}));

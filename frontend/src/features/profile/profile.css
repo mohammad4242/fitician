@@ -6,9 +6,9 @@
 }
 
 .authenticated-onboarding__header-actions .logout-button {
-  border-color: rgb(255 255 255 / 24%);
-  color: #ffad98;
-  background: rgb(255 255 255 / 7%);
+  border-color: var(--fitician-palette-line, rgb(255 255 255 / 24%));
+  color: var(--fitician-palette-danger, #ffad98);
+  background: rgb(var(--fitician-highlight-rgb) / 7%);
 }
 
 .authenticated-onboarding__session-error {
@@ -105,7 +105,7 @@
 
 .profile-progress li.is-active > span {
   border-color: var(--turquoise-dark);
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--turquoise-dark);
   box-shadow: 0 0 0 4px rgb(56 183 165 / 12%);
 }
@@ -127,8 +127,8 @@
   padding: 1.35rem;
   border: 1px solid var(--line);
   border-radius: 1.4rem 1.4rem 0.35rem 1.4rem;
-  background: rgb(255 255 255 / 86%);
-  box-shadow: 0 1rem 2.5rem rgb(18 51 50 / 7%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 86%));
+  box-shadow: 0 1rem 2.5rem rgb(var(--fitician-shadow-rgb) / calc(7% * var(--fitician-shadow-strength)));
 }
 
 .profile-fieldset legend {
@@ -176,9 +176,9 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.5rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: linear-gradient(135deg, rgb(80 223 206 / 15%), rgb(80 223 206 / 4%));
-  box-shadow: 0 1px 4px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 15%);
+  box-shadow: 0 1px 4px rgb(var(--fitician-shadow-rgb) / calc(12% * var(--fitician-shadow-strength))), inset 0 1px 1px rgb(255 255 255 / 15%);
   backdrop-filter: blur(8px);
   flex-shrink: 0;
 }
@@ -221,10 +221,10 @@
   border: 1px solid var(--fitician-line-strong);
   border-radius: var(--fitician-radius-md);
   color: var(--fitician-ink);
-  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitician-canvas);
+  background: linear-gradient(145deg, rgb(var(--fitician-highlight-rgb) / 5%), rgb(var(--fitician-highlight-rgb) / 2%)), var(--fitician-canvas);
   font: inherit;
   font-size: 0.9rem;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 5%);
+  box-shadow: 0 2px 6px rgb(var(--fitician-shadow-rgb) / calc(12% * var(--fitician-shadow-strength))), inset 0 1px 1px rgb(255 255 255 / 5%);
   transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
@@ -263,7 +263,7 @@ html[dir="rtl"] .profile-field select {
   border: 1px solid rgb(80 223 206 / 30%);
   border-radius: 0.45rem;
   background: rgb(80 223 206 / 12%);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 0.72rem;
   font-weight: 850;
   pointer-events: none;
@@ -284,7 +284,7 @@ html[dir="rtl"] .profile-field select {
   padding: 0.55rem 0.85rem;
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-md);
-  background: rgb(255 255 255 / 3%);
+  background: rgb(var(--fitician-highlight-rgb) / 3%);
   color: var(--fitician-ink);
   font-size: 0.84rem;
   font-weight: 700;
@@ -343,7 +343,7 @@ html[dir="rtl"] .profile-field select {
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-md);
   color: var(--fitician-ink);
-  background: rgb(255 255 255 / 3%);
+  background: rgb(var(--fitician-highlight-rgb) / 3%);
   font: inherit;
   text-align: start;
   cursor: pointer;
@@ -382,7 +382,7 @@ html[dir="rtl"] .profile-field select {
   justify-self: start;
   padding: 0.18rem 0.48rem;
   border-radius: 999px;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--persimmon);
   font-size: 0.68rem;
   font-weight: 850;
@@ -424,7 +424,7 @@ html[dir="rtl"] .profile-field select {
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-md);
-  background: rgb(255 255 255 / 3%);
+  background: rgb(var(--fitician-highlight-rgb) / 3%);
   font-size: 0.78rem;
   font-weight: 750;
   cursor: pointer;
@@ -476,7 +476,7 @@ html[dir="rtl"] .profile-field select {
 .profile-field select:focus,
 .profile-field textarea:focus {
   border-color: var(--fitician-aqua);
-  box-shadow: 0 0 0 3px rgb(80 223 206 / 20%), 0 4px 16px rgb(0 0 0 / 20%);
+  box-shadow: 0 0 0 3px rgb(80 223 206 / 20%), 0 4px 16px rgb(var(--fitician-shadow-rgb) / calc(20% * var(--fitician-shadow-strength)));
   outline: none;
 }
 
@@ -584,7 +584,7 @@ html[dir="rtl"] .profile-field select {
   border: 1px solid var(--line);
   border-radius: 99rem;
   color: var(--muted);
-  background: rgb(255 255 255 / 62%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 62%));
   font: inherit;
   font-weight: 750;
   text-decoration: none;
@@ -592,7 +592,7 @@ html[dir="rtl"] .profile-field select {
 }
 
 .profile-section-nav .is-active {
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -606,10 +606,10 @@ html[dir="rtl"] .profile-field select {
 .profile-wizard .profile-progress {
   margin: 0;
   padding: 1rem 1.25rem;
-  border: 1px solid rgb(255 255 255 / 22%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 22%));
   border-radius: 1.25rem;
-  background: rgb(255 255 255 / 76%);
-  box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 7%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 76%));
+  box-shadow: 0 0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(7% * var(--fitician-shadow-strength)));
   backdrop-filter: blur(12px);
 }
 
@@ -618,9 +618,9 @@ html[dir="rtl"] .profile-field select {
   max-height: 72svh;
   overflow-y: auto;
   padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid rgb(255 255 255 / 24%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 24%));
   border-radius: 1.4rem;
-  background: rgb(247 251 250 / 88%);
+  background: var(--fitician-palette-surface, rgb(247 251 250 / 88%));
   box-shadow: var(--fitician-shadow);
   scrollbar-gutter: stable;
 }
@@ -638,7 +638,7 @@ html[dir="rtl"] .profile-field select {
   bottom: -1.5rem;
   grid-column: 1 / -1;
   padding-block: 0.9rem 0.25rem;
-  background: linear-gradient(transparent, rgb(247 251 250 / 98%) 30%);
+  background: linear-gradient(transparent, var(--fitician-palette-surface, rgb(247 251 250 / 98%)) 30%);
 }
 
 .profile-wizard__actions .primary-button,
@@ -703,7 +703,7 @@ html[dir="rtl"] .profile-field select {
   isolation: isolate;
   padding: clamp(1.5rem, 4vw, 3rem);
   border-radius: 2rem 2rem 0.45rem 2rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -733,13 +733,13 @@ html[dir="rtl"] .profile-field select {
 }
 
 .measurement-card {
-  color: var(--fitician-petrol);
+  color: var(--fitician-ink);
   border-radius: var(--fitician-radius-card);
   background: var(--fitician-aqua);
   box-shadow: var(--fitician-shadow);
 }
 
-.profile-fieldset { border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 7%); }
+.profile-fieldset { border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(7% * var(--fitician-shadow-strength))); }
 
 html[dir="rtl"] .profile-page-heading h1 {
   letter-spacing: -0.03em;
@@ -748,7 +748,7 @@ html[dir="rtl"] .profile-page-heading h1 {
 .profile-page-heading > p:last-child {
   max-width: 42rem;
   margin: 1rem 0 0;
-  color: rgb(255 255 255 / 72%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 72%));
   line-height: 1.8;
 }
 
@@ -764,7 +764,7 @@ html[dir="rtl"] .profile-page-heading h1 {
 }
 
 .profile-page-heading {
-  background: rgb(10 31 30 / 52%);
+  background: var(--fitician-palette-surface-translucent, rgb(10 31 30 / 52%));
   backdrop-filter: blur(8px);
 }
 
@@ -860,14 +860,14 @@ html[dir="rtl"] .profile-page-heading h1 {
 .profile-page-heading h1 { margin: 0; font-size: clamp(1.45rem, 4vw, 2.2rem); letter-spacing: 0; }
 .profile-account-summary { grid-column: 1 / -1; overflow: hidden; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
 .profile-account-summary > header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .8rem; border-bottom: 1px solid var(--fitician-line); }
-.profile-account-summary > header > span { width: 3rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; color: var(--fitician-canvas); background: var(--fitician-aqua); font: 850 1.1rem "Sora Variable", sans-serif; }
+.profile-account-summary > header > span { width: 3rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; color: var(--fitician-on-accent); background: var(--fitician-aqua); font: 850 1.1rem "Sora Variable", sans-serif; }
 .profile-account-summary > header > .profile-photo-avatar { --profile-photo-size: 3rem; box-shadow: none; }
 .profile-page-photo-control { grid-column: 1 / -1; }
 .profile-account-summary header div { min-width: 0; }
 .profile-account-summary h2, .profile-account-summary p { margin: 0; }
 .profile-account-summary h2 { font-size: 1rem; }
 .profile-account-summary p { overflow: hidden; color: var(--fitician-muted); font-size: .72rem; text-overflow: ellipsis; }
-.profile-account-summary header a { color: var(--fitician-aqua); font-size: .72rem; font-weight: 850; text-decoration: none; }
+.profile-account-summary header a { color: var(--fitician-accent-ink); font-size: .72rem; font-weight: 850; text-decoration: none; }
 .profile-account-summary dl { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; }
 .profile-account-summary dl > div { min-width: 0; display: grid; gap: .2rem; padding: .7rem .8rem; }
 .profile-account-summary dl > div + div { border-inline-start: 1px solid var(--fitician-line); }
@@ -889,9 +889,9 @@ html[dir="rtl"] .profile-page-heading h1 {
   place-items: center;
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.65rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: linear-gradient(135deg, rgb(80 223 206 / 15%), rgb(80 223 206 / 5%));
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%), inset 0 1px 1px rgb(255 255 255 / 15%);
+  box-shadow: 0 2px 8px rgb(var(--fitician-shadow-rgb) / calc(12% * var(--fitician-shadow-strength))), inset 0 1px 1px rgb(255 255 255 / 15%);
   backdrop-filter: blur(8px);
 }
 .profile-summary-stat__icon svg {
@@ -920,8 +920,8 @@ html[dir="rtl"] .profile-page-heading h1 {
 .profile-progress li { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.4rem; padding: .35rem .6rem; border: 1px solid var(--fitician-line); border-radius: .75rem; background: var(--fitician-surface-subtle); backdrop-filter: blur(8px); transition: all 180ms ease; }
 .profile-progress li.is-active { border-color: rgb(80 223 206 / 35%); background: rgb(80 223 206 / 8%); }
 .profile-progress li[aria-current="step"] { border-color: var(--fitician-aqua); background: linear-gradient(135deg, rgb(80 223 206 / 16%), rgb(80 223 206 / 5%)); box-shadow: 0 0 12px rgb(80 223 206 / 15%); }
-.profile-progress__badge { width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 0.5rem; border: 1px solid rgb(80 223 206 / 25%); background: rgb(80 223 206 / 10%); color: var(--fitician-aqua); flex-shrink: 0; }
-.profile-progress li.is-active .profile-progress__badge { border-color: var(--fitician-aqua); background: var(--fitician-aqua); color: var(--fitician-canvas); box-shadow: 0 0 8px rgb(80 223 206 / 35%); }
+.profile-progress__badge { width: 1.55rem; height: 1.55rem; display: grid; place-items: center; border-radius: 0.5rem; border: 1px solid rgb(80 223 206 / 25%); background: rgb(80 223 206 / 10%); color: var(--fitician-accent-ink); flex-shrink: 0; }
+.profile-progress li.is-active .profile-progress__badge { border-color: var(--fitician-aqua); background: var(--fitician-aqua); color: var(--fitician-on-accent); box-shadow: 0 0 8px rgb(80 223 206 / 35%); }
 .profile-progress__icon { width: 0.95rem; height: 0.95rem; }
 .profile-progress li > strong { margin: 0; font-size: .72rem; font-weight: 750; }
 .profile-wizard__page { padding: .8rem; border-radius: var(--fitician-radius-md); box-shadow: none; }
@@ -958,7 +958,7 @@ html[dir="rtl"] .profile-page-heading h1 {
   padding: clamp(1.4rem, 3vw, 2.25rem);
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-xl);
-  background: linear-gradient(135deg, rgb(80 223 206 / 8%), rgb(11 32 31 / 90%));
+  background: linear-gradient(135deg, rgb(80 223 206 / 8%), var(--fitician-palette-surface-translucent, rgb(11 32 31 / 90%)));
   box-shadow: var(--fitician-shadow-focus);
   backdrop-filter: blur(12px);
 }
@@ -986,7 +986,7 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 }
 
 .measurement-card:first-of-type { border-color: var(--fitician-line-strong); background: linear-gradient(135deg, rgb(80 223 206 / 12%), var(--fitician-surface)); }
-.measurement-card strong { color: var(--fitician-aqua); font-family: "Sora Variable", sans-serif; font-size: clamp(1.6rem, 3vw, 2.5rem); }
+.measurement-card strong { color: var(--fitician-accent-ink); font-family: "Sora Variable", sans-serif; font-size: clamp(1.6rem, 3vw, 2.5rem); }
 .measurement-card p, .measurement-card span { color: var(--fitician-muted); }
 .measurement-card .secondary-button { width: fit-content; margin-block-start: .75rem; }
 
@@ -1010,7 +1010,7 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
   padding-inline: 1rem;
   border-color: var(--fitician-line-strong);
   border-radius: var(--fitician-radius-pill);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: transparent;
   text-decoration: none;
 }
@@ -1019,7 +1019,7 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 .profile-wizard__page {
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
-  background: rgb(11 32 31 / 94%);
+  background: var(--fitician-palette-surface-translucent, rgb(11 32 31 / 94%));
   box-shadow: var(--fitician-shadow-soft);
 }
 
@@ -1027,21 +1027,21 @@ html[dir="rtl"] .profile-page-heading h1 { letter-spacing: 0; }
 .profile-progress ol::before { background: var(--fitician-line); }
 .profile-progress li > span { border-color: var(--fitician-line); color: var(--fitician-muted); background: var(--fitician-surface-raised); }
 .profile-progress li > strong { color: var(--fitician-muted); }
-.profile-progress li.is-active > span { color: var(--fitician-canvas); background: var(--fitician-aqua); }
+.profile-progress li.is-active > span { color: var(--fitician-on-accent); background: var(--fitician-aqua); }
 .profile-progress li.is-active > strong { color: var(--fitician-ink); }
 .profile-wizard__page > h2 { color: var(--fitician-ink); font-family: inherit; font-size: clamp(1.55rem, 3vw, 2.25rem); font-weight: 850; }
 .profile-fieldset { border-color: var(--fitician-line); background: var(--fitician-surface-subtle); box-shadow: none; }
-.profile-fieldset legend { color: var(--fitician-aqua); }
+.profile-fieldset legend { color: var(--fitician-accent-ink); }
 .profile-form .profile-field label { color: var(--fitician-ink); }
 .profile-form .profile-field__hint { color: var(--fitician-muted); }
-.profile-form .profile-fieldset legend { color: var(--fitician-aqua); }
+.profile-form .profile-fieldset legend { color: var(--fitician-accent-ink); }
 .profile-field :is(input, select, textarea) {
   border-color: var(--fitician-line-strong);
   color: var(--fitician-ink);
-  background: linear-gradient(145deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 2%)), var(--fitician-canvas);
+  background: linear-gradient(145deg, rgb(var(--fitician-highlight-rgb) / 5%), rgb(var(--fitician-highlight-rgb) / 2%)), var(--fitician-canvas);
 }
 .profile-field__hint { color: var(--fitician-muted); }
-.profile-wizard__actions { background: linear-gradient(transparent, rgb(11 32 31 / 98%) 30%); }
+.profile-wizard__actions { background: linear-gradient(transparent, var(--fitician-palette-surface, rgb(11 32 31 / 98%)) 30%); }
 .profile-optional-state { border-color: var(--fitician-line-strong); color: var(--fitician-ink); background: var(--fitician-surface-interactive); }
 
 @media (max-width: 900px) {

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useLocalDate } from "../platform/useLocalDate";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useMemo } from "react";
@@ -13,7 +15,6 @@ import type { ConnectivityStatus } from "../platform/connectivity";
 import { Button, Card, MetricRing, Notice, Skeleton } from "../ui/components";
 import { getMobileViewState } from "../ui/requestState";
 import { LTR_TEXT, RTL_TEXT } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { NutritionDualMetricRing } from "./NutritionDualMetricRing";
 import { NutritionAnimatedNumber } from "./NutritionAnimatedNumber";
 import { formatNutritionNumber } from "./nutritionModel";
@@ -59,6 +60,8 @@ function NutritionEstimateSummaryCard({
   readonly onRefresh?: () => void;
   readonly timeline?: TimelineNutrition | null;
 }) {
+  const summaryStyles = useThemeStyles(createSummaryStyles);
+
   const auth = useMobileAuth();
   const entryDate = useLocalDate();
   const api = useMemo(
@@ -214,6 +217,8 @@ function LegacyNutritionSummaryCard({
     readonly targetCalories: number | null;
   };
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   if (loading) return <Skeleton height={180} />;
 
@@ -292,9 +297,9 @@ function confidenceLabel(confidence: string): string {
   return "اطمینان پایین";
 }
 
-const summaryStyles = StyleSheet.create({
+const createSummaryStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   additionalDot: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   bmrDot: {
     color: fiticianTokens.colors.blue,
@@ -330,7 +335,7 @@ const summaryStyles = StyleSheet.create({
     padding: 0,
   },
   calorieValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.display,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -339,7 +344,7 @@ const summaryStyles = StyleSheet.create({
     writingDirection: "ltr",
   },
   calorieValueUnavailable: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.display,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -348,7 +353,7 @@ const summaryStyles = StyleSheet.create({
     writingDirection: "rtl",
   },
   confidence: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -422,7 +427,7 @@ const summaryStyles = StyleSheet.create({
     writingDirection: "rtl",
   },
   timelineDay: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -454,9 +459,9 @@ const summaryStyles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     gap: fiticianTokens.spacing[4],
     padding: fiticianTokens.spacing[5],
@@ -475,7 +480,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   calorieValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.display,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -543,7 +548,7 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   progressActual: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -586,7 +591,7 @@ const styles = StyleSheet.create({
     width: 6,
   },
   statusText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -600,4 +605,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -7,7 +9,6 @@ import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { BrandMark, Button, Card, Notice, PageHeading, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 import {
   createAccountDeletionApi,
   type AccountDeletionStatusResponse,
@@ -19,6 +20,9 @@ import {
 } from "./accountDeletionModel";
 
 export function AccountDeletionScreen() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const runtime = useMemo(getMobileRuntimeConfig, []);
@@ -122,7 +126,7 @@ export function AccountDeletionScreen() {
   if (loading) {
     return (
       <Screen contentWidth="reading" contentContainerStyle={styles.centered}>
-        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.aqua} />
+        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.accentInk} />
         <Text style={styles.muted}>در حال دریافت وضعیت حذف حساب…</Text>
       </Screen>
     );
@@ -211,7 +215,7 @@ export function AccountDeletionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -250,4 +254,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

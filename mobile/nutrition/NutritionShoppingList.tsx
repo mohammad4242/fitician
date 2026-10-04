@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -6,7 +8,6 @@ import type { ConnectivityStatus } from "../platform/connectivity";
 import { DisclosureCard, Notice, Skeleton } from "../ui/components";
 import { getMobileViewState } from "../ui/requestState";
 import { RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { formatNutritionPlanMoney } from "./nutritionPlanModel";
 import { type NutritionPlanApi } from "./nutritionPlanApi";
 import {
@@ -35,6 +36,8 @@ export function NutritionShoppingList({
   readonly historical: boolean;
   readonly planId: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const query = useQuery({
     enabled: !historical,
     queryFn: () => api.getShoppingList(planId),
@@ -80,6 +83,8 @@ function ShoppingListContent({
   readonly list: ShoppingList;
   readonly priceVisibility: ShoppingPriceVisibility;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <>
       <ShoppingWarnings codes={list.warning_codes} />
@@ -126,7 +131,7 @@ function ShoppingWarnings({ codes }: { readonly codes: readonly string[] }) {
   return <Notice message={messages.join(" ")} title="وضعیت برنامه" variant="info" />;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     alignItems: "stretch",
     marginTop: fiticianTokens.spacing[3],
@@ -181,7 +186,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   price: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -211,11 +216,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   totalValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

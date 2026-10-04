@@ -1,6 +1,7 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
 
-import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisCameraButton } from "./BodyAnalysisCameraButton";
 
 const bodyAnalysisImage = require("../assets/body-analysis/bodyanalysis.jpg") as ImageSourcePropType;
@@ -12,6 +13,8 @@ export function BodyAnalysisEmptyState({
   readonly disabled?: boolean;
   readonly onStart: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.container}>
       <View style={styles.visual}>
@@ -50,6 +53,8 @@ function EmptyStep({
   readonly subtitle: string;
   readonly title: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.step}>
       <View style={styles.stepBadge}><Text style={styles.stepNumber}>{number}</Text></View>
@@ -61,7 +66,7 @@ function EmptyStep({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -114,7 +119,7 @@ const styles = StyleSheet.create({
   },
   hudBadge: {
     alignItems: "center",
-    backgroundColor: "rgba(2,9,10,0.84)",
+    backgroundColor: fiticianTokens.colors.emptyHero,
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   overlay: {
-    backgroundColor: "rgba(2,9,10,0.22)",
+    backgroundColor: fiticianTokens.colors.emptyAtmosphere,
     bottom: 0,
     left: 0,
     position: "absolute",
@@ -194,7 +199,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   stepNumber: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -241,4 +246,4 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
   },
-});
+}));

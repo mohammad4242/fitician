@@ -4,14 +4,14 @@
   object-fit: cover;
   overflow: hidden;
   border-radius: .7rem;
-  background: #e8efea;
+  background: var(--fitician-palette-surface, #e8efea);
 }
 
 .meal-thumbnail--fallback {
   display: grid;
   place-items: center;
-  color: #60766d;
-  background: linear-gradient(145deg, #edf3ef, #dbe7e0);
+  color: var(--fitician-palette-accent-ink, #60766d);
+  background: linear-gradient(145deg, var(--fitician-palette-surface, #edf3ef), var(--fitician-palette-surface, #dbe7e0));
 }
 
 .meal-thumbnail--fallback svg {

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   Image,
   StyleSheet,
@@ -9,7 +11,6 @@ import {
 } from "react-native";
 import { VideoView, type VideoSource, type VideoViewProps, useVideoPlayer } from "expo-video";
 
-import { fiticianTokens } from "../tokens";
 
 export interface ImageMediaProps extends Omit<ImageProps, "accessibilityLabel" | "source" | "style"> {
   readonly accessibilityLabel?: string;
@@ -32,6 +33,8 @@ export interface VideoMediaProps extends Omit<VideoViewProps, "accessibilityLabe
 export type MediaProps = ImageMediaProps | VideoMediaProps;
 
 export function Media(props: MediaProps) {
+  const styles = useThemeStyles(createStyles);
+
   if (props.kind === "video") {
     return <VideoMedia {...props} />;
   }
@@ -59,6 +62,8 @@ function VideoMedia({
   style,
   ...videoProps
 }: VideoMediaProps) {
+  const styles = useThemeStyles(createStyles);
+
   const player = useVideoPlayer(source, (instance) => {
     instance.loop = loop;
     instance.muted = muted;
@@ -85,15 +90,15 @@ function VideoMedia({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   image: {
     backgroundColor: fiticianTokens.colors.surfaceRaised,
     borderRadius: fiticianTokens.radii.medium,
   },
   video: {
-    backgroundColor: fiticianTokens.colors.canvas,
+    backgroundColor: fiticianTokens.colors.mediaCanvas,
     borderRadius: fiticianTokens.radii.medium,
     minHeight: 180,
     overflow: "hidden",
   },
-});
+}));

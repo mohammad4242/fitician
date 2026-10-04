@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { NotificationsLink } from "../communication/NotificationsLink";
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,7 +42,6 @@ import { Screen } from "../ui/layout";
 import { formatPersianNumber } from "../ui/locale";
 import { ReviewProfileSummaryCard } from "../ui/ReviewProfileSummaryCard";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   createPhysicianNutritionReviewApi,
   type PhysicianCatalogueFood,
@@ -94,6 +95,9 @@ const emptySupplementDraft: SupplementDraft = {
 };
 
 export function PhysicianNutritionReviewScreen() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -681,6 +685,8 @@ function QueueState({
   readonly state: MobileViewState<PhysicianReviewQueueItem[]>;
   readonly view: PhysicianReviewQueueView;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={180} />;
   if (state.status === "error" && state.data === undefined) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -807,6 +813,8 @@ function PhysicianReviewDetail({
   readonly editingSupplementOrderId: string | null;
   readonly selectedReview: PhysicianReviewQueueItem | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const memberName = selectedReview?.member_display_name ?? "کاربر فیتیشین";
   return (
     <View style={styles.detailContent}>
@@ -948,6 +956,8 @@ function PhysicianReviewDetail({
 }
 
 function PlanEvidence({ plan }: { readonly plan: PhysicianNutritionPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.evidenceContent}>
       <Text style={styles.body}>دادهٔ ورودی نسخه: {formatNumber(Object.keys(plan.input_snapshot).length)} مورد ثبت‌شده</Text>
@@ -961,6 +971,8 @@ function PlanEvidence({ plan }: { readonly plan: PhysicianNutritionPlan }) {
 }
 
 function NutrientValidation({ plan }: { readonly plan: PhysicianNutritionPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   const nutrients = Object.values(plan.nutrients);
   return (
     <DisclosureCard
@@ -1000,6 +1012,8 @@ function DecisionBar({
   readonly onReject: () => void;
   readonly readOnly: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (readOnly) return null;
   return (
     <Card style={styles.decisionCard} variant="raised">
@@ -1015,6 +1029,8 @@ function DecisionBar({
 }
 
 function MedicalContextCard({ state }: { readonly state: MobileViewState<PhysicianMedicalContextResponse> }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={200} />;
   if ((state.status === "offline" || state.status === "error") && state.data === undefined) {
     return <Notice message={state.status === "error" ? state.error.message : "زمینهٔ پزشکی این پرونده فعلاً در دسترس نیست؛ تصمیم‌گیری را متوقف کن."} variant={state.status === "offline" ? "offline" : "warning"} />;
@@ -1068,6 +1084,8 @@ function LabsCard({
   readonly requestedTests: string;
   readonly state: MobileViewState<PhysicianLabDocument[]>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={150} />;
   const labs = state.data ?? [];
   return (
@@ -1153,6 +1171,8 @@ function SupplementsCard({
   readonly ordersState: MobileViewState<PhysicianSupplementOrder[]>;
   readonly readOnly: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (ordersState.status === "loading") return <Skeleton height={260} />;
   const orders = ordersState.data ?? [];
   return (
@@ -1281,6 +1301,8 @@ function SupplementCataloguePicker({
   readonly onSelect: (supplement: PhysicianSupplementCatalogue) => void;
   readonly state: MobileViewState<PhysicianSupplementCatalogue[]>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={160} />;
   if (state.status === "offline" && state.data === undefined) {
     return <Notice message="کاتالوگ مکمل در حالت آفلاین در دسترس نیست." variant="offline" />;
@@ -1319,6 +1341,8 @@ function NotesSection({
   readonly onNotesChange: (value: string) => void;
   readonly readOnly: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.contextCard}>
       <Text style={styles.sectionTitle}>یادداشت‌های پرونده</Text>
@@ -1367,6 +1391,8 @@ function MealEditor({
   readonly readOnly: boolean;
   readonly showHeading?: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.mealEditor}>
       <View style={styles.mealHeader}>
@@ -1546,7 +1572,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   approvedStatus: { color: fiticianTokens.colors.amber },
   body: {
     color: fiticianTokens.colors.mist,
@@ -1557,7 +1583,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   brand: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1569,7 +1595,7 @@ const styles = StyleSheet.create({
   caseIdentity: { alignItems: "center", flex: 1, flexDirection: "row", gap: fiticianTokens.spacing[3], minWidth: 0 },
   catalogueList: { gap: fiticianTokens.spacing[2] },
   contextLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1578,7 +1604,7 @@ const styles = StyleSheet.create({
   },
   dayCard: { gap: fiticianTokens.spacing[3] },
   dayTitle: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     textAlign: "auto",
@@ -1648,7 +1674,7 @@ const styles = StyleSheet.create({
     width: 48,
   },
   memberAvatarText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1722,7 +1748,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   status: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1763,4 +1789,4 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   workspace: { gap: fiticianTokens.spacing[6] },
-});
+}));

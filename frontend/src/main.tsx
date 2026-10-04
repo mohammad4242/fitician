@@ -9,8 +9,9 @@ import "./i18n";
 import "./index.css";
 import "./pwa/pwa.css";
 import { applyDesignSystem } from "./styles/designSystem";
+import { readTheme } from "./theme/ThemeProvider";
 
-applyDesignSystem(document.documentElement);
+applyDesignSystem(document.documentElement, readTheme());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

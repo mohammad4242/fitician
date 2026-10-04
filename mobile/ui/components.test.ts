@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import TestRenderer, { act } from "react-test-renderer";
 import { expect, it, vi } from "vitest";
 import { type ReactNode } from "react";
 
@@ -54,7 +56,7 @@ import { ProgressBar } from "./components/ProgressBar";
 function element(value: unknown): NativeElement {
   let current = value as { type: unknown; props: Record<string, unknown> };
   while (typeof current.type === "function") {
-    current = current.type(current.props) as typeof current;
+    current = renderComponent(() => (current.type as (props: Record<string, unknown>) => unknown)(current.props)) as typeof current;
   }
   expect(current).toMatchObject({ type: expect.any(String), props: expect.any(Object) });
   return current as NativeElement;
@@ -70,7 +72,7 @@ function flattenStyle(style: unknown): Record<string, unknown> {
 
 it("renders token-based button variants and exposes busy state", () => {
   const result = element(
-    Button({ label: "Save", loading: true, variant: "primary", onPress: vi.fn() }),
+    renderComponent(() => Button({ label: "Save", loading: true, variant: "primary", onPress: vi.fn() })),
   );
 
   expect(result.type).toBe("Pressable");
@@ -86,7 +88,7 @@ it("renders token-based button variants and exposes busy state", () => {
 
 it("renders fields through a shared form-field shell with error feedback", () => {
   const result = element(
-    TextField({ label: "Email", error: "Invalid email", value: "bad", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "Email", error: "Invalid email", value: "bad", onChangeText: vi.fn() })),
   );
   const shell = result;
   const children = shell.props.children as readonly unknown[];
@@ -100,22 +102,22 @@ it("renders fields through a shared form-field shell with error feedback", () =>
 });
 
 it("applies the shared RTL boundary to cards, forms, and modal surfaces", () => {
-  const card = element(Card({ children: "محتوا" }));
+  const card = element(renderComponent(() => Card({ children: "محتوا" })));
   expect(flattenStyle(card.props.style)).toMatchObject({ direction: "rtl" });
 
-  const field = element(TextField({ label: "نام", value: "علی", onChangeText: vi.fn() }));
+  const field = element(renderComponent(() => TextField({ label: "نام", value: "علی", onChangeText: vi.fn() })));
   expect(flattenStyle(field.props.style)).toMatchObject({ direction: "rtl" });
 
-  const sheet = element(Sheet({ title: "جزئیات", visible: true, onClose: vi.fn(), children: "بدنه" }));
+  const sheet = element(renderComponent(() => Sheet({ title: "جزئیات", visible: true, onClose: vi.fn(), children: "بدنه" })));
   expect(flattenStyle(element(sheet.props.children).props.style)).toMatchObject({ direction: "rtl" });
 
-  const dialog = element(Dialog({ message: "حذف شود؟", visible: true, onClose: vi.fn() }));
+  const dialog = element(renderComponent(() => Dialog({ message: "حذف شود؟", visible: true, onClose: vi.fn() })));
   expect(flattenStyle(element(dialog.props.children).props.style)).toMatchObject({ direction: "rtl" });
 });
 
 it("keeps technical input values locally LTR inside the Persian form shell", () => {
   const field = element(
-    TextField({ label: "ایمیل", textDirection: "ltr", value: "user@example.com", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "ایمیل", textDirection: "ltr", value: "user@example.com", onChangeText: vi.fn() })),
   );
   const input = element((field.props.children as readonly unknown[])[1]);
 
@@ -128,16 +130,16 @@ it("keeps technical input values locally LTR inside the Persian form shell", () 
 
 it("infers LTR for technical fields when callers omit a direction", () => {
   const password = element(
-    TextField({ label: "رمز عبور", secureTextEntry: true, value: "secret", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "رمز عبور", secureTextEntry: true, value: "secret", onChangeText: vi.fn() })),
   );
   const numeric = element(
-    TextField({ label: "کد", keyboardType: "number-pad", value: "1234", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "کد", keyboardType: "number-pad", value: "1234", onChangeText: vi.fn() })),
   );
   const email = element(
-    TextField({ label: "ایمیل", keyboardType: "email-address", value: "user@example.com", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "ایمیل", keyboardType: "email-address", value: "user@example.com", onChangeText: vi.fn() })),
   );
   const url = element(
-    TextField({ label: "لینک", keyboardType: "url", value: "https://example.com", onChangeText: vi.fn() }),
+    renderComponent(() => TextField({ label: "لینک", keyboardType: "url", value: "https://example.com", onChangeText: vi.fn() })),
   );
 
   expect(flattenStyle(element((password.props.children as readonly unknown[])[1]).props.style)).toMatchObject({
@@ -159,13 +161,13 @@ it("infers LTR for technical fields when callers omit a direction", () => {
 });
 
 it("anchors shared progress bars to the RTL start edge", () => {
-  const progress = element(ProgressBar({ label: "پیشرفت", progress: 0.5 }));
+  const progress = element(renderComponent(() => ProgressBar({ label: "پیشرفت", progress: 0.5 })));
 
   expect(flattenStyle(progress.props.style)).toMatchObject({ direction: "rtl" });
 });
 
 it("preserves font scaling and source order for the shared button label", () => {
-  const result = element(Button({ label: "Save", onPress: vi.fn() }));
+  const result = element(renderComponent(() => Button({ label: "Save", onPress: vi.fn() })));
   const label = element(result.props.children);
 
   expect(label.type).toBe("Text");
@@ -175,11 +177,11 @@ it("preserves font scaling and source order for the shared button label", () => 
 
 it("supports reusable form-field content around non-text controls", () => {
   const result = element(
-    FormField({
+    renderComponent(() => FormField({
       description: "Optional",
       label: "Goal",
       children: native.View({}) as unknown as ReactNode,
-    }),
+    })),
   );
   const children = result.props.children as readonly unknown[];
 
@@ -190,8 +192,8 @@ it("supports reusable form-field content around non-text controls", () => {
 });
 
 it("uses a pressable card only when the card is interactive", () => {
-  const interactive = element(Card({ onPress: vi.fn(), variant: "interactive", children: "Plan" }));
-  const staticCard = element(Card({ children: "Plan" }));
+  const interactive = element(renderComponent(() => Card({ onPress: vi.fn(), variant: "interactive", children: "Plan" })));
+  const staticCard = element(renderComponent(() => Card({ children: "Plan" })));
 
   expect(interactive.type).toBe("Pressable");
   expect(interactive.props.accessibilityRole).toBe("button");
@@ -200,15 +202,15 @@ it("uses a pressable card only when the card is interactive", () => {
 
 it("keeps sheet and dialog overlays native and dismissible", () => {
   const onClose = vi.fn();
-  const sheet = element(Sheet({ title: "Details", visible: true, onClose, children: "Body" }));
+  const sheet = element(renderComponent(() => Sheet({ title: "Details", visible: true, onClose, children: "Body" })));
   const dialog = element(
-    Dialog({
+    renderComponent(() => Dialog({
       message: "Delete this item?",
       onClose,
       onConfirm: vi.fn(),
       title: "Confirm",
       visible: true,
-    }),
+    })),
   );
 
   expect(sheet.type).toBe("Modal");
@@ -220,10 +222,10 @@ it("keeps sheet and dialog overlays native and dismissible", () => {
 });
 
 it("provides skeleton, notices, and native image/video media", () => {
-  const skeleton = element(Skeleton({ height: 24, width: "100%" }));
-  const notice = element(Notice({ message: "Offline", title: "Connection", variant: "offline" }));
-  const image = element(Media({ source: { uri: "https://example.test/image.jpg" } }));
-  const video = element(Media({ kind: "video", source: "https://example.test/video.mp4", autoplay: true }));
+  const skeleton = element(renderComponent(() => Skeleton({ height: 24, width: "100%" })));
+  const notice = element(renderComponent(() => Notice({ message: "Offline", title: "Connection", variant: "offline" })));
+  const image = element(renderComponent(() => Media({ source: { uri: "https://example.test/image.jpg" } })));
+  const video = element(renderComponent(() => Media({ kind: "video", source: "https://example.test/video.mp4", autoplay: true })));
 
   expect(skeleton.type).toBe("View");
   expect(notice.type).toBe("View");
@@ -231,3 +233,13 @@ it("provides skeleton, notices, and native image/video media", () => {
   expect(video.type).toBe("View");
   expect(native.play).toHaveBeenCalledOnce();
 });
+
+vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn(async () => null), setItemAsync: vi.fn(async () => undefined) }));
+
+// Mount the component so runtime theme hooks execute with a real React dispatcher.
+function renderComponent(run: () => unknown): unknown {
+  let result: unknown;
+  act(() => { TestRenderer.create(createElement(function Capture() { result = run(); return null; })); });
+  return result;
+}
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

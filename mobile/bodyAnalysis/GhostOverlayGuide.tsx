@@ -1,9 +1,10 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Image, StyleSheet, Text, View, type DimensionValue } from "react-native";
 
 import type { Sex } from "@fitician/core/profile";
 import type { BodyPhotoSide, BodyPhotoView } from "@fitician/core/body-photos";
 
-import { fiticianTokens } from "../ui/tokens";
 import {
   getGhostOverlayLayout,
   resolveGhostOverlayVariant,
@@ -23,6 +24,8 @@ export function GhostOverlayGuide({
   view,
   ghostScale = 1,
 }: GhostOverlayGuideProps) {
+  const styles = useThemeStyles(createStyles);
+
   const variant = resolveGhostOverlayVariant(sex);
   const layout = getGhostOverlayLayout(view, ghostScale, sideProfile, variant);
   const lineLeft = `${layout.privacyLine.start.x * 100}%` as DimensionValue;
@@ -76,7 +79,7 @@ export function GhostOverlayGuide({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   asset: {
     height: "100%",
     opacity: 0.48,
@@ -103,7 +106,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   privacyLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -119,4 +122,4 @@ const styles = StyleSheet.create({
     position: "absolute",
     zIndex: 2,
   },
-});
+}));

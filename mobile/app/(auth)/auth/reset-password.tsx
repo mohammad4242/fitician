@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../../ui/theme/ThemeProvider";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,7 +8,7 @@ import { Button, Notice, TextField } from "../../../ui/components";
 import { AuthFormSection, AuthScaffold } from "../../../auth/AuthScaffold";
 import { authCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
-import { authStyles } from "../../../auth/authStyles";
+import { createAuthStyles } from "../../../auth/authStyles";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
 import { validateConfirmation, validatePassword } from "../../../auth/validation";
 
@@ -21,6 +22,8 @@ function firstParam(value: string | string[] | undefined): string {
 }
 
 export default function ResetPasswordScreen() {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   const router = useRouter();
   const auth = useMobileAuth();
   const params = useLocalSearchParams<{ token?: string }>();

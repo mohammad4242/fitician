@@ -1,6 +1,7 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { fiticianTokens } from "../tokens";
 
 export interface BrandMarkProps {
   readonly accessibilityLabel?: string;
@@ -11,6 +12,8 @@ export interface BrandMarkProps {
 }
 
 export function BrandMark({ accessibilityLabel, compact = false, label, onPress, testID }: BrandMarkProps) {
+  const styles = useThemeStyles(createStyles);
+
   const content = (
     <>
       <Image
@@ -46,7 +49,7 @@ export function BrandMark({ accessibilityLabel, compact = false, label, onPress,
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   compactImage: {
     height: 28,
     width: 28,
@@ -73,4 +76,4 @@ const styles = StyleSheet.create({
     minWidth: fiticianTokens.layout.minimumTouchTarget,
     paddingHorizontal: 4,
   },
-});
+}));

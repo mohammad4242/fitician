@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   type ReactNode,
   createContext,
@@ -20,7 +22,6 @@ import { resolvedIanaTimeZone } from "@fitician/core";
 import { createProfileApi } from "../../profile/profileApi";
 import { Notice } from "../components";
 import { RTL_LAYOUT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import {
   decideMobileRoute,
   defaultMobileRouteSnapshot,
@@ -208,10 +209,13 @@ function retryForResource(
 }
 
 function RouteGuardLoading() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <SafeAreaView edges={["top", "bottom"]} style={[styles.loading, RTL_LAYOUT]}>
       <View accessibilityRole="progressbar">
-        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.aqua} />
+        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.accentInk} />
       </View>
     </SafeAreaView>
   );
@@ -226,6 +230,8 @@ function RouteGuardError({
   readonly onRetry: () => void;
   readonly resource: MobileRouteErrorResource;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const profile = resource === "profile";
   const resolved = error === undefined
     ? null
@@ -250,7 +256,7 @@ function RouteGuardError({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   loading: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.canvas,
@@ -262,4 +268,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: fiticianTokens.spacing[4],
     width: "100%",
   },
-});
+}));

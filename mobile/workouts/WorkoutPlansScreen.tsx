@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { workoutExecutionGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
@@ -25,7 +27,6 @@ import {
 import { Screen } from "../ui/layout";
 import { formatPersianNumber } from "../ui/locale";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import { languageForDirection, type MobileLanguage } from "../ui/rtl";
 import {
   createWorkoutPlanApi,
@@ -88,6 +89,8 @@ const generationErrorMessages: Record<WorkoutGenerationErrorKind, string> = {
 };
 
 export function WorkoutPlansScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const params = useLocalSearchParams<{ cycleId?: string | string[]; planId?: string | string[] }>();
@@ -682,6 +685,9 @@ function coachQuotaMessage(resetAt: string | null): string {
 }
 
 function WorkoutExecutionGuide({ plan }: { readonly plan: WorkoutPlan }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const language = languageForDirection();
   const [expanded, setExpanded] = useState(false);
   const title = language === "en" ? "Program execution guide" : "راهنمای اجرای برنامه";
@@ -717,6 +723,8 @@ function PlanOverview({
   readonly historical: boolean;
   readonly plan: WorkoutPlan;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.planOverview} testID={`workout-plan-overview-${plan.id}`}>
       <View style={styles.pageHeader}>
@@ -741,6 +749,8 @@ function PlanContextStrip({
   readonly historical: boolean;
   readonly plan: WorkoutPlan;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const status = getWorkoutPlanSummaryStatus(plan, historical);
   const statusLabel = status === "active" ? "فعال" : status === "pending" ? "در انتظار مربی" : "غیرفعال";
   const statusStyle = status === "active"
@@ -779,6 +789,8 @@ function CoachReviewBanner({
   readonly historical: boolean;
   readonly plan: WorkoutPlan;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const review = plan.coach_review;
   if (historical) {
     return (
@@ -836,6 +848,8 @@ function PlanInlineNotice({
   readonly message: string;
   readonly variant: PlanInlineNoticeVariant;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const accentStyle = variant === "danger"
     ? styles.inlineNoticeDanger
     : variant === "offline" || variant === "warning" ? styles.inlineNoticeWarning : styles.inlineNoticeInfo;
@@ -857,6 +871,8 @@ function GenerationMethodSelector({
   readonly selected: WorkoutGenerationMethod;
   readonly onSelect: (method: WorkoutGenerationMethod) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.generationMethodSection}>
       <Text style={styles.selectorTitle}>چه کسی برنامه‌ات را بنویسد؟</Text>
@@ -889,6 +905,8 @@ function PlanView({
   readonly pending: boolean;
   readonly timelineWorkout: TimelineWorkout | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const presentation = timelineWorkout === null ? null : workoutTimelinePresentation(timelineWorkout);
   const focusedDayId = presentation?.focusedSession?.workout_day_id ?? null;
@@ -989,6 +1007,9 @@ function WorkoutPlanTools({
   readonly pdfStore: ExpoWorkoutPlanPdfStore;
   readonly plan: WorkoutPlan | null;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const [pdfError, setPdfError] = useState<unknown | null>(null);
   const feedbackController = useCompletionFeedbackController({
@@ -1023,7 +1044,7 @@ function WorkoutPlanTools({
             style={({ pressed }) => [styles.toolsCell, toolDividerStyle, pressed && styles.toolPressed]}
             testID="workout-plan-body-analysis-tool"
           >
-            <AppIcon color={fiticianTokens.colors.aqua} name="progress" size={fiticianTokens.iconSize.md} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="progress" size={fiticianTokens.iconSize.md} />
             <Text style={styles.toolTitleEnglish}>Body Analysis</Text>
           </Pressable>
         </View>
@@ -1055,6 +1076,9 @@ function WorkoutPdfTool({
   readonly pdfStore: ExpoWorkoutPlanPdfStore;
   readonly plan: WorkoutPlan | null;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const planId = plan?.id ?? null;
   const [pdfStatus, setPdfStatus] = useState<PdfStatus>("idle");
   const [storedPdf, setStoredPdf] = useState<StoredWorkoutPlanPdf | null>(null);
@@ -1119,7 +1143,7 @@ function WorkoutPdfTool({
       style={({ pressed }) => [styles.toolsCell, pressed && styles.toolPressed]}
       testID="workout-plan-pdf-tool"
     >
-      <AppIcon color={fiticianTokens.colors.aqua} name="document" size={fiticianTokens.iconSize.md} />
+      <AppIcon color={fiticianTokens.colors.accentInk} name="document" size={fiticianTokens.iconSize.md} />
       <Text style={styles.toolTitle}>دانلود PDF</Text>
       <Text numberOfLines={2} style={styles.toolSubtitle}>
         {downloading ? "در حال آماده‌سازی PDF…" : "دریافت نسخه فارسی برنامه"}
@@ -1154,6 +1178,9 @@ function WorkoutDayCard({
   readonly showNext: boolean;
   readonly onToggle: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const mainExercises = day.exercises.filter((item) => item.section !== "core");
   const coreExercises = day.exercises.filter((item) => item.section === "core");
   const leadExercise = mainExercises[0] ?? day.exercises[0];
@@ -1223,7 +1250,7 @@ function WorkoutDayCard({
         </View>
         <AppIcon
           accessibilityLabel={expanded ? "بستن جزئیات روز" : "باز کردن جزئیات روز"}
-          color={fiticianTokens.colors.aqua}
+          color={fiticianTokens.colors.accentInk}
           name={expanded ? "chevronUp" : "chevronDown"}
           size={fiticianTokens.iconSize.md}
         />
@@ -1297,6 +1324,9 @@ function WorkoutExerciseRow({
   readonly onTogglePreview: (previewId: string) => void;
   readonly videoActive: boolean;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const language = languageForDirection();
   const actionCopy = language === "en"
     ? { alternatives: "View alternatives", detail: "View exercise details" }
@@ -1406,7 +1436,7 @@ function WorkoutExerciseRow({
                 {actionCopy.alternatives}
               </Text>
               <AppIcon
-                color={fiticianTokens.colors.aqua}
+                color={fiticianTokens.colors.accentInk}
                 name={onStartReplacement ? "arrowLeft" : alternativesExpanded ? "chevronUp" : "chevronDown"}
                 size={fiticianTokens.iconSize.sm}
               />
@@ -1434,6 +1464,8 @@ function ReadOnlyAlternativeList({
   readonly language: MobileLanguage;
   readonly onOpenAlternative: (slug: string) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.readOnlyAlternatives} testID="workout-read-only-alternatives">
       {alternatives.map((alternative) => {
@@ -1503,6 +1535,9 @@ function WorkoutHistory({
   readonly isViewingHistorical: boolean;
   readonly selectedPlanId: string | null;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const versions = history.filter(
     (version) => version.status !== "pending_review" && version.id !== currentPlanId,
   );
@@ -1561,6 +1596,8 @@ function WorkoutHistory({
 }
 
 function PlanSkeleton() {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.skeletonGroup}>
       <Skeleton height={150} />
@@ -1603,7 +1640,7 @@ function firstParam(value: string | string[] | undefined): string | undefined {
   return normalized === "" ? undefined : normalized;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   executionGuide: {
     borderRadius: fiticianTokens.radii.medium,
     borderWidth: 1,
@@ -1703,7 +1740,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   contextValueActive: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   contextValueInactive: {
     color: fiticianTokens.colors.muted,
@@ -1749,7 +1786,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   durationValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: 22,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1764,7 +1801,7 @@ const styles = StyleSheet.create({
     paddingTop: fiticianTokens.spacing[2],
   },
   exerciseSectionTitle: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1825,7 +1862,7 @@ const styles = StyleSheet.create({
     borderRightColor: fiticianTokens.colors.amber,
   },
   nextSessionLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: 10,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2026,7 +2063,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   aiLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2090,7 +2127,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   dayNumber: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -2128,7 +2165,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   exerciseActionText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2201,7 +2238,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   readOnlyAlternativeName: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2319,14 +2356,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   returnCurrentText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "center",
     writingDirection: "rtl",
   },
   historyState: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -2350,7 +2387,7 @@ const styles = StyleSheet.create({
     paddingTop: fiticianTokens.spacing[3],
   },
   sectionEyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     textAlign: "auto",
@@ -2431,4 +2468,4 @@ const styles = StyleSheet.create({
     marginTop: fiticianTokens.spacing[2],
     width: "100%",
   },
-});
+}));

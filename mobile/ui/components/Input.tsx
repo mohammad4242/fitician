@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   StyleSheet,
@@ -11,7 +13,6 @@ import {
 } from "react-native";
 
 import { RTL_LAYOUT, RTL_TEXT, getTextDirectionStyle } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export interface FormFieldProps {
   readonly children: ReactNode;
@@ -32,6 +33,8 @@ export function FormField({
   required = false,
   style,
 }: FormFieldProps) {
+  const styles = useThemeStyles(createStyles);
+
   const statusMessage = error ?? description;
 
   return (
@@ -98,6 +101,9 @@ export function TextField({
   labelDirection = "rtl",
   ...textInputProps
 }: TextFieldProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const resolvedTextDirection = resolveTextDirection(textDirection, textInputProps);
   const textStyle = resolvedTextDirection === "auto"
     ? { textAlign: undefined, writingDirection: "auto" as const }
@@ -123,7 +129,7 @@ export function TextField({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   description: {
     color: fiticianTokens.colors.muted,
   },
@@ -168,4 +174,4 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 18,
   },
-});
+}));

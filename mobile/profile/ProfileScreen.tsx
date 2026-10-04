@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -49,7 +51,6 @@ import {
 } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import { formatPersianNumber } from "../ui/locale";
 import { useMobileRouteSnapshot, useRefreshMobileProfileStatus } from "../ui/navigation/RouteGuards";
 import { profileValidationMessage } from "../onboarding/onboardingModel";
@@ -208,6 +209,9 @@ const startDayOptions = startDayValues.map((value, index) => ({
 }));
 
 export function ProfileScreen() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const snapshot = useMobileRouteSnapshot();
@@ -393,7 +397,7 @@ export function ProfileScreen() {
   if (loading) {
     return (
       <Screen contentWidth="reading" contentContainerStyle={styles.centered}>
-        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.aqua} />
+        <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.accentInk} />
         <Text style={styles.mutedText}>در حال بارگذاری پروفایل…</Text>
       </Screen>
     );
@@ -502,6 +506,9 @@ function ProfileSectionProgress({
   readonly sections: readonly ProfileSection[];
   readonly selectedSection: ProfileSection;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const currentIndex = Math.max(0, sections.indexOf(selectedSection));
 
   return (
@@ -538,7 +545,7 @@ function ProfileSectionProgress({
             >
               <View style={[styles.progressBadge, isActive && styles.progressBadgeActive, isCurrent && styles.progressBadgeCurrent]}>
                 <AppIcon
-                  color={isActive ? fiticianTokens.colors.canvas : fiticianTokens.colors.muted}
+                  color={isActive ? fiticianTokens.colors.onAccent : fiticianTokens.colors.muted}
                   name={sectionIcon(item)}
                   size={18}
                 />
@@ -563,12 +570,15 @@ function ProfileFormGroup({
   readonly icon: "nutrition" | "profile" | "target" | "training";
   readonly title: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.formGroup} variant="default">
       <View style={styles.formGroupHeader}>
         <Text style={styles.formGroupTitle}>{title}</Text>
         <View style={styles.formGroupIcon}>
-          <AppIcon color={fiticianTokens.colors.aqua} name={icon} size={18} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name={icon} size={18} />
         </View>
       </View>
       <View style={styles.formGroupFields}>{children}</View>
@@ -587,6 +597,8 @@ function PersonalSection({
   readonly values: ProfileFormValues;
   readonly onChange: (field: keyof ProfileFormValues, value: ProfileFormValues[keyof ProfileFormValues]) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const birthDateBounds = getProfileBirthDateBounds(new Date());
   const birthDateCopy = fa.translation.onboarding.validation;
   return (
@@ -854,6 +866,9 @@ function NutritionSection({
     value: NutritionEditForms["preferences"][keyof NutritionEditForms["preferences"]],
   ) => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <ProfileFormGroup icon="nutrition" title="ترجیحات تغذیه‌ای">
       <ChoiceField
@@ -997,6 +1012,8 @@ function ProfileOverviewCard({
   readonly shared: SharedProfile;
   readonly onEdit: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const stats = [
     { direction: "ltr" as const, icon: "ruler" as const, label: "قد", value: `${formatProfileNumber(shared.height_cm)} سانتی‌متر` },
     { direction: "ltr" as const, icon: "scale" as const, label: "وزن", value: `${formatProfileNumber(shared.current_weight_kg)} کیلوگرم` },
@@ -1060,6 +1077,9 @@ function ProfileStat({
   readonly separated?: boolean;
   readonly value: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.overviewStat, separated && styles.overviewStatSeparated]}>
       <View style={styles.overviewStatCopy}>
@@ -1067,7 +1087,7 @@ function ProfileStat({
         <Text style={[styles.overviewStatValue, direction === "ltr" && styles.overviewStatNumeric]}>{value}</Text>
       </View>
       <View style={styles.overviewStatIcon}>
-        <AppIcon color={fiticianTokens.colors.aqua} name={icon} size={17} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name={icon} size={17} />
       </View>
     </View>
   );
@@ -1080,6 +1100,8 @@ function ProfileMeasurements({
   readonly shared: SharedProfile;
   readonly onOpenProgress: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const measuredAt = formatProfileDate(shared.weight_measured_at);
 
   return (
@@ -1131,6 +1153,8 @@ function ChoiceField({
   readonly selected: string;
   readonly onSelect: (value: string) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <FormField error={error} label={label} style={styles.choiceField}>
       <View style={styles.choiceGrid}>
@@ -1167,6 +1191,8 @@ function MultiChoiceField({
   readonly selected: readonly string[];
   readonly onToggle: (value: string) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <FormField error={error} label={label} style={styles.choiceField}>
       <View style={styles.choiceGrid}>
@@ -1292,7 +1318,7 @@ function profileErrorMessage(error: unknown): string {
   });
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: fiticianTokens.spacing[3],
@@ -1308,7 +1334,7 @@ const styles = StyleSheet.create({
     width: 52,
   },
   avatarText: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h2,
     textAlign: "center",
@@ -1361,7 +1387,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   choiceTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   column: {
@@ -1394,7 +1420,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
   },
   formGroupTitle: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.lg,
     lineHeight: 24,
@@ -1502,7 +1528,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   summaryEditText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1578,7 +1604,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: fiticianTokens.spacing[2],
   },
   measurementActionText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1589,7 +1615,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   measurementValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     lineHeight: 28,
@@ -1692,7 +1718,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   progressStepLabelActive: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   progressSteps: {
@@ -1725,4 +1751,4 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: fiticianTokens.spacing[2],
   },
-});
+}));

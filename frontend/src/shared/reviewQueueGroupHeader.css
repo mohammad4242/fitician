@@ -11,9 +11,9 @@
   border: 1px solid rgb(125 224 210 / 28%);
   border-inline-start: 0.3rem solid var(--fitician-aqua);
   border-radius: 1rem;
-  color: #e8f8f4;
-  background: rgb(13 50 47 / 78%);
-  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 12%);
+  color: var(--fitician-palette-ink, #e8f8f4);
+  background: var(--fitician-palette-surface-translucent, rgb(13 50 47 / 78%));
+  box-shadow: 0 0.6rem 1.5rem rgb(var(--fitician-shadow-rgb) / calc(12% * var(--fitician-shadow-strength)));
   direction: inherit;
 }
 
@@ -26,7 +26,7 @@
 .review-queue-group-header h3 {
   min-width: 0;
   margin: 0;
-  color: #e8f8f4;
+  color: var(--fitician-palette-ink, #e8f8f4);
   font-size: clamp(0.95rem, 1.8vw, 1.1rem);
   font-weight: 850;
   line-height: 1.35;
@@ -36,7 +36,7 @@
 .review-queue-group-header p {
   min-width: 0;
   margin: 0;
-  color: #8fb9b2;
+  color: var(--fitician-palette-accent-ink, #8fb9b2);
   font-size: 0.76rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -50,7 +50,7 @@
   place-items: center;
   padding-inline: 0.25rem;
   border-radius: 99px;
-  color: #06201e;
+  color: var(--fitician-palette-on-accent, #06201e);
   background: #7de0d2;
   font-size: 0.75rem;
   font-weight: 800;
@@ -64,7 +64,7 @@
 
 .review-queue-group-header--collapsible::-webkit-details-marker { display: none; }
 .review-queue-group-header--collapsible::marker { content: ""; }
-.review-queue-group-header--collapsible:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: -2px; }
+.review-queue-group-header--collapsible:focus-visible { outline: 2px solid var(--fitician-accent-ink); outline-offset: -2px; }
 
 .review-queue-group-header__toggle {
   display: grid;
@@ -74,7 +74,7 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 38%);
   border-radius: 50%;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: rgb(80 223 206 / 10%);
 }
 

@@ -19,6 +19,7 @@ import {
   PhysicianRoute,
 } from "./features/profile/ProfileRouteGuards";
 import { AppShell } from "./shared/AppShell";
+import { ThemeProvider } from "./theme/ThemeProvider";
 import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const AdminAiSettingsPage = lazy(() => import("./features/admin/AdminAiSettingsPage").then(({ AdminAiSettingsPage }) => ({ default: AdminAiSettingsPage })));
@@ -82,6 +83,10 @@ const NewTicketPage = lazy(() => import("./features/support/SupportPages").then(
 const SupportTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.SupportTicketPage })));
 
 export function AppRoutes() {
+  return <ThemeProvider><ThemedAppRoutes /></ThemeProvider>;
+}
+
+function ThemedAppRoutes() {
   return (
     <Routes>
       <Route path="/delete-account" element={deferred(<AccountDeletionPage />)} />

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   KeyboardAvoidingView,
@@ -17,7 +19,6 @@ import {
 
 import { getResponsiveLayout } from "../layoutMetrics";
 import { RTL_LAYOUT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export type ScreenContentWidth = "content" | "full" | "reading";
 
@@ -42,6 +43,8 @@ export function Screen({
   scroll = true,
   style,
 }: ScreenProps) {
+  const styles = useThemeStyles(createStyles);
+
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const responsive = getResponsiveLayout(width, height);
@@ -87,7 +90,7 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   content: {
     alignItems: "stretch",
     alignSelf: "center",
@@ -104,4 +107,4 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-});
+}));

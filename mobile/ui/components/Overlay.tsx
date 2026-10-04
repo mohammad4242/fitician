@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   Modal,
   Pressable,
@@ -36,6 +38,8 @@ export function Sheet({
   title,
   visible,
 }: SheetProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Modal
       accessibilityViewIsModal
@@ -97,6 +101,8 @@ export function Dialog({
   visible,
   children,
 }: DialogProps) {
+  const styles = useThemeStyles(createStyles);
+
   const cancel = onCancel ?? onClose;
 
   return (
@@ -130,7 +136,7 @@ export function Dialog({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     gap: fiticianTokens.spacing[2],
     justifyContent: "flex-end",
@@ -217,4 +223,4 @@ const styles = StyleSheet.create({
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     lineHeight: 28,
   },
-});
+}));

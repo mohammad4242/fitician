@@ -184,7 +184,7 @@ it("defines web-equivalent member bottom-bar icons and styling", async () => {
 it("wraps the router in the app-wide RTL boundary", async () => {
   const source = await readFile(resolve(appRoot, "_layout.tsx"), "utf8");
   expect(source).toContain("RTL_LAYOUT");
-  expect(source).toContain("style={[styles.appRoot, RTL_LAYOUT]}");
+  expect(source).toContain("style={[styles.appRoot, RTL_LAYOUT, { backgroundColor: tokens.colors.canvas }]}");
 });
 
 it("keeps route-guard loading and error surfaces RTL outside Screen", async () => {
@@ -332,4 +332,14 @@ it("keeps member catalogue browsing and shopping prices inside approved nutritio
   await expect(readFile(plan, "utf8")).resolves.toMatch(/NutritionShoppingList/);
   await expect(readFile(catalogue, "utf8")).resolves.not.toMatch(/\/admin\//);
   await expect(readFile(catalogueRoute, "utf8")).resolves.toMatch(/NutritionCatalogueSection/);
+});
+
+it("puts appearance and system chrome above every native route", async () => {
+  const source = await readFile(resolve(appRoot, "_layout.tsx"), "utf8");
+  expect(source).toContain("<ThemeProvider><ThemedRootLayout /></ThemeProvider>");
+  expect(source).toContain("<ThemeSystemUI />");
+  const chrome = await readFile(resolve(dirname(appRoot), "ui/theme/ThemeSystemUI.tsx"), "utf8");
+  expect(chrome).toContain('theme === "light" ? "dark" : "light"');
+  expect(chrome).toContain("SystemUI.setBackgroundColorAsync(tokens.colors.canvas)");
+  expect(chrome).toContain("Appearance.setColorScheme(theme)");
 });

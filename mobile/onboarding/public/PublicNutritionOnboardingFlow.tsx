@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../../ui/theme/ThemeProvider";
+import { useThemeTokens } from "../../ui/theme/ThemeProvider";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -16,10 +18,9 @@ import { irrToToman, tomanToIrr } from "@fitician/core/formatters";
 import { profileInputForOnboarding, profileFormValuesForSharedProfile, profileFormValuesForTrainingProfile, emptyProfileFormValues } from "../onboardingForms";
 import { normalizeOnboardingDigits } from "../onboardingModel";
 import { Button, TextField } from "../../ui/components";
-import { fiticianTokens } from "../../ui/tokens";
 import { formatPersianNumber } from "../../ui/locale";
 import { PublicChoiceCard, PublicQuestionFrame } from "./PublicQuestionFrame";
-import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
+import { createPublicOnboardingStyles } from "./publicOnboardingStyles";
 import { usePublicAutoAdvance } from "./usePublicAutoAdvance";
 import { GuidedTrainingQuestions } from "./GuidedTrainingQuestions";
 
@@ -117,6 +118,10 @@ function CheckboxCard({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
+  const fiticianTokens = useThemeTokens();
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -126,7 +131,7 @@ function CheckboxCard({
       style={[styles.checkboxCard, selected && styles.checkboxCardSelected]}
     >
       <View style={[styles.checkboxIndicator, selected && styles.checkboxIndicatorSelected]}>
-        {selected ? <Text style={{ color: fiticianTokens.colors.canvas }}>✓</Text> : null}
+        {selected ? <Text style={{ color: fiticianTokens.colors.onAccent }}>✓</Text> : null}
       </View>
       <Text style={styles.checkboxText}>{label}</Text>
     </Pressable>
@@ -140,6 +145,8 @@ export function PublicNutritionOnboardingFlow({
   onRegisterBack,
   state,
 }: PublicNutritionOnboardingFlowProps) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
   const [phase, setPhase] = useState<NutritionPhase>("training");
   const [trainingValues, setTrainingValues] = useState(() => formValuesForState(state));
   const [training, setTraining] = useState<ProfileInput | undefined>(state.training ?? undefined);
@@ -369,6 +376,8 @@ function PublicNutritionExerciseQuestions({
   readonly onComplete: (value: StructuredExerciseInput) => void;
   readonly onRegisterBack?: (handler: () => void) => () => void;
 }) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
   const initialTraining = initialValue?.trains === true ? initialValue : undefined;
   const [index, setIndex] = useState(0);
   const [blocked, setBlocked] = useState(false);

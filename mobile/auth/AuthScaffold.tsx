@@ -1,10 +1,11 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
 import { type ReactNode } from "react";
 import { Text, View } from "react-native";
 
 import { PageHeading } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { authCopy } from "./copy";
-import { authStyles } from "./authStyles";
+import { createAuthStyles } from "./authStyles";
 
 export interface AuthScaffoldProps {
   readonly children: ReactNode;
@@ -14,6 +15,8 @@ export interface AuthScaffoldProps {
 }
 
 export function AuthScaffold({ children, eyebrow, subtitle, title }: AuthScaffoldProps) {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   return (
     <Screen contentContainerStyle={authStyles.screen} contentWidth="reading">
       <View style={authStyles.panel} testID="auth-form-panel">
@@ -34,5 +37,7 @@ export function AuthScaffold({ children, eyebrow, subtitle, title }: AuthScaffol
 }
 
 export function AuthFormSection({ children }: { readonly children: ReactNode }) {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   return <View style={authStyles.formSection}>{children}</View>;
 }

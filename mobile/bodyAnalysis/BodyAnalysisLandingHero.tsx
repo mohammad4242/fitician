@@ -1,6 +1,7 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { StyleSheet, Text, View } from "react-native";
 
-import { fiticianTokens } from "../ui/tokens";
 
 const featureCards = [
   {
@@ -21,6 +22,8 @@ const featureCards = [
 ] as const;
 
 export function BodyAnalysisLandingHero() {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.container}>
       <View style={styles.badge}>
@@ -54,7 +57,7 @@ export function BodyAnalysisLandingHero() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   badge: {
     alignItems: "center",
     alignSelf: "flex-start",
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
     width: 7,
   },
   badgeText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -166,9 +169,9 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   titleAqua: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   titleWhite: {
     color: "#ffffff",
   },
-});
+}));

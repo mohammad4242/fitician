@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -95,6 +97,8 @@ const initialSelection: CatalogSelection = {
 const pageSize = 12;
 
 export function ExerciseCatalogScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const api = useMemo(() => createExerciseApi(auth.request), [auth.request]);
@@ -506,6 +510,8 @@ function ExerciseResults({
   readonly page: PaginatedExercises | undefined;
   readonly state: MobileViewState<PaginatedExercises>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") {
     return (
       <View style={styles.results}>
@@ -575,6 +581,8 @@ function ExerciseCard({
   readonly exercise: ExerciseSummary;
   readonly onPress: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const name = exerciseTitle(exercise.name_fa, exercise.name_en);
   const viewLabel = exercise.content_type === "guide" ? exerciseCopy.viewGuide : exerciseCopy.viewExercise;
   return (
@@ -636,6 +644,8 @@ function ExerciseCard({
 }
 
 function ExerciseMetaRow({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.metadataRow, RTL_ROW]}>
       <Text style={[styles.metadataLabel, RTL_TEXT]}>{label}</Text>
@@ -670,6 +680,8 @@ function DiscoveryStage({
   readonly stage: string;
   readonly title: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.discoveryStage}>
       <View style={styles.discoveryStageHeading}>
@@ -687,6 +699,8 @@ function DiscoveryStage({
 }
 
 function DiscoveryPrompt({ message }: { readonly message: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.discoveryPrompt}>
       <Text style={styles.discoveryPromptText}>{message}</Text>
@@ -703,6 +717,8 @@ function QuickFilterChip({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -730,6 +746,8 @@ function RegionOption({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={category.name_fa}
@@ -790,6 +808,8 @@ function CategoryOption({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={category.name_fa}
@@ -837,6 +857,8 @@ function ContentTypeSwitcher({
 }
 
 function ChoiceRow({ children }: { readonly children: React.ReactNode }) {
+  const styles = useThemeStyles(createStyles);
+
   return <View style={styles.choiceRow}>{children}</View>;
 }
 
@@ -853,6 +875,8 @@ function ChoiceChip({
   readonly selected: boolean;
   readonly style?: StyleProp<ViewStyle>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -873,6 +897,8 @@ function ChoiceChip({
 }
 
 function ActiveFilterChip({ label, onRemove }: { readonly label: string; readonly onRemove: () => void }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.activeFilterChip}>
       <Text style={styles.activeFilterText}>{label}</Text>
@@ -962,7 +988,7 @@ const exerciseTypeOptions: readonly ExerciseType[] = [
   "other",
 ];
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   categoryOption: {
     alignItems: "stretch",
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
@@ -987,7 +1013,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   categoryOptionLabelSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   categoryOptionPressed: {
     opacity: 0.82,
@@ -1088,7 +1114,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   chipLabelSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   chipPressed: {
@@ -1113,7 +1139,7 @@ const styles = StyleSheet.create({
   contentBadge: {
     backgroundColor: fiticianTokens.colors.surfaceRaised,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     overflow: "hidden",
@@ -1288,7 +1314,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   quickFilterLabelSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   quickFilterRow: {
@@ -1321,7 +1347,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   regionOptionLabelSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   regionOptionRow: {
     flexDirection: "row",
@@ -1342,7 +1368,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.aqua,
   },
   mediaDifficulty: {
-    backgroundColor: fiticianTokens.colors.amber,
+    backgroundColor: fiticianTokens.colors.warningFill,
     borderColor: fiticianTokens.colors.amber,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
@@ -1379,7 +1405,7 @@ const styles = StyleSheet.create({
     width: fiticianTokens.layout.minimumTouchTarget,
   },
   removeFilterGlyph: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.h3,
     lineHeight: 24,
@@ -1458,4 +1484,4 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: fiticianTokens.spacing[2],
   },
-});
+}));

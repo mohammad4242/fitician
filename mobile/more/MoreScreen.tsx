@@ -1,3 +1,5 @@
+import { useTheme, useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { NotificationsLink } from "../communication/NotificationsLink";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Image, StyleSheet, Text, View } from "react-native";
@@ -9,7 +11,7 @@ import type { AccessPackageCode } from "@fitician/core/entitlements";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
-import { AppIcon, Button, Card, GroupedList, Notice, PageHeading } from "../ui/components";
+import { AppIcon, Button, Card, GroupedList, Notice, PageHeading, SegmentedControl } from "../ui/components";
 import type { GroupedListItem, GroupedListSection } from "../ui/components";
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { createProfileApi } from "../profile/profileApi";
@@ -17,7 +19,6 @@ import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { decideMobileRoute, type MobileRouteSnapshot } from "../ui/navigation/routePolicy";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import type { SharedProfile } from "@fitician/core/profile";
 
 type MoreDestination = {
@@ -32,6 +33,10 @@ type MoreRow = Pick<MoreDestination, "icon" | "subtitle" | "title"> & {
 };
 
 export function MoreScreen() {
+  const { theme, setTheme } = useTheme();
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const router = useRouter();
@@ -80,13 +85,13 @@ export function MoreScreen() {
     };
   }, [auth.user?.id, profileApi]);
 
-  const productItems = getProductItems(snapshot, router);
-  const workspaceItems = getWorkspaceItems(snapshot, router);
+  const productItems = getProductItems(snapshot, router, fiticianTokens);
+  const workspaceItems = getWorkspaceItems(snapshot, router, fiticianTokens);
   const sections: GroupedListSection[] = [
     { title: "پشتیبانی و ارتباط با ما", items: [
-      moreItem({icon:"shield",title:"مرکز راهنما",subtitle:"راهنما و راه‌های تماس",onPress:()=>router.push("/member/support")}),
-      moreItem({icon:"profile",title:"تیکت‌های من",subtitle:"پیگیری درخواست و پاسخ پشتیبانی",onPress:()=>router.push("/member/support-tickets")}),
-      moreItem({icon:"profile",title:"ارسال درخواست",subtitle:"کمک از تیم فیتیشن",onPress:()=>router.push("/member/support-new")}),
+      moreItem({icon:"shield",title:"مرکز راهنما",subtitle:"راهنما و راه‌های تماس",onPress:()=>router.push("/member/support")}, fiticianTokens),
+      moreItem({icon:"profile",title:"تیکت‌های من",subtitle:"پیگیری درخواست و پاسخ پشتیبانی",onPress:()=>router.push("/member/support-tickets")}, fiticianTokens),
+      moreItem({icon:"profile",title:"ارسال درخواست",subtitle:"کمک از تیم فیتیشن",onPress:()=>router.push("/member/support-new")}, fiticianTokens),
     ] },
     ...(productItems.length > 0 ? [{ items: productItems, title: "محصول" }] : []),
     {
@@ -96,19 +101,19 @@ export function MoreScreen() {
           onPress: () => router.push("/member/profile"),
           subtitle: "مشخصات و تنظیمات برنامه",
           title: "اطلاعات پروفایل",
-        }),
+        }, fiticianTokens),
         moreItem({
           icon: "profile",
           onPress: () => router.push("/account-deletion"),
           subtitle: "مدیریت درخواست حذف حساب",
           title: "حذف حساب",
-        }),
+        }, fiticianTokens),
         moreItem({
           icon: "shield",
           onPress: openPrivacyPolicy,
           subtitle: "نحوه استفاده و کنترل داده‌ها",
           title: "سیاست حریم خصوصی",
-        }),
+        }, fiticianTokens),
       ],
       title: "حساب و حریم خصوصی",
     },
@@ -158,7 +163,7 @@ export function MoreScreen() {
             <Text style={styles.profileSubtitle}>مشخصات و تنظیمات شخصی</Text>
             {accountContact ? <Text numberOfLines={1} style={styles.accountContact}>{accountContact}</Text> : null}
           </View>
-          <AppIcon color={fiticianTokens.colors.aqua} name="arrowLeft" size={fiticianTokens.iconSize.md} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="arrowLeft" size={fiticianTokens.iconSize.md} />
         </View>
       </Card>
 
@@ -177,12 +182,20 @@ export function MoreScreen() {
           ) : null}
           {paidAccessEnd ? <Text style={styles.accessSummarySubtitle}>پایان دسترسی: {formatAccessDate(paidAccessEnd)}</Text> : null}
         </View>
-        <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={fiticianTokens.iconSize.md} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="shield" size={fiticianTokens.iconSize.md} />
       </View>
       <View style={styles.accessActions}>
         <Button label="مشاهده پلن‌ها" onPress={() => router.push("/member/plans")} variant="secondary" />
         <Button label="تاریخچه خرید" onPress={() => router.push("/member/billing-history")} variant="ghost" />
       </View>
+
+      <Card>
+        <Text accessibilityRole="header" style={styles.accessSummaryEyebrow}>تنظیمات</Text>
+        <Text style={[styles.accessSummaryTitle, { marginVertical: fiticianTokens.spacing[3] }]}>ظاهر برنامه</Text>
+        <SegmentedControl variant="filled" accessibilityLabel="ظاهر برنامه" selectedValue={theme}
+          options={[{ value: "dark", label: "تیره" }, { value: "light", label: "روشن" }]}
+          onChange={value => setTheme(value === "light" ? "light" : "dark")} />
+      </Card>
 
       <GroupedList sections={sections} testID="more-groups" />
       {profileError !== null ? (
@@ -202,7 +215,8 @@ export function MoreScreen() {
   );
 }
 
-function getProductItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeof useRouter>): readonly GroupedListItem[] {
+function getProductItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeof useRouter>, fiticianTokens: FiticianTokens): readonly GroupedListItem[] {
+
   const destinations: MoreDestination[] = [];
   if (canAccess(snapshot, "training")) {
     destinations.push({
@@ -249,7 +263,8 @@ function getProductItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeo
   }));
 }
 
-function getWorkspaceItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeof useRouter>): readonly GroupedListItem[] {
+function getWorkspaceItems(snapshot: MobileRouteSnapshot, router: ReturnType<typeof useRouter>, fiticianTokens: FiticianTokens): readonly GroupedListItem[] {
+
   const workspaces: GroupedListItem[] = [];
   if (snapshot.specialistAccess.coach === "granted") {
     workspaces.push(moreItem({
@@ -257,7 +272,7 @@ function getWorkspaceItems(snapshot: MobileRouteSnapshot, router: ReturnType<typ
       onPress: () => router.push("/coach"),
       subtitle: "بازبینی و مدیریت برنامه‌های تمرینی",
       title: "فضای مربی",
-    }));
+    }, fiticianTokens));
   }
   if (snapshot.specialistAccess.physician === "granted") {
     workspaces.push(moreItem({
@@ -265,7 +280,7 @@ function getWorkspaceItems(snapshot: MobileRouteSnapshot, router: ReturnType<typ
       onPress: () => router.push("/physician"),
       subtitle: "بازبینی و مدیریت برنامه‌های تغذیه‌ای",
       title: "فضای پزشک",
-    }));
+    }, fiticianTokens));
   }
   return workspaces;
 }
@@ -275,7 +290,8 @@ function moreItem({
   onPress,
   subtitle,
   title,
-}: MoreRow): GroupedListItem {
+}: MoreRow, fiticianTokens: FiticianTokens): GroupedListItem {
+
   return {
     icon,
     label: title,
@@ -301,7 +317,7 @@ function formatAccessDate(value: string): string {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   accountContact: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
@@ -375,7 +391,7 @@ const styles = StyleSheet.create({
     width: 48,
   },
   profileAvatarText: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
   },
@@ -410,4 +426,4 @@ const styles = StyleSheet.create({
     paddingBottom: fiticianTokens.spacing[7],
     paddingTop: fiticianTokens.spacing[3],
   },
-});
+}));

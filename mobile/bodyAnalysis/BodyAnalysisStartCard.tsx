@@ -1,6 +1,7 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
 
-import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisCameraButton } from "./BodyAnalysisCameraButton";
 
 const bodyAnalysisImage = require("../assets/body-analysis/bodyanalysis.jpg") as ImageSourcePropType;
@@ -14,6 +15,8 @@ export function BodyAnalysisStartCard({
   readonly sessionCount: number;
   readonly onStart: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.card}>
       <View style={styles.heading}>
@@ -38,7 +41,7 @@ function formatCount(value: number): string {
   return new Intl.NumberFormat("fa-IR").format(value);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     backgroundColor: fiticianTokens.colors.surface,
     borderColor: fiticianTokens.colors.line,
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
     paddingVertical: fiticianTokens.spacing[2],
   },
   countText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -124,4 +127,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

@@ -171,7 +171,7 @@ const config: ExpoConfig = {
   orientation: "portrait",
   scheme: "fitician",
   icon: "./assets/branding/fitician-icon.png",
-  userInterfaceStyle: "dark",
+  userInterfaceStyle: "automatic",
   plugins: [
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),

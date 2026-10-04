@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import type { components } from "@fitician/core";
 import { useIsFocused } from "expo-router";
 import { useEffect, useState } from "react";
@@ -5,7 +7,6 @@ import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewSty
 
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { AppIcon, Media } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import {
   exerciseVideoPosterPath,
   isExerciseMediaRenderable,
@@ -35,6 +36,9 @@ export function ExerciseMedia({
   style,
   videoActive = false,
 }: ExerciseMediaProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const isFocused = useIsFocused();
   const runtime = getMobileRuntimeConfig();
   const [posterFailed, setPosterFailed] = useState(false);
@@ -115,20 +119,20 @@ export function ExerciseMedia({
         />
       ) : !renderable || posterFailed || videoFailed || mediaResolutionFailed ? (
         <View style={styles.fallback}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="training" size={fiticianTokens.iconSize.xl} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="training" size={fiticianTokens.iconSize.xl} />
           <Text style={styles.fallbackText}>نمایش حرکت آماده نیست</Text>
         </View>
       ) : null}
       {mediaMounted && loading ? (
         <View pointerEvents="none" style={styles.loadingOverlay}>
-          <ActivityIndicator accessibilityLabel="در حال بارگذاری رسانه حرکت" color={fiticianTokens.colors.aqua} />
+          <ActivityIndicator accessibilityLabel="در حال بارگذاری رسانه حرکت" color={fiticianTokens.colors.accentInk} />
         </View>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   compactFrame: {
     minHeight: 0,
   },
@@ -171,4 +175,4 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 160,
   },
-});
+}));

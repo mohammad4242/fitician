@@ -1,3 +1,4 @@
+import { useThemeTokens } from "../ui/theme/ThemeProvider";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 
@@ -59,9 +60,10 @@ export function EntitlementGate({
 }
 
 export function EntitlementLoadingState() {
+  const tokens = useThemeTokens();
   return (
     <View>
-      <Text accessibilityRole="text">در حال بررسی دسترسی…</Text>
+      <Text accessibilityRole="text" style={{ color: tokens.colors.muted }}>در حال بررسی دسترسی…</Text>
     </View>
   );
 }

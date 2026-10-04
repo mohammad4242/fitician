@@ -3,6 +3,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";
 import { Stack, usePathname } from "expo-router";
 import { InteractionManager, StyleSheet, View } from "react-native";
+import { ThemeSystemUI } from "../ui/theme/ThemeSystemUI";
+import { ThemeProvider, useTheme } from "../ui/theme/ThemeProvider";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { createMobileQueryClient } from "../data/queryClient";
@@ -98,6 +100,11 @@ function ScreenTransitionPerformanceBootstrap() {
 }
 
 export default function RootLayout() {
+  return <ThemeProvider><ThemedRootLayout /></ThemeProvider>;
+}
+
+function ThemedRootLayout() {
+  const { tokens } = useTheme();
   useEffect(() => {
     completeMobileColdStart();
     logMobileRuntimeConfiguration();
@@ -107,7 +114,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <View style={[styles.appRoot, RTL_LAYOUT]}>
+      <View style={[styles.appRoot, RTL_LAYOUT, { backgroundColor: tokens.colors.canvas }]}>
+        <ThemeSystemUI />
         <ScreenTransitionPerformanceBootstrap />
         <MobileAuthProvider>
           <E2ERoleNavigator />
@@ -118,7 +126,7 @@ export default function RootLayout() {
               <AndroidBackBehaviorProvider>
                 <QueryClientProvider client={queryClient}>
                   <MobileQueryCacheBoundary>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tokens.colors.canvas } }} />
                   </MobileQueryCacheBoundary>
                 </QueryClientProvider>
               </AndroidBackBehaviorProvider>

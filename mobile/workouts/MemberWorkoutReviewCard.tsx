@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import {
   reviewDisclosureDefaultExpanded,
   reviewDisclosureKeys,
@@ -11,7 +13,6 @@ import { DisclosureCard } from "../ui/components/DisclosureCard";
 import { TextField } from "../ui/components/Input";
 import { RTL_ROW, RTL_TEXT } from "../ui/rtl";
 import { formatPersianNumber } from "../ui/locale";
-import { fiticianTokens } from "../ui/tokens";
 import type { WorkoutPlan, WorkoutPlanExercise } from "./workoutApi";
 import type { MemberWorkoutReview } from "./workoutReviewApi";
 
@@ -44,6 +45,8 @@ export function MemberWorkoutReviewCard({
   onReject,
   review,
 }: MemberWorkoutReviewCardProps) {
+  const styles = useThemeStyles(createStyles);
+
   const [explanation, setExplanation] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const canRespond = review.status === "awaiting_member_acceptance";
@@ -151,6 +154,8 @@ export function MemberWorkoutReviewCard({
 }
 
 function PlanComparison({ review }: { readonly review: MemberWorkoutReview }) {
+  const styles = useThemeStyles(createStyles);
+
   const current = firstExerciseName(review.source_plan);
   const proposed = review.proposed_plan === null ? null : firstExerciseName(review.proposed_plan);
   const proposedLabel = proposed === current ? "همان حرکت" : proposed ?? "پیشنهاد مربی";
@@ -177,6 +182,8 @@ function DifferenceRow({
   readonly difference: Record<string, unknown>;
   readonly review: MemberWorkoutReview;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const changeType = stringValue(difference.change_type) ?? "change";
   const label = changeLabels[changeType] ?? changeType;
   const dayNumber = numberValue(difference.day_number);
@@ -206,6 +213,8 @@ function DifferenceRow({
 }
 
 function ProposedPlan({ plan }: { readonly plan: WorkoutPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <DisclosureCard
       defaultExpanded={reviewDisclosureDefaultExpanded(reviewDisclosureKeys.coachRationale)}
@@ -301,9 +310,9 @@ function stringValue(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: { gap: fiticianTokens.spacing[3] },
-  arrow: { color: fiticianTokens.colors.aqua, fontSize: fiticianTokens.typography.fontSize.lg },
+  arrow: { color: fiticianTokens.colors.accentInk, fontSize: fiticianTokens.typography.fontSize.lg },
   beforeAfter: { ...RTL_ROW, alignItems: "center", gap: fiticianTokens.spacing[3] },
   body: { ...RTL_TEXT, color: fiticianTokens.colors.muted, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, lineHeight: 22 },
   card: { gap: fiticianTokens.spacing[4] },
@@ -326,9 +335,9 @@ const styles = StyleSheet.create({
   section: { gap: fiticianTokens.spacing[3] },
   sectionHeading: { ...RTL_ROW, alignItems: "center", justifyContent: "space-between", gap: fiticianTokens.spacing[2] },
   sectionTitle: { ...RTL_TEXT, color: fiticianTokens.colors.ink, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.lg, fontWeight: fiticianTokens.typography.fontWeight.bold },
-  status: { ...RTL_TEXT, color: fiticianTokens.colors.aqua, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs },
+  status: { ...RTL_TEXT, color: fiticianTokens.colors.accentInk, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs },
   title: { ...RTL_TEXT, color: fiticianTokens.colors.ink, fontFamily: fiticianTokens.typography.fontFamily.displayPersian, fontSize: fiticianTokens.typography.fontSize.h2, fontWeight: fiticianTokens.typography.fontWeight.extraBold, lineHeight: 34 },
   validation: { ...RTL_TEXT, color: fiticianTokens.colors.danger, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm },
   value: { ...RTL_TEXT, color: fiticianTokens.colors.ink, flex: 1, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.body, fontWeight: fiticianTokens.typography.fontWeight.bold },
   valueBlock: { flex: 1, gap: fiticianTokens.spacing[1] },
-});
+}));

@@ -16,6 +16,9 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { createProfileApi } from "../profile/profileApi";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
+import * as SecureStore from "expo-secure-store";
+import { ThemeProvider } from "../ui/theme/ThemeProvider";
+jest.mock("expo-secure-store", () => ({ getItemAsync: jest.fn(), setItemAsync: jest.fn() }));
 import { MoreScreen } from "./MoreScreen";
 
 const mockPush = jest.fn();
@@ -37,12 +40,14 @@ function renderMore() {
         insets: { bottom: 0, left: 0, right: 0, top: 0 },
       }}
     >
-      <MoreScreen />
+      <ThemeProvider><MoreScreen /></ThemeProvider>
     </SafeAreaProvider>,
   );
 }
 
 beforeEach(() => {
+  jest.mocked(SecureStore.getItemAsync).mockResolvedValue(null);
+  jest.mocked(SecureStore.setItemAsync).mockReset().mockResolvedValue();
   productMode = "both";
   mockPush.mockClear();
   mockReplace.mockClear();
@@ -218,4 +223,14 @@ test("logs out through the existing auth session and replaces the member route",
 
   await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/auth/sign-in"));
   expect(mockLogout).toHaveBeenCalledTimes(1);
+});
+
+test("shows an accessible two-option appearance control and persists the selection", async () => {
+  renderMore();
+  expect(screen.getByText("تنظیمات")).toBeTruthy();
+  expect(screen.getByLabelText("ظاهر برنامه")).toBeTruthy();
+  expect(screen.getByRole("radio", { name: "تیره" }).props.accessibilityState).toMatchObject({ checked: true });
+  fireEvent.press(screen.getByRole("radio", { name: "روشن" }));
+  expect(screen.getByRole("radio", { name: "روشن" }).props.accessibilityState).toMatchObject({ checked: true });
+  await waitFor(() => expect(SecureStore.setItemAsync).toHaveBeenCalledWith("fitician.appearance-theme", "light"));
 });

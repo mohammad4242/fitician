@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import * as ExpoRouter from "expo-router";
 import { useCallback, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
@@ -104,6 +106,9 @@ function NutritionDualMetricRingContent({
   size,
   strokeWidth,
 }: NutritionDualMetricRingContentProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const radius = (size - strokeWidth * 2 - 4) / 2;
   const circumference = 2 * Math.PI * radius;
   const primaryOffset = getOffset(animateProgress, primaryProgress, circumference);
@@ -185,7 +190,7 @@ function clamp(value: number): number {
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   copy: {
     alignItems: "center",
     bottom: 0,
@@ -217,4 +222,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     writingDirection: "ltr",
   },
-});
+}));

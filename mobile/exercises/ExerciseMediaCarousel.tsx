@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMemo, useRef, useState } from "react";
 import {
   PanResponder,
@@ -9,7 +11,6 @@ import {
 
 import { AppIcon, Media } from "../ui/components";
 import type { MobileLanguage } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import {
   isExerciseMediaRenderable,
   resolveExerciseMediaUrl,
@@ -47,6 +48,8 @@ export function ExerciseMediaCarousel({
   selectedIndex,
   sourceUri,
 }: ExerciseMediaCarouselProps) {
+  const styles = useThemeStyles(createStyles);
+
   const safeIndex = clampMediaIndex(selectedIndex, items.length);
   const item = items[safeIndex];
   const currentIndexRef = useRef(safeIndex);
@@ -143,6 +146,8 @@ function NativeExerciseMedia({
   readonly name: string;
   readonly sourceUri?: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [failed, setFailed] = useState(false);
   let mediaUri = sourceUri;
   try {
@@ -178,9 +183,12 @@ function NativeExerciseMedia({
 }
 
 function MediaFallback({ language }: { readonly language: MobileLanguage }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View accessibilityRole="image" style={styles.mediaFallback}>
-      <AppIcon color={fiticianTokens.colors.aqua} name="training" size={fiticianTokens.iconSize.xl} />
+      <AppIcon color={fiticianTokens.colors.accentInk} name="training" size={fiticianTokens.iconSize.xl} />
       <Text style={[styles.mediaFallbackText, language === "en" && styles.mediaFallbackTextEnglish]}>
         {mediaUnavailableCopy[language]}
       </Text>
@@ -188,7 +196,7 @@ function MediaFallback({ language }: { readonly language: MobileLanguage }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   indicator: {
     backgroundColor: fiticianTokens.colors.mediaOverlay,
     borderColor: fiticianTokens.colors.line,
@@ -201,7 +209,7 @@ const styles = StyleSheet.create({
     top: 12,
   },
   indicatorText: {
-    color: fiticianTokens.colors.ink,
+    color: fiticianTokens.colors.mediaInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -233,8 +241,8 @@ const styles = StyleSheet.create({
   },
   surface: {
     aspectRatio: 4 / 3,
-    backgroundColor: fiticianTokens.colors.canvas,
+    backgroundColor: fiticianTokens.colors.mediaCanvas,
     overflow: "hidden",
     width: "100%",
   },
-});
+}));

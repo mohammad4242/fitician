@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -27,7 +29,6 @@ import {
   TextField,
 } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import { UploadCancellationError, UploadManager, type UploadHandle } from "../upload/uploadManager";
 import {
   createLabDocumentUploadJob,
@@ -69,6 +70,8 @@ const supplementStatusFilters: readonly { readonly label: string; readonly value
 export type NutritionClinicalMode = "all" | "labs" | "supplements";
 
 export function NutritionClinicalSection({ mode = "all" }: { readonly mode?: NutritionClinicalMode } = {}) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
@@ -463,6 +466,8 @@ function LabUploadCard({
   readonly selectedRequestIds: readonly string[];
   readonly testDate: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.card}>
       <Text style={styles.cardTitle}>افزودن نتیجه آزمایش</Text>
@@ -546,6 +551,8 @@ function LabRequestsCard({
   readonly requests: readonly NutritionLabRequest[];
   readonly state: ReturnType<typeof getMobileViewState<NutritionLabRequest[]>>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={150} />;
   if (state.status === "offline" && requests.length === 0) {
     return <Notice message="درخواست‌های آزمایش برای مشاهده به اینترنت نیاز دارند." variant="offline" />;
@@ -593,6 +600,8 @@ function LabDocumentsCard({
   readonly onRetry: () => void;
   readonly state: ReturnType<typeof getMobileViewState<NutritionLabDocument[]>>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={280} />;
   if (state.status === "error" && documents.length === 0) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -668,6 +677,8 @@ function SupplementOrdersCard({
   readonly statusFilter: SupplementStatusFilter;
   readonly totalOrders: number;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={300} />;
   if (state.status === "error" && orders.length === 0) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -749,6 +760,8 @@ const contributionLabels: Readonly<Record<string, string>> = {
 };
 
 function ContributionRows({ values }: { readonly values: Readonly<Record<string, string>> }) {
+  const styles = useThemeStyles(createStyles);
+
   const rows = Object.entries(values);
   if (rows.length === 0) return <Text style={styles.mutedText}>—</Text>;
   return (
@@ -772,6 +785,8 @@ function VerifiedSupplementCatalogue({
   readonly onRetry: () => void;
   readonly state: ReturnType<typeof getMobileViewState<NutritionSupplementCatalogue[]>>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const verified = items.filter((item) => item.verification_status === "verified");
   if (state.status === "error" && verified.length === 0) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -832,7 +847,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -883,13 +898,13 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   count: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     writingDirection: "ltr",
   },
   fileName: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -970,4 +985,4 @@ const styles = StyleSheet.create({
     textAlign: "left",
     writingDirection: "ltr",
   },
-});
+}));

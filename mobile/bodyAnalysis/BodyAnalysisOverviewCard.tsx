@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useState } from "react";
 import {
   Image,
@@ -10,7 +12,6 @@ import {
 import type { BodyAnalysisExperienceV4, BodyPhotoView } from "@fitician/core/body-photos";
 
 import { AppIcon, Card, MetricRing, ProgressBar, SectionHeader } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import {
   buildBodyAnalysisExperienceCopy,
   bodyBmiLabel,
@@ -28,17 +29,20 @@ const viewLabels: Record<BodyPhotoView, string> = {
   side: "نیم‌رخ",
 };
 
-const toneColors: Record<BodyIndicatorTone, string> = {
+const createToneColors = (fiticianTokens: FiticianTokens): Record<BodyIndicatorTone, string> => ({
   amber: fiticianTokens.colors.amber,
   aqua: fiticianTokens.colors.aqua,
   blue: fiticianTokens.colors.blue,
-};
+});
 
 export function BodyAnalysisOverviewCard({
   experience,
 }: {
   readonly experience: BodyAnalysisExperienceV4;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [activeView, setActiveView] = useState<BodyPhotoView>("front");
   const sex = experience.input_snapshot.sex === "female" ? "female" : "male";
   const sexLabel = sex === "female" ? "زن" : "مرد";
@@ -73,7 +77,7 @@ export function BodyAnalysisOverviewCard({
           />
           <View style={styles.mediaTag}>
             <Text style={styles.mediaTagText}>{viewLabels[activeView]}</Text>
-            <AppIcon accessibilityLabel="نمای بدن" color={fiticianTokens.colors.aqua} name="bodyAnalysis" size={16} />
+            <AppIcon accessibilityLabel="نمای بدن" color={fiticianTokens.colors.accentInk} name="bodyAnalysis" size={16} />
           </View>
         </View>
 
@@ -95,7 +99,7 @@ export function BodyAnalysisOverviewCard({
                 {viewLabels[view]}
               </Text>
               <AppIcon
-                color={activeView === view ? fiticianTokens.colors.canvas : fiticianTokens.colors.muted}
+                color={activeView === view ? fiticianTokens.colors.onAccent : fiticianTokens.colors.muted}
                 name="bodyAnalysis"
                 size={17}
               />
@@ -129,7 +133,7 @@ export function BodyAnalysisOverviewCard({
             <Text style={styles.cardTitle}>{experienceCopy.firstLookTitle}</Text>
           </View>
           <View style={styles.iconTile}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="bodyAnalysis" size={20} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="bodyAnalysis" size={20} />
           </View>
         </View>
         <Text style={styles.body}>{experienceCopy.firstLook}</Text>
@@ -163,6 +167,9 @@ function BodyMetricCard({
   readonly trackHint: string;
   readonly value: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [showInfo, setShowInfo] = useState(false);
 
   return (
@@ -190,6 +197,9 @@ function BodyMetricCard({
 }
 
 function IndicatorCard({ indicator }: { readonly indicator: BodyIndicatorPresentation }) {
+  const toneColors = useThemeStyles(createToneColors);
+  const styles = useThemeStyles(createStyles);
+
   const color = toneColors[indicator.tone];
   return (
     <Card style={[styles.indicatorCard, { borderColor: `${color}42` }]}>
@@ -222,7 +232,7 @@ function formatMetric(value: number): string {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(value);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -267,7 +277,7 @@ const styles = StyleSheet.create({
     width: 6,
   },
   captureText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -470,7 +480,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: 10,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -534,7 +544,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   viewTabTextActive: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   viewTabs: {
     backgroundColor: fiticianTokens.colors.surfaceSubtle,
@@ -543,4 +553,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[1],
     padding: fiticianTokens.spacing[1],
   },
-});
+}));

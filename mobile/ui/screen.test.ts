@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import TestRenderer, { act } from "react-test-renderer";
 import { expect, it, vi } from "vitest";
 
 type NativeElement = {
@@ -34,7 +36,7 @@ import { Screen } from "./layout/Screen";
 function element(value: unknown): NativeElement {
   let current = value as { type: unknown; props: Record<string, unknown> };
   while (typeof current.type === "function") {
-    current = current.type(current.props) as typeof current;
+    current = renderComponent(() => (current.type as (props: Record<string, unknown>) => unknown)(current.props)) as typeof current;
   }
   return current as NativeElement;
 }
@@ -47,7 +49,7 @@ function flattenStyle(style: unknown): Record<string, unknown> {
 }
 
 it("wraps scrollable content in safe-area and keyboard-aware native containers", () => {
-  const safeArea = element(Screen({ children: "form" }));
+  const safeArea = element(renderComponent(() => Screen({ children: "form" })));
   const keyboard = element(safeArea.props.children);
   const scroll = element(keyboard.props.children);
 
@@ -66,7 +68,7 @@ it("wraps scrollable content in safe-area and keyboard-aware native containers",
 it("uses iOS padding keyboard avoidance while preserving the shared RTL safe area", () => {
   native.Platform.OS = "ios";
 
-  const safeArea = element(Screen({ children: "form" }));
+  const safeArea = element(renderComponent(() => Screen({ children: "form" })));
   const keyboard = element(safeArea.props.children);
 
   expect(keyboard.props.behavior).toBe("padding");
@@ -80,7 +82,7 @@ it("uses tablet gutters and reading width for non-scroll content", () => {
   native.dimensions.width = 1024;
   native.dimensions.height = 768;
 
-  const safeArea = element(Screen({ children: "content", contentWidth: "reading", scroll: false }));
+  const safeArea = element(renderComponent(() => Screen({ children: "content", contentWidth: "reading", scroll: false })));
   const keyboard = element(safeArea.props.children);
   const content = element(keyboard.props.children);
   const style = content.props.style as readonly unknown[];
@@ -93,3 +95,13 @@ it("uses tablet gutters and reading width for non-scroll content", () => {
     paddingHorizontal: 32,
   });
 });
+
+vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn(async () => null), setItemAsync: vi.fn(async () => undefined) }));
+
+// Mount the component so runtime theme hooks execute with a real React dispatcher.
+function renderComponent(run: () => unknown): unknown {
+  let result: unknown;
+  act(() => { TestRenderer.create(createElement(function Capture() { result = run(); return null; })); });
+  return result;
+}
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

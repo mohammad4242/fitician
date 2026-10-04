@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -23,7 +25,6 @@ import {
   Skeleton,
 } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 import { createBodyPhotoApi } from "./bodyPhotoApi";
 import { BodyAnalysisExperienceTabs } from "./BodyAnalysisExperienceTabs";
 import { bodyAnalysisCopy, bodyPhotoCopy } from "./bodyAnalysisCopy";
@@ -41,6 +42,8 @@ const activeAnalysisStates = new Set<BodyAnalysis["status"]>([
 ]);
 
 export function BodyAnalysisResultScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ sessionId?: string | string[] }>();
@@ -223,6 +226,8 @@ export function BodyAnalysisResultScreen() {
 }
 
 function PhotoQualityCard({ analysis }: { readonly analysis: BodyAnalysis }) {
+  const styles = useThemeStyles(createStyles);
+
   const validation = analysis.photo_validation;
   if (validation === null || validation === undefined) return null;
   return (
@@ -240,6 +245,8 @@ function PhotoQualityCard({ analysis }: { readonly analysis: BodyAnalysis }) {
 }
 
 function NormalizedResult({ analysis }: { readonly analysis: BodyAnalysis }) {
+  const styles = useThemeStyles(createStyles);
+
   const result = analysis.normalized_result;
   if (result === null || result === undefined) return null;
   return (
@@ -264,6 +271,8 @@ function NormalizedResult({ analysis }: { readonly analysis: BodyAnalysis }) {
 }
 
 function ReviewStatusCard({ analysis }: { readonly analysis: BodyAnalysis }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.section}>
       <SectionHeader eyebrow="نظر متخصصان" title={bodyPhotoCopy.results.reviewTitle} />
@@ -285,6 +294,8 @@ function ReviewRow({
   readonly label: string;
   readonly review: BodyAnalysis["coach_review"];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const approved = review.decision === "approved";
   return (
     <View accessibilityLabel={`${label}: ${reviewLabel(review.decision)}`} style={styles.reviewRow}>
@@ -296,11 +307,14 @@ function ReviewRow({
 }
 
 function PrivacyDisclaimer() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.disclaimerCard} variant="glass">
       <View style={styles.disclaimerHeading}>
         <Text style={styles.cardTitle}>{bodyAnalysisCopy.disclaimer.title}</Text>
-        <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={20} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="shield" size={20} />
       </View>
       <Text style={styles.body}>{bodyAnalysisCopy.disclaimer.body}</Text>
     </Card>
@@ -314,6 +328,8 @@ function PhotoDetails({
   readonly photoUris: Partial<Record<BodyPhoto["view"], string>>;
   readonly photos: BodyPhoto[];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <DisclosureCard
       icon="shield"
@@ -342,6 +358,8 @@ function PhotoDetails({
 }
 
 function ResultDetailsDisclosure({ analysis }: { readonly analysis: BodyAnalysis }) {
+  const styles = useThemeStyles(createStyles);
+
   const validation = analysis.photo_validation;
   return (
     <DisclosureCard
@@ -449,7 +467,7 @@ function formatPercent(value: number | null): string {
   return value === null ? "—" : `${Math.round(value * 100)}٪`;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -464,7 +482,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   changeArea: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -576,7 +594,7 @@ const styles = StyleSheet.create({
     width: 9,
   },
   reviewDotApproved: {
-    backgroundColor: fiticianTokens.colors.success,
+    backgroundColor: fiticianTokens.colors.successFill,
   },
   reviewRow: {
     alignItems: "center",
@@ -606,7 +624,7 @@ const styles = StyleSheet.create({
     paddingTop: fiticianTokens.spacing[3],
   },
   status: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -626,4 +644,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

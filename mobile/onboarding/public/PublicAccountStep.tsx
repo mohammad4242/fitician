@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../../ui/theme/ThemeProvider";
+import { useThemeTokens } from "../../ui/theme/ThemeProvider";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
@@ -9,8 +11,7 @@ import { useGoogleSignIn } from "../../auth/GoogleSignIn";
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
 import { normalizePhoneNumber, validateEmail, validateOtpCode, validatePassword, validatePhoneNumber } from "../../auth/validation";
 import { AppIcon, Button, Notice, TextField } from "../../ui/components";
-import { fiticianTokens } from "../../ui/tokens";
-import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
+import { createPublicOnboardingStyles } from "./publicOnboardingStyles";
 
 export interface PublicAccountStepProps {
   readonly mode: ProductMode;
@@ -62,6 +63,10 @@ function faNumber(value: number): string {
 }
 
 export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStepProps) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
+  const fiticianTokens = useThemeTokens();
+
   const { width } = useSafeAreaFrame();
   const compactLayout = width <= 650;
   const auth = useMobileAuth();
@@ -202,7 +207,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
 
       <View style={styles.accountSecurity}>
         <View style={styles.accountSecurityIcon}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="shield" size={20} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="shield" size={20} />
         </View>
         <View style={styles.accountSecurityCopy}>
           <Text style={styles.accountSecurityTitle}>{copy.securityTitle}</Text>

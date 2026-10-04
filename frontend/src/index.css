@@ -93,7 +93,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 2px;
 }
 
@@ -235,10 +235,10 @@ canvas {
   justify-content: center;
   gap: 0.55rem;
   padding-inline: 1rem;
-  border: 1px solid rgb(255 255 255 / 24%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 24%));
   border-radius: 99rem;
   color: inherit;
-  background: rgb(255 255 255 / 7%);
+  background: rgb(var(--fitician-highlight-rgb) / 7%);
   cursor: pointer;
   transition:
     background 180ms ease,
@@ -357,11 +357,11 @@ html[dir="rtl"] .welcome-card h1 {
   grid-template-rows: auto 1fr;
   padding: 1.2rem clamp(1rem, 6vw, 5rem) 3rem;
   background:
-    linear-gradient(rgb(255 255 255 / 72%), rgb(255 255 255 / 72%)),
+    linear-gradient(var(--fitician-palette-surface, rgb(255 255 255 / 72%)), var(--fitician-palette-surface, rgb(255 255 255 / 72%))),
     repeating-linear-gradient(
       90deg,
       transparent 0 3.9rem,
-      rgb(18 51 50 / 3%) 4rem
+      var(--fitician-palette-surface-translucent, rgb(18 51 50 / 3%)) 4rem
     );
 }
 
@@ -403,7 +403,7 @@ html[dir="rtl"] .welcome-card h1 {
 }
 
 .primary-button {
-  color: var(--fitician-petrol);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
@@ -442,7 +442,7 @@ html[dir="rtl"] .next-step-card h2 {
   padding: 0.3rem;
   border: 1px solid var(--fitician-line);
   border-radius: 0.95rem;
-  background: rgb(255 255 255 / 4%);
+  background: rgb(var(--fitician-highlight-rgb) / 4%);
 }
 
 .auth-tabs button {
@@ -456,7 +456,7 @@ html[dir="rtl"] .next-step-card h2 {
 }
 
 .auth-tabs button[aria-selected="true"] {
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
@@ -469,7 +469,7 @@ html[dir="rtl"] .next-step-card h2 {
 
 .auth-field-heading a,
 .auth-resend {
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 0.82rem;
   font-weight: 750;
   text-underline-offset: 0.25rem;
@@ -546,9 +546,9 @@ html[dir="rtl"] .next-step-card h2 {
   padding-inline: 1.2rem;
   border: 0;
   border-radius: 0.9rem 0.9rem 0.2rem 0.9rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
-  box-shadow: 0 0.8rem 2rem rgb(18 51 50 / 16%);
+  box-shadow: 0 0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(16% * var(--fitician-shadow-strength)));
   font-weight: 800;
   cursor: pointer;
   transition:
@@ -560,7 +560,7 @@ html[dir="rtl"] .next-step-card h2 {
 @media (hover: hover) and (pointer: fine) {
   .primary-button:hover:not(:disabled) {
     background: var(--petrol-800);
-    box-shadow: 0 1rem 2.4rem rgb(18 51 50 / 22%);
+    box-shadow: 0 1rem 2.4rem rgb(var(--fitician-shadow-rgb) / calc(22% * var(--fitician-shadow-strength)));
     transform: translateY(-1px);
   }
 }
@@ -587,7 +587,7 @@ html[dir="ltr"] .primary-button span:last-child {
   border-inline-start: 4px solid var(--persimmon);
   border-radius: 0.6rem;
   color: var(--danger);
-  background: #fff0ec;
+  background: var(--fitician-palette-surface, #fff0ec);
   line-height: 1.6;
 }
 
@@ -703,7 +703,7 @@ html[dir="ltr"] .primary-button span:last-child {
   padding-inline: 1.4rem;
   border: 0;
   border-radius: 0.8rem;
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
   font-weight: 800;
   cursor: pointer;
@@ -732,7 +732,7 @@ html[dir="ltr"] .primary-button span:last-child {
 .logout-button {
   border-color: var(--line);
   color: var(--ink);
-  background: rgb(255 255 255 / 70%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 70%));
 }
 
 .logout-button {
@@ -972,8 +972,8 @@ html[dir="ltr"] .primary-button span:last-child {
     gap: 0.2rem;
     padding: 0.55rem max(0.4rem, env(safe-area-inset-right)) calc(0.55rem + env(safe-area-inset-bottom)) max(0.4rem, env(safe-area-inset-left));
     border-top: 1px solid rgb(80 223 206 / 16%);
-    background: rgb(2 11 12 / 98%);
-    box-shadow: 0 -0.8rem 2rem rgb(0 0 0 / 24%);
+    background: var(--fitician-palette-surface, rgb(2 11 12 / 98%));
+    box-shadow: 0 -0.8rem 2rem rgb(var(--fitician-shadow-rgb) / calc(24% * var(--fitician-shadow-strength)));
   }
 
   .app-shell__nav-link {
@@ -984,7 +984,7 @@ html[dir="ltr"] .primary-button span:last-child {
     gap: 0.18rem;
     padding: 0.3rem 0.15rem;
     border-radius: 0.7rem;
-    color: rgb(234 244 241 / 62%);
+    color: var(--fitician-palette-muted, rgb(234 244 241 / 62%));
     font-size: 0.68rem;
     font-weight: 750;
     transition: color 180ms ease, background 180ms ease;
@@ -998,7 +998,7 @@ html[dir="ltr"] .primary-button span:last-child {
   }
 
   .app-shell__nav-link--active {
-    color: var(--fitician-aqua);
+    color: var(--fitician-accent-ink);
     background: rgb(80 223 206 / 9%);
   }
 
@@ -1080,14 +1080,14 @@ html[dir="ltr"] .primary-button span:last-child {
   .app-shell__more-button {
     width: 100%;
     border: 0;
-    color: rgb(234 244 241 / 62%);
+    color: var(--fitician-palette-muted, rgb(234 244 241 / 62%));
     background: transparent;
     font: inherit;
     cursor: pointer;
   }
 
   .app-shell__more-button[aria-expanded="true"] {
-    color: var(--fitician-aqua);
+    color: var(--fitician-accent-ink);
     background: rgb(80 223 206 / 12%);
   }
 
@@ -1120,8 +1120,8 @@ html[dir="ltr"] .primary-button span:last-child {
     padding: 0.55rem;
     border: 1px solid rgb(80 223 206 / 20%);
     border-radius: 0.8rem;
-    background: rgb(2 11 12 / 99%);
-    box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 32%);
+    background: var(--fitician-palette-surface, rgb(2 11 12 / 99%));
+    box-shadow: 0 1rem 2.5rem rgb(var(--fitician-shadow-rgb) / calc(32% * var(--fitician-shadow-strength)));
   }
 
   .app-shell__more-menu .app-shell__nav-link {
@@ -1204,7 +1204,7 @@ html[dir="ltr"] .primary-button span:last-child {
 .member-header-media__veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, rgb(10 31 30 / 84%), rgb(10 31 30 / 48%) 54%, rgb(10 31 30 / 74%));
+  background: var(--fitician-decorative-veil);
 }
 
 .member-page-background {
@@ -1268,7 +1268,7 @@ html[dir="ltr"] .primary-button span:last-child {
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
   background: var(--fitician-surface);
-  color-scheme: dark;
+  color-scheme: var(--fitician-color-scheme);
 }
 
 .auth-shell .auth-form input:focus {
@@ -1277,7 +1277,7 @@ html[dir="ltr"] .primary-button span:last-child {
 }
 
 .auth-shell .primary-button {
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   box-shadow: 0 2px 10px rgb(80 223 206 / 20%);
 }
@@ -1293,7 +1293,7 @@ html[dir="ltr"] .primary-button span:last-child {
 .auth-shell .primary-button:active:not(:disabled) {
   transform: translateY(0) scale(0.985);
 }
-.auth-shell .form-alternative a { color: var(--fitician-aqua); }
+.auth-shell .form-alternative a { color: var(--fitician-accent-ink); }
 @media (max-width: 767px) {
   .auth-shell {
     padding-block: env(safe-area-inset-top) env(safe-area-inset-bottom);
@@ -1320,7 +1320,7 @@ html[dir="ltr"] .primary-button span:last-child {
 .fitician-page .authenticated-nav,
 .fitsho-page .authenticated-nav {
   border: 1px solid var(--fitician-line);
-  background: rgb(255 255 255 / 3%);
+  background: rgb(var(--fitician-highlight-rgb) / 3%);
   backdrop-filter: blur(12px);
 }
 .fitician-page .authenticated-nav a,
@@ -1331,11 +1331,11 @@ html[dir="ltr"] .primary-button span:last-child {
 .fitician-page .authenticated-nav a:hover,
 .fitsho-page .authenticated-nav a:hover {
   color: var(--fitician-ink);
-  background: rgb(255 255 255 / 6%);
+  background: rgb(var(--fitician-highlight-rgb) / 6%);
 }
 .fitician-page .authenticated-nav a[aria-current="page"],
 .fitsho-page .authenticated-nav a[aria-current="page"] {
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   box-shadow: 0 2px 8px rgb(80 223 206 / 25%);
 }
@@ -1411,7 +1411,7 @@ html[dir="ltr"] .primary-button span:last-child {
   padding-right: max(clamp(1rem, 3vw, 2rem), env(safe-area-inset-right));
   border-color: var(--fitician-line);
   color: var(--fitician-ink);
-  background: rgb(2 11 12 / 88%);
+  background: var(--fitician-palette-surface-translucent, rgb(2 11 12 / 88%));
   backdrop-filter: blur(18px);
 }
 
@@ -1424,7 +1424,7 @@ html[dir="ltr"] .primary-button span:last-child {
   background: var(--fitician-surface);
 }
 
-.app-shell > .dashboard-header .logout-button { color: #ffad98; }
+.app-shell > .dashboard-header .logout-button { color: var(--fitician-palette-danger, #ffad98); }
 
 .app-shell__content {
   grid-area: content;
@@ -1445,7 +1445,7 @@ html[dir="ltr"] .primary-button span:last-child {
   gap: 0.45rem;
   padding: 1rem 0.65rem;
   border-inline-end: 1px solid var(--fitician-line);
-  background: rgb(4 17 17 / 92%);
+  background: var(--fitician-palette-surface-translucent, rgb(4 17 17 / 92%));
 }
 
 .app-shell__nav-link {
@@ -1464,9 +1464,9 @@ html[dir="ltr"] .primary-button span:last-child {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .app-shell__nav-link:hover { color: var(--fitician-ink); background: rgb(255 255 255 / 4%); }
+  .app-shell__nav-link:hover { color: var(--fitician-ink); background: rgb(var(--fitician-highlight-rgb) / 4%); }
 }
-.app-shell__nav-link--active { color: var(--fitician-aqua); background: rgb(80 223 206 / 9%); }
+.app-shell__nav-link--active { color: var(--fitician-accent-ink); background: rgb(80 223 206 / 9%); }
 .app-shell__nav-link--active::before { position: absolute; inset-inline-start: 0; width: 0.2rem; height: 2rem; border-radius: 99rem; background: var(--fitician-aqua); content: ""; }
 .app-shell__nav-link { position: relative; }
 
@@ -1529,9 +1529,9 @@ html[dir="ltr"] .primary-button span:last-child {
     gap: 0.2rem;
     padding: 0.45rem max(0.4rem, env(safe-area-inset-right)) calc(0.5rem + env(safe-area-inset-bottom)) max(0.4rem, env(safe-area-inset-left));
     border: 0;
-    border-block-start: 1px solid rgb(255 255 255 / 8%);
-    background: rgb(2 11 12 / 92%);
-    box-shadow: 0 -0.8rem 2.4rem rgb(0 0 0 / 36%);
+    border-block-start: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 8%));
+    background: var(--fitician-palette-surface-translucent, rgb(2 11 12 / 92%));
+    box-shadow: 0 -0.8rem 2.4rem rgb(var(--fitician-shadow-rgb) / calc(36% * var(--fitician-shadow-strength)));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -1563,10 +1563,13 @@ html[dir="ltr"] .primary-button span:last-child {
 .fitsho-page .member-menu button {
   border-color: rgb(80 223 206 / 7%);
   color: var(--fitician-ink);
-  background: rgb(255 255 255 / 3%);
+  background: rgb(var(--fitician-highlight-rgb) / 3%);
 }
 
 .fitician-page .member-menu__section-label,
 .fitsho-page .member-menu__section-label {
   color: var(--fitician-muted);
 }
+
+html.fitician-app, .fitician-app body { color: var(--fitician-ink); background-color: var(--fitician-canvas); }
+[data-fitician-theme="light"] { --petrol-800: var(--fitician-surface-raised); --mist-100: var(--fitician-surface-subtle); --mist-50: var(--fitician-canvas); --turquoise: var(--fitician-accent-ink); --turquoise-dark: var(--fitician-accent-ink); --ink: var(--fitician-ink); --muted: var(--fitician-muted); --line: var(--fitician-line); --danger: var(--fitician-danger); }

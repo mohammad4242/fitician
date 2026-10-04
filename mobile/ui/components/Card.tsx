@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   Pressable,
   StyleSheet,
@@ -10,7 +12,6 @@ import {
 import { type ReactNode } from "react";
 
 import { LTR_LAYOUT, RTL_LAYOUT, type FiticianDirection } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export type CardVariant = "default" | "raised" | "interactive" | "hero" | "glass";
 
@@ -22,7 +23,7 @@ export interface CardProps extends Omit<ViewProps, "style"> {
   readonly variant?: CardVariant;
 }
 
-const variantStyles: Record<CardVariant, ViewStyle> = {
+const createVariantStyles = (fiticianTokens: FiticianTokens): Record<CardVariant, ViewStyle> => ({
   default: {
     backgroundColor: fiticianTokens.colors.surface,
     borderColor: fiticianTokens.colors.line,
@@ -43,9 +44,12 @@ const variantStyles: Record<CardVariant, ViewStyle> = {
     backgroundColor: fiticianTokens.colors.surfaceTranslucent,
     borderColor: fiticianTokens.colors.line,
   },
-};
+});
 
 export function Card({ children, direction = "rtl", onPress, style, variant = "default", ...viewProps }: CardProps) {
+  const variantStyles = useThemeStyles(createVariantStyles);
+  const styles = useThemeStyles(createStyles);
+
   const directionStyle = direction === "rtl" ? RTL_LAYOUT : LTR_LAYOUT;
   const cardStyle = [styles.base, directionStyle, variantStyles[variant], style];
 
@@ -70,7 +74,7 @@ export function Card({ children, direction = "rtl", onPress, style, variant = "d
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   base: {
     borderRadius: fiticianTokens.radii.card,
     borderWidth: 1,
@@ -86,4 +90,4 @@ const styles = StyleSheet.create({
     opacity: 0.88,
     transform: [{ scale: fiticianTokens.motion.pressedScale }],
   },
-});
+}));

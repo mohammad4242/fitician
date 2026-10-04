@@ -1,10 +1,11 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { nutritionProgressTone, type NutritionProgressTone } from "@fitician/core";
 import type { TimelineNutrition } from "@fitician/core/program-timeline";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppIcon, Button, MetricRing, MetricStrip, StateSkeleton } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import type { HomeNutritionSummary } from "./homeModel";
 
 export interface NutritionSummaryCardProps {
@@ -15,13 +16,17 @@ export interface NutritionSummaryCardProps {
   readonly timeline?: TimelineNutrition | null;
 }
 
-const nutritionRingColors: Record<NutritionProgressTone, string> = {
+const createNutritionRingColors = (fiticianTokens: FiticianTokens): Record<NutritionProgressTone, string> => ({
   blue: fiticianTokens.colors.blue,
   green: fiticianTokens.colors.success,
   red: fiticianTokens.colors.danger,
-};
+});
 
 export function NutritionSummaryCard({ error = false, errorMessage, loading, summary, timeline }: NutritionSummaryCardProps) {
+  const fiticianTokens = useThemeTokens();
+  const nutritionRingColors = useThemeStyles(createNutritionRingColors);
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const hasTarget = summary.targetCalories !== null;
 
@@ -54,7 +59,7 @@ export function NutritionSummaryCard({ error = false, errorMessage, loading, sum
             ) : null}
           </View>
           <View style={styles.iconBadge}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={fiticianTokens.iconSize.md} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="nutrition" size={fiticianTokens.iconSize.md} />
           </View>
         </View>
 
@@ -113,6 +118,8 @@ function CalorieMetric({
   readonly value: number;
   readonly withDivider?: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.calorieMetric, withDivider && styles.calorieMetricDivider]}>
       <Text style={styles.calorieValue}>{formatNumber(value)}</Text>
@@ -129,7 +136,7 @@ function formatMetric(value: number | null): string {
   return value === null ? "—" : `${formatNumber(value)}g`;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   calorieMetric: { flex: 1, gap: fiticianTokens.spacing[1], minWidth: 0 },
   calorieMetricDivider: {
     borderRightColor: fiticianTokens.colors.line,
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -234,7 +241,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   timelineDay: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -247,4 +254,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

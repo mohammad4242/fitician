@@ -1,3 +1,4 @@
+import { useThemeTokens } from "../ui/theme/ThemeProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -6,6 +7,7 @@ export function RemoteFoodSelector({ foods, onSelect, selectedFoodId, testID, se
   foods: readonly FoodCatalogueItem[]; onSelect: (id: string, food?: FoodCatalogueItem) => void;
   selectedFoodId: string | null; testID?: string; searchable?: boolean; search?: string; onSearchChange?: (value: string) => void;
 }) {
+  const tokens = useThemeTokens();
   const auth = useMobileAuth();
   const api = useMemo(() => createNutritionCatalogueApi(auth.request), [auth.request]);
   const [open, setOpen] = useState(false);
@@ -40,15 +42,15 @@ export function RemoteFoodSelector({ foods, onSelect, selectedFoodId, testID, se
   }, [api, open, debounced, page, attempt]);
   return <View style={{ gap: 8, padding: 8 }}>
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={selectedFood ? `ماده غذایی: ${selectedFood.name_fa}` : "انتخاب ماده غذایی"} accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)}>
-      <Text style={{ color: "#19c8b5", padding: 8 }}>{selectedFood?.name_fa ?? "انتخاب کن…"}</Text>
+      <Text style={{ color: tokens.colors.accentInk, padding: 8 }}>{selectedFood?.name_fa ?? "انتخاب کن…"}</Text>
     </Pressable>
     {open && <>
-      <TextInput accessibilityLabel="جست‌وجوی غذا" placeholder="جست‌وجوی غذا" value={query} onChangeText={value => { setLocalSearch(value); onSearchChange?.(value); }} style={{ padding: 10, color: "#eef6f8", borderWidth: 1, borderColor: "#637281" }} />
-      {busy && <Text>در حال جست‌وجو…</Text>}
-      {error && <Pressable accessibilityRole="button" onPress={() => setAttempt(value => value + 1)}><Text>جست‌وجو ناموفق؛ تلاش دوباره</Text></Pressable>}
-      {!busy && !error && !items.length && <Text>غذایی پیدا نشد.</Text>}
-      {items.map(food => <Pressable key={food.id} accessibilityRole="button" accessibilityState={{ selected: food.id === selectedFoodId }} onPress={() => { setSelected(food); onSelect(food.id, food); setOpen(false); }}><Text style={{ color: "#eef6f8", padding: 8 }}>{food.name_fa}</Text></Pressable>)}
-      {items.length < total && <Pressable accessibilityRole="button" disabled={busy} onPress={() => setPage(value => value + 1)}><Text>نمایش بیشتر</Text></Pressable>}
+      <TextInput placeholderTextColor={tokens.colors.muted} accessibilityLabel="جست‌وجوی غذا" placeholder="جست‌وجوی غذا" value={query} onChangeText={value => { setLocalSearch(value); onSearchChange?.(value); }} style={{ padding: 10, color: tokens.colors.ink, borderWidth: 1, borderColor: tokens.colors.line }} />
+      {busy && <Text style={{ color: tokens.colors.ink }}>در حال جست‌وجو…</Text>}
+      {error && <Pressable accessibilityRole="button" onPress={() => setAttempt(value => value + 1)}><Text style={{ color: tokens.colors.ink }}>جست‌وجو ناموفق؛ تلاش دوباره</Text></Pressable>}
+      {!busy && !error && !items.length && <Text style={{ color: tokens.colors.ink }}>غذایی پیدا نشد.</Text>}
+      {items.map(food => <Pressable key={food.id} accessibilityRole="button" accessibilityState={{ selected: food.id === selectedFoodId }} onPress={() => { setSelected(food); onSelect(food.id, food); setOpen(false); }}><Text style={{ color: tokens.colors.ink, padding: 8 }}>{food.name_fa}</Text></Pressable>)}
+      {items.length < total && <Pressable accessibilityRole="button" disabled={busy} onPress={() => setPage(value => value + 1)}><Text style={{ color: tokens.colors.ink }}>نمایش بیشتر</Text></Pressable>}
     </>}
   </View>;
 }

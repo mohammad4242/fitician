@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   Pressable,
@@ -11,7 +13,6 @@ import {
 
 import type { FiticianIconName } from "../icons";
 import { getRowDirectionStyle, getTextDirectionStyle, type FiticianDirection } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import { AppIcon } from "./AppIcon";
 
 export type GroupedListDirection = FiticianDirection;
@@ -40,6 +41,9 @@ export interface GroupedListProps {
 }
 
 export function GroupedList({ direction = "rtl", sections, style, testID }: GroupedListProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const textStyle = getTextDirectionStyle(direction);
 
   return (
@@ -67,7 +71,7 @@ export function GroupedList({ direction = "rtl", sections, style, testID }: Grou
             ];
             const content = (
               <>
-                {item.icon ? <AppIcon color={fiticianTokens.colors.aqua} name={item.icon} /> : null}
+                {item.icon ? <AppIcon color={fiticianTokens.colors.accentInk} name={item.icon} /> : null}
                 <View style={styles.copy}>
                   <Text
                     allowFontScaling
@@ -116,7 +120,7 @@ export function GroupedList({ direction = "rtl", sections, style, testID }: Grou
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     backgroundColor: fiticianTokens.colors.surface,
     borderColor: fiticianTokens.colors.line,
@@ -172,4 +176,4 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 18,
   },
-});
+}));

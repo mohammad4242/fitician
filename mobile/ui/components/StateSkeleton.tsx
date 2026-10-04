@@ -1,7 +1,8 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { RTL_LAYOUT, RTL_ROW } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import { Skeleton } from "./Feedback";
 
 export interface StateSkeletonProps {
@@ -10,6 +11,8 @@ export interface StateSkeletonProps {
 }
 
 export function StateSkeleton({ style, variant = "card" }: StateSkeletonProps) {
+  const styles = useThemeStyles(createStyles);
+
   if (variant === "row") {
     return (
       <View accessibilityLabel="در حال بارگذاری" style={[styles.row, RTL_ROW, style]}>
@@ -31,7 +34,7 @@ export function StateSkeleton({ style, variant = "card" }: StateSkeletonProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     backgroundColor: fiticianTokens.colors.surface,
     borderColor: fiticianTokens.colors.line,
@@ -55,4 +58,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
     minWidth: 0,
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -10,12 +12,13 @@ import { Card, Notice, PageHeading, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { RTL_TEXT } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { createBillingApi } from "./billingApi";
 
 const billing = fa.translation.billing;
 
 export function BillingHistoryScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const api = useMemo(() => createBillingApi(auth.request), [auth.request]);
   const [orders, setOrders] = useState<BillingOrder[]>([]);
@@ -105,9 +108,9 @@ function formatDate(value: string): string {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   amount: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -151,4 +154,4 @@ const styles = StyleSheet.create({
   screen: {
     gap: fiticianTokens.spacing[3],
   },
-});
+}));

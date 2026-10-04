@@ -168,7 +168,7 @@
 .access-admin-button--primary:hover,
 .access-admin-button--primary:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-ink); background: var(--fitician-teal); }
 .access-admin-button--primary:disabled { border-color: var(--fitician-line); color: var(--fitician-muted); background: var(--fitician-teal); opacity: 1; }
-.access-admin-button--create { gap: .5rem; border-color: var(--fitician-aqua); color: var(--fitician-petrol); background: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 18%), 0 .45rem 1.2rem rgb(80 223 206 / 18%); }
+.access-admin-button--create { gap: .5rem; border-color: var(--fitician-aqua); color: var(--fitician-on-accent); background: var(--fitician-aqua); box-shadow: 0 0 0 1px rgb(80 223 206 / 18%), 0 .45rem 1.2rem rgb(80 223 206 / 18%); }
 .access-admin-button--create:hover, .access-admin-button--create:focus-visible { border-color: var(--fitician-aqua); color: var(--fitician-aqua); background: var(--fitician-teal); box-shadow: 0 0 0 3px rgb(80 223 206 / 22%), 0 .55rem 1.35rem rgb(0 0 0 / 28%); }
 .access-admin-button__icon { display: inline-grid; width: 1.25rem; height: 1.25rem; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-size: 1rem; font-weight: 900; line-height: 1; }
 .access-admin-button--quiet { border-color: var(--fitician-line-strong); background: var(--fitician-surface); }
@@ -356,7 +356,7 @@
 .access-campaign-preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
 .access-campaign-preview { display: grid; gap: .55rem; min-height: 11rem; padding: 1rem; border: 1px solid rgb(80 223 206 / 30%); border-radius: var(--fitician-radius-lg); color: var(--fitician-ink); background: linear-gradient(145deg, rgb(80 223 206 / 14%), var(--fitician-surface-raised)); box-shadow: 0 .6rem 1.5rem rgb(0 0 0 / 8%); }
 .access-campaign-preview__language { color: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
-.access-campaign-preview__badge { width: fit-content; padding: .25rem .5rem; border-radius: 999px; color: var(--fitician-petrol); background: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
+.access-campaign-preview__badge { width: fit-content; padding: .25rem .5rem; border-radius: 999px; color: var(--fitician-on-accent); background: var(--fitician-aqua); font-size: .68rem; font-weight: 850; }
 .access-campaign-preview h4 { margin: 0; font-size: 1rem; line-height: 1.5; }
 .access-campaign-preview p { min-height: 2.8rem; margin: 0; color: var(--fitician-muted); font-size: .78rem; line-height: 1.7; }
 .access-campaign-preview small { color: var(--fitician-teal); font-size: .72rem; font-weight: 800; }

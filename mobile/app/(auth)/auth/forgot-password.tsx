@@ -1,3 +1,4 @@
+import { useThemeStyles } from "../../../ui/theme/ThemeProvider";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,7 +9,7 @@ import { AuthFormSection, AuthScaffold } from "../../../auth/AuthScaffold";
 import { publicOnboardingParams } from "../../../auth/authRoute";
 import { authCopy } from "../../../auth/copy";
 import { authErrorMessage } from "../../../auth/authError";
-import { authStyles } from "../../../auth/authStyles";
+import { createAuthStyles } from "../../../auth/authStyles";
 import { useMobileAuth } from "../../../auth/MobileAuthProvider";
 import { validateEmail } from "../../../auth/validation";
 
@@ -17,6 +18,8 @@ interface ForgotPasswordFormValues {
 }
 
 export default function ForgotPasswordScreen() {
+  const authStyles = useThemeStyles(createAuthStyles);
+
   const router = useRouter();
   const params = useLocalSearchParams<{ source?: string }>();
   const auth = useMobileAuth();

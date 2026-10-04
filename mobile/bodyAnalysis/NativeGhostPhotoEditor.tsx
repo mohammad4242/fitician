@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -28,7 +30,6 @@ import type { GhostPhotoTransform } from "@fitician/core/body-ghost-editor";
 import type { Sex } from "@fitician/core/profile";
 
 import { Button, Notice } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import { bodyPhotoCopy } from "./bodyAnalysisCopy";
 import {
   applyGhostPhotoDrag,
@@ -70,6 +71,8 @@ export function NativeGhostPhotoEditor({
   source,
   view,
 }: GhostPhotoEditorProps) {
+  const styles = useThemeStyles(createStyles);
+
   const [photoTransform, setPhotoTransform] = useState<GhostPhotoTransform>(GHOST_EDITOR_DEFAULT_TRANSFORM);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -329,7 +332,7 @@ function readTwoTouchPoints(event: GestureResponderEvent): [GhostPhotoPoint, Gho
   ];
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: fiticianTokens.spacing[2],
@@ -363,7 +366,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -389,7 +392,7 @@ const styles = StyleSheet.create({
   stage: {
     alignSelf: "center",
     aspectRatio: 2 / 3,
-    backgroundColor: fiticianTokens.colors.surfaceSubtle,
+    backgroundColor: fiticianTokens.colors.mediaCanvas,
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.large,
     borderWidth: 1,
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   status: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     lineHeight: 20,
@@ -414,4 +417,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

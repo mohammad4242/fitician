@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { BodyProgressTimelineItem } from "@fitician/core/body-photos";
@@ -5,7 +7,6 @@ import { formatTehranDate } from "@fitician/core";
 
 import { AppIcon, Card, SectionHeader } from "../ui/components";
 import { RTL_LAYOUT, RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { bodyAnalysisCopy } from "./bodyAnalysisCopy";
 
 export function BodyAnalysisProgressStrip({
@@ -15,6 +16,9 @@ export function BodyAnalysisProgressStrip({
   readonly currentSessionId: string;
   readonly items: readonly BodyProgressTimelineItem[];
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const submittedItems = items.filter(
     (item) => item.session.submitted_at !== null && item.snapshot !== null,
   );
@@ -45,7 +49,7 @@ export function BodyAnalysisProgressStrip({
       {points.length <= 1 ? (
         <Card style={styles.singleCard} variant="glass">
           <View style={styles.singleIcon}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="clock" size={22} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="clock" size={22} />
           </View>
           <View style={styles.singleCopy}>
             <Text style={styles.cardTitle}>{bodyAnalysisCopy.progressStrip.singleScanTitle}</Text>
@@ -91,6 +95,8 @@ export function BodyAnalysisProgressStrip({
 }
 
 function ChangeMetric({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.changeMetric}>
       <Text style={styles.changeLabel}>{label}</Text>
@@ -132,7 +138,7 @@ function round(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -164,7 +170,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[1],
   },
   changeValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -187,7 +193,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   pointDateCurrent: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   pointDot: {
@@ -255,4 +261,4 @@ const styles = StyleSheet.create({
     right: "10%",
     top: 7,
   },
-});
+}));

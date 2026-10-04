@@ -1,7 +1,8 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Pressable, StyleSheet, Text, View, type ImageSourcePropType } from "react-native";
 
 import { AppIcon, Media } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 
 export interface QuickActionCardProps {
   readonly icon: "bodyAnalysis" | "foodLog";
@@ -13,6 +14,9 @@ export interface QuickActionCardProps {
 }
 
 export function QuickActionCard({ disabled = false, icon, image, onPress, subtitle, title }: QuickActionCardProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={title}
@@ -46,7 +50,7 @@ export function QuickActionCard({ disabled = false, icon, image, onPress, subtit
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     backgroundColor: fiticianTokens.colors.surfaceRaised,
     borderColor: fiticianTokens.colors.line,
@@ -146,7 +150,7 @@ const styles = StyleSheet.create({
     top: "54%",
   },
   subtitle: {
-    color: fiticianTokens.colors.muted,
+    color: "#94aba5",
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     lineHeight: 18,
@@ -154,11 +158,11 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   title: {
-    color: fiticianTokens.colors.ink,
+    color: fiticianTokens.colors.mediaInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.lg,
     lineHeight: 27,
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   isoTimestampToTehranJalaliParts,
   jalaliPartsToIsoDate,
@@ -9,7 +11,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { formatPersianNumber } from "../locale";
 import { RTL_ROW, RTL_TEXT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import {
   datePartsFromIso,
   dateTimePartsToDisplay,
@@ -91,6 +92,8 @@ function TimeOptions({
   readonly testID: string;
   readonly value: number;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const options = Array.from({ length: max - min + 1 }, (_, index) => min + index);
   const label = part === "hour" ? "ساعت" : "دقیقه";
   return (
@@ -135,6 +138,8 @@ export function PersianDateTimePicker({
   testID = "persian-datetime-picker",
   value,
 }: PersianDateTimePickerProps) {
+  const styles = useThemeStyles(createStyles);
+
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<JalaliDateTimeParts>(() => dateTimePartsFromIso(value, min, max));
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -222,9 +227,9 @@ export function PersianDateTimePicker({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   chevron: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: 24,
     lineHeight: 24,
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.sm,
   },
   optionTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   options: {
@@ -281,7 +286,7 @@ const styles = StyleSheet.create({
   },
   summary: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.lg,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -317,4 +322,4 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
   },
-});
+}));

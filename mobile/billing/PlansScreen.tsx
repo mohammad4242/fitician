@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useMemo, useState } from "react";
 import { LayoutAnimation, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -23,7 +25,6 @@ import { AppIcon, Button, Card, Notice, PageHeading, Skeleton } from "../ui/comp
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
 import { RTL_ROW, RTL_TEXT } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { createBillingApi } from "./billingApi";
 import { createPurchaseService } from "./purchaseService";
 
@@ -46,6 +47,8 @@ const packageIcons = {
 } as const;
 
 export function PlansScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const router = useRouter();
@@ -178,6 +181,9 @@ type PackageCardProps = {
 };
 
 function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDuration, onToggleFeatures, packageCode, selectedOffer }: PackageCardProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const details = packageDetails[packageCode];
   const quota = getBodyAnalysisQuotaEstimate(selectedOffer);
   const duration = durationLabel(selectedOffer.duration_weeks);
@@ -187,7 +193,7 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
   return (
     <Card style={[styles.offerCard, active && styles.activeCard, featured && styles.featuredCard, premium && styles.premiumCard]} testID={`billing-package-${packageCode}`} variant={premium ? "raised" : "default"}>
       <View style={styles.cardTopline}>
-        <View style={[styles.iconContainer, premium && styles.premiumIcon]}><AppIcon color={fiticianTokens.colors.aqua} name={packageIcons[packageCode]} /></View>
+        <View style={[styles.iconContainer, premium && styles.premiumIcon]}><AppIcon color={fiticianTokens.colors.accentInk} name={packageIcons[packageCode]} /></View>
         <View style={styles.badgeRow}>
           {active ? <Badge label={billing.activeBadge} success /> : null}
           {details.badge ? <Badge label={details.badge} /> : null}
@@ -199,7 +205,7 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
       <View style={styles.features}>
         {(expanded ? details.features : details.features.slice(0, 4)).map((feature) => (
           <View key={feature} style={styles.featureRow}>
-            <View style={styles.checkContainer}><AppIcon color={fiticianTokens.colors.aqua} name="check" size={13} /></View>
+            <View style={styles.checkContainer}><AppIcon color={fiticianTokens.colors.accentInk} name="check" size={13} /></View>
             <Text style={styles.featureText}>{feature}</Text>
           </View>
         ))}
@@ -207,7 +213,7 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
       {details.features.length > 4 ? (
         <Pressable accessibilityLabel={`${expanded ? billing.showFewerFeatures : billing.showAllFeatures} ${details.name}`} accessibilityRole="button" accessibilityState={{ expanded }} onPress={onToggleFeatures} style={({ pressed }) => [styles.featureToggle, pressed && styles.pressed]}>
           <Text style={styles.featureToggleText}>{expanded ? billing.showFewerFeatures : billing.showAllFeatures}</Text>
-          <AppIcon color={fiticianTokens.colors.aqua} name={expanded ? "chevronUp" : "chevronDown"} size={18} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name={expanded ? "chevronUp" : "chevronDown"} size={18} />
         </Pressable>
       ) : null}
       <View style={styles.purchaseBlock}>
@@ -232,7 +238,7 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
         </View>
         {quota ? (
           <View style={styles.quotaHighlight}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="bodyAnalysis" size={18} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="bodyAnalysis" size={18} />
             <Text style={styles.quotaText}>{interpolate(quota.windowDays === 7 ? billing.bodyAnalysisWeeklyQuota : billing.bodyAnalysisQuota, {
               limit: formatNumber(quota.limit), total: formatNumber(quota.estimatedTotal), windowDays: formatNumber(quota.windowDays),
             })}</Text>
@@ -254,6 +260,9 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
 }
 
 function CurrentPackageCard({ snapshot }: { readonly snapshot: EntitlementSnapshot }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const now = Date.now();
   const expiry = snapshot.trial.active ? snapshot.trial.ends_at : snapshot.grants
     .filter((grant) => {
@@ -271,7 +280,7 @@ function CurrentPackageCard({ snapshot }: { readonly snapshot: EntitlementSnapsh
     : packageLabel(snapshot.primary_package);
   return (
     <Card style={styles.accessCard} variant="hero">
-      <View style={styles.currentIcon}><AppIcon color={fiticianTokens.colors.aqua} name="document" /></View>
+      <View style={styles.currentIcon}><AppIcon color={fiticianTokens.colors.accentInk} name="document" /></View>
       <View style={styles.currentCopy}><Text style={styles.accessEyebrow}>{billing.currentPlan}</Text><Text style={styles.accessTitle}>{currentPackageName}</Text></View>
       <View style={styles.currentStatus}><View style={styles.badgeRow}><Badge label={billing.activeBadge} success />{snapshot.trial.active ? <Badge label={billing.trialBadge} /> : null}</View>{expiry ? <Text style={styles.accessSubtitle}>{snapshot.trial.active ? billing.trialExpiration.replace("{{date}}", formatAccessDate(expiry)) : billing.accessEnds.replace("{{date}}", formatAccessDate(expiry))}</Text> : null}</View>
     </Card>
@@ -279,6 +288,8 @@ function CurrentPackageCard({ snapshot }: { readonly snapshot: EntitlementSnapsh
 }
 
 function Badge({ label, success = false }: { readonly label: string; readonly success?: boolean }) {
+  const styles = useThemeStyles(createStyles);
+
   return <View style={[styles.badge, success && styles.badgeSuccess]}><Text style={[styles.badgeText, success && styles.badgeTextSuccess]}>{label}</Text></View>;
 }
 
@@ -289,7 +300,7 @@ function formatAmount(amount: number, currency: string): string { return `${form
 function formatAccessDate(value: string): string { try { return formatTehranDate(value); } catch { return value; } }
 function interpolate(template: string, values: Readonly<Record<string, string>>): string { return Object.entries(values).reduce((result, [key, value]) => result.replace(`{{${key}}}`, value), template); }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   accessCard: { ...RTL_ROW, alignItems: "center", gap: fiticianTokens.spacing[3], marginTop: fiticianTokens.spacing[4] },
   accessEyebrow: { ...RTL_TEXT, color: fiticianTokens.colors.muted, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs },
   accessSubtitle: { ...RTL_TEXT, color: fiticianTokens.colors.muted, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs },
@@ -298,13 +309,13 @@ const styles = StyleSheet.create({
   badge: { alignSelf: "flex-start", backgroundColor: fiticianTokens.colors.aquaAtmosphere, borderColor: fiticianTokens.colors.lineStrong, borderRadius: fiticianTokens.radii.pill, borderWidth: 1, paddingHorizontal: fiticianTokens.spacing[2], paddingVertical: fiticianTokens.spacing[1] },
   badgeRow: { ...RTL_ROW, flexWrap: "wrap", gap: fiticianTokens.spacing[1] },
   badgeSuccess: { backgroundColor: fiticianTokens.colors.successSurface, borderColor: fiticianTokens.colors.success },
-  badgeText: { ...RTL_TEXT, color: fiticianTokens.colors.aqua, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs, fontWeight: fiticianTokens.typography.fontWeight.bold },
+  badgeText: { ...RTL_TEXT, color: fiticianTokens.colors.accentInk, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs, fontWeight: fiticianTokens.typography.fontWeight.bold },
   badgeTextSuccess: { color: fiticianTokens.colors.success },
   cardTopline: { ...RTL_ROW, alignItems: "flex-start", justifyContent: "space-between" },
   categoryButton: { alignItems: "center", borderColor: "transparent", borderRadius: fiticianTokens.radii.pill, borderWidth: 1, flex: 1, minHeight: fiticianTokens.layout.minimumTouchTarget, justifyContent: "center" },
   categoryButtonSelected: { backgroundColor: fiticianTokens.colors.aqua, borderColor: fiticianTokens.colors.aqua },
   categoryLabel: { ...RTL_TEXT, color: fiticianTokens.colors.muted, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, fontWeight: fiticianTokens.typography.fontWeight.bold },
-  categoryLabelSelected: { color: fiticianTokens.colors.canvas },
+  categoryLabelSelected: { color: fiticianTokens.colors.onAccent },
   categorySelector: { ...RTL_ROW, backgroundColor: fiticianTokens.colors.surfaceSubtle, borderColor: fiticianTokens.colors.line, borderRadius: fiticianTokens.radii.pill, borderWidth: 1, gap: fiticianTokens.spacing[1], marginTop: fiticianTokens.spacing[4], padding: fiticianTokens.spacing[1] },
   checkContainer: { alignItems: "center", backgroundColor: fiticianTokens.colors.aquaAtmosphere, borderColor: fiticianTokens.colors.lineStrong, borderRadius: fiticianTokens.radii.pill, borderWidth: 1, height: 20, justifyContent: "center", marginTop: 2, width: 20 },
   currentCopy: { flex: 1, gap: fiticianTokens.spacing[1] },
@@ -319,7 +330,7 @@ const styles = StyleSheet.create({
   featureRow: { ...RTL_ROW, alignItems: "flex-start", gap: fiticianTokens.spacing[2] },
   featureText: { ...RTL_TEXT, color: fiticianTokens.colors.muted, flex: 1, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, lineHeight: 23 },
   featureToggle: { ...RTL_ROW, alignItems: "center", alignSelf: "flex-start", gap: fiticianTokens.spacing[1], minHeight: fiticianTokens.layout.minimumTouchTarget },
-  featureToggleText: { ...RTL_TEXT, color: fiticianTokens.colors.aqua, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, fontWeight: fiticianTokens.typography.fontWeight.bold },
+  featureToggleText: { ...RTL_TEXT, color: fiticianTokens.colors.accentInk, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, fontWeight: fiticianTokens.typography.fontWeight.bold },
   featuredCard: { backgroundColor: fiticianTokens.colors.infoSurface, borderColor: fiticianTokens.colors.lineStrong },
   features: { gap: fiticianTokens.spacing[2] },
   iconContainer: { alignItems: "center", backgroundColor: fiticianTokens.colors.aquaAtmosphere, borderColor: fiticianTokens.colors.lineStrong, borderRadius: fiticianTokens.radii.medium, borderWidth: 1, height: 48, justifyContent: "center", width: 48 },
@@ -337,4 +348,4 @@ const styles = StyleSheet.create({
   screen: { gap: fiticianTokens.spacing[3] },
   tagline: { ...RTL_TEXT, color: fiticianTokens.colors.ink, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.sm, fontWeight: fiticianTokens.typography.fontWeight.bold, lineHeight: 24 },
   unavailableText: { ...RTL_TEXT, color: fiticianTokens.colors.muted, fontFamily: fiticianTokens.typography.fontFamily.bodyPersian, fontSize: fiticianTokens.typography.fontSize.xs },
-});
+}));

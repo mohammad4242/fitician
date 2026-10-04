@@ -1,12 +1,15 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { usePathname, useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { Button } from "../ui/components/Button";
-import { fiticianTokens } from "../ui/tokens";
 
 declare const __DEV__: boolean | undefined;
 
 export function E2ERoleNavigator() {
+  const styles = useThemeStyles(createStyles);
+
   const pathname = usePathname();
   const router = useRouter();
   const enabled = typeof __DEV__ !== "undefined" && __DEV__ && process.env.EXPO_PUBLIC_E2E === "1";
@@ -23,7 +26,7 @@ export function E2ERoleNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     backgroundColor: fiticianTokens.colors.surface,
     bottom: fiticianTokens.spacing[4],
@@ -34,4 +37,4 @@ const styles = StyleSheet.create({
     right: fiticianTokens.spacing[4],
     zIndex: 10,
   },
-});
+}));

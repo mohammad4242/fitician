@@ -140,7 +140,7 @@
   margin-top: 1.6rem;
   padding: 0.8rem 1.45rem;
   border-radius: var(--fitician-radius-pill);
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   font-weight: 900;
   text-decoration: none;

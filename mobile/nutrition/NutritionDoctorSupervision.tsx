@@ -1,9 +1,10 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppIcon, DisclosureCard } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import type { WeeklyPlan } from "./nutritionPlanApi";
 
 const pendingStatuses = new Set([
@@ -14,6 +15,9 @@ const pendingStatuses = new Set([
 ]);
 
 export function NutritionDoctorSupervision({ plan }: { readonly plan: WeeklyPlan | null }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const reviewRequired = plan !== null && plan.physician_review_required === true;
   const isPending = reviewRequired
@@ -35,7 +39,7 @@ export function NutritionDoctorSupervision({ plan }: { readonly plan: WeeklyPlan
 
   return (
     <DisclosureCard
-      leading={<View style={styles.doctorIcon}><AppIcon color={fiticianTokens.colors.aqua} name="doctor" size={fiticianTokens.iconSize.lg} /></View>}
+      leading={<View style={styles.doctorIcon}><AppIcon color={fiticianTokens.colors.accentInk} name="doctor" size={fiticianTokens.iconSize.lg} /></View>}
       style={styles.card}
       summary="خدمات و وضعیت بررسی پزشکی در یک نگاه"
       title="تحت نظر پزشک"
@@ -93,10 +97,13 @@ function DoctorItem({
   readonly tag?: string;
   readonly variant: "approved" | "guidance" | "labs" | "supplements";
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const content = (
     <>
       <View style={[styles.itemIcon, styles[`itemIcon_${variant}`]]}>
-        <AppIcon color={variant === "guidance" ? fiticianTokens.colors.amber : fiticianTokens.colors.aqua} name={icon} size={fiticianTokens.iconSize.md} />
+        <AppIcon color={variant === "guidance" ? fiticianTokens.colors.amber : fiticianTokens.colors.accentInk} name={icon} size={fiticianTokens.iconSize.md} />
       </View>
       <View style={styles.itemCopy}>
         <View style={styles.itemTitleRow}>
@@ -126,9 +133,9 @@ function DoctorItem({
   return <View style={styles.item}>{content}</View>;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
-    backgroundColor: "rgba(9, 54, 51, 0.45)",
+    backgroundColor: fiticianTokens.colors.supervisionSurface,
     borderColor: fiticianTokens.colors.line,
     marginBottom: fiticianTokens.spacing[1],
     padding: 0,
@@ -192,7 +199,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(80, 223, 206, 0.3)",
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: 9,
     paddingHorizontal: fiticianTokens.spacing[2],
@@ -238,4 +245,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.82,
   },
-});
+}));

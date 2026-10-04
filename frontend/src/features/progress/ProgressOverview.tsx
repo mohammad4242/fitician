@@ -92,7 +92,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
               width={8}
               height={(w.completed / max) * 58}
               rx={3}
-              fill="var(--fitician-aqua)"
+              fill="var(--fitician-accent-ink)"
             />
           </g>
         );
@@ -111,7 +111,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
                 rx={7}
                 fill={
                   card.status === state
-                    ? "var(--fitician-aqua)"
+                    ? "var(--fitician-accent-ink)"
                     : "var(--fitician-line)"
                 }
               />

@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -8,7 +10,6 @@ import type {
 import { formatTehranDate } from "@fitician/core";
 
 import { Button, Card } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import { BodyBeforeAfterComparison } from "./BodyBeforeAfterComparison";
 import { BodyProgressComparisonCard } from "./BodyProgressComparison";
 import {
@@ -38,6 +39,8 @@ export function BodyProgressTimeline({
   readonly onResume: (item: BodyProgressTimelineItem) => void;
   readonly userId: string | null | undefined;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const mediaClient = useMemo(
     () => createPrivateBodyPhotoClient(authDownload, userId),
     [authDownload, userId],
@@ -154,6 +157,8 @@ function IncompleteSessionCard({
   readonly onDelete: () => void;
   readonly onResume: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.incompleteCard}>
       <View style={styles.cardHeading}>
@@ -182,6 +187,8 @@ function TimelineItem({
   readonly onDelete: () => void;
   readonly onOpen: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const latestPhoto = item.photos.find((photo) => media?.latest[photo.view] !== undefined) ?? item.photos[0];
   const latestPhotoUri = latestPhoto === undefined ? undefined : media?.latest[latestPhoto.view];
   const metrics = item.snapshot === null ? [] : [
@@ -275,6 +282,8 @@ function ReviewBadge({
   readonly decision: string | null;
   readonly label: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.reviewBadge}>
       <View style={styles.reviewCopy}>
@@ -326,7 +335,7 @@ function sessionStateLabel(state: BodyPhotoSessionState): string {
   return labels[state];
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -362,7 +371,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -398,7 +407,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
   },
   latest: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -491,7 +500,7 @@ const styles = StyleSheet.create({
     width: 8,
   },
   reviewDotApproved: {
-    backgroundColor: fiticianTokens.colors.success,
+    backgroundColor: fiticianTokens.colors.successFill,
   },
   reviewGrid: {
     gap: fiticianTokens.spacing[2],
@@ -553,7 +562,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   status: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -601,4 +610,4 @@ const styles = StyleSheet.create({
   timelineRailLatest: {
     backgroundColor: fiticianTokens.colors.aqua,
   },
-});
+}));

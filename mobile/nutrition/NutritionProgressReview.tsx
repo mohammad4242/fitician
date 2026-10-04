@@ -1,3 +1,4 @@
+import { useThemeTokens } from "../ui/theme/ThemeProvider";
 import { createNutritionProgressApi, formatPersianDate, nutritionProgressCopy, type NutritionProgressReview as Review } from "@fitician/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Text, View } from "react-native";
@@ -6,8 +7,9 @@ import { useRouter } from "expo-router";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { Button, Card } from "../ui/components";
 import { languageForDirection } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 export function NutritionProgressReview() {
+  const fiticianTokens = useThemeTokens();
+
   const auth = useMobileAuth();
   const identity = auth.user?.id;
   const api = useMemo(() => createNutritionProgressApi(auth.request), [auth.request]);

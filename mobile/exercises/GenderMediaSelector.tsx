@@ -1,7 +1,8 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppIcon } from "../ui/components/AppIcon";
-import { fiticianTokens } from "../ui/tokens";
 import type { MobileLanguage } from "../ui/rtl";
 import type { GenderMediaPresentation } from "./exerciseMedia";
 
@@ -34,6 +35,9 @@ export function GenderMediaSelector({
   onChange,
   selected,
 }: GenderMediaSelectorProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   if (available.length === 0) return null;
 
   return (
@@ -61,7 +65,7 @@ export function GenderMediaSelector({
             testID={`exercise-media-gender-${presentation}`}
           >
             <AppIcon
-              color={isSelected ? fiticianTokens.colors.canvas : fiticianTokens.colors.muted}
+              color={isSelected ? fiticianTokens.colors.onAccent : fiticianTokens.colors.muted}
               name={icons[presentation]}
               size={19}
             />
@@ -72,7 +76,7 @@ export function GenderMediaSelector({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     alignItems: "center",
     gap: fiticianTokens.spacing[2],
@@ -102,4 +106,4 @@ const styles = StyleSheet.create({
   rtl: {
     flexDirection: "row",
   },
-});
+}));

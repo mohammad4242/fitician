@@ -1,10 +1,11 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useState, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { AppIcon, Card, Notice } from "../ui/components";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import type { NutritionEstimate } from "./nutritionApi";
 import { createNutritionApi } from "./nutritionApi";
 
@@ -21,6 +22,9 @@ export function NutritionWeightRateCard({
   readonly estimate: NutritionEstimate;
   readonly onRefresh?: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const snapshot = estimate.input_snapshot;
   const requested = snapshot === undefined || snapshot === null ? null : numericSnapshotValue(snapshot[rateFields[0]]);
   const recommended = snapshot === undefined || snapshot === null ? null : numericSnapshotValue(snapshot[rateFields[1]]);
@@ -36,7 +40,7 @@ export function NutritionWeightRateCard({
     <Card accessibilityLabel="نرخ تغییر وزن هفتگی" style={styles.card}>
       <View style={styles.header}>
         <View style={styles.titleGroup}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="scale" size={fiticianTokens.iconSize.md} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="scale" size={fiticianTokens.iconSize.md} />
           <Text style={styles.title}>نرخ تغییر وزن هفتگی</Text>
           <Text style={[styles.badge, isOverride ? styles.overrideBadge : isClamped ? styles.clampedBadge : styles.safeBadge]}>
             {isOverride
@@ -69,6 +73,9 @@ function RateModeControls({
   readonly mode: "safe" | "user_override";
   readonly onRefresh?: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const api = useMemo(() => createNutritionApi(auth.request), [auth.request]);
   const [switching, setSwitching] = useState(false);
@@ -107,7 +114,7 @@ function RateModeControls({
           onPress={() => void switchMode("safe")}
           style={[styles.modeButton, mode === "safe" && styles.modeButtonActive]}
         >
-          <AppIcon color={mode === "safe" ? fiticianTokens.colors.canvas : fiticianTokens.colors.aqua} name="shield" size={fiticianTokens.iconSize.sm} />
+          <AppIcon color={mode === "safe" ? fiticianTokens.colors.onAccent : fiticianTokens.colors.accentInk} name="shield" size={fiticianTokens.iconSize.sm} />
           <Text style={[styles.modeText, mode === "safe" && styles.modeTextActive]}>تنظیم ایمن پیشنهادی</Text>
         </Pressable>
         <Pressable
@@ -118,7 +125,7 @@ function RateModeControls({
           onPress={() => void switchMode("user_override")}
           style={[styles.modeButton, mode === "user_override" && styles.modeButtonOverride]}
         >
-          <AppIcon color={mode === "user_override" ? fiticianTokens.colors.canvas : fiticianTokens.colors.amber} name="flash" size={fiticianTokens.iconSize.sm} />
+          <AppIcon color={mode === "user_override" ? fiticianTokens.colors.onAccent : fiticianTokens.colors.amber} name="flash" size={fiticianTokens.iconSize.sm} />
           <Text style={[styles.modeText, mode === "user_override" && styles.modeTextActive]}>اعمال نرخ دلخواه من</Text>
         </Pressable>
       </View>
@@ -136,6 +143,8 @@ function RateValue({
   readonly value: number | null;
   readonly variant?: "clamped" | "default" | "override";
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.rateItem, variant === "clamped" && styles.rateItemClamped, variant === "override" && styles.rateItemOverride]}>
       <Text style={styles.rateLabel}>{label}</Text>
@@ -157,7 +166,7 @@ function formatRate(value: number): string {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(value);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   badge: {
     alignSelf: "center",
     borderRadius: fiticianTokens.radii.pill,
@@ -207,7 +216,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.aqua,
   },
   modeButtonOverride: {
-    backgroundColor: fiticianTokens.colors.amber,
+    backgroundColor: fiticianTokens.colors.warningFill,
     borderColor: fiticianTokens.colors.amber,
   },
   modeRow: {
@@ -225,7 +234,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   modeTextActive: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   overrideBadge: {
@@ -278,7 +287,7 @@ const styles = StyleSheet.create({
   safeBadge: {
     backgroundColor: "rgba(80, 223, 206, 0.1)",
     borderColor: "rgba(80, 223, 206, 0.25)",
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   title: {
     color: fiticianTokens.colors.ink,
@@ -299,4 +308,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
     minWidth: 180,
   },
-});
+}));

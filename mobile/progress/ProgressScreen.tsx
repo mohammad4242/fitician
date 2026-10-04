@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import {
   lazy,
   Suspense,
@@ -31,7 +33,6 @@ import { Button } from "../ui/components/Button";
 import { Card } from "../ui/components/Card";
 import { Screen } from "../ui/layout";
 import { getTextDirectionStyle } from "../ui/rtl";
-import { fiticianTokens as t } from "../ui/tokens";
 import { useMemberFeatureLanguage } from "../ui/useMemberFeatureLanguage";
 import { ProgressOverview as Overview } from "./ProgressOverview";
 import Details from "./ProgressDetails";
@@ -46,6 +47,9 @@ export function ProgressScreen() {
   return <ProgressContent key={auth.user?.id} />;
 }
 function ProgressContent() {
+  const t = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth(),
     api = useMemo(() => createProgressApi(auth.request), [auth.request]),
     [language, changeLanguage] = useMemberFeatureLanguage(),
@@ -175,7 +179,7 @@ function ProgressContent() {
         ) : !data ? (
           <ActivityIndicator
             accessibilityLabel={c.loading}
-            color={t.colors.aqua}
+            color={t.colors.accentInk}
           />
         ) : (
           <>
@@ -189,7 +193,7 @@ function ProgressContent() {
                 fallback={
                   <ActivityIndicator
                     accessibilityLabel={c.loading}
-                    color={t.colors.aqua}
+                    color={t.colors.accentInk}
                   />
                 }
               >
@@ -213,7 +217,7 @@ function ProgressContent() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = (t: FiticianTokens) => (StyleSheet.create({
   stack: { gap: 12, paddingBottom: 16 },
   header: {
     flexDirection: "row",
@@ -242,7 +246,7 @@ const styles = StyleSheet.create({
     color: t.colors.muted,
     fontFamily: t.typography.fontFamily.bodyPersian,
   },
-  activeText: { color: t.colors.aqua, fontWeight: "700" },
+  activeText: { color: t.colors.accentInk, fontWeight: "700" },
   disabled: { opacity: 0.35 },
   context: {
     color: t.colors.muted,
@@ -262,4 +266,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: t.typography.fontFamily.bodyPersian,
   },
-});
+}));

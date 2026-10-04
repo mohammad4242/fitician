@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import {
   StyleSheet,
@@ -9,7 +11,6 @@ import {
 } from "react-native";
 
 import { getRowDirectionStyle, getTextDirectionStyle, type FiticianDirection } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export type PageHeadingDirection = FiticianDirection;
 
@@ -33,6 +34,8 @@ export function PageHeading({
   testID,
   title,
 }: PageHeadingProps) {
+  const styles = useThemeStyles(createStyles);
+
   const textStyle = getTextDirectionStyle(direction);
 
   return (
@@ -60,7 +63,7 @@ export function PageHeading({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   action: {
     flexShrink: 0,
     minWidth: fiticianTokens.layout.minimumTouchTarget,
@@ -82,7 +85,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.compact,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -101,4 +104,4 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.h1,
     lineHeight: 40,
   },
-});
+}));

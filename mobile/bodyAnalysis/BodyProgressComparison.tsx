@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { StyleSheet, Text, View } from "react-native";
 
 import type {
@@ -13,9 +15,10 @@ import { formatTehranDate } from "@fitician/core";
 
 import { bodyAreaLabel } from "./bodyAnalysisPresentation";
 import { Card, DisclosureCard, ProgressBar, SectionHeader } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 
 export function BodyProgressComparisonCard({ comparison }: { readonly comparison: BodyProgressComparison }) {
+  const styles = useThemeStyles(createStyles);
+
   const normalized = comparison.normalized_result;
   return (
     <View style={styles.section}>
@@ -32,6 +35,9 @@ export function BodyProgressComparisonCard({ comparison }: { readonly comparison
 }
 
 function V2Comparison({ comparison }: { readonly comparison: NormalizedBodyProgressComparisonV2 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const measurements = comparison.measurement_deltas.filter(isAvailableMeasurement);
   const biggestChange = selectBiggestChange(comparison.visual_transitions);
   return (
@@ -49,7 +55,7 @@ function V2Comparison({ comparison }: { readonly comparison: NormalizedBodyProgr
       {comparison.visual_transitions.length > 0 ? (
         <DisclosureCard summary="مشاهده‌های تصویری استاندارد، نه اندازه‌گیری مستقیم عضله" title="جزئیات تغییرهای تصویری">
           <View style={styles.section}>
-            {comparison.visual_transitions.map(visualChangeText)}
+            {comparison.visual_transitions.map(transition => visualChangeText(transition, fiticianTokens))}
           </View>
         </DisclosureCard>
       ) : null}
@@ -69,6 +75,8 @@ function ChangeSummary({
   readonly empty?: boolean;
   readonly transition: { body_area: BodyArea; state: BodyProgressState } | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.changeSummary}>
       <Text style={styles.changeTitle}>بیشترین تغییر</Text>
@@ -87,6 +95,9 @@ function ChangeSummary({
 }
 
 function MeasurementComparison({ delta }: { readonly delta: BodyProgressMeasurementDelta }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const previous = delta.previous ?? 0;
   const current = delta.current ?? 0;
   const maximum = Math.max(1, previous, current);
@@ -107,7 +118,9 @@ function MeasurementComparison({ delta }: { readonly delta: BodyProgressMeasurem
   );
 }
 
-function visualChangeText(transition: BodyProgressVisualTransition) {
+function visualChangeText(transition: BodyProgressVisualTransition, fiticianTokens: FiticianTokens) {
+  const styles = createStyles(fiticianTokens);
+
   return (
     <Text key={transition.body_area} style={styles.body}>
       {bodyAreaLabel(transition.body_area)} · {progressStateLabel(transition.state)} · اطمینان {formatPercent(transition.change_confidence)}
@@ -163,7 +176,7 @@ function progressStateLabel(value: BodyProgressState): string {
   return "نامشخص";
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   body: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -184,7 +197,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   changeArea: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -232,4 +245,4 @@ const styles = StyleSheet.create({
   section: {
     gap: fiticianTokens.spacing[3],
   },
-});
+}));

@@ -1,0 +1,548 @@
+{
+  "plan": {
+    "id": "018f0000-0000-7000-8000-000000000001",
+    "status": "active",
+    "created_at": "2026-07-28T10:00:00Z",
+    "activated_at": "2026-07-28T10:00:00Z",
+    "plan_duration_weeks": 4,
+    "generation_source": "internal_engine",
+    "is_stale": false,
+    "days": [
+      {
+        "id": "day-1",
+        "day_number": 1,
+        "title_en": "Full body",
+        "title_fa": "تمام بدن",
+        "estimated_duration_minutes": 45,
+        "exercises": [
+          {
+            "id": "018f0000-0000-7000-8000-000000000011",
+            "order_index": 1,
+            "sets": 3,
+            "reps_min": 8,
+            "reps_max": 12,
+            "rest_seconds": 90,
+            "rir": 2,
+            "estimated_minutes": 8,
+            "notes_en": null,
+            "notes_fa": "کنترل‌شده حرکت کن.",
+            "alternatives": [
+              {
+                "reason_en": "A no-equipment alternative.",
+                "reason_fa": "جایگزین بدون تجهیزات.",
+                "exercise": {
+                  "id": "018f0000-0000-7000-8000-000000000003",
+                  "slug": "push-up",
+                  "name_en": "Push-Up",
+                  "name_fa": "شنا سوئدی",
+                  "content_type": "exercise",
+                  "body_region": "upper_body",
+                  "primary_muscle": "chest",
+                  "muscle_focus": "mid_chest",
+                  "labels": [],
+                  "secondary_muscles": [
+                    "triceps"
+                  ],
+                  "equipment": [
+                    "bodyweight"
+                  ],
+                  "difficulty": "beginner",
+                  "media_path": "/media/exercises/push-up.gif",
+                  "media_type": "gif"
+                }
+              }
+            ],
+            "exercise": {
+              "id": "018f0000-0000-7000-8000-000000000002",
+              "slug": "dumbbell-bench-press",
+              "name_en": "Dumbbell Bench Press",
+              "name_fa": "پرس سینه دمبل",
+              "content_type": "exercise",
+              "body_region": "upper_body",
+              "primary_muscle": "chest",
+              "muscle_focus": "mid_chest",
+              "labels": [],
+              "secondary_muscles": [
+                "triceps"
+              ],
+              "equipment": [
+                "dumbbell",
+                "bench"
+              ],
+              "difficulty": "beginner",
+              "media_path": "/media/bench.gif",
+              "media_type": "gif"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "exercise": {
+    "id": "018f0000-0000-7000-8000-000000000001",
+    "slug": "dumbbell-bench-press",
+    "name_en": "Dumbbell Bench Press",
+    "name_fa": "پرس سینه دمبل",
+    "content_type": "exercise",
+    "body_region": "upper_body",
+    "primary_muscle": "chest",
+    "muscle_focus": "mid_chest",
+    "labels": [],
+    "secondary_muscles": [
+      "triceps",
+      "shoulders"
+    ],
+    "equipment": [
+      "dumbbell",
+      "bench"
+    ],
+    "difficulty": "intermediate",
+    "instructions_en": [
+      "Lie on a flat bench with both feet planted.",
+      "Lower the dumbbells with control beside the chest.",
+      "Press upward without locking the elbows hard."
+    ],
+    "instructions_fa": [
+      "روی نیمکت صاف دراز بکش و هر دو پا را روی زمین نگه دار.",
+      "دمبل‌ها را با کنترل کنار سینه پایین بیاور.",
+      "دمبل‌ها را بالا ببر، بدون اینکه آرنج‌ها را با فشار قفل کنی."
+    ],
+    "safety_notes_en": [
+      "Keep your shoulder blades back and down; do not let the shoulders roll forward and take tension away from the chest.",
+      "Lower the dumbbells far enough to get a good chest stretch without forcing the front of the shoulder into an uncomfortable position.",
+      "Keep the wrists roughly stacked over the elbows instead of letting the dumbbells drift too far in or out.",
+      "As you press, think about bringing the upper arms toward each other rather than only pushing the dumbbells upward.",
+      "Control the return so the chest stays loaded instead of dropping the dumbbells."
+    ],
+    "safety_notes_fa": [
+      "کتف‌هاتو عقب و پایین نگه دار؛ نذار موقع پرس شونه‌ها بیان جلو و فشار سینه رو بدزدن.",
+      "دمبل‌ها رو تا جایی پایین بیار که سینه خوب کش بیاد، ولی جلوی شونه تحت فشار بد قرار نگیره.",
+      "مچ رو تقریباً روی آرنج نگه دار؛ نذار دمبل‌ها بیش‌ازحد داخل یا بیرون فرار کنن.",
+      "بالا که میای فقط دمبل رو هل نده؛ فکر کن دو بازوت رو داری به سمت هم جمع می‌کنی.",
+      "برگشت رو کنترل کن تا فشار روی سینه بمونه؛ دمبل‌ها رو رها نکن."
+    ],
+    "media_path": "/exercises/upper-body/chest/dumbbell-bench-press.gif",
+    "media_type": "gif",
+    "media_source_url": null,
+    "media_license": "Project owner supplied and authorized",
+    "media_attribution": "Provided by Fitsho project owner"
+  },
+  "categories": {
+    "body_regions": [
+      {
+        "value": "upper_body",
+        "name_en": "Upper Body",
+        "name_fa": "بالاتنه"
+      },
+      {
+        "value": "lower_body",
+        "name_en": "Lower Body",
+        "name_fa": "پایین‌تنه"
+      },
+      {
+        "value": "core",
+        "name_en": "Core",
+        "name_fa": "میان‌تنه"
+      }
+    ],
+    "upper_body": [
+      {
+        "value": "chest",
+        "name_en": "Chest",
+        "name_fa": "سینه"
+      },
+      {
+        "value": "back",
+        "name_en": "Back",
+        "name_fa": "پشت و زیر بغل"
+      },
+      {
+        "value": "shoulders",
+        "name_en": "Shoulders",
+        "name_fa": "سرشانه"
+      },
+      {
+        "value": "biceps",
+        "name_en": "Biceps",
+        "name_fa": "جلو بازو"
+      },
+      {
+        "value": "triceps",
+        "name_en": "Triceps",
+        "name_fa": "پشت بازو"
+      },
+      {
+        "value": "traps",
+        "name_en": "Traps",
+        "name_fa": "کول"
+      }
+    ],
+    "lower_body": [
+      {
+        "value": "glutes",
+        "name_en": "Glutes",
+        "name_fa": "باسن"
+      },
+      {
+        "value": "quadriceps",
+        "name_en": "Quadriceps",
+        "name_fa": "جلو پا"
+      },
+      {
+        "value": "hamstrings",
+        "name_en": "Hamstrings",
+        "name_fa": "پشت پا"
+      },
+      {
+        "value": "adductors",
+        "name_en": "Adductors",
+        "name_fa": "داخل پا"
+      },
+      {
+        "value": "abductors",
+        "name_en": "Abductors",
+        "name_fa": "بیرون پا"
+      },
+      {
+        "value": "legs",
+        "name_en": "Legs",
+        "name_fa": "کل پا"
+      },
+      {
+        "value": "calves",
+        "name_en": "Calves",
+        "name_fa": "ساق"
+      }
+    ],
+    "core": [
+      {
+        "value": "abs",
+        "name_en": "Abs",
+        "name_fa": "شکم"
+      },
+      {
+        "value": "obliques",
+        "name_en": "Obliques",
+        "name_fa": "پهلو"
+      }
+    ],
+    "muscle_focuses": {
+      "chest": [
+        {
+          "value": "general_chest",
+          "name_en": "General Chest",
+          "name_fa": "کل سینه"
+        },
+        {
+          "value": "upper_chest",
+          "name_en": "Upper Chest",
+          "name_fa": "بالاسینه"
+        },
+        {
+          "value": "mid_chest",
+          "name_en": "Mid Chest",
+          "name_fa": "میان‌سینه"
+        },
+        {
+          "value": "lower_chest",
+          "name_en": "Lower Chest",
+          "name_fa": "زیرسینه"
+        }
+      ],
+      "back": [
+        {
+          "value": "general_back",
+          "name_en": "General Back",
+          "name_fa": "کل پشت"
+        },
+        {
+          "value": "lats",
+          "name_en": "Lats",
+          "name_fa": "زیر بغل"
+        },
+        {
+          "value": "lower_back",
+          "name_en": "Lower Back",
+          "name_fa": "پایین پشت"
+        },
+        {
+          "value": "mid_back_rhomboids",
+          "name_en": "Mid Back / Rhomboids",
+          "name_fa": "میانه پشت / رومبوئید"
+        },
+        {
+          "value": "upper_back",
+          "name_en": "Upper Back",
+          "name_fa": "بالای پشت"
+        }
+      ],
+      "shoulders": [],
+      "biceps": [],
+      "triceps": [],
+      "traps": [],
+      "forearms": [],
+      "neck": [],
+      "glutes": [],
+      "quadriceps": [],
+      "hamstrings": [],
+      "adductors": [],
+      "abductors": [],
+      "legs": [],
+      "calves": [],
+      "abs": [],
+      "obliques": [],
+      "lower_back": []
+    }
+  },
+  "nutrition": {
+    "id": "estimate-1",
+    "revision": 2,
+    "status": "active",
+    "policy_version": "nutrition-science-v1",
+    "formula_version": "mifflin-net-met-v1",
+    "confidence": "high",
+    "confidence_reasons": [
+      "complete_anthropometrics"
+    ],
+    "is_stale": false,
+    "created_at": "2026-08-05T12:00:00Z",
+    "targets": {
+      "goal_calories": {
+        "unit": "kcal/day",
+        "minimum": null,
+        "preferred": 2100,
+        "preferred_maximum": null,
+        "maximum": null,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "bmr": {
+        "unit": "kcal/day",
+        "minimum": null,
+        "preferred": 1600,
+        "preferred_maximum": null,
+        "maximum": null,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "tdee": {
+        "unit": "kcal/day",
+        "minimum": null,
+        "preferred": 2400,
+        "preferred_maximum": null,
+        "maximum": null,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "protein": {
+        "unit": "g/day",
+        "minimum": 80,
+        "preferred": 120,
+        "preferred_maximum": null,
+        "maximum": null,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "carbohydrate": {
+        "unit": "g/day",
+        "minimum": 236,
+        "preferred": null,
+        "preferred_maximum": null,
+        "maximum": 394,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "total_fat": {
+        "unit": "g/day",
+        "minimum": 35,
+        "preferred": null,
+        "preferred_maximum": null,
+        "maximum": 70,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "fibre": {
+        "unit": "g/day",
+        "minimum": 25,
+        "preferred": 29,
+        "preferred_maximum": null,
+        "maximum": null,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "free_sugar": {
+        "unit": "g/day",
+        "minimum": null,
+        "preferred": null,
+        "preferred_maximum": 26,
+        "maximum": 53,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "saturated_fat": {
+        "unit": "g/day",
+        "minimum": null,
+        "preferred": null,
+        "preferred_maximum": null,
+        "maximum": 23,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "trans_fat": {
+        "unit": "g/day",
+        "minimum": null,
+        "preferred": null,
+        "preferred_maximum": null,
+        "maximum": 2,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      },
+      "sodium": {
+        "unit": "mg/day",
+        "minimum": null,
+        "preferred": null,
+        "preferred_maximum": null,
+        "maximum": 2000,
+        "confidence": "high",
+        "source_ids": [],
+        "explanation_codes": [
+          "SCIENTIFIC_ESTIMATE"
+        ]
+      }
+    }
+  },
+  "progress": {
+    "context": {
+      "preset": "week",
+      "timezone": "Asia/Tehran",
+      "today": "2026-10-02",
+      "start_date": "2026-09-26",
+      "end_date": "2026-10-02",
+      "training_enabled": true,
+      "nutrition_enabled": true,
+      "goal": "build_muscle",
+      "week_number": 1
+    },
+    "training": {
+      "planned_sessions": 4,
+      "due_sessions": 4,
+      "completed_sessions": 3,
+      "skipped_sessions": 1,
+      "overdue_sessions": 0,
+      "adherence_percent": 75,
+      "weeks": [
+        {
+          "start_date": "2026-09-26",
+          "planned": 4,
+          "completed": 3
+        }
+      ]
+    },
+    "nutrition": {
+      "series": [
+        {
+          "date": "2026-09-26",
+          "target_kcal": 2200,
+          "actual_kcal": 2140
+        },
+        {
+          "date": "2026-09-27",
+          "target_kcal": 2200,
+          "actual_kcal": null,
+          "logging_state": "missing"
+        },
+        {
+          "date": "2026-09-28",
+          "target_kcal": 2000,
+          "actual_kcal": 2180
+        }
+      ],
+      "logged_days": 2,
+      "elapsed_days": 6,
+      "comparable_days": 2,
+      "adherent_days": 2,
+      "average_difference_kcal": 60
+    },
+    "body_measurements": {
+      "weight": {
+        "unit": "kg",
+        "points": [
+          {
+            "recorded_at": "2026-09-26T12:00:00Z",
+            "value": 80,
+            "source": "manual"
+          },
+          {
+            "recorded_at": "2026-10-01T12:00:00Z",
+            "value": 79,
+            "source": "manual"
+          }
+        ],
+        "start_value": 80,
+        "latest_value": 79,
+        "delta": -1
+      },
+      "waist": {
+        "unit": "cm",
+        "points": [],
+        "start_value": null,
+        "latest_value": null,
+        "delta": null
+      },
+      "hip": {
+        "unit": "cm",
+        "points": [],
+        "start_value": null,
+        "latest_value": null,
+        "delta": null
+      },
+      "shoulder_width": {
+        "unit": "cm",
+        "points": [],
+        "start_value": null,
+        "latest_value": null,
+        "delta": null
+      }
+    },
+    "recovery": [
+      {
+        "recorded_at": "2026-10-01T12:00:00Z",
+        "week_number": 1,
+        "recovery": "good",
+        "difficulty": "appropriate"
+      }
+    ],
+    "body_analysis": {},
+    "insights": []
+  }
+}

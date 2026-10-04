@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { NotificationsLink } from "../communication/NotificationsLink";
 import { useQuery } from "@tanstack/react-query";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
@@ -22,7 +24,6 @@ import { findPendingWorkoutPlanId } from "../workouts/workoutModel";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { Notice, PageHeading } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 import { useMobileRouteSnapshot } from "../ui/navigation/RouteGuards";
 import { NutritionSummaryCard } from "./NutritionSummaryCard";
 import { QuickActionCard } from "./QuickActionCard";
@@ -33,6 +34,8 @@ import { WorkoutTodayCard, type WorkoutHomeState } from "./WorkoutTodayCard";
 const homeBodyImage = require("../assets/home-body.webp") as number;
 
 export function MemberHomeScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const { width } = useWindowDimensions();
@@ -311,7 +314,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   avatar: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.aqua,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     width: fiticianTokens.layout.minimumTouchTarget,
   },
   avatarText: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -362,4 +365,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

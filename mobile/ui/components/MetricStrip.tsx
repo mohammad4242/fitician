@@ -1,6 +1,7 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 
-import { fiticianTokens } from "../tokens";
 import { RTL_ROW, RTL_TEXT } from "../rtl";
 
 export interface MetricStripItem {
@@ -15,6 +16,8 @@ export interface MetricStripProps {
 }
 
 export function MetricStrip({ items, style }: MetricStripProps) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.strip, RTL_ROW, style]}>
       {items.map((item, index) => (
@@ -28,7 +31,7 @@ export function MetricStrip({ items, style }: MetricStripProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   divided: {
     borderRightColor: fiticianTokens.colors.line,
     borderRightWidth: 1,
@@ -68,4 +71,4 @@ const styles = StyleSheet.create({
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     textAlign: "center",
   },
-});
+}));

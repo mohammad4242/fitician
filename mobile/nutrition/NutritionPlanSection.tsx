@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FITICIAN_WEEKDAY_LABELS_FA,
@@ -19,7 +21,6 @@ import { connectivityMonitor, type ConnectivityStatus } from "../platform/connec
 import { AppIcon, Button, Card, Dialog, DisclosureCard, EmptyState, Notice, PersianDatePicker, Sheet, Skeleton } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { createProgramTimelineApi } from "../programTimeline/programTimelineApi";
 import { canGenerateNutritionEstimate, formatNutritionNumber } from "./nutritionModel";
 import {
@@ -95,6 +96,8 @@ const planWarningMessages: Readonly<Record<string, string>> = {
 };
 
 export function NutritionPlanSection({ safety }: { readonly safety: SafetyDecision | null }) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
@@ -407,6 +410,8 @@ function NutritionPlanCard({
   readonly onChangeNutritionStartDate: (value: string) => void;
   readonly onStartNutrition: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const queryClient = useQueryClient();
   const [currentPlan, setCurrentPlan] = useState(plan);
   const feedbackQuery = useQuery({
@@ -547,6 +552,8 @@ function NutritionPlanExecutionCard({
   readonly plan: WeeklyPlan;
   readonly timeline: TimelineNutrition | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (historical) return null;
 
   const state = timeline?.state ?? (plan.lifecycle_status === "ready_to_start" ? "ready_to_start" : null);
@@ -592,6 +599,8 @@ function NutritionPlanExecutionCard({
 }
 
 function PhysicianReviewCard({ plan }: { readonly plan: WeeklyPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   if (!plan.physician_review_required) {
     return (
       <View style={[styles.reviewCard, styles.reviewNotRequired]}>
@@ -629,6 +638,8 @@ function PhysicianReviewCard({ plan }: { readonly plan: WeeklyPlan }) {
 }
 
 function ReferencePlanNotice() {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.referenceNotice}>
       <Text style={styles.referenceNoticeText}>این نسخه فقط برای مشاهده تاریخچه است و برنامه فعال تو نیست.</Text>
@@ -637,6 +648,8 @@ function ReferencePlanNotice() {
 }
 
 function PlanMetadata({ plan }: { readonly plan: WeeklyPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   const references = plan.price_snapshot.references;
   const mainMeals = snapshotNumber(plan.input_snapshot, "main_meals_per_day");
   const snacks = snapshotNumber(plan.input_snapshot, "snacks_per_day");
@@ -664,6 +677,8 @@ function PlanMetadata({ plan }: { readonly plan: WeeklyPlan }) {
 }
 
 function PlanNotice({ message, title }: { readonly message: string; readonly title: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.planNotice}>
       <Text style={styles.planNoticeTitle}>{title}</Text>
@@ -673,6 +688,8 @@ function PlanNotice({ message, title }: { readonly message: string; readonly tit
 }
 
 function PlanChangeSummary({ changes }: { readonly changes: readonly { [key: string]: unknown }[] }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.planNotice}>
       <Text style={styles.planNoticeTitle}>خلاصه تغییرات پزشک</Text>
@@ -687,6 +704,8 @@ function PlanChangeSummary({ changes }: { readonly changes: readonly { [key: str
 }
 
 function BudgetLedger({ plan }: { readonly plan: WeeklyPlan }) {
+  const styles = useThemeStyles(createStyles);
+
   const status = plan.budget_status;
   const statusStyle = status === "within_budget"
     ? styles.ledgerValueWithin
@@ -706,6 +725,8 @@ function BudgetLedger({ plan }: { readonly plan: WeeklyPlan }) {
 }
 
 function LedgerItem({ icon, label, value, valueStyle }: { readonly icon: string; readonly label: string; readonly value: string; readonly valueStyle: object }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.ledgerItem, RTL_ROW]}>
       <Text style={styles.ledgerIcon}>{icon}</Text>
@@ -718,6 +739,9 @@ function LedgerItem({ icon, label, value, valueStyle }: { readonly icon: string;
 }
 
 function NutritionNutrientDisclosure({ currentPlan }: { readonly currentPlan: WeeklyPlan }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <DisclosureCard defaultExpanded={false} style={styles.planDisclosure} title="هدف در برابر مقدار برنامه">
       <View style={styles.nutrientGrid}>
@@ -725,7 +749,7 @@ function NutritionNutrientDisclosure({ currentPlan }: { readonly currentPlan: We
           <View key={nutrient.nutrient_code} style={styles.nutrientCard}>
             <Text style={styles.nutrientLabel}>{nutritionLabel(nutrient.nutrient_code)}</Text>
             <Text style={styles.nutrientValue}>{formatNutritionNumber(nutrient.planned)} {nutrient.unit}</Text>
-            <Text style={[styles.nutrientStatus, nutrientStatusStyle(nutrient.status)]}>{nutritionStatusLabel(nutrient.status)}</Text>
+            <Text style={[styles.nutrientStatus, nutrientStatusStyle(nutrient.status, fiticianTokens)]}>{nutritionStatusLabel(nutrient.status)}</Text>
             <Text style={styles.nutrientDetail}>
               {nutrient.reference_kind ? `مرجع: ${nutrient.reference_kind}` : "مرجع هدف برنامه"}
               {nutrient.data_confidence ? ` · اطمینان: ${nutrient.data_confidence}` : ""}
@@ -766,6 +790,8 @@ function NutritionDayCard({
   readonly onPlanUpdated: (plan: WeeklyPlan) => void;
   readonly planId: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
 
@@ -864,6 +890,8 @@ function NutritionMealCard({
   readonly onPlanUpdated: (plan: WeeklyPlan) => void;
   readonly planId: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const mealLabel = meal.name_fa ?? meal.name_en ?? "وعده غذایی";
   const mealName = meal.meal_code === null || meal.meal_code === undefined
     ? mealLabel
@@ -1151,6 +1179,8 @@ function ReplacementSheet({
   readonly onSubmit: () => void;
   readonly selector: ReplacementSelector | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const visible = selector !== null;
   const options = selector?.options;
   const targetFood = selector?.kind === "food" ? meal.foods.find((food) => food.food_id === selector.targetFoodId) : undefined;
@@ -1226,6 +1256,8 @@ function updateMealLock(plan: WeeklyPlan, mealId: string, isLocked: boolean): We
 }
 
 function PreparedRecipeSummary({ summary }: { readonly summary: PreparedRecipePresentation | null }) {
+  const styles = useThemeStyles(createStyles);
+
   if (summary === null) return null;
   return (
     <View style={styles.preparedRecipeCard}>
@@ -1264,6 +1296,9 @@ function NutritionPlanPdf({
   readonly pdfStore: ExpoNutritionPlanPdfStore;
   readonly planId: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [status, setStatus] = useState<PdfStatus>("checking");
   const [stored, setStored] = useState<StoredNutritionPlanPdf | null>(null);
   const [error, setError] = useState<unknown | null>(null);
@@ -1320,7 +1355,7 @@ function NutritionPlanPdf({
         style={({ pressed }) => [styles.pdfPressable, RTL_ROW, pressed && styles.pdfPressed]}
       >
         <View style={styles.pdfIcon}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="document" size={fiticianTokens.iconSize.lg} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="document" size={fiticianTokens.iconSize.lg} />
         </View>
         <View style={styles.pdfContent}>
           <Text style={styles.pdfTitle}>دانلود نسخه PDF برنامه غذایی</Text>
@@ -1356,6 +1391,8 @@ function BundleChoice({
   readonly onSelect: (role: BundleRole) => void;
   readonly selectedPlanId: string | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (
     bundle === undefined
     || bundle === null
@@ -1417,6 +1454,8 @@ function PlanChoice({
   readonly plan: WeeklyPlan;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={selected ? `${label}، برنامه فعال شما` : label}
@@ -1443,6 +1482,8 @@ function PlanChoice({
 }
 
 function PlanChoiceMetric({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.planChoiceMetric}>
       <Text style={styles.planChoiceMetricValue}>{value}</Text>
@@ -1466,6 +1507,8 @@ function NutritionPlanHistory({
   readonly selectedPlanId: string | null;
   readonly state: MobileViewState<WeeklyPlanHistoryItem[]>;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={120} />;
   if (state.status === "error" && history.length === 0) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -1508,6 +1551,8 @@ function DaySelector({
   readonly onSelect: (index: number) => void;
   readonly selectedDayIndex: number;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const orderedDays = [...days].sort((first, second) => first.day_index - second.day_index);
   return (
     <ScrollView
@@ -1671,7 +1716,9 @@ function nutritionStatusLabel(value: string): string {
   return values[value] ?? value;
 }
 
-function nutrientStatusStyle(value: string) {
+function nutrientStatusStyle(value: string, fiticianTokens: FiticianTokens) {
+  const styles = createStyles(fiticianTokens);
+
   if (value === "within_target") return styles.nutrientStatusPositive;
   if (value === "above_applicable_limit") return styles.nutrientStatusDanger;
   if (value === "data_incomplete" || value === "below_minimum" || value === "below_reference_target") {
@@ -1690,7 +1737,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   bodyText: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -1719,7 +1766,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   changeBullet: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     textAlign: "auto",
@@ -1790,7 +1837,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   dayTabDateSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   dayTabLabel: {
     color: fiticianTokens.colors.ink,
@@ -1801,7 +1848,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   dayTabLabelSelected: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
   },
   dayTabSelected: {
     backgroundColor: fiticianTokens.colors.aqua,
@@ -1836,7 +1883,7 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[3],
   },
   todayPlanLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1858,7 +1905,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1912,7 +1959,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   historyRevision: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
@@ -1993,7 +2040,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   ledgerValueCost: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   ledgerValueFlexible: {
     color: fiticianTokens.colors.amber,
@@ -2084,7 +2131,7 @@ const styles = StyleSheet.create({
   metaTag: {
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2103,7 +2150,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   metaValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2193,7 +2240,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   optionNameSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   optionThumbnail: {
     height: 56,
@@ -2275,7 +2322,7 @@ const styles = StyleSheet.create({
     padding: fiticianTokens.spacing[3],
   },
   planChoiceActive: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2327,7 +2374,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   planChoiceLabelSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   planChoiceSelected: {
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
@@ -2526,4 +2573,4 @@ const styles = StyleSheet.create({
   sectionCard: {
     gap: fiticianTokens.spacing[3],
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import Svg, {
@@ -8,7 +10,6 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg";
 import { chartGeometry, progressNumber, type ChartDatum } from "@fitician/core";
-import { fiticianTokens as t } from "../ui/tokens";
 export function TrendChart({
   series,
   labels,
@@ -24,6 +25,9 @@ export function TrendChart({
   valueLabels?: Record<number, string>;
   onSelect?: (index: number) => void;
 }) {
+  const t = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [width, setWidth] = useState(300),
     [selected, setSelected] = useState<number | null>(null),
     height = 220,
@@ -207,7 +211,7 @@ export function TrendChart({
     </View>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = (t: FiticianTokens) => (StyleSheet.create({
   chart: { gap: 10, width: "100%", direction: "ltr" },
   legend: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -219,4 +223,4 @@ const styles = StyleSheet.create({
   },
   hitLayer: { position: "absolute", top: 14, left: 0, right: 0, height: 174 },
   hit: { position: "absolute", top: 0, height: 174 },
-});
+}));

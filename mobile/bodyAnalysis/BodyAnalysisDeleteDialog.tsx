@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -6,7 +8,6 @@ import { formatTehranDate } from "@fitician/core";
 
 import { AppIcon, Button } from "../ui/components";
 import { RTL_LAYOUT, RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 
 export function BodyAnalysisDeleteDialog({
   busy,
@@ -21,6 +22,9 @@ export function BodyAnalysisDeleteDialog({
   readonly onClose: () => void;
   readonly onConfirm: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   if (item === null) return null;
   const incomplete = item.session.submitted_at === null;
   const title = incomplete ? "بارگذاری ناتمام حذف شود؟" : "تحلیل ثبت‌شده حذف شود؟";
@@ -104,7 +108,7 @@ function sessionStateLabel(state: BodyPhotoSessionState): string {
   return labels[state];
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     gap: fiticianTokens.spacing[2],
     marginTop: fiticianTokens.spacing[4],
@@ -221,4 +225,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

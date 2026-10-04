@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { NotificationsLink } from "../communication/NotificationsLink";
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,7 +37,6 @@ import {
 import { Screen } from "../ui/layout";
 import { ReviewProfileSummaryCard } from "../ui/ReviewProfileSummaryCard";
 import { getMobileViewState, type MobileViewState } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   createCoachWorkoutReviewApi,
   type CoachWorkoutReviewDetail,
@@ -58,6 +59,8 @@ type CoachTemplateSelection = NonNullable<CoachWorkoutReviewDetail["template_sel
 const queueViews: readonly CoachWorkoutReviewView[] = ["pending", "mine", "approved"];
 
 export function CoachWorkoutReviewScreen() {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -432,6 +435,8 @@ function QueueState({
   readonly state: MobileViewState<components["schemas"]["WorkoutReviewQueueItemResponse"][]>;
   readonly view: CoachWorkoutReviewView;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   if (state.status === "loading") return <Skeleton height={180} />;
   if (state.status === "error" && state.data === undefined) {
     return <Notice actionLabel="تلاش دوباره" message={state.error.message} onAction={onRetry} variant="danger" />;
@@ -517,6 +522,8 @@ function CoachReviewDetail({
   readonly readOnly: boolean;
   readonly rejectionExplanation: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const sourceSummary = sourcePlanSummary(detail.source_plan);
   return (
     <View style={styles.detailContent}>
@@ -695,6 +702,8 @@ function ReviewExerciseEditor({
   readonly onSelect: (exerciseId: string) => void;
   readonly options: readonly CoachExerciseOption[];
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedOption = options.find((option) => option.id === exercise.exercise_id);
   const durationMode = exercise.prescription_mode === "duration";
@@ -852,6 +861,8 @@ function ReviewExerciseEditor({
 }
 
 function ReviewLeaseCard({ leaseExpiresAt }: { readonly leaseExpiresAt: string | null }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card accessibilityLabel="زمان قفل بازبینی" style={styles.leaseCard} variant="hero">
       <View style={styles.leaseCopy}>
@@ -864,6 +875,8 @@ function ReviewLeaseCard({ leaseExpiresAt }: { readonly leaseExpiresAt: string |
 }
 
 function MemberAvatar({ label }: { readonly label: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View accessibilityLabel={`تصویر ${label}`} style={styles.avatar}>
       <Text style={styles.avatarText}>{label.trim().slice(0, 1) || "ف"}</Text>
@@ -872,6 +885,8 @@ function MemberAvatar({ label }: { readonly label: string }) {
 }
 
 function ProfileMetric({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.profileMetric}>
       <Text style={styles.profileMetricLabel}>{label}</Text>
@@ -881,6 +896,8 @@ function ProfileMetric({ label, value }: { readonly label: string; readonly valu
 }
 
 function TemplateSelectionAudit({ selection }: { readonly selection: CoachTemplateSelection }) {
+  const styles = useThemeStyles(createStyles);
+
   const scores = [
     ["اولویت عضلانی", selection.score.priority],
     ["آنالیز بدن", selection.score.body_analysis],
@@ -1025,7 +1042,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   avatar: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.aqua,
@@ -1035,7 +1052,7 @@ const styles = StyleSheet.create({
     width: 48,
   },
   avatarText: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     textAlign: "center",
@@ -1059,7 +1076,7 @@ const styles = StyleSheet.create({
     writingDirection: "ltr",
   },
   dayTitle: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.displayPersian,
     fontSize: fiticianTokens.typography.fontSize.h3,
     textAlign: "auto",
@@ -1237,7 +1254,7 @@ const styles = StyleSheet.create({
     minWidth: 84,
     padding: fiticianTokens.spacing[2],
   },
-  scoreItemTotal: { backgroundColor: fiticianTokens.colors.amber },
+  scoreItemTotal: { backgroundColor: fiticianTokens.colors.warningFill },
   scoreLabel: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -1269,7 +1286,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   status: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -1301,7 +1318,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   versionLabelActive: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     flex: 1,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
@@ -1310,4 +1327,4 @@ const styles = StyleSheet.create({
   },
   versionLabels: { flexDirection: "row", flexWrap: "wrap", gap: fiticianTokens.spacing[2] },
   workspace: { gap: fiticianTokens.spacing[6] },
-});
+}));

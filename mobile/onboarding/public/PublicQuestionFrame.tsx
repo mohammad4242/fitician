@@ -1,11 +1,12 @@
+import { useThemeStyles } from "../../ui/theme/ThemeProvider";
+import { useThemeTokens } from "../../ui/theme/ThemeProvider";
 import { type ReactNode, useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 
 import { AppIcon } from "../../ui/components";
 import { fiticianDirectionalIconName } from "../../ui/icons";
-import { fiticianTokens } from "../../ui/tokens";
-import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
+import { createPublicOnboardingStyles } from "./publicOnboardingStyles";
 
 export interface PublicQuestionFrameProps {
   readonly activeStage: number;
@@ -40,6 +41,10 @@ export function PublicQuestionFrame({
   title,
   totalQuestions,
 }: PublicQuestionFrameProps) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
+  const fiticianTokens = useThemeTokens();
+
   const { height } = useSafeAreaFrame();
   const percentage = `${Math.max(0, Math.min(100, ((question + 1) / totalQuestions) * 100))}%`;
 
@@ -138,6 +143,10 @@ export function PublicChoiceCard({
   readonly onPress: () => void;
   readonly selected: boolean;
 }) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
+  const fiticianTokens = useThemeTokens();
+
   const isSexLayout = layout === "sex";
   return (
     <Pressable
@@ -157,7 +166,7 @@ export function PublicChoiceCard({
       {icon ? (
         <View style={[styles.choiceIcon, isSexLayout && styles.sexChoiceIcon, selected && styles.choiceIconSelected]}>
           <AppIcon
-            color={selected ? fiticianTokens.colors.canvas : fiticianTokens.colors.aqua}
+            color={selected ? fiticianTokens.colors.onAccent : fiticianTokens.colors.accentInk}
             name={icon}
             size={22}
           />

@@ -1,7 +1,8 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { Pressable, StyleSheet, Text } from "react-native";
 
 import { AppIcon } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 
 export function BodyAnalysisCameraButton({
   disabled = false,
@@ -12,6 +13,9 @@ export function BodyAnalysisCameraButton({
   readonly label: string;
   readonly onPress: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -22,12 +26,12 @@ export function BodyAnalysisCameraButton({
       style={({ pressed }) => [styles.button, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
       <Text style={styles.label}>{label}</Text>
-      <AppIcon color={fiticianTokens.colors.canvas} name="camera" size={20} />
+      <AppIcon color={fiticianTokens.colors.onAccent} name="camera" size={20} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   button: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.aqua,
@@ -48,7 +52,7 @@ const styles = StyleSheet.create({
     opacity: 0.48,
   },
   label: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -60,4 +64,4 @@ const styles = StyleSheet.create({
     opacity: 0.86,
     transform: [{ scale: fiticianTokens.motion.pressedScale }],
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,7 +37,6 @@ import { TextField } from "../ui/components/Input";
 import { Screen } from "../ui/layout";
 import { getTextDirectionStyle } from "../ui/rtl";
 import { useMemberFeatureLanguage } from "../ui/useMemberFeatureLanguage";
-import { fiticianTokens as tokens } from "../ui/tokens";
 type SupportScreenProps = {
   mode?: "home" | "tickets" | "new" | "detail";
   ticketId?: string;
@@ -50,6 +51,9 @@ export function SupportScreen(props: SupportScreenProps) {
   );
 }
 function SupportContent({ mode = "home", ticketId }: SupportScreenProps) {
+  const tokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth(),
     router = useRouter(),
     api = useMemo(() => createSupportApi(auth.request), [auth.request]),
@@ -264,7 +268,7 @@ function SupportContent({ mode = "home", ticketId }: SupportScreenProps) {
         {loading && (
           <ActivityIndicator
             accessibilityLabel={c.loading}
-            color={tokens.colors.aqua}
+            color={tokens.colors.accentInk}
           />
         )}
         {mode === "home" && (
@@ -472,7 +476,7 @@ function SupportContent({ mode = "home", ticketId }: SupportScreenProps) {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = (tokens: FiticianTokens) => (StyleSheet.create({
   stack: { gap: 16, paddingBottom: 24 },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   title: {
@@ -496,4 +500,4 @@ const styles = StyleSheet.create({
   article: { minHeight: 44, justifyContent: "center" },
   composer: { minHeight: 140, textAlignVertical: "top" },
   admin: { borderColor: tokens.colors.aqua },
-});
+}));

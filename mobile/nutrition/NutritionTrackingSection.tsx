@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { RemoteFoodSelector as FoodSelector } from "./RemoteFoodSelector";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
@@ -27,7 +29,6 @@ import {
   TextField,
 } from "../ui/components";
 import { getMobileViewState, mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import { UploadCancellationError, UploadManager, type UploadHandle } from "../upload/uploadManager";
 import {
   createFoodPhotoUploadJob,
@@ -72,6 +73,9 @@ const entrySourceOptions: readonly (EntrySource | "all")[] = [
 ];
 
 export function NutritionTrackingSection() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const queryClient = useQueryClient();
@@ -497,7 +501,7 @@ export function NutritionTrackingSection() {
       <View style={styles.entryHub} testID="nutrition-entry-hub">
         <View style={styles.entryRoot}>
           <View style={styles.entryRootIcon}>
-            <AppIcon name="nutrition" color={fiticianTokens.colors.canvas} size={fiticianTokens.iconSize.lg} />
+            <AppIcon name="nutrition" color={fiticianTokens.colors.onAccent} size={fiticianTokens.iconSize.lg} />
           </View>
           <View style={styles.entryRootCopy}>
             <Text style={styles.entryHubEyebrow}>روش ثبت را انتخاب کن</Text>
@@ -724,6 +728,9 @@ function EntryMethodButton({
   readonly subtitle: string;
   readonly title: string;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={title}
@@ -735,13 +742,13 @@ function EntryMethodButton({
       testID={`nutrition-entry-method-${mode}`}
     >
       <View style={styles.entryMethodIcon}>
-        <AppIcon color={fiticianTokens.colors.aqua} name={icon} size={fiticianTokens.iconSize.md} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name={icon} size={fiticianTokens.iconSize.md} />
       </View>
       <View style={styles.entryMethodCopy}>
         <Text style={styles.entryMethodTitle}>{title}</Text>
         <Text style={styles.entryMethodSubtitle}>{subtitle}</Text>
       </View>
-      <AppIcon color={fiticianTokens.colors.aqua} name={selected ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.sm} />
+      <AppIcon color={fiticianTokens.colors.accentInk} name={selected ? "chevronUp" : "chevronDown"} size={fiticianTokens.iconSize.sm} />
     </Pressable>
   );
 }
@@ -781,6 +788,9 @@ function ManualEntryPanel({
   readonly recentState: string;
   readonly selectedFoodId: string | null;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card style={styles.entryPanel} testID="nutrition-manual-entry-panel">
       <View style={styles.panelHeader}>
@@ -793,7 +803,7 @@ function ManualEntryPanel({
         <View style={styles.recentCard}>
           <View style={[styles.recentHeading, RTL_ROW]}>
             <View style={styles.recentIcon}>
-              <AppIcon color={fiticianTokens.colors.aqua} name="foodLog" size={fiticianTokens.iconSize.sm} />
+              <AppIcon color={fiticianTokens.colors.accentInk} name="foodLog" size={fiticianTokens.iconSize.sm} />
             </View>
             <View style={styles.headingCopy}>
               <Text style={styles.recentTitle}>غذاهای اخیر</Text>
@@ -900,6 +910,9 @@ function FoodPhotoCard({
   readonly previewUri: string | null;
   readonly uploading: boolean;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const presentation = estimate === null ? null : photoEstimatePresentation(estimate);
   const macroTotals = estimate?.macro_totals;
   return (
@@ -912,7 +925,7 @@ function FoodPhotoCard({
       <View style={styles.photoStage}>
         {previewUri === null ? (
           <View style={styles.photoPlaceholder}>
-            <AppIcon color={fiticianTokens.colors.aqua} name="camera" size={fiticianTokens.iconSize.xl} />
+            <AppIcon color={fiticianTokens.colors.accentInk} name="camera" size={fiticianTokens.iconSize.xl} />
             <Text style={styles.photoPlaceholderText}>عکس غذا را انتخاب کن</Text>
           </View>
         ) : (
@@ -1053,6 +1066,9 @@ function PhotoSourceButton({
   readonly label: string;
   readonly onPress: () => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -1063,13 +1079,15 @@ function PhotoSourceButton({
       onPress={onPress}
       style={[styles.photoSourceButton, disabled && styles.photoSourceButtonDisabled]}
     >
-      <AppIcon color={disabled ? fiticianTokens.colors.muted : fiticianTokens.colors.aqua} name={icon} size={fiticianTokens.iconSize.sm} />
+      <AppIcon color={disabled ? fiticianTokens.colors.muted : fiticianTokens.colors.accentInk} name={icon} size={fiticianTokens.iconSize.sm} />
       <Text style={[styles.photoSourceText, disabled && styles.photoSourceTextDisabled]}>{label}</Text>
     </Pressable>
   );
 }
 
 function PhotoMacro({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.photoMacro}>
       <Text style={styles.photoMacroLabel}>{label}</Text>
@@ -1099,6 +1117,8 @@ function PhotoItemCard({
   readonly onDelete: (item: PhotoItem) => void;
   readonly onCorrect: (item: PhotoItem) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.photoItem}>
       <View style={[styles.photoItemHeader, RTL_ROW]}>
@@ -1149,6 +1169,8 @@ function TrackingEntryCard({
   readonly onEdit: () => void;
   readonly onPlannedChange: (status: "adjusted" | "skipped") => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.entryCard}>
       <View style={[styles.sectionHeading, RTL_ROW]}>
@@ -1188,6 +1210,8 @@ function TrackingEntryCard({
 }
 
 function DailyMetric({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.dailyMetric}>
       <Text style={styles.dailyMetricValue}>{value}</Text>
@@ -1284,7 +1308,7 @@ function useConnectivityStatus(): ConnectivityStatus {
   return status;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   adherenceSection: {
     width: "100%",
   },
@@ -1309,7 +1333,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.aqua,
   },
   checkboxMark: {
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     textAlign: "center",
@@ -1335,7 +1359,7 @@ const styles = StyleSheet.create({
   },
   checkinEyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1370,7 +1394,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   checkinOptionTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   checkinOptions: {
     flexWrap: "wrap",
@@ -1433,7 +1457,7 @@ const styles = StyleSheet.create({
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   dailyValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.metric,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1488,7 +1512,7 @@ const styles = StyleSheet.create({
   },
   entryHubEyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1657,7 +1681,7 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.xs,
   },
   filterTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   filteredEmpty: {
     alignItems: "center",
@@ -1673,7 +1697,7 @@ const styles = StyleSheet.create({
   },
   groupTitle: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1728,7 +1752,7 @@ const styles = StyleSheet.create({
   },
   panelEyebrow: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1770,7 +1794,7 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.xs,
   },
   photoCaloriesValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.metric,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1791,7 +1815,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: 10,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -1944,7 +1968,7 @@ const styles = StyleSheet.create({
   },
   photoSourceText: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -2070,7 +2094,7 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.sm,
   },
   selectorOptionTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   selectorOptions: {
     backgroundColor: fiticianTokens.colors.surfaceRaised,
@@ -2100,4 +2124,4 @@ const styles = StyleSheet.create({
     gap: fiticianTokens.spacing[2],
     width: "100%",
   },
-});
+}));

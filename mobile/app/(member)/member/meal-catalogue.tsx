@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../../../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../../../ui/tokens";
 import { StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
@@ -5,14 +7,16 @@ import { NutritionCatalogueSection } from "../../../nutrition/NutritionCatalogue
 import { AppIcon } from "../../../ui/components";
 import { Screen } from "../../../ui/layout";
 import { RouteGuard } from "../../../ui/navigation/RouteGuards";
-import { fiticianTokens } from "../../../ui/tokens";
 
 export default function MemberMealCatalogueRoute() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <RouteGuard kind="member" requiredCapability="nutrition">
       <View style={styles.root}>
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.nutritionBackdrop]}>
-          <AppIcon color={fiticianTokens.colors.aqua} name="nutrition" size={240} style={styles.backdropIcon} />
+          <AppIcon color={fiticianTokens.colors.accentInk} name="nutrition" size={240} style={styles.backdropIcon} />
         </View>
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <Svg height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} width="100%">
@@ -38,7 +42,7 @@ export default function MemberMealCatalogueRoute() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   root: {
     backgroundColor: "transparent",
     flex: 1,
@@ -58,4 +62,4 @@ const styles = StyleSheet.create({
   transparentScreen: {
     backgroundColor: "transparent",
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -18,7 +20,6 @@ import { BrandMark, AppIcon, Notice, StateSkeleton } from "../ui/components";
 import { useAndroidBackHandler } from "../ui/navigation/BackBehaviorProvider";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import {
   emptyProfileFormValues,
   profileFormValuesForSharedProfile,
@@ -48,6 +49,9 @@ const copy = {
 } as const;
 
 export function PublicOnboardingScreen() {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const { width } = useSafeAreaFrame();
   const compactLayout = width <= 650;
@@ -197,7 +201,7 @@ export function PublicOnboardingScreen() {
     return (
       <Screen contentWidth="reading" contentContainerStyle={styles.loadingScreen}>
         <StateSkeleton style={styles.loadingSkeleton} variant="hero" />
-        <ActivityIndicator accessibilityLabel="در حال آماده‌سازی" color={fiticianTokens.colors.aqua} />
+        <ActivityIndicator accessibilityLabel="در حال آماده‌سازی" color={fiticianTokens.colors.accentInk} />
         <Text style={styles.loadingText}>در حال آماده‌سازی مسیر شخصی تو…</Text>
       </Screen>
     );
@@ -288,6 +292,9 @@ function ModeSelection({
   readonly compactLayout: boolean;
   readonly onSelect: (mode: ProductMode) => void;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const modes = [
     ["training", copy.mode.training, "training"],
     ["nutrition", copy.mode.nutrition, "nutrition"],
@@ -318,7 +325,7 @@ function ModeSelection({
                 mode === "both" && styles.modeIconRecommended,
               ]}
             >
-              <AppIcon color={mode === "both" ? fiticianTokens.colors.canvas : fiticianTokens.colors.aqua} name={icon} size={24} />
+              <AppIcon color={mode === "both" ? fiticianTokens.colors.onAccent : fiticianTokens.colors.accentInk} name={icon} size={24} />
             </View>
             <View style={styles.modeCopy}>
               <Text style={styles.modeLabel}>{label}</Text>
@@ -347,9 +354,9 @@ function publicOnboardingErrorMessage(error: unknown): string {
   });
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -394,7 +401,7 @@ const styles = StyleSheet.create({
   modeBadge: {
     backgroundColor: fiticianTokens.colors.aqua,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -484,4 +491,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
-});
+}));

@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, G, Line, Polyline, Rect } from "react-native-svg";
 import {
@@ -11,6 +13,8 @@ import { Card } from "../ui/components/Card";
 import { getTextDirectionStyle } from "../ui/rtl";
 import { fiticianTokens as t } from "../ui/tokens";
 export function MiniTrend({ card }: { card: OverviewCard }) {
+  const t = useThemeTokens();
+
   const maxCal = Math.max(
     1,
     ...card.series.flatMap((s) =>
@@ -52,7 +56,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
                     x2={p.x + (i ? 3 : -3)}
                     y1={83}
                     y2={p.y}
-                    stroke={i ? t.colors.coral : t.colors.aqua}
+                    stroke={i ? t.colors.coral : t.colors.accentInk}
                     strokeWidth={4}
                     strokeLinecap="round"
                   />
@@ -63,7 +67,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
                       key={`${i}-line-${j}`}
                       points={ps.map((p) => `${p.x},${p.y}`).join(" ")}
                       fill="none"
-                      stroke={t.colors.aqua}
+                      stroke={t.colors.accentInk}
                       strokeWidth={2.5}
                       strokeLinejoin="round"
                     />
@@ -74,7 +78,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
                       cx={p.x}
                       cy={p.y}
                       r={3}
-                      fill={t.colors.aqua}
+                      fill={t.colors.accentInk}
                     />
                   )),
                 ],
@@ -99,7 +103,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
               width={8}
               height={(w.completed / max) * 58}
               rx={3}
-              fill={t.colors.aqua}
+              fill={t.colors.accentInk}
             />
           </G>
         );
@@ -115,7 +119,7 @@ export function MiniTrend({ card }: { card: OverviewCard }) {
               width={25}
               height={20 + i * 9}
               rx={7}
-              fill={card.status === s ? t.colors.aqua : t.colors.line}
+              fill={card.status === s ? t.colors.accentInk : t.colors.line}
             />
           ))
         ) : card.tab === "analysis" ? (
@@ -176,6 +180,8 @@ export function ProgressOverview({
   language: "fa" | "en";
   onSelect: (tab: ProgressTab) => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const direction = language === "fa" ? "rtl" : "ltr",
     text = {
       ...getTextDirectionStyle(direction),
@@ -213,7 +219,7 @@ export function ProgressOverview({
     </View>
   );
 }
-const styles = StyleSheet.create({
+const createStyles = (t: FiticianTokens) => (StyleSheet.create({
   stack: { gap: 12 },
   card: { borderRadius: 22, padding: 18, backgroundColor: t.colors.surface },
   heading: {
@@ -255,4 +261,4 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontFamily: t.typography.fontFamily.bodyPersian,
   },
-});
+}));

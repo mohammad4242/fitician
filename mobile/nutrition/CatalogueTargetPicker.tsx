@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +17,6 @@ import type {
 } from "@fitician/core/nutrition";
 import { Sheet } from "../ui/components/Overlay";
 import { RTL_LAYOUT, RTL_ROW, RTL_TEXT } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 
 type SearchResponse = { readonly items: NutritionCatalogueTarget[] };
 export type CatalogueTargetSearchOptions = (
@@ -47,6 +48,9 @@ export function CatalogueTargetPicker<T extends NutritionCatalogueTarget = Nutri
   searchOptions,
   value,
 }: CatalogueTargetPickerProps<T>) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<NutritionCatalogueTarget[]>([]);
@@ -139,7 +143,7 @@ export function CatalogueTargetPicker<T extends NutritionCatalogueTarget = Nutri
           textAlign="right"
           value={query}
         />
-        {loading ? <ActivityIndicator accessibilityLabel="در حال جست‌وجو" color={fiticianTokens.colors.aqua} /> : null}
+        {loading ? <ActivityIndicator accessibilityLabel="در حال جست‌وجو" color={fiticianTokens.colors.accentInk} /> : null}
         {error ? (
           <Text accessibilityRole="alert" style={styles.error}>جست‌وجوی فهرست انجام نشد. دوباره تلاش کن.</Text>
         ) : null}
@@ -173,7 +177,7 @@ export function CatalogueTargetPicker<T extends NutritionCatalogueTarget = Nutri
 
 export type { NutritionCatalogueConstraint };
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   addButton: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
@@ -186,7 +190,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -332,4 +336,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: fiticianTokens.spacing[2],
     paddingVertical: fiticianTokens.spacing[1],
   },
-});
+}));

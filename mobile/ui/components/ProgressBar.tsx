@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { RTL_LAYOUT } from "../rtl";
@@ -11,6 +13,8 @@ export interface ProgressBarProps {
 }
 
 export function ProgressBar({ color = fiticianTokens.colors.aqua, label, progress, style }: ProgressBarProps) {
+  const styles = useThemeStyles(createStyles);
+
   const clampedProgress = Math.min(1, Math.max(0, progress));
   return (
     <View
@@ -25,17 +29,17 @@ export function ProgressBar({ color = fiticianTokens.colors.aqua, label, progres
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   fill: {
     borderRadius: fiticianTokens.radii.pill,
     height: "100%",
     minWidth: 2,
   },
   track: {
-    backgroundColor: "rgba(232,244,241,0.10)",
+    backgroundColor: fiticianTokens.colors.progressTrack,
     borderRadius: fiticianTokens.radii.pill,
     height: 8,
     overflow: "hidden",
     width: "100%",
   },
-});
+}));

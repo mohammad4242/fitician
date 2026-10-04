@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   daysInJalaliMonth,
   isoDateToJalaliParts,
@@ -12,7 +14,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { formatPersianNumber } from "../locale";
 import { RTL_ROW, RTL_TEXT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 import { AppIcon } from "./AppIcon";
 import { Button } from "./Button";
 import { FormField } from "./Input";
@@ -154,6 +155,8 @@ export function JalaliDateFields({
   readonly parts: JalaliDateParts;
   readonly testID: string;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.fields}>
       {(["day", "month", "year"] as const).map((part) => {
@@ -203,6 +206,8 @@ export function PickerActions({
   readonly onClear: () => void;
   readonly onConfirm: () => void;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={[styles.actions, RTL_ROW]}>
       <Button label="انصراف" onPress={onCancel} variant="ghost" />
@@ -226,6 +231,9 @@ export function PersianDatePicker({
   testID = "persian-date-picker",
   value,
 }: PersianDatePickerProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<JalaliDateParts>(() => datePartsFromIso(value, min, max));
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -284,7 +292,7 @@ export function PersianDatePicker({
         <Text style={[styles.triggerText, displayValue === null && styles.placeholder]}>
           {displayValue ?? "انتخاب تاریخ"}
         </Text>
-        <AppIcon color={fiticianTokens.colors.aqua} name="chevronDown" size={20} />
+        <AppIcon color={fiticianTokens.colors.accentInk} name="chevronDown" size={20} />
       </Pressable>
       <Sheet onClose={close} title={label ?? "انتخاب تاریخ"} visible={visible}>
         <Text style={styles.summary}>{displayValue ?? "تاریخ جدید"}</Text>
@@ -310,7 +318,7 @@ export function jalaliDateOptionValues(parts: JalaliDateParts, min?: string, max
   return optionValues("day", parts, min, max);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexWrap: "wrap",
     gap: fiticianTokens.spacing[2],
@@ -345,7 +353,7 @@ const styles = StyleSheet.create({
     fontSize: fiticianTokens.typography.fontSize.sm,
   },
   optionTextSelected: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   options: {
@@ -368,7 +376,7 @@ const styles = StyleSheet.create({
   },
   summary: {
     ...RTL_TEXT,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.lg,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -401,4 +409,4 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
   },
-});
+}));

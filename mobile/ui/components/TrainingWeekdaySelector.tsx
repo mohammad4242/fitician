@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -10,7 +12,6 @@ import {
 } from "@fitician/core/profile";
 
 import { RTL_LAYOUT, RTL_TEXT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export interface TrainingWeekdaySelectorProps {
   readonly error?: string;
@@ -25,6 +26,8 @@ export function TrainingWeekdaySelector({
   selectedWeekdays,
   trainingDays,
 }: TrainingWeekdaySelectorProps) {
+  const styles = useThemeStyles(createStyles);
+
   const presets = getTrainingWeekdayPresets(trainingDays);
   const primaryPreset = getPrimaryTrainingWeekdayPreset(trainingDays);
   const [customMode, setCustomMode] = useState(
@@ -149,7 +152,7 @@ function weekdayLabel(weekdays: readonly number[]): string {
   return weekdays.map((day) => FITICIAN_WEEKDAY_LABELS_FA[day] ?? String(day)).join(" · ");
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   count: {
     ...RTL_TEXT,
     color: fiticianTokens.colors.ink,
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.aqua,
   },
   selectedText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
   },
   pressed: {
@@ -279,4 +282,4 @@ const styles = StyleSheet.create({
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
   },
-});
+}));

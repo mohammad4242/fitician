@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import * as ExpoRouter from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
@@ -133,6 +135,9 @@ function MetricRingContent({
   style,
   valueLabel,
 }: MetricRingContentProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const clamped = clampProgress(progress);
   const percent = Math.round(clamped * 100);
   const geometry = calculateRingGeometry(size, strokeWidth, clamped);
@@ -193,7 +198,7 @@ function MetricRingContent({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   copy: {
     alignItems: "center",
     bottom: 0,
@@ -228,4 +233,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     writingDirection: "ltr",
   },
-});
+}));

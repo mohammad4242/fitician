@@ -1,3 +1,4 @@
+import { useThemeTokens } from "../theme/ThemeProvider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { type ColorValue, type StyleProp, type TextStyle } from "react-native";
@@ -14,6 +15,8 @@ export interface AppIconProps {
 }
 
 export function AppIcon({ accessibilityLabel, color, name, size = fiticianTokens.iconSize.md, style }: AppIconProps) {
+  const fiticianTokens = useThemeTokens();
+
   const props: ComponentProps<typeof MaterialCommunityIcons> = {
     accessibilityLabel,
     color: color ?? fiticianTokens.colors.ink,

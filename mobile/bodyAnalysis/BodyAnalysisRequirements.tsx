@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Switch, Text, View } from "react-native";
 
@@ -11,7 +13,6 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { Button, Card, Notice, PageHeading, Skeleton, TextField } from "../ui/components";
 import { Screen } from "../ui/layout";
 import { mobileRequestErrorMessage } from "../ui/requestState";
-import { fiticianTokens } from "../ui/tokens";
 import { createProfileApi } from "../profile/profileApi";
 import { normalizeOnboardingDigits } from "../onboarding/onboardingModel";
 import { bodyPhotoCopy, onboardingCopy } from "./bodyAnalysisCopy";
@@ -33,6 +34,9 @@ export function BodyAnalysisRequirements({
   onCancel,
   onConfirmed,
 }: BodyAnalysisRequirementsProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const api = useMemo(() => createProfileApi(auth.request), [auth.request]);
   const [profile, setProfile] = useState<BodyAnalysisProfile | null>(null);
@@ -266,6 +270,8 @@ export function BodyAnalysisRequirements({
 }
 
 function MeasurementStatus({ confirmed }: { readonly confirmed: boolean }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Card
       accessibilityLiveRegion="polite"
@@ -290,7 +296,7 @@ function MeasurementStatus({ confirmed }: { readonly confirmed: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: fiticianTokens.spacing[3],
@@ -330,7 +336,7 @@ const styles = StyleSheet.create({
     minHeight: 420,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -442,7 +448,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.success,
   },
   statusMarkText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -468,7 +474,7 @@ const styles = StyleSheet.create({
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -486,4 +492,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

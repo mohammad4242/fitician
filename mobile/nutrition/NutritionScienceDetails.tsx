@@ -1,8 +1,9 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppIcon, DisclosureCard } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import type { NutritionEstimate } from "./nutritionApi";
 
 const micronutrientLabels: Readonly<Record<string, string>> = {
@@ -17,6 +18,8 @@ const micronutrientLabels: Readonly<Record<string, string>> = {
 };
 
 export function NutritionScienceDetails({ estimate }: { readonly estimate: NutritionEstimate }) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const target = (code: string) => estimate.targets[code];
 
@@ -77,15 +80,20 @@ export function NutritionScienceDetails({ estimate }: { readonly estimate: Nutri
 }
 
 function ScienceLink({ label, onPress }: { readonly label: string; readonly onPress: () => void }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={styles.linkWrap}>
       <Text style={styles.linkText}>{label}</Text>
-      <AppIcon color={fiticianTokens.colors.aqua} name="arrowLeft" size={fiticianTokens.iconSize.sm} />
+      <AppIcon color={fiticianTokens.colors.accentInk} name="arrowLeft" size={fiticianTokens.iconSize.sm} />
     </Pressable>
   );
 }
 
 function TargetCard({ note, title, value }: { readonly note: string; readonly title: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.targetCard}>
       <Text style={styles.targetTitle}>{title}</Text>
@@ -96,6 +104,8 @@ function TargetCard({ note, title, value }: { readonly note: string; readonly ti
 }
 
 function MetadataRow({ label, value }: { readonly label: string; readonly value: string }) {
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.metadataRow}>
       <Text style={styles.metadataLabel}>{label}</Text>
@@ -128,7 +138,7 @@ function formatInteger(value: number): string {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 0 }).format(value);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   bodyText: {
     color: fiticianTokens.colors.muted,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
@@ -138,12 +148,12 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   card: {
-    backgroundColor: "rgba(9, 54, 51, 0.52)",
+    backgroundColor: fiticianTokens.colors.scienceSurface,
     borderColor: "rgba(80, 223, 206, 0.18)",
     marginBottom: fiticianTokens.spacing[1],
   },
   linkText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -221,7 +231,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   micronutrientValue: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -277,4 +287,4 @@ const styles = StyleSheet.create({
     textAlign: "right",
     writingDirection: "ltr",
   },
-});
+}));

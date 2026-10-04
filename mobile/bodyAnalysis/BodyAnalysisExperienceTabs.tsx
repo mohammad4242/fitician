@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -8,7 +10,6 @@ import type {
 
 import { AppIcon } from "../ui/components";
 import { RTL_LAYOUT, RTL_ROW } from "../ui/rtl";
-import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisMuscleSection } from "./BodyAnalysisMuscleSection";
 import { BodyAnalysisOverviewCard } from "./BodyAnalysisOverviewCard";
 import { BodyAnalysisProgressStrip } from "./BodyAnalysisProgressStrip";
@@ -33,6 +34,9 @@ export function BodyAnalysisExperienceTabs({
   readonly progressSessionId: string;
   readonly review: ReactNode;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const [activeTab, setActiveTab] = useState<ResultTab>("overview");
   const activeLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? bodyAnalysisCopy.tabs.overview;
 
@@ -83,7 +87,7 @@ export function BodyAnalysisExperienceTabs({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     gap: fiticianTokens.spacing[3],
   },
@@ -119,7 +123,7 @@ const styles = StyleSheet.create({
     ...RTL_LAYOUT,
     ...RTL_ROW,
     alignSelf: "center",
-    backgroundColor: "rgba(8,22,27,0.85)",
+    backgroundColor: fiticianTokens.colors.experienceTabs,
     borderColor: fiticianTokens.colors.lineStrong,
     borderRadius: fiticianTokens.radii.pill,
     borderWidth: 1,
@@ -139,4 +143,4 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
   },
-});
+}));

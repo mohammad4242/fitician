@@ -1,10 +1,11 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { CampaignSurface, PublicSignupCampaign } from "@fitician/core/campaigns";
 
 import { Button, Card } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 
 export interface SignupCampaignCardProps {
   readonly campaign: PublicSignupCampaign | null;
@@ -12,6 +13,8 @@ export interface SignupCampaignCardProps {
 }
 
 export function SignupCampaignCard({ campaign, surface }: SignupCampaignCardProps) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   if (campaign === null) return null;
 
@@ -42,7 +45,7 @@ export function SignupCampaignCard({ campaign, surface }: SignupCampaignCardProp
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   card: {
     marginHorizontal: fiticianTokens.spacing[4],
     marginVertical: fiticianTokens.spacing[3],
@@ -55,7 +58,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     backgroundColor: fiticianTokens.colors.aqua,
     borderRadius: fiticianTokens.radii.pill,
-    color: fiticianTokens.colors.canvas,
+    color: fiticianTokens.colors.onAccent,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -78,7 +81,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   benefit: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -89,4 +92,4 @@ const styles = StyleSheet.create({
     marginTop: fiticianTokens.spacing[2],
     minWidth: 168,
   },
-});
+}));

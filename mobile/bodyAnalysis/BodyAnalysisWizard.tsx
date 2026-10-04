@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, StyleSheet, Switch, Text, View } from "react-native";
 import { File } from "expo-file-system";
@@ -15,7 +17,6 @@ import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
 import { Button, Card, Notice, PageHeading, Sheet, Skeleton } from "../ui/components";
 import { Screen } from "../ui/layout";
-import { fiticianTokens } from "../ui/tokens";
 import { BodyAnalysisRequirements } from "./BodyAnalysisRequirements";
 import { BodyAnalysisAccessNotice } from "./BodyAnalysisAccessNotice";
 import {
@@ -76,6 +77,8 @@ export function BodyAnalysisWizard({
   sessionId,
   startFresh = false,
 }: BodyAnalysisWizardProps) {
+  const styles = useThemeStyles(createStyles);
+
   const auth = useMobileAuth();
   const entitlements = useMobileEntitlements();
   const userId = auth.user?.id ?? null;
@@ -523,6 +526,8 @@ function CaptureReview({
   readonly modelTrainingConsent: boolean;
   readonly session: BodyPhotoSession | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const [termsVisible, setTermsVisible] = useState(false);
 
   return (
@@ -625,6 +630,9 @@ function ConsentToggle({
   readonly onValueChange: (value: boolean) => void;
   readonly value: boolean;
 }) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View style={styles.consentRow}>
       <View style={styles.consentCopy}>
@@ -657,6 +665,8 @@ function SubmissionProgress({
   readonly onExit: () => void;
   readonly progress: UploadProgressState | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const completed = progress?.completed ?? 0;
   const total = progress?.total ?? 0;
   const retrying = progress === null;
@@ -697,6 +707,8 @@ function AnalysisSubmitted({
   readonly onViewAnalysis?: (sessionId: string) => void;
   readonly sessionId: string | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const status = analysis?.status ?? "queued";
   const failed = analysis?.status === "failed";
   return (
@@ -756,7 +768,7 @@ function deleteLocalFile(uri: string): void {
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: fiticianTokens.spacing[3],
@@ -785,7 +797,7 @@ const styles = StyleSheet.create({
     minHeight: 420,
   },
   eyebrow: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.sm,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
@@ -866,7 +878,7 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   termsLink: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontWeight: fiticianTokens.typography.fontWeight.bold,
     textDecorationLine: "underline",
   },
@@ -883,4 +895,4 @@ const styles = StyleSheet.create({
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

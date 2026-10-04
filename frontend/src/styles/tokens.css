@@ -1,22 +1,4 @@
 :root {
-  --fitician-canvas: #020607;
-  --fitician-petrol: #091817;
-  --fitician-teal: #0e201e;
-  --fitician-surface: #081211;
-  --fitician-surface-subtle: #050b0c;
-  --fitician-surface-raised: #101e1c;
-  --fitician-surface-interactive: rgb(80 223 206 / 7%);
-  --fitician-aqua: #50dfce;
-  --fitician-blue: #3b82f6;
-  --fitician-coral: #f67859;
-  --fitician-amber: #f2b85b;
-  --fitician-success: #66c89f;
-  --fitician-danger: #f67859;
-  --fitician-mist: #e8f4f1;
-  --fitician-ink: #e8f4f1;
-  --fitician-muted: #94aba5;
-  --fitician-line: rgb(232 244 241 / 12%);
-  --fitician-line-strong: rgb(80 223 206 / 28%);
   --fitician-space-1: 0.25rem;
   --fitician-space-2: 0.5rem;
   --fitician-space-3: 0.75rem;
@@ -31,11 +13,6 @@
   --fitician-radius-xl: 1.5rem;
   --fitician-radius-card: 1.125rem;
   --fitician-radius-pill: 999px;
-  --fitician-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 32%);
-  --fitician-shadow-soft: 0 0.5rem 2rem rgb(0 0 0 / 22%);
-  --fitician-shadow-card: 0 4px 20px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 18%);
-  --fitician-shadow-focus: 0 1.25rem 3.75rem rgb(0 0 0 / 24%), 0 0 0 1px rgb(80 223 206 / 12%);
-  --fitician-shadow-glow: 0 4px 18px rgb(80 223 206 / 24%);
   --fitician-duration-fast: 160ms;
   --fitician-duration-medium: 260ms;
   --fitician-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -119,5 +96,94 @@
   --fitsho-radius-lg: 0.9rem;
   --fitsho-radius-xl: 1.1rem;
   --fitsho-radius-card: 0.9rem;
-  color-scheme: dark;
+  color-scheme: var(--fitician-color-scheme);
+}
+
+/* Dark is also the safe fallback before an appearance preference is available. */
+:root, [data-fitician-theme="dark"] {
+  --fitician-canvas: #020607;
+  --fitician-petrol: #091817;
+  --fitician-teal: #0e201e;
+  --fitician-surface: #081211;
+  --fitician-surface-subtle: #050b0c;
+  --fitician-surface-raised: #101e1c;
+  --fitician-surface-interactive: rgb(80 223 206 / 7%);
+  --fitician-aqua: #50dfce;
+  --fitician-blue: #3b82f6;
+  --fitician-coral: #f67859;
+  --fitician-amber: #f2b85b;
+  --fitician-success: #66c89f;
+  --fitician-danger: #f67859;
+  --fitician-mist: #e8f4f1;
+  --fitician-ink: #e8f4f1;
+  --fitician-muted: #94aba5;
+  --fitician-line: rgb(232 244 241 / 12%);
+  --fitician-line-strong: rgb(80 223 206 / 28%);
+  --fitician-shadow: 0 1.25rem 3.5rem rgb(0 0 0 / 32%);
+  --fitician-shadow-soft: 0 0.5rem 2rem rgb(0 0 0 / 22%);
+  --fitician-shadow-card: 0 4px 20px rgb(0 0 0 / 25%), 0 1px 2px rgb(0 0 0 / 18%);
+  --fitician-shadow-focus: 0 1.25rem 3.75rem rgb(0 0 0 / 24%), 0 0 0 1px rgb(80 223 206 / 12%);
+  --fitician-shadow-glow: 0 4px 18px rgb(80 223 206 / 24%);
+  --fitician-color-scheme: dark;
+  --fitician-on-accent: #020607;
+  --fitician-text: var(--fitician-ink);
+  --fitician-accent-ink: #50dfce;
+  --fitician-on-danger: #020607;
+  --fitician-danger-button-fill: linear-gradient(135deg, #ff9b7f, #f67859);
+  --fitician-media-canvas: #020607;
+  --fitician-media-ink: #e8f4f1;
+  --fitician-placeholder: #94aba5;
+  --fitician-surface-translucent: rgb(8 18 17 / 96%);
+  --fitician-shadow-rgb: 0 0 0;
+  --fitician-shadow-strength: 1;
+  --fitician-highlight-rgb: 255 255 255;
+  --fitician-decorative-veil: linear-gradient(115deg, rgb(10 31 30 / 84%), rgb(10 31 30 / 48%) 54%, rgb(10 31 30 / 74%));
+}
+
+[data-fitician-theme="light"] {
+  --fitician-color-scheme: light;
+  --fitician-canvas: #f5faf8;
+  --fitician-petrol: #eaf4f0;
+  --fitician-teal: #e2efea;
+  --fitician-surface: #ffffff;
+  --fitician-surface-subtle: #f0f6f3;
+  --fitician-surface-raised: #edf5f1;
+  --fitician-surface-interactive: #e2f7f1;
+  --fitician-ink: #102422;
+  --fitician-mist: #102422;
+  --fitician-muted: #526b65;
+  --fitician-accent-ink: #087568;
+  --fitician-blue: #245ec1;
+  --fitician-coral: #b74025;
+  --fitician-amber: #8b5a10;
+  --fitician-success: #23734f;
+  --fitician-danger: #b74025;
+  --fitician-on-danger: #ffffff;
+  --fitician-danger-button-fill: var(--fitician-danger);
+  --fitician-line: rgb(16 36 34 / 13%);
+  --fitician-line-strong: rgb(8 117 104 / 34%);
+  --fitician-placeholder: #526b65;
+  --fitician-surface-translucent: rgb(255 255 255 / 96%);
+  --fitician-shadow-rgb: 16 36 34;
+  --fitician-shadow-strength: 0.25;
+  --fitician-highlight-rgb: 16 36 34;
+  --fitician-decorative-veil: linear-gradient(115deg, rgb(245 250 248 / 96%), rgb(245 250 248 / 90%) 54%, rgb(245 250 248 / 94%));
+  --fitician-shadow: 0 1.25rem 3.5rem rgb(16 36 34 / 9%);
+  --fitician-shadow-soft: 0 0.5rem 2rem rgb(16 36 34 / 6%);
+  --fitician-shadow-card: 0 4px 20px rgb(16 36 34 / 5%), 0 1px 2px rgb(16 36 34 / 4%);
+  --fitician-shadow-focus: 0 1.25rem 3.75rem rgb(16 36 34 / 8%), 0 0 0 1px rgb(8 117 104 / 12%);
+  --fitician-shadow-glow: 0 4px 18px rgb(8 117 104 / 12%);
+}
+
+/* Preserve existing Dark shades while Light resolves each application role centrally. */
+[data-fitician-theme="light"] {
+  --fitician-palette-danger: var(--fitician-danger);
+  --fitician-palette-accent-ink: var(--fitician-accent-ink);
+  --fitician-palette-surface: var(--fitician-surface);
+  --fitician-palette-ink: var(--fitician-ink);
+  --fitician-palette-surface-translucent: var(--fitician-surface-translucent);
+  --fitician-palette-on-accent: var(--fitician-on-accent);
+  --fitician-palette-line: var(--fitician-line);
+  --fitician-palette-muted: var(--fitician-muted);
+  --fitician-palette-success: var(--fitician-success);
 }

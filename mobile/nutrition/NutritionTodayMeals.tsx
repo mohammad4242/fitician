@@ -1,9 +1,10 @@
+import { useThemeStyles } from "../ui/theme/ThemeProvider";
+import type { FiticianTokens } from "../ui/tokens";
 import { localIsoDate } from "@fitician/core/local-date";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "../ui/components";
-import { fiticianTokens } from "../ui/tokens";
 import type { WeeklyPlan, WeeklyPlanMeal } from "./nutritionPlanApi";
 
 export function NutritionTodayMeals({
@@ -19,6 +20,8 @@ export function NutritionTodayMeals({
   readonly patternDayIndex?: number | null;
   readonly plan: WeeklyPlan | null;
 }) {
+  const styles = useThemeStyles(createStyles);
+
   const router = useRouter();
   const hasEffectivePlan = effectivePlan !== undefined;
   const sourcePlan = hasEffectivePlan ? effectivePlan : plan;
@@ -54,6 +57,8 @@ export function NutritionTodayMeals({
 }
 
 function MealRow({ meal, showDivider }: { readonly meal: WeeklyPlanMeal; readonly showDivider: boolean }) {
+  const styles = useThemeStyles(createStyles);
+
   const calories = meal.nutrient_totals.energy_kcal;
   return (
     <View style={[styles.row, showDivider && styles.dividedRow]}>
@@ -76,7 +81,7 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 1 }).format(value);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   calories: {
     color: fiticianTokens.colors.ink,
     fontFamily: fiticianTokens.typography.fontFamily.bodyEnglish,
@@ -140,7 +145,7 @@ const styles = StyleSheet.create({
     minWidth: fiticianTokens.layout.minimumTouchTarget,
   },
   trackActionText: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,
@@ -156,10 +161,10 @@ const styles = StyleSheet.create({
     writingDirection: "rtl",
   },
   todayLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.xs,
     textAlign: "auto",
     writingDirection: "rtl",
   },
-});
+}));

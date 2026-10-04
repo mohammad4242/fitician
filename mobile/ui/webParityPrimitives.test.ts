@@ -207,3 +207,5 @@ test("keeps segmented controls disabled while loading", () => {
   expect(option.props.accessibilityState).toMatchObject({ busy: true, disabled: true });
   expect(option.props.disabled).toBe(true);
 });
+
+vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn(async () => null), setItemAsync: vi.fn(async () => undefined) }));

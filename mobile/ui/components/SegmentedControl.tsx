@@ -1,3 +1,5 @@
+import { useThemeTokens, useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +12,6 @@ import {
 } from "react-native";
 
 import { getRowDirectionStyle, getTextDirectionStyle, type FiticianDirection } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export type SegmentedControlDirection = FiticianDirection;
 
@@ -29,6 +30,7 @@ export interface SegmentedControlProps {
   readonly selectedValue: string;
   readonly style?: StyleProp<ViewStyle>;
   readonly testID?: string;
+  readonly variant?: "subtle" | "filled";
 }
 
 export function SegmentedControl({
@@ -41,7 +43,11 @@ export function SegmentedControl({
   selectedValue,
   style,
   testID = "segmented-control",
+  variant = "subtle",
 }: SegmentedControlProps) {
+  const fiticianTokens = useThemeTokens();
+  const styles = useThemeStyles(createStyles);
+
   const unavailable = disabled || loading;
 
   return (
@@ -57,6 +63,7 @@ export function SegmentedControl({
           busy: loading,
           disabled: unavailable,
           selected,
+          checked: selected,
         };
 
         return (
@@ -69,16 +76,16 @@ export function SegmentedControl({
             onPress={() => {
               if (!unavailable && !selected) onChange(option.value);
             }}
-            style={[styles.option, selected && styles.selectedOption, unavailable && styles.disabledOption]}
+            style={[styles.option, selected && styles.selectedOption, selected && variant === "filled" && styles.filledOption, unavailable && styles.disabledOption]}
           >
             <Text
               allowFontScaling
-              style={[styles.label, selected && styles.selectedLabel, getTextDirectionStyle(direction, "center")]}
+              style={[styles.label, selected && styles.selectedLabel, selected && variant === "filled" && styles.filledLabel, getTextDirectionStyle(direction, "center")]}
             >
               {option.label}
             </Text>
             {loading && selected ? (
-              <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.aqua} size="small" />
+              <ActivityIndicator accessibilityLabel="در حال بارگذاری" color={fiticianTokens.colors.accentInk} size="small" />
             ) : null}
           </Pressable>
         );
@@ -87,7 +94,7 @@ export function SegmentedControl({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   container: {
     borderRadius: fiticianTokens.radii.medium,
     gap: fiticianTokens.spacing[1],
@@ -117,11 +124,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: fiticianTokens.spacing[3],
     paddingVertical: fiticianTokens.spacing[2],
   },
+  filledLabel: { color: fiticianTokens.colors.onAccent },
+  filledOption: { backgroundColor: fiticianTokens.colors.aqua },
   selectedLabel: {
-    color: fiticianTokens.colors.aqua,
+    color: fiticianTokens.colors.accentInk,
   },
   selectedOption: {
     backgroundColor: fiticianTokens.colors.surfaceInteractive,
     borderColor: fiticianTokens.colors.aqua,
   },
-});
+}));

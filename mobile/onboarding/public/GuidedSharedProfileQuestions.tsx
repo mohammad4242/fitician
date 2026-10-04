@@ -1,3 +1,5 @@
+import { useThemeStyles } from "../../ui/theme/ThemeProvider";
+import { useThemeTokens } from "../../ui/theme/ThemeProvider";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -6,9 +8,8 @@ import { getProfileBirthDateBounds } from "@fitician/core/profile-validation";
 import type { ProfileFormValues } from "@fitician/core/profile";
 
 import { AppIcon, Button, PersianDatePicker, TextField } from "../../ui/components";
-import { fiticianTokens } from "../../ui/tokens";
 import { PublicChoiceCard, PublicQuestionFrame } from "./PublicQuestionFrame";
-import { publicOnboardingStyles as styles } from "./publicOnboardingStyles";
+import { createPublicOnboardingStyles } from "./publicOnboardingStyles";
 import { usePublicAutoAdvance } from "./usePublicAutoAdvance";
 
 type SharedField = "display_name" | "birth_date" | "sex" | "height_cm" | "current_weight_kg" | "fitness_goal";
@@ -59,6 +60,10 @@ export function GuidedSharedProfileQuestions({
   onRegisterBack,
   values,
 }: GuidedSharedProfileQuestionsProps) {
+  const styles = useThemeStyles(createPublicOnboardingStyles);
+
+  const fiticianTokens = useThemeTokens();
+
   const [question, setQuestion] = useState(0);
   const [birthError, setBirthError] = useState<string | null>(null);
   const [showBodyConfirmation, setShowBodyConfirmation] = useState(false);
@@ -218,7 +223,7 @@ export function GuidedSharedProfileQuestions({
               style={styles.bodyConfirmation}
             >
               <AppIcon
-                color={bodyValuesConfirmed ? fiticianTokens.colors.aqua : fiticianTokens.colors.muted}
+                color={bodyValuesConfirmed ? fiticianTokens.colors.accentInk : fiticianTokens.colors.muted}
                 name={bodyValuesConfirmed ? "check" : "close"}
                 size={20}
               />

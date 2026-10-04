@@ -1,8 +1,9 @@
+import { useThemeStyles } from "../theme/ThemeProvider";
+import type { FiticianTokens } from "../tokens";
 import { type ReactNode } from "react";
 import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
 
 import { RTL_LAYOUT } from "../rtl";
-import { fiticianTokens } from "../tokens";
 
 export interface CinematicSurfaceProps extends Omit<ViewProps, "style"> {
   readonly accent?: boolean;
@@ -11,11 +12,11 @@ export interface CinematicSurfaceProps extends Omit<ViewProps, "style"> {
   readonly variant?: "default" | "hero" | "quiet";
 }
 
-const variants: Record<NonNullable<CinematicSurfaceProps["variant"]>, ViewStyle> = {
+const createVariants = (fiticianTokens: FiticianTokens): Record<NonNullable<CinematicSurfaceProps["variant"]>, ViewStyle> => ({
   default: { backgroundColor: fiticianTokens.colors.surface },
   hero: { backgroundColor: fiticianTokens.colors.hero },
   quiet: { backgroundColor: fiticianTokens.colors.surfaceSubtle },
-};
+});
 
 export function CinematicSurface({
   accent = false,
@@ -24,6 +25,9 @@ export function CinematicSurface({
   variant = "default",
   ...viewProps
 }: CinematicSurfaceProps) {
+  const variants = useThemeStyles(createVariants);
+  const styles = useThemeStyles(createStyles);
+
   return (
     <View {...viewProps} style={[styles.surface, RTL_LAYOUT, variants[variant], style]}>
       <View pointerEvents="none" style={styles.highlight} />
@@ -34,7 +38,7 @@ export function CinematicSurface({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (fiticianTokens: FiticianTokens) => (StyleSheet.create({
   ambient: {
     backgroundColor: fiticianTokens.colors.aquaAtmosphere,
     borderRadius: fiticianTokens.radii.pill,
@@ -77,4 +81,4 @@ const styles = StyleSheet.create({
     shadowOpacity: fiticianTokens.shadows.card.opacity,
     shadowRadius: fiticianTokens.shadows.card.radius,
   },
-});
+}));
