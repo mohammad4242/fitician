@@ -1,0 +1,187 @@
+name: Fitician Web appearance release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact reviewed SHA containing the frontend appearance changes
+        required: true
+        type: string
+      deploy_production:
+        description: Deploy only the verified frontend image
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-release:
+    name: Verify and release frontend only
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: fitician-production
+      cancel-in-progress: false
+    env:
+      IMAGE_TAG: ${{ inputs.source_sha }}
+      COMPONENT: frontend
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - name: Require exact source and deployment inputs
+        run: |
+          set -euo pipefail
+          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+          printf '%s' "$VPS_USER" | grep -Eq '^[A-Za-z0-9._-]+$'
+          printf '%s' "$DOCKERHUB_USERNAME" | grep -Eq '^[A-Za-z0-9._-]+$'
+          test -n "$VPS_HOST"
+      - name: Checkout trusted deployment setup
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: release-ops
+          fetch-depth: 0
+      - name: Checkout exact frontend source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          path: source
+          fetch-depth: 0
+      - name: Keep dependency and deployment inputs identical to main
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$IMAGE_TAG"
+          git fetch origin main feat/support-progress
+          git merge-base --is-ancestor "$IMAGE_TAG" origin/feat/support-progress
+          # Native/backend work in this branch is excluded from the frontend image.
+          # Only frontend application source may differ from the trusted release setup.
+          git diff --exit-code origin/main "$IMAGE_TAG" -- \
+            package.json package-lock.json packages vendor .dockerignore \
+            frontend/package.json frontend/Dockerfile frontend/nginx.conf frontend/vite.config.ts
+          git diff --name-only origin/main "$IMAGE_TAG" -- frontend > frontend-release-paths.txt
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          paths = Path('frontend-release-paths.txt').read_text().splitlines()
+          permitted = ('frontend/src/', 'frontend/public/', 'frontend/e2e/')
+          if any(p != 'frontend/index.html' and not p.startswith(permitted) for p in paths):
+              raise SystemExit('Unexpected frontend build/configuration changes')
+          if any('.env' in Path(p).name or p.endswith(('.sh', '.conf')) for p in paths):
+              raise SystemExit('Unexpected sensitive or executable release input')
+          if not Path('frontend/src/theme/ThemeProvider.tsx').is_file():
+              raise SystemExit('Expected appearance provider missing')
+          print('Exact frontend appearance source verified; other applications excluded')
+          PYCODE
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.4
+          cache: npm
+          cache-dependency-path: source/package-lock.json
+      - name: Scan source for secrets
+        working-directory: source
+        run: npm run security:secrets
+      - name: Install locked dependencies
+        working-directory: source
+        run: npm ci
+      - name: Compile shared frontend dependency
+        working-directory: source
+        run: npm run build:core
+      - name: Targeted frontend unit and component tests
+        working-directory: source/frontend
+        run: npm test -- --run src/theme src/styles/designSystem.test.ts src/pages/MorePage.test.tsx src/shared src/pwa
+      - name: Frontend lint
+        working-directory: source/frontend
+        run: npm run lint
+      - name: Frontend typecheck and production build
+        working-directory: source/frontend
+        run: npm run build
+      - name: Require production public build configuration
+        env:
+          MEDIA_BASE: ${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
+          GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$GOOGLE_CLIENT_ID"
+          case "$MEDIA_BASE" in https://*) ;; *) exit 1 ;; esac
+          case "$GOOGLE_CLIENT_ID" in *.apps.googleusercontent.com) ;; *) exit 1 ;; esac
+          curl --fail --silent --show-error --head --max-time 20 \
+            "${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4" >/dev/null
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build only production frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./source
+          file: ./source/frontend/Dockerfile
+          load: true
+          build-args: |
+            VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ inputs.source_sha }}
+          cache-from: type=gha,scope=fitician-frontend
+          cache-to: type=gha,mode=max,scope=fitician-frontend
+      - name: Verify built appearance and public assets
+        env:
+          EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          EXPECTED_ENAMAD_META_TAG: '<meta name="enamad" content="74257848" />'
+        run: |
+          docker run --rm --entrypoint sh -e EXPECTED_GOOGLE_CLIENT_ID -e EXPECTED_ENAMAD_META_TAG \
+            "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG" -c '
+              set -eu
+              cd /usr/share/nginx/html
+              grep -F "fitician.theme" index.html >/dev/null
+              grep -F "fiticianTheme" index.html >/dev/null
+              test "$(grep -F -o -- "$EXPECTED_ENAMAD_META_TAG" index.html | wc -l)" -eq 1
+              grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" assets >/dev/null
+              grep -R -F -- "--fitician-on-accent" assets >/dev/null
+              test -f manifest.webmanifest
+              test -f sw.js
+              test -f pwa/icon-192.png
+              test -f exercises/exercise-placeholder.svg
+            '
+      - name: Push verified immutable frontend image
+        run: docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
+      - uses: webfactory/ssh-agent@v0.9.0
+        if: inputs.deploy_production
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Pin production host key
+        if: inputs.deploy_production
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Inspect actual frontend rollback tag
+        if: inputs.deploy_production
+        id: baseline
+        run: |
+          set -euo pipefail
+          tag=$(ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='frontend' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' INSPECT_ONLY=true bash -s" \
+            < release-ops/ops/deploy-component.sh)
+          printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Authenticate production Docker client
+        if: inputs.deploy_production
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+      - name: Deploy frontend with isolation, health checks and rollback
+        if: inputs.deploy_production
+        env:
+          CURRENT_TAG: ${{ steps.baseline.outputs.tag }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='frontend' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' PREVIOUS_IMAGE_TAG='$CURRENT_TAG' EXPECTED_CURRENT_TAG='$CURRENT_TAG' bash -s" \
+            < release-ops/ops/deploy-component.sh
