@@ -114,3 +114,12 @@ test("saved Light is applied before React loads", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-fitician-theme", "light");
   expect(await page.evaluate(() => document.documentElement.style.backgroundColor)).toBe("rgb(245, 250, 248)");
 });
+
+for (const theme of ["dark", "light"] as const) {
+  test(`keeps Aqua avatar content readable in ${theme}`, async ({ page }) => {
+    await page.addInitScript(value => localStorage.setItem("fitician.theme", value), theme);
+    await mockCompletedMember(page);
+    await page.goto("/more", { waitUntil: "networkidle" });
+    await expect(page.locator(".more-profile-card__avatar")).toHaveCSS("color", "rgb(2, 6, 7)");
+  });
+}

@@ -46,7 +46,7 @@
 
 .more-profile-card div { min-width: 0; display: grid; gap: 0.15rem; }
 .more-profile-card strong { color: var(--fitician-ink); font-size: 0.95rem; font-weight: 750; }
-.more-profile-card span { overflow: hidden; color: var(--fitician-muted); font-size: 0.78rem; text-overflow: ellipsis; }
+.more-profile-card div > span { overflow: hidden; color: var(--fitician-muted); font-size: 0.78rem; text-overflow: ellipsis; }
 .more-profile-card > a {
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--fitician-line-strong);
