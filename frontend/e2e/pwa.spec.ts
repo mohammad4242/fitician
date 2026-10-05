@@ -106,3 +106,12 @@ test("production preview serves SPA deep links", async ({ request }) => {
     expect(await response.text(), path).toContain("Fitician");
   }
 });
+
+// Static asset directories must not capture an application route on refresh.
+test("serves Exercise catalogue SPA routes without directory redirects", async ({ request }) => {
+  for (const path of ["/exercises", "/exercises/"]) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status(), path).toBe(200);
+    expect(await response.text()).toContain('id="root"');
+  }
+});
