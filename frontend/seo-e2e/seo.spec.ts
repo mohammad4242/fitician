@@ -252,3 +252,14 @@ test("saved member Light preference keeps public calculator headers readable", a
     await expect(page.locator("html")).toHaveAttribute("data-fitician-theme", "light");
   }
 });
+
+test("cinematic home does not download the full exercise catalogue", async ({ page }) => {
+  const scripts: Promise<string>[] = [];
+  page.on("response", response => {
+    if (/\/assets\/[^?]+\.js(?:\?|$)/.test(response.url())) scripts.push(response.text());
+  });
+  await page.goto("/");
+  await expect(page.locator("h1")).toBeVisible();
+  expect((await Promise.all(scripts)).some(script => script.includes("fedb-0033-barbell-decline-bench-press"))).toBe(false);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://fitician.fit/");
+});
