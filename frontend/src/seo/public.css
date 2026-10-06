@@ -110,3 +110,234 @@
 @media (max-width: 700px) { .tool-workspace { grid-template-columns: 1fr; } .tool-result-panel { border-inline-start: 0; border-top: 1px solid #29463b; min-height: 240px; } .tool-result-number { font-size: 3.6rem; } .tool-result-range { font-size: 2.8rem; } .tool-hub { grid-template-columns: 1fr; } .tool-card { padding: 1.5rem; } }
 @media (max-width: 390px) { .tool-switcher { width: 100%; } .public-knowledge .tool-switcher a { flex: 1; padding-inline: .5rem; font-size: .78rem; } .tool-fields { gap: 1rem .6rem; } .tool-field input { font-size: 1rem; } .tool-field select { font-size: .75rem; } }
 @media (prefers-reduced-motion: reduce) { .tool-field input, .tool-field select, .public-knowledge .tool-card { transition: none !important; } }
+
+/* Product shell uses the same semantic tokens and typography as member surfaces. */
+.public-knowledge { line-height: 1.9; }
+.public-knowledge > .public-header { padding: 0; border-color: var(--fitician-line); background: var(--fitician-canvas); }
+.public-header-inner { width: min(100% - 2.5rem, var(--fitician-content)); margin: auto; min-height: 88px; display: flex; align-items: center; gap: 2rem; }
+.public-logo { display: inline-flex; align-items: center; flex-shrink: 0; }
+.public-logo .fitician-brand-logo { display: block; width: 155px; height: auto; }
+.public-main-nav { display: flex; align-items: center; gap: 1.4rem; margin-inline-start: auto; }
+.public-knowledge .public-main-nav a, .public-knowledge .public-login { color: var(--fitician-muted); font-size: .85rem; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.public-main-nav a[aria-current="page"] { color: var(--fitician-aqua); }
+.public-header-actions { display: flex; align-items: center; gap: 1.2rem; }
+.public-knowledge .public-cta { min-height: 44px; border-radius: var(--fitician-radius-md); padding: .65rem 1.15rem; background: var(--fitician-aqua); color: var(--fitician-on-accent); white-space: nowrap; }
+.public-menu-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--fitician-line); border-radius: 12px; color: var(--fitician-ink); background: var(--fitician-surface); font-size: 1.3rem; cursor: pointer; }
+.public-skip-link { position: absolute; inset-block-start: -5rem; z-index: 20; inset-inline-start: 1rem; padding: .6rem 1rem; background: var(--fitician-surface-raised); }
+.public-skip-link:focus { inset-block-start: 1rem; }
+.public-knowledge > main { width: min(100% - 3rem, 78rem); padding-block: 1.25rem 5rem; }
+.public-knowledge.public-tool-page > main { max-width: 880px; }
+.public-knowledge.public-article-page > main { max-width: 900px; }
+.public-breadcrumbs { margin-block-end: 1.8rem; color: var(--fitician-muted); }
+.public-breadcrumbs a { text-decoration: none; }
+.public-breadcrumbs li:last-child { opacity: .8; }
+.public-topic-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: center; gap: clamp(2rem, 5vw, 5rem); padding-block: clamp(1.5rem, 4vw, 4rem); }
+.public-topic-hero > div:first-child { min-width: 0; }
+.public-topic-hero:has(> div:only-child) { grid-template-columns: 1fr; max-width: 55rem; }
+.public-knowledge .public-topic-hero h1 { margin-block: 1rem 1.5rem; font-size: clamp(2.6rem, 5.5vw, 5rem); line-height: 1.25; letter-spacing: -.025em; }
+.public-knowledge .public-eyebrow { color: var(--fitician-aqua); font-size: .72rem; font-weight: 600; letter-spacing: .03em; }
+.public-knowledge .public-lead { color: var(--fitician-muted); font-size: clamp(.95rem, 1.5vw, 1.1rem); line-height: 2; max-width: 55ch; }
+.public-section-heading { max-width: 45rem; margin-block: 2.5rem 1.6rem; }
+.public-section-heading h2 { margin-block: .4rem; font-size: clamp(1.7rem, 3vw, 2.5rem); }
+.public-section-heading > p:last-child { color: var(--fitician-muted); font-size: .92rem; }
+.public-utility { font: 500 .72rem/1.5 "Sora Variable", sans-serif; color: var(--fitician-aqua); }
+.public-insight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 3rem; }
+.public-insight-card { border: 1px solid var(--fitician-line); background: var(--fitician-surface); padding: clamp(1.4rem, 3vw, 2rem); border-radius: var(--fitician-radius-card); }
+.public-knowledge .public-insight-card h2 { margin-block: 0 .8rem; font-size: 1.6rem; }
+.public-insight-card p { font-size: .9rem; color: var(--fitician-muted); }
+.public-reading-detail { border-top: 1px solid var(--fitician-line); padding-block-start: .7rem; margin-block-start: 1rem; }
+.public-reading-detail summary { color: var(--fitician-aqua); cursor: pointer; font-size: .8rem; min-height: 44px; display: flex; align-items: center; justify-content: space-between; }
+.public-reading-detail summary::after { content: "+"; font: 400 1.2rem "Sora Variable", sans-serif; }
+.public-reading-detail[open] summary::after { content: "−"; }
+.public-reading-detail summary:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 4px; }
+.training-blueprint { border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-card); padding: 1.5rem; background: var(--fitician-surface); box-shadow: var(--fitician-shadow-soft); }
+.public-knowledge .blueprint-label { margin: 0 0 1rem; font-weight: 700; font-size: .8rem; }
+.public-knowledge .training-blueprint dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.training-blueprint dl > div { padding-block: .6rem; border-top: 1px solid var(--fitician-line); }
+.training-blueprint dt { color: var(--fitician-aqua); font-size: .72rem; }
+.training-blueprint dd { color: var(--fitician-muted); font-size: .72rem; }
+.blueprint-output { border-top: 1px solid var(--fitician-line-strong); display: flex; align-items: center; gap: .8rem; padding-block-start: 1.1rem; margin-block-start: .9rem; color: var(--fitician-ink); font-size: .82rem; }
+.blueprint-output svg { width: 34px; height: 34px; color: var(--fitician-aqua); }
+.public-split-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.public-split-card { min-width: 0; padding: 1.7rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); }
+.public-split-card h3 { font-size: 1.6rem; margin-block: 1rem; }
+.public-split-card > p:not(.public-utility) { color: var(--fitician-muted); font-size: .84rem; }
+.public-split-card a { display: inline-flex; align-items: center; gap: .6rem; min-height: 44px; font-size: .8rem; text-decoration: none; }
+.split-blocks { display: flex; gap: .35rem; margin-block: 1.3rem; }
+.split-blocks span { flex: 1; border-block-start: 3px solid var(--fitician-aqua); padding: .65rem .25rem; border-radius: 0 0 .6rem .6rem; color: var(--fitician-muted); background: var(--fitician-surface-raised); text-align: center; font-size: .74rem; }
+.split-blocks span:nth-child(2) { border-color: var(--fitician-coral); }
+.split-blocks span:nth-child(3) { border-color: var(--fitician-amber); }
+.nutrition-composition { padding: 2rem; border-radius: var(--fitician-radius-card); background: var(--fitician-surface); border: 1px solid var(--fitician-line); }
+.nutrition-composition > svg { width: 58px; height: 58px; color: var(--fitician-aqua); }
+.nutrition-composition > p { font-size: 1.25rem; font-weight: 700; }
+.nutrition-composition > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--fitician-line); font-size: .85rem; }
+.nutrition-composition span { color: var(--fitician-muted); font-size: .75rem; }
+.public-link-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.public-knowledge .public-content-link { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); text-decoration: none; color: var(--fitician-ink); }
+.public-content-link svg { width: 32px; height: 32px; color: var(--fitician-aqua); }
+.public-content-link h3 { font-size: 1.1rem; margin-block: 1rem .4rem; }
+.public-content-link p { font-size: .85rem; color: var(--fitician-muted); flex: 1; }
+.public-content-link > span { color: var(--fitician-aqua); font-size: .82rem; margin-block-start: .8rem; }
+.public-reading-link { display: inline-flex; min-height: 44px; align-items: center; font-size: .9rem; }
+.body-capture-diagram { padding: 2rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); text-align: center; }
+.body-capture-frame { width: 60%; margin: auto; aspect-ratio: 3 / 4; display: grid; place-items: center; border: 1px solid var(--fitician-line-strong); border-radius: 1rem; background: repeating-linear-gradient(0deg, transparent, transparent 39px, var(--fitician-line) 40px); }
+.body-capture-frame svg { width: 55%; height: 70%; color: var(--fitician-aqua); }
+.body-capture-frame > span { font-size: .7rem; color: var(--fitician-muted); }
+.capture-conditions { display: flex; justify-content: center; gap: .5rem; flex-wrap: wrap; margin-block: 1.4rem .8rem; }
+.capture-conditions > span { padding: .25rem .6rem; border-radius: 99rem; border: 1px solid var(--fitician-line); font-size: .65rem; color: var(--fitician-muted); }
+.body-capture-diagram > p { font-size: .8rem; }
+.public-process { padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin-block: 2.5rem; }
+.public-process li { border-top: 1px solid var(--fitician-line-strong); padding-block-start: 1.5rem; }
+.public-process li > span { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--fitician-line-strong); border-radius: 50%; color: var(--fitician-aqua); }
+.public-process h2 { margin-block: .8rem .3rem; font-size: 1.25rem; }
+.public-process p { color: var(--fitician-muted); font-size: .87rem; }
+.public-boundary, .learn-recovery { display: flex; gap: 1.6rem; align-items: center; padding: 2rem; background: var(--fitician-surface); border-inline-start: 3px solid var(--fitician-aqua); border-radius: var(--fitician-radius-md); margin-block: 2rem; }
+.public-boundary svg, .learn-recovery > svg { flex-shrink: 0; width: 48px; height: 48px; color: var(--fitician-aqua); }
+.public-boundary h2, .learn-recovery h2 { margin-block: 0 .5rem; font-size: 1.4rem; }
+.public-boundary p, .learn-recovery p { color: var(--fitician-muted); font-size: .87rem; }
+.learn-topic-nav { display: flex; flex-wrap: wrap; gap: .6rem; margin-block: .5rem 2rem; }
+.learn-topic-nav a { min-height: 44px; display: flex; align-items: center; padding: .4rem 1rem; border: 1px solid var(--fitician-line); border-radius: 99rem; background: var(--fitician-surface); text-decoration: none; font-size: .83rem; }
+.public-knowledge .learn-article-card { display: flex; flex-direction: column; text-decoration: none; color: var(--fitician-ink); border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); overflow: hidden; }
+.learn-article-art { min-height: 130px; display: grid; place-items: center; border-bottom: 1px solid var(--fitician-line); background: var(--fitician-petrol); }
+.learn-article-art svg { width: 55px; height: 55px; color: var(--fitician-aqua); }
+.learn-article-body { padding: 1.7rem; }
+.public-knowledge .learn-article-body h2 { font-size: 1.55rem; margin-block: .6rem 1rem; }
+.learn-article-body > p:not(.public-eyebrow) { color: var(--fitician-muted); font-size: .85rem; }
+.learn-article-meta { display: flex; flex-wrap: wrap; gap: .5rem 1rem; color: var(--fitician-muted); font-size: .68rem; margin-block: 1.5rem .8rem; }
+.learn-article-action { display: flex; justify-content: space-between; align-items: center; min-height: 44px; border-top: 1px solid var(--fitician-line); padding-block-start: .65rem; color: var(--fitician-aqua); font-size: .85rem; }
+.public-knowledge .learn-article-featured { flex-direction: row; }
+.learn-article-featured .learn-article-art { width: 33%; flex-shrink: 0; border-bottom: 0; border-inline-end: 1px solid var(--fitician-line); }
+.learn-article-featured .learn-article-art svg { width: 90px; height: 90px; }
+.learn-article-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.learn-topic-group { scroll-margin-top: 2rem; }
+.about-brand-panel { padding: 3rem 2rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-card); background: var(--fitician-surface); text-align: center; }
+.about-brand-panel .fitician-brand-logo { width: min(100%, 280px); height: auto; }
+.about-brand-panel p { font-size: .9rem; color: var(--fitician-aqua); margin-block: 2rem .4rem; }
+.about-brand-panel span { color: var(--fitician-muted); font-size: .8rem; }
+.about-purpose { max-width: 55rem; padding-block: 1.5rem; }
+.about-purpose h2 { font-size: clamp(2rem, 4vw, 3rem); margin-block: .6rem 1.3rem; }
+.about-purpose > p:last-child { color: var(--fitician-muted); }
+.about-principles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 3rem; margin-block: 2rem; }
+.about-principles section { border-top: 1px solid var(--fitician-line-strong); padding-block-start: 1.3rem; }
+.about-principles h2 { margin: 0 0 .8rem; font-size: 1.6rem; }
+.about-principles p { color: var(--fitician-muted); font-size: .9rem; }
+.about-trust-links { display: flex; gap: 1rem 2rem; flex-wrap: wrap; }
+.about-trust-links a { min-height: 44px; display: inline-flex; align-items: center; }
+.public-reading-content { max-width: 72ch; }
+.public-reading-content section { margin-block: 2.5rem; }
+.public-reading-content p { font-size: 1rem; line-height: 2.2; color: var(--fitician-muted); }
+.public-attribution { padding: .8rem 1rem; border-inline-start: 2px solid var(--fitician-line-strong); border-radius: .4rem; background: var(--fitician-surface); }
+.public-references { padding-block: 1.5rem; border-top: 1px solid var(--fitician-line); font-size: .83rem; }
+.public-references h2 { font-size: 1.1rem; margin-top: 0; }
+.public-references p { color: var(--fitician-muted); }
+.public-references ul { padding-inline-start: 1.3rem; }
+.public-references li { margin-block: .6rem; }
+.public-related { margin-block: 3rem; }
+.public-related-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.public-related-grid a { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 72px; padding: 1rem 1.3rem; border: 1px solid var(--fitician-line); background: var(--fitician-surface); border-radius: var(--fitician-radius-md); text-decoration: none; color: var(--fitician-ink); font-size: .85rem; }
+.public-related-grid a > span { color: var(--fitician-aqua); }
+.public-next { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: clamp(1.5rem, 4vw, 3rem); border-color: var(--fitician-line-strong); border-radius: var(--fitician-radius-card); background: var(--fitician-petrol); }
+.public-next > div { max-width: 45rem; }
+.public-next h2 { font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.6; margin-block: .4rem .8rem; }
+.public-next p { color: var(--fitician-muted); font-size: .85rem; }
+.public-exercise-page .exercise-catalog-shell { padding: 0; background: transparent; }
+.public-exercise-page .exercise-catalog-main, .public-exercise-page .exercise-detail-main { width: 100%; max-width: none; }
+.public-exercise-page .exercise-card dl { grid-template-columns: 1fr; }
+.public-exercise-page .exercise-detail-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.public-exercise-page .exercise-detail-heading h1 { font-size: clamp(2rem, 4vw, 3.75rem); line-height: 1.35; }
+.public-exercise-page .exercise-detail-section-heading h2 { margin: 0; }
+.public-exercise-page .exercise-catalog-hero h1 { line-height: 1.35; }
+.public-exercise-page .catalog-stage__heading h2 { margin: 0; }
+.public-exercise-page .exercise-card__body h3 { margin: 0; }
+.public-library-note { color: var(--fitician-muted); font-size: .84rem; margin-block: 1rem; }
+.public-related-exercises { margin-block: 3rem; }
+.public-exercise-page .exercise-detail-sheet { margin-block: 1rem 2rem; }
+
+/* Discovery belongs to the cinematic homepage; no extra hero assets or animations. */
+.public-discovery { padding: 0; color: var(--fitician-ink); background: var(--fitician-canvas); border: 0; }
+.discovery-section { width: min(100% - 3rem, 78rem); margin: auto; padding-block: clamp(4rem, 7vw, 7rem); }
+.discovery-heading { margin-block-end: 2rem; }
+.discovery-heading > p { margin: 0 0 1rem; font: 500 .7rem "Sora Variable", sans-serif; color: var(--fitician-aqua); letter-spacing: .15em; }
+.discovery-heading h2 { font-size: clamp(2.3rem, 5vw, 4.5rem); font-weight: 400; line-height: 1.3; margin: 0 0 1rem; }
+.discovery-heading > span { color: var(--fitician-muted); font-size: .9rem; }
+.discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.public-discovery .discovery-card { display: flex; align-items: stretch; flex-direction: column; min-height: 280px; padding: 1.8rem; background: var(--fitician-surface); border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-card); color: var(--fitician-ink); text-decoration: none; transition: border-color .2s, transform .2s; box-shadow: var(--fitician-shadow-card); }
+.discovery-card-art { display: flex; justify-content: flex-end; }
+.discovery-card-art svg { width: 52px; height: 52px; color: var(--fitician-aqua); opacity: .85; }
+.discovery-card h3 { font-size: 1.7rem; font-weight: 400; line-height: 1.5; margin-block: 1.2rem .4rem; }
+.discovery-card p { color: var(--fitician-muted); font-size: .86rem; line-height: 1.9; margin: 0; flex: 1; }
+.discovery-card-link { margin-block-start: 1.5rem; padding-block-start: .9rem; border-top: 1px solid var(--fitician-line); display: flex; align-items: center; justify-content: space-between; color: var(--fitician-aqua); font-size: .8rem; }
+.public-footer { color: var(--fitician-ink); background: var(--fitician-canvas); border-top: 1px solid var(--fitician-line); font: .85rem/1.9 "Vazirmatn Variable", sans-serif; }
+.public-footer-inner { width: min(100% - 3rem, 78rem); margin: auto; padding-block: 3rem; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; }
+.public-footer-brand p { color: var(--fitician-muted); font-size: .85rem; margin-block: 1rem; }
+.public-footer nav { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+.public-footer nav h2 { font: 700 .9rem "Vazirmatn Variable", sans-serif; margin: 0 0 1rem; color: var(--fitician-ink); }
+.public-footer a { color: var(--fitician-muted); text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.public-footer a:focus-visible, .public-discovery a:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 4px; }
+.public-footer .public-footer-start { color: var(--fitician-aqua); gap: 2rem; font-weight: 600; }
+.public-footer-base { border-top: 1px solid var(--fitician-line); padding: 1.4rem max(1.5rem, calc((100% - 78rem) / 2)); display: flex; justify-content: space-between; flex-wrap: wrap; gap: .7rem; color: var(--fitician-muted); font-size: .68rem; }
+.public-footer-base > span:first-child { font-family: "Sora Variable", sans-serif; direction: ltr; }
+@media (hover: hover) { .public-discovery .discovery-card:hover { border-color: var(--fitician-line-strong); transform: translateY(-3px); } .public-footer a:hover, .public-knowledge .public-main-nav a:hover { color: var(--fitician-aqua); } .public-content-link:hover, .public-knowledge .learn-article-card:hover { border-color: var(--fitician-line-strong); } }
+@media (max-width: 1000px) {
+  .public-header-inner { gap: 1rem; }
+  .public-main-nav { gap: .9rem; }
+  .public-header-actions { gap: .8rem; }
+  .public-topic-hero { gap: 2rem; }
+  .public-split-grid, .discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-split-card:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .public-header-inner { width: calc(100% - 1.5rem); min-height: 76px; flex-wrap: wrap; justify-content: space-between; padding-block: .7rem; gap: .7rem; }
+  .public-logo .fitician-brand-logo { width: 110px; }
+  .public-header-actions { margin-inline-start: auto; gap: .65rem; }
+  .public-knowledge .public-header-actions .public-cta { padding-inline: .8rem; font-size: .75rem; }
+  .public-menu-toggle { display: block; }
+  .public-main-nav { display: none; order: 3; width: 100%; margin: 0; padding-block: .8rem; border-top: 1px solid var(--fitician-line); }
+  .public-main-nav[data-open="true"] { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+  .public-knowledge > main { width: calc(100% - 1.5rem); padding-block-end: 3rem; }
+  .public-breadcrumbs { margin-block-end: .7rem; }
+  .public-breadcrumbs ol { font-size: .72rem; }
+  .public-topic-hero { grid-template-columns: 1fr; padding-block: 1.5rem; gap: 1.3rem; }
+  .public-knowledge .public-topic-hero h1 { font-size: clamp(2.2rem, 9vw, 3.5rem); margin-block: .75rem 1rem; }
+  .public-insight-grid, .public-link-grid, .about-principles, .learn-article-grid { grid-template-columns: 1fr; }
+  .public-insight-grid { margin-block: 2rem; }
+  .public-process { grid-template-columns: 1fr; gap: 1rem; }
+  .public-process li { display: grid; grid-template-columns: 38px 1fr; column-gap: 1rem; }
+  .public-process li > span { grid-row: 1 / 3; }
+  .public-process h2 { margin-top: 0; }
+  .public-process p { margin-top: 0; }
+  .public-boundary, .learn-recovery { padding: 1.5rem; gap: 1rem; align-items: flex-start; }
+  .public-knowledge .learn-article-featured { flex-direction: column; }
+  .learn-article-featured .learn-article-art { width: 100%; min-height: 150px; border-inline-end: 0; border-bottom: 1px solid var(--fitician-line); }
+  .learn-article-featured .learn-article-art svg { width: 64px; height: 64px; }
+  .public-next { flex-direction: column; align-items: flex-start; gap: .8rem; }
+  .public-related-grid { grid-template-columns: 1fr; }
+  .public-footer-inner { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; padding-block: 2rem; width: calc(100% - 2rem); }
+  .public-footer-brand { grid-column: 1 / -1; margin-block-end: 1rem; }
+  .public-footer nav h2 { font-size: .78rem; }
+  .public-footer nav a { font-size: .75rem; }
+  .discovery-section { width: calc(100% - 1.5rem); padding-block: 3.5rem; }
+  .public-discovery .discovery-card { padding: 1.3rem; min-height: 280px; }
+  .discovery-card h3 { font-size: 1.45rem; }
+  .discovery-card p { font-size: .8rem; }
+  .body-capture-frame { max-height: 250px; }
+}
+@media (max-width: 540px) {
+  .public-split-grid, .discovery-grid { grid-template-columns: 1fr; }
+  .public-split-card:last-child { grid-column: auto; }
+  .public-discovery .discovery-card { min-height: auto; display: grid; grid-template-columns: 1fr 48px; gap: .4rem 1rem; }
+  .discovery-card-art { grid-column: 2; grid-row: 1 / 3; align-items: flex-start; }
+  .discovery-card-art svg { width: 42px; height: 42px; }
+  .discovery-card h3 { margin: 0; grid-column: 1; }
+  .discovery-card p { grid-column: 1; }
+  .discovery-card-link { grid-column: 1 / -1; margin-top: .7rem; }
+  .public-exercise-page .exercise-detail-facts { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-discovery .discovery-card, .public-exercise-page .exercise-card { transition: none; transform: none !important; }
+}
+.public-exercise-page .exercise-card__link, .public-exercise-page .exercise-detail-back { color: var(--fitician-on-accent); }
+.public-exercise-detail-hero { padding: 1.5rem clamp(1.5rem, 4vw, 3rem); margin-block: 1rem 1.5rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-card); background: var(--fitician-petrol); }
+.public-exercise-detail-hero h1 { font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.4; margin-block: .6rem; }
+.public-exercise-detail-hero > p:last-child { color: var(--fitician-muted); font: 400 .87rem/1.5 "Sora Variable", sans-serif; text-align: right; }
+.public-footer nav { justify-content: flex-start; flex-wrap: nowrap; }

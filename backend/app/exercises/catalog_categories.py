@@ -28,4 +28,3 @@ CORE_CATEGORIES = (
     (MuscleGroup.ABS, "Abs", "شکم"),
     (MuscleGroup.OBLIQUES, "Obliques", "پهلو"),
 )
-

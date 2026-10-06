@@ -1,10 +1,10 @@
 name: Public SEO delivery
 on:
   pull_request:
-    paths: ['frontend/**', 'packages/fitician-core/**', 'backend/app/exercises/seed_data.py', 'backend/app/exercises/curated_safety_notes.py', 'backend/app/exercises/enums.py', 'backend/app/exercises/media_metadata.py', 'package*.json', '.dockerignore', '.github/workflows/public-seo.yml']
+    paths: ['frontend/**', 'packages/fitician-core/**', 'backend/app/exercises/**', 'package*.json', '.dockerignore', '.github/workflows/public-seo.yml']
   push:
     branches: [main, feat/public-seo]
-    paths: ['frontend/**', 'packages/fitician-core/**', 'backend/app/exercises/seed_data.py', 'backend/app/exercises/curated_safety_notes.py', 'backend/app/exercises/enums.py', 'backend/app/exercises/media_metadata.py', 'package*.json', '.dockerignore', '.github/workflows/public-seo.yml']
+    paths: ['frontend/**', 'packages/fitician-core/**', 'backend/app/exercises/**', 'package*.json', '.dockerignore', '.github/workflows/public-seo.yml']
 permissions:
   contents: read
 jobs:

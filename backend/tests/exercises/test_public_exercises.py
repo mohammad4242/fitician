@@ -156,3 +156,47 @@ def test_approval_requires_a_published_page_before_catalog_discovery(client, db)
     response = client.get("/api/v1/public/exercises", params={"search": record.name_en})
     assert response.json()["total"] == 0
     assert client.get(f"/api/v1/public/exercises/{record.slug}").status_code == 404
+
+
+def test_public_media_allows_owner_authorized_stable_delivery(client, db):
+    from app.exercises.media_metadata import OWNER_LICENSE
+
+    seed_exercises(db)
+    record = db.scalar(select(Exercise).where(Exercise.slug == "dumbbell-bench-press"))
+    record.is_public = True
+    record.media_license = OWNER_LICENSE
+    record.media_source_url = "https://private.example/source?secret=hidden"
+    db.commit()
+    data = client.get(f"/api/v1/public/exercises/{record.slug}").json()
+    assert data["media_path"] == "/media/exercises/seed/dumbbell-bench-press.gif"
+    assert data["media_type"] == "gif"
+    assert "private.example" not in str(data)
+    assert "secret" not in str(data)
+
+
+def test_export_projects_only_reviewed_active_approved_records(db, tmp_path):
+    import json
+
+    from app.exercises.public_export import export_public_exercises
+
+    seed_exercises(db)
+    records = list(db.scalars(select(Exercise).order_by(Exercise.slug)))
+    approved, inactive, review = records[:3]
+    for record in [approved, inactive, review]:
+        record.is_public = True
+    inactive.is_active = False
+    review.needs_review = True
+    db.commit()
+    output, manifest = tmp_path / "public.json", tmp_path / "slugs.json"
+    export_public_exercises(db, output, manifest)
+    data = json.loads(output.read_text())
+    assert [item["slug"] for item in data] == [approved.slug]
+    assert json.loads(manifest.read_text()) == [approved.slug]
+    for forbidden in [
+        "source_id",
+        "needs_review",
+        "is_public",
+        "is_programmable",
+        "source_metadata",
+    ]:
+        assert forbidden not in output.read_text()

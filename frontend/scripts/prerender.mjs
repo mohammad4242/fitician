@@ -14,7 +14,7 @@ await writeFile("dist/app.html", app);
 const manifest = JSON.parse(await readFile("dist/.vite/manifest.json", "utf8"));
 function documentFor(path) {
   const html = render(path);
-  const modulePath = path === "/" ? "src/seo/HomeApp.tsx" : ["/privacy", "/support", "/install"].includes(path) ? "src/App.tsx" : "src/seo/PublicApp.tsx";
+  const modulePath = path === "/" ? "src/seo/HomeApp.tsx" : ["/privacy", "/support", "/install"].includes(path) ? "src/App.tsx" : path.startsWith("/exercise-library") ? "src/seo/PublicExerciseApp.tsx" : "src/seo/PublicApp.tsx";
   const styles = new Set();
   function collectCss(key) {
     const entry = manifest[key];

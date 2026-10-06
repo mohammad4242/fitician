@@ -68,6 +68,11 @@ export function ReadyExerciseDetail({
         <span aria-current="page">{name}</span>
       </nav>
 
+      {publicMode && <header className="public-exercise-detail-hero">
+        <p className="public-eyebrow">کتابخانه حرکات فیتیشن</p>
+        <h1 className="fitician-display">{name}</h1>
+        <p lang="en" dir="ltr">{exercise.name_en}</p>
+      </header>}
       <article className="exercise-detail-sheet">
         <div className="exercise-detail-media">
           <ExerciseMediaCarousel
@@ -115,10 +120,10 @@ export function ReadyExerciseDetail({
             <h2 className="fitician-display">{t("exerciseDetail.eyebrow")}</h2>
           </summary>
           <div className="exercise-detail-heading">
-            <h1 className="fitician-display" dir={isEnglish ? "ltr" : "rtl"}>{name}</h1>
-            <p className="exercise-detail-heading__secondary" dir={isEnglish ? "rtl" : "ltr"}>
+            {!publicMode && <h1 className="fitician-display" dir={isEnglish ? "ltr" : "rtl"}>{name}</h1>}
+            {!publicMode && <p className="exercise-detail-heading__secondary" dir={isEnglish ? "rtl" : "ltr"}>
               {secondaryName}
-            </p>
+            </p>}
             <dl className="exercise-detail-facts">
               <div>
                 <dt>{t("exerciseDetail.bodyRegion")}</dt>

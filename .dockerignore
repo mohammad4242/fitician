@@ -68,3 +68,6 @@ backend/app/exercises/*
 !backend/app/exercises/media_metadata.py
 .codex-worktrees/
 frontend/dist-server/
+!backend/app/exercises/catalog_categories.py
+!backend/app/exercises/taxonomy.py
+!backend/app/exercises/publication_slugs.json

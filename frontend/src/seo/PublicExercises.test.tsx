@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
-import { PublicPage } from "./PublicPage";
+import { PublicExercisePage as PublicPage } from "./PublicExercises";
 import { publicPayload } from "./registry";
 
 beforeEach(() => {
@@ -48,4 +48,11 @@ it("supports focus, equipment, difficulty, pagination and browser back", async (
   window.history.replaceState(null, "", "/exercise-library?body_region=lower_body");
   window.dispatchEvent(new PopStateEvent("popstate"));
   await waitFor(() => expect(screen.getByRole("button", { name: /جلو پا.*Quadriceps/ })).toBeInTheDocument());
+});
+
+it("keeps shared Persian exercise copy synchronized without shipping member translations", async () => {
+  const { default: fa } = await import("@fitician/core/i18n/fa");
+  const { default: language } = await import("./exercise-language.json");
+  expect(language.catalog).toEqual(fa.translation.catalog);
+  expect(language.exerciseDetail).toEqual(fa.translation.exerciseDetail);
 });

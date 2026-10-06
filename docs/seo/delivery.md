@@ -84,3 +84,7 @@ Final local production frontend image: `fitician-frontend:seo-check`, ID `sha256
 See [exact public route map](routes.md).
 
 Exact created/modified files: [files.md](files.md). Build and browser logs remain ignored in the workspace.
+
+## Public product upgrade
+
+The product upgrade replaces the plain discovery/footer and generic topic templates, shares the real member exercise presentation, and adds a separately authenticated-safe anonymous API. The historical text-only/no-API measurements above apply to the foundation release. Current public exercise pages intentionally fetch bounded safe GET projections and load approved exercise media; calculators retain their existing workspace and remain isolated from exercise/auth/admin bundles. Publication and revocation rules are documented in [public-product-design.md](public-product-design.md).

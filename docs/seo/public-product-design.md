@@ -11,3 +11,9 @@ Prerender exercise detail content using an explicitly refreshed public projectio
 Use the established dark/turquoise palette, Lalezar display and Vazirmatn text. Share BrandLogo and a compact public navigation/footer. Retain calculator workspaces and cinematic home unchanged. Give workout, nutrition, body analysis, Learn and About distinct layouts with real HTML, existing sources and truthful boundaries. Discovery uses six restrained feature cards, followed by one footer.
 
 Verify API projection/security, member/admin regressions, public interactions/back navigation, SSR content, metadata/sitemap/404/PWA, and 360/390/430/768/1440 layouts. Run the repository classifier and all resulting gates. Release through a reviewed PR and exact-SHA production gates, then verify production directly.
+
+## Publishing exercises
+
+From `backend/`, run `uv run python -m app.exercises.public_export --output ../frontend/src/seo/exercise-publications.json` against the intended database. Review and commit the safe snapshot together with `backend/app/exercises/publication_slugs.json`. Build exports reject manifest mismatches. A null snapshot preserves the existing 18 seed pages; an array is a full approved snapshot, including an empty array for no published exercises.
+
+Before release, compare the snapshot with live active/reviewed/public approvals. Revocations immediately stop API reads; remove the projection and rebuild to remove static HTML and sitemap entries. The current release retains the 18 previously published, owner-authorized seed exercises. It does not approve imported records automatically.

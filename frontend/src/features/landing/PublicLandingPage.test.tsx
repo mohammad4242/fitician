@@ -53,7 +53,7 @@ it("leads with the cinematic Fitician film and a focused Persian promise", () =>
   expect(screen.getByTestId("landing-brand-logo")).toBeInTheDocument();
   expect(screen.getByTestId("landing-brand-logo")).toHaveClass("fitician-brand-logo");
   expect(screen.getByTestId("landing-brand-logo")).toHaveAttribute("src", expect.stringContaining("fitician-logo-horizontal"));
-  expect(screen.getByRole("link", { name: "فیتیشن" })).toHaveAttribute("href", "/");
+  expect(screen.getByTestId("landing-brand-logo").closest("a")).toHaveAttribute("href", "/");
   const hero = screen.getByRole("region", { name: "هر بدن، برنامه خودش را می‌خواهد." });
   expect(within(hero).getByRole("heading", { name: "هر بدن، برنامه خودش را می‌خواهد." })).toBeInTheDocument();
   expect(screen.getAllByRole("link", { name: "برنامه من را بساز" })[0]).toHaveAttribute("href", "/get-started");

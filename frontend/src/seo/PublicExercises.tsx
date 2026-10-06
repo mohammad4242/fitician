@@ -4,6 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import { ExerciseCatalog, ExerciseCard, type CatalogPageData, type CatalogSource } from "../features/exercises/ExerciseCatalog";
 import { ReadyExerciseDetail, type ExercisePresentationDetail } from "../features/exercises/ExerciseDetailPresentation";
 import type { ExerciseCategories, ExerciseFilters } from "../features/exercises/types";
+import { PublicPage } from "./PublicPage";
 import language from "./exercise-language.json";
 import type { PublicPayload } from "./registry";
 import "../features/exercises/exercises.css";
@@ -98,7 +99,7 @@ function PublicDetail({ payload }: { payload: PublicPayload }) {
     <div className="exercise-detail-main">
       <ReadyExerciseDetail publicMode exercise={exercise} catalogPath={catalogPath} isEnglish={false}
         mediaPresentation="male" mediaSwitching={false} mediaSwitchError={null} mediaSwitchUnavailable={false} />
-      {payload.exercises.length > 0 && <section className="public-related-exercises"><h2 className="fitician-display">حرکات مرتبط با همین عضله</h2>
+      {payload.exercises.length > 0 && <section className="public-related-exercises"><h2 className="fitician-display">{payload.exercises.every(record => record.primary_muscle === exercise.primary_muscle) ? "حرکات مرتبط با همین عضله" : "حرکات دیگر این ناحیه بدن"}</h2>
         <div className="exercise-card-grid">{payload.exercises.map(record => <ExerciseCard key={record.slug}
           exercise={record} categories={payload.categories!} isEnglish={false} publicMode
           catalogSearch="" returnTo={catalogPath} onDelete={() => undefined} />)}</div>
@@ -109,4 +110,8 @@ function PublicDetail({ payload }: { payload: PublicPayload }) {
 export function PublicExercises({ payload }: { payload: PublicPayload }) {
   return <I18nextProvider i18n={publicI18n}>{payload.exercise
     ? <PublicDetail payload={payload} /> : <PublicCatalog payload={payload} />}</I18nextProvider>;
+}
+
+export function PublicExercisePage({ payload }: { payload: PublicPayload }) {
+  return <PublicPage payload={payload} exerciseContent={<PublicExercises payload={payload} />} />;
 }

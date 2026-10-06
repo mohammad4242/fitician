@@ -6,12 +6,13 @@ import { PrivacyPolicyPage } from "../features/accountDeletion/PrivacyPolicyPage
 import { HelpCenterPage } from "../features/support/SupportPages";
 import { PublicInstallPage } from "../features/install/PublicInstallPage";
 import { PublicPage, NotFound } from "./PublicPage";
+import { PublicExercisePage } from "./PublicExercises";
 import { SeoHead } from "./SeoHead";
 import { publicPaths, resolveSeo, robotsText, sitemapDocuments, publicPayload } from "./registry";
 import { memberRouteSources } from "./routePolicy";
 import "../i18n";
 export { publicPaths, resolveSeo, robotsText, sitemapDocuments, publicPayload, memberRouteSources };
 export function render(path: string) {
-  const content = path === "/" ? <PublicLandingPage /> : path === "/privacy" ? <PrivacyPolicyPage /> : path === "/support" ? <HelpCenterPage /> : path === "/install" ? <PublicInstallPage /> : path === "/404" ? <NotFound /> : <PublicPage payload={publicPayload(path)} />;
+  const content = path === "/" ? <PublicLandingPage /> : path === "/privacy" ? <PrivacyPolicyPage /> : path === "/support" ? <HelpCenterPage /> : path === "/install" ? <PublicInstallPage /> : path === "/404" ? <NotFound /> : path.startsWith("/exercise-library") ? <PublicExercisePage payload={publicPayload(path)} /> : <PublicPage payload={publicPayload(path)} />;
   return renderToString(<StaticRouter location={path}><AuthProvider><SeoHead seo={resolveSeo(path)} />{content}</AuthProvider></StaticRouter>);
 }

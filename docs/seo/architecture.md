@@ -2,13 +2,13 @@
 
 Options evaluated: Vite SSG plus existing SPA (selected), request-time SSR, framework migration. Autonomous task authorization permits this reversible choice.
 
-A typed public registry drives metadata, routes, server rendering and sitemap generation. React 19 owns head metadata. Public education/tools use a separate hydrated entry, without member APIs or cinematic assets. Existing home is rendered from its original components and hydrates with existing session redirect behavior. Existing legal/help/install routes retain their components and public metadata. Private routes use a noindex SPA shell and unchanged guards.
+A typed public registry drives metadata, routes, server rendering and sitemap generation. React 19 owns head metadata. Public education/tools use a separate hydrated entry, without member APIs or cinematic assets. Exercises have their own entry and reuse the member presentation through safe public adapters. Existing home is rendered from its original components and hydrates with existing session redirect behavior. Existing legal/help/install routes retain their components and public metadata. Private routes use a noindex SPA shell and unchanged guards.
 
 Canonical origin: https://fitician.fit, matching the repository's public support URL. Only Persian educational URLs are published; do not invent English hreflang. Personal language settings remain in the member app/home.
 
 Public paths: `/workout-program`, `/nutrition`, `/body-analysis`, `/learn`, `/learn/beginner-training`, `/learn/upper-lower`, `/learn/protein`, `/tools`, `/tools/calorie-calculator`, `/tools/protein-calculator`, `/tools/bmi-calculator`, `/exercise-library`, `/exercise-library/:slug`, `/about`, `/editorial-policy`. Existing `/exercises` remains the member catalogue.
 
-Initial exercise publication reads canonical ExerciseSeed/curated safety records through a field allowlist at build time. No new anonymous API, DB connection, user data, engine metadata or admin response is exposed. Rebuilds refresh the subset; DB-wide publication needs a separate review/licensing workflow. Media is omitted until a deployment-verified public asset source exists, rather than publishing broken or unlicensed URLs.
+Exercise publication requires explicit `is_public` approval, active status and completed review. Dedicated anonymous GET endpoints project only instructional fields. Stable public media is rights-checked; other media uses the existing fallback. Admin/member endpoints retain authentication. Build-time projections provide meaningful exercise HTML independently of API hydration. The publication manifest prevents API discovery before approved detail pages are released. See [publication workflow](public-product-design.md).
 
 nginx serves generated public files, a separate app.html for explicitly known member/auth patterns, and a real 404 page for everything else. Static misses never receive SPA HTML. Workbox fallback is limited to member routes and home; public content and unknown URLs retain network status.
 
