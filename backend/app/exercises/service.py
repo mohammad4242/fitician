@@ -38,8 +38,12 @@ def _escape_like(value: str) -> str:
 def list_exercises(
     db: Session,
     filters: ExerciseFilters,
+    *,
+    public_only: bool = False,
 ) -> tuple[list[Exercise], int]:
     conditions: list[ColumnElement[bool]] = [Exercise.is_active.is_(True)]
+    if public_only:
+        conditions.extend((Exercise.is_public.is_(True), Exercise.needs_review.is_(False)))
     conditions.append(Exercise.content_type == filters.content_type)
     if filters.body_region is not None:
         conditions.append(Exercise.body_region == filters.body_region)

@@ -54,6 +54,7 @@ from app.errors import (
     create_request_id,
     error_response,
 )
+from app.exercises.public_router import router as public_exercises_router
 from app.exercises.router import router as exercises_router
 from app.infrastructure.rate_limiter import RedisRateLimiter
 from app.infrastructure.redis import create_redis_service
@@ -522,6 +523,7 @@ def create_app(
     app.include_router(workout_member_reviews_router)
     app.include_router(workout_cycles_router)
     app.include_router(exercises_router)
+    app.include_router(public_exercises_router)
     app.include_router(admin_router)
     app.include_router(admin_ai_settings_router)
     app.include_router(body_analysis_review_router)

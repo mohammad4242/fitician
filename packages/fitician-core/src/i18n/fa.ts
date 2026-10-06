@@ -1356,6 +1356,8 @@ const fa = {
         bodyRegion: "ناحیه بدن", primaryMuscle: "عضله اصلی", muscleFocus: "بخش هدف عضله", secondaryMuscles: "عضلات فرعی", secondaryPrefix: "عضله فرعی", equipment: "تجهیزات", select: "انتخاب کنید",
         instructionsEn: "مراحل انگلیسی", instructionsFa: "مراحل فارسی", instructionEn: "مرحله انگلیسی", instructionFa: "مرحله فارسی",
         safetyEn: "نکات انگلیسی", safetyFa: "نکات فارسی", noteEn: "نکته انگلیسی", noteFa: "نکته فارسی",
+        publicApproval: "تأیید انتشار عمومی این حرکت",
+        publicApprovalHint: "فقط محتوای بازبینی‌شده را تأیید کن. رسانه نیاز به مجوز عمومی معتبر دارد. صفحه عمومی پس از انتشار نسخه وب در دسترس قرار می‌گیرد.",
         mediaFile: "فایل GIF یا ویدئو", galleryMediaFile: "فایل ویدئوی {{number}}", mediaVariants: "ویدئوهای زن و مرد", male: "مرد", female: "زن", mediaItem: "ویدئو {{number}}", addMedia: "افزودن ویدئو", removeMedia: "حذف ویدئو", moveMediaUp: "بالا بردن ویدئو {{number}}", moveMediaDown: "پایین بردن ویدئو {{number}}", existingFile: "فایل فعلی", sourceDetails: "منبع و مجوز", mediaPreview: "پیش‌نمایش ویدئو {{number}}", maleVideo: "ویدئوی مرد", femaleVideo: "ویدئوی زن", sourceUrl: "نشانی منبع رسانه", license: "مجوز رسانه", attribution: "اعتبار رسانه", previewName: "پیش‌نمایش", active: "حرکت بلافاصله در کاتالوگ فعال باشد", movementPattern: "الگوی حرکت", exerciseType: "نوع حرکت", contentType: "نوع محتوا", cautionTags: "برچسب‌های احتیاط", labels: "برچسب‌ها", needsReview: "نیازمند بازبینی", isProgrammable: "قابل استفاده برای تولید برنامه",
       },
       contentType: { exercise: "حرکت", guide: "راهنما" },

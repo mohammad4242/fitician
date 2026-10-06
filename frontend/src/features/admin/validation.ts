@@ -57,6 +57,7 @@ export function emptyAdminExerciseForm(): AdminExerciseForm {
     instructions_fa: ["", "", ""],
     safety_notes_en: [""],
     safety_notes_fa: [""],
+    is_public: false,
     is_active: true,
     media_source_url: null,
     media_license: null,
@@ -241,6 +242,7 @@ export function adminExerciseToForm(exercise: import("./types").AdminExercise): 
       media_license: asset.media_license,
       media_attribution: asset.media_attribution,
     })) ?? [],
+    is_public: exercise.is_public ?? false,
     is_active: exercise.is_active,
   };
 }

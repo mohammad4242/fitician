@@ -1944,6 +1944,10 @@
             "title": "Is Programmable",
             "type": "boolean"
           },
+          "is_public": {
+            "title": "Is Public",
+            "type": "boolean"
+          },
           "labels": {
             "items": {
               "$ref": "#/components/schemas/ExerciseLabel"
@@ -2215,6 +2219,7 @@
           "media_source_url",
           "media_license",
           "media_attribution",
+          "is_public",
           "is_active",
           "created_at",
           "updated_at",
@@ -21459,6 +21464,330 @@
           "checked_at"
         ],
         "title": "ProviderTestResponse",
+        "type": "object"
+      },
+      "PublicExerciseDetail": {
+        "properties": {
+          "body_region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BodyRegion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "$ref": "#/components/schemas/ExerciseContentType"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "equipment": {
+            "items": {
+              "$ref": "#/components/schemas/Equipment"
+            },
+            "title": "Equipment",
+            "type": "array"
+          },
+          "instructions_en": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Instructions En",
+            "type": "array"
+          },
+          "instructions_fa": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Instructions Fa",
+            "type": "array"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseLabel"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "media_assets": {
+            "items": {
+              "$ref": "#/components/schemas/PublicExerciseMedia"
+            },
+            "title": "Media Assets",
+            "type": "array"
+          },
+          "media_attribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Attribution"
+          },
+          "media_path": {
+            "title": "Media Path",
+            "type": "string"
+          },
+          "media_type": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "muscle_focus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleFocus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "primary_muscle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "safety_notes_en": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safety Notes En",
+            "type": "array"
+          },
+          "safety_notes_fa": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safety Notes Fa",
+            "type": "array"
+          },
+          "secondary_muscles": {
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            },
+            "title": "Secondary Muscles",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name_en",
+          "name_fa",
+          "content_type",
+          "body_region",
+          "primary_muscle",
+          "secondary_muscles",
+          "muscle_focus",
+          "equipment",
+          "difficulty",
+          "labels",
+          "media_path",
+          "media_type",
+          "instructions_fa",
+          "instructions_en",
+          "safety_notes_fa",
+          "safety_notes_en",
+          "media_attribution",
+          "media_assets"
+        ],
+        "title": "PublicExerciseDetail",
+        "type": "object"
+      },
+      "PublicExerciseMedia": {
+        "properties": {
+          "media_attribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Attribution"
+          },
+          "media_path": {
+            "title": "Media Path",
+            "type": "string"
+          },
+          "media_type": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "presentation": {
+            "$ref": "#/components/schemas/MediaPresentation"
+          },
+          "role": {
+            "$ref": "#/components/schemas/MediaRole"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "presentation",
+          "role",
+          "sort_order",
+          "media_path",
+          "media_type",
+          "media_attribution"
+        ],
+        "title": "PublicExerciseMedia",
+        "type": "object"
+      },
+      "PublicExercisePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicExerciseSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PublicExercisePage",
+        "type": "object"
+      },
+      "PublicExerciseSummary": {
+        "properties": {
+          "body_region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BodyRegion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "$ref": "#/components/schemas/ExerciseContentType"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "equipment": {
+            "items": {
+              "$ref": "#/components/schemas/Equipment"
+            },
+            "title": "Equipment",
+            "type": "array"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseLabel"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "media_path": {
+            "title": "Media Path",
+            "type": "string"
+          },
+          "media_type": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "muscle_focus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleFocus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "primary_muscle": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MuscleGroup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "secondary_muscles": {
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            },
+            "title": "Secondary Muscles",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name_en",
+          "name_fa",
+          "content_type",
+          "body_region",
+          "primary_muscle",
+          "secondary_muscles",
+          "muscle_focus",
+          "equipment",
+          "difficulty",
+          "labels",
+          "media_path",
+          "media_type"
+        ],
+        "title": "PublicExerciseSummary",
         "type": "object"
       },
       "PublicSignupCampaignResponse": {
@@ -41565,6 +41894,268 @@
         "summary": "Get Overview",
         "tags": [
           "progress"
+        ]
+      }
+    },
+    "/api/v1/public/exercise-categories": {
+      "get": {
+        "operationId": "public_categories_api_v1_public_exercise_categories_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseCategories"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Public Categories",
+        "tags": [
+          "public-exercises"
+        ]
+      }
+    },
+    "/api/v1/public/exercises": {
+      "get": {
+        "operationId": "public_exercises_api_v1_public_exercises_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "content_type",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ExerciseContentType",
+              "default": "exercise"
+            }
+          },
+          {
+            "in": "query",
+            "name": "body_region",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BodyRegion"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Body Region"
+            }
+          },
+          {
+            "in": "query",
+            "name": "primary_muscle",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MuscleGroup"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Primary Muscle"
+            }
+          },
+          {
+            "in": "query",
+            "name": "muscle_focus",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/MuscleFocus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Muscle Focus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Equipment"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment"
+            }
+          },
+          {
+            "in": "query",
+            "name": "difficulty",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Difficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Difficulty"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exercise_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ExerciseType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Exercise Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "labels",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/ExerciseLabel"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Labels"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicExercisePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Exercises",
+        "tags": [
+          "public-exercises"
+        ]
+      }
+    },
+    "/api/v1/public/exercises/{slug}": {
+      "get": {
+        "operationId": "public_exercise_api_v1_public_exercises__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Exercise",
+        "tags": [
+          "public-exercises"
         ]
       }
     },

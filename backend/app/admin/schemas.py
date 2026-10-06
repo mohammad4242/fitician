@@ -162,6 +162,7 @@ class AdminExerciseCreate(BaseModel):
     substitution_group: SubstitutionGroup = None
     range_of_motion_profile: list[ProgrammingMetadataTag] | None = None
     safety_notes_fa: list[TextItem] = Field(default_factory=list)
+    is_public: bool = False
     is_active: bool = True
     needs_review: bool = False
     labels: list[ExerciseLabel] = Field(default_factory=list)
@@ -176,6 +177,7 @@ class AdminExerciseCreate(BaseModel):
 
 class AdminExerciseDetail(ExerciseDetail):
     media_assets: list[AdminExerciseMediaAssetDetail] = Field(default_factory=list)  # type: ignore[assignment]
+    is_public: bool
     is_active: bool
     created_at: datetime
     updated_at: datetime

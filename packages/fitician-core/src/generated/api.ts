@@ -3563,6 +3563,57 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/exercise-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Categories */
+        get: operations["public_categories_api_v1_public_exercise_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Exercises */
+        get: operations["public_exercises_api_v1_public_exercises_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/exercises/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public Exercise */
+        get: operations["public_exercise_api_v1_public_exercises__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews/body-analyses/{analysis_id}": {
         parameters: {
             query?: never;
@@ -4492,6 +4543,8 @@ export type components = {
             is_active: boolean;
             /** Is Programmable */
             is_programmable: boolean;
+            /** Is Public */
+            is_public: boolean;
             /** Labels */
             labels?: components["schemas"]["ExerciseLabel"][];
             laterality?: components["schemas"]["Laterality"] | null;
@@ -11248,6 +11301,89 @@ export type components = {
             ok: boolean;
             /** Safe Error Message */
             safe_error_message?: string | null;
+        };
+        /** PublicExerciseDetail */
+        PublicExerciseDetail: {
+            body_region: components["schemas"]["BodyRegion"] | null;
+            content_type: components["schemas"]["ExerciseContentType"];
+            difficulty: components["schemas"]["Difficulty"];
+            /** Equipment */
+            equipment: components["schemas"]["Equipment"][];
+            /** Instructions En */
+            instructions_en: string[];
+            /** Instructions Fa */
+            instructions_fa: string[];
+            /** Labels */
+            labels: components["schemas"]["ExerciseLabel"][];
+            /** Media Assets */
+            media_assets: components["schemas"]["PublicExerciseMedia"][];
+            /** Media Attribution */
+            media_attribution: string | null;
+            /** Media Path */
+            media_path: string;
+            media_type: components["schemas"]["MediaType"];
+            muscle_focus: components["schemas"]["MuscleFocus"] | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            primary_muscle: components["schemas"]["MuscleGroup"] | null;
+            /** Safety Notes En */
+            safety_notes_en: string[];
+            /** Safety Notes Fa */
+            safety_notes_fa: string[];
+            /** Secondary Muscles */
+            secondary_muscles: components["schemas"]["MuscleGroup"][];
+            /** Slug */
+            slug: string;
+        };
+        /** PublicExerciseMedia */
+        PublicExerciseMedia: {
+            /** Media Attribution */
+            media_attribution: string | null;
+            /** Media Path */
+            media_path: string;
+            media_type: components["schemas"]["MediaType"];
+            presentation: components["schemas"]["MediaPresentation"];
+            role: components["schemas"]["MediaRole"];
+            /** Sort Order */
+            sort_order: number;
+        };
+        /** PublicExercisePage */
+        PublicExercisePage: {
+            /** Items */
+            items: components["schemas"]["PublicExerciseSummary"][];
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total */
+            total: number;
+            /** Total Pages */
+            total_pages: number;
+        };
+        /** PublicExerciseSummary */
+        PublicExerciseSummary: {
+            body_region: components["schemas"]["BodyRegion"] | null;
+            content_type: components["schemas"]["ExerciseContentType"];
+            difficulty: components["schemas"]["Difficulty"];
+            /** Equipment */
+            equipment: components["schemas"]["Equipment"][];
+            /** Labels */
+            labels: components["schemas"]["ExerciseLabel"][];
+            /** Media Path */
+            media_path: string;
+            media_type: components["schemas"]["MediaType"];
+            muscle_focus: components["schemas"]["MuscleFocus"] | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            primary_muscle: components["schemas"]["MuscleGroup"] | null;
+            /** Secondary Muscles */
+            secondary_muscles: components["schemas"]["MuscleGroup"][];
+            /** Slug */
+            slug: string;
         };
         /** PublicSignupCampaignResponse */
         PublicSignupCampaignResponse: {
@@ -21471,6 +21607,98 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgressOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_categories_api_v1_public_exercise_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseCategories"];
+                };
+            };
+        };
+    };
+    public_exercises_api_v1_public_exercises_get: {
+        parameters: {
+            query?: {
+                body_region?: components["schemas"]["BodyRegion"] | null;
+                content_type?: components["schemas"]["ExerciseContentType"];
+                difficulty?: components["schemas"]["Difficulty"] | null;
+                equipment?: components["schemas"]["Equipment"] | null;
+                exercise_type?: components["schemas"]["ExerciseType"] | null;
+                labels?: components["schemas"]["ExerciseLabel"][] | null;
+                muscle_focus?: components["schemas"]["MuscleFocus"] | null;
+                page?: number;
+                page_size?: number;
+                primary_muscle?: components["schemas"]["MuscleGroup"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicExercisePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_exercise_api_v1_public_exercises__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicExerciseDetail"];
                 };
             };
             /** @description Validation Error */

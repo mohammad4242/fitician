@@ -408,6 +408,12 @@ export function AdminExerciseFields({
       />
 
       <label className="admin-active-toggle">
+        <input type="checkbox" checked={value.is_public ?? false}
+          onChange={(event) => onChange("is_public", event.target.checked)} />
+        <span>{t("admin.fields.publicApproval")}</span>
+      </label>
+      <p className="admin-field-hint">{t("admin.fields.publicApprovalHint")}</p>
+      <label className="admin-active-toggle">
         <input
           type="checkbox"
           checked={value.is_active}
