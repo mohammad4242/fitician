@@ -11,7 +11,7 @@ it("renders public headings, references, links and RTL before JavaScript", () =>
     expect(html).toContain('dir="rtl"');
     expect(html).toMatch(/<h1[ >]/);
     expect(html).toContain('href="/get-started"');
-    expect(html).not.toContain("<video");
+    expect(html).not.toContain("/admin/");
   }
 });
 it("exports only instructional exercise fields with unique slugs", () => {

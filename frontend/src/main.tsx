@@ -16,18 +16,21 @@ applyDesignSystem(document.documentElement, readTheme());
 const path = window.location.pathname;
 const root = document.getElementById("root")!;
 const legacyPublic = ["/privacy", "/support", "/install"];
+async function readPublicPayload(): Promise<PublicPayload> {
+  const data = document.getElementById("public-page-data")?.textContent;
+  return data ? JSON.parse(data) : (await import("./seo/registry")).publicPayload(path);
+}
 async function start() {
   let element;
   if (path === "/") {
     const { HomeApp } = await import("./seo/HomeApp");
     if (document.documentElement.lang !== "fa") root.removeAttribute("data-prerendered");
-    element = <HomeApp />;
+    element = <HomeApp seo={(await readPublicPayload()).seo} />;
   } else if (root.dataset.publicKind === "knowledge" || (import.meta.env.DEV && !legacyPublic.includes(path) && (await import("./seo/registry")).findPublicPage(path))) {
     document.documentElement.lang = "fa";
     document.documentElement.dir = "rtl";
     const { PublicApp } = await import("./seo/PublicApp");
-    const data = document.getElementById("public-page-data")?.textContent;
-    const payload: PublicPayload = data ? JSON.parse(data) : (await import("./seo/registry")).publicPayload(path);
+    const payload = await readPublicPayload();
     if (path.startsWith("/exercise-library")) {
       const { PublicExerciseApp } = await import("./seo/PublicExerciseApp");
       element = <PublicExerciseApp payload={payload} />;

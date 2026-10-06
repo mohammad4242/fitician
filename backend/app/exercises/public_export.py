@@ -35,6 +35,13 @@ def export_public_exercises(db: Session, output: Path, manifest: Path) -> None:
             .order_by(Exercise.slug)
         )
     )
+    if any(
+        "Replace this placeholder metadata after review." in record.instructions_en
+        or not record.instructions_fa
+        or not record.instructions_en
+        for record in records
+    ):
+        raise ValueError("Public exercise export requires completed instructional review")
     data = [public_detail(record).model_dump(mode="json") for record in records]
     output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
     manifest.write_text(json.dumps([record.slug for record in records], indent=2) + "\n")

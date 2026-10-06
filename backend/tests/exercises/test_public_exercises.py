@@ -231,3 +231,211 @@ def test_approval_backfill_matches_previously_published_seed_pages():
     if snapshot is None:
         assert set(migration.PUBLISHED_SLUGS) == set(manifest)
     assert set(migration.PUBLISHED_SLUGS) == {seed.slug for seed in EXERCISE_SEEDS}
+
+
+def test_public_detail_labels_missing_specific_safety_instead_of_omitting_it(client, db):
+    seed_exercises(db)
+    record = db.scalar(select(Exercise).where(Exercise.slug == "dumbbell-bench-press"))
+    record.is_public = True
+    record.safety_notes_fa = []
+    record.safety_notes_en = []
+    db.commit()
+    data = client.get(f"/api/v1/public/exercises/{record.slug}").json()
+    assert data["safety_notes_fa"]
+    assert data["safety_notes_en"]
+    assert "اختصاصی ثبت نشده" in data["safety_notes_fa"][0]
+    assert record.safety_notes_fa == []
+
+
+def test_approved_imported_exercise_uses_publication_and_safe_projection(client, db):
+    from app.exercises.enums import MediaPresentation, MediaRole, MediaType
+    from app.exercises.media_metadata import OWNER_LICENSE
+    from app.exercises.models import ExerciseMediaAsset
+
+    seed_exercises(db)
+    record = db.scalar(select(Exercise).where(Exercise.slug == "dumbbell-bench-press"))
+    record.slug = "fedb-0033-barbell-decline-bench-press"
+    record.is_public = True
+    record.source = "free-exercise-db"
+    record.source_id = "internal-source-do-not-publish"
+    record.media_assets.append(
+        ExerciseMediaAsset(
+            presentation=MediaPresentation.MALE,
+            role=MediaRole.VIDEO,
+            sort_order=0,
+            media_path="/media/exercises/imported/demo.mp4",
+            media_type=MediaType.VIDEO,
+            media_license=OWNER_LICENSE,
+            media_source_url="private-source-do-not-publish",
+            source="free-exercise-db",
+            source_id="internal-video-do-not-publish",
+        )
+    )
+    db.commit()
+    response = client.get(f"/api/v1/public/exercises/{record.slug}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["media_assets"][0]["media_path"] == "/media/exercises/imported/demo.mp4"
+    assert "do-not-publish" not in response.text
+    assert (
+        client.get("/api/v1/public/exercises", params={"primary_muscle": "chest"}).json()["total"]
+        == 1
+    )
+
+
+def test_full_library_approval_migration_preserves_review_and_inactive_gates(db):
+    import importlib.util
+    from pathlib import Path
+
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    seed_exercises(db)
+    records = list(db.scalars(select(Exercise).order_by(Exercise.slug)))
+    active, inactive, review, unrelated = records[:4]
+    active.slug = "fedb-0033-barbell-decline-bench-press"
+    inactive.slug = "fedb-0047-barbell-incline-bench-press"
+    review.slug = "fedb-0301-decline-dumbbell-bench-press"
+    unrelated.slug = "not-in-reviewed-publication"
+    inactive.is_active = False
+    review.needs_review = True
+    for record in [active, inactive, review, unrelated]:
+        record.is_public = False
+    db.flush()
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "alembic/versions/20261007_171_publish_reviewed_exercise_library.py"
+    )
+    spec = importlib.util.spec_from_file_location("full_public_approval", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    with Operations.context(MigrationContext.configure(db.connection())):
+        migration.upgrade()
+        migration.upgrade()
+    db.expire_all()
+    assert active.is_public is True
+    assert inactive.is_public is False
+    assert review.is_public is False
+    assert unrelated.is_public is False
+    with Operations.context(MigrationContext.configure(db.connection())):
+        migration.downgrade()
+    db.expire_all()
+    assert active.is_public is False
+
+
+def test_public_export_rejects_unfinished_importer_review_instructions(db, tmp_path):
+    import pytest
+
+    from app.exercises.public_export import export_public_exercises
+
+    seed_exercises(db)
+    record = db.scalar(select(Exercise).where(Exercise.slug == "dumbbell-bench-press"))
+    record.is_public = True
+    record.instructions_en = [
+        "Review the attached owner video before programming this exercise.",
+        "Confirm the movement identity and equipment.",
+        "Replace this placeholder metadata after review.",
+    ]
+    db.commit()
+    with pytest.raises(ValueError, match="instructional review"):
+        export_public_exercises(db, tmp_path / "public.json", tmp_path / "slugs.json")
+    assert not (tmp_path / "public.json").exists()
+    assert not (tmp_path / "slugs.json").exists()
+
+
+def test_owner_authorized_media_projection_keeps_path_security():
+    from app.exercises.public_projection import approved_media
+
+    rights = "Fitician owner approved public publication (2026-10-07)"
+    assert approved_media("/media/exercises/imported/demo.mp4", rights)
+    for path in [
+        "/media/private/demo.mp4",
+        "/media/exercises/demo.mp4?token=secret",
+        "/media/exercises/../demo.mp4",
+    ]:
+        assert not approved_media(path, rights)
+
+
+def test_authorized_media_migration_only_updates_audited_paths(db):
+    import importlib.util
+    from pathlib import Path
+
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    from app.exercises.enums import MediaType
+
+    seed_exercises(db)
+    records = list(db.scalars(select(Exercise).order_by(Exercise.slug)))
+    active, review, unrelated = records[:3]
+    active.slug = "barbell-hip-thrust"
+    active.media_path = (
+        "/media/exercises/barbell-hip-thrust--1f1dd05e/"
+        "media-e02acdc25ee379ea9d6ca9d9fb178fe0d9372eeaf39f497b45c4db06ea7b9beb.mp4"
+    )
+    active.media_type = MediaType.VIDEO
+    active.media_license = None
+    review.slug = "fedb-0002-band-side-bend"
+    review.media_path = (
+        "/media/exercises/fedb-0002-band-side-bend--70a3074a/"
+        "media-1618b6ea9ffc9c1f3db7890b109dd51c5a2e14bd7444c0145ddd0c9d110ed676.mp4"
+    )
+    review.media_license = None
+    review.needs_review = True
+    unrelated.media_path = "/media/exercises/future.mp4"
+    unrelated.media_license = None
+    from app.exercises.enums import MediaPresentation, MediaRole
+    from app.exercises.models import ExerciseMediaAsset
+
+    audited_asset = ExerciseMediaAsset(
+        presentation=MediaPresentation.MALE,
+        role=MediaRole.VIDEO,
+        media_path=active.media_path,
+        media_type=MediaType.VIDEO,
+        media_license=None,
+        sort_order=0,
+    )
+    future_asset = ExerciseMediaAsset(
+        presentation=MediaPresentation.MALE,
+        role=MediaRole.VIDEO,
+        media_path="/media/exercises/future.mp4",
+        media_type=MediaType.VIDEO,
+        media_license=None,
+        sort_order=1,
+    )
+    licensed_asset = ExerciseMediaAsset(
+        presentation=MediaPresentation.FEMALE,
+        role=MediaRole.VIDEO,
+        media_path=active.media_path,
+        media_type=MediaType.VIDEO,
+        media_license="Existing permission",
+        sort_order=0,
+    )
+    active.media_assets.extend([audited_asset, future_asset, licensed_asset])
+    db.flush()
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "alembic/versions/20261007_171_publish_reviewed_exercise_library.py"
+    )
+    spec = importlib.util.spec_from_file_location("authorized_public_media", path)
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    with Operations.context(MigrationContext.configure(db.connection())):
+        migration.upgrade()
+        migration.upgrade()
+    db.expire_all()
+    assert active.media_license == "Fitician owner approved public publication (2026-10-07)"
+    assert review.media_license is None
+    assert unrelated.media_license is None
+    assert audited_asset.media_license == "Fitician owner approved public publication (2026-10-07)"
+    assert future_asset.media_license is None
+    assert licensed_asset.media_license == "Existing permission"
+    from app.exercises.public_projection import public_detail
+
+    assert public_detail(active).media_path == active.media_path
+    with Operations.context(MigrationContext.configure(db.connection())):
+        migration.downgrade()
+    db.expire_all()
+    assert active.media_license is None
+    assert audited_asset.media_license is None
+    assert licensed_asset.media_license == "Existing permission"

@@ -26,7 +26,7 @@ function documentFor(path) {
   const headTags = [...styles].filter(css => !headless.includes(`href="/${css}"`)).map(css => `<link rel="stylesheet" href="/${css}" />`);
   const body = html.replace(/<title[^>]*>[\s\S]*?<\/title>|<meta\s[^>]*\/>|<link\s[^>]*\/>/g, tag => { headTags.push(tag); return ""; });
   const knowledge = path !== "/" && !["/privacy", "/support", "/install", "/404"].includes(path);
-  const payload = knowledge ? `<script id="public-page-data" type="application/json">${JSON.stringify(publicPayload(path)).replaceAll("<", "\\u003c")}</script>` : "";
+  const payload = knowledge || path === "/" ? `<script id="public-page-data" type="application/json">${JSON.stringify(publicPayload(path)).replaceAll("<", "\\u003c")}</script>` : "";
   return headless.replace("</head>", `${headTags.join("")}\n</head>`).replace('<div id="root"></div>', `<div id="root" data-prerendered="true"${knowledge ? ' data-public-kind="knowledge"' : ""}>${body}</div>${payload}`);
 }
 for (const path of publicPaths()) {
