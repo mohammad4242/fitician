@@ -19,8 +19,8 @@ const legacyPublic = ["/privacy", "/support", "/install"];
 async function start() {
   let element;
   if (path === "/") {
-    if (document.documentElement.lang !== "fa") root.removeAttribute("data-prerendered");
     const { HomeApp } = await import("./seo/HomeApp");
+    if (document.documentElement.lang !== "fa") root.removeAttribute("data-prerendered");
     element = <HomeApp />;
   } else if (root.dataset.publicKind === "knowledge" || (import.meta.env.DEV && !legacyPublic.includes(path) && (await import("./seo/registry")).findPublicPage(path))) {
     document.documentElement.lang = "fa";
