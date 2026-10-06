@@ -27,7 +27,7 @@ PUBLISHED_SLUGS = (
     "dumbbell-lunge",
     "romanian-deadlift",
     "standing-calf-raise",
-    "plank",
+    "conventional-barbell-deadlift",
 )
 
 

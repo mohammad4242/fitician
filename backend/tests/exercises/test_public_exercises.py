@@ -200,3 +200,24 @@ def test_export_projects_only_reviewed_active_approved_records(db, tmp_path):
         "source_metadata",
     ]:
         assert forbidden not in output.read_text()
+
+
+def test_approval_backfill_matches_previously_published_seed_pages():
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    from app.exercises.seed_data import EXERCISE_SEEDS
+
+    root = Path(__file__).resolve().parents[2]
+    spec = importlib.util.spec_from_file_location(
+        "public_approval_migration",
+        root / "alembic/versions/20261006_170_public_exercise_approval.py",
+    )
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    manifest = json.loads((root / "app/exercises/publication_slugs.json").read_text())
+    snapshot = json.loads((root.parent / "frontend/src/seo/exercise-publications.json").read_text())
+    if snapshot is None:
+        assert set(migration.PUBLISHED_SLUGS) == set(manifest)
+    assert set(migration.PUBLISHED_SLUGS) == {seed.slug for seed in EXERCISE_SEEDS}
