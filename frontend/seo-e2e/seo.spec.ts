@@ -210,3 +210,18 @@ test("API and media paths retain proxy precedence over static extension rules", 
   expect(media.status()).toBe(200);
   expect(await media.text()).toBe("backend-media");
 });
+
+
+test("saved English home preference uses the client shell without hydration errors", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error" && /hydration|hydrating|Minified React error #(?:418|423|425)/i.test(message.text())) errors.push(message.text());
+  });
+  await page.addInitScript(() => localStorage.setItem("fitician-language", "en"));
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.locator("h1")).toHaveText("Every body needs its own plan.");
+  expect(errors).toEqual([]);
+});
