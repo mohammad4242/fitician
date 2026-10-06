@@ -37,6 +37,7 @@ def approved_media(path: str, license: str | None) -> bool:
         in {
             OWNER_LICENSE,
             "Fitician original",
+            "Fitician owner approved public publication (2026-10-07)",
         }
     )
 

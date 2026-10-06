@@ -97,9 +97,10 @@ it("keeps approved public videos and alternate media controls in the shared deta
   expect(video).toHaveAttribute("controls");
   expect(video).toHaveAttribute("playsinline");
   const assets = payload.exercise!.media_assets!;
-  expect(assets.length).toBe(2);
+  expect(assets.length).toBe(3);
   const selector = screen.getByRole("combobox", { name: "رسانهٔ نمایش" });
-  const second = within(selector).getAllByRole("option")[1] as HTMLOptionElement;
+  const second = within(selector).getAllByRole("option").find(option =>
+    (option as HTMLOptionElement).value === "male-video-1") as HTMLOptionElement;
   fireEvent.change(selector, { target: { value: second.value } });
   expect(document.querySelector(".exercise-media-carousel video")).toHaveAttribute("src", expect.stringContaining(assets[1].media_path));
   expect(document.querySelector('[href^="/admin"]')).toBeNull();

@@ -18,3 +18,7 @@ Production currently has 435 active records and 821 media asset rows. 336 record
 Three additional records have importer placeholder instructions despite a cleared review flag. The release excludes them, leaving 333 educational records (332 exercises and one guide). All 626 asset paths belonging to the initial reviewed set exist in the public S3 namespace; permission confirmation is separate from object availability.
 
 Local verification: 1,257 frontend tests, 424 exercise/admin backend tests, TypeScript production build, lint, focused mypy and 57 nginx-backed SEO browser checks. The calendar-dependent nutrition test selected an unchanged date on October 7; its input now selects ten days earlier, with all 42 focused nutrition tests passing. Snapshot candidates were exported read-only from production; no production approval or media rights mutation has occurred yet.
+
+## Owner-authorized media follow-up
+
+The owner explicitly confirmed public publication of all existing videos, including imported videos. The unshipped migration now records a distinct permission on 620 exact audited slug/path pairs only when the exercise remains active and reviewed and its existing permission is null. Existing permissions and future assets are preserved. The release snapshot contains 623 approved video assets. Projection rejects private paths, query/signed URLs and path traversal even with this permission. Tests cover primary and asset permissions, future paths, review gates, idempotency and downgrade restoration.
