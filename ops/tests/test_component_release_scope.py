@@ -38,3 +38,29 @@ class CumulativeScopeTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             guard.check_plan(plan, "frontend", [], False)
         guard.check_plan(plan, "frontend", [], True)
+
+
+class FullValidatedFrontendScopeTests(unittest.TestCase):
+    def test_full_proof_allows_only_frontend_build_inputs(self):
+        classifier = load("classifier", "ops/ci-classify.py")
+        guard = load("guard", "ops/check-component-release.py")
+        plan = classifier.classify(
+            ["frontend/nginx.conf", "frontend/src/main.tsx"], ROOT
+        )
+        with self.assertRaises(SystemExit):
+            guard.check_plan(plan, "frontend", [], False)
+        guard.check_plan(plan, "frontend", [], True, full_frontend_validated=True)
+        for path in [
+            "backend/alembic/new.py",
+            "backend/app/main.py",
+            "compose.prod.yaml",
+            "agent-service/app.py",
+            "packages/fitician-core/src/generated/api.ts",
+        ]:
+            unsafe = classifier.classify(["frontend/src/main.tsx", path], ROOT)
+            with self.assertRaises(SystemExit):
+                guard.check_plan(
+                    unsafe, "frontend", [], True, full_frontend_validated=True
+                )
+        with self.assertRaises(SystemExit):
+            guard.check_plan(plan, "backend", [], True, full_frontend_validated=True)

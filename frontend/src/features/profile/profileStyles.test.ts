@@ -11,7 +11,7 @@ const profileCss = nodeProcess
   .getBuiltinModule("fs")
   .readFileSync("src/features/profile/profile.css", "utf8");
 
-it("keeps profile questions bright, helpers muted, and section legends turquoise", () => {
+it("keeps profile questions readable, helpers muted, and section legends accented", () => {
   expect(profileCss).toMatch(
     /\.profile-form \.profile-field label\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-ink\)/,
   );
@@ -19,6 +19,6 @@ it("keeps profile questions bright, helpers muted, and section legends turquoise
     /\.profile-form \.profile-field__hint\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-muted\)/,
   );
   expect(profileCss).toMatch(
-    /\.profile-form \.profile-fieldset legend\s*\{[^}]*color:\s*var\(--fit(?:ician|sho)-aqua\)/,
+    /\.profile-form \.profile-fieldset legend\s*\{[^}]*color:\s*var\(--fitician-accent-ink\)/,
   );
 });

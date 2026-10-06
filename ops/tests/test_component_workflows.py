@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def job(workflow, name):
     text = (ROOT / ".github/workflows" / workflow).read_text()
-    match = re.search(r"^  " + re.escape(name) + r":\n(.*?)(?=^  [\w-]+:\n|\Z)", text, re.M | re.S)
+    match = re.search(
+        r"^  " + re.escape(name) + r":\n(.*?)(?=^  [\w-]+:\n|\Z)", text, re.M | re.S
+    )
     if not match:
         raise AssertionError(name)
     return match.group(1)
@@ -24,8 +26,12 @@ class ComponentWorkflowTests(unittest.TestCase):
         self.assertIn("needs.changes.outputs.full_ci_required != 'true'", fast)
         self.assertIn("needs.changes.outputs.full_ci_required != 'true'", frontend)
         self.assertIn("called_by_router: true", frontend)
-        self.assertNotIn("push:", (ROOT / ".github/workflows/frontend-only.yml").read_text())
-        self.assertNotIn("push:", (ROOT / ".github/workflows/backend-only.yml").read_text())
+        self.assertNotIn(
+            "push:", (ROOT / ".github/workflows/frontend-only.yml").read_text()
+        )
+        self.assertNotIn(
+            "push:", (ROOT / ".github/workflows/backend-only.yml").read_text()
+        )
 
     def test_production_full_and_component_routes_are_exclusive(self):
         full = job("deploy-production.yml", "deploy")
@@ -79,3 +85,32 @@ class ComponentWorkflowTests(unittest.TestCase):
         self.assertIn("actions/download-artifact@v4", job("ci.yml", "mobile"))
         frontend = (ROOT / ".github/workflows/frontend-only.yml").read_text()
         self.assertIn("if: inputs.core_artifact == ''", frontend)
+
+
+class FullFrontendWorkflowTests(unittest.TestCase):
+    def test_full_frontend_proof_flows_to_existing_isolated_deployer(self):
+        gate = job("deploy-production.yml", "automatic_images_gate")
+        frontend = job("deploy-production.yml", "deploy-frontend-component")
+        self.assertIn("full_ci_run_id", gate)
+        self.assertIn("release_path == 'frontend-full'", frontend)
+        self.assertIn("full_ci_run_id:", frontend)
+        deploy = job("deploy-component.yml", "deploy")
+        self.assertIn("--require-frontend-full", deploy)
+        self.assertIn("--full-ci-run-id", deploy)
+        self.assertIn("GH_TOKEN: ${{ github.token }}", deploy)
+        self.assertIn(
+            "actions: read",
+            (ROOT / ".github/workflows/deploy-component.yml").read_text(),
+        )
+        self.assertIn("ops/deploy-component.sh", deploy)
+
+    def test_nested_callers_allow_read_only_release_evidence(self):
+        for name in (
+            "ci",
+            "frontend-only",
+            "backend-only",
+            "deploy-production",
+            "deploy-component",
+        ):
+            text = (ROOT / ".github/workflows" / f"{name}.yml").read_text()
+            self.assertIn("permissions:\n  contents: read\n  actions: read", text)

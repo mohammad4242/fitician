@@ -14,10 +14,10 @@
   color: var(--fitician-mist);
   background:
     radial-gradient(circle at 12% 50%, rgb(80 223 206 / 16%), transparent 7rem),
-    linear-gradient(120deg, rgb(7 34 34 / 94%), rgb(2 13 14 / 88%));
+    linear-gradient(120deg, var(--fitician-palette-surface-translucent, rgb(7 34 34 / 94%)), var(--fitician-palette-surface-translucent, rgb(2 13 14 / 88%)));
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 5%),
-    0 0.75rem 2.4rem rgb(0 0 0 / 22%),
+    0 0.75rem 2.4rem rgb(var(--fitician-shadow-rgb) / calc(22% * var(--fitician-shadow-strength))),
     0 0 2rem rgb(80 223 206 / 7%);
 }
 
@@ -37,7 +37,7 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 30%);
   border-radius: 50%;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: rgb(80 223 206 / 9%);
   box-shadow: 0 0 1.5rem rgb(80 223 206 / 18%);
 }
@@ -65,13 +65,13 @@
   border-color: rgb(80 223 206 / 72%);
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 7%),
-    0 1rem 2.8rem rgb(0 0 0 / 26%),
+    0 1rem 2.8rem rgb(var(--fitician-shadow-rgb) / calc(26% * var(--fitician-shadow-strength))),
     0 0 2.4rem rgb(80 223 206 / 12%);
   transform: translateY(-2px);
 }
 
 .signup-campaign-banner--landing:focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 0.22rem;
   border-color: var(--fitician-aqua);
 }

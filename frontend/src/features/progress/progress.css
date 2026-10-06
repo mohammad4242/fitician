@@ -17,7 +17,7 @@
   min-height: 48px;
 }
 .progress-page :focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 3px;
 }
 .progress-page button:disabled {
@@ -48,7 +48,7 @@
   font-size: 0.9rem;
 }
 .progress-tabs button[aria-selected="true"] {
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   border-bottom-color: var(--fitician-aqua);
   font-weight: 700;
 }
@@ -84,7 +84,7 @@
   background:
     radial-gradient(ellipse at 100% 0%, rgb(80 223 206 / 4%), transparent 65%),
     var(--fitician-surface);
-  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+  box-shadow: 0 6px 24px rgb(var(--fitician-shadow-rgb) / calc(18% * var(--fitician-shadow-strength)));
   min-width: 0;
   gap: 14px;
   transition:
@@ -199,7 +199,7 @@
 }
 .progress-metric-selector button[aria-pressed="true"] {
   background: var(--fitician-surface-raised);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
 }
 .progress-detail-metric {
   display: flex;
@@ -217,7 +217,7 @@
 }
 .progress-detail-metric > span {
   font-size: 0.85rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
 }
 .progress-stats {
   display: grid;
@@ -473,7 +473,7 @@
 }
 .progress-toolbar select {
   appearance: none;
-  color-scheme: dark;
+  color-scheme: var(--fitician-color-scheme);
   background: var(--fitician-surface);
   padding-inline-end: 30px;
 }

@@ -51,6 +51,7 @@ jobs:
     outputs:
       images_ready: ${{ steps.inspect-images.outputs.ready }}
       release_path: ${{ steps.inspect-images.outputs.release_path }}
+      full_ci_run_id: ${{ steps.inspect-images.outputs.full_ci_run_id }}
       deploy_frontend: ${{ steps.inspect-images.outputs.deploy_frontend }}
       deploy_backend: ${{ steps.inspect-images.outputs.deploy_backend }}
       shared_validated: ${{ steps.inspect-images.outputs.shared_validated }}
@@ -266,11 +267,12 @@ jobs:
             "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' ROLLBACK_COMPOSE_FILE='$VPS_APP_DIR/.compose.prod.rollback.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
 
   deploy-frontend-component:
-    if: needs.automatic_images_gate.outputs.release_path == 'component' && needs.automatic_images_gate.outputs.deploy_frontend == 'true'
+    if: (needs.automatic_images_gate.outputs.release_path == 'component' || needs.automatic_images_gate.outputs.release_path == 'frontend-full') && needs.automatic_images_gate.outputs.deploy_frontend == 'true'
     needs: automatic_images_gate
     uses: ./.github/workflows/deploy-component.yml
     with:
       component: frontend
+      full_ci_run_id: ${{ needs.automatic_images_gate.outputs.full_ci_run_id }}
       image_tag: ${{ github.event.workflow_run.head_sha }}
       shared_validated: ${{ needs.automatic_images_gate.outputs.shared_validated == 'true' }}
     secrets: inherit

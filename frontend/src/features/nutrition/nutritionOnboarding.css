@@ -60,7 +60,7 @@
   padding: 0.12rem 0.35rem;
   border: 1px solid rgb(245 158 11 / 30%);
   border-radius: 999px;
-  color: #fbbf24;
+  color: var(--fitician-palette-amber, #fbbf24);
   background: rgb(245 158 11 / 10%);
   font-size: 0.62rem;
   font-weight: 750;
@@ -85,8 +85,8 @@
 
 .catalogue-target-picker__remove:hover,
 .catalogue-target-picker__remove:focus-visible {
-  color: #fff;
-  background: rgb(255 255 255 / 12%);
+  color: var(--fitician-palette-ink, #fff);
+  background: rgb(var(--fitician-highlight-rgb) / 12%);
 }
 
 .catalogue-target-picker__control {
@@ -108,7 +108,7 @@
 }
 
 .catalogue-target-picker__input:focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 2px;
   border-color: var(--fitician-aqua);
 }
@@ -122,7 +122,7 @@
   border: 1px solid rgb(80 223 206 / 32%);
   border-radius: 0.8rem;
   background: var(--fitician-surface);
-  box-shadow: 0 0.8rem 1.8rem rgb(0 0 0 / 26%);
+  box-shadow: 0 0.8rem 1.8rem rgb(var(--fitician-shadow-rgb) / calc(26% * var(--fitician-shadow-strength)));
 }
 
 .catalogue-target-picker__options {
@@ -162,7 +162,7 @@
   height: 2.4rem;
   border-radius: 0.5rem;
   object-fit: cover;
-  background: rgb(255 255 255 / 7%);
+  background: rgb(var(--fitician-highlight-rgb) / 7%);
 }
 
 .catalogue-target-picker__option-copy {
@@ -183,7 +183,7 @@
 }
 
 .catalogue-target-picker__option-copy small {
-  color: rgb(234 244 241 / 62%);
+  color: var(--fitician-palette-muted, rgb(234 244 241 / 62%));
   font-size: 0.7rem;
 }
 
@@ -194,12 +194,12 @@
   gap: 0.6rem;
   margin: 0;
   padding: 0.75rem;
-  color: rgb(234 244 241 / 72%);
+  color: var(--fitician-palette-muted, rgb(234 244 241 / 72%));
   font-size: 0.78rem;
 }
 
 .catalogue-target-picker__state--error {
-  color: #fecaca;
+  color: var(--fitician-palette-ink, #fecaca);
 }
 
 .catalogue-target-picker__state button {
@@ -207,7 +207,7 @@
   padding: 0.35rem 0.7rem;
   border: 1px solid rgb(80 223 206 / 35%);
   border-radius: 0.5rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: transparent;
   font: inherit;
   cursor: pointer;
@@ -238,10 +238,10 @@
   align-items: start !important;
   gap: 0.75rem !important;
   padding: 0.85rem 0.95rem;
-  border: 1px solid rgb(255 255 255 / 14%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 14%));
   border-radius: 1rem;
-  color: #f4f1e9;
-  background: rgb(255 255 255 / 5%);
+  color: var(--fitician-palette-ink, #f4f1e9);
+  background: rgb(var(--fitician-highlight-rgb) / 5%);
   line-height: 1.65;
   cursor: pointer;
 }
@@ -318,18 +318,18 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid rgb(255 255 255 / 14%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 14%));
   border-radius: 50%;
-  color: #f4f1e9;
-  background: rgb(255 255 255 / 5%);
+  color: var(--fitician-palette-ink, #f4f1e9);
+  background: rgb(var(--fitician-highlight-rgb) / 5%);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .guided-back-button:hover,
 .guided-back-button:focus-visible {
-  border-color: #f4f1e9;
-  background: rgb(255 255 255 / 13%);
+  border-color: var(--fitician-palette-line, #f4f1e9);
+  background: rgb(var(--fitician-highlight-rgb) / 13%);
 }
 
 .guided-back-button svg {
@@ -351,7 +351,7 @@
   padding: clamp(0.85rem, 2vw, 1rem);
   border: 1px solid var(--fitician-line);
   border-radius: 1rem;
-  background: linear-gradient(135deg, rgb(80 223 206 / 7%), rgb(255 255 255 / 3%) 55%, rgb(0 0 0 / 16%));
+  background: linear-gradient(135deg, rgb(80 223 206 / 7%), rgb(var(--fitician-highlight-rgb) / 3%) 55%, var(--fitician-palette-surface-translucent, rgb(0 0 0 / 16%)));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
@@ -390,10 +390,10 @@
   align-items: stretch;
   gap: 0.35rem;
   padding: 0.8rem;
-  border: 1px solid rgb(234 244 241 / 12%);
+  border: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 12%));
   border-radius: 0.8rem;
   color: var(--fitician-ink);
-  background: rgb(0 0 0 / 18%);
+  background: var(--fitician-palette-surface-translucent, rgb(0 0 0 / 18%));
   font: inherit;
   text-align: start;
   cursor: pointer;
@@ -401,14 +401,14 @@
 }
 
 .nutrition-rate-mode-option:hover {
-  border-color: rgb(234 244 241 / 25%);
-  background: rgb(255 255 255 / 5%);
+  border-color: var(--fitician-palette-line, rgb(234 244 241 / 25%));
+  background: rgb(var(--fitician-highlight-rgb) / 5%);
 }
 
 .nutrition-rate-mode-option:focus-visible,
 .nutrition-rate-setting-box__trigger:focus-visible,
 .nutrition-rate-setting-box__option:focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 2px;
 }
 
@@ -438,7 +438,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgb(234 244 241 / 38%);
+  border: 1.5px solid var(--fitician-palette-line, rgb(234 244 241 / 38%));
   border-radius: 50%;
 }
 
@@ -473,14 +473,14 @@
 .nutrition-rate-mode-option p,
 .nutrition-rate-mode-option__helper {
   margin: 0;
-  color: rgb(234 244 241 / 62%);
+  color: var(--fitician-palette-muted, rgb(234 244 241 / 62%));
   font-size: 0.72rem;
   line-height: 1.55;
 }
 
 .nutrition-rate-mode-option__helper {
   margin-top: auto;
-  color: rgb(234 244 241 / 48%);
+  color: var(--fitician-palette-muted, rgb(234 244 241 / 48%));
   font-size: 0.68rem;
 }
 
@@ -491,7 +491,7 @@
 }
 
 .nutrition-rate-setting-box__rate-label {
-  color: rgb(234 244 241 / 64%);
+  color: var(--fitician-palette-muted, rgb(234 244 241 / 64%));
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -532,7 +532,7 @@
   width: 1rem;
   height: 1rem;
   flex: 0 0 auto;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   transform: rotate(90deg);
   transition: transform 0.18s ease;
 }
@@ -551,7 +551,7 @@
   border: 1px solid rgb(80 223 206 / 28%);
   border-radius: 0.8rem;
   background: var(--fitician-surface);
-  box-shadow: 0 0.7rem 1.5rem rgb(0 0 0 / 24%);
+  box-shadow: 0 0.7rem 1.5rem rgb(var(--fitician-shadow-rgb) / calc(24% * var(--fitician-shadow-strength)));
   overscroll-behavior: contain;
 }
 
@@ -575,14 +575,14 @@
 }
 
 .nutrition-rate-setting-box__option:hover {
-  border-color: rgb(234 244 241 / 12%);
-  background: rgb(255 255 255 / 5%);
+  border-color: var(--fitician-palette-line, rgb(234 244 241 / 12%));
+  background: rgb(var(--fitician-highlight-rgb) / 5%);
 }
 
 .nutrition-rate-setting-box__option.is-selected {
   border-color: rgb(80 223 206 / 30%);
   background: rgb(80 223 206 / 10%);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
 }
 
 .nutrition-rate-setting-box__option-label {
@@ -594,7 +594,7 @@
   padding: 0.15rem 0.4rem;
   border: 1px solid rgb(245 158 11 / 28%);
   border-radius: 99rem;
-  color: #fbbf24;
+  color: var(--fitician-palette-amber, #fbbf24);
   background: rgb(245 158 11 / 11%);
   font-size: 0.64rem;
   font-weight: 750;
@@ -602,7 +602,7 @@
 }
 
 .nutrition-rate-setting-box__check {
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 1rem;
   font-weight: 850;
   line-height: 1;
@@ -615,7 +615,7 @@
   padding: 0.55rem 0.7rem;
   border: 1px solid rgb(245 158 11 / 28%);
   border-radius: 0.65rem;
-  color: #fbbf24;
+  color: var(--fitician-palette-amber, #fbbf24);
   background: rgb(245 158 11 / 10%);
   font-size: 0.72rem;
   line-height: 1.5;
@@ -632,12 +632,12 @@
 }
 
 .nutrition-rate-override-notice small {
-  color: rgb(255 215 152 / 80%);
+  color: var(--fitician-palette-danger, rgb(255 215 152 / 80%));
   font-size: 0.68rem;
 }
 
 .nutrition-rate-safe-notice {
-  color: #f87171;
+  color: var(--fitician-palette-danger, #f87171);
   font-size: 0.72rem;
   line-height: 1.45;
 }

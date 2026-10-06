@@ -94,8 +94,19 @@ printf '<meta name="enamad" content="74257848" />'
         )
 
     def test_frontend_success_persists_only_frontend_tag(self):
+        preserved = {
+            "BACKEND_API_IMAGE_TAG": "c" * 40,
+            "WORKER_IMAGE_TAG": "d" * 40,
+            "AGENT_IMAGE_TAG": "e" * 40,
+            "DATABASE_IMAGE_TAG": "f" * 40,
+        }
+        with (self.root / ".env").open("a") as stream:
+            for key, value in preserved.items():
+                stream.write(f"{key}={value}\n")
         result = self.run_deploy()
         self.assertEqual(result.returncode, 0, result.stderr)
+        for key, value in preserved.items():
+            self.assertIn(f"{key}={value}", (self.root / ".env").read_text())
         self.assertIn("FRONTEND_IMAGE_TAG=" + NEW, (self.root / ".env").read_text())
         self.assertIn("IMAGE_TAG=" + OLD, (self.root / ".env").read_text())
         calls = (self.root / "calls").read_text()
@@ -126,7 +137,9 @@ printf '<meta name="enamad" content="74257848" />'
         for value in ("up", "health"):
             with self.subTest(value=value):
                 self.env["FAKE_UP_FAIL"] = "yes" if value == "up" else "no"
-                self.env["FAKE_HEALTH"] = "unhealthy" if value == "health" else "healthy"
+                self.env["FAKE_HEALTH"] = (
+                    "unhealthy" if value == "health" else "healthy"
+                )
                 (self.root / "calls").write_text("")
                 result = self.run_deploy()
                 self.assertNotEqual(result.returncode, 0)

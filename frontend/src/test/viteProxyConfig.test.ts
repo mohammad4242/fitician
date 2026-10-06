@@ -34,3 +34,12 @@ describe("pwaManifest", () => {
     ]));
   });
 });
+
+it("serves the exact prerendered install document during preview", async () => {
+  const { previewDocumentPath } = await import("../../vite.config");
+  expect(previewDocumentPath("/install")).toBe("install/index.html");
+  expect(previewDocumentPath("/tools/bmi-calculator")).toBe("tools/bmi-calculator/index.html");
+  expect(previewDocumentPath("/workout-plan")).toBe("app.html");
+  expect(previewDocumentPath("/assets/example.js")).toBeUndefined();
+  expect(previewDocumentPath("/api/v1/auth/me")).toBeUndefined();
+});

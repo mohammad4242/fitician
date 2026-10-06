@@ -9,8 +9,9 @@ import "./seo/public.css";
 import "./index.css";
 import "./pwa/pwa.css";
 import { applyDesignSystem } from "./styles/designSystem";
+import { readTheme } from "./theme/ThemeProvider";
 
-applyDesignSystem(document.documentElement);
+applyDesignSystem(document.documentElement, readTheme());
 
 const path = window.location.pathname;
 const root = document.getElementById("root")!;

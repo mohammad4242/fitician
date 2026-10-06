@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: fitician-ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'development' }}

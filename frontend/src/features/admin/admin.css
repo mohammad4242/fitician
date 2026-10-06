@@ -31,7 +31,7 @@
 .admin-page { background: radial-gradient(circle at 92% 4%, rgb(80 223 206 / 14%), transparent 24rem), var(--fitician-surface); }
 .admin-hero, .admin-form-header { border-radius: var(--fitician-radius-card); background: linear-gradient(135deg, var(--fitician-petrol), var(--fitician-teal)); box-shadow: var(--fitician-shadow); }
 .admin-hero h1, .admin-form-header h1 { letter-spacing: 0; }
-.admin-primary-link { color: var(--fitician-petrol); background: var(--fitician-aqua); }
+.admin-primary-link { color: var(--fitician-on-accent); background: var(--fitician-aqua); }
 .admin-exercise-row, .admin-form-section { border: 0; border-radius: 1.25rem; box-shadow: 0 0.8rem 2rem rgb(10 31 30 / 7%); }
 
 .admin-accordion-section { overflow: hidden; padding: 0; }
@@ -936,7 +936,7 @@
   padding: .45rem .85rem;
   border: 0;
   border-radius: .6rem;
-  color: var(--petrol-950);
+  color: var(--fitician-on-accent);
   background: var(--turquoise);
   font-weight: 800;
   font-size: .84rem;

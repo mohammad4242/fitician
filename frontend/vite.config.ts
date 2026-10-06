@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { memberNavigationPattern } from "./src/seo/routePolicy.ts";
 import react from "@vitejs/plugin-react";
 import { VitePWA, type ManifestOptions } from "vite-plugin-pwa";
@@ -38,8 +40,28 @@ export const pwaManifest = {
   ],
 } satisfies Partial<ManifestOptions>;
 
+export function previewDocumentPath(path: string) {
+  if (path === "/") return "index.html";
+  if (memberNavigationPattern.test(path)) return "app.html";
+  if (/^\/(?:api|media)(?:\/|$)/.test(path) || !/^\/[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(path)) return undefined;
+  return `${path.slice(1)}/index.html`;
+}
+
 export default defineConfig({
   plugins: [
+    {
+      name: "prerender-preview",
+      configurePreviewServer(server) {
+        server.middlewares.use((request, response, next) => {
+          const file = previewDocumentPath(new URL(request.url ?? "/", "http://localhost").pathname);
+          if (!file || !["GET", "HEAD"].includes(request.method ?? "")) return next();
+          const document = join(server.config.root, server.config.build.outDir, file);
+          if (!existsSync(document)) return next();
+          response.setHeader("Content-Type", "text/html; charset=utf-8");
+          response.end(request.method === "HEAD" ? undefined : readFileSync(document));
+        });
+      },
+    },
     react(),
     VitePWA({
       disable: process.env.SEO_SERVER === "1",

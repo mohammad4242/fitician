@@ -12,7 +12,7 @@
 .pwa-install-card p,
 .pwa-install-card h2 { margin: 0; }
 .pwa-install-card > div:first-child { display: grid; gap: 0.35rem; }
-.pwa-install-card > div:first-child > p:first-child { color: var(--fitician-aqua); font-size: 0.72rem; font-weight: 850; }
+.pwa-install-card > div:first-child > p:first-child { color: var(--fitician-accent-ink); font-size: 0.72rem; font-weight: 850; }
 .pwa-install-card h2 { font-size: 1rem; }
 .pwa-install-card ol { display: grid; gap: 0.25rem; margin: 0.25rem 0 0; padding-inline-start: 1.25rem; color: var(--fitician-muted); font-size: 0.82rem; line-height: 1.65; }
 .pwa-install-card > div:first-child > p:last-child { color: var(--fitician-muted); font-size: 0.82rem; line-height: 1.65; }
@@ -43,7 +43,7 @@
   border: 1px solid var(--fitician-line-strong);
   border-radius: var(--fitician-radius-lg);
   color: var(--fitician-ink);
-  background: rgb(8 18 17 / 96%);
+  background: var(--fitician-palette-surface-translucent, rgb(8 18 17 / 96%));
   box-shadow: var(--fitician-shadow);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);

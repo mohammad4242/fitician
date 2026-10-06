@@ -133,9 +133,13 @@ def worker_dependencies(root: Path) -> set[str]:
                 imports.append(base)
                 imports.extend(base + "." + alias.name for alias in node.names)
             elif (
-                isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
+                isinstance(node, ast.Call)
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
             ):
-                if isinstance(node.args[0].value, str) and node.args[0].value.startswith("app."):
+                if isinstance(node.args[0].value, str) and node.args[
+                    0
+                ].value.startswith("app."):
                     imports.append(node.args[0].value)
             for target in imports:
                 if target.startswith("app.") and target != "app.main":
@@ -201,7 +205,9 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
                     not test_file(path)
                     and (
                         path in {"frontend/src/App.tsx", "frontend/src/main.tsx"}
-                        or path.startswith(("frontend/src/api/", "frontend/src/lib/auth/"))
+                        or path.startswith(
+                            ("frontend/src/api/", "frontend/src/lib/auth/")
+                        )
                         or path.startswith("frontend/src/features/auth/")
                         and name
                         in {
@@ -235,7 +241,11 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
             )
             if not test_file(path):
                 deploy.add("frontend")
-        elif len(parts) >= 4 and parts[:2] == ["backend", "app"] and parts[2] in DOMAIN_TESTS:
+        elif (
+            len(parts) >= 4
+            and parts[:2] == ["backend", "app"]
+            and parts[2] in DOMAIN_TESTS
+        ):
             domain = parts[2]
             domains.add(domain)
             areas.add("backend")
@@ -307,7 +317,9 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
     path_kind = (
         "full"
         if full
-        else ("docs" if not areas else next(iter(areas)) if len(areas) == 1 else "medium")
+        else (
+            "docs" if not areas else next(iter(areas)) if len(areas) == 1 else "medium"
+        )
     )
     suites = set(CRITICAL_TESTS)
     for domain in domains:
@@ -334,6 +346,36 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
     return plan
 
 
+def frontend_release_paths(paths: list[str]) -> bool:
+    """Deployment scope only: these paths still require the complete Full CI gates."""
+    allowed = {
+        ".dockerignore",
+        ".gitignore",
+        "package-lock.json",
+        "package.json",
+        ".github/workflows/public-seo.yml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/frontend-only.yml",
+        ".github/workflows/backend-only.yml",
+        ".github/workflows/deploy-component.yml",
+        ".github/workflows/deploy-production.yml",
+        "ops/ci-classify.py",
+        "ops/ci-release-gate.py",
+        "ops/check-component-release.py",
+    }
+    has_frontend = False
+    for path in paths:
+        if path.startswith("frontend/") and not Path(path).name.startswith(".env"):
+            has_frontend = True
+        elif path in allowed or path.startswith("ops/tests/") and path.endswith(".py"):
+            continue
+        elif path.startswith(("docs/", "reports/")) and path.endswith((".md", ".txt")):
+            continue
+        else:
+            return False
+    return has_frontend
+
+
 def git_paths(base: str, head: str) -> list[str]:
     if not base or set(base) == {"0"}:
         command = ["git", "ls-tree", "-r", "--name-only", "-z", head]
@@ -350,12 +392,15 @@ def main() -> None:
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    plan = classify(git_paths(args.base, args.head) if not args.full else [], force_full=args.full)
+    plan = classify(
+        git_paths(args.base, args.head) if not args.full else [], force_full=args.full
+    )
     plan["base_sha"] = args.base
     plan["release_requested"] = os.environ.get(
         "EVENT_NAME", os.environ.get("GITHUB_EVENT_NAME")
     ) == "push" or (
-        os.environ.get("EVENT_NAME", os.environ.get("GITHUB_EVENT_NAME")) == "workflow_dispatch"
+        os.environ.get("EVENT_NAME", os.environ.get("GITHUB_EVENT_NAME"))
+        == "workflow_dispatch"
         and os.environ.get("DISPATCH_MODE") == "release"
     )
     plan["sha"] = subprocess.check_output(
@@ -371,7 +416,9 @@ def main() -> None:
         with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
             for key, value in plan.items():
                 rendered = (
-                    value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+                    value
+                    if isinstance(value, str)
+                    else json.dumps(value, separators=(",", ":"))
                 )
                 print(f"{key}={rendered}", file=stream)
 

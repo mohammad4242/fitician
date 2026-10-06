@@ -5,7 +5,7 @@
   padding: 0.35rem;
   border: 1px solid var(--line);
   border-radius: 99rem;
-  background: rgb(255 255 255 / 70%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 70%));
 }
 
 .authenticated-nav a {
@@ -19,7 +19,7 @@
 }
 
 .authenticated-nav a[aria-current="page"] {
-  color: var(--paper);
+  color: var(--fitician-ink);
   background: var(--petrol-900);
 }
 
@@ -42,7 +42,7 @@
   border: 1px solid var(--line);
   border-radius: 50%;
   color: var(--ink);
-  background: rgb(255 255 255 / 70%);
+  background: var(--fitician-palette-surface, rgb(255 255 255 / 70%));
   font: inherit;
   font-size: 1.2rem;
   cursor: pointer;
@@ -66,8 +66,8 @@
   padding: 0.8rem;
   border: 1px solid var(--fitician-line-strong);
   border-radius: var(--fitician-radius-lg);
-  background: rgb(6 22 21 / 96%);
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 45%), 0 0 0 1px rgb(255 255 255 / 5%);
+  background: var(--fitician-palette-surface-translucent, rgb(6 22 21 / 96%));
+  box-shadow: 0 1rem 3rem rgb(var(--fitician-shadow-rgb) / calc(45% * var(--fitician-shadow-strength))), 0 0 0 1px rgb(255 255 255 / 5%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   max-height: min(76dvh, 38rem);
@@ -83,7 +83,7 @@
 
 .member-menu__group + .member-menu__group {
   padding-block-start: 0.8rem;
-  border-block-start: 1px solid rgb(255 255 255 / 8%);
+  border-block-start: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 8%));
 }
 
 .member-menu a,
@@ -97,8 +97,8 @@
   padding: 0.6rem 0.8rem;
   border: 1px solid transparent;
   border-radius: var(--fitician-radius-md);
-  color: var(--paper);
-  background: rgb(255 255 255 / 4%);
+  color: var(--fitician-ink);
+  background: rgb(var(--fitician-highlight-rgb) / 4%);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 700;
@@ -114,11 +114,11 @@
   outline: none;
   border-color: rgb(80 223 206 / 20%);
   background: rgb(80 223 206 / 10%);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
 }
 
 .member-menu button:disabled {
-  color: rgb(255 255 255 / 45%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 45%));
   cursor: not-allowed;
 }
 
@@ -130,7 +130,7 @@
 .member-menu__section-label {
   margin: 0;
   padding: 0.1rem 0.35rem 0.2rem;
-  color: rgb(255 255 255 / 58%);
+  color: var(--fitician-palette-muted, rgb(255 255 255 / 58%));
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -141,7 +141,7 @@
 
 .member-menu .member-menu__logout {
   margin-top: 0;
-  color: #ffb2a0;
+  color: var(--fitician-palette-danger, #ffb2a0);
   background: rgb(255 178 160 / 6%);
 }
 
@@ -178,7 +178,7 @@
   .authenticated-header__back { width: 2.75rem; height: 2.75rem; border: 1px solid var(--fitician-line); border-radius: 50%; color: var(--fitician-ink); }
   [dir="rtl"] .authenticated-header__back svg { transform: scaleX(-1); }
   .authenticated-header__back svg { width: 1.1rem; height: 1.1rem; }
-  .authenticated-header__account { width: 2.75rem; height: 2.75rem; border: 1px solid var(--fitician-line-strong); border-radius: 50%; color: var(--fitician-aqua); background: var(--fitician-surface); font-size: 0.78rem; font-weight: 900; }
+  .authenticated-header__account { width: 2.75rem; height: 2.75rem; border: 1px solid var(--fitician-line-strong); border-radius: 50%; color: var(--fitician-accent-ink); background: var(--fitician-surface); font-size: 0.78rem; font-weight: 900; }
   .dashboard-header__actions { gap: 0.45rem; }
   .authenticated-nav { order: 2; }
   .authenticated-nav a { padding-inline: 0.65rem; }
