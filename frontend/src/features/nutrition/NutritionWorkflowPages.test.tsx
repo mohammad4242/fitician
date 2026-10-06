@@ -286,7 +286,9 @@ it("keeps adherence rows collapsed while the date filter remains active", async 
   await waitFor(() => expect(api.getTrackingHistory).toHaveBeenCalled());
   vi.mocked(api.getNutritionAdherence).mockClear();
   vi.mocked(api.getTrackingHistory).mockClear();
-  const selectedStart = `${today.slice(0, 8)}01`;
+  const selectedDate = new Date(`${today}T12:00:00`);
+  selectedDate.setDate(selectedDate.getDate() - 10);
+  const selectedStart = localIsoDate(selectedDate);
   fireEvent.change(date, { target: { value: selectedStart } });
 
   await waitFor(() => {
