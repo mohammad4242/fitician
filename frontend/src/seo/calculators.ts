@@ -15,3 +15,19 @@ export function calculateProtein(weight: number) {
   bounded(weight, 35, 250);
   return { low: Math.round(weight * 1.4), high: Math.round(weight * 2) };
 }
+
+export function calculateBmi(height: number, weight: number) {
+  bounded(height, 130, 220);
+  bounded(weight, 35, 250);
+  const value = weight / (height / 100) ** 2;
+  // Classify the unrounded ratio; display rounding must not move a boundary.
+  return { value, category: value < 18.5 ? 0 : value < 25 ? 1 : value < 30 ? 2 : 3 };
+}
+export function parseToolNumber(input: string) {
+  const normalized = input.trim().replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0))
+    .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660)).replaceAll("٫", ".");
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) throw new RangeError("عدد معتبر وارد کن.");
+  const value = Number(normalized);
+  if (!Number.isFinite(value)) throw new RangeError("عدد معتبر وارد کن.");
+  return value;
+}

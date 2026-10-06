@@ -1,6 +1,6 @@
 # Public canonical route map
 
-35 indexable routes; member URLs are deliberately separate.
+36 indexable routes; member URLs are deliberately separate.
 
 | URL | Title |
 | --- | --- |
@@ -12,9 +12,10 @@
 | `/learn/beginner-training` | شروع برنامه تمرینی مبتدی با سه روز در هفته  /  Fitician |
 | `/learn/upper-lower` | برنامه چهارروزه بالاتنه و پایین‌تنه چگونه چیده می‌شود؟  /  Fitician |
 | `/learn/protein` | پروتئین روزانه برای تمرین؛ بازه و منابع غذایی  /  Fitician |
-| `/tools` | ابزارهای رایگان کالری و پروتئین  /  Fitician |
+| `/tools` | ابزارهای رایگان کالری، پروتئین و BMI  /  Fitician |
 | `/tools/calorie-calculator` | محاسبه کالری روزانه و TDEE  /  Fitician |
 | `/tools/protein-calculator` | محاسبه پروتئین روزانه برای افراد فعال  /  Fitician |
+| `/tools/bmi-calculator` | محاسبه BMI آنلاین / شاخص توده بدنی / فیتیشن |
 | `/exercise-library` | کتابخانه عمومی آموزش حرکات بدنسازی  /  Fitician |
 | `/about` | درباره فیتیشن  /  Fitician |
 | `/editorial-policy` | روش تهیه محتوا و سیاست علمی فیتیشن  /  Fitician |

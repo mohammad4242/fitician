@@ -23,6 +23,7 @@ test("robots and sitemap expose only public canonical URLs", async ({ request })
   expect(index).toContain("<sitemapindex");
   const sitemap = await (await request.get("/sitemap-1.xml")).text();
   expect(sitemap).toContain("/exercise-library/dumbbell-bench-press</loc>");
+  expect(sitemap).toContain("/tools/bmi-calculator</loc>");
   expect(sitemap).not.toContain("/dashboard");
   expect(sitemap).not.toContain("/get-started");
 });
@@ -44,15 +45,30 @@ test("public tools hydrate, calculate locally and remain responsive", async ({ p
   page.on("pageerror", error => errors.push(error.message));
   page.on("request", request => requests.push(request.url()));
   await page.goto("/tools/calorie-calculator");
-  await page.getByRole("button", { name: "محاسبه", exact: true }).click();
-  await expect(page.locator("output")).toContainText("1979");
+  await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+  await expect(page.locator("output")).toContainText("1,979");
   await expect(page).toHaveTitle(resolveSeo("/tools/calorie-calculator").title);
   expect(await page.locator('meta[name="description"]').count()).toBe(1);
   expect(await page.locator('link[rel="canonical"]').count()).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("link", { name: "محاسبه پروتئین روزانه برای افراد فعال", exact: true }).click();
-  await page.getByRole("button", { name: "محاسبه", exact: true }).click();
-  await expect(page.locator("output")).toContainText("98 تا 140");
+  await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+  await expect(page.locator("output")).toContainText("98 – 140");
+  await page.locator('.tool-switcher a[href="/tools/bmi-calculator"]').click();
+  await page.getByLabel("قد", { exact: true }).fill("۱۷۵");
+  await page.getByLabel("وزن", { exact: true }).fill("۷۰");
+  const calculationRequests: string[] = [];
+  page.on("request", request => calculationRequests.push(request.url()));
+  await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+  await expect(page.locator("output")).toContainText("22.9");
+  await expect(page.locator("output")).toContainText("بازه میانی مرجع");
+  await expect(page).toHaveTitle(resolveSeo("/tools/bmi-calculator").title);
+  await page.getByLabel("قد", { exact: true }).fill("0");
+  await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByLabel("قد", { exact: true })).toBeFocused();
+  await expect(page.locator("output")).not.toContainText("22.9");
+  expect(calculationRequests).toEqual([]);
   expect(requests.filter(url => /\/api\/|\.mp4|mediapipe|landfilm|body1/.test(url))).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -88,8 +104,8 @@ test("service worker cannot replace public or unknown navigation with member HTM
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await page.reload();
   await page.goto("/tools/protein-calculator");
-  await page.getByRole("button", { name: "محاسبه", exact: true }).click();
-  await expect(page.locator("output")).toContainText("98 تا 140");
+  await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+  await expect(page.locator("output")).toContainText("98 – 140");
   const response = await page.goto("/unknown-after-sw");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: "صفحه پیدا نشد" })).toBeVisible();
@@ -134,4 +150,53 @@ test("cached cinematic home works when its origin is actually unavailable", asyn
   } finally {
     if (origin.listening) { origin.closeAllConnections(); await new Promise<void>(resolve => origin.close(() => resolve())); }
   }
+});
+
+
+test("tool hub exposes exactly three crawlable calculator cards", async ({ page }) => {
+  await page.goto("/tools");
+  await expect(page.locator(".tool-card")).toHaveCount(3);
+  for (const kind of ["calorie", "protein", "bmi"]) {
+    await expect(page.locator(`.tool-card[href="/tools/${kind}-calculator"]`)).toBeVisible();
+  }
+});
+
+test("calculator layouts and results work from small phones to desktop", async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  for (const width of [360, 390, 430, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const kind of ["calorie", "protein", "bmi"]) {
+      await page.goto(`/tools/${kind}-calculator`);
+      await expect(page.locator(".public-knowledge")).toHaveAttribute("dir", "rtl");
+      await page.getByLabel("وزن", { exact: true }).fill("250");
+      await page.getByRole("button", { name: "محاسبه نتیجه", exact: true }).click();
+      await expect(page.locator("output")).toContainText(kind === "calorie" ? "4,139" : kind === "protein" ? "350 – 500" : "81.6");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const controls = await page.locator(".tool-field input, .tool-field select, .tool-submit, .tool-switcher a").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+      expect(controls.every(height => height >= 44)).toBe(true);
+      await page.getByLabel("وزن", { exact: true }).focus();
+      await expect(page.getByLabel("وزن", { exact: true })).toBeFocused();
+      expect(await page.getByLabel("وزن", { exact: true }).evaluate(element => getComputedStyle(element).outlineStyle)).not.toBe("none");
+      if (testInfo.project.name === "desktop") await page.locator(".fitician-tool").screenshot({ path: testInfo.outputPath(`${kind}-${width}.png`) });
+    }
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await page.locator(".tool-field input").first().evaluate(element => getComputedStyle(element).transitionDuration)).toBe("0s");
+});
+
+test("BMI remains readable without JavaScript and cannot transmit form values", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${baseURL}/tools/bmi-calculator`);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("BMI");
+    await expect(page.getByRole("heading", { name: "توده بدنی با ترکیب بدن یکسان نیست" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "محاسبه نتیجه", exact: true })).toBeDisabled();
+    const requests: string[] = [];
+    page.on("request", request => requests.push(request.url()));
+    await page.getByLabel("وزن", { exact: true }).fill("80");
+    await page.getByLabel("وزن", { exact: true }).press("Enter");
+    await expect(page).toHaveURL(`${baseURL}/tools/bmi-calculator`);
+    expect(requests).toEqual([]);
+  } finally { await context.close(); }
 });

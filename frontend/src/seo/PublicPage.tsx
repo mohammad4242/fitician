@@ -1,19 +1,22 @@
 import { PublicDiscovery } from "./PublicDiscovery";
 import { Calculator } from "./Calculator";
+import { ToolHeader, ToolHub } from "./Tools";
+import { tools } from "./tools";
 import type { PublicPayload } from "./registry";
 import { exerciseTaxonomy } from "./taxonomy";
 import "./public.css";
 export function PublicPage({ payload }: { payload: PublicPayload }) {
   const { page, exercise, crumbs, related, exerciseLinks } = payload;
   const path = page.path;
+  const tool = tools.find(tool => tool.path === path);
   return <div className="public-knowledge" lang="fa" dir="rtl">
     <header><a className="public-brand" href="/">Fitician <span>فیتیشن</span></a><a className="public-cta" href="/get-started">شروع کنیم</a></header>
     <main>
       <nav className="public-breadcrumbs" aria-label="مسیر صفحه"><ol>{crumbs.map((crumb, index, list) => <li key={crumb.path}>{index === list.length - 1 ? <span aria-current="page">{crumb.title}</span> : <a href={crumb.path}>{crumb.title}</a>}</li>)}</ol></nav>
-      <article><p className="public-eyebrow">دانش و ابزارهای فیتیشن</p><h1>{page.title}</h1><p className="public-lead">{page.description}</p>
+      <article>{tool ? <ToolHeader kind={tool.kind} /> : <><p className="public-eyebrow">دانش و ابزارهای فیتیشن</p><h1>{page.title}</h1><p className="public-lead">{page.description}</p></>}
         {page.article && <p className="public-attribution">ناشر: <a href="/about">فیتیشن</a> · انتشار: <time dateTime={page.published}>{page.published}</time> {page.updated && <> · به‌روزرسانی: <time dateTime={page.updated}>{page.updated}</time></>} · بازبینی مستقل متخصص ادعا نشده است.</p>}
-        {path === "/tools/calorie-calculator" && <Calculator />}
-        {path === "/tools/protein-calculator" && <Calculator protein />}
+        {tool && <Calculator kind={tool.kind} />}
+        {path === "/tools" && <ToolHub />}
         {page.sections.map(section => <section key={section.heading}><h2>{section.heading}</h2>{section.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</section>)}
         {path === "/exercise-library" && <section><h2>حرکات منتخب</h2><ul className="public-grid">{exerciseLinks.map(record => <li key={record.path}><a href={record.path}>{record.title}</a><span lang="en" dir="ltr">{record.english}</span></li>)}</ul></section>}
         {exercise && <>

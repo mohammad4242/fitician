@@ -6,7 +6,7 @@ A typed public registry drives metadata, routes, server rendering and sitemap ge
 
 Canonical origin: https://fitician.fit, matching the repository's public support URL. Only Persian educational URLs are published; do not invent English hreflang. Personal language settings remain in the member app/home.
 
-Public paths: `/workout-program`, `/nutrition`, `/body-analysis`, `/learn`, `/learn/beginner-training`, `/learn/upper-lower`, `/learn/protein`, `/tools`, `/tools/calorie-calculator`, `/tools/protein-calculator`, `/exercise-library`, `/exercise-library/:slug`, `/about`, `/editorial-policy`. Existing `/exercises` remains the member catalogue.
+Public paths: `/workout-program`, `/nutrition`, `/body-analysis`, `/learn`, `/learn/beginner-training`, `/learn/upper-lower`, `/learn/protein`, `/tools`, `/tools/calorie-calculator`, `/tools/protein-calculator`, `/tools/bmi-calculator`, `/exercise-library`, `/exercise-library/:slug`, `/about`, `/editorial-policy`. Existing `/exercises` remains the member catalogue.
 
 Initial exercise publication reads canonical ExerciseSeed/curated safety records through a field allowlist at build time. No new anonymous API, DB connection, user data, engine metadata or admin response is exposed. Rebuilds refresh the subset; DB-wide publication needs a separate review/licensing workflow. Media is omitted until a deployment-verified public asset source exists, rather than publishing broken or unlicensed URLs.
 
