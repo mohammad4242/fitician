@@ -13,9 +13,11 @@ import { AppErrorNotice } from "../shared/AppErrorNotice";
 import { LanguageSwitcher } from "../shared/LanguageSwitcher";
 import { AppIcon, type IconName } from "../shared/AppIcon";
 import { PwaInstallCard } from "../pwa/PwaInstallCard";
+import { useTheme } from "../theme/ThemeProvider";
 import "./more.css";
 
 export function MorePage() {
+  const { theme, setTheme } = useTheme();
   const { i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { snapshot } = useEntitlements();
@@ -82,6 +84,20 @@ export function MorePage() {
         </section>
 
         <div className="more-page__grid">
+          <MoreGroup title={l("تنظیمات", "Settings")}>
+            <fieldset className="more-appearance">
+              <legend>{l("ظاهر برنامه", "App appearance")}</legend>
+              <div className="more-appearance__options">
+                {(["dark", "light"] as const).map(value => (
+                  <label key={value} className="more-appearance__option">
+                    <input type="radio" name="fitician-appearance" value={value}
+                      checked={theme === value} onChange={() => setTheme(value)} />
+                    <span><span aria-hidden="true">{theme === value ? "✓" : ""}</span>{value === "dark" ? l("تیره", "Dark") : l("روشن", "Light")}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </MoreGroup>
           <MoreGroup title={l("محصول", "Product")}>
             {hasTraining && <MoreLink to="/exercises" icon="dumbbell" title={l("کتابخانه حرکات", "Exercise library")} subtitle={l("حرکت‌ها، اجرا و نکات ایمنی", "Exercises, execution, and safety notes")} />}
             <MoreLink to="/body-progress" icon="body" title={l("تحلیل بدن", "Body Analysis")} subtitle={l("جلسه‌ها و تحلیل‌های ثبت‌شده", "Saved sessions and analyses")} />

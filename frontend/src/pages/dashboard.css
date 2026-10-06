@@ -28,11 +28,11 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 35%);
   border-radius: 50%;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: rgb(80 223 206 / 6%);
   font: 800 1rem "Sora Variable", sans-serif;
   text-decoration: none;
-  box-shadow: inset 0 0 1rem rgb(80 223 206 / 5%), 0 2px 8px rgb(0 0 0 / 20%);
+  box-shadow: inset 0 0 1rem rgb(80 223 206 / 5%), 0 2px 8px rgb(var(--fitician-shadow-rgb) / calc(20% * var(--fitician-shadow-strength)));
   transition: border-color var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease);
 }
 
@@ -75,7 +75,7 @@
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-xl);
   color: var(--fitician-ink);
-  background: linear-gradient(145deg, rgb(12 35 35 / 96%), rgb(6 23 24 / 96%));
+  background: linear-gradient(145deg, var(--fitician-palette-surface-translucent, rgb(12 35 35 / 96%)), var(--fitician-palette-surface-translucent, rgb(6 23 24 / 96%)));
   text-decoration: none;
   box-shadow: inset 0 1px rgb(255 255 255 / 4%), var(--fitician-shadow-card);
   transition: border-color var(--fitician-duration-fast) var(--fitician-ease), transform var(--fitician-duration-fast) var(--fitician-ease), box-shadow var(--fitician-duration-fast) var(--fitician-ease);
@@ -85,7 +85,7 @@
   .command-card:hover {
     border-color: var(--fitician-line-strong);
     transform: translateY(-2px);
-    box-shadow: inset 0 1px rgb(255 255 255 / 6%), 0 12px 32px rgb(0 0 0 / 35%);
+    box-shadow: inset 0 1px rgb(255 255 255 / 6%), 0 12px 32px rgb(var(--fitician-shadow-rgb) / calc(35% * var(--fitician-shadow-strength)));
   }
 }
 
@@ -103,20 +103,20 @@
   grid-row: span 2;
   background:
     radial-gradient(circle at 75% 65%, rgb(35 190 172 / 15%), transparent 42%),
-    linear-gradient(145deg, rgb(10 34 34 / 100%), rgb(5 20 21 / 100%));
+    linear-gradient(145deg, var(--fitician-palette-surface, rgb(10 34 34 / 100%)), var(--fitician-palette-surface, rgb(5 20 21 / 100%)));
 }
 
 .command-card--primary::after {
   position: absolute;
   z-index: 1;
   inset: 0;
-  background: linear-gradient(90deg, rgb(6 23 24 / 100%) 0 40%, rgb(6 23 24 / 68%) 58%, transparent 84%);
+  background: linear-gradient(90deg, var(--fitician-palette-surface, rgb(6 23 24 / 100%)) 0 40%, var(--fitician-palette-surface-translucent, rgb(6 23 24 / 68%)) 58%, transparent 84%);
   content: "";
   pointer-events: none;
 }
 
 html[dir="rtl"] .command-card--primary::after {
-  background: linear-gradient(270deg, rgb(6 23 24 / 100%) 0 40%, rgb(6 23 24 / 68%) 58%, transparent 84%);
+  background: linear-gradient(270deg, var(--fitician-palette-surface, rgb(6 23 24 / 100%)) 0 40%, var(--fitician-palette-surface-translucent, rgb(6 23 24 / 68%)) 58%, transparent 84%);
 }
 
 .command-card--primary > :not(.command-card__media) {
@@ -172,8 +172,8 @@ html[dir="rtl"] .command-card--primary::after {
   place-items: center;
   border: 1px solid rgb(80 223 206 / 25%);
   border-radius: .85rem;
-  color: var(--fitician-aqua);
-  background: rgb(3 15 16 / 56%);
+  color: var(--fitician-accent-ink);
+  background: var(--fitician-palette-surface-translucent, rgb(3 15 16 / 56%));
   font: 900 1.12rem "Sora Variable", sans-serif;
 }
 
@@ -210,7 +210,7 @@ html[dir="rtl"] .command-card--primary::after {
 
 .command-card__context {
   margin-block: auto 1rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-weight: 850;
 }
 
@@ -276,8 +276,8 @@ html[dir="rtl"] .command-card--primary::after {
   width: 5.3rem;
   border: 1px solid rgb(80 223 206 / 12%);
   background:
-    radial-gradient(circle, rgb(6 23 24 / 100%) 57%, transparent 59%),
-    conic-gradient(var(--ring-color, var(--fitician-aqua)) var(--ring-progress), rgb(255 255 255 / 7%) 0);
+    radial-gradient(circle, var(--fitician-palette-surface, rgb(6 23 24 / 100%)) 57%, transparent 59%),
+    conic-gradient(var(--ring-color, var(--fitician-aqua)) var(--ring-progress), rgb(var(--fitician-highlight-rgb) / 7%) 0);
   box-shadow: 0 0 1.5rem rgb(80 223 206 / 10%);
 }
 
@@ -304,7 +304,7 @@ html[dir="rtl"] .command-card--primary::after {
 }
 
 .command-card__arrow {
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 1.1rem;
 }
 
@@ -328,7 +328,7 @@ html[dir="rtl"] .command-card--primary::after {
 .command-card:where(a):focus-visible,
 .command-quick-card:focus-visible,
 .command-center__avatar:focus-visible {
-  outline: 2px solid var(--fitician-aqua);
+  outline: 2px solid var(--fitician-accent-ink);
   outline-offset: 3px;
 }
 
@@ -346,7 +346,7 @@ html[dir="rtl"] .command-card--primary::after {
   overflow: hidden;
   border: 1px solid var(--fitician-line);
   border-radius: 1.35rem;
-  color: var(--fitician-ink);
+  color: var(--fitician-media-ink);
   background: rgb(5 21 22 / 100%);
   text-decoration: none;
   box-shadow: inset 0 1px rgb(255 255 255 / 3%), var(--fitician-shadow-soft);
@@ -421,12 +421,12 @@ html[dir="rtl"] .command-card--primary::after {
   display: flex;
   align-items: center;
   padding-inline: .85rem;
-  border: 1px solid rgb(255 255 255 / 8%);
+  border: 1px solid var(--fitician-palette-line, rgb(255 255 255 / 8%));
   border-radius: .9rem;
   color: #f2fbf9;
   background: rgb(3 14 15 / 86%);
   font: 700 clamp(.92rem, 2vw, 1.08rem)/1 "Sora Variable", sans-serif;
-  box-shadow: 0 .5rem 1.2rem rgb(0 0 0 / 24%);
+  box-shadow: 0 .5rem 1.2rem rgb(var(--fitician-shadow-rgb) / calc(24% * var(--fitician-shadow-strength)));
   backdrop-filter: blur(10px);
 }
 
@@ -477,11 +477,11 @@ html[dir="rtl"] .command-card--primary::after {
   }
 
   .command-card--primary::after {
-    background: linear-gradient(90deg, rgb(6 23 24 / 100%) 0 37%, rgb(6 23 24 / 76%) 58%, transparent 88%);
+    background: linear-gradient(90deg, var(--fitician-palette-surface, rgb(6 23 24 / 100%)) 0 37%, var(--fitician-palette-surface-translucent, rgb(6 23 24 / 76%)) 58%, transparent 88%);
   }
 
   html[dir="rtl"] .command-card--primary::after {
-    background: linear-gradient(270deg, rgb(6 23 24 / 100%) 0 37%, rgb(6 23 24 / 76%) 58%, transparent 88%);
+    background: linear-gradient(270deg, var(--fitician-palette-surface, rgb(6 23 24 / 100%)) 0 37%, var(--fitician-palette-surface-translucent, rgb(6 23 24 / 76%)) 58%, transparent 88%);
   }
 
   .command-card__media {

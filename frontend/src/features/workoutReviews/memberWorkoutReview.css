@@ -30,7 +30,7 @@
 .member-workout-review__before-after b { overflow: hidden; color: var(--fitician-ink); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
 .member-workout-review__empty { margin: 0; color: var(--fitician-muted); font-size: .72rem; }
 .member-workout-review__proposal { border-top: 1px solid var(--fitician-line); }
-.member-workout-review__proposal > summary { padding-top: .65rem; color: var(--fitician-aqua); font-size: .72rem; font-weight: 850; cursor: pointer; }
+.member-workout-review__proposal > summary { padding-top: .65rem; color: var(--fitician-accent-ink); font-size: .72rem; font-weight: 850; cursor: pointer; }
 .member-workout-review__proposal-body { display: grid; gap: .55rem; padding-top: .55rem; }
 .member-workout-review__proposal-body section { padding: .5rem .6rem; border: 1px solid var(--fitician-line); border-radius: .55rem; background: var(--fitician-surface-subtle); }
 .member-workout-review__proposal-body h4 { margin: 0 0 .35rem; color: var(--fitician-amber); font-size: .72rem; }
@@ -47,7 +47,7 @@
 .member-workout-review__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
 .member-workout-review__actions button { min-height: 2.45rem; padding: .45rem .75rem; border-radius: 99rem; font: inherit; font-size: .7rem; font-weight: 850; cursor: pointer; }
 .member-workout-review__reject { border: 1px solid rgb(255 108 116 / 52%); color: var(--fitician-coral); background: rgb(255 108 116 / 6%); }
-.member-workout-review__accept { border: 1px solid var(--fitician-aqua); color: var(--fitician-canvas); background: var(--fitician-aqua); }
+.member-workout-review__accept { border: 1px solid var(--fitician-aqua); color: var(--fitician-on-accent); background: var(--fitician-aqua); }
 .member-workout-review__actions button:hover, .member-workout-review__actions button:focus-visible { filter: brightness(1.08); }
 .member-workout-review__actions button:disabled { cursor: wait; opacity: .55; }
 

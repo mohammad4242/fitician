@@ -62,7 +62,7 @@
 
 .public-account-card__eyebrow {
   margin: 0 0 0.75rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 0.75rem;
   font-weight: 800;
 }
@@ -98,7 +98,7 @@
 .public-account-card__text-link {
   display: inline-flex;
   margin-block-start: 0.45rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-weight: 750;
 }
 
@@ -160,7 +160,7 @@
   padding-inline: 1.1rem;
   border: 1px solid var(--fitician-aqua);
   border-radius: var(--fitician-radius-md);
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   font: inherit;
   font-size: 0.88rem;
@@ -183,7 +183,7 @@
 .public-account-text-button {
   justify-self: start;
   border: 0;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: transparent;
   font: inherit;
   font-size: 0.82rem;
@@ -193,7 +193,7 @@
 
 .public-account-card__error {
   margin: 0.25rem 0;
-  color: #ffad98 !important;
+  color: var(--fitician-palette-danger, #ffad98) !important;
   font-size: 0.82rem;
 }
 

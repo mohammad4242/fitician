@@ -1,0 +1,104 @@
+.public-knowledge { color: var(--fitician-ink, #eef7f4); background: var(--fitician-canvas, #020607); min-height: 100vh; font-family: "Vazirmatn Variable", sans-serif; line-height: 1.95; }
+.public-knowledge *, .public-discovery * { box-sizing: border-box; }
+.public-knowledge > header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.4rem clamp(1rem, 5vw, 5rem); border-bottom: 1px solid var(--fitician-line, #243330); }
+.public-brand { font: 700 1.3rem "Sora Variable", sans-serif; text-decoration: none; }
+.public-brand span { font-family: "Vazirmatn Variable", sans-serif; font-size: .9rem; }
+.public-knowledge main { width: min(100% - 2rem, 880px); margin-inline: auto; padding-block: 2rem 4rem; }
+.public-knowledge h1 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.5; margin: .5rem 0 1.4rem; }
+.public-knowledge h2 { font-size: clamp(1.2rem, 2.5vw, 1.7rem); line-height: 1.6; margin-block: 2.2rem .8rem; }
+.public-knowledge p { margin-block: .8rem; }
+.public-lead { font-size: 1.15rem; }
+.public-eyebrow, .public-attribution { color: var(--fitician-muted, #b4c5bf); font-size: .9rem; }
+.public-knowledge a, .public-discovery a { color: var(--fitician-aqua, #50dfce); text-underline-offset: .25em; overflow-wrap: anywhere; }
+.public-knowledge a:focus-visible, .public-knowledge button:focus-visible, .public-knowledge input:focus-visible, .public-knowledge select:focus-visible, .public-discovery a:focus-visible { outline: 2px solid #50dfce; outline-offset: 4px; }
+.public-breadcrumbs ol { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .7rem; font-size: .85rem; }
+.public-breadcrumbs li + li::before { content: "/"; margin-inline-end: .7rem; }
+.public-knowledge .public-cta { display: inline-block; padding: .6rem 1rem; border-radius: 12px; background: #50dfce; color: #06211c; font-weight: 700; text-decoration: none; }
+.public-next { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--fitician-line, #243330); border-radius: 20px; background: var(--fitician-surface, #0b1412); }
+.public-next h2 { margin-top: 0; }
+.public-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.public-grid li { padding: 1rem; border: 1px solid #243330; border-radius: 12px; }
+.public-grid span { display: block; color: var(--fitician-muted, #b4c5bf); font-size: .85rem; }
+.public-knowledge dl { display: grid; grid-template-columns: 1fr 2fr; gap: .5rem 1rem; }
+.public-knowledge dd { margin: 0; }
+.public-discovery { padding: 1.5rem; border-top: 1px solid var(--fitician-line, #243330); font: .9rem/1.8 "Vazirmatn Variable", sans-serif; }
+.public-discovery nav { display: flex; flex-wrap: wrap; justify-content: center; gap: .7rem 1.3rem; }
+.public-discovery a { min-height: 44px; display: inline-flex; align-items: center; }
+.public-not-found { padding: 3rem 1rem; text-align: center; }
+@media (max-width: 540px) { .public-grid { grid-template-columns: 1fr; } .public-knowledge > header { flex-wrap: wrap; } }
+
+/* Public tools: shared, lightweight surfaces; no member or landing dependencies. */
+.tool-header { padding-block: .8rem .4rem; }
+.public-knowledge .tool-eyebrow { display: flex; align-items: center; gap: .6rem; color: #50dfce; font: 600 .72rem/1.5 "Sora Variable", sans-serif; letter-spacing: .16em; margin-block: 0 1rem; }
+.public-knowledge .tool-header h1 { font-size: clamp(1.65rem, 4vw, 2.5rem); margin-block: 0 .7rem; letter-spacing: -.035em; }
+.public-knowledge .tool-intro { color: #bccdc8; font-size: .98rem; margin-block: 0 1rem; }
+.tool-privacy { display: inline-flex; align-items: center; gap: .5rem; font-size: .77rem; color: #b8e4d9; padding: .3rem .75rem; border: 1px solid #214f46; border-radius: 100px; background: #10241e; }
+.tool-privacy > span { color: #50dfce; font-size: .6rem; }
+.fitician-tool { margin-block: 1.6rem 3rem; color: #eef7f4; }
+.tool-switcher { display: flex; flex-wrap: wrap; gap: .35rem; margin-block-end: 1rem; padding: .3rem; border: 1px solid #243c35; border-radius: 16px; background: #0b1613; width: fit-content; max-width: 100%; }
+.public-knowledge .tool-switcher a { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1rem; font-size: .87rem; font-weight: 600; color: #b8cbc5; text-decoration: none; border: 1px solid transparent; border-radius: 12px; }
+.public-knowledge .tool-switcher a[aria-current="page"] { color: #b5fff0; background: #17382f; border-color: #2b6354; }
+.tool-workspace { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); border: 1px solid #2a4840; border-radius: 26px; overflow: clip; background: linear-gradient(145deg, #111f1b, #08110f); box-shadow: 0 24px 70px #0005; }
+.tool-form { padding: clamp(1.25rem, 3vw, 2rem); min-width: 0; }
+.tool-form-heading { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.5rem; }
+.tool-form-icon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; color: #50dfce; background: #18382f; border: 1px solid #2b5144; border-radius: 14px; }
+.public-knowledge .tool-form-heading h2 { font-size: 1.12rem; margin: 0; }
+.public-knowledge .tool-form-heading p { color: #afc4ba; font-size: .75rem; margin: .15rem 0 0; }
+.tool-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.1rem .8rem; }
+.tool-field { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.tool-field-wide, .fitician-tool-protein .tool-field { grid-column: 1 / -1; }
+.tool-field label { font-size: .84rem; font-weight: 600; color: #e5eee9; }
+.tool-input-wrap { position: relative; }
+.tool-field input, .tool-field select { width: 100%; min-width: 0; min-height: 56px; border: 1px solid #38564b; border-radius: 12px; background: #08120f; color: #eef7f4; font: inherit; transition: border-color .15s, box-shadow .15s; }
+.tool-field input { padding: .65rem .8rem .65rem 4.6rem; font: 500 1.1rem/1.5 "Sora Variable", "Vazirmatn Variable", sans-serif; text-align: right; font-variant-numeric: tabular-nums; }
+.tool-field select { padding: .65rem .65rem; font-size: .82rem; }
+.tool-unit { position: absolute; inset-inline-end: .6rem; top: 50%; transform: translateY(-50%); color: #bdd0c7; background: #192a23; padding: .12rem .4rem; border-radius: 6px; font-size: .64rem; pointer-events: none; }
+.tool-hint { color: #9fb5ab; font-size: .7rem; }
+.tool-field input:focus-visible, .tool-field select:focus-visible { outline-offset: 2px; border-color: #50dfce; box-shadow: 0 0 0 4px #50dfce12; }
+.tool-field input[aria-invalid="true"] { border-color: #efa6a6; }
+.public-knowledge .tool-error { color: #ffd0cc; background: #3b1d1d; border-radius: 10px; padding: .7rem; font-size: .8rem; }
+.tool-submit { display: flex; align-items: center; justify-content: space-between; gap: .8rem; width: 100%; min-height: 56px; border: 1px solid #86efe0; border-radius: 12px; padding: .7rem 1rem; margin-block-start: 1.6rem; background: linear-gradient(110deg, #3ccdb7, #72ebd7); box-shadow: 0 6px 22px #50dfce13; color: #06251e; font: 800 .98rem "Vazirmatn Variable", sans-serif; cursor: pointer; }
+.tool-submit > span { font-size: 1.4rem; }
+.public-knowledge .tool-local-note { color: #9fb5ab; font-size: .68rem; text-align: center; margin-block: .6rem 0; }
+.tool-result-panel { display: flex; flex-direction: column; padding: clamp(1.25rem, 3vw, 2rem); min-width: 0; border-inline-start: 1px solid #29463b; background: radial-gradient(ellipse at 10% 0, #245e4938, transparent 70%), #0b1b15; }
+.tool-result-eyebrow { color: #88bba6; font: 500 .61rem "Sora Variable", sans-serif; letter-spacing: .14em; direction: ltr; text-align: right; }
+.tool-result { display: flex; flex-direction: column; align-items: stretch; justify-content: center; flex: 1; padding-block: 1.4rem .2rem; }
+.tool-result-label { font-size: .95rem; color: #d3e5da; }
+.tool-result-number { display: block; color: #a6ffe0; font: 600 clamp(2.8rem, 6vw, 4.1rem)/1.35 "Sora Variable", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -.055em; text-align: right; margin-block: .7rem .25rem; overflow-wrap: anywhere; }
+.tool-result-range { font-size: clamp(2.3rem, 5vw, 3.1rem); }
+.tool-result-unit { font-size: .85rem; color: #b7d1c1; }
+.tool-secondary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; padding: .9rem; border: 1px solid #335545; border-radius: 12px; background: #17312380; margin-block: 1.7rem .2rem; font-size: .8rem; }
+.tool-secondary strong { font: 600 1.25rem "Sora Variable", sans-serif; }
+.tool-secondary small { font-size: .65rem; color: #bed9c8; }
+.tool-result-note { display: block; color: #adc7b9; font-size: .75rem; margin-block-start: 1rem; line-height: 1.9; }
+.tool-empty { display: flex; flex-direction: column; gap: .8rem; text-align: center; color: #adc7b9; padding-block: 1rem; font-size: .8rem; }
+.tool-empty-mark { color: #4e8a70; font: 300 4rem/1 "Sora Variable", sans-serif; }
+.tool-empty strong { color: #deefe4; font-size: 1rem; }
+.tool-protein-scale { display: block; border-radius: 10px; padding: 4px; border: 1px solid #376751; margin-block-start: 1.8rem; }
+.tool-protein-scale > span { display: block; height: 8px; border-radius: 6px; background: linear-gradient(90deg, #74cfae, #acf5d7); }
+.tool-scale-ends { display: flex; justify-content: space-between; gap: .5rem; font: 500 .73rem "Sora Variable", sans-serif; margin-block-start: .65rem; color: #d1e8dd; }
+.tool-bmi-label { align-self: flex-start; color: #d3f7e2; border: 1px solid #467355; border-radius: 8px; padding: .25rem .6rem; font-size: .8rem; }
+.tool-bmi-scale { position: relative; display: flex; gap: 3px; height: 12px; margin-block: 1.8rem .8rem; }
+.tool-bmi-scale > span { flex: 1; background: #6ab5b7; border-radius: 3px; }
+.tool-bmi-scale > span:nth-child(2) { background: #94d6ad; }
+.tool-bmi-scale > span:nth-child(3) { background: #c4c18e; }
+.tool-bmi-scale > span:nth-child(4) { background: #cfa79c; }
+.tool-bmi-scale i { position: absolute; top: -5px; height: 22px; width: 4px; transform: translateX(-50%); border: 1px solid #08120f; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px #0b1b15; }
+.tool-bmi-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; direction: ltr; }
+.tool-bmi-legend > span { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .4rem .1rem; border: 1px solid transparent; border-radius: 6px; min-width: 0; }
+.tool-bmi-legend strong { color: #e2efe6; font: 500 .6rem "Sora Variable", sans-serif; white-space: nowrap; }
+.tool-bmi-legend span span { color: #bad0c3; font-size: .6rem; line-height: 1.8; text-align: center; direction: rtl; }
+.tool-bmi-legend .is-current { border-color: #739d7d; background: #23412b; }
+.tool-bmi-legend b { color: #baf9cf; font-size: .6rem; direction: rtl; }
+.tool-hub { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 2rem; }
+.public-knowledge .tool-card { display: flex; flex-direction: column; min-width: 0; padding: 1.5rem; border: 1px solid #2c4b3e; border-radius: 22px; color: #eef7f4; text-decoration: none; background: radial-gradient(ellipse at 100% 0, #28674825, transparent 65%), #0c1a14; transition: border-color .15s, background-color .15s; }
+.tool-card-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.tool-symbol { display: grid; place-items: center; width: 56px; height: 56px; border: 1px solid #396c51; border-radius: 16px; background: #163025; color: #8eefc8; font: 600 .8rem "Sora Variable", sans-serif; }
+.tool-card-index { color: #7ba48e; font: 400 .75rem "Sora Variable", sans-serif; }
+.public-knowledge .tool-card h2 { font-size: 1.25rem; margin-block: 1.4rem .4rem; }
+.public-knowledge .tool-card p { color: #b4cabc; font-size: .87rem; margin: 0; flex: 1; }
+.tool-card-cta { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin-block-start: 1.5rem; padding-block-start: .8rem; border-top: 1px solid #284939; color: #95efc9; font-size: .85rem; font-weight: 700; }
+@media (hover: hover) { .public-knowledge .tool-card:hover { border-color: #55b18b; background-color: #12261c; } .tool-submit:hover { filter: brightness(1.07); } .public-knowledge .tool-switcher a:hover { color: #d5ffed; } }
+@media (max-width: 700px) { .tool-workspace { grid-template-columns: 1fr; } .tool-result-panel { border-inline-start: 0; border-top: 1px solid #29463b; min-height: 240px; } .tool-result-number { font-size: 3.6rem; } .tool-result-range { font-size: 2.8rem; } .tool-hub { grid-template-columns: 1fr; } .tool-card { padding: 1.5rem; } }
+@media (max-width: 390px) { .tool-switcher { width: 100%; } .public-knowledge .tool-switcher a { flex: 1; padding-inline: .5rem; font-size: .78rem; } .tool-fields { gap: 1rem .6rem; } .tool-field input { font-size: 1rem; } .tool-field select { font-size: .75rem; } }
+@media (prefers-reduced-motion: reduce) { .tool-field input, .tool-field select, .public-knowledge .tool-card { transition: none !important; } }

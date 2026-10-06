@@ -1,3 +1,5 @@
+import { PublicDiscovery } from "../../seo/PublicDiscovery";
+import "../../seo/public.css";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -12,15 +14,13 @@ import "./publicLanding.css";
 import "./landingStory.css";
 
 function useReducedMotion() {
-  const [reducedMotion, setReducedMotion] = useState(
-    () => typeof window.matchMedia === "function"
-      && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(query.matches);
+    update();
     query.addEventListener?.("change", update);
     return () => query.removeEventListener?.("change", update);
   }, []);
@@ -98,6 +98,7 @@ export function PublicLandingPage() {
           {t("landing.final.action")}<span aria-hidden="true">←</span>
         </Link>
       </section>
+      <PublicDiscovery />
     </main>
   );
 }

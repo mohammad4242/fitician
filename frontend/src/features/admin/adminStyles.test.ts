@@ -26,8 +26,8 @@ it("keeps an open account menu above admin page content", () => {
   );
 });
 
-it("renders the exercise-card Edit action with white text", () => {
+it("uses semantic readable text for the exercise-card Edit action", () => {
   expect(exerciseCss).toMatch(
-    /\.exercise-card__edit\s*\{[^}]*color:\s*(?:#fff(?:fff)?|white|var\(--paper\));/,
+    /\.exercise-card__edit\s*\{[^}]*color:\s*var\(--fitician-ink\);/,
   );
 });

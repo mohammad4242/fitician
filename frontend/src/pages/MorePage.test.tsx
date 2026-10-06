@@ -41,10 +41,12 @@ vi.mock("../features/entitlements/EntitlementContext", () => ({
 vi.mock("../features/nutrition/api", () => ({ verifyPhysicianAccess: vi.fn(async () => { throw new Error("denied"); }) }));
 vi.mock("../features/workoutReviews/api", () => ({ verifyCoachAccess: vi.fn(async () => { throw new Error("denied"); }) }));
 
+import { ThemeProvider } from "../theme/ThemeProvider";
 import { MorePage } from "./MorePage";
 
 beforeEach(() => {
   entitlementState.snapshot = null;
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -54,7 +56,7 @@ afterEach(() => {
 it("signs out from the separated account action", async () => {
   auth.isAdmin = false;
   const user = userEvent.setup();
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   await user.click(screen.getByRole("button", { name: "خروج از حساب" }));
 
@@ -68,7 +70,7 @@ it("uses the shared safe presentation when sign out fails", async () => {
     }),
   );
   const user = userEvent.setup();
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   await user.click(screen.getByRole("button", { name: "خروج از حساب" }));
 
@@ -81,7 +83,7 @@ it("uses the shared safe presentation when sign out fails", async () => {
 it("shows the training program library in the mobile admin workspace", () => {
   auth.isAdmin = true;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByRole("link", { name: /کتابخانه برنامه‌های تمرینی/ })).toHaveAttribute(
     "href",
@@ -96,7 +98,7 @@ it("shows the current launch trial in the access summary", () => {
     trial: { active: true, ends_at: "2026-09-13T20:45:00Z" },
   };
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByText("دوره آزمایشی شروع")).toBeInTheDocument();
   expect(screen.getByText("آزمایشی تا ۲۳ شهریور ۱۴۰۵")).toBeInTheDocument();
@@ -119,7 +121,7 @@ it("links access management and shows a paid access end date", () => {
     }],
   };
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByRole("link", { name: "مشاهده پلن‌ها" })).toHaveAttribute("href", "/plans");
   expect(screen.getByRole("link", { name: "تاریخچه خرید" })).toHaveAttribute("href", "/billing/history");
@@ -129,7 +131,7 @@ it("links access management and shows a paid access end date", () => {
 it("shows the nutrition program catalogue in the mobile admin workspace", () => {
   auth.isAdmin = true;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByRole("link", { name: /کاتالوگ برنامه‌های غذایی/ })).toHaveAttribute(
     "href",
@@ -140,7 +142,7 @@ it("shows the nutrition program catalogue in the mobile admin workspace", () => 
 it("shows AI settings in the mobile admin workspace", () => {
   auth.isAdmin = true;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByRole("link", { name: /تنظیمات هوش مصنوعی/ })).toHaveAttribute(
     "href",
@@ -151,7 +153,7 @@ it("shows AI settings in the mobile admin workspace", () => {
 it("shows subscriptions and access in the admin workspace", () => {
   auth.isAdmin = true;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.getByRole("link", { name: /اشتراک و دسترسی‌ها/ })).toHaveAttribute("href", "/admin/billing");
 });
@@ -159,7 +161,7 @@ it("shows subscriptions and access in the admin workspace", () => {
 it("hides AI settings from non-admin members", () => {
   auth.isAdmin = false;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.queryByRole("link", { name: /تنظیمات هوش مصنوعی/ })).not.toBeInTheDocument();
 });
@@ -167,7 +169,7 @@ it("hides AI settings from non-admin members", () => {
 it("does not show a separate exercise administration workspace", () => {
   auth.isAdmin = true;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   expect(screen.queryByRole("link", { name: /مدیریت حرکات/ })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: /کتابخانه حرکات/ })).toHaveAttribute("href", "/exercises");
@@ -177,7 +179,7 @@ it("shows the meal catalogue in the product group for non-admin members", () => 
   auth.isAdmin = false;
   profileState.productMode = "both";
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   const productGroup = screen.getByRole("region", { name: "محصول" });
   expect(within(productGroup).getByRole("link", { name: /کاتالوگ وعده‌های غذایی/ })).toHaveAttribute(
@@ -192,7 +194,7 @@ it("shows the meal catalogue for training-only members", () => {
   auth.isAdmin = false;
   profileState.productMode = "training";
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   const productGroup = screen.getByRole("region", { name: "محصول" });
   expect(within(productGroup).getByRole("link", { name: /کاتالوگ وعده‌های غذایی/ })).toHaveAttribute(
@@ -205,7 +207,7 @@ it("shows the meal catalogue for training-only members", () => {
 it("shows public privacy and deletion controls in the account group", () => {
   auth.isAdmin = false;
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   const accountGroup = screen.getByRole("region", { name: "حساب" });
   expect(within(accountGroup).getByRole("link", { name: /حذف حساب/ })).toHaveAttribute(
@@ -222,7 +224,7 @@ it("shows single meal catalogue in product and no duplicate in workspaces for ad
   auth.isAdmin = true;
   profileState.productMode = "both";
 
-  render(<MemoryRouter><MorePage /></MemoryRouter>);
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
 
   const productGroup = screen.getByRole("region", { name: "محصول" });
   expect(within(productGroup).getByRole("link", { name: /کاتالوگ وعده‌های غذایی/ })).toHaveAttribute(
@@ -233,4 +235,14 @@ it("shows single meal catalogue in product and no duplicate in workspaces for ad
   const workspacesGroup = screen.getByRole("region", { name: "فضاهای تخصصی" });
   expect(within(workspacesGroup).queryByRole("link", { name: /کاتالوگ وعده‌های غذایی/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "/admin/nutrition-meals" })).not.toBeInTheDocument();
+});
+
+it("exposes an accessible appearance selector in Settings", async () => {
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
+  const settings = screen.getByRole("region", { name: "تنظیمات" });
+  expect(within(settings).getByRole("group", { name: "ظاهر برنامه" })).toBeVisible();
+  expect(within(settings).getByRole("radio", { name: "تیره" })).toBeChecked();
+  await userEvent.click(within(settings).getByRole("radio", { name: "روشن" }));
+  expect(document.documentElement.dataset.fiticianTheme).toBe("light");
+  expect(within(settings).getByRole("radio", { name: "روشن" })).toBeChecked();
 });

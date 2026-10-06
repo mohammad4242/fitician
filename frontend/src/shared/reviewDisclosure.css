@@ -2,7 +2,7 @@
   min-width: 0;
   border: 1px solid rgb(125 224 210 / 15%);
   border-radius: 1rem;
-  background: rgb(3 21 20 / 34%);
+  background: var(--fitician-palette-surface-translucent, rgb(3 21 20 / 34%));
 }
 
 .review-disclosure > summary {
@@ -11,7 +11,7 @@
   gap: 0.8rem;
   min-height: 3.5rem;
   padding: 0.7rem 0.9rem;
-  color: #e9faf6;
+  color: var(--fitician-palette-ink, #e9faf6);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -26,7 +26,7 @@
   margin-inline-start: auto;
   border-inline-end: 2px solid currentColor;
   border-block-end: 2px solid currentColor;
-  color: #7de0d2;
+  color: var(--fitician-palette-accent-ink, #7de0d2);
   content: "";
   transform: translateY(-0.15rem) rotate(45deg);
   transition: transform 160ms ease;
@@ -55,7 +55,7 @@
 
 .review-disclosure__summary {
   overflow-wrap: anywhere;
-  color: #82aaa4;
+  color: var(--fitician-palette-accent-ink, #82aaa4);
   font-size: 0.78rem;
   font-weight: 400;
   line-height: 1.5;

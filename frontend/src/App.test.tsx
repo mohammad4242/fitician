@@ -667,3 +667,9 @@ it("lets an admin open the admin nutrition meals route", async () => {
   ).toBeInTheDocument();
   fetchMock.mockRestore();
 });
+
+it("renders an actual not-found page for an unknown route", () => {
+  render(<MemoryRouter initialEntries={["/unknown-seo-url"]}><AppRoutes /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "صفحه پیدا نشد" })).toBeInTheDocument();
+  expect(document.querySelector('meta[name="robots"]')).toHaveAttribute("content", "noindex, follow");
+});

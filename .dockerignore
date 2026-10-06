@@ -54,3 +54,17 @@ frontend/public/exercises/*
 !frontend/public/exercises/exercise-placeholder.svg
 frontend/src/assets/landing/*.mp4
 frontend/src/assets/landing/body.png
+
+# Build-only canonical exercise text; no backend runtime or private data.
+!backend/
+backend/*
+!backend/app/
+backend/app/*
+!backend/app/exercises/
+backend/app/exercises/*
+!backend/app/exercises/seed_data.py
+!backend/app/exercises/enums.py
+!backend/app/exercises/curated_safety_notes.py
+!backend/app/exercises/media_metadata.py
+.codex-worktrees/
+frontend/dist-server/

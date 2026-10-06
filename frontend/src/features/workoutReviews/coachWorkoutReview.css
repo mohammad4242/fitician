@@ -1,9 +1,9 @@
 .coach-review-shell {
   min-height: 100svh;
-  color: #e9f7f3;
+  color: var(--fitician-palette-ink, #e9f7f3);
   background:
     radial-gradient(circle at 82% 8%, rgb(40 182 166 / 13%), transparent 28rem),
-    #061918;
+    var(--fitician-palette-surface, #061918);
 }
 
 .coach-review-page {
@@ -20,15 +20,15 @@
   padding: clamp(1.25rem, 2.5vw, 2.25rem);
   border: 1px solid rgb(154 225 214 / 14%);
   border-radius: 2rem;
-  background: linear-gradient(125deg, rgb(13 50 47 / 92%), rgb(8 32 31 / 82%));
-  box-shadow: 0 1.6rem 5rem rgb(0 0 0 / 25%);
+  background: linear-gradient(125deg, var(--fitician-palette-surface-translucent, rgb(13 50 47 / 92%)), var(--fitician-palette-surface-translucent, rgb(8 32 31 / 82%)));
+  box-shadow: 0 1.6rem 5rem rgb(var(--fitician-shadow-rgb) / calc(25% * var(--fitician-shadow-strength)));
 }
 
 .coach-review-hero p,
 .coach-review-hero span,
 .coach-review-case-header small {
   margin: 0;
-  color: #8fb9b2;
+  color: var(--fitician-palette-accent-ink, #8fb9b2);
 }
 
 .coach-review-hero h1 {
@@ -39,7 +39,7 @@
 .coach-review-back {
   align-self: start;
   padding: 0.7rem 1rem;
-  border: 1px solid rgb(223 246 240 / 18%);
+  border: 1px solid var(--fitician-palette-line, rgb(223 246 240 / 18%));
   border-radius: 999px;
   color: inherit;
   background: transparent;
@@ -53,8 +53,8 @@
   gap: 0.2rem 0.65rem;
   padding: 1rem;
   border-radius: 1.25rem;
-  color: #b9d8d2;
-  background: rgb(3 20 19 / 62%);
+  color: var(--fitician-palette-success, #b9d8d2);
+  background: var(--fitician-palette-surface-translucent, rgb(3 20 19 / 62%));
 }
 
 .coach-review-lease > span {
@@ -65,15 +65,15 @@
   box-shadow: 0 0 1.25rem rgb(50 213 191 / 35%);
 }
 
-.coach-review-lease small { color: #81a7a1; }
-.coach-review-lease strong { color: #f2fffb; font-size: 1.1rem; }
+.coach-review-lease small { color: var(--fitician-palette-accent-ink, #81a7a1); }
+.coach-review-lease strong { color: var(--fitician-palette-ink, #f2fffb); font-size: 1.1rem; }
 
 .coach-review-error {
   margin: 1rem 0 0;
   padding: 0.9rem 1.15rem;
   border-inline-start: 0.3rem solid #ef8d77;
   border-radius: 0.75rem;
-  color: #ffd9d0;
+  color: var(--fitician-palette-ink, #ffd9d0);
   background: rgb(119 43 32 / 34%);
 }
 
@@ -88,7 +88,7 @@
 .coach-review-canvas {
   border: 1px solid rgb(154 225 214 / 12%);
   border-radius: 1.75rem;
-  background: rgb(10 35 33 / 86%);
+  background: var(--fitician-palette-surface-translucent, rgb(10 35 33 / 86%));
 }
 
 .coach-review-queue { padding: 0.75rem; }
@@ -99,7 +99,7 @@
   gap: 0.35rem;
   padding: 0.35rem;
   border-radius: 1rem;
-  background: #061f1e;
+  background: var(--fitician-palette-surface, #061f1e);
 }
 
 .coach-review-tabs button {
@@ -107,13 +107,13 @@
   padding: 0.45rem;
   border: 0;
   border-radius: 0.75rem;
-  color: #8fb9b2;
+  color: var(--fitician-palette-accent-ink, #8fb9b2);
   background: transparent;
   cursor: pointer;
 }
 
 .coach-review-tabs button[aria-selected="true"] {
-  color: #03211e;
+  color: var(--fitician-palette-on-accent, #03211e);
   background: #7de0d2;
 }
 
@@ -131,13 +131,13 @@
   padding: 0.75rem;
   border: 1px solid transparent;
   border-radius: 1rem;
-  background: rgb(4 24 23 / 58%);
+  background: var(--fitician-palette-surface-translucent, rgb(4 24 23 / 58%));
 }
 
 .coach-review-cases article.is-selected { border-color: #58c9b9; }
 .coach-review-cases small,
 .coach-review-cases span,
-.coach-review-sent-at { color: #87aaa5; }
+.coach-review-sent-at { color: var(--fitician-palette-accent-ink, #87aaa5); }
 .coach-review-cases strong { font-size: 0.95rem; }
 .coach-review-member { display: flex; align-items: center; gap: 0.55rem; min-width: 0; grid-column: 1 / -1; }
 .coach-review-case-copy { display: grid; gap: 0.2rem; min-width: 0; }
@@ -145,7 +145,7 @@
 .coach-review-case-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .coach-review-sent-at,
 .coach-review-approved-at { grid-column: 1; font-size: 0.74rem; }
-.coach-review-approved-at { color: #efc778; }
+.coach-review-approved-at { color: var(--fitician-palette-amber, #efc778); }
 .coach-review-case-status { grid-column: 2; font-size: 0.74rem; white-space: nowrap; }
 .coach-review-case-member { display: flex; align-items: center; gap: 0.75rem; }
 .coach-review-case-member h2 { min-width: 0; }
@@ -157,13 +157,13 @@
   padding: 0.75rem 1rem;
   border: 1px solid rgb(125 224 210 / 35%);
   border-radius: 0.8rem;
-  color: #dffbf6;
+  color: var(--fitician-palette-ink, #dffbf6);
   background: rgb(36 118 107 / 28%);
   cursor: pointer;
 }
 
 .coach-review-empty,
-.coach-review-queue > [role="status"] { padding: 1rem; color: #86aaa4; }
+.coach-review-queue > [role="status"] { padding: 1rem; color: var(--fitician-palette-accent-ink, #86aaa4); }
 
 .coach-review-mobile-back {
   display: none;
@@ -171,7 +171,7 @@
   padding: 0.65rem 0.9rem;
   border: 1px solid rgb(125 224 210 / 35%);
   border-radius: 999px;
-  color: #dffbf6;
+  color: var(--fitician-palette-ink, #dffbf6);
   background: transparent;
   cursor: pointer;
 }
@@ -183,11 +183,11 @@
   display: grid;
   place-content: center;
   text-align: center;
-  color: #84aaa4;
+  color: var(--fitician-placeholder);
 }
 
-.coach-review-placeholder > span { color: #72d9ca; font-size: 4rem; }
-.coach-review-placeholder h2 { margin-bottom: 0; color: #e8f8f4; }
+.coach-review-placeholder > span { color: var(--fitician-placeholder); font-size: 4rem; }
+.coach-review-placeholder h2 { margin-bottom: 0; color: var(--fitician-placeholder); }
 
 .coach-review-case-header {
   display: flex;
@@ -201,7 +201,7 @@
 .coach-review-case-header > span {
   padding: 0.5rem 0.8rem;
   border-radius: 99px;
-  color: #03211e;
+  color: var(--fitician-palette-on-accent, #03211e);
   background: #7de0d2;
 }
 
@@ -219,10 +219,10 @@
   gap: 0.25rem;
   padding: 0.8rem;
   border-block: 1px solid rgb(154 225 214 / 10%);
-  color: #759d97;
+  color: var(--fitician-palette-accent-ink, #759d97);
 }
 
-.coach-review-profile-strip strong { color: #e7f7f3; }
+.coach-review-profile-strip strong { color: var(--fitician-palette-ink, #e7f7f3); }
 
 .coach-review-member-feedback {
   display: grid;
@@ -232,11 +232,11 @@
   border: 1px solid rgb(239 186 98 / 35%);
   border-inline-start: 0.28rem solid #efba62;
   border-radius: 0.9rem;
-  color: #d7eee8;
+  color: var(--fitician-palette-ink, #d7eee8);
   background: rgb(84 62 29 / 28%);
 }
 
-.coach-review-member-feedback strong { color: #efc778; }
+.coach-review-member-feedback strong { color: var(--fitician-palette-amber, #efc778); }
 .coach-review-member-feedback p { margin: 0; line-height: 1.6; }
 
 .coach-template-selection {
@@ -248,7 +248,7 @@
   border-radius: 1.1rem;
   background:
     linear-gradient(105deg, rgb(239 186 98 / 8%), transparent 44%),
-    rgb(5 27 26 / 72%);
+    var(--fitician-palette-surface-translucent, rgb(5 27 26 / 72%));
 }
 
 .coach-template-disclosure {
@@ -262,13 +262,13 @@
 }
 
 .coach-template-disclosure .review-disclosure__title {
-  color: #f2fffb;
+  color: var(--fitician-palette-ink, #f2fffb);
   font-size: 1.15rem;
 }
 
 .coach-template-disclosure .review-disclosure__summary {
   max-width: 78ch;
-  color: #b8d4cf;
+  color: var(--fitician-palette-success, #b8d4cf);
   line-height: 1.9;
 }
 
@@ -279,7 +279,7 @@
 .coach-template-disclosure > .review-disclosure__body > p {
   max-width: 78ch;
   margin: 0 0 0.85rem;
-  color: #b8d4cf;
+  color: var(--fitician-palette-success, #b8d4cf);
   line-height: 1.9;
 }
 
@@ -290,7 +290,7 @@
 
 .coach-template-disclosure > .review-disclosure__body > details > summary {
   width: fit-content;
-  color: #efc47c;
+  color: var(--fitician-palette-amber, #efc47c);
   cursor: pointer;
   user-select: none;
 }
@@ -312,15 +312,15 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem 0.75rem;
-  color: #83aaa4;
+  color: var(--fitician-palette-accent-ink, #83aaa4);
   font-size: 0.78rem;
 }
 
 .coach-template-slug code {
   padding: 0.28rem 0.5rem;
   border-radius: 0.4rem;
-  color: #d9f7f1;
-  background: #041a19;
+  color: var(--fitician-palette-ink, #d9f7f1);
+  background: var(--fitician-palette-surface, #041a19);
 }
 
 .coach-template-selection dl {
@@ -335,16 +335,16 @@
   gap: 0.2rem;
   padding: 0.65rem;
   border-radius: 0.7rem;
-  background: rgb(3 21 20 / 70%);
+  background: var(--fitician-palette-surface-translucent, rgb(3 21 20 / 70%));
 }
 
 .coach-template-selection dl > div.is-total {
-  color: #06201e;
+  color: var(--fitician-palette-on-accent, #06201e);
   background: #efba62;
 }
 
-.coach-template-selection dt { color: #789f99; font-size: 0.72rem; }
-.coach-template-selection dd { margin: 0; color: #edfdf9; font-weight: 750; }
+.coach-template-selection dt { color: var(--fitician-palette-accent-ink, #789f99); font-size: 0.72rem; }
+.coach-template-selection dd { margin: 0; color: var(--fitician-palette-ink, #edfdf9); font-weight: 750; }
 .coach-template-selection .is-total dt,
 .coach-template-selection .is-total dd { color: inherit; }
 
@@ -352,11 +352,11 @@
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 0.75rem;
-  color: #8eb2ad;
+  color: var(--fitician-palette-accent-ink, #8eb2ad);
   font-size: 0.82rem;
 }
 
-.coach-review-version-labels span:last-child { color: #67d6c6; }
+.coach-review-version-labels span:last-child { color: var(--fitician-palette-accent-ink, #67d6c6); }
 
 .coach-review-structure-toolbar {
   display: flex;
@@ -368,7 +368,7 @@
   border: 1px solid rgb(239 186 98 / 24%);
   border-inline-start: 0.28rem solid #efba62;
   border-radius: 0.9rem;
-  color: #c8e5df;
+  color: var(--fitician-palette-ink, #c8e5df);
   background: rgb(35 84 76 / 34%);
 }
 
@@ -379,7 +379,7 @@
   padding: 0.55rem 0.8rem;
   border: 1px solid rgb(125 224 210 / 35%);
   border-radius: 0.65rem;
-  color: #dffbf6;
+  color: var(--fitician-palette-ink, #dffbf6);
   background: rgb(36 118 107 / 28%);
   cursor: pointer;
 }
@@ -395,21 +395,21 @@
   overflow: hidden;
   border-color: rgb(125 224 210 / 14%);
   border-radius: 1.25rem;
-  background: #071f1e;
+  background: var(--fitician-palette-surface, #071f1e);
 }
 
 .coach-review-day > summary {
   min-height: 4rem;
   padding: 0.85rem 1rem;
-  background: #071f1e;
+  background: var(--fitician-palette-surface, #071f1e);
 }
 
 .coach-review-day > summary .review-disclosure__title {
-  color: #f2fffb;
+  color: var(--fitician-palette-ink, #f2fffb);
   font-size: 1.05rem;
 }
 
-.coach-review-day > summary .review-disclosure__summary { color: #86aaa4; }
+.coach-review-day > summary .review-disclosure__summary { color: var(--fitician-palette-accent-ink, #86aaa4); }
 .coach-review-day > .review-disclosure__body { padding: 0 1rem 1rem; }
 
 .coach-review-day-tools {
@@ -443,7 +443,7 @@
 .coach-review-inline-actions .is-danger,
 .coach-review-exercise-tools .is-danger {
   border-color: rgb(239 141 119 / 42%);
-  color: #ffd9d0;
+  color: var(--fitician-palette-ink, #ffd9d0);
   background: rgb(119 43 32 / 34%);
 }
 
@@ -451,7 +451,7 @@
   margin-block-start: 0.7rem;
   border-color: rgb(154 225 214 / 15%);
   border-radius: 0.95rem;
-  background: rgb(4 24 23 / 58%);
+  background: var(--fitician-palette-surface-translucent, rgb(4 24 23 / 58%));
 }
 
 .coach-review-exercise > summary {
@@ -460,11 +460,11 @@
 }
 
 .coach-review-exercise > summary .review-disclosure__title {
-  color: #e9faf6;
+  color: var(--fitician-palette-ink, #e9faf6);
   font-size: 0.95rem;
 }
 
-.coach-review-exercise > summary .review-disclosure__summary { color: #86aaa4; }
+.coach-review-exercise > summary .review-disclosure__summary { color: var(--fitician-palette-accent-ink, #86aaa4); }
 .coach-review-exercise > .review-disclosure__body { padding: 0 0.85rem 0.85rem; }
 
 .coach-review-exercise-tools {
@@ -488,14 +488,14 @@
   border-radius: 1rem;
 }
 
-.coach-review-day legend { padding-inline: 0.4rem; color: #9ac2bc; }
+.coach-review-day legend { padding-inline: 0.4rem; color: var(--fitician-palette-accent-ink, #9ac2bc); }
 
 .coach-review-day label,
 .coach-review-note,
 .coach-review-prescription label {
   display: grid;
   gap: 0.35rem;
-  color: #87aaa5;
+  color: var(--fitician-palette-accent-ink, #87aaa5);
   font-size: 0.82rem;
 }
 
@@ -508,8 +508,8 @@
   padding: 0.7rem;
   border: 1px solid rgb(154 225 214 / 17%);
   border-radius: 0.7rem;
-  color: #f0fcf9;
-  background: #0c302e;
+  color: var(--fitician-palette-ink, #f0fcf9);
+  background: var(--fitician-palette-surface, #0c302e);
 }
 
 .coach-review-day textarea,
@@ -533,20 +533,20 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   border: 1px solid rgb(154 225 214 / 12%);
   border-radius: 1rem;
-  background: rgb(4 24 23 / 88%);
+  background: var(--fitician-palette-surface-translucent, rgb(4 24 23 / 88%));
   backdrop-filter: blur(12px);
 }
 
 .coach-review-actions button { margin-top: 0; }
 
 .coach-review-actions button.is-primary {
-  color: #03211e;
+  color: var(--fitician-palette-on-accent, #03211e);
   background: #7de0d2;
 }
 
 .coach-review-actions button.is-reject {
   border-color: rgb(239 141 119 / 42%);
-  color: #ffd9d0;
+  color: var(--fitician-palette-ink, #ffd9d0);
   background: rgb(119 43 32 / 34%);
 }
 
@@ -591,68 +591,68 @@
 }
 
 /* Specialist workbench layout: dense rows and one focused case surface. */
-.coach-review-shell { background: #020607; }
+.coach-review-shell { background: var(--fitician-palette-surface, #020607); }
 .coach-review-hero-actions { display: flex; align-items: stretch; gap: .55rem; }
 .coach-review-hero-actions .coach-review-back { align-self: stretch; }
-.coach-review-lease { min-width: 9rem; grid-template-columns: 1fr; padding: .65rem .8rem; border: 1px solid rgb(234 244 241 / 10%); border-radius: .7rem; background: rgb(255 255 255 / 3%); }
+.coach-review-lease { min-width: 9rem; grid-template-columns: 1fr; padding: .65rem .8rem; border: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 10%)); border-radius: .7rem; background: rgb(var(--fitician-highlight-rgb) / 3%); }
 .coach-review-lease small { font-size: .65rem; }
 .coach-review-lease strong { font-size: .78rem; }
 
 .coach-dashboard { display: grid; gap: 1.35rem; }
 .coach-dashboard .specialist-stats { margin: 0; }
-.coach-dashboard__section { min-width: 0; border-block-start: 1px solid rgb(234 244 241 / 10%); padding-block-start: .9rem; }
+.coach-dashboard__section { min-width: 0; border-block-start: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 10%)); padding-block-start: .9rem; }
 .coach-dashboard__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .55rem; }
 .coach-dashboard__section-heading h2 { margin: 0; font-size: 1rem; }
-.coach-dashboard__section-heading button { padding: .3rem .4rem; border: 0; color: var(--fitician-aqua, #50dfce); background: transparent; font: inherit; font-size: .72rem; font-weight: 750; cursor: pointer; }
+.coach-dashboard__section-heading button { padding: .3rem .4rem; border: 0; color: var(--fitician-accent-ink); background: transparent; font: inherit; font-size: .72rem; font-weight: 750; cursor: pointer; }
 .coach-dashboard__section-heading button:focus-visible { outline: 2px solid var(--fitician-aqua, #50dfce); outline-offset: .2rem; }
 .coach-dashboard__case-list { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
-.coach-dashboard__case { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; padding: .55rem .65rem; border-block: 1px solid rgb(234 244 241 / 7%); }
+.coach-dashboard__case { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; padding: .55rem .65rem; border-block: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 7%)); }
 .coach-dashboard__case > div { min-width: 0; display: grid; gap: .15rem; }
 .coach-dashboard__case strong, .coach-dashboard__case span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .coach-dashboard__case > div span { color: var(--fitician-muted, #91aaa5); font-size: .7rem; }
-.coach-dashboard__case button { min-height: 2rem; padding: .35rem .6rem; border: 1px solid rgb(80 223 206 / 25%); border-radius: .5rem; color: var(--fitician-aqua, #50dfce); background: transparent; font: inherit; font-size: .7rem; cursor: pointer; }
+.coach-dashboard__case button { min-height: 2rem; padding: .35rem .6rem; border: 1px solid rgb(80 223 206 / 25%); border-radius: .5rem; color: var(--fitician-accent-ink); background: transparent; font: inherit; font-size: .7rem; cursor: pointer; }
 .coach-dashboard__empty { margin: 0; color: var(--fitician-muted, #91aaa5); font-size: .8rem; }
 
 .coach-review-queue-panel { min-width: 0; }
-.coach-review-queue-panel__heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; border-block-end: 1px solid rgb(234 244 241 / 10%); padding-block: .85rem .7rem; }
+.coach-review-queue-panel__heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; border-block-end: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 10%)); padding-block: .85rem .7rem; }
 .coach-review-queue-panel__heading h2 { margin: 0; font-size: 1.1rem; }
 .coach-review-queue-panel__eyebrow { margin: 0 0 .2rem; color: var(--fitician-muted, #91aaa5); font-size: .7rem; }
-.coach-review-queue-panel__count { color: var(--fitician-aqua, #50dfce); font: 800 1.2rem/1 "Sora Variable", sans-serif; }
+.coach-review-queue-panel__count { color: var(--fitician-accent-ink); font: 800 1.2rem/1 "Sora Variable", sans-serif; }
 .coach-review-queue-panel .specialist-case-list { padding-block: .7rem 0; }
-.coach-review-queue-row { min-width: 0; display: grid; grid-template-columns: auto minmax(10rem, 1.4fr) minmax(10rem, 1fr) auto auto; align-items: center; gap: .7rem; padding: .55rem .65rem; border-block: 1px solid rgb(234 244 241 / 8%); background: transparent; }
+.coach-review-queue-row { min-width: 0; display: grid; grid-template-columns: auto minmax(10rem, 1.4fr) minmax(10rem, 1fr) auto auto; align-items: center; gap: .7rem; padding: .55rem .65rem; border-block: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 8%)); background: transparent; }
 .coach-review-queue-row:hover { background: rgb(80 223 206 / 4%); }
 .coach-review-queue-row__member { min-width: 0; display: grid; gap: .15rem; }
 .coach-review-queue-row__member strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .coach-review-queue-row__member span, .coach-review-queue-row time { overflow: hidden; color: var(--fitician-muted, #91aaa5); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
-.coach-review-queue-row > button { min-height: 2.25rem; padding: .4rem .65rem; border: 1px solid rgb(80 223 206 / 30%); border-radius: .5rem; color: var(--fitician-aqua, #50dfce); background: transparent; font: inherit; font-size: .7rem; font-weight: 750; cursor: pointer; }
+.coach-review-queue-row > button { min-height: 2.25rem; padding: .4rem .65rem; border: 1px solid rgb(80 223 206 / 30%); border-radius: .5rem; color: var(--fitician-accent-ink); background: transparent; font: inherit; font-size: .7rem; font-weight: 750; cursor: pointer; }
 .coach-review-queue-row > button:hover, .coach-review-queue-row > button:focus-visible { background: rgb(80 223 206 / 9%); }
 .coach-review-queue-row > button:disabled { cursor: wait; opacity: .5; }
 
 .coach-review-case { min-width: 0; }
 .coach-review-case-header { display: block; }
 .coach-review-case-header .specialist-case-header h2 { font-size: clamp(1.15rem, 2.5vw, 1.65rem); }
-.coach-review-case-tabs { display: flex; gap: .2rem; overflow-x: auto; margin-block: .65rem 0; border-block-end: 1px solid rgb(234 244 241 / 10%); scrollbar-width: thin; }
+.coach-review-case-tabs { display: flex; gap: .2rem; overflow-x: auto; margin-block: .65rem 0; border-block-end: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 10%)); scrollbar-width: thin; }
 .coach-review-case-tabs button { min-width: max-content; min-height: 2.8rem; padding: .45rem .7rem; border: 0; border-block-end: .15rem solid transparent; color: var(--fitician-muted, #91aaa5); background: transparent; font: inherit; font-size: .74rem; font-weight: 750; cursor: pointer; }
-.coach-review-case-tabs button[aria-selected="true"] { border-block-end-color: var(--fitician-aqua, #50dfce); color: var(--fitician-aqua, #50dfce); }
+.coach-review-case-tabs button[aria-selected="true"] { border-block-end-color: var(--fitician-aqua, #50dfce); color: var(--fitician-accent-ink); }
 .coach-review-case-tabs button:focus-visible { outline: 2px solid var(--fitician-aqua, #50dfce); outline-offset: -.15rem; }
 .coach-review-case-panel { min-width: 0; padding-block: .9rem 1rem; }
 .coach-review-case-panel:focus-visible { outline: 2px solid rgb(80 223 206 / 40%); outline-offset: .2rem; }
 .coach-review-summary-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(17rem, .8fr); gap: .75rem; margin-top: .8rem; }
-.coach-review-summary-section { min-width: 0; border-block-start: 1px solid rgb(234 244 241 / 9%); padding-block: .75rem; }
+.coach-review-summary-section { min-width: 0; border-block-start: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 9%)); padding-block: .75rem; }
 .coach-review-summary-section h3 { margin: 0 0 .55rem; font-size: .88rem; }
 .coach-review-summary-section p { margin: 0; color: var(--fitician-muted, #91aaa5); font-size: .78rem; line-height: 1.7; }
 .coach-review-key-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; margin: 0; }
-.coach-review-key-values div { min-width: 0; padding: .55rem .6rem; background: rgb(255 255 255 / 3%); }
+.coach-review-key-values div { min-width: 0; padding: .55rem .6rem; background: rgb(var(--fitician-highlight-rgb) / 3%); }
 .coach-review-key-values dt { color: var(--fitician-muted, #91aaa5); font-size: .66rem; }
 .coach-review-key-values dd { margin: .2rem 0 0; color: var(--fitician-ink, #e9f7f3); font-size: .78rem; font-weight: 750; overflow-wrap: anywhere; }
 .coach-review-feedback-tab, .coach-review-notes-tab, .coach-review-workout-tab { min-width: 0; }
 .coach-review-feedback-note { display: grid; gap: .55rem; padding: .75rem; border-inline-start: .2rem solid #efc778; background: rgb(239 186 98 / 7%); }
-.coach-review-feedback-note p { color: #d7eee8; }
-.coach-review-empty-state { padding-block: .8rem; border-block: 1px solid rgb(234 244 241 / 8%); }
-.coach-review-editor-error { margin: .75rem 0 0; color: #ffb1a6; font-size: .78rem; }
+.coach-review-feedback-note p { color: var(--fitician-palette-ink, #d7eee8); }
+.coach-review-empty-state { padding-block: .8rem; border-block: 1px solid var(--fitician-palette-line, rgb(234 244 241 / 8%)); }
+.coach-review-editor-error { margin: .75rem 0 0; color: var(--fitician-palette-danger, #ffb1a6); font-size: .78rem; }
 
-.coach-review-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .8rem 1rem; margin-top: 1rem; background: rgb(255 255 255 / 3%); backdrop-filter: none; }
-.coach-review-actions h3 { margin: 0; color: #e9f7f3; font-size: .88rem; }
+.coach-review-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .8rem 1rem; margin-top: 1rem; background: rgb(var(--fitician-highlight-rgb) / 3%); backdrop-filter: none; }
+.coach-review-actions h3 { margin: 0; color: var(--fitician-palette-ink, #e9f7f3); font-size: .88rem; }
 .coach-review-actions > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .55rem; }
 .coach-review-actions > div button { margin: 0; min-height: 2.5rem; }
 

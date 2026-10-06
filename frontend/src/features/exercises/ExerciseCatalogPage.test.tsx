@@ -215,18 +215,18 @@ describe("catalog selection flow", () => {
       "aria-pressed",
       "true",
     );
-    expect(api.getExercises).toHaveBeenLastCalledWith(
+    await waitFor(() => expect(api.getExercises).toHaveBeenLastCalledWith(
       expect.objectContaining({ primary_muscle: "chest", muscle_focus: undefined }),
-    );
+    ));
 
     await user.click(screen.getByRole("button", { name: /بالاسینه.*Upper Chest/ }));
 
     expect(locationValue()).toBe(
       "/exercises?body_region=upper_body&primary_muscle=chest&muscle_focus=upper_chest",
     );
-    expect(api.getExercises).toHaveBeenLastCalledWith(
+    await waitFor(() => expect(api.getExercises).toHaveBeenLastCalledWith(
       expect.objectContaining({ primary_muscle: "chest", muscle_focus: "upper_chest" }),
-    );
+    ));
   });
 
   it("supports keyboard selection for regions and muscles", async () => {

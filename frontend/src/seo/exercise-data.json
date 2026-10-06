@@ -1,0 +1,414 @@
+[
+  {
+    "slug": "dumbbell-bench-press",
+    "name_fa": "پرس سینه دمبل",
+    "name_en": "Dumbbell Bench Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": [
+      "triceps",
+      "shoulders"
+    ],
+    "muscle_focus": "mid_chest",
+    "equipment": [
+      "dumbbell",
+      "bench"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "روی نیمکت دراز بکش، پاها را ثابت کن و دمبل‌ها را کنار سینه نگه دار.",
+      "دمبل‌ها را بالا ببر و مچ‌ها را روی آرنج‌ها نگه دار.",
+      "با کنترل پایین بیاور تا بازوها به نزدیکی خط نیمکت برسند."
+    ],
+    "safety_notes_fa": [
+      "کتف‌هاتو عقب و پایین نگه دار؛ نذار موقع پرس شونه‌ها بیان جلو و فشار سینه رو بدزدن.",
+      "دمبل‌ها رو تا جایی پایین بیار که سینه خوب کش بیاد، ولی جلوی شونه تحت فشار بد قرار نگیره.",
+      "مچ رو تقریباً روی آرنج نگه دار؛ نذار دمبل‌ها بیش‌ازحد داخل یا بیرون فرار کنن.",
+      "بالا که میای فقط دمبل رو هل نده؛ فکر کن دو بازوت رو داری به سمت هم جمع می‌کنی."
+    ]
+  },
+  {
+    "slug": "barbell-bent-over-row",
+    "name_fa": "زیربغل هالتر خم",
+    "name_en": "Barbell Bent-Over Row",
+    "primary_muscle": "back",
+    "secondary_muscles": [
+      "biceps",
+      "traps",
+      "lower_back"
+    ],
+    "muscle_focus": "general_back",
+    "equipment": [
+      "barbell"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "از لگن خم شو، زانوها را کمی خم و ستون فقرات را خنثی نگه دار.",
+      "هالتر را نزدیک بدن به سمت دنده‌های پایینی بکش.",
+      "بدون تغییر زاویه تنه، هالتر را با کنترل پایین ببر."
+    ],
+    "safety_notes_fa": [
+      "از لگن خم شو، نه از کمر؛ شکم رو سفت کن و زاویه تنه رو تا آخر ست تقریباً ثابت نگه دار.",
+      "هالتر رو سمت دنده‌های پایین و بالای شکم بکش؛ آرنج‌ها رو عقب ببر، نه اینکه فقط با دست وزنه رو بکشی.",
+      "پایین حرکت اجازه بده کتف‌ها کمی جلو برن و پشت کش بیاد، ولی کمرت گرد نشه.",
+      "اگه هر تکرار داری تنه رو بالا میاری و هالتر رو پرت می‌کنی، وزنه برای یه Row تمیز زیادی سنگینه."
+    ]
+  },
+  {
+    "slug": "dumbbell-lateral-raise",
+    "name_fa": "نشر جانب دمبل",
+    "name_en": "Dumbbell Lateral Raise",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [],
+    "muscle_focus": "lateral_delt",
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "صاف بایست و دمبل‌های سبک را با آرنج کمی خم کنار بدن نگه دار.",
+      "بازوها را از طرفین تا حدود ارتفاع شانه بالا ببر.",
+      "بدون بالا انداختن شانه یا تاب دادن، آهسته پایین بیاور."
+    ],
+    "safety_notes_fa": [
+      "آرنج رو حرکت بده، نه دمبل رو؛ دست فقط وزنه رو نگه می‌داره و آرنج باید مسیر حرکت رو هدایت کنه.",
+      "بازو رو یه ذره جلوتر از خط کاملاً کنار بدن بالا ببر؛ این مسیر برای خیلی‌ها طبیعی‌تره و شونه راحت‌تر حرکت می‌کنه.",
+      "شست رو زورکی سمت زمین نچرخون؛ کف دست تقریباً خنثی بمونه و نذار حرکت تبدیل به «خالی کردن پارچ آب» بشه.",
+      "اگه برای بالا بردن دمبل شونه‌هاتو تا گوش بالا می‌کشی یا تنه رو تاب میدی، وزنه زیادی سنگینه.",
+      "بالا رفتن مهمه، ولی پایین اومدن رو مفت از دست نده؛ دمبل رو کنترل‌شده برگردون."
+    ]
+  },
+  {
+    "slug": "smith-machine-shoulder-press",
+    "name_fa": "پرس سرشانه اسمیت",
+    "name_en": "Smith Machine Shoulder Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [
+      "triceps"
+    ],
+    "muscle_focus": "front_delt",
+    "equipment": [
+      "machine",
+      "bench"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "نیمکت را طوری تنظیم کن که میله کمی جلوی شانه‌ها شروع شود.",
+      "میله را آزاد و بدون گود کردن زیاد کمر به بالا فشار بده.",
+      "با کنترل پایین بیاور و در پایان میله را کامل روی قلاب‌ها قفل کن."
+    ],
+    "safety_notes_fa": [
+      "نیمکت رو جوری زیر مسیر اسمیت بذار که میله بدون جنگیدن با مسیر دستگاه جلوی صورت رد بشه و بالای شونه stack بشه.",
+      "آرنج‌ها رو کمی جلوتر از خط شونه نگه دار؛ مجبورشون نکن دقیقاً صاف به طرفین باز بشن.",
+      "شکم رو سفت کن و باسن رو روی نیمکت نگه دار؛ برای بالا بردن میله کمرت رو بیش‌ازحد گود نکن.",
+      "پایین حرکت رو تا دامنه‌ای ببر که ساعد و شونه هنوز کنترل خوبی دارن؛ مسیر ثابت اسمیت رو با زور روی مفصل تحمیل نکن."
+    ]
+  },
+  {
+    "slug": "rear-delt-fly",
+    "name_fa": "نشر خم دمبل",
+    "name_en": "Rear Delt Fly",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [
+      "traps",
+      "back"
+    ],
+    "muscle_focus": "rear_delt",
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "با کمر خنثی از لگن خم شو و دمبل‌ها را زیر بدن آویزان نگه دار.",
+      "با آرنج کمی خم، بازوها را به طرفین باز کن.",
+      "با حفظ آرامش گردن، دمبل‌ها را آهسته پایین بیاور."
+    ],
+    "safety_notes_fa": [
+      "فکر کن بازوهات رو داری به طرفین باز می‌کنی؛ فقط کتف‌ها رو با زور به هم نچسبون که پشت میانی کل حرکت رو بدزده.",
+      "آرنج یه خم نرم داشته باشه و همون زاویه تقریباً ثابت بمونه؛ حرکت رو تبدیل به Row نکن.",
+      "بازوها رو بیشتر به طرفین ببر، نه سمت لگن؛ مسیر سمت لگن لت رو بیشتر وارد بازی می‌کنه.",
+      "وقتی بازو تقریباً هم‌خط تنه شد کافیه؛ برای چند سانت بیشتر شونه رو عقب نپیچون."
+    ]
+  },
+  {
+    "slug": "dumbbell-curl",
+    "name_fa": "جلو بازو دمبل",
+    "name_en": "Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "muscle_focus": "biceps_brachii",
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "صاف بایست و دمبل‌ها را با کف دست رو به جلو کنار بدن نگه دار.",
+      "با ثابت ماندن آرنج‌ها کنار تنه، دمبل‌ها را بالا بیاور.",
+      "بدون حرکت دادن بازوها، دمبل‌ها را کامل و کنترل‌شده پایین ببر."
+    ],
+    "safety_notes_fa": [
+      "اگر مجبور به عقب رفتن یا تاب دادن دمبل‌ها هستی، وزنه را کم کن."
+    ]
+  },
+  {
+    "slug": "hammer-curl",
+    "name_fa": "جلو بازو چکشی",
+    "name_en": "Hammer Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "muscle_focus": "brachialis_brachioradialis",
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "دمبل‌ها را با کف دست‌ها رو به هم کنار بدن نگه دار.",
+      "با مچ خنثی، دمبل‌ها را به سمت شانه‌ها بالا بیاور.",
+      "آهسته پایین ببر تا آرنج‌ها صاف شوند، بدون قفل کردن شدید."
+    ],
+    "safety_notes_fa": [
+      "آرنج‌ها را ثابت نگه دار و از شتاب بدن استفاده نکن."
+    ]
+  },
+  {
+    "slug": "cable-curl",
+    "name_fa": "جلو بازو سیم‌کش",
+    "name_en": "Cable Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "muscle_focus": "biceps_brachii",
+    "equipment": [
+      "cable"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "روبه‌روی قرقره پایین بایست و میله را با آرنج‌های نزدیک بدن بگیر.",
+      "بدون جلو آمدن شانه‌ها، میله را بالا بیاور.",
+      "آهسته دست‌ها را باز کن و کشش کابل را حفظ کن."
+    ],
+    "safety_notes_fa": [
+      "به اندازه‌ای از دستگاه فاصله بگیر که کابل در تمام حرکت کنترل‌شده باشد."
+    ]
+  },
+  {
+    "slug": "barbell-curl",
+    "name_fa": "جلو بازو هالتر",
+    "name_en": "Barbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "muscle_focus": "biceps_brachii",
+    "equipment": [
+      "barbell"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "صاف بایست و هالتر را به عرض شانه با کف دست رو به جلو بگیر.",
+      "با آرنج‌های نزدیک بدن و مچ صاف، هالتر را بالا بیاور.",
+      "هالتر را با کنترل به وضعیت شروع پایین ببر."
+    ],
+    "safety_notes_fa": [
+      "گیرش راحت انتخاب کن و اگر میله صاف مچ یا آرنج را آزار داد، حرکت را متوقف کن."
+    ]
+  },
+  {
+    "slug": "overhead-dumbbell-extension",
+    "name_fa": "پشت بازو دمبل بالای سر",
+    "name_en": "Overhead Dumbbell Triceps Extension",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "muscle_focus": "triceps_long_head",
+    "equipment": [
+      "dumbbell",
+      "bench"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "صاف بنشین و یک دمبل را محکم بالای سر نگه دار.",
+      "آرنج‌ها را خم کن و دمبل را پشت سر پایین ببر.",
+      "بدون باز شدن دنده‌ها، آرنج‌ها را صاف و دمبل را بالا ببر."
+    ],
+    "safety_notes_fa": [
+      "وزنه‌ای انتخاب کن که محکم نگه داشته شود و دامنه برای شانه‌ها راحت باشد."
+    ]
+  },
+  {
+    "slug": "glute-bridge",
+    "name_fa": "پل باسن",
+    "name_en": "Glute Bridge",
+    "primary_muscle": "glutes",
+    "secondary_muscles": [
+      "hamstrings",
+      "lower_back"
+    ],
+    "muscle_focus": "glute_max",
+    "equipment": [
+      "bodyweight"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "به پشت دراز بکش، زانوها را خم و کف پاها را نزدیک لگن بگذار.",
+      "میان‌تنه را ملایم منقبض کن و با فشار پاها لگن را بالا ببر.",
+      "وقتی شانه، لگن و زانو هم‌راستا شدند مکث کن و آهسته پایین بیاور."
+    ],
+    "safety_notes_fa": [
+      "حرکت را از لگن انجام بده و کمر را به گودی بیشتر هل نده."
+    ]
+  },
+  {
+    "slug": "goblet-squat",
+    "name_fa": "گابلت اسکوات",
+    "name_en": "Goblet Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings",
+      "lower_back"
+    ],
+    "muscle_focus": null,
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "یک دمبل را نزدیک سینه بگیر و پاها را حدود عرض شانه قرار بده.",
+      "با سینه بالا میان لگن بنشین و زانوها را هم‌راستای پنجه‌ها نگه دار.",
+      "با فشار کف پاها به حالت ایستاده برگرد."
+    ],
+    "safety_notes_fa": [
+      "دمبل را محکم نگه دار و پیش از به‌هم خوردن فرم یا تعادل، پایین رفتن را متوقف کن."
+    ]
+  },
+  {
+    "slug": "leg-press",
+    "name_fa": "پرس پا دستگاه",
+    "name_en": "Leg Press",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings"
+    ],
+    "muscle_focus": null,
+    "equipment": [
+      "machine"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "پاها را به عرض شانه روی صفحه بگذار و لگن را به پشتی بچسبان.",
+      "صفحه را تا خم شدن راحت زانوها پایین بیاور.",
+      "با فشار پاها برگرد و زانوها را با شدت قفل نکن."
+    ],
+    "safety_notes_fa": [
+      "قفل ایمنی را تنظیم کن و آن‌قدر پایین نیاور که لگن از پشتی جدا شود."
+    ]
+  },
+  {
+    "slug": "leg-extension",
+    "name_fa": "جلو پا دستگاه",
+    "name_en": "Leg Extension",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": [],
+    "muscle_focus": null,
+    "equipment": [
+      "machine"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "صندلی و پد را طوری تنظیم کن که محور دستگاه با زانو هم‌راستا باشد.",
+      "زانوها را نرم باز کن تا پاها تقریباً صاف شوند.",
+      "پد را آهسته به وضعیت شروع پایین بیاور."
+    ],
+    "safety_notes_fa": [
+      "به پد ضربه نزن و در دامنه‌ای که زانو را آزار می‌دهد حرکت نکن."
+    ]
+  },
+  {
+    "slug": "dumbbell-lunge",
+    "name_fa": "لانج دمبل",
+    "name_en": "Dumbbell Lunge",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": [
+      "glutes",
+      "hamstrings",
+      "calves"
+    ],
+    "muscle_focus": null,
+    "equipment": [
+      "dumbbell"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "صاف بایست، دمبل‌ها را کنار بدن بگیر و یک قدم کنترل‌شده جلو برو.",
+      "هر دو زانو را خم کن و زانوی جلو را در راستای پا نگه دار.",
+      "با فشار پای جلو برگرد و سپس سمت دیگر را انجام بده."
+    ],
+    "safety_notes_fa": [
+      "اگر تعادل و راستای زانو حفظ نمی‌شود، طول قدم یا دامنه را کمتر کن."
+    ]
+  },
+  {
+    "slug": "romanian-deadlift",
+    "name_fa": "ددلیفت رومانیایی",
+    "name_en": "Romanian Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": [
+      "glutes",
+      "back",
+      "lower_back"
+    ],
+    "muscle_focus": "hamstrings_hip_extension",
+    "equipment": [
+      "barbell"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "با هالتر نزدیک ران‌ها و زانوهای کمی خم بایست.",
+      "لگن را عقب ببر و هالتر را نزدیک پاها پایین بده.",
+      "در کشش کنترل‌شده پشت پا توقف کن و با جلو آوردن لگن بایست."
+    ],
+    "safety_notes_fa": [
+      "ستون فقرات را خنثی نگه دار و پیش از گرد شدن کمر، پایین رفتن را تمام کن."
+    ]
+  },
+  {
+    "slug": "conventional-barbell-deadlift",
+    "name_fa": "ددلیفت هالتر استاندارد",
+    "name_en": "Conventional Barbell Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": [
+      "glutes",
+      "lower_back"
+    ],
+    "muscle_focus": "hamstrings_hip_extension",
+    "equipment": [
+      "barbell"
+    ],
+    "difficulty": "intermediate",
+    "instructions_fa": [
+      "با هالتر روی میانه پا بایست و آن را کمی بیرون‌تر از پاها بگیر.",
+      "میان‌تنه را محکم کن، زمین را با پاها فشار بده و هالتر را نزدیک بدن بالا بیاور.",
+      "با خم کردن لگن هالتر را پایین ببر و پس از عبور از زانوها، زانوها را خم کن."
+    ],
+    "safety_notes_fa": [
+      "وزنه قابل‌کنترل انتخاب کن و اگر ستون فقرات خنثی نمی‌ماند، ست را متوقف کن."
+    ]
+  },
+  {
+    "slug": "standing-calf-raise",
+    "name_fa": "ساق پا ایستاده",
+    "name_en": "Standing Calf Raise",
+    "primary_muscle": "calves",
+    "secondary_muscles": [],
+    "muscle_focus": "gastrocnemius",
+    "equipment": [
+      "bodyweight"
+    ],
+    "difficulty": "beginner",
+    "instructions_fa": [
+      "صاف بایست، پنجه‌ها را ثابت کن و یک سطح محکم را برای تعادل بگیر.",
+      "بدون چرخیدن مچ‌ها، پاشنه‌ها را تا حد کنترل‌شده بالا ببر.",
+      "کمی مکث کن و پاشنه‌ها را آهسته پایین بیاور."
+    ],
+    "safety_notes_fa": [
+      "فشار را روی جلوی پا یکنواخت نگه دار و در پایین حرکت جهش نکن."
+    ]
+  }
+]

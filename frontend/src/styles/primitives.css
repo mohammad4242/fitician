@@ -13,7 +13,7 @@
 .fitician-card, .fitsho-card {
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-card);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2.5%) 0%, transparent 100%), var(--fitician-surface);
+  background: linear-gradient(180deg, rgb(var(--fitician-highlight-rgb) / 3%) 0%, transparent 100%), var(--fitician-surface);
   box-shadow: var(--fitician-shadow-card);
 }
 
@@ -22,8 +22,8 @@
   padding: clamp(0.9rem, 2.5vw, 1.25rem);
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-lg);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2%) 0%, transparent 100%), var(--fitician-surface-subtle);
-  box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
+  background: linear-gradient(180deg, rgb(var(--fitician-highlight-rgb) / 2%) 0%, transparent 100%), var(--fitician-surface-subtle);
+  box-shadow: 0 2px 12px rgb(var(--fitician-shadow-rgb) / calc(15% * var(--fitician-shadow-strength)));
 }
 
 .fitician-metric-strip, .fitsho-metric-strip {
@@ -59,7 +59,7 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--fitician-surface) 61%, transparent 63%), conic-gradient(var(--fitician-aqua) var(--ring-progress), rgb(255 255 255 / 8%) 0);
+  background: radial-gradient(circle, var(--fitician-surface) 61%, transparent 63%), conic-gradient(var(--fitician-aqua) var(--ring-progress), rgb(var(--fitician-highlight-rgb) / 8%) 0);
   box-shadow: 0 0 1.25rem rgb(80 223 206 / 8%);
 }
 
@@ -71,7 +71,7 @@
     conic-gradient(
       var(--fitician-blue, #3b82f6) 0deg var(--ring-deg-1, 0deg),
       var(--fitician-aqua) var(--ring-deg-1, 0deg) var(--ring-deg-2, 0deg),
-      rgb(255 255 255 / 8%) var(--ring-deg-2, 0deg) 360deg
+      rgb(var(--fitician-highlight-rgb) / 8%) var(--ring-deg-2, 0deg) 360deg
     );
   box-shadow: 0 0 1.25rem rgb(59 130 246 / 12%);
 }
@@ -88,7 +88,7 @@
   .fitician-card--interactive:hover, .fitsho-card--interactive:hover {
     border-color: var(--fitician-line-strong);
     background: var(--fitician-surface-interactive);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+    box-shadow: 0 8px 24px rgb(var(--fitician-shadow-rgb) / calc(28% * var(--fitician-shadow-strength)));
     transform: translateY(-2px);
   }
 }
@@ -114,7 +114,7 @@
 
 .fitician-section-heading__eyebrow, .fitsho-section-heading__eyebrow {
   margin: 0;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -143,7 +143,7 @@
 
 .fitician-button, .fitsho-button {
   border: 1px solid var(--fitician-aqua);
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   box-shadow: 0 2px 10px rgb(80 223 206 / 20%);
 }
@@ -151,7 +151,7 @@
 .fitician-button-secondary, .fitsho-button-secondary {
   border: 1px solid var(--fitician-line-strong);
   color: var(--fitician-mist);
-  background: rgb(255 255 255 / 2%);
+  background: rgb(var(--fitician-highlight-rgb) / 2%);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -164,10 +164,10 @@
 
   .fitician-button-secondary:hover:not(:disabled), .fitsho-button-secondary:hover:not(:disabled) {
     border-color: var(--fitician-aqua);
-    color: var(--fitician-aqua);
+    color: var(--fitician-accent-ink);
     background: rgb(80 223 206 / 8%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgb(0 0 0 / 20%);
+    box-shadow: 0 4px 14px rgb(var(--fitician-shadow-rgb) / calc(20% * var(--fitician-shadow-strength)));
   }
 
   .fitician-input:hover, .fitsho-input:hover { border-color: var(--fitician-line-strong); }
@@ -197,7 +197,7 @@
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-md);
   color: var(--fitician-mist);
-  background: linear-gradient(180deg, rgb(255 255 255 / 2.5%) 0%, transparent 100%), var(--fitician-surface);
+  background: linear-gradient(180deg, rgb(var(--fitician-highlight-rgb) / 3%) 0%, transparent 100%), var(--fitician-surface);
   font: inherit;
   transition:
     border-color var(--fitician-duration-fast) var(--fitician-ease),
@@ -206,7 +206,7 @@
 }
 
 .fitician-input::placeholder, .fitsho-input::placeholder {
-  color: rgb(148 171 165 / 60%);
+  color: var(--fitician-placeholder);
 }
 
 .fitician-input:focus, .fitsho-input:focus {
@@ -224,7 +224,7 @@
   border: 1px solid var(--fitician-line);
   border-radius: var(--fitician-radius-pill);
   color: var(--fitician-muted);
-  background: rgb(255 255 255 / 4%);
+  background: rgb(var(--fitician-highlight-rgb) / 4%);
   font-size: 0.75rem;
   font-weight: 750;
 }
@@ -273,11 +273,11 @@
   overflow: hidden;
   border: 0;
   border-radius: var(--fitician-radius-pill);
-  background: rgb(255 255 255 / 7%);
+  background: rgb(var(--fitician-highlight-rgb) / 7%);
   accent-color: var(--fitician-aqua);
 }
 
-.fitician-progress::-webkit-progress-bar, .fitsho-progress::-webkit-progress-bar { background: rgb(255 255 255 / 7%); }
+.fitician-progress::-webkit-progress-bar, .fitsho-progress::-webkit-progress-bar { background: rgb(var(--fitician-highlight-rgb) / 7%); }
 .fitician-progress::-webkit-progress-value, .fitsho-progress::-webkit-progress-value { border-radius: inherit; background: var(--fitician-aqua); }
 
 .route-loading {

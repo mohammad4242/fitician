@@ -36,7 +36,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
   font-family: "Sora Variable", sans-serif;
   font-size: 1.15rem;
@@ -46,12 +46,12 @@
 
 .more-profile-card div { min-width: 0; display: grid; gap: 0.15rem; }
 .more-profile-card strong { color: var(--fitician-ink); font-size: 0.95rem; font-weight: 750; }
-.more-profile-card span { overflow: hidden; color: var(--fitician-muted); font-size: 0.78rem; text-overflow: ellipsis; }
+.more-profile-card div > span { overflow: hidden; color: var(--fitician-muted); font-size: 0.78rem; text-overflow: ellipsis; }
 .more-profile-card > a {
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--fitician-line-strong);
   border-radius: var(--fitician-radius-pill);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: rgb(80 223 206 / 6%);
   font-size: 0.8rem;
   font-weight: 750;
@@ -90,7 +90,7 @@
   padding: 0.4rem 0.7rem;
   border: 1px solid var(--fitician-line-strong);
   border-radius: var(--fitician-radius-pill);
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 0.72rem;
   font-weight: 750;
   text-decoration: none;
@@ -162,7 +162,7 @@
   place-items: center;
   border: 1px solid rgb(80 223 206 / 20%);
   border-radius: 0.65rem;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   background: rgb(80 223 206 / 7%);
 }
 
@@ -178,7 +178,7 @@
   transition: transform var(--fitician-duration-fast) var(--fitician-ease), color var(--fitician-duration-fast) var(--fitician-ease);
 }
 
-.more-row:hover .more-row__chevron { color: var(--fitician-aqua); }
+.more-row:hover .more-row__chevron { color: var(--fitician-accent-ink); }
 
 [dir="rtl"] .more-row__chevron { transform: scaleX(-1); }
 @media (hover: hover) and (pointer: fine) {
@@ -199,7 +199,7 @@
   margin-block-start: 1rem;
   border: 1px solid rgb(246 120 89 / 25%);
   border-radius: var(--fitician-radius-md);
-  color: #ffad98;
+  color: var(--fitician-palette-danger, #ffad98);
   background: rgb(246 120 89 / 6%);
   font: inherit;
   font-size: 0.88rem;
@@ -211,7 +211,7 @@
 .more-page__logout:hover:not(:disabled) {
   border-color: rgb(246 120 89 / 45%);
   background: rgb(246 120 89 / 12%);
-  color: #ffc4b5;
+  color: var(--fitician-palette-danger, #ffc4b5);
 }
 @media (hover: hover) and (pointer: fine) {
   .more-page__logout:hover:not(:disabled) { transform: translateY(-1px); }
@@ -225,3 +225,13 @@
   .more-page__container { width: min(100% - 1.25rem, 54rem); }
   .more-profile-card { padding: 0.75rem 0.9rem; }
 }
+
+.more-appearance { border: 0; margin: 0; padding: 1rem; min-width: 0; }
+.more-appearance legend { float: inline-start; width: 100%; margin-block-end: 0.75rem; color: var(--fitician-ink); font-weight: 750; }
+.more-appearance__options { clear: both; display: flex; gap: 0.25rem; padding: 0.25rem; border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
+.more-appearance__option { flex: 1; position: relative; cursor: pointer; }
+.more-appearance__option input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.more-appearance__option > span { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 3rem; border-radius: var(--fitician-radius-sm); color: var(--fitician-muted); font-weight: 750; }
+.more-appearance__option > span > span { width: 1rem; }
+.more-appearance__option input:checked + span { background: var(--fitician-aqua); color: var(--fitician-on-accent); box-shadow: var(--fitician-shadow-soft); }
+.more-appearance__option input:focus-visible + span { outline: 2px solid var(--fitician-accent-ink); outline-offset: 2px; }

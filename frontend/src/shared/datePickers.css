@@ -48,13 +48,13 @@
 
 .fitician-date-picker__placeholder,
 .fitician-date-time-picker__placeholder {
-  color: var(--fitician-muted);
+  color: var(--fitician-placeholder);
 }
 
 .fitician-date-picker__icon,
 .fitician-date-time-picker__icon {
   flex: 0 0 auto;
-  color: var(--fitician-aqua);
+  color: var(--fitician-accent-ink);
   font-size: 1.1rem;
 }
 
@@ -68,7 +68,7 @@
   color: var(--fitician-mist);
   background: var(--fitician-surface);
   font: inherit;
-  color-scheme: dark;
+  color-scheme: var(--fitician-color-scheme);
 }
 
 .fitician-date-picker__native:focus-visible,
@@ -127,7 +127,7 @@
   color: var(--fitician-mist);
   background: var(--fitician-surface);
   font: inherit;
-  color-scheme: dark;
+  color-scheme: var(--fitician-color-scheme);
 }
 
 .fitician-date-picker__field select:focus-visible,
@@ -177,7 +177,7 @@
 .fitician-date-picker__action--primary,
 .fitician-date-time-picker__action--primary {
   border-color: var(--fitician-aqua);
-  color: var(--fitician-canvas);
+  color: var(--fitician-on-accent);
   background: var(--fitician-aqua);
 }
 
