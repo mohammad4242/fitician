@@ -1,4 +1,4 @@
-# SEO delivery
+# SEO delivery: foundation release history
 
 ## Original state
 
