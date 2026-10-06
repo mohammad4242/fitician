@@ -1,6 +1,7 @@
 import categories from "./exercise-categories.json" with { type: "json" };
 import type { ExerciseCategories } from "../features/exercises/types";
 import type { ExercisePresentationDetail } from "../features/exercises/ExerciseDetailPresentation";
+import type { CatalogExercise } from "../features/exercises/ExerciseCatalog";
 import exercises from "./exercise-data.json" with { type: "json" };
 import { contentPages, type PublicPage } from "./content";
 export const siteOrigin = "https://fitician.fit";
@@ -15,8 +16,8 @@ export const pages: PublicPage[] = [
   { path: "/support", title: "راهنما و پشتیبانی فیتیشن", description: "پاسخ به پرسش‌های استفاده از فیتیشن، راهنمای حساب و مسیر ارتباط با پشتیبانی.", sections: [] },
   { path: "/install", title: "نصب فیتیشن روی گوشی", description: "راهنمای نصب وب‌اپ فیتیشن روی اندروید و آیفون و دسترسی آسان به تمرین و تغذیه.", sections: [] },
   ...publicExercises.map(exercise => ({
-    path: `/exercise-library/${exercise.slug}`, title: `${exercise.name_fa}؛ روش اجرا و ایمنی`,
-    description: `آموزش ${exercise.name_fa} (${exercise.name_en}): عضله هدف، تجهیزات، مراحل اجرا و نکات ایمنی از کاتالوگ منتخب فیتیشن.`, sections: [], related: ["/exercise-library", "/workout-program", "/learn/beginner-training"],
+    path: `/exercise-library/${exercise.slug}`, title: exercisePageTitle(exercise),
+    description: `آموزش ${exercise.name_fa} (${exercise.name_en}): عضله هدف، تجهیزات، مراحل اجرا و نکات ایمنی از کتابخانه حرکات فیتیشن.`, sections: [], related: ["/exercise-library", "/workout-program", "/learn/beginner-training"],
   })),
 ];
 const pageByPath = new Map(pages.map(page => [page.path, page]));
@@ -67,7 +68,7 @@ export function publicPayload(path: string) {
   return {
     page, seo: resolveSeo(path), crumbs: breadcrumbs(path), exercise,
     categories: path.startsWith("/exercise-library") ? publicCategories : undefined,
-    exercises: candidates,
+    exercises: candidates.map(catalogueSummary),
     articles: path === "/learn" ? pages.filter(record => record.article) : undefined,
     related: (page.related ?? []).map(link => ({ path: link, title: findPublicPage(link)!.title })),
     exerciseLinks: candidates.map(record => ({ path: `/exercise-library/${record.slug}`, title: record.name_fa, english: record.name_en })),
@@ -75,7 +76,21 @@ export function publicPayload(path: string) {
 }
 export type PublicPayload = ReturnType<typeof publicPayload>;
 
+function exercisePageTitle(exercise: ExercisePresentationDetail) {
+  const sameName = publicExercises.filter(record => record.name_fa === exercise.name_fa);
+  if (sameName.length === 1) return `${exercise.name_fa}؛ روش اجرا و ایمنی`;
+  const ordinal = sameName.findIndex(record => record.slug === exercise.slug) + 1;
+  return `${exercise.name_fa} (${exercise.name_en})؛ راهنمای اجرا ${ordinal}`;
+}
+
 function relatedExercises(exercise: ExercisePresentationDetail) {
   const muscle = publicExercises.filter(record => record.primary_muscle === exercise.primary_muscle && record.slug !== exercise.slug);
   return (muscle.length ? muscle : publicExercises.filter(record => record.body_region === exercise.body_region && record.slug !== exercise.slug)).slice(0, 4);
+}
+
+function catalogueSummary(exercise: ExercisePresentationDetail): CatalogExercise {
+  const { slug, name_fa, name_en, content_type, body_region, primary_muscle,
+    secondary_muscles, muscle_focus, equipment, difficulty, labels, media_path, media_type } = exercise;
+  return { slug, name_fa, name_en, content_type, body_region, primary_muscle,
+    secondary_muscles, muscle_focus, equipment, difficulty, labels, media_path, media_type };
 }

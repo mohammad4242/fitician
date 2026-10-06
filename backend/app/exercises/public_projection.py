@@ -13,6 +13,17 @@ from app.exercises.public_schemas import (
 )
 
 PLACEHOLDER = "/exercises/exercise-placeholder.svg"
+GENERAL_SAFETY_FA = [
+    "نکات ایمنی اختصاصی ثبت نشده است؛ برای بررسی فرم این حرکت از مربی واجد صلاحیت کمک بگیر.",
+    "در صورت درد یا ناراحتی غیرعادی، حرکت را متوقف کن؛ "
+    "این راهنمای عمومی جای ارزیابی فردی را نمی‌گیرد.",
+]
+GENERAL_SAFETY_EN = [
+    "Exercise-specific safety notes have not been recorded; "
+    "ask a qualified trainer to check your form.",
+    "Stop if you experience pain or unusual discomfort; "
+    "this general guidance does not replace an individual assessment.",
+]
 PUBLIC_MEDIA = re.compile(
     r"^/media/exercises/(?:[a-zA-Z0-9_-]+/)*[a-zA-Z0-9_.-]+\.(?:gif|mp4|webm|webp|png|jpg|jpeg)$"
 )
@@ -72,8 +83,8 @@ def public_detail(exercise: Exercise) -> PublicExerciseDetail:
         labels=sorted([item.label for item in exercise.labels]),
         instructions_en=exercise.instructions_en,
         instructions_fa=exercise.instructions_fa,
-        safety_notes_en=exercise.safety_notes_en,
-        safety_notes_fa=exercise.safety_notes_fa,
+        safety_notes_en=exercise.safety_notes_en or GENERAL_SAFETY_EN,
+        safety_notes_fa=exercise.safety_notes_fa or GENERAL_SAFETY_FA,
         media_path=path,
         media_type=kind,
         media_attribution=attribution,

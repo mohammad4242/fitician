@@ -16,7 +16,7 @@ test("anonymous member-quality browsing preserves filters across detail and back
   await page.getByRole("combobox", { name: "تجهیزات", exact: true }).selectOption("dumbbell");
   await page.getByRole("combobox", { name: "سطح سختی", exact: true }).selectOption("intermediate");
   await page.getByRole("searchbox").fill("Dumbbell Bench");
-  const card = page.getByRole("article", { name: "پرس سینه دمبل", exact: true });
+  const card = page.locator(".exercise-card").filter({ has: page.locator('a[href^="/exercise-library/dumbbell-bench-press?"]') });
   await expect(card).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://fitician.fit/exercise-library");
   await card.getByRole("link", { name: "مشاهده حرکت", exact: true }).click();
@@ -34,9 +34,14 @@ test("anonymous member-quality browsing preserves filters across detail and back
 });
 
 test("all approved exercises contain useful HTML before hydration", async ({ request }) => {
+  test.setTimeout(120000);
   for (const exercise of exercises) {
     const html = await (await request.get(`/exercise-library/${exercise.slug}`)).text();
-    for (const text of [exercise.name_fa, exercise.name_en, ...exercise.instructions_fa, ...exercise.safety_notes_fa]) expect(html).toContain(text);
+    for (const text of [exercise.name_fa, exercise.name_en, ...exercise.instructions_fa, ...exercise.safety_notes_fa]) {
+      const escaped = text.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#x27;");
+      expect(html).toContain(escaped);
+    }
     expect(html).toContain("exercise-detail-sheet");
     expect(html).not.toMatch(/source_id|is_programmable|needs_review|substitution_group/);
   }

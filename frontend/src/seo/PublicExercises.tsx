@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createInstance } from "i18next";
 import { I18nextProvider } from "react-i18next";
-import { ExerciseCatalog, ExerciseCard, type CatalogPageData, type CatalogSource } from "../features/exercises/ExerciseCatalog";
+import { ExerciseCatalog, ExerciseCard, type CatalogExercise, type CatalogPageData, type CatalogSource } from "../features/exercises/ExerciseCatalog";
 import { ReadyExerciseDetail, type ExercisePresentationDetail } from "../features/exercises/ExerciseDetailPresentation";
 import type { ExerciseCategories, ExerciseFilters } from "../features/exercises/types";
 import { PublicPage } from "./PublicPage";
@@ -13,14 +13,14 @@ const publicI18n = createInstance();
 void publicI18n.init({ lng: "fa", fallbackLng: "fa", initAsync: false,
   resources: { fa: { translation: language } }, interpolation: { escapeValue: false } });
 
-function localPage(records: ExercisePresentationDetail[], filters: ExerciseFilters): CatalogPageData {
+function localPage(records: CatalogExercise[], filters: ExerciseFilters): CatalogPageData {
   const matching = records.filter(record =>
     (!filters.body_region || record.body_region === filters.body_region)
     && (!filters.primary_muscle || record.primary_muscle === filters.primary_muscle)
     && (!filters.muscle_focus || record.muscle_focus === filters.muscle_focus)
     && (!filters.equipment || record.equipment.includes(filters.equipment))
     && (!filters.difficulty || record.difficulty === filters.difficulty)
-    && (!filters.content_type || record.content_type === filters.content_type)
+    && (record.content_type === (filters.content_type ?? "exercise"))
     && (!filters.labels?.length || filters.labels.every(label => record.labels?.includes(label)))
     && (!filters.exercise_type)
     && (!filters.search || `${record.name_fa} ${record.name_en}`.toLocaleLowerCase().includes(filters.search.toLocaleLowerCase())),
