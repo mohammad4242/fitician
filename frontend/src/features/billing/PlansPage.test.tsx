@@ -82,7 +82,8 @@ it("groups six packages into three categories with one card and three durations 
   billingApi.getOffers.mockResolvedValue(allOffers);
   renderPlans();
 
-  expect(await screen.findByRole("heading", { name: "بسته مناسب خودت را انتخاب کن" })).toBeInTheDocument();
+  await screen.findByTestId("billing-package-training");
+  expect(screen.getByRole("heading", { name: "بسته مناسب خودت را انتخاب کن" })).toBeInTheDocument();
   expect(screen.getAllByTestId(/^billing-package-/)).toHaveLength(2);
   expect(screen.getByTestId("billing-package-training")).toBeInTheDocument();
   expect(screen.getByTestId("billing-package-training_coach")).toBeInTheDocument();
@@ -151,7 +152,7 @@ it("shows current and trial badges, defaults category, and highlights required e
   expect(screen.getAllByText("فعال").length).toBeGreaterThan(0);
   expect(screen.getByText("دوره آزمایشی")).toBeInTheDocument();
   expect(screen.getByText(/پایان دوره آزمایشی/)).toBeInTheDocument();
-  expect(screen.getByTestId("billing-package-nutrition")).toHaveClass("billing-package-card--eligible");
+  expect(await screen.findByTestId("billing-package-nutrition")).toHaveClass("billing-package-card--eligible");
   expect(screen.getByTestId("billing-package-nutrition")).toHaveClass("billing-package-card--active");
   expect(screen.getByTestId("billing-package-nutrition_physician")).not.toHaveClass("billing-package-card--eligible");
 });
