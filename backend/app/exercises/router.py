@@ -5,8 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.auth.dependencies import AppSettings, DatabaseSession
 from app.cache.service import CacheResult
+from app.exercises.catalog_categories import (
+    BODY_REGION_CATEGORIES,
+    CORE_CATEGORIES,
+    LOWER_BODY_CATEGORIES,
+    UPPER_BODY_CATEGORIES,
+)
 from app.exercises.dependencies import CurrentUser, require_completed_profile
-from app.exercises.enums import BodyRegion, MediaPresentation, MuscleGroup
+from app.exercises.enums import MediaPresentation, MuscleGroup
 from app.exercises.media_resolver import (
     ordered_media_assets,
     resolve_primary_media,
@@ -32,35 +38,6 @@ router = APIRouter(
     prefix="/api/v1",
     tags=["exercises"],
     dependencies=[Depends(require_completed_profile)],
-)
-
-BODY_REGION_CATEGORIES = (
-    (BodyRegion.UPPER_BODY, "Upper Body", "بالاتنه"),
-    (BodyRegion.LOWER_BODY, "Lower Body", "پایین‌تنه"),
-    (BodyRegion.CORE, "Core", "میان‌تنه"),
-)
-UPPER_BODY_CATEGORIES = (
-    (MuscleGroup.CHEST, "Chest", "سینه"),
-    (MuscleGroup.BACK, "Back", "پشت و زیر بغل"),
-    (MuscleGroup.SHOULDERS, "Shoulders", "سرشانه"),
-    (MuscleGroup.BICEPS, "Biceps", "جلو بازو"),
-    (MuscleGroup.TRICEPS, "Triceps", "پشت بازو"),
-    (MuscleGroup.TRAPS, "Traps", "کول"),
-    (MuscleGroup.FOREARMS, "Forearms", "ساعد"),
-    (MuscleGroup.NECK, "Neck", "گردن"),
-)
-LOWER_BODY_CATEGORIES = (
-    (MuscleGroup.GLUTES, "Glutes", "باسن"),
-    (MuscleGroup.QUADRICEPS, "Quadriceps", "جلو پا"),
-    (MuscleGroup.HAMSTRINGS, "Hamstrings", "پشت پا"),
-    (MuscleGroup.ADDUCTORS, "Adductors", "داخل پا"),
-    (MuscleGroup.ABDUCTORS, "Abductors", "بیرون پا"),
-    (MuscleGroup.LEGS, "Legs", "کل پا"),
-    (MuscleGroup.CALVES, "Calves", "ساق"),
-)
-CORE_CATEGORIES = (
-    (MuscleGroup.ABS, "Abs", "شکم"),
-    (MuscleGroup.OBLIQUES, "Obliques", "پهلو"),
 )
 
 

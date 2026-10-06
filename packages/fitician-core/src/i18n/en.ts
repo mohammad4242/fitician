@@ -1354,6 +1354,8 @@ const en = {
         bodyRegion: "Body region", primaryMuscle: "Primary muscle", muscleFocus: "Muscle focus", secondaryMuscles: "Secondary muscles", secondaryPrefix: "Secondary muscle", equipment: "Equipment", select: "Select",
         instructionsEn: "English instructions", instructionsFa: "Persian instructions", instructionEn: "English step", instructionFa: "Persian step",
         safetyEn: "English safety notes", safetyFa: "Persian safety notes", noteEn: "English note", noteFa: "Persian note",
+        publicApproval: "Approve public publication of this exercise",
+        publicApprovalHint: "Approve reviewed content only. Media needs verified public rights. The public page is available after web publication.",
         mediaFile: "GIF or video file", galleryMediaFile: "Video file {{number}}", mediaVariants: "Male and female videos", male: "Male", female: "Female", mediaItem: "Video {{number}}", addMedia: "Add video", removeMedia: "Remove video", moveMediaUp: "Move video {{number}} up", moveMediaDown: "Move video {{number}} down", existingFile: "Current file", sourceDetails: "Source and licence", mediaPreview: "Video preview {{number}}", maleVideo: "Male video", femaleVideo: "Female video", sourceUrl: "Media source URL", license: "Media license", attribution: "Media attribution", previewName: "Preview", active: "Make this exercise active in the catalog immediately", movementPattern: "Movement pattern", exerciseType: "Exercise type", contentType: "Content type", cautionTags: "Caution tags", labels: "Labels", needsReview: "Needs review", isProgrammable: "Eligible for plan generation",
       },
       contentType: { exercise: "Exercise", guide: "Guide" },

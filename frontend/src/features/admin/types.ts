@@ -67,6 +67,7 @@ export type AdminExercise = Omit<ExerciseDetail, "media_assets"> & {
   laterality: Laterality | null;
   substitution_group: string | null;
   range_of_motion_profile: string[] | null;
+  is_public?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -107,6 +108,7 @@ export type AdminExerciseCreate = {
   media_license: string | null;
   media_attribution: string | null;
   media_assets?: AdminExerciseMediaAssetInput[];
+  is_public?: boolean;
   is_active: boolean;
 };
 

@@ -557,6 +557,7 @@ def _detail(exercise: Exercise) -> AdminExerciseDetail:
             )
             for asset in media_assets
         ],
+        is_public=exercise.is_public,
         is_active=exercise.is_active,
         created_at=exercise.created_at,
         movement_pattern=exercise.movement_pattern,

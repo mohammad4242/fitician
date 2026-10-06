@@ -1,0 +1,337 @@
+{
+  "body_regions": [
+    {
+      "value": "upper_body",
+      "name_en": "Upper Body",
+      "name_fa": "بالاتنه"
+    },
+    {
+      "value": "lower_body",
+      "name_en": "Lower Body",
+      "name_fa": "پایین‌تنه"
+    },
+    {
+      "value": "core",
+      "name_en": "Core",
+      "name_fa": "میان‌تنه"
+    }
+  ],
+  "upper_body": [
+    {
+      "value": "chest",
+      "name_en": "Chest",
+      "name_fa": "سینه"
+    },
+    {
+      "value": "back",
+      "name_en": "Back",
+      "name_fa": "پشت و زیر بغل"
+    },
+    {
+      "value": "shoulders",
+      "name_en": "Shoulders",
+      "name_fa": "سرشانه"
+    },
+    {
+      "value": "biceps",
+      "name_en": "Biceps",
+      "name_fa": "جلو بازو"
+    },
+    {
+      "value": "triceps",
+      "name_en": "Triceps",
+      "name_fa": "پشت بازو"
+    },
+    {
+      "value": "traps",
+      "name_en": "Traps",
+      "name_fa": "کول"
+    },
+    {
+      "value": "forearms",
+      "name_en": "Forearms",
+      "name_fa": "ساعد"
+    },
+    {
+      "value": "neck",
+      "name_en": "Neck",
+      "name_fa": "گردن"
+    }
+  ],
+  "lower_body": [
+    {
+      "value": "glutes",
+      "name_en": "Glutes",
+      "name_fa": "باسن"
+    },
+    {
+      "value": "quadriceps",
+      "name_en": "Quadriceps",
+      "name_fa": "جلو پا"
+    },
+    {
+      "value": "hamstrings",
+      "name_en": "Hamstrings",
+      "name_fa": "پشت پا"
+    },
+    {
+      "value": "adductors",
+      "name_en": "Adductors",
+      "name_fa": "داخل پا"
+    },
+    {
+      "value": "abductors",
+      "name_en": "Abductors",
+      "name_fa": "بیرون پا"
+    },
+    {
+      "value": "legs",
+      "name_en": "Legs",
+      "name_fa": "کل پا"
+    },
+    {
+      "value": "calves",
+      "name_en": "Calves",
+      "name_fa": "ساق"
+    }
+  ],
+  "core": [
+    {
+      "value": "abs",
+      "name_en": "Abs",
+      "name_fa": "شکم"
+    },
+    {
+      "value": "obliques",
+      "name_en": "Obliques",
+      "name_fa": "پهلو"
+    }
+  ],
+  "muscle_focuses": {
+    "chest": [
+      {
+        "value": "general_chest",
+        "name_en": "General Chest",
+        "name_fa": "کل سینه"
+      },
+      {
+        "value": "upper_chest",
+        "name_en": "Upper Chest",
+        "name_fa": "بالاسینه"
+      },
+      {
+        "value": "mid_chest",
+        "name_en": "Mid Chest",
+        "name_fa": "میان‌سینه"
+      },
+      {
+        "value": "lower_chest",
+        "name_en": "Lower Chest",
+        "name_fa": "زیرسینه"
+      }
+    ],
+    "back": [
+      {
+        "value": "general_back",
+        "name_en": "General Back",
+        "name_fa": "کل پشت"
+      },
+      {
+        "value": "lats",
+        "name_en": "Lats",
+        "name_fa": "زیر بغل"
+      },
+      {
+        "value": "lower_back",
+        "name_en": "Lower Back",
+        "name_fa": "پایین پشت"
+      },
+      {
+        "value": "mid_back_rhomboids",
+        "name_en": "Mid Back / Rhomboids",
+        "name_fa": "میانه پشت / رومبوئید"
+      },
+      {
+        "value": "upper_back",
+        "name_en": "Upper Back",
+        "name_fa": "بالای پشت"
+      }
+    ],
+    "shoulders": [
+      {
+        "value": "general_shoulders",
+        "name_en": "General Shoulders",
+        "name_fa": "کل سرشانه"
+      },
+      {
+        "value": "front_delt",
+        "name_en": "Front Delt",
+        "name_fa": "سرشانه جلویی"
+      },
+      {
+        "value": "lateral_delt",
+        "name_en": "Lateral Delt",
+        "name_fa": "سرشانه میانی"
+      },
+      {
+        "value": "rear_delt",
+        "name_en": "Rear Delt",
+        "name_fa": "سرشانه پشتی"
+      }
+    ],
+    "biceps": [
+      {
+        "value": "general_biceps",
+        "name_en": "General Biceps",
+        "name_fa": "کل جلو بازو"
+      },
+      {
+        "value": "biceps_brachii",
+        "name_en": "Biceps Brachii",
+        "name_fa": "دوسر بازویی"
+      },
+      {
+        "value": "brachialis_brachioradialis",
+        "name_en": "Brachialis / Brachioradialis",
+        "name_fa": "بازویی / بازویی‌زندزبرین"
+      }
+    ],
+    "triceps": [
+      {
+        "value": "general_triceps",
+        "name_en": "General Triceps",
+        "name_fa": "کل پشت بازو"
+      },
+      {
+        "value": "triceps_long_head",
+        "name_en": "Long Head",
+        "name_fa": "سر بلند"
+      },
+      {
+        "value": "triceps_lateral_medial_heads",
+        "name_en": "Lateral / Medial Heads",
+        "name_fa": "سر خارجی / داخلی"
+      }
+    ],
+    "traps": [
+      {
+        "value": "upper_traps",
+        "name_en": "Upper Traps",
+        "name_fa": "کول بالایی"
+      },
+      {
+        "value": "mid_lower_traps",
+        "name_en": "Mid / Lower Traps",
+        "name_fa": "کول میانی / پایینی"
+      }
+    ],
+    "forearms": [
+      {
+        "value": "general_forearms",
+        "name_en": "General Forearms",
+        "name_fa": "کل ساعد"
+      },
+      {
+        "value": "forearm_flexors",
+        "name_en": "Forearm Flexors",
+        "name_fa": "خم‌کننده‌های ساعد"
+      },
+      {
+        "value": "forearm_extensors",
+        "name_en": "Forearm Extensors",
+        "name_fa": "بازکننده‌های ساعد"
+      }
+    ],
+    "neck": [
+      {
+        "value": "neck_flexion",
+        "name_en": "Neck Flexion",
+        "name_fa": "خم‌کردن گردن"
+      },
+      {
+        "value": "neck_lateral_extension",
+        "name_en": "Lateral / Extension",
+        "name_fa": "جانبی / بازکردن گردن"
+      }
+    ],
+    "glutes": [
+      {
+        "value": "glute_max",
+        "name_en": "Glute Max",
+        "name_fa": "سرینی بزرگ"
+      },
+      {
+        "value": "glute_medius_minimus",
+        "name_en": "Glute Medius / Minimus",
+        "name_fa": "سرینی میانی / کوچک"
+      }
+    ],
+    "quadriceps": [],
+    "hamstrings": [
+      {
+        "value": "hamstrings_hip_extension",
+        "name_en": "Hip Extension",
+        "name_fa": "بازکردن مفصل ران"
+      },
+      {
+        "value": "hamstrings_knee_flexion",
+        "name_en": "Knee Flexion",
+        "name_fa": "خم‌کردن زانو"
+      }
+    ],
+    "adductors": [],
+    "abductors": [],
+    "legs": [],
+    "calves": [
+      {
+        "value": "general_calves",
+        "name_en": "General Calves",
+        "name_fa": "کل ساق"
+      },
+      {
+        "value": "gastrocnemius",
+        "name_en": "Gastrocnemius",
+        "name_fa": "دوقلو"
+      },
+      {
+        "value": "soleus",
+        "name_en": "Soleus",
+        "name_fa": "نعلی"
+      }
+    ],
+    "abs": [
+      {
+        "value": "trunk_flexion",
+        "name_en": "Trunk Flexion",
+        "name_fa": "خم‌کردن تنه"
+      },
+      {
+        "value": "hip_flexion_posterior_tilt",
+        "name_en": "Hip Flexion / Posterior Tilt",
+        "name_fa": "خم‌کردن ران / چرخش لگن"
+      },
+      {
+        "value": "anti_extension",
+        "name_en": "Anti-Extension",
+        "name_fa": "ضد بازشدن کمر"
+      }
+    ],
+    "obliques": [
+      {
+        "value": "trunk_rotation",
+        "name_en": "Trunk Rotation",
+        "name_fa": "چرخش تنه"
+      },
+      {
+        "value": "lateral_flexion",
+        "name_en": "Lateral Flexion",
+        "name_fa": "خم‌شدن جانبی"
+      },
+      {
+        "value": "anti_rotation",
+        "name_en": "Anti-Rotation",
+        "name_fa": "ضد چرخش"
+      }
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import type { ExerciseDetail, ExerciseMediaAsset, MediaPresentation, MediaType } from "./types";
+import type { ExerciseMediaAsset, MediaPresentation, MediaType } from "./types";
 
 export type ExerciseMediaItem = {
   key: string;
@@ -10,7 +10,8 @@ export type ExerciseMediaItem = {
 };
 
 export function buildExerciseMediaItems(
-  exercise: Pick<ExerciseDetail, "media_path" | "media_type" | "media_attribution" | "media_assets">,
+  exercise: { media_path: string; media_type: MediaType; media_attribution: string | null;
+    media_assets?: Omit<ExerciseMediaAsset, "media_source_url" | "media_license">[] },
 ): ExerciseMediaItem[] {
   const seenPaths = new Set<string>();
   const items: ExerciseMediaItem[] = [];
@@ -53,7 +54,7 @@ export function buildExerciseMediaItems(
   return items;
 }
 
-function mediaAssetToItem(asset: ExerciseMediaAsset): ExerciseMediaItem {
+function mediaAssetToItem(asset: Omit<ExerciseMediaAsset, "media_source_url" | "media_license">): ExerciseMediaItem {
   return {
     key: `${asset.presentation}-${asset.role}-${asset.sort_order}`,
     presentation: asset.presentation,

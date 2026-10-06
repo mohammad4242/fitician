@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { expect, test } from "@playwright/test";
+import { publicExerciseFixture } from "./public-fixture";
 import { publicPaths, resolveSeo, pages } from "../src/seo/registry";
 
 test("all canonical pages arrive with content, metadata and Persian RTL before JS", async ({ request }) => {
@@ -75,9 +76,10 @@ test("public tools hydrate, calculate locally and remain responsive", async ({ p
 test("exercise instructions and crawlable contextual links survive hydration", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
+  await publicExerciseFixture(page);
   await page.goto("/exercise-library/dumbbell-bench-press");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("پرس سینه دمبل");
-  await expect(page.getByRole("heading", { name: "روش اجرای حرکت" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "روش اجرای صحیح" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "نکات فرم و ایمنی" })).toBeVisible();
   expect(await page.locator('nav[aria-label="مسیر صفحه"] a').count()).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

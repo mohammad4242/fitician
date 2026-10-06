@@ -1,13 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
 import { PublicPage } from "./PublicPage";
+import { PublicExercisePage } from "./PublicExercises";
 import { publicExercises, publicPaths, sitemapDocuments, publicPayload } from "./registry";
 import { memberNavigationPattern } from "./routePolicy";
 it("renders public headings, references, links and RTL before JavaScript", () => {
   for (const path of publicPaths().filter(path => !["/", "/privacy", "/support", "/install"].includes(path))) {
-    const html = renderToStaticMarkup(<PublicPage payload={publicPayload(path)} />);
+    const Component = path.startsWith("/exercise-library") ? PublicExercisePage : PublicPage;
+    const html = renderToStaticMarkup(<Component payload={publicPayload(path)} />);
     expect(html).toContain('dir="rtl"');
-    expect(html).toContain("<h1>");
+    expect(html).toMatch(/<h1[ >]/);
     expect(html).toContain('href="/get-started"');
     expect(html).not.toContain("<video");
   }
@@ -18,7 +20,7 @@ it("exports only instructional exercise fields with unique slugs", () => {
   for (const exercise of publicExercises) {
     expect(exercise.instructions_fa.length).toBeGreaterThanOrEqual(3);
     expect(exercise.safety_notes_fa.length).toBeGreaterThan(0);
-    for (const field of ["id", "source_id", "caution_tags", "is_programmable", "needs_review", "media_path", "substitution_group"]) expect(exercise).not.toHaveProperty(field);
+    for (const field of ["id", "source_id", "caution_tags", "is_programmable", "needs_review", "substitution_group"]) expect(exercise).not.toHaveProperty(field);
   }
 });
 it("shards canonical public sitemap URLs without fake timestamps", () => {

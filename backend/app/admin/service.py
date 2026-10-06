@@ -396,6 +396,7 @@ def create_admin_exercise(
         media_license=payload.media_license or (OWNER_LICENSE if media is not None else None),
         media_attribution=payload.media_attribution
         or (OWNER_ATTRIBUTION if media is not None else None),
+        is_public=payload.is_public,
         is_active=payload.is_active,
         secondary_muscles=[
             ExerciseSecondaryMuscle(muscle=muscle)
@@ -497,6 +498,7 @@ def update_admin_exercise(
         "media_source_url",
         "media_license",
         "media_attribution",
+        "is_public",
         "is_active",
         "needs_review",
     ):

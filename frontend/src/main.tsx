@@ -28,7 +28,10 @@ async function start() {
     const { PublicApp } = await import("./seo/PublicApp");
     const data = document.getElementById("public-page-data")?.textContent;
     const payload: PublicPayload = data ? JSON.parse(data) : (await import("./seo/registry")).publicPayload(path);
-    element = <PublicApp payload={payload} />;
+    if (path.startsWith("/exercise-library")) {
+      const { PublicExerciseApp } = await import("./seo/PublicExerciseApp");
+      element = <PublicExerciseApp payload={payload} />;
+    } else element = <PublicApp payload={payload} />;
   } else {
     const { default: App } = await import("./App");
     // Existing public components have their own auth/PWA providers and client state.

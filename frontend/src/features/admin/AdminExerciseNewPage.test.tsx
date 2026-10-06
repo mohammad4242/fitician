@@ -256,3 +256,12 @@ function renderPage(path = "/admin/exercises/new") {
     </MemoryRouter>,
   );
 }
+
+it("requires explicit public approval on new exercises", async () => {
+  const user = userEvent.setup();
+  renderPage();
+  const approval = screen.getByRole("checkbox", { name: /تأیید انتشار عمومی/ });
+  expect(approval).not.toBeChecked();
+  await user.click(approval);
+  expect(approval).toBeChecked();
+});
