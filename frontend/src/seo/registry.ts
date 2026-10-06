@@ -1,9 +1,13 @@
+import categories from "./exercise-categories.json" with { type: "json" };
+import type { ExerciseCategories } from "../features/exercises/types";
+import type { ExercisePresentationDetail } from "../features/exercises/ExerciseDetailPresentation";
 import exercises from "./exercise-data.json" with { type: "json" };
 import { contentPages, type PublicPage } from "./content";
 export const siteOrigin = "https://fitician.fit";
 import type { Seo } from "./types";
 export type { Seo } from "./types";
-export const publicExercises = exercises;
+export const publicExercises = exercises as ExercisePresentationDetail[];
+export const publicCategories = categories as ExerciseCategories;
 export const pages: PublicPage[] = [
   { path: "/", title: "فیتیشن؛ برنامه تمرین، تغذیه و تحلیل بدن", description: "فیتیشن؛ همراه هوشمند تمرین، تغذیه و تحلیل بدن برای برنامه‌ای متناسب با زندگی واقعی شما.", sections: [] },
   ...contentPages,
@@ -62,6 +66,8 @@ export function publicPayload(path: string) {
   const candidates = path === "/exercise-library" ? publicExercises : exercise ? publicExercises.filter(record => record.primary_muscle === exercise.primary_muscle && record.slug !== exercise.slug).slice(0, 4) : [];
   return {
     page, seo: resolveSeo(path), crumbs: breadcrumbs(path), exercise,
+    categories: path.startsWith("/exercise-library") ? publicCategories : undefined,
+    exercises: candidates,
     related: (page.related ?? []).map(link => ({ path: link, title: findPublicPage(link)!.title })),
     exerciseLinks: candidates.map(record => ({ path: `/exercise-library/${record.slug}`, title: record.name_fa, english: record.name_en })),
   };

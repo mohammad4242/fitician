@@ -145,3 +145,14 @@ def test_public_rate_limit_fails_closed(client):
 
     client.app.state.rate_limiter = Unavailable()
     assert client.get("/api/v1/public/exercise-categories").status_code == 503
+
+
+def test_approval_requires_a_published_page_before_catalog_discovery(client, db):
+    seed_exercises(db)
+    record = db.scalar(select(Exercise).where(Exercise.slug == "dumbbell-bench-press"))
+    record.slug = "new-approved-page-awaiting-web-publication"
+    record.is_public = True
+    db.commit()
+    response = client.get("/api/v1/public/exercises", params={"search": record.name_en})
+    assert response.json()["total"] == 0
+    assert client.get(f"/api/v1/public/exercises/{record.slug}").status_code == 404

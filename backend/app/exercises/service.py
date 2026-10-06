@@ -1,4 +1,6 @@
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import func, or_, select
@@ -22,6 +24,10 @@ from app.exercises.schemas import ExerciseFilters
 from app.exercises.seed_data import ALTERNATIVE_SEEDS, EXERCISE_SEEDS, ExerciseSeed
 from app.exercises.substitution_groups import curated_substitution_group
 
+PUBLISHED_SLUGS: tuple[str, ...] = tuple(
+    json.loads(Path(__file__).with_name("publication_slugs.json").read_text())
+)
+
 SEED_ID_NAMESPACE = "https://fitsho.local/exercises/"
 
 
@@ -43,7 +49,13 @@ def list_exercises(
 ) -> tuple[list[Exercise], int]:
     conditions: list[ColumnElement[bool]] = [Exercise.is_active.is_(True)]
     if public_only:
-        conditions.extend((Exercise.is_public.is_(True), Exercise.needs_review.is_(False)))
+        conditions.extend(
+            (
+                Exercise.is_public.is_(True),
+                Exercise.needs_review.is_(False),
+                Exercise.slug.in_(PUBLISHED_SLUGS),
+            )
+        )
     conditions.append(Exercise.content_type == filters.content_type)
     if filters.body_region is not None:
         conditions.append(Exercise.body_region == filters.body_region)

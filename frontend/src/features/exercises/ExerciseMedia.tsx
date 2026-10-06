@@ -7,12 +7,13 @@ const placeholderPath = "/exercises/exercise-placeholder.svg";
 
 type ExerciseMediaProps = {
   ambient?: boolean;
+  lazy?: boolean;
   path: string;
   name: string;
   mediaType: MediaType;
 };
 
-export function ExerciseMedia({ ambient = false, path, name, mediaType }: ExerciseMediaProps) {
+export function ExerciseMedia({ ambient = false, lazy = false, path, name, mediaType }: ExerciseMediaProps) {
   const [failed, setFailed] = useState(false);
   const alt = localizedAlt(name);
   const resolvedPath = publicMediaPath(path);
@@ -34,13 +35,13 @@ export function ExerciseMedia({ ambient = false, path, name, mediaType }: Exerci
         loop={ambient}
         muted
         playsInline
-        preload="metadata"
+        preload={lazy ? "none" : "metadata"}
         onError={() => setFailed(true)}
       />
     );
   }
 
-  return <img src={resolvedPath} alt={alt} onError={() => setFailed(true)} />;
+  return <img loading={lazy ? "lazy" : undefined} src={resolvedPath} alt={alt} onError={() => setFailed(true)} />;
 }
 
 function exerciseVideoPosterPath(path: string): string | null {

@@ -5,6 +5,10 @@ COPY backend/app/exercises/seed_data.py backend/app/exercises/seed_data.py
 COPY backend/app/exercises/enums.py backend/app/exercises/enums.py
 COPY backend/app/exercises/curated_safety_notes.py backend/app/exercises/curated_safety_notes.py
 COPY backend/app/exercises/media_metadata.py backend/app/exercises/media_metadata.py
+COPY backend/app/exercises/catalog_categories.py backend/app/exercises/catalog_categories.py
+COPY backend/app/exercises/taxonomy.py backend/app/exercises/taxonomy.py
+COPY backend/app/exercises/publication_slugs.json backend/app/exercises/publication_slugs.json
+COPY frontend/src/seo/exercise-publications.json frontend/src/seo/exercise-publications.json
 RUN mkdir -p frontend/src/seo && python3 frontend/scripts/export-exercises.py
 
 FROM node:20.19.4-bookworm-slim AS build
@@ -25,6 +29,7 @@ RUN npm ci
 COPY frontend frontend
 COPY packages packages
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-data.json frontend/src/seo/exercise-data.json
+COPY --from=public-exercises /workspace/frontend/src/seo/exercise-categories.json frontend/src/seo/exercise-categories.json
 RUN npm run build:core && npm run prepare:mediapipe --workspace frontend && npm exec --workspace frontend -- tsc -b && npm exec --workspace frontend -- vite build && SEO_SERVER=1 npm exec --workspace frontend -- vite build --ssr src/seo/render.tsx --outDir dist-server
 WORKDIR /workspace/frontend
 RUN node scripts/prerender.mjs

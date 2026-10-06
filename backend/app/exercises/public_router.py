@@ -13,7 +13,7 @@ from app.exercises.public_schemas import (
 )
 from app.exercises.router import categories
 from app.exercises.schemas import ExerciseCategories
-from app.exercises.service import get_active_exercise_by_slug, list_exercises
+from app.exercises.service import PUBLISHED_SLUGS, get_active_exercise_by_slug, list_exercises
 from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 
 
@@ -68,6 +68,6 @@ def public_exercises(
 @router.get("/exercises/{slug}", response_model=PublicExerciseDetail)
 def public_exercise(slug: str, db: DatabaseSession) -> PublicExerciseDetail:
     record = get_active_exercise_by_slug(db, slug)
-    if record is None or not record.is_public or record.needs_review:
+    if record is None or not record.is_public or record.needs_review or slug not in PUBLISHED_SLUGS:
         raise HTTPException(404, detail={"code": "EXERCISE_NOT_FOUND"})
     return public_detail(record)
