@@ -137,6 +137,7 @@ afterEach(() => {
 describe("catalog selection flow", () => {
   it("uses the supplied strength still in the catalog header", async () => {
     renderCatalog();
+    expect(screen.getByRole("main")).toHaveClass("exercise-catalog-main");
 
     const background = await screen.findByTestId("member-header-image");
     expect(background).toHaveAttribute(

@@ -302,10 +302,11 @@ export function ExerciseCatalog({ source, searchParams, setSearchParams,
   if (selectedFocus !== undefined) createParams.set("muscle_focus", selectedFocus);
   createParams.set("return_to", returnTo);
 
+  const CatalogMain = publicMode ? "div" : "main";
   return (
     <div className="exercise-catalog-shell">
       {!publicMode && <MemberHeaderMedia imageSrc={heroStrengthFallback} className="member-page-background" />}
-      <div className="exercise-catalog-main">
+      <CatalogMain className="exercise-catalog-main">
         <header className="exercise-catalog-hero">
           <div>
             <p className="eyebrow eyebrow--accent">{t("catalog.eyebrow")}</p>
@@ -607,7 +608,7 @@ export function ExerciseCatalog({ source, searchParams, setSearchParams,
             )}
           </section>
         )}
-      </div>
+      </CatalogMain>
       {deleteTarget !== null && (
         <div
           className="exercise-delete-overlay"

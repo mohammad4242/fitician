@@ -25,6 +25,7 @@ it("prerenders the real media/detail presentation and educational text", () => {
   const payload = publicPayload("/exercise-library/dumbbell-bench-press");
   const html = renderToStaticMarkup(<PublicPage payload={payload} />);
   expect(html).toContain('class="exercise-detail-sheet"');
+  expect(html.match(/<main[ >]/g)).toHaveLength(1);
   expect(html).toContain('data-testid="exercise-media-carousel"');
   expect(html).toContain(payload.exercise!.instructions_fa[0]);
   expect(html).toContain(payload.exercise!.safety_notes_fa[0]);

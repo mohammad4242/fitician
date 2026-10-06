@@ -317,6 +317,7 @@
   .public-footer nav h2 { font-size: .78rem; }
   .public-footer nav a { font-size: .75rem; }
   .discovery-section { width: calc(100% - 1.5rem); padding-block: 3.5rem; }
+  .discovery-heading h2 { font-size: clamp(2rem, 8vw, 2.5rem); padding-inline: .25rem; }
   .public-discovery .discovery-card { padding: 1.3rem; min-height: 280px; }
   .discovery-card h3 { font-size: 1.45rem; }
   .discovery-card p { font-size: .8rem; }
