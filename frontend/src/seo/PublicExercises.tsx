@@ -102,7 +102,7 @@ function PublicDetail({ payload }: { payload: PublicPayload }) {
       {payload.exercises.length > 0 && <section className="public-related-exercises"><h2 className="fitician-display">{payload.exercises.every(record => record.primary_muscle === exercise.primary_muscle) ? "حرکات مرتبط با همین عضله" : "حرکات دیگر این ناحیه بدن"}</h2>
         <div className="exercise-card-grid">{payload.exercises.map(record => <ExerciseCard key={record.slug}
           exercise={record} categories={payload.categories!} isEnglish={false} publicMode
-          catalogSearch="" returnTo={catalogPath} onDelete={() => undefined} />)}</div>
+          catalogSearch={catalogPath.split("?")[1] ?? ""} returnTo={catalogPath} onDelete={() => undefined} />)}</div>
       </section>}
     </div>
   </div>;

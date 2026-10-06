@@ -57,3 +57,12 @@ it("keeps shared Persian exercise copy synchronized without shipping member tran
   expect(language.catalog).toEqual(fa.translation.catalog);
   expect(language.exerciseDetail).toEqual(fa.translation.exerciseDetail);
 });
+
+it("retains catalogue filters when navigating through related exercises", async () => {
+  window.history.replaceState(null, "", "/exercise-library/dumbbell-bench-press?body_region=upper_body&primary_muscle=chest");
+  render(<PublicPage payload={publicPayload("/exercise-library/dumbbell-bench-press")} />);
+  await waitFor(() => expect(document.querySelector(".exercise-detail-back")).toHaveAttribute("href", "/exercise-library?body_region=upper_body&primary_muscle=chest"));
+  for (const link of document.querySelectorAll(".public-related-exercises .exercise-card__link")) {
+    expect(link).toHaveAttribute("href", expect.stringContaining("?body_region=upper_body&primary_muscle=chest"));
+  }
+});
