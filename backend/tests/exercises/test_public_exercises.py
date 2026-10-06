@@ -30,6 +30,16 @@ def test_anonymous_catalog_is_explicitly_published_and_safe(client, db):
         "media_type",
     }
     assert response.headers["cache-control"] == "no-store"
+    unfiltered = client.get("/api/v1/public/exercises").json()
+    assert unfiltered["total"] == 1
+    assert [item["slug"] for item in unfiltered["items"]] == [record.slug]
+    for attribute, value in [("is_active", False), ("needs_review", True)]:
+        original = getattr(record, attribute)
+        setattr(record, attribute, value)
+        db.commit()
+        assert client.get("/api/v1/public/exercises").json()["total"] == 0
+        setattr(record, attribute, original)
+        db.commit()
 
 
 def test_public_detail_requires_approval_active_and_reviewed(client, db):
