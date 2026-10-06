@@ -225,3 +225,28 @@ test("saved English home preference uses the client shell without hydration erro
   await expect(page.locator("h1")).toHaveText("Every body needs its own plan.");
   expect(errors).toEqual([]);
 });
+
+
+test("saved member Light preference keeps public calculator headers readable", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("fitician.theme", "light"));
+  for (const kind of ["calorie", "protein", "bmi"]) {
+    await page.goto(`/tools/${kind}-calculator`);
+    for (const selector of [".tool-intro", ".tool-eyebrow"]) {
+      const contrast = await page.locator(selector).evaluate(element => {
+        function luminance(color: string) {
+          const channels = color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(value => {
+            const channel = value / 255;
+            return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+          });
+          return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+        }
+        const foreground = luminance(getComputedStyle(element).color);
+        const background = luminance(getComputedStyle(element.closest(".public-knowledge")!).backgroundColor);
+        return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
+      });
+      expect(contrast, `${kind} ${selector}`).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(await page.evaluate(() => localStorage.getItem("fitician.theme"))).toBe("light");
+    await expect(page.locator("html")).toHaveAttribute("data-fitician-theme", "light");
+  }
+});

@@ -28,6 +28,14 @@
 @media (max-width: 540px) { .public-grid { grid-template-columns: 1fr; } .public-knowledge > header { flex-wrap: wrap; } }
 
 /* Public tools: shared, lightweight surfaces; no member or landing dependencies. */
+.public-knowledge:has(.fitician-tool, .tool-hub) {
+  --fitician-canvas: #020607;
+  --fitician-ink: #eef7f4;
+  --fitician-muted: #b4c5bf;
+  --fitician-aqua: #50dfce;
+  --fitician-line: #243330;
+  color-scheme: dark;
+}
 .tool-header { padding-block: .8rem .4rem; }
 .public-knowledge .tool-eyebrow { display: flex; align-items: center; gap: .6rem; color: #50dfce; font: 600 .72rem/1.5 "Sora Variable", sans-serif; letter-spacing: .16em; margin-block: 0 1rem; }
 .public-knowledge .tool-header h1 { font-size: clamp(1.65rem, 4vw, 2.5rem); margin-block: 0 .7rem; letter-spacing: -.035em; }
