@@ -200,3 +200,13 @@ test("BMI remains readable without JavaScript and cannot transmit form values", 
     expect(requests).toEqual([]);
   } finally { await context.close(); }
 });
+
+
+test("API and media paths retain proxy precedence over static extension rules", async ({ request }) => {
+  const api = await request.get("/api/seo-fixture.json");
+  expect(api.status()).toBe(200);
+  expect(await api.json()).toEqual({ source: "backend" });
+  const media = await request.get("/media/seo-fixture.gif");
+  expect(media.status()).toBe(200);
+  expect(await media.text()).toBe("backend-media");
+});
