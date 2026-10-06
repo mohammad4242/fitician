@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Pressable, Text, View } from "react-native";
@@ -44,6 +44,14 @@ export default function SignInScreen() {
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState(false);
+  const googleAttempt = useRef(0);
+  const googleInFlight = useRef(false);
+  useEffect(() => () => { googleAttempt.current += 1; }, []);
+  const cancelGoogleAttempt = () => {
+    googleAttempt.current += 1;
+    googleInFlight.current = false;
+    setGoogleBusy(false);
+  };
   const [appleBusy, setAppleBusy] = useState(false);
   const emailForm = useForm<EmailSignInFormValues>({ defaultValues: { email: "", password: "" } });
   const phoneForm = useForm<PhoneSignInFormValues>({ defaultValues: { code: "", phoneNumber: "" } });
@@ -56,6 +64,7 @@ export default function SignInScreen() {
   }, [countdown]);
 
   const submitEmail = emailForm.handleSubmit(async (values) => {
+    cancelGoogleAttempt();
     setError(null);
     try {
       await auth.signInWithPassword({ email: values.email.trim(), password: values.password });
@@ -66,6 +75,7 @@ export default function SignInScreen() {
   });
 
   const submitPhone = phoneForm.handleSubmit(async ({ code, phoneNumber }) => {
+    cancelGoogleAttempt();
     setError(null);
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
     if (phoneStep === "request") {
@@ -93,19 +103,29 @@ export default function SignInScreen() {
   });
 
   const submitGoogle = async () => {
+    if (!google.available || !google.ready || googleInFlight.current || auth.busy) return;
+    googleInFlight.current = true;
+    const attempt = ++googleAttempt.current;
     setError(null);
     setGoogleBusy(true);
     try {
-      await auth.signInWithGoogle(await google.signIn());
+      const credential = await google.signIn();
+      if (attempt !== googleAttempt.current) return;
+      await auth.signInWithGoogle(credential);
+      if (attempt !== googleAttempt.current) return;
       router.replace(onboardingRoute(params.source));
     } catch (submissionError) {
-      setError(authErrorMessage(submissionError, "google"));
+      if (attempt === googleAttempt.current) setError(authErrorMessage(submissionError, "google"));
     } finally {
-      setGoogleBusy(false);
+      if (attempt === googleAttempt.current) {
+        googleInFlight.current = false;
+        setGoogleBusy(false);
+      }
     }
   };
 
   const submitApple = async () => {
+    cancelGoogleAttempt();
     setError(null);
     setAppleBusy(true);
     try {
@@ -264,7 +284,7 @@ export default function SignInScreen() {
           <View style={authStyles.dividerLine} />
         </View>
         <Button
-          disabled={google.available && !google.ready}
+          disabled={!google.available || !google.ready || googleBusy || auth.busy || appleBusy}
           label="ادامه با گوگل"
           leadingIcon={<GoogleBrandIcon testID="google-brand-icon" />}
           loading={googleBusy}

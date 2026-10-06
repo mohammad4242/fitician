@@ -15,6 +15,7 @@ import type {
 
 import { MobileAuthClient } from "./authClient";
 import { createMobileAuthApi, type MobileAuthApi, type MobileClientMetadataSource } from "./authApi";
+import { GoogleSignInFlowError, withGoogleSignInTimeout } from "./googleCredential";
 import type { AppleAuthCredential } from "./appleCredential";
 
 export type MobileAuthSessionStatus = "loading" | "signed_in" | "signed_out";
@@ -50,6 +51,7 @@ export class MobileAuthSession {
   private readonly client: MobileAuthClient;
   private readonly listeners = new Set<MobileAuthSessionListener>();
   private restoreInFlight: Promise<void> | null = null;
+  private googleAuthenticationGeneration = 0;
   private snapshot: MobileAuthSessionSnapshot = { ...signedOutSnapshot, status: "loading" };
 
   constructor(options: MobileAuthSessionOptions) {
@@ -104,7 +106,14 @@ export class MobileAuthSession {
   }
 
   async signInWithGoogle(credential: string): Promise<User> {
-    return this.authenticate(() => this.api.signInWithGoogle(credential));
+    const generation = ++this.googleAuthenticationGeneration;
+    const tokens = await withGoogleSignInTimeout(() => this.api.signInWithGoogle(credential), 30_000);
+    if (generation !== this.googleAuthenticationGeneration) {
+      throw new GoogleSignInFlowError("درخواست ورود با گوگل لغو شد.");
+    }
+    // The calling screen owns Google busy state; email remains available during exchange.
+    await this.adopt(tokens);
+    return tokens.user;
   }
 
   async signInWithApple(credential: AppleAuthCredential): Promise<User> {
@@ -192,7 +201,7 @@ export class MobileAuthSession {
   private async adopt(tokens: MobileAuthTokens): Promise<void> {
     await this.client.setSession(tokens);
     this.publish({
-      busy: true,
+      busy: this.snapshot.busy,
       sessionExpired: false,
       startupError: false,
       status: "signed_in",
@@ -201,6 +210,7 @@ export class MobileAuthSession {
   }
 
   private async run<T>(operation: () => Promise<T>): Promise<T> {
+    this.googleAuthenticationGeneration += 1;
     this.publish({ busy: true, startupError: false });
     try {
       return await operation();
@@ -210,6 +220,7 @@ export class MobileAuthSession {
   }
 
   private async logoutAt(path: string): Promise<void> {
+    this.googleAuthenticationGeneration += 1;
     try {
       if (this.snapshot.status === "signed_in") {
         await this.client.request<void>({ method: "POST", path });
@@ -227,6 +238,7 @@ export class MobileAuthSession {
   }
 
   private handleSessionExpired(): void {
+    this.googleAuthenticationGeneration += 1;
     this.publish({
       busy: false,
       sessionExpired: true,

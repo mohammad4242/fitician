@@ -24,3 +24,31 @@ export function googleResultMessage(result: GoogleAuthResultLike): string {
     ? "ورود با گوگل لغو شد."
     : "ورود با گوگل انجام نشد. دوباره تلاش کنید.";
 }
+
+export const GOOGLE_SIGN_IN_TIMEOUT_MS = 45_000;
+export const GOOGLE_TIMEOUT_MESSAGE = "مهلت ورود با گوگل تمام شد. پنجره گوگل را ببندید و دوباره تلاش کنید یا با ایمیل وارد شوید.";
+
+// Racing does not cancel native work. Callers must discard late results.
+export async function withGoogleSignInTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs = GOOGLE_SIGN_IN_TIMEOUT_MS,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = Date.now() + timeoutMs;
+  const ensureWithinDeadline = () => {
+    if (Date.now() >= deadline) throw new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE);
+  };
+  try {
+    return await Promise.race([
+      Promise.resolve().then(operation).then(
+        (result) => { ensureWithinDeadline(); return result; },
+        (error: unknown) => { ensureWithinDeadline(); throw error; },
+      ),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new GoogleSignInFlowError(GOOGLE_TIMEOUT_MESSAGE)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

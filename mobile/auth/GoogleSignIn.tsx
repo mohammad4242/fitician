@@ -6,7 +6,7 @@ import { GoogleOneTapSignIn } from "react-native-nitro-google-signin";
 
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
 import { googleClientIdForPlatform } from "../config/runtimeConfig";
-import { googleCredentialFromResult, googleResultMessage, GoogleSignInFlowError } from "./googleCredential";
+import { googleCredentialFromResult, googleResultMessage, GoogleSignInFlowError, withGoogleSignInTimeout } from "./googleCredential";
 import { requestAndroidGoogleIdToken } from "./googleNativeCredential";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -43,13 +43,14 @@ export function useGoogleSignIn(): GoogleSignInController {
     if (Platform.OS === "android") {
       return requestAndroidGoogleIdToken(GoogleOneTapSignIn, runtime.googleWebClientId);
     }
-    const result = await promptAsync();
+    if (request === null) throw new GoogleSignInFlowError("ورود با گوگل هنوز آماده نیست.");
+    const result = await withGoogleSignInTimeout(() => promptAsync());
     const credential = googleCredentialFromResult(result);
     if (credential === null) {
       throw new GoogleSignInFlowError(googleResultMessage(result));
     }
     return credential;
-  }, [available, promptAsync, runtime.googleWebClientId]);
+  }, [available, promptAsync, request, runtime.googleWebClientId]);
 
-  return { available, ready: Platform.OS === "android" ? available : request !== null, signIn };
+  return { available, ready: available && (Platform.OS === "android" || request !== null), signIn };
 }
