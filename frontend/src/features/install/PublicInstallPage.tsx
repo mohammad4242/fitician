@@ -139,13 +139,14 @@ export function PublicInstallPage() {
   const { state: pwaState, canPrompt, install } = usePwaInstall();
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
   const [installFailed, setInstallFailed] = useState(false);
-  const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
+  const browserNavigator = typeof navigator === "undefined" ? undefined : navigator;
+  const navigatorWithStandalone = browserNavigator as (Navigator & { standalone?: boolean }) | undefined;
   const environment = detectInstallEnvironment({
-    userAgent: navigator.userAgent,
-    platform: navigator.platform,
-    maxTouchPoints: navigator.maxTouchPoints,
-    standalone: navigatorWithStandalone.standalone === true,
-    displayModeStandalone: window.matchMedia?.("(display-mode: standalone)").matches === true,
+    userAgent: browserNavigator?.userAgent ?? "",
+    platform: browserNavigator?.platform,
+    maxTouchPoints: browserNavigator?.maxTouchPoints,
+    standalone: navigatorWithStandalone?.standalone === true,
+    displayModeStandalone: typeof window !== "undefined" && window.matchMedia?.("(display-mode: standalone)").matches === true,
     canPrompt,
     pwaState,
   });

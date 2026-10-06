@@ -1,3 +1,4 @@
+import { memberNavigationPattern } from "./src/seo/routePolicy.ts";
 import react from "@vitejs/plugin-react";
 import { VitePWA, type ManifestOptions } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
@@ -41,6 +42,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      disable: process.env.SEO_SERVER === "1",
       registerType: "prompt",
       manifest: pwaManifest,
       workbox: {
@@ -63,11 +65,13 @@ export default defineConfig({
           { url: "/pwa/icon-maskable-512.png", revision: null },
           { url: "/pwa/apple-touch-icon.png", revision: null },
         ],
-        navigateFallback: "/index.html",
+        navigateFallback: "/app.html",
+        navigateFallbackAllowlist: [memberNavigationPattern],
         navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/media(?:\/|$)/],
       },
     }),
   ],
+  build: { manifest: true },
   server: {
     host: "0.0.0.0",
     proxy: apiProxy,
@@ -79,6 +83,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     globals: true,
-    exclude: ["**/node_modules/**", "e2e/**"],
+    exclude: ["**/node_modules/**", "e2e/**", "seo-e2e/**"],
   },
 });

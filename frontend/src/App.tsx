@@ -1,8 +1,12 @@
+import "./i18n";
+import { SeoHead } from "./seo/SeoHead";
+import { resolveSeo } from "./seo/registry";
+import { NotFound } from "./seo/PublicPage";
 import { NotificationsPage } from "./features/communication/NotificationsPage";
 import { ConversationPage } from "./features/communication/ConversationPage";
 import { lazy, Suspense, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 
 import { AdminRoute } from "./features/admin/AdminRoute";
 import { AuthProvider, useAuth } from "./features/auth/AuthContext";
@@ -82,7 +86,10 @@ const NewTicketPage = lazy(() => import("./features/support/SupportPages").then(
 const SupportTicketPage = lazy(() => import("./features/support/SupportPages").then(m => ({ default: m.SupportTicketPage })));
 
 export function AppRoutes() {
+  const location = useLocation();
   return (
+    <>
+    <SeoHead seo={resolveSeo(location.pathname)} />
     <Routes>
       <Route path="/delete-account" element={deferred(<AccountDeletionPage />)} />
       <Route path="/support" element={deferred(<HelpCenterPage />)} />
@@ -183,8 +190,9 @@ export function AppRoutes() {
       </Route>
       <Route path="/" element={deferred(<PublicLandingRoute />)} />
       <Route path="/get-started" element={deferred(<PublicOnboardingPage />)} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }
 

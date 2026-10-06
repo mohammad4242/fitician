@@ -1,0 +1,33 @@
+.public-knowledge { color: var(--fitician-ink, #eef7f4); background: var(--fitician-canvas, #020607); min-height: 100vh; font-family: "Vazirmatn Variable", sans-serif; line-height: 1.95; }
+.public-knowledge *, .public-discovery * { box-sizing: border-box; }
+.public-knowledge > header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.4rem clamp(1rem, 5vw, 5rem); border-bottom: 1px solid var(--fitician-line, #243330); }
+.public-brand { font: 700 1.3rem "Sora Variable", sans-serif; text-decoration: none; }
+.public-brand span { font-family: "Vazirmatn Variable", sans-serif; font-size: .9rem; }
+.public-knowledge main { width: min(100% - 2rem, 880px); margin-inline: auto; padding-block: 2rem 4rem; }
+.public-knowledge h1 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.5; margin: .5rem 0 1.4rem; }
+.public-knowledge h2 { font-size: clamp(1.2rem, 2.5vw, 1.7rem); line-height: 1.6; margin-block: 2.2rem .8rem; }
+.public-knowledge p { margin-block: .8rem; }
+.public-lead { font-size: 1.15rem; }
+.public-eyebrow, .public-attribution { color: var(--fitician-muted, #b4c5bf); font-size: .9rem; }
+.public-knowledge a, .public-discovery a { color: var(--fitician-aqua, #50dfce); text-underline-offset: .25em; overflow-wrap: anywhere; }
+.public-knowledge a:focus-visible, .public-knowledge button:focus-visible, .public-knowledge input:focus-visible, .public-knowledge select:focus-visible, .public-discovery a:focus-visible { outline: 2px solid #50dfce; outline-offset: 4px; }
+.public-breadcrumbs ol { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .7rem; font-size: .85rem; }
+.public-breadcrumbs li + li::before { content: "/"; margin-inline-end: .7rem; }
+.public-knowledge .public-cta { display: inline-block; padding: .6rem 1rem; border-radius: 12px; background: #50dfce; color: #06211c; font-weight: 700; text-decoration: none; }
+.public-next, .public-calculator { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--fitician-line, #243330); border-radius: 20px; background: var(--fitician-surface, #0b1412); }
+.public-next h2, .public-calculator h2 { margin-top: 0; }
+.public-calculator form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.public-calculator label { display: grid; gap: .3rem; }
+.public-calculator input, .public-calculator select { width: 100%; min-width: 0; min-height: 48px; padding: .6rem; border: 1px solid #4b625a; border-radius: 8px; background: var(--fitician-canvas, #020607); color: inherit; font: inherit; }
+.public-calculator button { align-self: end; min-height: 48px; border: 0; border-radius: 8px; font: inherit; font-weight: 700; background: #50dfce; color: #06211c; cursor: pointer; }
+.public-calculator output { display: block; font-weight: 700; margin-top: 1rem; }
+.public-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.public-grid li { padding: 1rem; border: 1px solid #243330; border-radius: 12px; }
+.public-grid span { display: block; color: var(--fitician-muted, #b4c5bf); font-size: .85rem; }
+.public-knowledge dl { display: grid; grid-template-columns: 1fr 2fr; gap: .5rem 1rem; }
+.public-knowledge dd { margin: 0; }
+.public-discovery { padding: 1.5rem; border-top: 1px solid var(--fitician-line, #243330); font: .9rem/1.8 "Vazirmatn Variable", sans-serif; }
+.public-discovery nav { display: flex; flex-wrap: wrap; justify-content: center; gap: .7rem 1.3rem; }
+.public-discovery a { min-height: 44px; display: inline-flex; align-items: center; }
+.public-not-found { padding: 3rem 1rem; text-align: center; }
+@media (max-width: 540px) { .public-calculator form, .public-grid { grid-template-columns: 1fr; } .public-knowledge > header { flex-wrap: wrap; } }
