@@ -1147,6 +1147,129 @@
         "title": "AccessGrantSummaryResponse",
         "type": "object"
       },
+      "AccessOverview": {
+        "properties": {
+          "active_paid_users": {
+            "title": "Active Paid Users",
+            "type": "integer"
+          },
+          "active_users_24h": {
+            "title": "Active Users 24H",
+            "type": "integer"
+          },
+          "active_users_30d": {
+            "title": "Active Users 30D",
+            "type": "integer"
+          },
+          "active_users_7d": {
+            "title": "Active Users 7D",
+            "type": "integer"
+          },
+          "body_analyses_completed": {
+            "title": "Body Analyses Completed",
+            "type": "integer"
+          },
+          "daily_signups": {
+            "items": {
+              "$ref": "#/components/schemas/SignupPoint"
+            },
+            "title": "Daily Signups",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "month_start": {
+            "format": "date-time",
+            "title": "Month Start",
+            "type": "string"
+          },
+          "nutrition_plans": {
+            "title": "Nutrition Plans",
+            "type": "integer"
+          },
+          "purchases_month": {
+            "title": "Purchases Month",
+            "type": "integer"
+          },
+          "purchases_today": {
+            "title": "Purchases Today",
+            "type": "integer"
+          },
+          "purchases_week": {
+            "title": "Purchases Week",
+            "type": "integer"
+          },
+          "recent_users": {
+            "items": {
+              "$ref": "#/components/schemas/MemberSummary"
+            },
+            "title": "Recent Users",
+            "type": "array"
+          },
+          "registrations_month": {
+            "title": "Registrations Month",
+            "type": "integer"
+          },
+          "registrations_today": {
+            "title": "Registrations Today",
+            "type": "integer"
+          },
+          "registrations_week": {
+            "title": "Registrations Week",
+            "type": "integer"
+          },
+          "timezone": {
+            "default": "Asia/Tehran",
+            "title": "Timezone",
+            "type": "string"
+          },
+          "today_start": {
+            "format": "date-time",
+            "title": "Today Start",
+            "type": "string"
+          },
+          "total_users": {
+            "title": "Total Users",
+            "type": "integer"
+          },
+          "week_start": {
+            "format": "date-time",
+            "title": "Week Start",
+            "type": "string"
+          },
+          "workout_plans": {
+            "title": "Workout Plans",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "generated_at",
+          "today_start",
+          "week_start",
+          "month_start",
+          "total_users",
+          "registrations_today",
+          "registrations_week",
+          "registrations_month",
+          "active_users_24h",
+          "active_users_7d",
+          "active_users_30d",
+          "active_paid_users",
+          "purchases_today",
+          "purchases_week",
+          "purchases_month",
+          "workout_plans",
+          "nutrition_plans",
+          "body_analyses_completed",
+          "daily_signups",
+          "recent_users"
+        ],
+        "title": "AccessOverview",
+        "type": "object"
+      },
       "AccessPackageCode": {
         "enum": [
           "free",
@@ -1308,6 +1431,87 @@
           "completed_at"
         ],
         "title": "AccountDeletionStatusResponse",
+        "type": "object"
+      },
+      "ActivityItem": {
+        "properties": {
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Metadata",
+            "type": "object"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "resource_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Type"
+          },
+          "source": {
+            "enum": [
+              "explicit",
+              "historical"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "event_type",
+          "resource_type",
+          "resource_id",
+          "metadata",
+          "occurred_at",
+          "source"
+        ],
+        "title": "ActivityItem",
         "type": "object"
       },
       "ActivityLevel": {
@@ -4640,6 +4844,49 @@
           "checked_at"
         ],
         "title": "AgentServiceTestResponse",
+        "type": "object"
+      },
+      "AnalysisItem": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "completed_at",
+          "status",
+          "revision"
+        ],
+        "title": "AnalysisItem",
         "type": "object"
       },
       "AnalysisLimitation": {
@@ -12624,6 +12871,83 @@
         "title": "LoadLimit",
         "type": "string"
       },
+      "LoginItem": {
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "auth_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Method"
+          },
+          "device_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Name"
+          },
+          "evidence": {
+            "enum": [
+              "explicit_login",
+              "legacy_web_session",
+              "legacy_mobile_token_issued"
+            ],
+            "title": "Evidence",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          }
+        },
+        "required": [
+          "id",
+          "occurred_at",
+          "platform",
+          "auth_method",
+          "app_version",
+          "device_name",
+          "evidence"
+        ],
+        "title": "LoginItem",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -13131,6 +13455,129 @@
           "name"
         ],
         "title": "MedicationInput",
+        "type": "object"
+      },
+      "MemberSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "active_packages": {
+            "items": {
+              "$ref": "#/components/schemas/AccessPackageCode"
+            },
+            "title": "Active Packages",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "paid_access_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid Access End"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Number"
+          },
+          "primary_package": {
+            "$ref": "#/components/schemas/AccessPackageCode"
+          },
+          "trial_active": {
+            "title": "Trial Active",
+            "type": "boolean"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          },
+          "usage_status": {
+            "enum": [
+              "no_recorded_activity",
+              "active",
+              "inactive"
+            ],
+            "title": "Usage Status",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "phone_number",
+          "created_at",
+          "primary_package",
+          "active_packages",
+          "trial_active",
+          "trial_ends_at",
+          "paid_access_end",
+          "last_activity_at",
+          "usage_status"
+        ],
+        "title": "MemberSummary",
         "type": "object"
       },
       "MessageInput": {
@@ -14948,6 +15395,88 @@
         "title": "NutritionDailyTrackingResponse",
         "type": "object"
       },
+      "NutritionDetail": {
+        "properties": {
+          "budget_status": {
+            "title": "Budget Status",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/SafeNutritionDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_user_visible": {
+            "title": "Is User Visible",
+            "type": "boolean"
+          },
+          "lifecycle_status": {
+            "title": "Lifecycle Status",
+            "type": "string"
+          },
+          "plan_role": {
+            "title": "Plan Role",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "boolean"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "lifecycle_status",
+          "review_status",
+          "created_at",
+          "start_date",
+          "started_at",
+          "budget_status",
+          "selected",
+          "is_user_visible",
+          "plan_role",
+          "days"
+        ],
+        "title": "NutritionDetail",
+        "type": "object"
+      },
       "NutritionDietStyle": {
         "enum": [
           "economy",
@@ -15312,6 +15841,80 @@
           "fat_g"
         ],
         "title": "NutritionFoodPhotoMacroPreviewResponse",
+        "type": "object"
+      },
+      "NutritionHistoryItem": {
+        "properties": {
+          "budget_status": {
+            "title": "Budget Status",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_user_visible": {
+            "title": "Is User Visible",
+            "type": "boolean"
+          },
+          "lifecycle_status": {
+            "title": "Lifecycle Status",
+            "type": "string"
+          },
+          "plan_role": {
+            "title": "Plan Role",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "selected": {
+            "title": "Selected",
+            "type": "boolean"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "lifecycle_status",
+          "review_status",
+          "created_at",
+          "start_date",
+          "started_at",
+          "budget_status",
+          "selected",
+          "is_user_visible",
+          "plan_role"
+        ],
+        "title": "NutritionHistoryItem",
         "type": "object"
       },
       "NutritionLabDocumentResponse": {
@@ -17899,6 +18502,223 @@
           "weight_kg"
         ],
         "title": "NutritionWeightTrendResponse",
+        "type": "object"
+      },
+      "Page_ActivityItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ActivityItem]",
+        "type": "object"
+      },
+      "Page_AnalysisItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[AnalysisItem]",
+        "type": "object"
+      },
+      "Page_LoginItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LoginItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[LoginItem]",
+        "type": "object"
+      },
+      "Page_MemberSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemberSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[MemberSummary]",
+        "type": "object"
+      },
+      "Page_NutritionHistoryItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NutritionHistoryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[NutritionHistoryItem]",
+        "type": "object"
+      },
+      "Page_ProgressItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[ProgressItem]",
+        "type": "object"
+      },
+      "Page_WorkoutHistoryItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutHistoryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[WorkoutHistoryItem]",
         "type": "object"
       },
       "PaginatedAdminExercises": {
@@ -21118,6 +21938,101 @@
         "title": "ProgressInsight",
         "type": "object"
       },
+      "ProgressItem": {
+        "properties": {
+          "hip_circumference_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hip Circumference Cm"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "observed_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Fields"
+          },
+          "shoulder_circumference_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Circumference Cm"
+          },
+          "shoulder_width_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shoulder Width Cm"
+          },
+          "waist_circumference_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waist Circumference Cm"
+          },
+          "weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight Kg"
+          }
+        },
+        "required": [
+          "id",
+          "measured_at",
+          "weight_kg",
+          "waist_circumference_cm",
+          "hip_circumference_cm",
+          "shoulder_circumference_cm",
+          "shoulder_width_cm",
+          "observed_fields"
+        ],
+        "title": "ProgressItem",
+        "type": "object"
+      },
       "ProgressNutrition": {
         "properties": {
           "adherence_percent": {
@@ -23296,6 +24211,189 @@
         "title": "RevokeGrantRequest",
         "type": "object"
       },
+      "SafeExercise": {
+        "properties": {
+          "duration_max_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Max Seconds"
+          },
+          "duration_min_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min Seconds"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          },
+          "reps_max": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps Max"
+          },
+          "reps_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reps Min"
+          },
+          "rest_seconds": {
+            "title": "Rest Seconds",
+            "type": "integer"
+          },
+          "sets": {
+            "title": "Sets",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name_en",
+          "name_fa",
+          "sets",
+          "reps_min",
+          "reps_max",
+          "duration_min_seconds",
+          "duration_max_seconds",
+          "rest_seconds"
+        ],
+        "title": "SafeExercise",
+        "type": "object"
+      },
+      "SafeFood": {
+        "properties": {
+          "grams": {
+            "title": "Grams",
+            "type": "number"
+          },
+          "name_en": {
+            "title": "Name En",
+            "type": "string"
+          },
+          "name_fa": {
+            "title": "Name Fa",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name_fa",
+          "name_en",
+          "grams"
+        ],
+        "title": "SafeFood",
+        "type": "object"
+      },
+      "SafeMeal": {
+        "properties": {
+          "foods": {
+            "items": {
+              "$ref": "#/components/schemas/SafeFood"
+            },
+            "title": "Foods",
+            "type": "array"
+          },
+          "slot": {
+            "title": "Slot",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slot",
+          "foods"
+        ],
+        "title": "SafeMeal",
+        "type": "object"
+      },
+      "SafeNutritionDay": {
+        "properties": {
+          "day_index": {
+            "title": "Day Index",
+            "type": "integer"
+          },
+          "meals": {
+            "items": {
+              "$ref": "#/components/schemas/SafeMeal"
+            },
+            "title": "Meals",
+            "type": "array"
+          },
+          "plan_date": {
+            "format": "date",
+            "title": "Plan Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day_index",
+          "plan_date",
+          "meals"
+        ],
+        "title": "SafeNutritionDay",
+        "type": "object"
+      },
+      "SafeWorkoutDay": {
+        "properties": {
+          "day_number": {
+            "title": "Day Number",
+            "type": "integer"
+          },
+          "estimated_duration_minutes": {
+            "title": "Estimated Duration Minutes",
+            "type": "integer"
+          },
+          "exercises": {
+            "items": {
+              "$ref": "#/components/schemas/SafeExercise"
+            },
+            "title": "Exercises",
+            "type": "array"
+          },
+          "title_en": {
+            "title": "Title En",
+            "type": "string"
+          },
+          "title_fa": {
+            "title": "Title Fa",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day_number",
+          "title_en",
+          "title_fa",
+          "estimated_duration_minutes",
+          "exercises"
+        ],
+        "title": "SafeWorkoutDay",
+        "type": "object"
+      },
       "SafetyDecisionResponse": {
         "properties": {
           "can_continue_onboarding": {
@@ -23816,6 +24914,25 @@
           "total_cost_irr"
         ],
         "title": "ShoppingListResponse",
+        "type": "object"
+      },
+      "SignupPoint": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "SignupPoint",
         "type": "object"
       },
       "SingleFoodPriceResearchQuoteResponse": {
@@ -25321,6 +26438,84 @@
           }
         },
         "title": "UpdateBillingOfferConfigRequest",
+        "type": "object"
+      },
+      "UserInsights": {
+        "properties": {
+          "body_analyses": {
+            "title": "Body Analyses",
+            "type": "integer"
+          },
+          "body_analyses_completed": {
+            "title": "Body Analyses Completed",
+            "type": "integer"
+          },
+          "completed_workout_sessions": {
+            "title": "Completed Workout Sessions",
+            "type": "integer"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "latest_weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Weight Kg"
+          },
+          "legacy_login_evidence_count": {
+            "title": "Legacy Login Evidence Count",
+            "type": "integer"
+          },
+          "login_count": {
+            "title": "Login Count",
+            "type": "integer"
+          },
+          "nutrition_plans": {
+            "title": "Nutrition Plans",
+            "type": "integer"
+          },
+          "skipped_workout_sessions": {
+            "title": "Skipped Workout Sessions",
+            "type": "integer"
+          },
+          "weekly_checkins": {
+            "title": "Weekly Checkins",
+            "type": "integer"
+          },
+          "workout_plans": {
+            "title": "Workout Plans",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "last_activity_at",
+          "login_count",
+          "legacy_login_evidence_count",
+          "workout_plans",
+          "nutrition_plans",
+          "completed_workout_sessions",
+          "skipped_workout_sessions",
+          "weekly_checkins",
+          "body_analyses",
+          "body_analyses_completed",
+          "latest_weight_kg"
+        ],
+        "title": "UserInsights",
         "type": "object"
       },
       "UserReportedMeasurementChange": {
@@ -27698,6 +28893,84 @@
         "title": "WorkoutDayResponse",
         "type": "object"
       },
+      "WorkoutDetail": {
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/SafeWorkoutDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "duration_weeks": {
+            "title": "Duration Weeks",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "primary_goal": {
+            "title": "Primary Goal",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "secondary_goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondary Goal"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "training_days": {
+            "title": "Training Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "activated_at",
+          "status",
+          "primary_goal",
+          "secondary_goal",
+          "duration_weeks",
+          "training_days",
+          "review_status",
+          "days"
+        ],
+        "title": "WorkoutDetail",
+        "type": "object"
+      },
       "WorkoutExercisePreferenceType": {
         "enum": [
           "equipment_unavailable",
@@ -27834,6 +29107,76 @@
         ],
         "title": "WorkoutGenerationMethod",
         "type": "string"
+      },
+      "WorkoutHistoryItem": {
+        "properties": {
+          "activated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_weeks": {
+            "title": "Duration Weeks",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "primary_goal": {
+            "title": "Primary Goal",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "secondary_goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondary Goal"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "training_days": {
+            "title": "Training Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "activated_at",
+          "status",
+          "primary_goal",
+          "secondary_goal",
+          "duration_weeks",
+          "training_days",
+          "review_status"
+        ],
+        "title": "WorkoutHistoryItem",
+        "type": "object"
       },
       "WorkoutPlanCoachReviewResponse": {
         "additionalProperties": false,
@@ -29685,9 +31028,36 @@
         ]
       }
     },
+    "/api/v1/admin/access/overview": {
+      "get": {
+        "operationId": "overview_api_v1_admin_access_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Overview",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
     "/api/v1/admin/access/users": {
       "get": {
-        "operationId": "search_access_users_api_v1_admin_access_users_get",
+        "operationId": "users_api_v1_admin_access_users_get",
         "parameters": [
           {
             "in": "query",
@@ -29696,6 +31066,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "maxLength": 320,
                   "type": "string"
                 },
                 {
@@ -29723,9 +31094,76 @@
             "required": false,
             "schema": {
               "default": 0,
+              "maximum": 1000000,
               "minimum": 0,
               "title": "Offset",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signup_period",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "today",
+                "week",
+                "month",
+                "custom"
+              ],
+              "title": "Signup Period",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "newest",
+              "enum": [
+                "newest",
+                "oldest",
+                "last_activity"
+              ],
+              "title": "Sort",
+              "type": "string"
             }
           }
         ],
@@ -29734,11 +31172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AdminMemberSummaryResponse"
-                  },
-                  "title": "Response Search Access Users Api V1 Admin Access Users Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_MemberSummary_"
                 }
               }
             },
@@ -29760,8 +31194,9 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Search Access Users",
+        "summary": "Users",
         "tags": [
+          "admin-access",
           "admin-access"
         ]
       }
@@ -29810,6 +31245,169 @@
         ],
         "summary": "Read User Access",
         "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/activity": {
+      "get": {
+        "operationId": "activity_api_v1_admin_access_users__user_id__activity_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "event_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Event Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ActivityItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Activity",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/body-analyses": {
+      "get": {
+        "operationId": "analyses_api_v1_admin_access_users__user_id__body_analyses_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AnalysisItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Analyses",
+        "tags": [
+          "admin-access",
           "admin-access"
         ]
       }
@@ -29936,6 +31534,465 @@
         ],
         "summary": "Create Access Grant",
         "tags": [
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/insights": {
+      "get": {
+        "operationId": "insights_api_v1_admin_access_users__user_id__insights_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInsights"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Insights",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/logins": {
+      "get": {
+        "operationId": "logins_api_v1_admin_access_users__user_id__logins_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LoginItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Logins",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/nutrition-plans": {
+      "get": {
+        "operationId": "nutrition_plans_api_v1_admin_access_users__user_id__nutrition_plans_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_NutritionHistoryItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Nutrition Plans",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/nutrition-plans/{plan_id}": {
+      "get": {
+        "operationId": "nutrition_detail_api_v1_admin_access_users__user_id__nutrition_plans__plan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NutritionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Nutrition Detail",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/progress": {
+      "get": {
+        "operationId": "progress_api_v1_admin_access_users__user_id__progress_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ProgressItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Progress",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/workout-plans": {
+      "get": {
+        "operationId": "workout_plans_api_v1_admin_access_users__user_id__workout_plans_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_WorkoutHistoryItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Workout Plans",
+        "tags": [
+          "admin-access",
+          "admin-access"
+        ]
+      }
+    },
+    "/api/v1/admin/access/users/{user_id}/workout-plans/{plan_id}": {
+      "get": {
+        "operationId": "workout_detail_api_v1_admin_access_users__user_id__workout_plans__plan_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Workout Detail",
+        "tags": [
+          "admin-access",
           "admin-access"
         ]
       }

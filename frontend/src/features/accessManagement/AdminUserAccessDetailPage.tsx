@@ -7,6 +7,7 @@ import { formatTehranDateTimeForLocale } from "@fitician/core/iran-calendar";
 
 import { PersianDateTimePicker } from "../../shared/PersianDateTimePicker";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { AdminUser360Sections } from "./AdminUser360Sections";
 
 import {
   adminAccessPackageCodes,
@@ -225,6 +226,8 @@ export function AdminUserAccessDetailPage() {
           </div>
           <p className="access-detail-summary__entitlements">{access.entitlement_snapshot.granted_entitlements.join(" · ") || "—"}</p>
         </section>
+
+        <AdminUser360Sections key={memberId} userId={memberId} member={access.member} />
 
         <section className="access-grants-section" aria-labelledby="access-grants-title">
           <header className="access-detail-section-heading"><div><p className="eyebrow eyebrow--accent">{t("adminAccess.allGrants")}</p><h2 id="access-grants-title">{t("adminAccess.allGrants")}</h2></div><span>{access.grants.length}</span></header>

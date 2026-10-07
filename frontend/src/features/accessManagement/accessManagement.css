@@ -73,7 +73,7 @@
 
 .admin-subscription-center__nav {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: .45rem;
   margin-block: 1rem;
   padding: .4rem;
@@ -202,6 +202,50 @@
 .access-admin-search input:focus { outline: 3px solid rgb(80 223 206 / 25%); border-color: var(--fitician-aqua); }
 
 .access-user-list { display: grid; gap: .75rem; }
+.access-user-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .7rem; margin-block-end: 1rem; padding: .85rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface-subtle); }
+.access-user-filters label { display: grid; gap: .3rem; color: var(--fitician-ink); font-size: .75rem; font-weight: 800; }
+.access-user-filters input, .access-user-filters select { min-height: 2.55rem; padding: .45rem .65rem; border: 1px solid var(--fitician-line-strong); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-surface); font: inherit; }
+.access-user-total { margin: 0 0 .65rem; color: var(--fitician-muted); font-size: .8rem; }
+.access-user-pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-block-start: 1rem; color: var(--fitician-muted); font-size: .8rem; }
+.access-overview-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .65rem; }
+.access-overview-metric { display: grid; gap: .45rem; padding: .9rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
+.access-overview-metric span { color: var(--fitician-muted); font-size: .72rem; }
+.access-overview-metric strong { color: var(--fitician-ink); font: 800 1.35rem "Sora Variable", sans-serif; }
+.access-overview-panel { margin-block-start: 1rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
+.access-overview-panel > header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.access-overview-panel h2 { margin: 0; font-size: 1rem; }
+.access-overview-panel > header span { color: var(--fitician-muted); font-size: .75rem; }
+.access-overview-chart { display: block; width: 100%; height: 11rem; margin-block: .75rem .4rem; overflow: visible; }
+.access-overview-chart-layout { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: stretch; gap: .45rem; }
+.access-overview-chart-scale { display: flex; flex-direction: column; justify-content: space-between; padding-block: .75rem .55rem; color: var(--fitician-muted); font: .65rem "Sora Variable", sans-serif; text-align: end; }
+.access-overview-chart-data { margin-block-start: .55rem; color: var(--fitician-muted); font-size: .72rem; }
+.access-overview-chart-data summary { width: fit-content; cursor: pointer; }
+.access-overview-chart-data ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem .75rem; max-height: 10rem; overflow: auto; padding-inline-start: 1.3rem; direction: inherit; }
+.access-overview-chart__labels { display: flex; justify-content: space-between; color: var(--fitician-muted); direction: ltr; font-size: .7rem; }
+.access-overview-recent { display: grid; }
+.access-overview-recent article { display: grid; grid-template-columns: minmax(10rem, 1.4fr) repeat(4, minmax(7rem, 1fr)) auto; align-items: center; gap: .7rem; padding: .7rem .25rem; border-block-start: 1px solid var(--fitician-line); font-size: .75rem; }
+.access-overview-recent article > div { display: grid; gap: .15rem; }
+.access-overview-recent small { color: var(--fitician-muted); overflow-wrap: anywhere; }
+.access-overview-recent a { color: var(--fitician-ink); font-weight: 800; white-space: nowrap; }
+.access-user360 { display: grid; gap: .75rem; margin-block: 1rem; }
+.access-user360__heading h2 { margin: .2rem 0 0; font-size: 1.05rem; }
+.access-user360__hint { margin: 0; padding: .6rem .75rem; border-inline-start: 3px solid var(--fitician-aqua); border-radius: var(--fitician-radius-sm); color: var(--fitician-muted); background: var(--fitician-surface-subtle); font-size: .74rem; line-height: 1.65; }
+.access-user360__summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: 0; padding: .9rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
+.access-user360__summary div { display: grid; gap: .2rem; min-width: 0; }
+.access-user360__summary dt { color: var(--fitician-muted); font-size: .68rem; }
+.access-user360__summary dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 750; }
+.access-user360__tabs { display: flex; flex-wrap: wrap; gap: .45rem; padding: .35rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface-subtle); }
+.access-user360__tabs button[aria-pressed="true"] { border-color: var(--fitician-aqua); background: rgb(80 223 206 / 12%); }
+.access-user360__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: .75rem; }
+.access-user360__panel { min-width: 0; padding: .9rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
+.access-user360__panel h3 { margin: 0 0 .65rem; font-size: .95rem; }
+.access-user360__items { display: grid; }
+.access-user360__items article { display: grid; gap: .3rem; padding: .65rem 0; border-block-start: 1px solid var(--fitician-line); font-size: .76rem; }
+.access-user360__items time { color: var(--fitician-muted); font-size: .7rem; }
+.access-user360__items small { color: var(--fitician-muted); overflow-wrap: anywhere; }
+.access-user360__detail { padding: .5rem; border-radius: var(--fitician-radius-md); background: var(--fitician-surface-subtle); }
+.access-user360__detail section + section { border-block-start: 1px solid var(--fitician-line); }
+.access-user360__detail p { margin: .35rem 0; }
 .access-user-card { display: grid; grid-template-columns: minmax(12rem, 1.1fr) minmax(0, 2fr) auto; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); box-shadow: var(--fitician-shadow-card); }
 .access-user-card h2 { margin: .25rem 0 0; font-size: 1rem; }
 .access-user-card p { margin: .2rem 0 0; color: var(--fitician-muted); font-size: .76rem; overflow-wrap: anywhere; }
@@ -211,7 +255,7 @@
 .access-user-card__facts dd { margin: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 800; }
 .access-user-card > a { white-space: nowrap; }
 
-.access-admin-back-link { display: inline-flex; margin-block-end: .8rem; color: var(--fitician-teal); font-size: .8rem; font-weight: 800; text-decoration: none; }
+.access-admin-back-link { display: inline-flex; margin-block-end: .8rem; color: var(--fitician-ink); font-size: .8rem; font-weight: 800; text-decoration: none; }
 .access-admin-back-link:hover { text-decoration: underline; }
 .access-user-detail__header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-block-end: 1rem; }
 .access-user-detail__header h1 { margin: .25rem 0 0; color: var(--fitician-ink); font-size: clamp(1.4rem, 3vw, 2.2rem); }
@@ -363,6 +407,11 @@
 .access-campaign-preview__cta { width: fit-content; margin-block-start: .15rem; padding: .45rem .7rem; border: 1px solid var(--fitician-aqua); border-radius: var(--fitician-radius-md); color: var(--fitician-ink); background: var(--fitician-petrol); font-size: .74rem; font-weight: 800; }
 
 @media (max-width: 700px) {
+  .access-overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-overview-recent article { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-user360__summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-user360__columns { grid-template-columns: 1fr; }
+  .access-overview-chart-data ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-admin-page__header { align-items: stretch; flex-direction: column; }
   .access-campaign-card__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-user-card { grid-template-columns: 1fr; align-items: start; }

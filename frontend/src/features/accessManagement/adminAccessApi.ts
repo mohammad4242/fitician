@@ -1,3 +1,4 @@
+import type { components } from "@fitician/core";
 import {
   type AccessPackageCode,
   type EntitlementCode,
@@ -95,7 +96,22 @@ export type AdminMemberSummary = {
   readonly trial_active: boolean;
   readonly trial_ends_at: string | null;
   readonly paid_access_end: string | null;
+  readonly last_activity_at?: string | null;
+  readonly usage_status?: "no_recorded_activity" | "active" | "inactive";
 };
+
+export type Page<T> = { readonly items: readonly T[]; readonly total: number; readonly limit: number; readonly offset: number };
+export type SignupPoint = components["schemas"]["SignupPoint"];
+export type AccessOverview = components["schemas"]["AccessOverview"];
+export type UserInsights = components["schemas"]["UserInsights"];
+export type ActivityItem = components["schemas"]["ActivityItem"];
+export type LoginItem = components["schemas"]["LoginItem"];
+export type WorkoutHistoryItem = components["schemas"]["WorkoutHistoryItem"];
+export type WorkoutDetail = components["schemas"]["WorkoutDetail"];
+export type NutritionHistoryItem = components["schemas"]["NutritionHistoryItem"];
+export type NutritionDetail = components["schemas"]["NutritionDetail"];
+export type ProgressItem = components["schemas"]["ProgressItem"];
+export type AnalysisItem = components["schemas"]["AnalysisItem"];
 
 export type AdminEntitlementSnapshot = {
   readonly primary_package: AccessPackageCode;
@@ -210,11 +226,26 @@ export function searchAccessUsers(params: {
   q?: string;
   limit?: number;
   offset?: number;
-} = {}): Promise<AdminMemberSummary[]> {
-  return request<AdminMemberSummary[]>(
+  signup_period?: "all" | "today" | "week" | "month" | "custom";
+  from_date?: string;
+  to_date?: string;
+  sort?: "newest" | "oldest" | "last_activity";
+} = {}): Promise<Page<AdminMemberSummary>> {
+  return request<Page<AdminMemberSummary>>(
     `${adminAccessPath}/users${queryString(params)}`,
   );
 }
+
+export function getAccessOverview(): Promise<AccessOverview> { return request(`${adminAccessPath}/overview`); }
+export function getUserInsights(userId: string): Promise<UserInsights> { return request(`${adminAccessPath}/users/${userId}/insights`); }
+export function getUserActivity(userId: string, params: {limit?: number; offset?: number; event_type?: string} = {}): Promise<Page<ActivityItem>> { return request(`${adminAccessPath}/users/${userId}/activity${queryString(params)}`); }
+export function getUserLogins(userId: string, params: {limit?: number; offset?: number} = {}): Promise<Page<LoginItem>> { return request(`${adminAccessPath}/users/${userId}/logins${queryString(params)}`); }
+export function getWorkoutPlans(userId: string, params: {limit?: number; offset?: number} = {}): Promise<Page<WorkoutHistoryItem>> { return request(`${adminAccessPath}/users/${userId}/workout-plans${queryString(params)}`); }
+export function getWorkoutPlan(userId: string, planId: string): Promise<WorkoutDetail> { return request(`${adminAccessPath}/users/${userId}/workout-plans/${planId}`); }
+export function getNutritionPlans(userId: string, params: {limit?: number; offset?: number} = {}): Promise<Page<NutritionHistoryItem>> { return request(`${adminAccessPath}/users/${userId}/nutrition-plans${queryString(params)}`); }
+export function getNutritionPlan(userId: string, planId: string): Promise<NutritionDetail> { return request(`${adminAccessPath}/users/${userId}/nutrition-plans/${planId}`); }
+export function getUserProgress(userId: string, params: {limit?: number; offset?: number} = {}): Promise<Page<ProgressItem>> { return request(`${adminAccessPath}/users/${userId}/progress${queryString(params)}`); }
+export function getUserBodyAnalyses(userId: string, params: {limit?: number; offset?: number} = {}): Promise<Page<AnalysisItem>> { return request(`${adminAccessPath}/users/${userId}/body-analyses${queryString(params)}`); }
 
 export function getUserAccess(userId: string): Promise<AdminUserAccess> {
   return request<AdminUserAccess>(`${adminAccessPath}/users/${userId}`);

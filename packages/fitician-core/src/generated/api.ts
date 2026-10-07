@@ -126,6 +126,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/access/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_v1_admin_access_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/access/users": {
         parameters: {
             query?: never;
@@ -133,8 +150,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Search Access Users */
-        get: operations["search_access_users_api_v1_admin_access_users_get"];
+        /** Users */
+        get: operations["users_api_v1_admin_access_users_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -152,6 +169,40 @@ export type paths = {
         };
         /** Read User Access */
         get: operations["read_user_access_api_v1_admin_access_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activity */
+        get: operations["activity_api_v1_admin_access_users__user_id__activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/body-analyses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analyses */
+        get: operations["analyses_api_v1_admin_access_users__user_id__body_analyses_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -188,6 +239,125 @@ export type paths = {
         put?: never;
         /** Create Access Grant */
         post: operations["create_access_grant_api_v1_admin_access_users__user_id__grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Insights */
+        get: operations["insights_api_v1_admin_access_users__user_id__insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Logins */
+        get: operations["logins_api_v1_admin_access_users__user_id__logins_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/nutrition-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Nutrition Plans */
+        get: operations["nutrition_plans_api_v1_admin_access_users__user_id__nutrition_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/nutrition-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Nutrition Detail */
+        get: operations["nutrition_detail_api_v1_admin_access_users__user_id__nutrition_plans__plan_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Progress */
+        get: operations["progress_api_v1_admin_access_users__user_id__progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/workout-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workout Plans */
+        get: operations["workout_plans_api_v1_admin_access_users__user_id__workout_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/access/users/{user_id}/workout-plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Workout Detail */
+        get: operations["workout_detail_api_v1_admin_access_users__user_id__workout_plans__plan_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4313,6 +4483,66 @@ export type components = {
             /** Term Weeks */
             term_weeks: number | null;
         };
+        /** AccessOverview */
+        AccessOverview: {
+            /** Active Paid Users */
+            active_paid_users: number;
+            /** Active Users 7D */
+            active_users_7d: number;
+            /** Active Users 24H */
+            active_users_24h: number;
+            /** Active Users 30D */
+            active_users_30d: number;
+            /** Body Analyses Completed */
+            body_analyses_completed: number;
+            /** Daily Signups */
+            daily_signups: components["schemas"]["SignupPoint"][];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Month Start
+             * Format: date-time
+             */
+            month_start: string;
+            /** Nutrition Plans */
+            nutrition_plans: number;
+            /** Purchases Month */
+            purchases_month: number;
+            /** Purchases Today */
+            purchases_today: number;
+            /** Purchases Week */
+            purchases_week: number;
+            /** Recent Users */
+            recent_users: components["schemas"]["MemberSummary"][];
+            /** Registrations Month */
+            registrations_month: number;
+            /** Registrations Today */
+            registrations_today: number;
+            /** Registrations Week */
+            registrations_week: number;
+            /**
+             * Timezone
+             * @default Asia/Tehran
+             */
+            timezone: string;
+            /**
+             * Today Start
+             * Format: date-time
+             */
+            today_start: string;
+            /** Total Users */
+            total_users: number;
+            /**
+             * Week Start
+             * Format: date-time
+             */
+            week_start: string;
+            /** Workout Plans */
+            workout_plans: number;
+        };
         /**
          * AccessPackageCode
          * @enum {string}
@@ -4360,6 +4590,31 @@ export type components = {
              * @enum {string}
              */
             status: "none" | "pending" | "cancelled" | "completed";
+        };
+        /** ActivityItem */
+        ActivityItem: {
+            /** Event Type */
+            event_type: string;
+            /** Id */
+            id: string;
+            /** Metadata */
+            metadata: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Resource Id */
+            resource_id: string | null;
+            /** Resource Type */
+            resource_type: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "explicit" | "historical";
         };
         /**
          * ActivityLevel
@@ -5422,6 +5677,25 @@ export type components = {
          * @enum {string}
          */
         AITaskType: "workout_plan_generation" | "body_photo_analysis" | "progress_comparison" | "food_photo_estimation" | "food_price_search";
+        /** AnalysisItem */
+        AnalysisItem: {
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Revision */
+            revision: number;
+            /** Status */
+            status: string;
+        };
         /**
          * AnalysisLimitation
          * @enum {string}
@@ -8245,6 +8519,29 @@ export type components = {
          * @enum {string}
          */
         LoadLimit: "none" | "low" | "moderate" | "high";
+        /** LoginItem */
+        LoginItem: {
+            /** App Version */
+            app_version: string | null;
+            /** Auth Method */
+            auth_method: string | null;
+            /** Device Name */
+            device_name: string | null;
+            /**
+             * Evidence
+             * @enum {string}
+             */
+            evidence: "explicit_login" | "legacy_web_session" | "legacy_mobile_token_issued";
+            /** Id */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Platform */
+            platform: string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -8483,6 +8780,41 @@ export type components = {
             name: string;
             /** Notes */
             notes?: string | null;
+        };
+        /** MemberSummary */
+        MemberSummary: {
+            /** Active Packages */
+            active_packages: components["schemas"]["AccessPackageCode"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /** Paid Access End */
+            paid_access_end: string | null;
+            /** Phone Number */
+            phone_number: string | null;
+            primary_package: components["schemas"]["AccessPackageCode"];
+            /** Trial Active */
+            trial_active: boolean;
+            /** Trial Ends At */
+            trial_ends_at: string | null;
+            /**
+             * Usage Status
+             * @enum {string}
+             */
+            usage_status: "no_recorded_activity" | "active" | "inactive";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** MessageInput */
         MessageInput: {
@@ -9185,6 +9517,42 @@ export type components = {
             /** Plan Revision Id */
             plan_revision_id: string | null;
         };
+        /** NutritionDetail */
+        NutritionDetail: {
+            /** Budget Status */
+            budget_status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Days */
+            days: components["schemas"]["SafeNutritionDay"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is User Visible */
+            is_user_visible: boolean;
+            /** Lifecycle Status */
+            lifecycle_status: string;
+            /** Plan Role */
+            plan_role: string;
+            /** Review Status */
+            review_status: string;
+            /** Revision */
+            revision: number;
+            /** Selected */
+            selected: boolean;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Started At */
+            started_at: string | null;
+        };
         /**
          * NutritionDietStyle
          * @enum {string}
@@ -9330,6 +9698,40 @@ export type components = {
             fat_g: number;
             /** Protein G */
             protein_g: number;
+        };
+        /** NutritionHistoryItem */
+        NutritionHistoryItem: {
+            /** Budget Status */
+            budget_status: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is User Visible */
+            is_user_visible: boolean;
+            /** Lifecycle Status */
+            lifecycle_status: string;
+            /** Plan Role */
+            plan_role: string;
+            /** Review Status */
+            review_status: string;
+            /** Revision */
+            revision: number;
+            /** Selected */
+            selected: boolean;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /** Started At */
+            started_at: string | null;
         };
         /** NutritionLabDocumentResponse */
         NutritionLabDocumentResponse: {
@@ -10223,6 +10625,83 @@ export type components = {
             measured_at: string;
             /** Weight Kg */
             weight_kg: number;
+        };
+        /** Page[ActivityItem] */
+        Page_ActivityItem_: {
+            /** Items */
+            items: components["schemas"]["ActivityItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[AnalysisItem] */
+        Page_AnalysisItem_: {
+            /** Items */
+            items: components["schemas"]["AnalysisItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[LoginItem] */
+        Page_LoginItem_: {
+            /** Items */
+            items: components["schemas"]["LoginItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[MemberSummary] */
+        Page_MemberSummary_: {
+            /** Items */
+            items: components["schemas"]["MemberSummary"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[NutritionHistoryItem] */
+        Page_NutritionHistoryItem_: {
+            /** Items */
+            items: components["schemas"]["NutritionHistoryItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[ProgressItem] */
+        Page_ProgressItem_: {
+            /** Items */
+            items: components["schemas"]["ProgressItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** Page[WorkoutHistoryItem] */
+        Page_WorkoutHistoryItem_: {
+            /** Items */
+            items: components["schemas"]["WorkoutHistoryItem"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** PaginatedAdminExercises */
         PaginatedAdminExercises: {
@@ -11194,6 +11673,31 @@ export type components = {
                 [key: string]: number | string;
             };
         };
+        /** ProgressItem */
+        ProgressItem: {
+            /** Hip Circumference Cm */
+            hip_circumference_cm: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Observed Fields */
+            observed_fields: string[] | null;
+            /** Shoulder Circumference Cm */
+            shoulder_circumference_cm: number | null;
+            /** Shoulder Width Cm */
+            shoulder_width_cm: number | null;
+            /** Waist Circumference Cm */
+            waist_circumference_cm: number | null;
+            /** Weight Kg */
+            weight_kg: number | null;
+        };
         /** ProgressNutrition */
         ProgressNutrition: {
             /** Adherence Percent */
@@ -11858,6 +12362,53 @@ export type components = {
             /** Reason */
             reason: string;
         };
+        /** SafeExercise */
+        SafeExercise: {
+            /** Duration Max Seconds */
+            duration_max_seconds: number | null;
+            /** Duration Min Seconds */
+            duration_min_seconds: number | null;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+            /** Reps Max */
+            reps_max: number | null;
+            /** Reps Min */
+            reps_min: number | null;
+            /** Rest Seconds */
+            rest_seconds: number;
+            /** Sets */
+            sets: number;
+        };
+        /** SafeFood */
+        SafeFood: {
+            /** Grams */
+            grams: number;
+            /** Name En */
+            name_en: string;
+            /** Name Fa */
+            name_fa: string;
+        };
+        /** SafeMeal */
+        SafeMeal: {
+            /** Foods */
+            foods: components["schemas"]["SafeFood"][];
+            /** Slot */
+            slot: string;
+        };
+        /** SafeNutritionDay */
+        SafeNutritionDay: {
+            /** Day Index */
+            day_index: number;
+            /** Meals */
+            meals: components["schemas"]["SafeMeal"][];
+            /**
+             * Plan Date
+             * Format: date
+             */
+            plan_date: string;
+        };
         /** SafetyDecisionResponse */
         SafetyDecisionResponse: {
             /** Can Continue Onboarding */
@@ -11928,6 +12479,19 @@ export type components = {
             physician_dietary_restrictions?: string | null;
             /** Pregnant */
             pregnant: boolean;
+        };
+        /** SafeWorkoutDay */
+        SafeWorkoutDay: {
+            /** Day Number */
+            day_number: number;
+            /** Estimated Duration Minutes */
+            estimated_duration_minutes: number;
+            /** Exercises */
+            exercises: components["schemas"]["SafeExercise"][];
+            /** Title En */
+            title_en: string;
+            /** Title Fa */
+            title_fa: string;
         };
         /**
          * Sex
@@ -12057,6 +12621,16 @@ export type components = {
             total_cost_irr: number;
             /** Warning Codes */
             warning_codes: string[];
+        };
+        /** SignupPoint */
+        SignupPoint: {
+            /** Count */
+            count: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
         };
         /** SingleFoodPriceResearchQuoteResponse */
         SingleFoodPriceResearchQuoteResponse: {
@@ -12565,6 +13139,31 @@ export type components = {
             is_active?: boolean | null;
             /** Price Irr */
             price_irr?: number | null;
+        };
+        /** UserInsights */
+        UserInsights: {
+            /** Body Analyses */
+            body_analyses: number;
+            /** Body Analyses Completed */
+            body_analyses_completed: number;
+            /** Completed Workout Sessions */
+            completed_workout_sessions: number;
+            /** Last Activity At */
+            last_activity_at: string | null;
+            /** Latest Weight Kg */
+            latest_weight_kg: number | null;
+            /** Legacy Login Evidence Count */
+            legacy_login_evidence_count: number;
+            /** Login Count */
+            login_count: number;
+            /** Nutrition Plans */
+            nutrition_plans: number;
+            /** Skipped Workout Sessions */
+            skipped_workout_sessions: number;
+            /** Weekly Checkins */
+            weekly_checkins: number;
+            /** Workout Plans */
+            workout_plans: number;
         };
         /** UserReportedMeasurementChange */
         UserReportedMeasurementChange: {
@@ -13488,6 +14087,35 @@ export type components = {
             /** Weekday */
             weekday?: number | null;
         };
+        /** WorkoutDetail */
+        WorkoutDetail: {
+            /** Activated At */
+            activated_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Days */
+            days: components["schemas"]["SafeWorkoutDay"][];
+            /** Duration Weeks */
+            duration_weeks: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Primary Goal */
+            primary_goal: string;
+            /** Review Status */
+            review_status: string;
+            /** Secondary Goal */
+            secondary_goal: string | null;
+            /** Status */
+            status: string;
+            /** Training Days */
+            training_days: number;
+        };
         /**
          * WorkoutExercisePreferenceType
          * @enum {string}
@@ -13570,6 +14198,33 @@ export type components = {
          * @enum {string}
          */
         WorkoutGenerationMethod: "fitician_coach" | "ai";
+        /** WorkoutHistoryItem */
+        WorkoutHistoryItem: {
+            /** Activated At */
+            activated_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Weeks */
+            duration_weeks: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Primary Goal */
+            primary_goal: string;
+            /** Review Status */
+            review_status: string;
+            /** Secondary Goal */
+            secondary_goal: string | null;
+            /** Status */
+            status: string;
+            /** Training Days */
+            training_days: number;
+        };
         /** WorkoutPlanCoachReviewResponse */
         WorkoutPlanCoachReviewResponse: {
             /** Approved At */
@@ -14338,12 +14993,36 @@ export interface operations {
             };
         };
     };
-    search_access_users_api_v1_admin_access_users_get: {
+    overview_api_v1_admin_access_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessOverview"];
+                };
+            };
+        };
+    };
+    users_api_v1_admin_access_users_get: {
         parameters: {
             query?: {
+                from_date?: string | null;
                 limit?: number;
                 offset?: number;
                 q?: string | null;
+                signup_period?: "all" | "today" | "week" | "month" | "custom";
+                sort?: "newest" | "oldest" | "last_activity";
+                to_date?: string | null;
             };
             header?: never;
             path?: never;
@@ -14357,7 +15036,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminMemberSummaryResponse"][];
+                    "application/json": components["schemas"]["Page_MemberSummary_"];
                 };
             };
             /** @description Validation Error */
@@ -14389,6 +15068,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserAccessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activity_api_v1_admin_access_users__user_id__activity_get: {
+        parameters: {
+            query?: {
+                event_type?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ActivityItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyses_api_v1_admin_access_users__user_id__body_analyses_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_AnalysisItem_"];
                 };
             };
             /** @description Validation Error */
@@ -14460,6 +15208,237 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insights_api_v1_admin_access_users__user_id__insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserInsights"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logins_api_v1_admin_access_users__user_id__logins_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_LoginItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    nutrition_plans_api_v1_admin_access_users__user_id__nutrition_plans_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_NutritionHistoryItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    nutrition_detail_api_v1_admin_access_users__user_id__nutrition_plans__plan_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NutritionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    progress_api_v1_admin_access_users__user_id__progress_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ProgressItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    workout_plans_api_v1_admin_access_users__user_id__workout_plans_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_WorkoutHistoryItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    workout_detail_api_v1_admin_access_users__user_id__workout_plans__plan_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutDetail"];
                 };
             };
             /** @description Validation Error */

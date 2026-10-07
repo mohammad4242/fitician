@@ -6,7 +6,7 @@ import "../../i18n";
 
 import { AdminSubscriptionCenterPage } from "./AdminSubscriptionCenterPage";
 
-it("renders the central workspace and keeps the five sections in URL tabs", () => {
+it("renders the central workspace and keeps billing sections in URL tabs", () => {
   render(
     <MemoryRouter initialEntries={["/admin/billing/offers"]}>
       <Routes>
@@ -27,6 +27,7 @@ it("renders the central workspace and keeps the five sections in URL tabs", () =
     "href",
     "/admin/billing/offers",
   );
+  expect(screen.getByRole("link", { name: "نمای کلی" })).toHaveAttribute("href", "/admin/billing/overview");
   expect(screen.getByRole("link", { name: "کمپین‌ها و هدیه ثبت‌نام" })).toHaveAttribute(
     "href",
     "/admin/billing/campaigns",

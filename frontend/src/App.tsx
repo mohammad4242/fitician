@@ -32,6 +32,7 @@ const AdminAccessCampaignsPage = lazy(() => import("./features/accessManagement/
 const AdminSubscriptionCenterPage = lazy(() => import("./features/accessManagement/AdminSubscriptionCenterPage").then(({ AdminSubscriptionCenterPage }) => ({ default: AdminSubscriptionCenterPage })));
 const AdminUserAccessDetailPage = lazy(() => import("./features/accessManagement/AdminUserAccessDetailPage").then(({ AdminUserAccessDetailPage }) => ({ default: AdminUserAccessDetailPage })));
 const AdminUserAccessPage = lazy(() => import("./features/accessManagement/AdminUserAccessPage").then(({ AdminUserAccessPage }) => ({ default: AdminUserAccessPage })));
+const AdminAccessOverviewPage = lazy(() => import("./features/accessManagement/AdminAccessOverviewPage").then(({ AdminAccessOverviewPage }) => ({ default: AdminAccessOverviewPage })));
 const AdminBillingOrderDetailPage = lazy(() => import("./features/billing/AdminBillingOrderDetailPage").then(({ AdminBillingOrderDetailPage }) => ({ default: AdminBillingOrderDetailPage })));
 const AdminBillingOffersPage = lazy(() => import("./features/billing/AdminBillingOffersPage").then(({ AdminBillingOffersPage }) => ({ default: AdminBillingOffersPage })));
 const AdminBillingOrdersPage = lazy(() => import("./features/billing/AdminBillingOrdersPage").then(({ AdminBillingOrdersPage }) => ({ default: AdminBillingOrdersPage })));
@@ -131,6 +132,7 @@ function ThemedAppRoutes() {
           <Route path="/admin/ai-settings" element={deferred(<AdminAiSettingsPage />)} />
           <Route path="/admin/billing" element={deferred(<AdminSubscriptionCenterPage />)}>
             <Route index element={<Navigate to="offers" replace />} />
+            <Route path="overview" element={deferred(<AdminAccessOverviewPage />)} />
             <Route path="offers" element={deferred(<AdminBillingOffersPage />)} />
             <Route path="campaigns" element={deferred(<AdminAccessCampaignsPage />)} />
             <Route path="users" element={deferred(<AdminUserAccessPage />)} />

@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import "./accessManagement.css";
 
 const sections = [
+  { key: "overview", path: "/admin/billing/overview" },
   { key: "plansPricing", path: "/admin/billing/offers" },
   { key: "campaignsTrials", path: "/admin/billing/campaigns" },
   { key: "usersAccess", path: "/admin/billing/users" },
