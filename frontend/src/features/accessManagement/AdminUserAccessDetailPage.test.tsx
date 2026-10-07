@@ -135,9 +135,10 @@ it("shows identity, entitlement snapshot, and clearly labeled grant history", as
   renderDetail();
 
   expect(await screen.findByRole("heading", { name: "علی رضایی" })).toBeInTheDocument();
-  expect(screen.getByText("خلاصه دسترسی‌ها")).toBeInTheDocument();
-  expect(screen.getByText("ACTIVE")).toBeInTheDocument();
-  expect(screen.getByText("REVOKED")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "دسترسی" }));
+  expect(screen.getByRole("heading", { name: "خلاصه دسترسی‌ها" })).toBeInTheDocument();
+  expect(within(screen.getByTestId("access-grant-subscription-grant")).getByText("فعال")).toBeInTheDocument();
+  expect(within(screen.getByTestId("access-grant-revoked-grant")).getByText("لغوشده")).toBeInTheDocument();
   expect(screen.getByText("اشتراک")).toBeInTheDocument();
   expect(screen.queryByRole("checkbox", { name: /training\.plan|body_analysis/ })).not.toBeInTheDocument();
 });
@@ -147,6 +148,7 @@ it("shows the User 360 summary and independently loaded activity and login secti
   expect(await screen.findByRole("heading", { name: "خلاصه تعامل" })).toBeInTheDocument();
   expect(screen.getByText("ورودهای موفق")).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "فعالیت‌ها" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "تاریخچه ورود" }));
   expect(screen.getByRole("heading", { name: "تاریخچه ورود" })).toBeInTheDocument();
   expect(screen.getByText(/تعداد ورود موفق فقط شامل رویدادهای صریح ورود/)).toBeInTheDocument();
   expect(screen.getAllByText("موردی ثبت نشده است.").length).toBeGreaterThan(0);
@@ -163,8 +165,9 @@ it("renders historical session context and localized explicit login metadata", a
   });
   renderDetail();
 
+  expect(await screen.findByText(/هفته: 2 · جلسه: 1/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "تاریخچه ورود" }));
   expect(await screen.findByText("ورود به حساب")).toBeInTheDocument();
-  expect(screen.getByText(/هفته: 2 · جلسه: 1/)).toBeInTheDocument();
   expect(screen.getByText(/اندروید · گوگل · Pixel · نسخه برنامه: 1.2.0/)).toBeInTheDocument();
 });
 
@@ -301,6 +304,7 @@ it("warns before revoking paid access and sends a mandatory reason", async () =>
   const user = userEvent.setup();
   renderDetail();
 
+  await user.click(await screen.findByRole("button", { name: "دسترسی" }));
   const grant = await screen.findByTestId("access-grant-subscription-grant");
   await user.click(within(grant).getByRole("button", { name: "قطع دسترسی" }));
   expect(screen.getByText("قطع دسترسی وضعیت مالی سفارش را Refund نمی‌کند.")).toBeInTheDocument();
@@ -313,6 +317,7 @@ it("warns before revoking paid access and sends a mandatory reason", async () =>
 it("shows login timestamps with seconds in Tehran time", async () => {
   accessApi.getUserLogins.mockResolvedValue({ items: [{ id: "login-seconds", occurred_at: "2026-10-01T08:00:15Z", platform: "web", auth_method: "password", app_version: null, device_name: null, evidence: "explicit_login" }], total: 1, limit: 25, offset: 0 });
   renderDetail();
+  await userEvent.click(await screen.findByRole("button", { name: "تاریخچه ورود" }));
   expect(await screen.findByText(/۱۱:۳۰:۱۵/)).toBeInTheDocument();
 });
 
@@ -335,4 +340,15 @@ it("labels legacy measurement provenance as uncertain", async () => {
   await screen.findByRole("heading", { name: "خلاصه تعامل" });
   await userEvent.click(screen.getByRole("button", { name: "پیشرفت" }));
   expect(await screen.findByText(/رکورد تاریخی: مشخص نیست/)).toBeInTheDocument();
+});
+
+it("shows human activity metadata and opens access management from its tab", async () => {
+  accessApi.getUserActivity.mockResolvedValue({ items: [{ id: "auth-event", event_type: "auth.login_succeeded", resource_type: "auth_session", resource_id: "safe-id", metadata: { platform: "android", auth_method: "google", device_name: "Pixel" }, occurred_at: "2026-10-01T08:00:15Z", source: "explicit" }], total: 1, limit: 25, offset: 0 });
+  renderDetail();
+  expect(await screen.findByText(/اندروید · گوگل · Pixel/)).toBeInTheDocument();
+  expect(screen.queryByText("auth.login_succeeded")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "دسترسی" }));
+  expect(screen.getByRole("heading", { name: "خلاصه دسترسی‌ها" })).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "صورتحساب" }));
+  expect(screen.getByRole("link", { name: /مشاهده سفارش/ })).toHaveAttribute("href", "/admin/billing/orders/order-1");
 });

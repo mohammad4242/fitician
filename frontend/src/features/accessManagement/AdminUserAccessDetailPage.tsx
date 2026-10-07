@@ -49,6 +49,7 @@ export function AdminUserAccessDetailPage() {
   const [access, setAccess] = useState<AdminUserAccess | null>(null);
   const [campaigns, setCampaigns] = useState<AdminAccessCampaign[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [accessRequest, setAccessRequest] = useState(0);
   const [action, setAction] = useState<Action>(null);
   const [selectedGrant, setSelectedGrant] = useState<AdminGrant | null>(null);
   const [grantForm, setGrantForm] = useState<GrantForm>(initialGrantForm);
@@ -83,6 +84,7 @@ export function AdminUserAccessDetailPage() {
   }, [memberId]);
 
   function openGrant() {
+    setAccessRequest((value) => value + 1);
     setSelectedGrant(null);
     setGrantForm({
       ...initialGrantForm,
@@ -95,6 +97,7 @@ export function AdminUserAccessDetailPage() {
   }
 
   function openCampaign() {
+    setAccessRequest((value) => value + 1);
     setSelectedGrant(null);
     setCampaignId("");
     setReason("");
@@ -110,6 +113,7 @@ export function AdminUserAccessDetailPage() {
   }
 
   function openRevoke(grant: AdminGrant) {
+    setAccessRequest((value) => value + 1);
     setSelectedGrant(grant);
     setReason("");
     setFormValidationError(false);
@@ -216,6 +220,9 @@ export function AdminUserAccessDetailPage() {
           </div>
         </header>
 
+        <AdminUser360Sections key={memberId} userId={memberId} member={access.member}
+          accessRequest={accessRequest}
+          accessContent={<>
         <section className="access-detail-summary" aria-labelledby="access-detail-summary-title">
           <h2 id="access-detail-summary-title">{t("adminAccess.entitlementSnapshot")}</h2>
           <div className="access-detail-summary__grid">
@@ -224,10 +231,8 @@ export function AdminUserAccessDetailPage() {
             <div><span>{t("adminAccess.trialState")}</span><strong>{access.entitlement_snapshot.trial_active ? t("entitlements.trialActive") : t("adminAccess.inactive")}</strong></div>
             <div><span>{t("adminAccess.accessEnd")}</span><strong>{access.member.paid_access_end === null ? "—" : formatDate(access.member.paid_access_end, english)}</strong></div>
           </div>
-          <p className="access-detail-summary__entitlements">{access.entitlement_snapshot.granted_entitlements.join(" · ") || "—"}</p>
+          <details className="access-detail-summary__entitlements"><summary>{t("adminAccess.accessPermissions")}</summary><p>{access.entitlement_snapshot.granted_entitlements.join(" · ") || "—"}</p></details>
         </section>
-
-        <AdminUser360Sections key={memberId} userId={memberId} member={access.member} />
 
         <section className="access-grants-section" aria-labelledby="access-grants-title">
           <header className="access-detail-section-heading"><div><p className="eyebrow eyebrow--accent">{t("adminAccess.allGrants")}</p><h2 id="access-grants-title">{t("adminAccess.allGrants")}</h2></div><span>{access.grants.length}</span></header>
@@ -236,7 +241,7 @@ export function AdminUserAccessDetailPage() {
               <article className="access-grant-card" data-testid={`access-grant-${grant.id}`} key={grant.id}>
                 <header>
                   <div><span className="access-admin-code">{grant.id}</span><h3>{t(`entitlements.packageLabels.${grant.package_code}`, { defaultValue: grant.package_code })}</h3></div>
-                  <span className="access-grant-card__status">{grant.status.toUpperCase()}</span>
+                  <span className="access-grant-card__status">{t(`adminAccess.grantStates.${grant.status}`, { defaultValue: grant.status })}</span>
                 </header>
                 <dl>
                   <div><dt>{t("adminAccess.accessSource")}</dt><dd>{sourceLabel(grant.source, t)}</dd></div>
@@ -302,6 +307,21 @@ export function AdminUserAccessDetailPage() {
             </form>
           </section>
         )}
+          </>}
+          billingContent={<section className="access-user360__panel">
+            <h3>{t("adminAccess.linkedOrders")}</h3>
+            <div className="access-user360__items">
+              {access.grants.filter((grant) => grant.billing_order_id !== null).map((grant) => (
+                <article key={grant.id}>
+                  <strong>{t(`entitlements.packageLabels.${grant.package_code}`)}</strong>
+                  <small>{t("adminAccess.start")}: {formatDate(grant.starts_at, english)}</small>
+                  <Link className="access-admin-button access-admin-button--quiet" to={`/admin/billing/orders/${grant.billing_order_id}`}>{t("adminAccess.viewOrder")}</Link>
+                </article>
+              ))}
+            </div>
+            {!access.grants.some((grant) => grant.billing_order_id !== null) && <p>{t("adminAccess.noLinkedOrders")}</p>}
+          </section>}
+        />
       </div>
     </main>
   );

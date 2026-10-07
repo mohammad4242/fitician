@@ -62,7 +62,7 @@ export function AdminAccessOverviewPage() {
             <p>{t("adminAccess.metricsTimezone", { timezone: data.timezone })}</p>
           </div>
         </header>
-        <p className="access-admin-status">{t("adminAccess.monthCalendarNote")} {t("adminAccess.activityMetricsNote")}</p>
+        <details className="access-overview-definitions"><summary>{t("adminAccess.metricDefinitions")}</summary><p>{t("adminAccess.monthCalendarNote")} {t("adminAccess.activityMetricsNote")}</p></details>
         <OverviewMetrics data={data} locale={locale} english={english} />
         <DailySignupsChart data={data} locale={locale} english={english} />
         <RecentUsers data={data} locale={locale} />
@@ -73,31 +73,35 @@ export function AdminAccessOverviewPage() {
 
 function OverviewMetrics({ data, locale, english }: { data: AccessOverview; locale: string; english: boolean }) {
   const { t } = useTranslation();
-  const metrics: [string, number][] = [
-    ["totalUsers", data.total_users],
-    ["registrationsToday", data.registrations_today],
-    ["registrationsWeek", data.registrations_week],
-    ["registrationsMonth", data.registrations_month],
-    ["active24h", data.active_users_24h],
-    ["active7d", data.active_users_7d],
-    ["active30d", data.active_users_30d],
-    ["paidUsers", data.active_paid_users],
-    ["purchasesToday", data.purchases_today],
-    ["purchasesWeek", data.purchases_week],
-    ["purchasesMonth", data.purchases_month],
-    ["workoutPlans", data.workout_plans],
-    ["nutritionPlans", data.nutrition_plans],
-    ["bodyAnalysesCompleted", data.body_analyses_completed],
+  const highlights: [string, number][] = [
+    ["totalUsers", data.total_users], ["active7d", data.active_users_7d], ["paidUsers", data.active_paid_users],
   ];
-
+  const groups: { title: string; metrics: [string, number][] }[] = [
+    { title: "registrationGrowth", metrics: [["registrationsToday", data.registrations_today], ["registrationsWeek", data.registrations_week], ["registrationsMonth", data.registrations_month]] },
+    { title: "userEngagement", metrics: [["active24h", data.active_users_24h], ["active30d", data.active_users_30d]] },
+    { title: "successfulPurchases", metrics: [["purchasesToday", data.purchases_today], ["purchasesWeek", data.purchases_week], ["purchasesMonth", data.purchases_month]] },
+    { title: "productUsage", metrics: [["workoutPlans", data.workout_plans], ["nutritionPlans", data.nutrition_plans], ["bodyAnalysesCompleted", data.body_analyses_completed]] },
+  ];
+  const number = (value: number) => value.toLocaleString(english ? "en-US" : locale);
   return (
     <section className="access-overview-metrics" aria-label={t("adminAccess.overviewMetrics")}>
-      {metrics.map(([key, value]) => (
-        <article className="access-overview-metric" key={key}>
-          <span>{t(`adminAccess.metrics.${key}`)}</span>
-          <strong>{value.toLocaleString(english ? "en-US" : locale)}</strong>
-        </article>
-      ))}
+      <div className="access-overview-highlights">
+        {highlights.map(([key, value]) => (
+          <article className="access-overview-metric" key={key}>
+            <span>{t(`adminAccess.metrics.${key}`)}</span><strong>{number(value)}</strong>
+          </article>
+        ))}
+      </div>
+      <div className="access-overview-groups">
+        {groups.map((group) => (
+          <section className="access-overview-group" key={group.title}>
+            <h2>{t(`adminAccess.${group.title}`)}</h2>
+            <dl data-count={group.metrics.length}>{group.metrics.map(([key, value]) => (
+              <div key={key}><dt>{t(`adminAccess.metrics.${key}`)}</dt><dd>{number(value)}</dd></div>
+            ))}</dl>
+          </section>
+        ))}
+      </div>
     </section>
   );
 }
@@ -155,7 +159,7 @@ function DailySignupsChart({ data, locale, english }: { data: AccessOverview; lo
               x={point.x + 0.15}
               y={point.y}
               width={Math.max(0.3, 70 / Math.max(points.length, 1))}
-              height={Math.max(0.5, point.height)}
+              height={point.height}
               rx=".25"
               fill="var(--fitician-aqua)"
             >
@@ -200,14 +204,14 @@ function RecentUsers({ data, locale }: { data: AccessOverview; locale: string })
                   <strong>{user.display_name ?? user.email ?? user.phone_number ?? user.user_id}</strong>
                   <small>{user.email ?? user.phone_number ?? "—"}</small>
                 </div>
-                <span>{formatTehranDateForLocale(user.created_at, locale)}</span>
-                <span>{t(`entitlements.packageLabels.${user.primary_package}`, { defaultValue: user.primary_package })}</span>
-                <span>
+                <div><small>{t("adminAccess.signupDate")}</small><span>{formatTehranDateForLocale(user.created_at, locale)}</span></div>
+                <div><small>{t("adminAccess.currentPackage")}</small><span>{t(`entitlements.packageLabels.${user.primary_package}`, { defaultValue: user.primary_package })}</span></div>
+                <div><small>{t("adminAccess.lastActivity")}</small><span>
                   {user.last_activity_at
                     ? formatTehranDateTimeForLocale(user.last_activity_at, locale)
                     : t("adminAccess.noActivity")}
-                </span>
-                <span>{t(`adminAccess.usage.${user.usage_status ?? "no_recorded_activity"}`)}</span>
+                </span></div>
+                <span className="access-status-badge" data-status={user.usage_status}>{t(`adminAccess.usage.${user.usage_status ?? "no_recorded_activity"}`)}</span>
                 <Link to={`/admin/billing/users/${user.user_id}`}>{t("adminAccess.viewAccess")}</Link>
               </article>
             ))}

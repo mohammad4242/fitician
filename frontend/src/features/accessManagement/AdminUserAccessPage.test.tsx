@@ -111,3 +111,13 @@ it("rejects invalid custom dates locally and caps a huge URL offset", async () =
   await screen.findByTestId("access-user-member-1");
   expect(accessApi.searchAccessUsers).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 1_000_000 }));
 });
+
+it("preserves a draft search while changing sort order", async () => {
+  const user = userEvent.setup();
+  render(<MemoryRouter><AdminUserAccessPage /></MemoryRouter>);
+  await screen.findByTestId("access-user-member-1");
+  const input = screen.getByRole("searchbox");
+  await user.type(input, "draft");
+  await user.selectOptions(screen.getByLabelText("مرتب‌سازی کاربران"), "oldest");
+  expect(input).toHaveValue("draft");
+});

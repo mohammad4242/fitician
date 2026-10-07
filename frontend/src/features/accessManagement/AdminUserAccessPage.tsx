@@ -41,8 +41,9 @@ export function AdminUserAccessPage() {
   const english = i18n.resolvedLanguage === "en";
   const locale = english ? "en" : "fa-IR";
 
+  useEffect(() => { setInput(query); }, [query]);
+
   useEffect(() => {
-    setInput(query);
     if (customRangeIncomplete) {
       setPage(null);
       setLoadError(null);
@@ -226,9 +227,9 @@ function UserList({ users, locale }: { users: readonly AdminMemberSummary[]; loc
       {users.map((user) => (
         <article className="access-user-card" data-testid={`access-user-${user.user_id}`} key={user.user_id}>
           <div className="access-user-card__identity">
-            <span className="access-admin-code">{user.user_id}</span>
             <h2>{user.display_name ?? user.email ?? user.phone_number ?? user.user_id}</h2>
-            <p>{user.email ?? user.phone_number ?? "—"}</p>
+            <p><bdi>{user.email ?? user.phone_number ?? "—"}</bdi></p>
+            <details className="access-user-id"><summary>{t("adminAccess.userId")}</summary><small>{user.user_id}</small></details>
           </div>
           <dl className="access-user-card__facts">
             <Fact label={t("adminAccess.signupDate")} value={formatDate(user.created_at, locale)} />

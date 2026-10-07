@@ -452,3 +452,90 @@
   .admin-subscription-center__back-link,
   .admin-subscription-center__nav a { transition: none; }
 }
+
+/* Compact operational hierarchy, scoped to Subscriptions & Access. */
+.admin-subscription-center__back-link { color: var(--fitician-ink); }
+.admin-subscription-center__hero { min-height: 6rem; padding: 1.25rem 1.5rem; }
+.admin-subscription-center__hero h1 { font-size: clamp(1.5rem, 3vw, 2rem); }
+.admin-subscription-center__signal { width: 3rem; height: 3rem; border-width: .4rem; }
+.access-admin-page__header h1 { font-size: clamp(1.35rem, 2.5vw, 1.8rem); }
+.access-admin-page__header p, .access-user-detail__header p { overflow-wrap: anywhere; }
+.access-overview-definitions { margin-block: .5rem .9rem; color: var(--fitician-muted); font-size: .75rem; line-height: 1.7; }
+.access-overview-definitions summary { cursor: pointer; width: fit-content; }
+.access-overview-definitions p { max-width: 70ch; }
+.access-overview-metrics { display: grid; grid-template-columns: 1fr; gap: .85rem; }
+.access-overview-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.access-overview-metric { padding: 1rem 1.15rem; box-shadow: none; border-block-start: 3px solid var(--fitician-aqua); }
+.access-overview-metric strong { font-size: clamp(1.6rem, 3vw, 2rem); }
+.access-overview-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.access-overview-group { min-width: 0; padding: .95rem 1rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface); }
+.access-overview-group h2 { margin: 0 0 .75rem; font-size: .85rem; }
+.access-overview-group dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: 0; }
+.access-overview-group dl > div { min-width: 0; display: grid; gap: .35rem; }
+.access-overview-group dt { color: var(--fitician-muted); font-size: .7rem; line-height: 1.5; }
+.access-overview-group dd { margin: 0; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.access-overview-panel > header a { color: var(--fitician-ink); font-size: .75rem; font-weight: 750; }
+.access-overview-recent article { grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto auto; }
+.access-overview-recent article > *, .access-user-card > * { min-width: 0; overflow-wrap: anywhere; }
+.access-status-badge { display: inline-flex; width: fit-content; align-items: center; gap: .35rem; padding: .18rem .55rem; border: 1px solid var(--fitician-line); border-radius: 999px; background: var(--fitician-surface-subtle); color: var(--fitician-muted); font-size: .68rem; font-weight: 700; line-height: 1.55; }
+.access-status-badge[data-status="active"] { color: var(--fitician-ink); border-color: var(--fitician-aqua); }
+.access-user-card { padding: .85rem 1rem; box-shadow: none; }
+.access-user-card__identity h2 { font-size: .95rem; overflow-wrap: anywhere; }
+.access-user-card__identity p { overflow-wrap: anywhere; }
+.access-user-id { color: var(--fitician-muted); font-size: .65rem; }
+.access-user-id summary { cursor: pointer; width: fit-content; }
+.access-user-id small { display: block; overflow-wrap: anywhere; direction: ltr; text-align: start; margin-block-start: .25rem; }
+.access-user360__summary { grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 1rem; }
+.access-user360__summary dd { line-height: 1.6; font-variant-numeric: tabular-nums; }
+.access-user360__usage { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; padding: .85rem 1rem; gap: .75rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-lg); background: var(--fitician-surface-subtle); }
+.access-user360__usage div { min-width: 0; display: grid; gap: .3rem; }
+.access-user360__usage dt { font-size: .68rem; color: var(--fitician-muted); }
+.access-user360__usage dd { margin: 0; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.access-user360__identity-details { color: var(--fitician-muted); font-size: .72rem; }
+.access-user360__identity-details summary { width: fit-content; cursor: pointer; padding-block: .25rem; }
+.access-user360__identity-details dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.access-user360__identity-details dd { margin: .3rem 0 0; overflow-wrap: anywhere; color: var(--fitician-ink); }
+.access-user360__tabs { padding: .4rem; gap: .35rem; }
+.access-user360__tabs button { flex: 1 1 auto; min-height: 2.6rem; }
+.access-user360__tabs button[aria-pressed="true"] { color: var(--fitician-ink); box-shadow: inset 0 -2px 0 var(--fitician-aqua); }
+.access-user360__panel > h3 { padding-block-end: .65rem; border-block-end: 1px solid var(--fitician-line); }
+.access-user360__items article { overflow-wrap: anywhere; line-height: 1.6; }
+.access-user360__timeline .access-user360__items article { position: relative; grid-template-columns: minmax(0, 1fr) auto; padding: .9rem 0 .9rem 2rem; padding-inline: 2rem 0; border-block-start: 0; }
+.access-user360__timeline .access-user360__items article::before { content: ""; position: absolute; inset-inline-start: .45rem; inset-block: 1.5rem -.75rem; width: 1px; background: var(--fitician-line-strong); }
+.access-user360__timeline .access-user360__items article:last-child::before { display: none; }
+.access-activity-marker { position: absolute; inset-inline-start: .15rem; inset-block-start: 1.15rem; width: .7rem; height: .7rem; border-radius: 50%; background: var(--fitician-aqua); box-shadow: 0 0 0 4px var(--fitician-surface-subtle); }
+.access-activity-marker[data-category="auth"] { background: var(--fitician-muted); }
+.access-activity-marker[data-category="billing"] { background: var(--fitician-ink); }
+.access-user360__timeline article > time { text-align: end; font-variant-numeric: tabular-nums; }
+.access-user360__timeline article > small, .access-user360__timeline article > .access-status-badge { grid-column: 1 / -1; }
+.access-login-title { display: flex; justify-content: space-between; align-items: center; gap: .65rem; }
+.access-plan-disclosure { margin-block-start: .3rem; border: 1px solid var(--fitician-line); border-radius: var(--fitician-radius-md); }
+.access-plan-disclosure > summary { cursor: pointer; padding: .55rem .7rem; color: var(--fitician-ink); font-weight: 750; }
+.access-plan-disclosure[open] > summary { border-block-end: 1px solid var(--fitician-line); }
+.access-plan-disclosure .access-user360__detail { max-height: 32rem; overflow: auto; }
+.access-user-pagination { font-variant-numeric: tabular-nums; }
+.access-user-pagination button { min-height: 2.5rem; }
+.access-user-pagination button:disabled { opacity: .45; cursor: default; }
+.access-user360 button:focus-visible, .access-plan-disclosure > summary:focus-visible, .access-user-id > summary:focus-visible, .access-overview-definitions > summary:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 3px; }
+@media (max-width: 900px) {
+  .access-overview-recent article { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .access-user360__summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .admin-subscription-center__hero { min-height: 0; padding: 1rem; }
+  .admin-subscription-center__signal { display: none; }
+  .access-overview-metrics { grid-template-columns: 1fr; }
+  .access-overview-metric { padding: .7rem; }
+  .access-overview-metric span { font-size: .65rem; line-height: 1.5; }
+  .access-overview-groups { grid-template-columns: 1fr; }
+  .access-overview-recent article { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; padding-block: .8rem; }
+  .access-overview-recent article > div:first-child { grid-column: 1 / -1; }
+  .access-user360__summary, .access-user360__identity-details dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .access-user360__usage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .access-user360__tabs button { flex: 1 1 28%; }
+  .access-user360__timeline .access-user360__items article { grid-template-columns: 1fr; }
+  .access-user360__timeline article > time { text-align: start; }
+}
+.access-overview-group dl[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.access-user360__timeline .access-user360__items { max-height: 34rem; overflow: auto; overscroll-behavior: contain; }
+.access-user360__timeline .access-user360__items:focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 3px; }

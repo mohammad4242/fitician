@@ -33,3 +33,11 @@ it("shows a loading state and an error state", async () => {
   rejectRequest(new Error("offline"));
   expect(await screen.findByRole("alert")).toBeInTheDocument();
 });
+
+it("groups metrics into readable operational sections", async () => {
+  render(<MemoryRouter><AdminAccessOverviewPage /></MemoryRouter>);
+  expect(await screen.findByRole("heading", { name: "ثبت‌نام و رشد" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "فعالیت کاربران" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "خریدهای موفق" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "استفاده از محصول" })).toBeInTheDocument();
+});

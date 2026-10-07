@@ -28,6 +28,9 @@ import {
 } from "./adminAccessApi";
 
 type Props = {
+  accessContent?: React.ReactNode;
+  billingContent?: React.ReactNode;
+  accessRequest?: number;
   userId: string;
   member: {
     display_name: string | null;
@@ -40,16 +43,17 @@ type Props = {
   };
 };
 
-type Tab = "activity" | "plans" | "progress";
+type Tab = "activity" | "logins" | "plans" | "progress" | "accessTab" | "billingTab";
 const PAGE_LIMIT = 25;
 
-export function AdminUser360Sections({ userId, member }: Props) {
+export function AdminUser360Sections({ userId, member, accessContent, billingContent, accessRequest = 0 }: Props) {
   const { i18n, t } = useTranslation();
   const english = i18n.resolvedLanguage === "en";
   const [insights, setInsights] = useState<UserInsights | null>(null);
   const [insightsError, setInsightsError] = useState(false);
   const [insightsRetry, setInsightsRetry] = useState(0);
   const [tab, setTab] = useState<Tab>("activity");
+  useEffect(() => { if (accessRequest > 0) setTab("accessTab"); }, [accessRequest]);
   const dateTime = (value: string) => formatTehranDateTimeForLocale(value, english ? "en" : "fa-IR", { dateStyle: "medium", timeStyle: "medium" });
 
   useEffect(() => {
@@ -102,13 +106,24 @@ export function AdminUser360Sections({ userId, member }: Props) {
       )}
 
       <dl className="access-user360__summary">
-        {summary.map(([label, value]) => (
-          <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
-        ))}
+        {[1, 3, 4, 6, 7].map((index) => {
+          const [label, value] = summary[index]!;
+          return <div key={label}><dt>{label}</dt><dd>{value}</dd></div>;
+        })}
       </dl>
+      <dl className="access-user360__usage">
+        {summary.slice(8).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+      </dl>
+      <details className="access-user360__identity-details">
+        <summary>{t("adminAccess.identityDetails")}</summary>
+        <dl>{[0, 2, 5].map((index) => {
+          const [label, value] = summary[index]!;
+          return <div key={label}><dt>{label}</dt><dd><bdi>{value}</bdi></dd></div>;
+        })}</dl>
+      </details>
 
       <nav className="access-user360__tabs" aria-label={t("adminAccess.user360")}>
-        {(["activity", "plans", "progress"] as const).map((item) => (
+        {(["activity", "logins", "plans", "progress", ...(accessContent ? ["accessTab"] as const : []), ...(billingContent ? ["billingTab"] as const : [])] as const).map((item) => (
           <button
             aria-pressed={tab === item}
             className="access-admin-button access-admin-button--quiet"
@@ -122,6 +137,9 @@ export function AdminUser360Sections({ userId, member }: Props) {
       </nav>
 
       {tab === "activity" && <ActivityTab userId={userId} dateTime={dateTime} />}
+      {tab === "logins" && <LoginsTab userId={userId} dateTime={dateTime} />}
+      {tab === "accessTab" && accessContent}
+      {tab === "billingTab" && billingContent}
       {tab === "plans" && <PlansTab userId={userId} dateTime={dateTime} />}
       {tab === "progress" && <ProgressTab userId={userId} dateTime={dateTime} />}
     </section>
@@ -130,25 +148,17 @@ export function AdminUser360Sections({ userId, member }: Props) {
 
 function ActivityTab({ userId, dateTime }: { userId: string; dateTime: (value: string) => string }) {
   const { t } = useTranslation();
-  return (
-    <>
-      <p className="access-user360__hint">{t("adminAccess.loginHistoryLimit")}</p>
-      <div className="access-user360__columns">
-        <PageSection
-          key={`${userId}-activity`}
-          title={t("adminAccess.activity")}
-          load={(offset) => getUserActivity(userId, { limit: PAGE_LIMIT, offset })}
-          render={(item: ActivityItem) => <ActivityRow item={item} dateTime={dateTime} />}
-        />
-        <PageSection
-          key={`${userId}-logins`}
-          title={t("adminAccess.logins")}
-          load={(offset) => getUserLogins(userId, { limit: PAGE_LIMIT, offset })}
-          render={(item: LoginItem) => <LoginRow item={item} dateTime={dateTime} />}
-        />
-      </div>
-    </>
-  );
+  return <PageSection key={`${userId}-activity`} title={t("adminAccess.activity")} className="access-user360__timeline"
+    load={(offset) => getUserActivity(userId, { limit: PAGE_LIMIT, offset })}
+    render={(item: ActivityItem) => <ActivityRow item={item} dateTime={dateTime} />} />;
+}
+
+function LoginsTab({ userId, dateTime }: { userId: string; dateTime: (value: string) => string }) {
+  const { t } = useTranslation();
+  return <><p className="access-user360__hint">{t("adminAccess.loginHistoryLimit")}</p>
+    <PageSection key={`${userId}-logins`} title={t("adminAccess.logins")}
+      load={(offset) => getUserLogins(userId, { limit: PAGE_LIMIT, offset })}
+      render={(item: LoginItem) => <LoginRow item={item} dateTime={dateTime} />} /></>;
 }
 
 function PlansTab({ userId, dateTime }: { userId: string; dateTime: (value: string) => string }) {
@@ -195,8 +205,10 @@ function PageSection<T extends { id: string }>({
   title,
   load,
   render,
+  className = "",
 }: {
   title: string;
+  className?: string;
   load: (offset: number) => Promise<Page<T>>;
   render: (item: T) => React.ReactNode;
 }) {
@@ -219,7 +231,7 @@ function PageSection<T extends { id: string }>({
   }, [offset, retry]);
 
   return (
-    <section className="access-user360__panel">
+    <section className={`access-user360__panel ${className}`}>
       <h3>{title}</h3>
       {page === null && !error && <p role="status">{t("adminAccess.loading")}</p>}
       {error && (
@@ -233,16 +245,16 @@ function PageSection<T extends { id: string }>({
       {page?.items.length === 0 && <p>{t("adminAccess.noRecords")}</p>}
       {page && page.items.length > 0 && (
         <>
-          <div className="access-user360__items">
+          <div className="access-user360__items" tabIndex={className ? 0 : undefined} role={className ? "region" : undefined} aria-label={className ? title : undefined}>
             {page.items.map((item) => <article key={item.id}>{render(item)}</article>)}
           </div>
           <small>{page.total} · {t("adminAccess.showingFirst", { count: page.items.length })}</small>
-          <div className="access-user-pagination">
-            <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - page.limit))}>
+          <div className="access-user-pagination" aria-label={t("adminAccess.recordPagination")}>
+            <button className="access-admin-button access-admin-button--quiet" type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - page.limit))}>
               {t("adminAccess.previousPage")}
             </button>
             <span>{Math.floor(offset / page.limit) + 1} / {Math.max(1, Math.ceil(page.total / page.limit))}</span>
-            <button type="button" disabled={offset + page.items.length >= page.total} onClick={() => setOffset(offset + page.limit)}>
+            <button className="access-admin-button access-admin-button--quiet" type="button" disabled={offset + page.items.length >= page.total} onClick={() => setOffset(offset + page.limit)}>
               {t("adminAccess.nextPage")}
             </button>
           </div>
@@ -255,7 +267,11 @@ function PageSection<T extends { id: string }>({
 function ActivityRow({ item, dateTime }: { item: ActivityItem; dateTime: (value: string) => string }) {
   const { t } = useTranslation();
   const eventTitle = t(`adminAccess.activityTypes.${item.event_type}`, { defaultValue: t("adminAccess.otherActivity") });
-  const metadata: string[] = [];
+  const metadata: string[] = [
+    typeof item.metadata.platform === "string" && t(`adminAccess.platforms.${item.metadata.platform}`, { defaultValue: t("adminAccess.unknownValue") }),
+    typeof item.metadata.auth_method === "string" && t(`adminAccess.authMethods.${item.metadata.auth_method}`, { defaultValue: t("adminAccess.unknownValue") }),
+    typeof item.metadata.device_name === "string" && item.metadata.device_name,
+  ].filter((value): value is string => typeof value === "string");
 
   for (const [key, value] of Object.entries(item.metadata)) {
     if (value == null) continue;
@@ -271,9 +287,10 @@ function ActivityRow({ item, dateTime }: { item: ActivityItem; dateTime: (value:
 
   return (
     <>
+      <span className="access-activity-marker" data-category={item.event_type.split(".")[0]} aria-hidden="true" />
       <strong>{eventTitle}</strong>
       <time dateTime={item.occurred_at}>{dateTime(item.occurred_at)}</time>
-      {item.source === "historical" && <span>{t("adminAccess.historicalEvidence")}</span>}
+      {item.source === "historical" && <span className="access-status-badge">{t("adminAccess.historicalEvidence")}</span>}
       {metadata.length > 0 && <small>{metadata.join(" · ")}</small>}
     </>
   );
@@ -294,7 +311,7 @@ function LoginRow({ item, dateTime }: { item: LoginItem; dateTime: (value: strin
   ].filter(Boolean).join(" · ");
   return (
     <>
-      <strong>{evidenceLabel}</strong>
+      <strong className="access-login-title">{evidenceLabel}<span className="access-status-badge">{item.platform ? t(`adminAccess.platforms.${item.platform}`) : "—"}</span></strong>
       <time dateTime={item.occurred_at}>{dateTime(item.occurred_at)}</time>
       <small>{details || "—"}</small>
     </>
@@ -371,7 +388,7 @@ function WorkoutCard({ userId, item, dateTime }: { userId: string; item: Workout
         {t(`adminAccess.reviewStatuses.${item.review_status}`, { defaultValue: t("adminAccess.unknownValue") })} · {" "}
         {item.duration_weeks} {t("adminAccess.weeks")} · {item.training_days} {t("adminAccess.trainingDays")}
       </small>
-      <details onToggle={(event) => { if (event.currentTarget.open) void loadDetails(); }}>
+      <details className="access-plan-disclosure" onToggle={(event) => { if (event.currentTarget.open) void loadDetails(); }}>
         <summary>{t("adminAccess.details")}</summary>
         {loading && <p role="status">{t("adminAccess.loading")}</p>}
         {error && (
@@ -448,7 +465,7 @@ function NutritionCard({ userId, item, dateTime }: { userId: string; item: Nutri
         {t(`adminAccess.budgetStatuses.${item.budget_status}`, { defaultValue: t("adminAccess.unknownValue") })} · {" "}
         {item.selected ? t("adminAccess.selected") : t("adminAccess.notSelected")}
       </small>
-      <details onToggle={(event) => { if (event.currentTarget.open) void loadDetails(); }}>
+      <details className="access-plan-disclosure" onToggle={(event) => { if (event.currentTarget.open) void loadDetails(); }}>
         <summary>{t("adminAccess.details")}</summary>
         {loading && <p role="status">{t("adminAccess.loading")}</p>}
         {error && (
