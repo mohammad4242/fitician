@@ -532,7 +532,7 @@
   .access-overview-recent article > div:first-child { grid-column: 1 / -1; }
   .access-user360__summary, .access-user360__identity-details dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .access-user360__usage { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .access-user360__tabs button { flex: 1 1 28%; }
+  .access-user360__tabs button { flex: 1 1 40%; overflow-wrap: normal; }
   .access-user360__timeline .access-user360__items article { grid-template-columns: 1fr; }
   .access-user360__timeline article > time { text-align: start; }
 }

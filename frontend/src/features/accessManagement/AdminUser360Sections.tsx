@@ -108,11 +108,11 @@ export function AdminUser360Sections({ userId, member, accessContent, billingCon
       <dl className="access-user360__summary">
         {[1, 3, 4, 6, 7].map((index) => {
           const [label, value] = summary[index]!;
-          return <div key={label}><dt>{label}</dt><dd>{value}</dd></div>;
+          return <div key={label}><dt>{label}</dt><dd><bdi>{value}</bdi></dd></div>;
         })}
       </dl>
       <dl className="access-user360__usage">
-        {summary.slice(8).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        {summary.slice(8).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><bdi>{value}</bdi></dd></div>)}
       </dl>
       <details className="access-user360__identity-details">
         <summary>{t("adminAccess.identityDetails")}</summary>

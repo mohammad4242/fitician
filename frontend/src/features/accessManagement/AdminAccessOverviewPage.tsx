@@ -202,7 +202,7 @@ function RecentUsers({ data, locale }: { data: AccessOverview; locale: string })
               <article key={user.user_id}>
                 <div>
                   <strong>{user.display_name ?? user.email ?? user.phone_number ?? user.user_id}</strong>
-                  <small>{user.email ?? user.phone_number ?? "—"}</small>
+                  <small><bdi>{user.email ?? user.phone_number ?? "—"}</bdi></small>
                 </div>
                 <div><small>{t("adminAccess.signupDate")}</small><span>{formatTehranDateForLocale(user.created_at, locale)}</span></div>
                 <div><small>{t("adminAccess.currentPackage")}</small><span>{t(`entitlements.packageLabels.${user.primary_package}`, { defaultValue: user.primary_package })}</span></div>

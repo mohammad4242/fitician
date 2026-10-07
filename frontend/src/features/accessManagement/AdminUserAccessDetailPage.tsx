@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -46,6 +46,7 @@ export function AdminUserAccessDetailPage() {
   const { i18n, t } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   const memberId = userId ?? "";
+  const activeMember = useRef(memberId);
   const [access, setAccess] = useState<AdminUserAccess | null>(null);
   const [campaigns, setCampaigns] = useState<AdminAccessCampaign[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
@@ -63,6 +64,16 @@ export function AdminUserAccessDetailPage() {
 
   useEffect(() => {
     let active = true;
+    activeMember.current = memberId;
+    setAccessRequest(0);
+    setAction(null);
+    setSelectedGrant(null);
+    setGrantForm(initialGrantForm);
+    setCampaignId("");
+    setReason("");
+    setActionError(null);
+    setFormValidationError(false);
+    setSaving(false);
     setState("loading");
     if (memberId === "") {
       setState("error");
@@ -104,12 +115,16 @@ export function AdminUserAccessDetailPage() {
     setFormValidationError(false);
     setActionError(null);
     setAction("campaign");
+    const requestedMember = memberId;
     void getCampaigns()
       .then((result) => {
+        if (activeMember.current !== requestedMember) return;
         setCampaigns(result);
         setActionError(null);
       })
-      .catch((cause: unknown) => setActionError(cause));
+      .catch((cause: unknown) => {
+        if (activeMember.current === requestedMember) setActionError(cause);
+      });
   }
 
   function openRevoke(grant: AdminGrant) {
@@ -130,7 +145,7 @@ export function AdminUserAccessDetailPage() {
 
   async function refresh() {
     const result = await getUserAccess(memberId);
-    setAccess(result);
+    if (activeMember.current === memberId) setAccess(result);
   }
 
   async function submitAction(event: FormEvent<HTMLFormElement>) {
@@ -152,12 +167,13 @@ export function AdminUserAccessDetailPage() {
           reason: grantForm.reason.trim(),
           client_idempotency_key: grantForm.client_idempotency_key.trim(),
         });
+        if (activeMember.current !== memberId) return;
         await refresh();
-        closeAction();
+        if (activeMember.current === memberId) closeAction();
       } catch (cause: unknown) {
-        setActionError(cause);
+        if (activeMember.current === memberId) setActionError(cause);
       } finally {
-        setSaving(false);
+        if (activeMember.current === memberId) setSaving(false);
       }
       return;
     }
@@ -169,12 +185,13 @@ export function AdminUserAccessDetailPage() {
       setSaving(true);
       try {
         await redeemUserCampaign(memberId, campaignId, reason.trim());
+        if (activeMember.current !== memberId) return;
         await refresh();
-        closeAction();
+        if (activeMember.current === memberId) closeAction();
       } catch (cause: unknown) {
-        setActionError(cause);
+        if (activeMember.current === memberId) setActionError(cause);
       } finally {
-        setSaving(false);
+        if (activeMember.current === memberId) setSaving(false);
       }
       return;
     }
@@ -186,12 +203,13 @@ export function AdminUserAccessDetailPage() {
       setSaving(true);
       try {
         await revokeUserAccess(selectedGrant.id, reason.trim());
+        if (activeMember.current !== memberId) return;
         await refresh();
-        closeAction();
+        if (activeMember.current === memberId) closeAction();
       } catch (cause: unknown) {
-        setActionError(cause);
+        if (activeMember.current === memberId) setActionError(cause);
       } finally {
-        setSaving(false);
+        if (activeMember.current === memberId) setSaving(false);
       }
     }
   }
@@ -215,8 +233,8 @@ export function AdminUserAccessDetailPage() {
             <p>{access.member.email ?? access.member.phone_number ?? access.member.user_id}</p>
           </div>
           <div className="access-user-detail__actions">
-            <button className="access-admin-button access-admin-button--primary" onClick={openGrant} type="button">{t("adminAccess.grantAccess")}</button>
-            <button className="access-admin-button access-admin-button--quiet" onClick={openCampaign} type="button">{t("adminAccess.applyCampaign")}</button>
+            <button className="access-admin-button access-admin-button--primary" disabled={saving} onClick={openGrant} type="button">{t("adminAccess.grantAccess")}</button>
+            <button className="access-admin-button access-admin-button--quiet" disabled={saving} onClick={openCampaign} type="button">{t("adminAccess.applyCampaign")}</button>
           </div>
         </header>
 
@@ -251,7 +269,7 @@ export function AdminUserAccessDetailPage() {
                   {grant.revoked_at !== null && <div><dt>{t("adminAccess.revokedAt")}</dt><dd>{formatDate(grant.revoked_at, english)}</dd></div>}
                 </dl>
                 {grant.revoked_at === null && (
-                  <button className="access-admin-button access-admin-button--quiet" onClick={() => openRevoke(grant)} type="button">{t("adminAccess.revokeAccess")}</button>
+                  <button className="access-admin-button access-admin-button--quiet" disabled={saving} onClick={() => openRevoke(grant)} type="button">{t("adminAccess.revokeAccess")}</button>
                 )}
               </article>
             ))}
@@ -262,7 +280,7 @@ export function AdminUserAccessDetailPage() {
           <section className="access-admin-form-card access-action-form" aria-label={actionLabel(action, t)}>
             <header>
               <div><p className="eyebrow eyebrow--accent">{t("adminAccess.reason")}</p><h2>{actionLabel(action, t)}</h2></div>
-              <button className="access-admin-button access-admin-button--quiet" onClick={closeAction} type="button">{t("adminAccess.cancel")}</button>
+              <button className="access-admin-button access-admin-button--quiet" disabled={saving} onClick={closeAction} type="button">{t("adminAccess.cancel")}</button>
             </header>
             <form onSubmit={(event) => void submitAction(event)}>
               {action === "grant" && (

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import "../../i18n";
@@ -351,4 +351,20 @@ it("shows human activity metadata and opens access management from its tab", asy
   expect(screen.getByRole("heading", { name: "خلاصه دسترسی‌ها" })).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "صورتحساب" }));
   expect(screen.getByRole("link", { name: /مشاهده سفارش/ })).toHaveAttribute("href", "/admin/billing/orders/order-1");
+});
+
+
+it("resets the access form when navigating to a different member", async () => {
+  accessApi.getUserAccess.mockImplementation((id: string) => Promise.resolve({ ...access, member: { ...access.member, user_id: id, display_name: id === "member-2" ? "عضو دوم" : access.member.display_name } }));
+  render(<MemoryRouter initialEntries={["/admin/billing/users/member-1"]}>
+    <Link to="/admin/billing/users/member-2">Next member</Link>
+    <Routes><Route path="/admin/billing/users/:userId" element={<AdminUserAccessDetailPage />} /></Routes>
+  </MemoryRouter>);
+  await userEvent.click(await screen.findByRole("button", { name: "اعطای دسترسی" }));
+  await userEvent.type(screen.getByLabelText("دلیل"), "first member reason");
+  await userEvent.click(screen.getByRole("link", { name: "Next member" }));
+  await screen.findByRole("heading", { name: "عضو دوم" });
+  expect(screen.getByRole("button", { name: "فعالیت‌ها" })).toHaveAttribute("aria-pressed", "true");
+  await userEvent.click(screen.getByRole("button", { name: "دسترسی" }));
+  expect(screen.queryByRole("textbox", { name: "دلیل" })).not.toBeInTheDocument();
 });
