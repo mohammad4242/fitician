@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.profile.models import BodyMeasurement, UserProfile
+from app.user_activity.models import UserActivityEvent
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 VALID_PROFILE = {
@@ -84,6 +85,15 @@ def test_patch_updates_stable_fields_and_appends_changed_weight(
 ) -> None:
     user_id = register(client)
     create_profile(client)
+    assert (
+        db.scalar(
+            select(UserActivityEvent).where(
+                UserActivityEvent.user_id == user_id,
+                UserActivityEvent.event_type == "profile.completed",
+            )
+        )
+        is not None
+    )
 
     response = client.patch(
         "/api/v1/profile",
@@ -94,6 +104,31 @@ def test_patch_updates_stable_fields_and_appends_changed_weight(
     assert response.status_code == 200
     assert response.json()["display_name"] == "New Name"
     assert response.json()["current_weight_kg"] == 75.25
+    assert (
+        db.scalar(
+            select(UserActivityEvent).where(
+                UserActivityEvent.user_id == user_id,
+                UserActivityEvent.event_type == "profile.updated",
+            )
+        )
+        is not None
+    )
+    changed_measurement = db.scalar(
+        select(BodyMeasurement).where(
+            BodyMeasurement.user_id == user_id,
+            BodyMeasurement.weight_kg == 75.25,
+        )
+    )
+    assert changed_measurement is not None
+    latest_measurement_event = db.scalar(
+        select(UserActivityEvent).where(
+            UserActivityEvent.user_id == user_id,
+            UserActivityEvent.event_type == "body.measurement_recorded",
+            UserActivityEvent.resource_id == str(changed_measurement.id),
+        )
+    )
+    assert latest_measurement_event is not None
+    assert latest_measurement_event.safe_metadata == {"weight_kg": 75.25}
     assert (
         db.scalar(
             select(func.count())

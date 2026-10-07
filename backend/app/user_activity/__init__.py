@@ -1,0 +1,1 @@
+"""Meaningful product activity events."""

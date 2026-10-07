@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.profile.models import BodyMeasurement, UserProfile
+from app.user_activity.service import record_activity
 
 METRIC_FIELDS = (
     "weight_kg",
@@ -87,6 +88,19 @@ def record_measurement(
         **snapshot,
     )
     db.add(row)
+    db.flush()
+    record_activity(
+        db,
+        user_id,
+        "body.measurement_recorded",
+        resource_type="body_measurement",
+        resource_id=str(row.id),
+        metadata={"weight_kg": float(row.weight_kg)}
+        if "weight_kg" in observed and row.weight_kg is not None
+        else {},
+        occurred_at=row.measured_at,
+        deduplication_key=f"body-measurement:{row.id}",
+    )
     db.commit()
     db.refresh(row)
     return BodyMeasurementCreated(id=row.id, recorded_at=row.measured_at, observed_fields=observed)

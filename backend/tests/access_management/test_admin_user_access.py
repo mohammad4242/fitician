@@ -47,7 +47,7 @@ def test_admin_can_search_by_email_phone_display_name_and_uuid(
     for query in ("searchable@EXAMPLE.COM", "09123456789", "ali searchable", str(user.id)):
         response = client.get("/api/v1/admin/access/users", params={"q": query})
         assert response.status_code == 200
-        assert any(item["user_id"] == str(user.id) for item in response.json())
+        assert any(item["user_id"] == str(user.id) for item in response.json()["items"])
 
 
 def test_user_access_detail_is_safe_and_includes_snapshot_and_all_grants(

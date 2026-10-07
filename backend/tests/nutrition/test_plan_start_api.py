@@ -223,7 +223,7 @@ def test_hard_blocked_member_cannot_read_existing_active_plan(
     started = client.post(
         f"/api/v1/nutrition/plans/{plan['id']}/start",
         headers=ORIGIN,
-        json={"start_date": date.today().isoformat(), "timezone": "UTC"},
+        json={"start_date": datetime.now(UTC).date().isoformat(), "timezone": "UTC"},
     )
     assert started.status_code == 200, started.text
 

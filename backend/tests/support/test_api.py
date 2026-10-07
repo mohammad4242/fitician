@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.notifications.models import NotificationInboxItem, NotificationOutboxEvent
+from app.user_activity.models import UserActivityEvent
 from tests.workout_reviews.test_review_access import _login, _user
 
 ORIGIN = {"Origin": "http://localhost:5173"}
@@ -46,6 +47,18 @@ def test_create_list_without_profile_and_idempotent_retry(client, db, test_setti
     repeated = client.post(BASE, headers=ORIGIN, json=payload)
     assert repeated.status_code == 201
     assert repeated.json()["id"] == ticket["id"]
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(UserActivityEvent)
+            .where(
+                UserActivityEvent.user_id == user.id,
+                UserActivityEvent.event_type == "support.ticket_created",
+                UserActivityEvent.resource_id == ticket["id"],
+            )
+        )
+        == 1
+    )
     assert client.get(BASE).json()["items"][0]["id"] == ticket["id"]
     detail = client.get(f"{BASE}/{ticket['id']}").json()
     assert detail["messages"][0]["body"] == payload["description"]

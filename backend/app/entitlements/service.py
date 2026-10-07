@@ -93,6 +93,24 @@ def resolve_access_snapshot(
 ) -> AccessSnapshot:
     reference = _utc_now(now)
     grants = list_active_grants(db, user_id, now=reference)
+    latest_trial = db.scalar(
+        select(UserAccessGrant)
+        .where(
+            UserAccessGrant.user_id == user_id,
+            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
+        )
+        .order_by(UserAccessGrant.starts_at.desc())
+        .limit(1)
+    )
+    return access_snapshot_from_grants(grants, latest_trial=latest_trial)
+
+
+def access_snapshot_from_grants(
+    grants: list[UserAccessGrant],
+    *,
+    latest_trial: UserAccessGrant | None = None,
+) -> AccessSnapshot:
+    """Canonical access policy, shared by single-user and bounded batch reads."""
     package_codes = {AccessPackageCode.FREE}
     for grant in grants:
         package_codes.add(AccessPackageCode(grant.package_code))
@@ -115,15 +133,7 @@ def resolve_access_snapshot(
         ),
         None,
     )
-    latest_trial = active_trial or db.scalar(
-        select(UserAccessGrant)
-        .where(
-            UserAccessGrant.user_id == user_id,
-            UserAccessGrant.package_code == AccessPackageCode.LAUNCH_TRIAL,
-        )
-        .order_by(UserAccessGrant.starts_at.desc())
-        .limit(1)
-    )
+    latest_trial = active_trial or latest_trial
     trial = TrialState(
         active=active_trial is not None,
         ends_at=latest_trial.ends_at if latest_trial is not None else None,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterator
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -24,6 +24,7 @@ from app.nutrition.models import (
     NutritionFoodItem,
     NutritionWeeklyPlan,
 )
+from app.user_activity.service import record_activity
 
 
 class TrackingError(Exception):
@@ -68,6 +69,7 @@ def submit_check_in(
             NutritionDailyCheckIn.entry_date == entry_date,
         )
     )
+    created = existing is None
     plan_revision_id = existing.plan_revision_id if existing else None
     # Prefill once. Later status/note updates must keep the recorded intake and
     # its original revision, including portions the user adjusted or skipped.
@@ -115,7 +117,7 @@ def submit_check_in(
                     warning_codes=[],
                 )
             )
-    if existing is None:
+    if created:
         existing = NutritionDailyCheckIn(
             user_id=user_id,
             entry_date=entry_date,
@@ -125,9 +127,23 @@ def submit_check_in(
         )
         db.add(existing)
     else:
+        assert existing is not None
         existing.status = status
         existing.plan_revision_id = plan_revision_id
         existing.note = note
+    assert existing is not None
+    if created:
+        db.flush()
+        record_activity(
+            db,
+            user_id,
+            "nutrition.daily_checkin",
+            resource_type="nutrition_checkin",
+            resource_id=str(existing.id),
+            metadata={"date": entry_date.isoformat()},
+            occurred_at=datetime.now(UTC),
+            deduplication_key=f"nutrition-checkin:{user_id}:{entry_date.isoformat()}",
+        )
     db.commit()
     return daily_summary(db, user_id, entry_date)
 
@@ -352,9 +368,7 @@ def edit_entry(
             }
             warning_codes = actual_intake_warnings(db, user_id, food)
             if is_photo_estimate:
-                warning_codes = list(
-                    dict.fromkeys(["PHOTO_ESTIMATE_APPROXIMATE", *warning_codes])
-                )
+                warning_codes = list(dict.fromkeys(["PHOTO_ESTIMATE_APPROXIMATE", *warning_codes]))
             entry.warning_codes = warning_codes
             if is_photo_estimate:
                 entry.source = NutritionConsumptionSource.PHOTO_ESTIMATED_EDITED

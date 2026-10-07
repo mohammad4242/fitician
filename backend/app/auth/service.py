@@ -52,6 +52,7 @@ from app.auth.security import (
     verify_password,
 )
 from app.config import Settings
+from app.user_activity.service import record_activity
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,7 @@ def _new_session(user: User, ttl_seconds: int, now: datetime) -> tuple[AuthSessi
     raw_token, token_hash = make_session_token()
     return (
         AuthSession(
+            id=uuid4(),
             user_id=user.id,
             token_hash=token_hash,
             expires_at=now + timedelta(seconds=ttl_seconds),
@@ -141,6 +143,8 @@ def issue_mobile_tokens(
     access_ttl_seconds: int,
     refresh_ttl_seconds: int,
     now: datetime | None = None,
+    auth_method: str = "password",
+    registered: bool = False,
 ) -> MobileAuthResult:
     issued_at = now or datetime.now(UTC)
     raw_access_token, access_hash = make_mobile_token()
@@ -156,6 +160,21 @@ def issue_mobile_tokens(
     )
     db.add(family)
     db.flush()
+    record_activity(
+        db,
+        user.id,
+        "auth.registered" if registered else "auth.login_succeeded",
+        resource_type="mobile_token_family",
+        resource_id=str(family.id),
+        metadata={
+            "platform": platform,
+            "auth_method": auth_method,
+            "app_version": app_version,
+            **({"device_name": device_name[:128]} if device_name else {}),
+        },
+        occurred_at=issued_at,
+        deduplication_key=f"mobile-auth:{family.id}",
+    )
     db.add(
         MobileAccessToken(
             family_id=family.id,
@@ -232,6 +251,16 @@ def register_user(
         provision_signup_campaigns(db, user.id, now=now)
         auth_session, raw_token = _new_session(user, ttl_seconds, now)
         db.add(auth_session)
+        record_activity(
+            db,
+            user.id,
+            "auth.registered",
+            resource_type="auth_session",
+            resource_id=str(auth_session.id),
+            metadata={"platform": "web", "auth_method": "password"},
+            occurred_at=now,
+            deduplication_key=f"web-auth:{auth_session.id}",
+        )
         db.add(
             EmailVerificationToken(
                 user_id=user.id,
@@ -262,8 +291,19 @@ def login_user(
 ) -> AuthResult:
     user = authenticate_password_user(db, payload)
 
-    auth_session, raw_token = _new_session(user, ttl_seconds, datetime.now(UTC))
+    now = datetime.now(UTC)
+    auth_session, raw_token = _new_session(user, ttl_seconds, now)
     db.add(auth_session)
+    record_activity(
+        db,
+        user.id,
+        "auth.login_succeeded",
+        resource_type="auth_session",
+        resource_id=str(auth_session.id),
+        metadata={"platform": "web", "auth_method": "password"},
+        occurred_at=now,
+        deduplication_key=f"web-auth:{auth_session.id}",
+    )
     try:
         db.commit()
     except SQLAlchemyError:
@@ -277,11 +317,12 @@ def _authenticate_google_user(
     identity: GoogleIdentity,
     now: datetime,
     settings: Settings | None = None,
-) -> User:
+) -> tuple[User, bool]:
     normalized_google_email = (
         normalize_email(identity.email) if identity.email is not None else None
     )
     user = db.scalar(select(User).where(User.google_sub == identity.sub).with_for_update())
+    registered = False
     if user is None:
         email_user = (
             db.scalar(select(User).where(User.email == normalized_google_email).with_for_update())
@@ -291,10 +332,10 @@ def _authenticate_google_user(
         if identity.email_verified and normalized_google_email is not None:
             if email_user is not None:
                 # Provider verification cannot establish who chose local credentials.
-                if (
-                    email_user.email_verified_at is None
-                    or email_user.google_sub not in {None, identity.sub}
-                ):
+                if email_user.email_verified_at is None or email_user.google_sub not in {
+                    None,
+                    identity.sub,
+                }:
                     raise GoogleAccountConflictError
                 user = email_user
                 user.google_sub = identity.sub
@@ -305,6 +346,7 @@ def _authenticate_google_user(
                     google_sub=identity.sub,
                     email_verified_at=now,
                 )
+                registered = True
                 db.add(user)
                 db.flush()
                 provision_signup_campaigns(db, user.id, now=now)
@@ -312,6 +354,7 @@ def _authenticate_google_user(
             if email_user is not None:
                 raise GoogleAccountConflictError
             user = User(google_sub=identity.sub)
+            registered = True
             db.add(user)
             db.flush()
             provision_signup_campaigns(db, user.id, now=now)
@@ -326,7 +369,7 @@ def _authenticate_google_user(
                 raise GoogleAccountConflictError
             user.email = normalized_google_email
             user.email_verified_at = now
-    return user
+    return user, registered
 
 
 def authenticate_google(
@@ -338,9 +381,19 @@ def authenticate_google(
 ) -> AuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_google_user(db, identity, now, settings)
+        user, registered = _authenticate_google_user(db, identity, now, settings)
         auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
         db.add(auth_session)
+        record_activity(
+            db,
+            user.id,
+            "auth.registered" if registered else "auth.login_succeeded",
+            resource_type="auth_session",
+            resource_id=str(auth_session.id),
+            metadata={"platform": "web", "auth_method": "google"},
+            occurred_at=now,
+            deduplication_key=f"web-auth:{auth_session.id}",
+        )
         db.commit()
         db.refresh(user)
     except GoogleAccountConflictError:
@@ -369,7 +422,7 @@ def authenticate_mobile_google(
 ) -> MobileAuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_google_user(db, identity, now, settings)
+        user, registered = _authenticate_google_user(db, identity, now, settings)
         return issue_mobile_tokens(
             db,
             user,
@@ -380,6 +433,8 @@ def authenticate_mobile_google(
             access_ttl_seconds=access_ttl_seconds,
             refresh_ttl_seconds=refresh_ttl_seconds,
             now=now,
+            auth_method="google",
+            registered=registered,
         )
     except GoogleAccountConflictError:
         db.rollback()
@@ -397,11 +452,10 @@ def _authenticate_apple_user(
     identity: AppleIdentity,
     now: datetime,
     settings: Settings | None = None,
-) -> User:
-    normalized_apple_email = (
-        normalize_email(identity.email) if identity.email is not None else None
-    )
+) -> tuple[User, bool]:
+    normalized_apple_email = normalize_email(identity.email) if identity.email is not None else None
     user = db.scalar(select(User).where(User.apple_sub == identity.sub).with_for_update())
+    registered = False
     if user is None:
         email_user = (
             db.scalar(select(User).where(User.email == normalized_apple_email).with_for_update())
@@ -411,10 +465,10 @@ def _authenticate_apple_user(
         if identity.email_verified and normalized_apple_email is not None:
             if email_user is not None:
                 # Provider verification cannot establish who chose local credentials.
-                if (
-                    email_user.email_verified_at is None
-                    or email_user.apple_sub not in {None, identity.sub}
-                ):
+                if email_user.email_verified_at is None or email_user.apple_sub not in {
+                    None,
+                    identity.sub,
+                }:
                     raise AppleAccountConflictError
                 user = email_user
                 user.apple_sub = identity.sub
@@ -425,6 +479,7 @@ def _authenticate_apple_user(
                     apple_sub=identity.sub,
                     email_verified_at=now,
                 )
+                registered = True
                 db.add(user)
                 db.flush()
                 provision_signup_campaigns(db, user.id, now=now)
@@ -432,6 +487,7 @@ def _authenticate_apple_user(
             if email_user is not None:
                 raise AppleAccountConflictError
             user = User(apple_sub=identity.sub)
+            registered = True
             db.add(user)
             db.flush()
             provision_signup_campaigns(db, user.id, now=now)
@@ -446,7 +502,7 @@ def _authenticate_apple_user(
                 raise AppleAccountConflictError
             user.email = normalized_apple_email
             user.email_verified_at = now
-    return user
+    return user, registered
 
 
 def authenticate_apple(
@@ -458,9 +514,19 @@ def authenticate_apple(
 ) -> AuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_apple_user(db, identity, now, settings)
+        user, registered = _authenticate_apple_user(db, identity, now, settings)
         auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
         db.add(auth_session)
+        record_activity(
+            db,
+            user.id,
+            "auth.registered" if registered else "auth.login_succeeded",
+            resource_type="auth_session",
+            resource_id=str(auth_session.id),
+            metadata={"platform": "web", "auth_method": "apple"},
+            occurred_at=now,
+            deduplication_key=f"web-auth:{auth_session.id}",
+        )
         db.commit()
         db.refresh(user)
     except AppleAccountConflictError:
@@ -489,7 +555,7 @@ def authenticate_mobile_apple(
 ) -> MobileAuthResult:
     now = datetime.now(UTC)
     try:
-        user = _authenticate_apple_user(db, identity, now, settings)
+        user, registered = _authenticate_apple_user(db, identity, now, settings)
         return issue_mobile_tokens(
             db,
             user,
@@ -500,6 +566,8 @@ def authenticate_mobile_apple(
             access_ttl_seconds=access_ttl_seconds,
             refresh_ttl_seconds=refresh_ttl_seconds,
             now=now,
+            auth_method="apple",
+            registered=registered,
         )
     except AppleAccountConflictError:
         db.rollback()
@@ -939,7 +1007,7 @@ def _verify_phone_otp_user(
     code: str,
     hmac_secret: str,
     settings: Settings | None = None,
-) -> User | None:
+) -> tuple[User, bool] | None:
     phone_number = normalize_iranian_phone(raw_phone_number)
     now = datetime.now(UTC)
     challenge = db.scalar(
@@ -977,12 +1045,13 @@ def _verify_phone_otp_user(
 
     challenge.consumed_at = now
     user = db.scalar(select(User).where(User.phone_number == phone_number))
+    registered = user is None
     if user is None:
         user = User(phone_number=phone_number)
         db.add(user)
         db.flush()
         provision_signup_campaigns(db, user.id, now=now)
-    return user
+    return user, registered
 
 
 def verify_phone_otp(
@@ -995,11 +1064,22 @@ def verify_phone_otp(
     settings: Settings | None = None,
 ) -> AuthResult | None:
     now = datetime.now(UTC)
-    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
-    if user is None:
+    verified = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
+    if verified is None:
         return None
+    user, registered = verified
     auth_session, raw_token = _new_session(user, session_ttl_seconds, now)
     db.add(auth_session)
+    record_activity(
+        db,
+        user.id,
+        "auth.registered" if registered else "auth.login_succeeded",
+        resource_type="auth_session",
+        resource_id=str(auth_session.id),
+        metadata={"platform": "web", "auth_method": "phone_otp"},
+        occurred_at=now,
+        deduplication_key=f"web-auth:{auth_session.id}",
+    )
     try:
         db.commit()
         db.refresh(user)
@@ -1024,9 +1104,10 @@ def authenticate_mobile_phone_otp(
     settings: Settings | None = None,
 ) -> MobileAuthResult | None:
     now = datetime.now(UTC)
-    user = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
-    if user is None:
+    verified = _verify_phone_otp_user(db, raw_phone_number, code, hmac_secret, settings)
+    if verified is None:
         return None
+    user, registered = verified
     return issue_mobile_tokens(
         db,
         user,
@@ -1037,6 +1118,8 @@ def authenticate_mobile_phone_otp(
         access_ttl_seconds=access_ttl_seconds,
         refresh_ttl_seconds=refresh_ttl_seconds,
         now=now,
+        auth_method="phone_otp",
+        registered=registered,
     )
 
 

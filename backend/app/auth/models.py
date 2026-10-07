@@ -35,6 +35,7 @@ class User(Base):
             "OR phone_number IS NOT NULL OR google_sub IS NOT NULL OR apple_sub IS NOT NULL",
             name="ck_users_login_identifier_required",
         ),
+        Index("ix_users_created_at", "created_at"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -77,7 +78,9 @@ class User(Base):
         cache_token = (
             photo.storage_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             if photo.storage_key
-            else str(int(version.timestamp() * 1_000_000)) if version is not None else None
+            else str(int(version.timestamp() * 1_000_000))
+            if version is not None
+            else None
         )
         suffix = f"?v={cache_token}" if cache_token is not None else ""
         return f"/api/v1/profile/photo/{self.id}{suffix}"

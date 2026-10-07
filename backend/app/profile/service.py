@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import cast
 from uuid import UUID
 
@@ -33,12 +33,28 @@ from app.profile.models import (
 from app.profile.schemas import ProfileCreate, ProfileUpdate, SharedProfileUpsert, calculate_age
 from app.profile.training_compatibility import require_supported_resistance_training_days
 from app.time_context import validate_timezone_name
+from app.user_activity.service import record_activity
 from app.workout_cycles.models import WorkoutCycle
 from app.workouts.program_engine.equipment import (
     derive_home_training_setup,
     equipment_for_home_training_setup,
     ordered_available_equipment,
 )
+
+
+def _measurement_activity_metadata(measurement: BodyMeasurement) -> dict[str, float]:
+    fields = {
+        "weight_kg": "weight_kg",
+        "waist_circumference_cm": "waist_cm",
+        "hip_circumference_cm": "hip_cm",
+        "shoulder_width_cm": "shoulder_cm",
+    }
+    return {
+        output: float(value)
+        for field, output in fields.items()
+        if field in (measurement.observed_fields or [])
+        and (value := getattr(measurement, field)) is not None
+    }
 
 
 @dataclass(frozen=True)
@@ -220,6 +236,26 @@ def create_profile(
         if not measurement_matches:
             db.add(measurement)
         db.flush()
+        record_activity(
+            db,
+            user_id,
+            "profile.completed",
+            resource_type="user_profile",
+            resource_id=str(profile.user_id),
+            occurred_at=datetime.now(UTC),
+            deduplication_key=f"profile:{user_id}:completed",
+        )
+        if not measurement_matches:
+            record_activity(
+                db,
+                user_id,
+                "body.measurement_recorded",
+                resource_type="body_measurement",
+                resource_id=str(measurement.id),
+                metadata=_measurement_activity_metadata(measurement),
+                occurred_at=measurement.measured_at,
+                deduplication_key=f"body-measurement:{measurement.id}",
+            )
         db.refresh(profile)
         db.refresh(measurement)
         _ = profile.training_caution_items
@@ -375,6 +411,11 @@ def update_profile(
     ):
         raise InvalidProfilePreferencesError
 
+    changed_fields = [
+        field_name
+        for field_name, value in supplied_fields.items()
+        if getattr(profile, field_name, None) != value
+    ]
     for field_name, value in supplied_fields.items():
         setattr(profile, field_name, value)
 
@@ -389,7 +430,8 @@ def update_profile(
         value != getattr(measurement, field_name)
         for field_name, value in supplied_circumferences.items()
     )
-    if cycle_id is not None or changed_weight or changed_circumferences:
+    measurement_changed = cycle_id is not None or changed_weight or changed_circumferences
+    if measurement_changed:
         measurement = BodyMeasurement(
             user_id=user_id,
             cycle_id=cycle_id,
@@ -419,6 +461,35 @@ def update_profile(
 
     try:
         db.flush()
+        if changed_fields:
+            body_fields = {
+                "current_weight_kg",
+                "shoulder_width_cm",
+                "shoulder_circumference_cm",
+                "waist_circumference_cm",
+                "hip_circumference_cm",
+            }
+            field_group = "body" if body_fields.intersection(changed_fields) else "training"
+            record_activity(
+                db,
+                user_id,
+                "profile.updated",
+                resource_type="user_profile",
+                resource_id=str(user_id),
+                metadata={"field_group": field_group},
+                occurred_at=datetime.now(UTC),
+            )
+        if measurement_changed:
+            record_activity(
+                db,
+                user_id,
+                "body.measurement_recorded",
+                resource_type="body_measurement",
+                resource_id=str(measurement.id),
+                metadata=_measurement_activity_metadata(measurement),
+                occurred_at=measurement.measured_at,
+                deduplication_key=f"body-measurement:{measurement.id}",
+            )
         db.refresh(profile)
         db.refresh(measurement)
         _ = profile.training_caution_items
@@ -531,18 +602,26 @@ def upsert_shared_profile(
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user_id).with_for_update())
     if profile is None:
         raise ProfileNotFoundError
-
-    profile.display_name = payload.display_name
-    profile.birth_date = payload.birth_date
-    profile.sex = payload.sex
-    profile.height_cm = payload.height_cm
-    profile.fitness_goal = payload.fitness_goal
+    shared_values = {
+        "display_name": payload.display_name,
+        "birth_date": payload.birth_date,
+        "sex": payload.sex,
+        "height_cm": payload.height_cm,
+        "fitness_goal": payload.fitness_goal,
+    }
+    changed_fields = [
+        field for field, value in shared_values.items() if getattr(profile, field) != value
+    ]
+    was_complete = all(getattr(profile, field) is not None for field in shared_values)
+    for field, value in shared_values.items():
+        setattr(profile, field, value)
     latest = db.scalar(
         select(BodyMeasurement)
         .where(BodyMeasurement.user_id == user_id)
         .order_by(BodyMeasurement.measured_at.desc(), BodyMeasurement.id.desc())
     )
-    if latest is None or latest.weight_kg != payload.current_weight_kg:
+    measurement_changed = latest is None or latest.weight_kg != payload.current_weight_kg
+    if measurement_changed:
         latest = BodyMeasurement(
             user_id=user_id,
             weight_kg=payload.current_weight_kg,
@@ -553,8 +632,40 @@ def upsert_shared_profile(
             hip_circumference_cm=latest.hip_circumference_cm if latest else None,
         )
         db.add(latest)
+    assert latest is not None
     try:
         db.flush()
+        if changed_fields:
+            record_activity(
+                db,
+                user_id,
+                "profile.updated",
+                resource_type="user_profile",
+                resource_id=str(user_id),
+                metadata={"field_group": "body" if "height_cm" in changed_fields else "profile"},
+                occurred_at=datetime.now(UTC),
+            )
+        if not was_complete and all(value is not None for value in shared_values.values()):
+            record_activity(
+                db,
+                user_id,
+                "profile.completed",
+                resource_type="user_profile",
+                resource_id=str(user_id),
+                occurred_at=datetime.now(UTC),
+                deduplication_key=f"profile:{user_id}:completed",
+            )
+        if measurement_changed:
+            record_activity(
+                db,
+                user_id,
+                "body.measurement_recorded",
+                resource_type="body_measurement",
+                resource_id=str(latest.id),
+                metadata=_measurement_activity_metadata(latest),
+                occurred_at=latest.measured_at,
+                deduplication_key=f"body-measurement:{latest.id}",
+            )
         db.refresh(profile)
         db.refresh(latest)
         db.expunge(profile)

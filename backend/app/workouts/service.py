@@ -46,6 +46,7 @@ from app.profile.training_compatibility import (
 from app.profile.training_focus import validate_user_priority_muscles
 from app.training_templates.bodyweight_reference import load_bodyweight_template
 from app.training_templates.engine_reference import load_template_references
+from app.user_activity.service import record_activity
 from app.workout_cycles.enums import WorkoutCycleStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleWeeklyCheckIn
 from app.workouts.ai_coach import (
@@ -1170,6 +1171,23 @@ class WorkoutGenerationService:
                 plan.user_id,
                 EntitlementCode.TRAINING_PLAN_GENERATE,
                 f"workout-plan:{plan.id}",
+            )
+            record_activity(
+                self._db,
+                plan.user_id,
+                "workout.plan_generated",
+                resource_type="workout_plan",
+                resource_id=str(plan.id),
+                metadata={
+                    "primary_goal": str(
+                        plan.primary_goal.value
+                        if hasattr(plan.primary_goal, "value")
+                        else plan.primary_goal
+                    ),
+                    "training_days": len(plan.days),
+                },
+                occurred_at=datetime.now(UTC),
+                deduplication_key=f"workout-plan:{plan.id}:generated",
             )
             self._db.commit()
         except (EntitlementQuotaExceededError, EntitlementRequiredError) as error:

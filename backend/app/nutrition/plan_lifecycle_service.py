@@ -32,6 +32,7 @@ from app.nutrition.plan_service import weekly_plan_response
 from app.nutrition.schemas import WeeklyPlanResponse
 from app.profile.models import UserProfile
 from app.time_context import local_date_for_timezone, validate_timezone_name
+from app.user_activity.service import record_activity
 
 
 def _plan_query() -> Select[tuple[NutritionWeeklyPlan]]:
@@ -168,6 +169,15 @@ def start_nutrition_plan(
         for day in plan.days:
             day.plan_date = start_date + timedelta(days=day.day_index)
         _persist_timezone(db, user_id=user_id, timezone_name=timezone_name)
+        record_activity(
+            db,
+            user_id,
+            "nutrition.plan_started",
+            resource_type="nutrition_plan",
+            resource_id=str(plan.id),
+            occurred_at=reference,
+            deduplication_key=f"nutrition-plan:{plan.id}:started",
+        )
 
     archive_superseded_future_nutrition_successors(
         db,

@@ -20,6 +20,7 @@ from app.time_context import (
     member_timezone_or_default,
     validate_timezone_name,
 )
+from app.user_activity.service import record_activity
 from app.workout_cycles.body_progress_schemas import (
     WorkoutCycleBodyProgressComparisonResponse,
     WorkoutCycleFeedbackBodyProgressContext,
@@ -341,6 +342,16 @@ def create_weekly_check_in(
     db.add(check_in)
     try:
         db.flush()
+        record_activity(
+            db,
+            user_id,
+            "workout.weekly_checkin",
+            resource_type="workout_weekly_checkin",
+            resource_id=str(check_in.id),
+            metadata={"week_number": week_number},
+            occurred_at=datetime.now(UTC),
+            deduplication_key=f"workout-weekly-checkin:{check_in.id}",
+        )
         db.commit()
         db.refresh(check_in)
     except SQLAlchemyError:
@@ -942,6 +953,15 @@ def start_cycle(
     )
     db.add_all(sessions)
     db.flush()
+    record_activity(
+        db,
+        user_id,
+        "workout.plan_started",
+        resource_type="workout_cycle",
+        resource_id=str(cycle.id),
+        occurred_at=cycle.started_at,
+        deduplication_key=f"workout-cycle:{cycle.id}:started",
+    )
     return cycle
 
 
@@ -1131,6 +1151,16 @@ def complete_current_cycle_session(
     session.skipped_at = None
     try:
         db.flush()
+        record_activity(
+            db,
+            user_id,
+            "workout.session_completed",
+            resource_type="workout_session",
+            resource_id=str(session.id),
+            metadata={"week_number": session.week_number, "session_number": session.session_number},
+            occurred_at=session.completed_at,
+            deduplication_key=f"workout-session:{session.id}:completed",
+        )
         db.commit()
         db.refresh(session)
     except SQLAlchemyError:
@@ -1161,6 +1191,16 @@ def skip_current_cycle_session(
     session.completed_at = None
     try:
         db.flush()
+        record_activity(
+            db,
+            user_id,
+            "workout.session_skipped",
+            resource_type="workout_session",
+            resource_id=str(session.id),
+            metadata={"week_number": session.week_number, "session_number": session.session_number},
+            occurred_at=session.skipped_at,
+            deduplication_key=f"workout-session:{session.id}:skipped",
+        )
         db.commit()
         db.refresh(session)
     except SQLAlchemyError:

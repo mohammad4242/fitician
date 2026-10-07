@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.access_management.repository import search_users as search_access_users_query
+from app.access_management.insights_router import router as insights_router
 from app.access_management.schemas import (
     AccessCampaignCreateRequest,
     AccessCampaignResponse,
@@ -12,7 +12,6 @@ from app.access_management.schemas import (
     AdminCampaignRedemptionResponse,
     AdminGrantRequest,
     AdminGrantResponse,
-    AdminMemberSummaryResponse,
     AdminUserAccessResponse,
     ManualCampaignRedemptionRequest,
     RevokeGrantRequest,
@@ -24,7 +23,6 @@ from app.access_management.service import (
     grant_response,
     list_campaign_responses,
     manual_redemption_response,
-    member_summary,
     redeem_campaign,
     revoke_grant,
     set_campaign_active,
@@ -146,19 +144,6 @@ def redeem_access_campaign(
     return manual_redemption_response(db, result)
 
 
-@router.get("/users", response_model=list[AdminMemberSummaryResponse])
-def search_access_users(
-    db: DatabaseSession,
-    q: str | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 25,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> list[AdminMemberSummaryResponse]:
-    return [
-        member_summary(db, user)
-        for user in search_access_users_query(db, q, limit=limit, offset=offset)
-    ]
-
-
 @router.get("/users/{user_id}", response_model=AdminUserAccessResponse)
 def read_user_access(user_id: UUID, db: DatabaseSession) -> AdminUserAccessResponse:
     member, snapshot, grants = user_access_response(db, user_id)
@@ -215,3 +200,7 @@ def revoke_access_grant(
     )
     _commit(db)
     return grant_response(db, result.grant)
+
+
+# Focused read routes share the existing Admin access boundary.
+router.include_router(insights_router)

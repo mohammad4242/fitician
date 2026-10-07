@@ -8,6 +8,7 @@ from app.billing.enums import BillingOfferCode
 from app.billing.models import BillingOfferConfig, BillingOrder
 from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.models import UserAccessGrant
+from app.user_activity.models import UserActivityEvent
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 PASSWORD = "long password"
@@ -84,6 +85,18 @@ def test_verified_fake_payment_fulfills_once(client, db: Session) -> None:
     persisted_order = db.get(BillingOrder, order["id"])
     assert persisted_order is not None
     assert persisted_order.access_grant_id == paid_grants[0].id
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(UserActivityEvent)
+            .where(
+                UserActivityEvent.user_id == user.id,
+                UserActivityEvent.event_type == "billing.order_paid",
+                UserActivityEvent.resource_id == str(order["id"]),
+            )
+        )
+        == 1
+    )
 
 
 def test_failed_fake_payment_does_not_create_paid_grant(client, db: Session) -> None:

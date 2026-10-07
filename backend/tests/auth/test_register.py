@@ -10,6 +10,7 @@ from app.auth.models import AuthSession, User
 from app.config import Settings
 from app.database.session import get_db
 from app.main import create_app
+from app.user_activity.models import UserActivityEvent
 
 
 def test_register_creates_user_session_and_cookie(client: TestClient, db: Session) -> None:
@@ -26,7 +27,38 @@ def test_register_creates_user_session_and_cookie(client: TestClient, db: Sessio
     user = db.scalar(select(User).where(User.email == "new@example.com"))
     assert user is not None
     assert user.password_hash != "long password"
-    assert db.scalar(select(AuthSession).where(AuthSession.user_id == user.id)) is not None
+    session = db.scalar(select(AuthSession).where(AuthSession.user_id == user.id))
+    assert session is not None
+    event = db.scalar(select(UserActivityEvent).where(UserActivityEvent.user_id == user.id))
+    assert event is not None
+    assert event.event_type == "auth.registered"
+    assert event.resource_id == str(session.id)
+    assert event.deduplication_key == f"web-auth:{session.id}"
+    assert event.safe_metadata == {"platform": "web", "auth_method": "password"}
+
+
+def test_each_registration_records_a_distinct_explicit_auth_event(
+    client: TestClient, db: Session
+) -> None:
+    headers = {"Origin": "http://localhost:5173"}
+    for email in ("one@example.com", "two@example.com"):
+        assert (
+            client.post(
+                "/api/v1/auth/register",
+                headers=headers,
+                json={"email": email, "password": "long password"},
+            ).status_code
+            == 201
+        )
+
+    events = db.scalars(
+        select(UserActivityEvent)
+        .join(User, User.id == UserActivityEvent.user_id)
+        .where(User.email.in_(["one@example.com", "two@example.com"]))
+    ).all()
+    assert len(events) == 2
+    assert len({event.resource_id for event in events}) == 2
+    assert len({event.deduplication_key for event in events}) == 2
 
 
 def test_register_rejects_duplicate_email(client: TestClient) -> None:

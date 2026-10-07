@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
@@ -11,6 +11,7 @@ from app.exercises.enums import MuscleGroup
 from app.profile.enums import FitnessGoal, Sex, TrainingLocation
 from app.profile.models import BodyMeasurement, UserProfile
 from app.program_timeline.service import build_program_timeline
+from app.user_activity.models import UserActivityEvent
 from app.workout_cycles.enums import WorkoutCycleSessionStatus
 from app.workout_cycles.models import WorkoutCycle, WorkoutCycleSession
 from app.workout_cycles.service import (
@@ -222,6 +223,18 @@ def test_complete_session_transition_is_idempotently_rejected_after_finish(
 
     assert completed.status is WorkoutCycleSessionStatus.COMPLETED
     assert completed.completed_at is not None
+    event = db.scalar(
+        select(UserActivityEvent).where(
+            UserActivityEvent.user_id == user.id,
+            UserActivityEvent.event_type == "workout.session_completed",
+            UserActivityEvent.resource_id == str(session.id),
+        )
+    )
+    assert event is not None
+    assert event.safe_metadata == {
+        "week_number": session.week_number,
+        "session_number": session.session_number,
+    }
     with pytest.raises(WorkoutCycleSessionAlreadyFinishedError):
         complete_current_cycle_session(db, user_id=user.id, session_id=session.id)
 
@@ -325,6 +338,17 @@ def test_start_cycle_is_idempotent_for_same_date_and_conflicts_for_new_date(db: 
     same = begin_cycle(db, user.id, plan)
 
     assert same.id == first.id
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(UserActivityEvent)
+            .where(
+                UserActivityEvent.user_id == user.id,
+                UserActivityEvent.event_type == "workout.plan_started",
+            )
+        )
+        == 1
+    )
     with pytest.raises(WorkoutCycleAlreadyStartedError):
         begin_cycle(db, user.id, plan, date(2026, 9, 13))
 

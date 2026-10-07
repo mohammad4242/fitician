@@ -61,6 +61,7 @@ from app.notifications.recipients import enqueue_specialist_notification
 from app.profile.enums import FitnessGoal, Sex
 from app.profile.models import BodyMeasurement, UserProfile
 from app.resilience.policy import bounded_backoff_seconds
+from app.user_activity.service import record_activity
 
 
 class BodyAnalysisNotFoundError(LookupError):
@@ -289,6 +290,7 @@ not_assessable or low evidence when a responsible visual comparison is not possi
 sex, goals, measurements, health, posture, strength, training history, or future potential.
 Do not include any field that is not declared by the schema."""
 
+
 class BodyAnalysisService:
     def __init__(self, db: Session) -> None:
         self._db = db
@@ -495,9 +497,7 @@ class BodyAnalysisService:
     def _photos_for_session(self, session_id: UUID) -> tuple[BodyPhoto, ...]:
         return tuple(
             self._db.scalars(
-                select(BodyPhoto)
-                .where(BodyPhoto.session_id == session_id)
-                .order_by(BodyPhoto.view)
+                select(BodyPhoto).where(BodyPhoto.session_id == session_id).order_by(BodyPhoto.view)
             ).all()
         )
 
@@ -553,9 +553,7 @@ class BodyAnalysisService:
         **entries: object,
     ) -> dict[str, object]:
         raw_result = (
-            deepcopy(body_analysis.raw_result)
-            if isinstance(body_analysis.raw_result, dict)
-            else {}
+            deepcopy(body_analysis.raw_result) if isinstance(body_analysis.raw_result, dict) else {}
         )
         raw_result.update(entries)
         return raw_result
@@ -751,6 +749,16 @@ class BodyAnalysisService:
             analysis.status = BodyAnalysisStatus.REVIEW_PENDING
             analysis.completed_at = datetime.now(UTC)
             analysis.session.state = BodyPhotoSessionState.REVIEW_PENDING
+            record_activity(
+                self._db,
+                analysis.session.user_id,
+                "body_analysis.completed",
+                resource_type="body_analysis",
+                resource_id=str(analysis.id),
+                metadata={"revision": analysis.revision},
+                occurred_at=analysis.completed_at,
+                deduplication_key=f"body-analysis:{analysis.id}:completed",
+            )
             self._db.add(
                 BodyAnalysisResultVersion(
                     analysis_id=analysis.id,
@@ -1048,9 +1056,7 @@ class BodyAnalysisService:
             raise BodyAnalysisInputError("three standardized headless views are required")
         return photos
 
-    def _image_inputs(
-        self, images: tuple[BodyPhoto, ...]
-    ) -> tuple[ImageInput, ...]:
+    def _image_inputs(self, images: tuple[BodyPhoto, ...]) -> tuple[ImageInput, ...]:
         return tuple(
             ImageInput(
                 label=photo.view.value,
@@ -1086,9 +1092,7 @@ class BodyAnalysisService:
             input_payload["profile_context"] = profile_context
         return StructuredGenerationRequest(
             system_prompt=(
-                _ANALYSIS_V4_PROMPT
-                if config.schema_version == "4.0"
-                else _ANALYSIS_PROMPT
+                _ANALYSIS_V4_PROMPT if config.schema_version == "4.0" else _ANALYSIS_PROMPT
             ),
             input_payload=input_payload,
             response_schema=(

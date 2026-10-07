@@ -25,6 +25,7 @@ from app.program_conversations import models as conversation_models  # noqa: F40
 from app.rate_limits import models as rate_limit_models  # noqa: F401
 from app.support import models as support_models  # noqa: F401
 from app.training_templates import models as training_template_models  # noqa: F401
+from app.user_activity import models as user_activity_models  # noqa: F401
 from app.workout_cycles import (
     body_progress_models as workout_cycle_body_progress_models,  # noqa: F401
 )

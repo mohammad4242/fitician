@@ -22,6 +22,7 @@ from app.support.schemas import (
     TicketPage,
     TicketResponse,
 )
+from app.user_activity.service import record_activity
 
 
 def fail(code: str, status: int = 404) -> NoReturn:
@@ -84,6 +85,17 @@ def create_ticket(db: Session, user: User, payload: TicketInput) -> TicketRespon
     )
     db.add(ticket)
     db.flush()
+    category = ticket.category.value if hasattr(ticket.category, "value") else ticket.category
+    record_activity(
+        db,
+        user.id,
+        "support.ticket_created",
+        resource_type="support_ticket",
+        resource_id=str(ticket.id),
+        metadata={"category": str(category)},
+        occurred_at=now,
+        deduplication_key=f"support-ticket:{ticket.id}:created",
+    )
     db.add(
         SupportMessage(
             ticket_id=ticket.id,

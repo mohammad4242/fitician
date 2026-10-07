@@ -16,6 +16,7 @@ from app.entitlements.catalog import package_definition
 from app.entitlements.enums import AccessPackageCode, GrantSource
 from app.entitlements.models import UserAccessGrant
 from app.entitlements.service import grant_package
+from app.user_activity.service import record_activity
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,6 +127,16 @@ def fulfill_paid_order(
     order.status = BillingOrderStatus.PAID
     order.paid_at = order.paid_at or reference
     db.flush()
+    record_activity(
+        db,
+        order.user_id,
+        "billing.order_paid",
+        resource_type="billing_order",
+        resource_id=str(order.id),
+        metadata={"offer_code": order.offer_code.value},
+        occurred_at=order.paid_at,
+        deduplication_key=f"billing-order:{order.id}:paid",
+    )
     db.commit()
     db.refresh(order)
     return FulfillmentResult(order=order, access_grant=access_grant)

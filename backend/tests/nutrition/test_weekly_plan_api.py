@@ -41,6 +41,7 @@ from app.nutrition.models import (
     NutritionWeeklyPlan,
 )
 from app.nutrition.planner_engine import GenerationOutcome, NutrientComparison, PlannerResult
+from app.user_activity.models import UserActivityEvent
 
 ORIGIN = {"Origin": "http://localhost:5173"}
 
@@ -351,6 +352,17 @@ def test_generation_returns_visible_seven_day_draft_and_creates_review(
     assert body["plan"]["lifecycle_status"] == "pending_physician_review"
     assert body["plan"]["is_user_visible"] is True
     assert body["plan"]["review_status"] == "pending"
+    user = db.scalar(select(User).where(User.email == "weekly-plan-success@example.com"))
+    assert user is not None
+    generation_event = db.scalar(
+        select(UserActivityEvent).where(
+            UserActivityEvent.user_id == user.id,
+            UserActivityEvent.event_type == "nutrition.plan_generated",
+            UserActivityEvent.resource_id == body["plan"]["id"],
+        )
+    )
+    assert generation_event is not None
+    assert generation_event.safe_metadata["revision"] == body["plan"]["revision"]
 
     assert body["plan"]["physician_approved"] is False
     assert len(body["plan"]["days"]) == 7

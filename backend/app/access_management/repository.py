@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
 from app.access_management.enums import AccessCampaignKind, CampaignSurface
 from app.access_management.models import AccessCampaign, AccessCampaignRedemption
@@ -24,6 +25,7 @@ def get_campaign(
     if lock:
         statement = statement.with_for_update()
     return db.scalar(statement)
+
 
 def get_campaign_by_code(db: Session, code: str) -> AccessCampaign | None:
     return db.scalar(select(AccessCampaign).where(AccessCampaign.code == code))
@@ -129,13 +131,12 @@ def search_users(
     limit: int = 25,
     offset: int = 0,
 ) -> list[User]:
-    statement = (
-        select(User)
-        .outerjoin(UserProfile, UserProfile.user_id == User.id)
-        .order_by(User.created_at.desc(), User.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    statement = search_users_statement(query).order_by(User.created_at.desc(), User.id.desc())
+    return list(db.scalars(statement.limit(limit).offset(offset)).all())
+
+
+def search_users_statement(query: str | None) -> Select[tuple[User]]:
+    statement = select(User).outerjoin(UserProfile, UserProfile.user_id == User.id)
     normalized_query = query.strip() if query is not None else ""
     if normalized_query:
         filters: list[ColumnElement[bool]] = [
@@ -151,5 +152,5 @@ def search_users(
             filters.append(User.id == UUID(normalized_query))
         except ValueError:
             pass
-        statement = statement.where(or_(*filters)).distinct()
-    return list(db.scalars(statement).all())
+        statement = statement.where(or_(*filters))
+    return statement

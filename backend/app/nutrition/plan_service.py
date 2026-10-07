@@ -150,6 +150,7 @@ from app.nutrition.service import current_safety_decision
 from app.profile.models import UserProfile
 from app.profile.review_summary import ReviewProfileSummary
 from app.time_context import local_date_for_timezone, member_timezone_or_default
+from app.user_activity.service import record_activity
 
 _HARD_EXCLUSION_KINDS = {
     FoodItemKind.NEVER_SUGGEST,
@@ -2005,6 +2006,16 @@ def _persist_successful_plan(
     )
     db.add(plan)
     db.flush()
+    record_activity(
+        db,
+        plan.user_id,
+        "nutrition.plan_generated",
+        resource_type="nutrition_plan",
+        resource_id=str(plan.id),
+        metadata={"revision": plan.revision},
+        occurred_at=now or datetime.now(UTC),
+        deduplication_key=f"nutrition-plan:{plan.id}:generated",
+    )
     return plan
 
 
@@ -2176,6 +2187,16 @@ def _persist_ideal_plan(
     )
     db.add(plan)
     db.flush()
+    record_activity(
+        db,
+        plan.user_id,
+        "nutrition.plan_generated",
+        resource_type="nutrition_plan",
+        resource_id=str(plan.id),
+        metadata={"revision": plan.revision},
+        occurred_at=now or datetime.now(UTC),
+        deduplication_key=f"nutrition-plan:{plan.id}:generated",
+    )
     return plan
 
 

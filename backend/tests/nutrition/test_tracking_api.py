@@ -19,6 +19,7 @@ from app.nutrition.models import (
     NutritionWeeklyPlan,
     NutritionWeeklyPlanMeal,
 )
+from app.user_activity.models import UserActivityEvent
 from tests.nutrition.test_weekly_plan_api import (
     ORIGIN,
     _register_and_estimate,
@@ -81,6 +82,15 @@ def test_on_plan_confirmation_prefills_and_pins_exact_active_revision(
     assert body["entries"]
     assert all(entry["source"] == "planned_confirmed" for entry in body["entries"])
     assert all(entry["plan_revision_id"] == str(plan.id) for entry in body["entries"])
+    event = db.scalar(
+        select(UserActivityEvent).where(
+            UserActivityEvent.user_id == plan.user_id,
+            UserActivityEvent.event_type == "nutrition.daily_checkin",
+        )
+    )
+    assert event is not None
+    assert event.resource_id
+    assert event.safe_metadata == {"date": plan.start_date.isoformat()}
 
 
 @pytest.mark.parametrize("status", ["on_plan", "mostly_on_plan"])
