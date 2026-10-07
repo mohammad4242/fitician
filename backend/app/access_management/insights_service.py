@@ -276,7 +276,10 @@ def overview(db: Session, *, now: datetime | None = None) -> AccessOverview:
             db.scalar(
                 select(func.count())
                 .select_from(WorkoutPlan)
-                .where(WorkoutPlan.status.in_(["active", "pending_review", "superseded"]))
+                .where(
+                    WorkoutPlan.deleted_at.is_(None),
+                    WorkoutPlan.status.in_(["active", "pending_review", "superseded"]),
+                )
             )
             or 0
         ),
@@ -359,6 +362,7 @@ def insights(db: Session, user_id: UUID) -> UserInsights:
                 .select_from(WorkoutPlan)
                 .where(
                     WorkoutPlan.user_id == user_id,
+                    WorkoutPlan.deleted_at.is_(None),
                     WorkoutPlan.status.in_(["active", "pending_review", "superseded"]),
                 )
             )

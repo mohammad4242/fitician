@@ -590,3 +590,17 @@ def test_workout_history_includes_approved_plan_review(db: Session) -> None:
     assert result.total == 2
     item = next(item for item in result.items if item.id == approved.id)
     assert item.review_status == "approved"
+
+
+def test_deleted_workout_plans_are_excluded_from_counts(db: Session) -> None:
+    from app.access_management.insights_service import insights
+    from tests.workout_cycles.test_api import _plan
+
+    user = User(email="deleted-plan-360@example.com", password_hash="unused")
+    db.add(user)
+    db.flush()
+    plan = _plan(db, user.id)
+    plan.deleted_at = datetime.now(UTC)
+    db.flush()
+    assert overview(db).workout_plans == 0
+    assert insights(db, user.id).workout_plans == 0
