@@ -4,7 +4,7 @@
 appId: com.fitician.app
 ---
 - launchApp
-- openLink: "fitician:///public-onboarding"
+- tapOn: "شروع کنیم"
 - scrollUntilVisible:
     element: "ساخت حساب و ذخیره پاسخ‌ها"
     visibilityPercentage: 100
@@ -19,6 +19,9 @@ appId: com.fitician.app
     element: "ساخت حساب و ذخیره پاسخ‌ها"
     visibilityPercentage: 100
 - tapOn: "ساخت حساب و ذخیره پاسخ‌ها"
+- scrollUntilVisible:
+    element: "ساخت حساب و ذخیره پاسخ‌ها"
+    visibilityPercentage: 100
 - hideKeyboard
 - scrollUntilVisible:
     element: "شماره تلفن"
