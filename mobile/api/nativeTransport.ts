@@ -35,6 +35,44 @@ type PreparedMultipartBody = {
 
 let multipartBoundarySequence = 0;
 
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 30_000;
+
+function needsAuthDeadline(path: string): boolean {
+  const pathname = path.split(/[?#]/u)[0];
+  return pathname?.startsWith("/api/v1/auth/") === true
+    || pathname === "/api/v1/profile/status";
+}
+
+async function withAuthDeadline<T>(
+  request: TransportRequest,
+  requestId: string,
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const callerSignal = nativeAbortSignal(request.signal);
+  if (callerSignal?.aborted) throw new TransportError("aborted", requestId);
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
+  const interrupted = new Promise<never>((_, reject) => {
+    onAbort = () => {
+      reject(new TransportError("aborted", requestId));
+      controller.abort();
+    };
+    callerSignal?.addEventListener("abort", onAbort, { once: true });
+    timer = setTimeout(() => {
+      // Reject before aborting so native AbortError does not hide the timeout.
+      reject(new TransportError("timeout", requestId));
+      controller.abort();
+    }, AUTH_BOOTSTRAP_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([operation(controller.signal), interrupted]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+    if (onAbort !== undefined) callerSignal?.removeEventListener("abort", onAbort);
+  }
+}
+
 function requestUrl(baseUrl: string, path: string): string {
   if (/^https?:\/\//i.test(path)) {
     throw new Error("Native API request paths must be relative to the configured backend");
@@ -227,8 +265,8 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
     body: BodyInit | undefined,
     operation: "request" | "download" | "upload",
     contentType: string | null = null,
+    correlationId = correlationIdFactory(),
   ): Promise<Response> {
-    const correlationId = correlationIdFactory();
     const startedAt = Date.now();
     let response: Response | undefined;
     try {
@@ -259,11 +297,18 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
 
   return {
     async request<TResponse>(request: TransportRequest): Promise<TResponse> {
-      const response = await send(request, requestBody(request.body), "request");
-      if (response.status === 204) {
-        return undefined as TResponse;
-      }
-      return (await response.json()) as TResponse;
+      const readResponse = async (boundedRequest: TransportRequest, requestId?: string) => {
+        const response = await send(
+          boundedRequest, requestBody(request.body), "request", null, requestId,
+        );
+        if (response.status === 204) return undefined as TResponse;
+        return (await response.json()) as TResponse;
+      };
+      if (!needsAuthDeadline(request.path)) return readResponse(request);
+      const requestId = correlationIdFactory();
+      return withAuthDeadline(request, requestId, (signal) => (
+        readResponse({ ...request, signal }, requestId)
+      ));
     },
 
     async download(request: BinaryDownloadRequest): Promise<BinaryDownload> {
