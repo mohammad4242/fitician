@@ -1,6 +1,7 @@
 # Standalone Netherlands runtime. Host Tailscale Serve proxies loopback only.
 services:
   agent-service:
+    init: true
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${AGENT_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     environment:
       AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}

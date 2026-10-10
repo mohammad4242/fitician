@@ -1,7 +1,7 @@
 # Standalone Iran runtime. No local Agent or cross-host media mounts.
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fitician}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -276,7 +276,7 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     environment:
       FITICIAN_DOMAIN: ${FITICIAN_DOMAIN:?FITICIAN_DOMAIN is required}
     ports:

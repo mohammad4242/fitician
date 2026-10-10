@@ -1,0 +1,281 @@
+name: Deploy Fitician regional production
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Production region
+        required: true
+        type: choice
+        options: [iran, netherlands]
+      deploy_kind:
+        description: Iran release scope or Netherlands Agent Service release
+        required: true
+        type: choice
+        options: [full, frontend, backend, agent]
+      image_tag:
+        description: Immutable Git SHA image tag
+        required: true
+        type: string
+      ci_run_id:
+        description: Successful exact-SHA validation run (Full CI for full/agent; component CI for frontend/backend)
+        required: true
+        type: string
+      owner_approved:
+        description: Explicit owner approval for this regional deployment
+        required: true
+        type: boolean
+        default: false
+      allow_schema_migrations:
+        description: Approve reviewed schema migration on Iran full release
+        required: false
+        type: boolean
+        default: false
+      initial_deploy:
+        description: Approve the region-specific initial adoption/bootstrap path
+        required: false
+        type: boolean
+        default: false
+      image_source:
+        description: Pull immutable images from registry or use preloaded local images
+        required: true
+        type: choice
+        options: [registry, preloaded]
+        default: registry
+      first_scalability_release_approved:
+        description: Approve first Iran rollout after reviewing scalability acceptance evidence
+        required: false
+        type: boolean
+        default: false
+      scalability_evidence_run_id:
+        description: Successful recent local scalability checks run for this exact SHA
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-release:
+    name: Verify exact-SHA CI evidence
+    runs-on: ubuntu-latest
+    outputs:
+      backend_tests: ${{ steps.release.outputs.backend_tests }}
+      release_path: ${{ steps.release.outputs.release_path }}
+      shared_validated: ${{ steps.release.outputs.shared_validated }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.image_tag }}
+          fetch-depth: 0
+      - name: Validate owner choice and target combination
+        env:
+          TARGET: ${{ inputs.target }}
+          DEPLOY_KIND: ${{ inputs.deploy_kind }}
+          OWNER_APPROVED: ${{ inputs.owner_approved }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
+          FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved }}
+          SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+        run: |
+          set -euo pipefail
+          test "$OWNER_APPROVED" = true
+          printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+          printf '%s' "$CI_RUN_ID" | grep -Eq '^[0-9]+$'
+          if [ "$TARGET" = iran ]; then
+            test "$DEPLOY_KIND" = full || test "$DEPLOY_KIND" = frontend || test "$DEPLOY_KIND" = backend
+            if [ "$INITIAL_DEPLOY" = true ]; then
+              test "$DEPLOY_KIND" = full
+              test "$FIRST_SCALABILITY_RELEASE_APPROVED" = true
+              printf '%s' "$SCALABILITY_EVIDENCE_RUN_ID" | grep -Eq '^[0-9]+$'
+            fi
+          else
+            test "$TARGET" = netherlands
+            test "$DEPLOY_KIND" = agent
+            test "$FIRST_SCALABILITY_RELEASE_APPROVED" = false
+          fi
+          test "$(git rev-parse HEAD)" = "$IMAGE_TAG"
+      - name: Verify first Iran scalability evidence
+        if: inputs.target == 'iran' && inputs.initial_deploy && inputs.first_scalability_release_approved
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+        run: |
+          set -euo pipefail
+          repository="repos/${GITHUB_REPOSITORY}"
+          workflow_name=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.name')
+          conclusion=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.conclusion')
+          evidence_sha=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.head_sha')
+          created_at=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.created_at')
+          test "$workflow_name" = 'Fitician local scalability checks'
+          test "$conclusion" = success
+          test "$evidence_sha" = "$IMAGE_TAG"
+          python3 - "$created_at" <<'PY'
+          from datetime import UTC, datetime, timedelta
+          import sys
+          created = datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
+          if created < datetime.now(UTC) - timedelta(days=14):
+              raise SystemExit("Scalability evidence is older than 14 days")
+          PY
+      - name: Require successful exact-SHA CI evidence and published images
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          TARGET: ${{ inputs.target }}
+          DEPLOY_KIND: ${{ inputs.deploy_kind }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-evidence/regional
+          case "$DEPLOY_KIND" in
+            full|agent) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
+              --require-full --directory .ci-evidence/regional ;;
+            frontend|backend) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
+              --directory .ci-evidence/regional ;;
+          esac
+          plan=.ci-evidence/regional/release-plan.json
+          release_path=$(sed -n 's/^release_path=//p' "$GITHUB_OUTPUT" | tail -n 1)
+          test -n "$release_path"
+          python3 - "$plan" "$TARGET" "$DEPLOY_KIND" "$release_path" <<'PY'
+          import json
+          import sys
+
+          plan = json.load(open(sys.argv[1], encoding="utf-8"))
+          target, kind, path = sys.argv[2:]
+          allowed = (
+              target == "iran"
+              and kind == "frontend"
+              and plan.get("deploy_frontend")
+              and path in {"component", "frontend-full"}
+          ) or (
+              target == "iran"
+              and kind == "backend"
+              and plan.get("deploy_backend")
+              and path == "component"
+          ) or (
+              kind == "full" and path == "full"
+          ) or (
+              target == "netherlands" and kind == "agent" and path == "full"
+          )
+          if not allowed:
+              raise SystemExit("Exact CI release evidence does not authorize this regional component")
+          PY
+          backend_tests=$(python3 -c 'import json; from pathlib import Path; print(json.dumps(json.loads(Path(".ci-evidence/regional/release-plan.json").read_text()).get("backend_tests", []), separators=(",", ":")))')
+          shared_validated=$(python3 -c 'import json; from pathlib import Path; print(str(bool(json.loads(Path(".ci-evidence/regional/release-plan.json").read_text()).get("run_shared"))).lower())')
+          echo "backend_tests=$backend_tests" >> "$GITHUB_OUTPUT"
+          echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
+    needs: verify-release
+    if: inputs.owner_approved
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-netherlands' }}
+    concurrency:
+      group: fitician-production-${{ inputs.target }}
+      cancel-in-progress: false
+    env:
+      TARGET: ${{ inputs.target }}
+      DEPLOY_KIND: ${{ inputs.deploy_kind }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      OWNER_APPROVED: ${{ inputs.owner_approved }}
+      ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations }}
+      INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
+      FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved }}
+      SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+      IMAGE_SOURCE: ${{ inputs.image_source }}
+      CI_BACKEND_TESTS: ${{ needs.verify-release.outputs.backend_tests }}
+      CI_RELEASE_PATH: ${{ needs.verify-release.outputs.release_path }}
+      CI_SHARED_VALIDATED: ${{ needs.verify-release.outputs.shared_validated }}
+      CI_RUN_ID: ${{ inputs.ci_run_id }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+      COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.image_tag }}
+          fetch-depth: 0
+      - name: Validate regional deployment settings
+        run: |
+          set -euo pipefail
+          test -n "$VPS_HOST"
+          printf '%s' "$VPS_USER" | grep -Eq '^[A-Za-z0-9._-]+$'
+          printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
+          printf '%s' "$COMPOSE_PROJECT_NAME" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_-]*$'
+          test "$OWNER_APPROVED" = true
+          test "$TARGET" = iran || test "$TARGET" = netherlands
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Pin regional VPS host key
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_KNOWN_HOSTS"
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+      - name: Prepare immutable candidate contract directory
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+        run: |
+          set -euo pipefail
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          remote_contract="$release_dir/compose.prod.$TARGET.yaml"
+          ssh "$VPS_USER@$VPS_HOST" \
+            "set -eu; if [ -f '$VPS_APP_DIR/.regional-$TARGET-active-contract' ]; then active=\$(cat '$VPS_APP_DIR/.regional-$TARGET-active-contract'); test \"\$active\" != '$remote_contract'; else test '$INITIAL_DEPLOY' = true; fi; mkdir -p '$release_dir/ops'"
+          scp "compose.prod.$TARGET.yaml" "$VPS_USER@$VPS_HOST:$remote_contract"
+          scp Caddyfile "$VPS_USER@$VPS_HOST:$release_dir/Caddyfile"
+          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
+          scp ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
+          scp ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
+          scp ops/verify-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/verify-regional.sh"
+          scp ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
+          scp ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
+          scp ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
+      - name: Authenticate regional Docker client
+        if: inputs.image_source == 'registry'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          test -n "$DOCKERHUB_TOKEN"
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+            "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
+      - name: Read running regional baseline
+        id: baseline
+        run: |
+          set -euo pipefail
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          tag=$(ssh "$VPS_USER@$VPS_HOST" \
+            "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED=true IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' INSPECT_ONLY=true bash '$release_dir/ops/deploy-regional.sh'")
+          printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Verify cumulative component scope
+        if: inputs.deploy_kind == 'frontend' || inputs.deploy_kind == 'backend'
+        env:
+          BASE_TAG: ${{ steps.baseline.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          args=(--component "$DEPLOY_KIND" --base "$BASE_TAG" --head "$IMAGE_TAG")
+          if [ "$CI_RELEASE_PATH" = frontend-full ]; then
+            test "$DEPLOY_KIND" = frontend
+            args+=(--full-ci-run-id "$CI_RUN_ID")
+          else
+            args+=(--validated-tests "$CI_BACKEND_TESTS" --shared-validated "$CI_SHARED_VALIDATED")
+          fi
+          python3 ops/check-component-release.py "${args[@]}"
+      - name: Deploy, verify, and regionally roll back on failure
+        run: |
+          set -euo pipefail
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          ssh "$VPS_USER@$VPS_HOST" \
+            "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED='$OWNER_APPROVED' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' bash '$release_dir/ops/deploy-regional.sh'"
