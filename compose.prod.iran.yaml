@@ -1,0 +1,308 @@
+# Standalone Iran runtime. No local Agent or cross-host media mounts.
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitician}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-fitician}
+    volumes:
+      - fitician_prod_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-512m}
+    cpus: ${POSTGRES_CPU_LIMIT:-0.35}
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.10.1-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$${REDIS_PASSWORD}"
+    expose:
+      - "6379"
+    volumes:
+      - fitician_prod_redis_data:/data
+      - ./ops/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
+    cpus: ${REDIS_CPU_LIMIT:-0.10}
+    restart: unless-stopped
+
+  migrations:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: ${MIGRATION_MEMORY_LIMIT:-256m}
+    cpus: ${MIGRATION_CPU_LIMIT:-0.20}
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  backend:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${BACKEND_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-5}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      APP_ENV: production
+      INSTANCE_HEADER_ENABLED: "false"
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      PROFILE_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/profile-photos
+      FOOD_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/food-photos
+      NUTRITION_LAB_STORAGE_ROOT: /var/lib/fitician/private/nutrition-labs
+      MEDIA_ROOT: /var/lib/fitician/media
+      AGENT_SERVICE_BASE_URL: ${AGENT_SERVICE_BASE_URL:?Private Agent URL is required}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}
+    expose:
+      - "8000"
+    command:
+      ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"$${TRUSTED_PROXY_IPS:-127.0.0.1,::1,172.16.0.0/12}\""]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=512m
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=2).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    stop_grace_period: 45s
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-512m}
+    cpus: ${BACKEND_CPU_LIMIT:-0.40}
+    restart: unless-stopped
+
+  backend-2:
+    extends:
+      service: backend
+
+  food-photo-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      AGENT_SERVICE_BASE_URL: ${AGENT_SERVICE_BASE_URL:?Private Agent URL is required}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: food-photo-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.nutrition.food_photo_worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    stop_grace_period: 450s
+    mem_limit: ${FOOD_PHOTO_WORKER_MEMORY_LIMIT:-192m}
+    cpus: ${FOOD_PHOTO_WORKER_CPU_LIMIT:-0.20}
+    restart: unless-stopped
+
+  body-analysis-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      BODY_PHOTO_STORAGE_ROOT: /var/lib/fitician/private/body-photos
+      AGENT_SERVICE_BASE_URL: ${AGENT_SERVICE_BASE_URL:?Private Agent URL is required}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: body-analysis-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.body_analysis.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    stop_grace_period: 450s
+    mem_limit: ${BODY_ANALYSIS_WORKER_MEMORY_LIMIT:-384m}
+    cpus: ${BODY_ANALYSIS_WORKER_CPU_LIMIT:-0.35}
+    restart: unless-stopped
+
+  scheduler:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      APP_ENV: production
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
+      MEDIA_STORAGE_BACKEND: s3
+      MEDIA_LOCAL_FALLBACK_ENABLED: "false"
+      S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-fitician-media}
+      S3_PRIVATE_BUCKET: ${S3_PRIVATE_BUCKET:-fitician-private-media}
+      AGENT_SERVICE_BASE_URL: ${AGENT_SERVICE_BASE_URL:?Private Agent URL is required}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: scheduler
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.scheduler.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    stop_grace_period: 60s
+    mem_limit: ${SCHEDULER_MEMORY_LIMIT:-128m}
+    cpus: ${SCHEDULER_CPU_LIMIT:-0.15}
+    restart: unless-stopped
+
+  notification-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    env_file:
+      - ${FITICIAN_ENV_FILE:-./.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      APP_ENV: production
+      AGENT_SERVICE_BASE_URL: ${AGENT_SERVICE_BASE_URL:?Private Agent URL is required}
+      AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      DB_POOL_SIZE: ${WORKER_DB_POOL_SIZE:-2}
+      DB_MAX_OVERFLOW: ${WORKER_DB_MAX_OVERFLOW:-1}
+      JOB_HEARTBEAT_PATH: /run/fitician/heartbeat.json
+      JOB_HEARTBEAT_SERVICE: notification-worker
+      JOB_HEARTBEAT_INTERVAL_SECONDS: ${JOB_HEARTBEAT_INTERVAL_SECONDS:-5}
+      JOB_HEARTBEAT_MAX_AGE_SECONDS: ${JOB_HEARTBEAT_MAX_AGE_SECONDS:-20}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.notifications.worker"]
+    tmpfs:
+      - /run/fitician:rw,noexec,nosuid,size=1m
+    healthcheck:
+      test: ["CMD", "sh", "/app/app/jobs/worker-healthcheck.sh"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    mem_limit: ${NOTIFICATION_WORKER_MEMORY_LIMIT:-128m}
+    cpus: ${NOTIFICATION_WORKER_CPU_LIMIT:-0.10}
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-frontend:${FRONTEND_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
+    depends_on:
+      backend:
+        condition: service_healthy
+      backend-2:
+        condition: service_healthy
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-64m}
+    cpus: ${FRONTEND_CPU_LIMIT:-0.05}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      FITICIAN_DOMAIN: ${FITICIAN_DOMAIN:?FITICIAN_DOMAIN is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - fitician_caddy_data:/data
+      - fitician_caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    mem_limit: ${CADDY_MEMORY_LIMIT:-64m}
+    cpus: ${CADDY_CPU_LIMIT:-0.10}
+    restart: unless-stopped
+
+volumes:
+  fitician_prod_postgres_data:
+    external: true
+    name: ${POSTGRES_VOLUME_NAME:?Bind the explicitly provisioned Iran PostgreSQL volume}
+  fitician_prod_redis_data:
+    external: true
+    name: ${REDIS_VOLUME_NAME:?Bind the explicitly provisioned Iran Redis volume}
+  fitician_caddy_data:
+    external: true
+    name: ${CADDY_DATA_VOLUME_NAME:?Bind the explicitly provisioned Caddy data volume}
+  fitician_caddy_config:
+    external: true
+    name: ${CADDY_CONFIG_VOLUME_NAME:?Bind the explicitly provisioned Caddy config volume}

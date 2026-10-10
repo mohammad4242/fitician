@@ -110,7 +110,7 @@ def memory_limit_mib(value: object) -> int:
 
 
 def rendered_budgets(
-    compose_file: str, replicas: int, env_file: str | None = None
+    compose_file: str, replicas: int, env_file: str | None = None, region: str = "legacy"
 ) -> tuple[ServiceBudget, ...]:
     if shutil.which("docker") is None:
         raise RuntimeError("docker is required when --compose-file is used")
@@ -140,7 +140,17 @@ def rendered_budgets(
         "frontend",
         "caddy",
     )
-    if replicas != 2 or "backend-2" not in services or "backend-3" in services:
+    if region == "iran":
+        names = tuple(name for name in names if name != "agent-service") + ("migrations",)
+        if "agent-service" in services:
+            raise RuntimeError("Iran runtime must not contain Agent Service")
+    elif region == "netherlands":
+        names = ("agent-service",)
+        if set(services) != {"agent-service"}:
+            raise RuntimeError("Netherlands runtime must contain only Agent Service")
+    if region != "netherlands" and (
+        replicas != 2 or "backend-2" not in services or "backend-3" in services
+    ):
         raise RuntimeError(
             "rendered production topology must contain exactly backend and backend-2"
         )
@@ -186,13 +196,16 @@ def main() -> int:
     parser.add_argument("--include-monitoring", action="store_true")
     parser.add_argument("--compose-file")
     parser.add_argument("--env-file")
+    parser.add_argument("--region", choices=("legacy", "iran", "netherlands"), default="legacy")
     args = parser.parse_args()
+    if args.region != "legacy" and not args.compose_file:
+        parser.error("regional capacity requires a rendered --compose-file")
     if args.replicas < 1 or args.host_memory_mib < 1 or args.host_cpus <= 0:
         parser.error("replicas and host capacity must be positive")
 
     try:
         budgets = (
-            rendered_budgets(args.compose_file, args.replicas, args.env_file)
+            rendered_budgets(args.compose_file, args.replicas, args.env_file, args.region)
             if args.compose_file
             else normal_budgets(args.replicas)
         )
@@ -206,9 +219,10 @@ def main() -> int:
     headroom = args.host_memory_mib - memory_total
     memory_ok = headroom >= args.minimum_headroom_mib
     cpu_ok = cpu_total <= args.host_cpus * args.cpu_oversubscription
-    topology_ok = args.replicas == 2
+    topology_ok = args.region == "netherlands" or args.replicas == 2
     payload = {
-        "replicas": args.replicas,
+        "replicas": 0 if args.region == "netherlands" else args.replicas,
+        "region": args.region,
         "host_memory_mib": args.host_memory_mib,
         "host_cpus": args.host_cpus,
         "memory_limit_total_mib": memory_total,
