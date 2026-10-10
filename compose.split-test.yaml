@@ -1,0 +1,129 @@
+services:
+  iran-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: fitician
+      POSTGRES_PASSWORD: fitician
+      POSTGRES_DB: fitician
+    volumes:
+      - iran_db:/var/lib/postgresql
+      - ./docker/postgres/init/01-create-test-db.sql:/docker-entrypoint-initdb.d/01-create-test-db.sql:ro
+    networks: [iran]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitician -d fitician"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  iran-redis:
+    image: redis:8-alpine
+    networks: [iran]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  iran-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment: &backend_env
+      APP_ENV: test
+      COOKIE_SECURE: "false"
+      SESSION_COOKIE_NAME: fitician_session
+      DATABASE_URL: postgresql+psycopg://fitician:fitician@iran-db:5432/fitician
+      REDIS_HOST: iran-redis
+      REDIS_PORT: "6379"
+      AGENT_SERVICE_BASE_URL: http://split-gateway:9001
+      AGENT_SERVICE_TOKEN: ${SPLIT_TEST_TOKEN:?run ops/split-test.sh to generate a disposable token}
+      AGENT_SERVICE_CONNECT_TIMEOUT_SECONDS: "2.5"
+      BODY_PHOTO_STORAGE_ROOT: /split-private/body
+      FOOD_PHOTO_STORAGE_ROOT: /split-private/food
+      MEDIA_ROOT: /split-private/public
+      EMAIL_PROVIDER: fake
+      SMS_PROVIDER: fake
+    volumes:
+      - ./ops/split_test_probe.py:/ops/split_test_probe.py:ro
+      - ./backend/scripts:/app/scripts:ro
+      - ./backend/tests:/app/tests:ro
+      - ./backend/.venv/lib/python3.12/site-packages:/testdeps:ro
+      - ${SPLIT_TEST_PYTEST_DIR:?run ops/split-test.sh}:/split-pytest
+    networks: [iran]
+    depends_on:
+      iran-db:
+        condition: service_healthy
+      iran-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3).read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  iran-backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment: *backend_env
+    volumes:
+      - ./ops/split_test_probe.py:/ops/split_test_probe.py:ro
+    networks: [iran]
+    depends_on:
+      iran-db:
+        condition: service_healthy
+      iran-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3).read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  split-gateway:
+    image: caddy:2.10.2-alpine
+    command: ["caddy", "reverse-proxy", "--from", ":9001", "--to", "split-agent:9001"]
+    networks:
+      iran:
+        aliases: [split-gateway]
+      nl: {}
+
+  split-agent:
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    environment:
+      AGENT_SERVICE_TOKEN: ${SPLIT_TEST_TOKEN:?run ops/split-test.sh to generate a disposable token}
+      AGENT_WORKSPACE_ROOT: /tmp/fitician-agent
+      AGENT_SHARED_PRIVATE_MEDIA_ROOT: /shared-private-media
+      AGENT_CODEX_EXECUTABLE: /opt/split-test/codex
+      AGENT_ANTIGRAVITY_EXECUTABLE: /opt/split-test/codex
+      AGENT_CLAUDE_EXECUTABLE: /opt/split-test/codex
+      AGENT_CODEX_MODELS: '["split-test-model"]'
+      AGENT_CODEX_SUPPORTS_IMAGE_INPUT: "true"
+      AGENT_GLOBAL_MAX_CONCURRENCY: "2"
+    volumes:
+      - split_agent_home:/home/agent
+      - ./ops/split_test_probe.py:/opt/split-test/codex:ro
+    networks: [nl]
+    init: true
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9001/healthz', timeout=2).read()\""]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+networks:
+  iran:
+    internal: true
+  nl:
+    internal: true
+
+volumes:
+  iran_db:
+  split_agent_home:

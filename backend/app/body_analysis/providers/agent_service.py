@@ -78,13 +78,14 @@ class AgentServiceProvider:
         agent_name: str,
         profile_id: str | None = None,
         timeout_seconds: float = 420.0,
+        connect_timeout_seconds: float = 5.0,
         max_image_bytes: int = 8 * 1024 * 1024,
         max_images: int = 5,
         max_total_image_bytes: int = 20 * 1024 * 1024,
         private_media_resolver: PrivateMediaResolver | None = None,
     ) -> None:
-        if timeout_seconds <= 0:
-            raise ValueError("timeout_seconds must be positive")
+        if timeout_seconds <= 0 or connect_timeout_seconds <= 0:
+            raise ValueError("request timeouts must be positive")
         if max_image_bytes <= 0 or max_images <= 0 or max_total_image_bytes <= 0:
             raise ValueError("image limits must be positive")
         self._client = client
@@ -94,7 +95,7 @@ class AgentServiceProvider:
         self._profile_id = (
             profile_id.strip() if isinstance(profile_id, str) and profile_id.strip() else None
         )
-        self._timeout = httpx.Timeout(timeout_seconds)
+        self._timeout = httpx.Timeout(timeout_seconds, connect=connect_timeout_seconds)
         self._timeout_seconds = float(timeout_seconds)
         self._max_image_bytes = max_image_bytes
         self._max_images = max_images

@@ -93,6 +93,9 @@ def build_task_provider(
         timeout_seconds=float(
             timeout_seconds if timeout_seconds is not None else task.timeout_seconds
         ),
+        connect_timeout_seconds=float(
+            getattr(settings, "agent_service_connect_timeout_seconds", 5.0)
+        ),
         max_image_bytes=int(getattr(settings, "agent_service_max_image_bytes", 8 * 1024 * 1024)),
         private_media_resolver=(
             PrivateMediaResolver(settings)
