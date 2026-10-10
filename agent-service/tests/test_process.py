@@ -112,7 +112,18 @@ def test_cancellation_stops_the_process_and_reaps_it(tmp_path: Path) -> None:
     run(scenario())
 
 
-def _pid_is_running(pid: int) -> bool:
+def _pid_is_running(pid: int, proc_root: Path = Path("/proc")) -> bool:
+    # A killed orphan can remain as a zombie until PID 1 reaps it. It cannot
+    # execute, so only a live /proc state means process-group cleanup failed.
+    if proc_root.is_dir():
+        try:
+            stat = (proc_root / str(pid) / "stat").read_text(encoding="utf-8")
+        except OSError:
+            pass
+        else:
+            process_state = stat.rsplit(")", 1)[1].split(maxsplit=1)[0]
+            return process_state != "Z"
+
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -120,6 +131,56 @@ def _pid_is_running(pid: int) -> bool:
     except PermissionError:
         return True
     return True
+
+
+@pytest.mark.parametrize(
+    ("process_state", "expected"),
+    [("R", True), ("Z", False)],
+)
+def test_pid_running_uses_proc_process_state(
+    tmp_path: Path, process_state: str, expected: bool
+) -> None:
+    pid = 1234
+    proc_root = tmp_path / "proc"
+    stat_path = proc_root / str(pid) / "stat"
+    stat_path.parent.mkdir(parents=True)
+    stat_path.write_text(f"{pid} (test process) {process_state} 1 2 3\n", encoding="utf-8")
+
+    assert _pid_is_running(pid, proc_root) is expected
+
+
+def test_pid_running_falls_back_to_kill_when_proc_entry_is_gone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pid = 1234
+    proc_root = tmp_path / "proc"
+    proc_root.mkdir()
+    kill_calls: list[tuple[int, int]] = []
+
+    def missing_process(target_pid: int, signal_number: int) -> None:
+        kill_calls.append((target_pid, signal_number))
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", missing_process)
+
+    assert not _pid_is_running(pid, proc_root)
+    assert kill_calls == [(pid, 0)]
+
+
+def test_pid_running_uses_kill_when_procfs_is_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pid = 1234
+    proc_root = tmp_path / "unavailable-proc"
+    kill_calls: list[tuple[int, int]] = []
+
+    def live_process(target_pid: int, signal_number: int) -> None:
+        kill_calls.append((target_pid, signal_number))
+
+    monkeypatch.setattr(os, "kill", live_process)
+
+    assert _pid_is_running(pid, proc_root)
+    assert kill_calls == [(pid, 0)]
 
 
 @pytest.mark.parametrize("command", [[], ()])

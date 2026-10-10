@@ -552,7 +552,7 @@ jobs:
         run: docker compose -f compose.yaml -f compose.multi.yaml down
 
   split-region-smoke:
-    name: Isolated Iran and Netherlands HTTP smoke
+    name: Isolated Iran and Germany HTTP smoke
     if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
     needs: changes
     runs-on: ubuntu-latest
@@ -566,6 +566,25 @@ jobs:
       - name: Start isolated networks and test Agent outage recovery
         run: bash ops/split-test.sh
 
+  agent:
+    name: Agent complete suite
+    if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
+    needs: changes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.14"
+          python-version: "3.12"
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff check .
+      - run: uv run mypy app
+      - run: uv run pytest -q --basetemp=../.codex-tmp/agent-ci
+
   container-images:
     name: Build and publish immutable production images
     if: >-
@@ -578,6 +597,7 @@ jobs:
       needs.dependencies.result == 'success' && needs.production-contract.result == 'success' &&
       needs.scalability-contract.result == 'success' && needs.multi-replica-smoke.result == 'success' &&
       needs.split-region-smoke.result == 'success' &&
+      needs.agent.result == 'success' &&
       (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs:
       - changes
@@ -593,6 +613,7 @@ jobs:
       - scalability-contract
       - multi-replica-smoke
       - split-region-smoke
+      - agent
     runs-on: ubuntu-latest
     permissions:
       contents: read

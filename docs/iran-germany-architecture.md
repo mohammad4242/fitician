@@ -50,9 +50,11 @@ Before deployment, the owner must stop the source Agent, take an encrypted authe
 snapshot, provision an explicitly named external volume on Germany, restore ownership
 and permissions, and verify its contents without printing credentials. Keep source
 volume/image/contract intact and prevent concurrent writers during snapshot/adoption.
-The new template never provisions or deletes this auth volume automatically.
+The new template never provisions or deletes this auth volume automatically. The baseline
+Agent must use a different Compose project so candidate creation cannot delete the
+container needed for rollback.
 
-The initial-adoption guard requires exactly one running Agent attached to the verified
+The initial-adoption guard requires exactly one running Agent and no stopped containers attached to the verified
 Germany auth volume. On a new host, after approval, start the restored Agent with the
 recorded source immutable image and token as the single baseline, then use the regional
 initial-adoption path. That path captures its restart policy and restores it if adoption
@@ -479,10 +481,12 @@ with bounded AI errors and durable retries during recovery.
 
 ## Verification record and limitations
 
-Germany rename qualification: 115 ops tests, 10 CI contract tests and the complete
+Germany rename/adoption qualification: 117 ops tests, 10 CI contract tests and the complete
 isolated topology simulation (46 focused Backend tests) pass. Workflow/shell lint and
-tracked secret scan pass. The complete Agent suite is now a required Full CI gate;
-Full CI failure resolution and exact run evidence are reported separately.
+tracked secret scan pass. The complete Agent suite (281 passed, zero skips) also passes on the host and in the
+read-only pinned Agent container with init. Ruff and strict mypy pass. The suite is now
+a required Full CI gate; Full CI failure resolution and exact run evidence are reported
+separately. No test was removed or disabled.
 
 
 Prior local verification on 2026-10-10 (before the Germany rename and complete-CI qualification):
@@ -522,15 +526,18 @@ only in this simulation, so authentication/model acceptance is still an operator
 | `backend/app/ai/task_provider.py` | Pass the existing configured Agent connect timeout into task providers. |
 | `backend/app/body_analysis/providers/agent_service.py` | Bound remote connection setup independently of generation time. |
 | `backend/tests/ai/test_remote_agent_topology.py` | Remote URL/error/timeout and Iran-resolved private multipart regressions. |
+| `agent-service/tests/test_capabilities.py` | Replace installed-version/auth-home assumptions with deterministic CLI probes and exact capability assertions. |
+| `agent-service/tests/test_metadata.py` | Use the running Python interpreter for fake CLI scripts on slim images. |
+| `agent-service/tests/test_process.py` | Distinguish dead zombies from executing children, retain portable live-PID checks and add procfs/fallback regressions. |
 | `compose.split-test.yaml` | Disposable two-network topology with real Backend/Agent HTTP and fake CLI. |
 | `ops/split-test.sh` | Reproducible isolated provider/queue, image, outage and recovery checks. |
 | `ops/split_test_probe.py` | Auth/capability/isolation/private-image probes and test-only CLI fixture. |
-| `.github/workflows/ci.yml` | Require split-network smoke before full immutable image publishing. |
+| `.github/workflows/ci.yml` | Require split-network smoke and the complete Agent suite before full immutable image publishing. |
 | `.github/workflows/deploy-regional.yml` | Owner-approved manual targets with separate host credentials and CI gates. |
 | `ops/deploy-regional.sh` | Regional backup/schema/image/volume gates and independent rollback. |
 | `ops/verify-regional.sh` | Independent actual-image, health, schema, ingress and Agent-auth checks. |
 | `ops/tests/test_regional_deploy.py` | Executable regional deployment failure and rollback regressions. |
-| `ops/tests/test_split_ci.py` | Ensure full image publishing depends on the new smoke gate. |
+| `ops/tests/test_split_ci.py` | Ensure full image publishing depends on the smoke and complete Agent gates. |
 | `docs/superpowers/plans/2026-10-10-iran-germany.md` | Bounded implementation and review checklist. |
 | `docs/iran-germany-architecture.md` | Architecture, audit, networking, risk, CI/CD, verification and migration/rollback runbook. |
 

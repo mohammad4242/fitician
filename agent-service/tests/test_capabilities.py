@@ -1,5 +1,7 @@
+import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
@@ -78,8 +80,72 @@ def test_capabilities_are_owned_by_runners_and_do_not_run_generation(tmp_path: P
     assert runner.run_calls == 0
 
 
-def test_default_registry_has_no_invented_models(tmp_path: Path) -> None:
-    settings = Settings(agent_service_token=SecretStr(TOKEN), agent_workspace_root=tmp_path)
+def _write_runner_probe(
+    path: Path, *, version: str, auth_command: tuple[str, ...], auth_output: str, auth_code: int
+) -> Path:
+    path.write_text(
+        f"#!{sys.executable}\n"
+        "import sys\n"
+        f"version = {version!r}\n"
+        f"auth_command = {auth_command!r}\n"
+        f"auth_output = {auth_output!r}\n"
+        f"auth_code = {auth_code}\n"
+        "args = tuple(sys.argv[1:])\n"
+        "if args == ('--version',):\n"
+        "    print(version)\n"
+        "elif args == auth_command:\n"
+        "    print(auth_output)\n"
+        "    raise SystemExit(auth_code)\n"
+        "elif args == ('models',):\n"
+        "    raise SystemExit(0)\n"
+        "else:\n"
+        "    raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o755)
+    return path
+
+
+def test_default_registry_has_no_invented_models(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    agy_version = "1.1.22"
+    codex_version = "codex-cli 0.151.0"
+    claude_version = "2.1.220 (Claude Code)"
+    settings = Settings(
+        agent_service_token=SecretStr(TOKEN),
+        agent_workspace_root=tmp_path / "workspace",
+        agent_antigravity_executable=str(
+            _write_runner_probe(
+                tmp_path / "agy",
+                version=agy_version,
+                auth_command=(),
+                auth_output="",
+                auth_code=0,
+            )
+        ),
+        agent_codex_executable=str(
+            _write_runner_probe(
+                tmp_path / "codex",
+                version=codex_version,
+                auth_command=("login", "status"),
+                auth_output="Not logged in",
+                auth_code=1,
+            )
+        ),
+        agent_claude_executable=str(
+            _write_runner_probe(
+                tmp_path / "claude",
+                version=claude_version,
+                auth_command=("auth", "status", "--json"),
+                auth_output='{"loggedIn":false}',
+                auth_code=0,
+            )
+        ),
+    )
     response = TestClient(create_app(settings)).get(
         "/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"}
     )
@@ -87,25 +153,17 @@ def test_default_registry_has_no_invented_models(tmp_path: Path) -> None:
     assert response.status_code == 200
     runners = {runner["agent"]: runner for runner in response.json()["runners"]}
     assert set(runners) == {"antigravity", "codex", "claude"}
-    assert runners["antigravity"]["version"] in {"1.1.22", "1.1.27"}
+    assert runners["antigravity"]["version"] == agy_version
     assert runners["antigravity"]["auth_mode"] == "browser_link"
     assert runners["codex"]["auth_mode"] == "browser_link"
     assert runners["claude"]["auth_mode"] == "browser_link"
-    assert runners["codex"]["version"] in {"codex-cli 0.151.0", "codex-cli 0.154.0"}
-    assert "(Claude Code)" in runners["claude"]["version"]
+    assert runners["codex"]["version"] == codex_version
+    assert runners["claude"]["version"] == claude_version
     assert all(runner["installed"] is True for runner in runners.values())
     assert all(runner["models"] == [] for runner in runners.values())
-    assert runners["antigravity"]["auth_state"] in {"unknown", "authenticated"}
-    assert runners["codex"]["auth_state"] in {
-        "authenticated",
-        "unauthenticated",
-        "unknown",
-    }
-    assert runners["claude"]["auth_state"] in {
-        "authenticated",
-        "unauthenticated",
-        "unknown",
-    }
+    assert runners["antigravity"]["auth_state"] == "unauthenticated"
+    assert runners["codex"]["auth_state"] == "unauthenticated"
+    assert runners["claude"]["auth_state"] == "unauthenticated"
 
 
 def test_capability_probe_failure_is_reported_without_a_500(tmp_path: Path) -> None:

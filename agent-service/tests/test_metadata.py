@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,7 @@ def write_fake_cli(tmp_path: Path) -> Path:
     script = tmp_path / "fake-cli.py"
     counter = tmp_path / "version-count"
     script.write_text(
-        "#!/usr/bin/python3\n"
+        f"#!{sys.executable}\n"
         "import pathlib, sys\n"
         f"counter = pathlib.Path({str(counter)!r})\n"
         "args = sys.argv[1:]\n"
