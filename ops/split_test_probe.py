@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Probe the isolated Iran-to-NL Agent path; also acts as a safe fake Codex CLI."""
+"""Probe the isolated Iran-to-DE Agent path; also acts as a safe fake Codex CLI."""
 
 from __future__ import annotations
 

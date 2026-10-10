@@ -1,4 +1,4 @@
-# Standalone Netherlands runtime. Host Tailscale Serve proxies loopback only.
+# Standalone Germany runtime. Host Tailscale Serve proxies loopback only.
 services:
   agent-service:
     init: true
@@ -40,4 +40,4 @@ services:
 volumes:
   fitician_agent_home:
     external: true
-    name: ${AGENT_HOME_VOLUME_NAME:?Bind the EXISTING Netherlands Agent authentication volume}
+    name: ${AGENT_HOME_VOLUME_NAME:?Bind the EXISTING Germany Agent authentication volume}

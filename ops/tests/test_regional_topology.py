@@ -96,8 +96,8 @@ class RegionalTopologyTests(unittest.TestCase):
         for name in ("db", "redis", "caddy"):
             self.assertRegex(services[name]["image"], r"@sha256:[0-9a-f]{64}$")
 
-    def test_netherlands_has_only_agent_and_existing_auth_volume(self):
-        config = self.render("netherlands")
+    def test_germany_has_only_agent_and_existing_auth_volume(self):
+        config = self.render("germany")
         self.assertEqual(set(config["services"]), {"agent-service"})
         agent = config["services"]["agent-service"]
         self.assertTrue(agent["init"])
@@ -113,7 +113,7 @@ class RegionalTopologyTests(unittest.TestCase):
         self.assertEqual(volume["name"], "existing-agent-home")
 
     def test_capacity_uses_region_specific_rendered_limits(self):
-        for region in ("iran", "netherlands"):
+        for region in ("iran", "germany"):
             result = subprocess.run(
                 [
                     sys.executable,
@@ -142,7 +142,7 @@ class RegionalTopologyTests(unittest.TestCase):
     def test_capacity_rejects_wrong_host_topology(self):
         for region, filename in (
             ("iran", "compose.prod.yaml"),
-            ("netherlands", "compose.prod.iran.yaml"),
+            ("germany", "compose.prod.iran.yaml"),
         ):
             result = subprocess.run(
                 [

@@ -116,7 +116,7 @@ case "$region:$kind" in
       --resolve "$domain:443:127.0.0.1" \
       --connect-timeout 5 --max-time 15 "https://$domain/healthz" >/dev/null
     ;;
-  netherlands:agent)
+  germany:agent)
     require_healthy agent-service "$AGENT_IMAGE_TAG" fitician-agent
     compose exec -T agent-service python -c '
 import json

@@ -33,8 +33,8 @@ class RegionalDeployTests(unittest.TestCase):
         self.contract = self.new_release / "compose.prod.iran.yaml"
         self.contract.touch()
         (self.app / ".regional-iran-active-contract").write_text(str(self.old_contract) + "\n")
-        (self.app / ".regional-netherlands-active-contract").write_text(
-            str(self.old_contract).replace("iran", "netherlands") + "\n"
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_contract).replace("iran", "germany") + "\n"
         )
         (self.app / ".scalability-foundation-accepted").write_text(
             "foundation_version=1\n"
@@ -77,7 +77,7 @@ if [[ "$*" == *" ps -q "* ]]; then
   for arg in "$@"; do service=$arg; done
   printf 'container-%s\n' "$service"
 elif [[ "$*" == *"config --format json"* ]]; then
-  if [[ "${COMPOSE_PROJECT_NAME:-}" == fitician_nl ]]; then
+  if [[ "${COMPOSE_PROJECT_NAME:-}" == fitician_de ]]; then
     printf '{"services":{"agent-service":{"image":"example/fitician-agent:%s","volumes":[{"type":"volume","source":"agent-state","target":"/home/agent"}]}},"volumes":{"agent-state":{"name":"agent-home","external":true}}}' "$IMAGE_TAG"
   else
     printf '{"services":{"db":{"image":"postgres:18-alpine","environment":{"POSTGRES_DB":"fitician"}},"redis":{"image":"redis:8-alpine"},"caddy":{"image":"caddy:2-alpine"},"migrations":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend-2":{"image":"example/fitician-backend:%s"},"scheduler":{"image":"example/fitician-backend:%s"},"food-photo-worker":{"image":"example/fitician-backend:%s"},"body-analysis-worker":{"image":"example/fitician-backend:%s"},"notification-worker":{"image":"example/fitician-backend:%s"},"frontend":{"image":"example/fitician-frontend:%s"}},"volumes":{"pg":{"name":"pg-data","external":%s},"redis":{"name":"redis-data","external":true},"caddy-data":{"name":"caddy-data","external":true},"caddy-config":{"name":"caddy-config","external":true}}}' \
@@ -249,12 +249,12 @@ fi
                             for line in self.calls.read_text().splitlines()))
         self.assertFalse((self.app / ".regional-iran-active-contract").exists())
 
-    def test_initial_netherlands_stops_candidate_before_restarting_legacy(self) -> None:
-        (self.app / ".regional-netherlands-active-contract").unlink()
-        contract = self.new_release / "compose.prod.netherlands.yaml"
+    def test_initial_germany_stops_candidate_before_restarting_legacy(self) -> None:
+        (self.app / ".regional-germany-active-contract").unlink()
+        contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        self.env.update(REGION="netherlands", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
-                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_nl",
+        self.env.update(REGION="germany", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
+                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_de",
                         FAKE_AGENT_STATUS="1")
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
@@ -263,14 +263,14 @@ fi
         start = next(i for i, line in enumerate(calls) if line == "start legacy-agent")
         self.assertLess(stop, start)
         self.assertIn("update --restart=unless-stopped legacy-agent", calls)
-        self.assertFalse((self.app / ".regional-netherlands-active-contract").exists())
+        self.assertFalse((self.app / ".regional-germany-active-contract").exists())
 
-    def test_initial_netherlands_never_starts_two_auth_volume_writers(self) -> None:
-        (self.app / ".regional-netherlands-active-contract").unlink()
-        contract = self.new_release / "compose.prod.netherlands.yaml"
+    def test_initial_germany_never_starts_two_auth_volume_writers(self) -> None:
+        (self.app / ".regional-germany-active-contract").unlink()
+        contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        self.env.update(REGION="netherlands", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
-                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_nl",
+        self.env.update(REGION="germany", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
+                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_de",
                         FAKE_AGENT_STATUS="1", FAKE_STOP_CANDIDATE_STATUS="1")
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
@@ -351,14 +351,14 @@ fi
         self.assertIn(f"HEADS_TAGSTATE|{NEW}|{NEW}", self.calls.read_text().splitlines())
 
     def test_iran_rejects_database_url_pointing_outside_local_database_service(self) -> None:
-        self.env["FAKE_DATABASE_URL"] = "postgresql+psycopg://user:pass@netherlands:5432/fitician"
+        self.env["FAKE_DATABASE_URL"] = "postgresql+psycopg://user:pass@germany:5432/fitician"
 
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("DATABASE_URL", result.stderr)
         self.assertFalse(any("backup-production.sh" in line for line in self.calls.read_text().splitlines()))
-        self.assertNotIn("netherlands", result.stderr)
+        self.assertNotIn("germany", result.stderr)
 
     def test_iran_rejects_non_external_persistent_volume_before_rollout(self) -> None:
         self.env["FAKE_POSTGRES_EXTERNAL"] = "false"
@@ -397,18 +397,18 @@ fi
         self.assertIn("scalability evidence", result.stderr)
         self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
 
-    def test_netherlands_agent_deploy_skips_database_and_checks_auth_capabilities(self) -> None:
-        contract = self.new_release / "compose.prod.netherlands.yaml"
+    def test_germany_agent_deploy_skips_database_and_checks_auth_capabilities(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        (self.app / ".regional-netherlands-active-contract").write_text(
-            str(self.old_release / "compose.prod.netherlands.yaml") + "\n"
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_release / "compose.prod.germany.yaml") + "\n"
         )
-        (self.old_release / "compose.prod.netherlands.yaml").touch()
+        (self.old_release / "compose.prod.germany.yaml").touch()
         self.env.update(
-            REGION="netherlands",
+            REGION="germany",
             DEPLOY_KIND="agent",
             COMPOSE_FILE=str(contract),
-            COMPOSE_PROJECT_NAME="fitician_nl",
+            COMPOSE_PROJECT_NAME="fitician_de",
         )
 
         result = self.run_deploy()
@@ -419,18 +419,18 @@ fi
         self.assertFalse(any("migrations" in line or "db " in line for line in calls))
         self.assertTrue(any("AGENT_SERVICE_TOKEN" in line for line in calls))
 
-    def test_netherlands_agent_failure_rolls_back_only_agent_image(self) -> None:
-        contract = self.new_release / "compose.prod.netherlands.yaml"
+    def test_germany_agent_failure_rolls_back_only_agent_image(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        (self.app / ".regional-netherlands-active-contract").write_text(
-            str(self.old_release / "compose.prod.netherlands.yaml") + "\n"
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_release / "compose.prod.germany.yaml") + "\n"
         )
-        (self.old_release / "compose.prod.netherlands.yaml").touch()
+        (self.old_release / "compose.prod.germany.yaml").touch()
         self.env.update(
-            REGION="netherlands",
+            REGION="germany",
             DEPLOY_KIND="agent",
             COMPOSE_FILE=str(contract),
-            COMPOSE_PROJECT_NAME="fitician_nl",
+            COMPOSE_PROJECT_NAME="fitician_de",
             FAKE_AGENT_STATUS="1",
         )
 
@@ -442,18 +442,18 @@ fi
         self.assertTrue(all(line.endswith("agent-service") for line in ups))
         self.assertNotIn("AGENT_IMAGE_TAG=" + NEW, (self.app / ".env").read_text())
 
-    def test_netherlands_requires_existing_external_auth_volume_before_rollout(self) -> None:
-        contract = self.new_release / "compose.prod.netherlands.yaml"
+    def test_germany_requires_existing_external_auth_volume_before_rollout(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        (self.app / ".regional-netherlands-active-contract").write_text(
-            str(self.old_release / "compose.prod.netherlands.yaml") + "\n"
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_release / "compose.prod.germany.yaml") + "\n"
         )
-        (self.old_release / "compose.prod.netherlands.yaml").touch()
+        (self.old_release / "compose.prod.germany.yaml").touch()
         self.env.update(
-            REGION="netherlands",
+            REGION="germany",
             DEPLOY_KIND="agent",
             COMPOSE_FILE=str(contract),
-            COMPOSE_PROJECT_NAME="fitician_nl",
+            COMPOSE_PROJECT_NAME="fitician_de",
             FAKE_AUTH_VOLUME_MISSING="true",
         )
 
@@ -468,7 +468,7 @@ fi
         self.assertIn("workflow_dispatch:", workflow)
         self.assertNotIn("workflow_run:", workflow)
         self.assertIn("production-iran", workflow)
-        self.assertIn("production-netherlands", workflow)
+        self.assertIn("production-germany", workflow)
         self.assertIn("ops/ci-release-gate.py", workflow)
         self.assertIn("--require-full", workflow)
         self.assertIn("ops/check-component-release.py", workflow)

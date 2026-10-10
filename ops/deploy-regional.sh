@@ -35,7 +35,7 @@ fail() {
 case "$compose_file" in "$release_dir"/compose.prod."$region".yaml) ;; *) fail 'Unexpected regional Compose contract path' ;; esac
 
 case "$region:$kind" in
-  iran:full|iran:frontend|iran:backend|netherlands:agent) ;;
+  iran:full|iran:frontend|iran:backend|germany:agent) ;;
   *) fail 'Unsupported regional deployment kind' ;;
 esac
 if [[ "$kind" == full || "$kind" == backend || "$kind" == frontend ]]; then
@@ -56,11 +56,11 @@ fi
 if [[ "$initial_deploy" == true && "$kind" == full && "$region" != iran ]]; then
   fail 'Only Iran full release supports initial database deployment'
 fi
-if [[ "$initial_deploy" == true && "$kind" == agent && "$region" != netherlands ]]; then
-  fail 'Agent adoption is restricted to the Netherlands'
+if [[ "$initial_deploy" == true && "$kind" == agent && "$region" != germany ]]; then
+  fail 'Agent adoption is restricted to Germany'
 fi
 if [[ "$initial_deploy" == true && "$kind" != full && "$kind" != agent ]]; then
-  fail 'Initial deployment only supports Iran full or Netherlands Agent Service'
+  fail 'Initial deployment only supports Iran full or Germany Agent Service'
 fi
 scalability_marker="$app_dir/.scalability-foundation-accepted"
 first_scalability_release=false
@@ -96,7 +96,7 @@ PY
     fail 'Iran deployment requires accepted scalability evidence; initial release needs approved evidence'
   fi
 fi
-if [[ "$image_source" == preloaded && "$region" == netherlands ]]; then
+if [[ "$image_source" == preloaded && "$region" == germany ]]; then
   fail 'Preloaded image installation is currently restricted to Iran'
 fi
 
@@ -120,7 +120,7 @@ compose() {
 }
 
 volume_keys=(POSTGRES_VOLUME_NAME REDIS_VOLUME_NAME CADDY_DATA_VOLUME_NAME CADDY_CONFIG_VOLUME_NAME)
-if [[ "$region" == netherlands ]]; then volume_keys=(AGENT_HOME_VOLUME_NAME); fi
+if [[ "$region" == germany ]]; then volume_keys=(AGENT_HOME_VOLUME_NAME); fi
 volume_names=()
 for key in "${volume_keys[@]}"; do
   value=$(awk -F= -v key="$key" '$1 == key {value=$2} END {print value}' "$env_file")
@@ -255,10 +255,10 @@ previous_worker_tag=$worker_tag
 previous_agent_tag=$agent_tag
 legacy_agent_id=''
 legacy_agent_restart=''
-if [[ "$initial_deploy" == true && "$region" == netherlands && "$inspect_only" != true ]]; then
+if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
   auth_volume=$(awk -F= '$1 == "AGENT_HOME_VOLUME_NAME" {value=$2} END {print value}' "$env_file")
   legacy_ids=$(docker ps -q --filter "volume=$auth_volume")
-  [[ -n "$legacy_ids" ]] || fail 'Initial Netherlands deployment requires an existing Agent using the auth volume'
+  [[ -n "$legacy_ids" ]] || fail 'Initial Germany deployment requires an existing Agent using the auth volume'
   for id in $legacy_ids; do
     service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
     [[ "$service" == agent-service ]] || fail 'Unexpected running container uses the Agent authentication volume'
@@ -334,7 +334,7 @@ rollback() {
   fi
   echo "Restoring $region deployment with its previous immutable image versions" >&2
   local rollback_status=0
-  if [[ "$initial_deploy" == true && "$region" == netherlands ]]; then
+  if [[ "$initial_deploy" == true && "$region" == germany ]]; then
     if ! compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
       stop agent-service >/dev/null 2>&1; then
       echo 'Candidate Agent could not stop; legacy Agent remains stopped to protect authentication state' >&2
@@ -419,7 +419,7 @@ if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
     run --pull never --rm --no-deps migrations alembic upgrade head
 fi
 
-if [[ "$initial_deploy" == true && "$region" == netherlands ]]; then
+if [[ "$initial_deploy" == true && "$region" == germany ]]; then
   rollback_needed=true
   docker update --restart=no "$legacy_agent_id" >/dev/null
   docker stop "$legacy_agent_id" >/dev/null

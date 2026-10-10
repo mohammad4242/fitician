@@ -86,7 +86,7 @@ services:
     networks:
       iran:
         aliases: [split-gateway]
-      nl: {}
+      de: {}
 
   split-agent:
     build:
@@ -105,7 +105,7 @@ services:
     volumes:
       - split_agent_home:/home/agent
       - ./ops/split_test_probe.py:/opt/split-test/codex:ro
-    networks: [nl]
+    networks: [de]
     init: true
     read_only: true
     security_opt: [no-new-privileges:true]
@@ -121,7 +121,7 @@ services:
 networks:
   iran:
     internal: true
-  nl:
+  de:
     internal: true
 
 volumes:

@@ -72,7 +72,7 @@ def _configured_provider(client: httpx.AsyncClient):
     )
     settings = SimpleNamespace(
         app_env="test",
-        agent_service_base_url="https://nl-agent.example.test",
+        agent_service_base_url="https://de-agent.example.test",
         agent_service_token=SecretStr("split-test-token-" + "x" * 32),
         agent_service_max_image_bytes=8 * 1024 * 1024,
         agent_service_connect_timeout_seconds=2.5,
@@ -98,7 +98,7 @@ def test_remote_agent_url_is_used_and_connection_errors_are_sanitized() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
     provider = _configured_provider(client)
     _run(provider.generate_structured_text(_request()))
-    assert seen == ["https://nl-agent.example.test/v1/generate"]
+    assert seen == ["https://de-agent.example.test/v1/generate"]
     assert timeouts[0]["connect"] == 2.5
     assert timeouts[0]["read"] == 9
     assert timeouts[0]["write"] == 9
@@ -149,7 +149,7 @@ def test_remote_agent_image_bytes_are_resolved_and_sent_without_storage_refs(
     client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
     provider = AgentServiceProvider(
         client,
-        base_url="https://nl-agent.example.test",
+        base_url="https://de-agent.example.test",
         token=SecretStr("split-test-token-" + "x" * 32),
         agent_name="codex",
         timeout_seconds=9,
@@ -165,7 +165,7 @@ def test_remote_agent_image_bytes_are_resolved_and_sent_without_storage_refs(
 
     _run(provider.analyze_images(_request(images=True), images=(image,)))
 
-    assert received["url"] == "https://nl-agent.example.test/v1/analyze-images"
+    assert received["url"] == "https://de-agent.example.test/v1/analyze-images"
     assert received["content_type"].startswith("multipart/form-data;")
     assert image_bytes in received["body"]
     assert image_key.encode() not in received["body"]

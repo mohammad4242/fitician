@@ -7,9 +7,9 @@ on:
         description: Production region
         required: true
         type: choice
-        options: [iran, netherlands]
+        options: [iran, germany]
       deploy_kind:
-        description: Iran release scope or Netherlands Agent Service release
+        description: Iran release scope or Germany Agent Service release
         required: true
         type: choice
         options: [full, frontend, backend, agent]
@@ -92,7 +92,7 @@ jobs:
               printf '%s' "$SCALABILITY_EVIDENCE_RUN_ID" | grep -Eq '^[0-9]+$'
             fi
           else
-            test "$TARGET" = netherlands
+            test "$TARGET" = germany
             test "$DEPLOY_KIND" = agent
             test "$FIRST_SCALABILITY_RELEASE_APPROVED" = false
           fi
@@ -159,7 +159,7 @@ jobs:
           ) or (
               kind == "full" and path == "full"
           ) or (
-              target == "netherlands" and kind == "agent" and path == "full"
+              target == "germany" and kind == "agent" and path == "full"
           )
           if not allowed:
               raise SystemExit("Exact CI release evidence does not authorize this regional component")
@@ -174,7 +174,7 @@ jobs:
     needs: verify-release
     if: inputs.owner_approved
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-netherlands' }}
+    environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:
       group: fitician-production-${{ inputs.target }}
       cancel-in-progress: false
@@ -209,7 +209,7 @@ jobs:
           printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
           printf '%s' "$COMPOSE_PROJECT_NAME" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_-]*$'
           test "$OWNER_APPROVED" = true
-          test "$TARGET" = iran || test "$TARGET" = netherlands
+          test "$TARGET" = iran || test "$TARGET" = germany
       - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}

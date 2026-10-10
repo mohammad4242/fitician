@@ -1,4 +1,4 @@
-# Fitician: Iran application and Netherlands Agent
+# Fitician: Iran application and Germany Agent
 
 Status: local architecture and implementation prepared; **not production-ready**. No live VPS, DNS,
 production database, credential or volume changes are authorized by this document.
@@ -21,7 +21,7 @@ flowchart LR
     API --> S3
     Workers --> S3
   end
-  subgraph Netherlands
+  subgraph Germany
     Serve[Host Tailscale Serve] --> Agent[Agent Service]
     Agent --> CLI[AGY / Codex / Claude]
     CLI --> Auth[(Existing agent home volume)]
@@ -31,8 +31,8 @@ flowchart LR
 ```
 
 Application database, sessions, queues, administrator task/provider configuration and
-worker leases stay in Iran. Agent CLI credentials stay in the existing Netherlands
-home volume. S3's **physical location is unchanged and unverified**: moving application
+worker leases stay in Iran. Agent CLI credentials reside in a protected Germany
+home volume restored from an owner-approved encrypted source snapshot. S3's **physical location is unchanged and unverified**: moving application
 compute does not relocate object data. If all user data must physically reside in Iran,
 the owner must verify the existing public/private bucket regions or authorize a separate
 object-store migration. Do not silently copy or expose private objects.
@@ -40,6 +40,26 @@ object-store migration. Do not silently copy or expose private objects.
 The split retains FastAPI provider interfaces, task/model routing, encrypted administrator
 credentials, API response shapes, frontend load balancing and mobile contracts. No
 Kubernetes, new queue, exit node, public Agent endpoint or permanent SSH RPC is introduced.
+
+## Germany target and source-state transfer
+
+The original single-VPS source is in the Netherlands. Germany is the new Agent-only
+deployment target; this document does not rename or change the live source host.
+Docker volumes are host-local: a Germany host cannot bind a Netherlands volume by name.
+Before deployment, the owner must stop the source Agent, take an encrypted authentication
+snapshot, provision an explicitly named external volume on Germany, restore ownership
+and permissions, and verify its contents without printing credentials. Keep source
+volume/image/contract intact and prevent concurrent writers during snapshot/adoption.
+The new template never provisions or deletes this auth volume automatically.
+
+The initial-adoption guard requires exactly one running Agent attached to the verified
+Germany auth volume. On a new host, after approval, start the restored Agent with the
+recorded source immutable image and token as the single baseline, then use the regional
+initial-adoption path. That path captures its restart policy and restores it if adoption
+fails. Germany rollback is local to Germany; a return to the Netherlands source is a
+separate owner-approved operation that must reconcile newer authentication changes.
+Use a new `production-germany` GitHub environment, Germany SSH host/key pins and VPN node;
+do not silently repoint production-Netherlands credentials or deployment markers.
 
 ## Audit findings
 
@@ -52,7 +72,7 @@ Kubernetes, new queue, exit node, public Agent endpoint or permanent SSH RPC is 
 | Monitoring | `compose.observability.yaml`, `ops/monitoring/{prometheus.yml,alerts.yml}`, Grafana provisioning: loopback UI ports, API and Redis exporter targets, no Agent scrape. Optional on Iran; include monitoring budgets explicitly and assess disk retention. |
 | API health | `backend/app/main.py` creates HTTP clients without calling Agent at startup. `/healthz` checks DB, `/readyz` checks DB and reports Redis degradation, `/livez` is process health. Agent is not an API readiness dependency. |
 | HTTP authentication | `agent-service/app/security.py`: constant-time bearer comparison, minimum 32-character token. Only `/healthz` is public inside the private ingress. `/v1/capabilities`, `/v1/test`, generation/image, runtime proxy and auth APIs require token. Preserve the current token; do not rotate as part of split. |
-| Image transport | `backend/app/ai/task_provider.py` supplies `PrivateMediaResolver` in S3 mode; `body_analysis/providers/agent_service.py` reads private objects in Iran and POSTs multipart to `/v1/analyze-images`. Agent validates MIME, count, per-file/total limits and deletes request workspaces. `/v1/analyze-stored-images` needs same-host files and remains dev-only in this topology. No S3 credential, signed public URL or private-volume mount goes to Netherlands. |
+| Image transport | `backend/app/ai/task_provider.py` supplies `PrivateMediaResolver` in S3 mode; `body_analysis/providers/agent_service.py` reads private objects in Iran and POSTs multipart to `/v1/analyze-images`. Agent validates MIME, count, per-file/total limits and deletes request workspaces. `/v1/analyze-stored-images` needs same-host files and remains dev-only in this topology. No S3 credential, signed public URL or private-volume mount goes to Germany. |
 | Administration | `body_analysis/admin_config/service.py` and admin routers proxy Agent capabilities, provider tests, model profiles, runtime proxy and CLI auth through configured URL/token. Persisted task/provider settings remain in Iran DB; active Agent auth sessions are memory-only, persistent login state is in `/home/agent`. Restart can terminate an in-progress auth flow; existing login state is retained. |
 | Durable jobs | `body_analysis/worker.py` and `nutrition/food_photo_worker.py`: PostgreSQL claims with SKIP LOCKED, committed leases, bounded attempts/backoff, stale lease reclamation and safe normalized provider failures. Scheduler runs in Iran; notifications have their own durable worker. Redis is cache/rate-limit coordination, not the AI job source of truth. |
 | Timeout/recovery | Task generation timeout defaults to 420 seconds, max 600 in admin settings; connect timeout defaults to 5 seconds. Food lease defaults 600s, body 900s. Keep leases above the maximum full request duration including upload/storage time; set food lease higher if using 600s task limits. An interrupted remote request can continue at the CLI until its own deadline; stale-lease replay is at-least-once, not exactly-once. Avoid duplicate user result persistence using existing lease ownership checks. |
@@ -63,9 +83,9 @@ Kubernetes, new queue, exit node, public Agent endpoint or permanent SSH RPC is 
 
 ## Network design
 
-Preferred candidate: host-installed Tailscale on each VPS, Netherlands host Serve
+Preferred candidate: host-installed Tailscale on each VPS, Germany host Serve
 terminating HTTPS and forwarding to Agent's **127.0.0.1:9001** Docker publication.
-Iran containers connect through the Iran host's Tailscale interface to the Netherlands
+Iran containers connect through the Iran host's Tailscale interface to the Germany
 node's full `*.ts.net` name. Existing bearer authentication remains a second boundary.
 This avoids another VPN container, subnet router and cross-host media mounts. Serve is
 private to a tailnet; never enable Funnel.
@@ -101,23 +121,23 @@ administrators. Policies are additive: remove existing broad grants/ACLs or the 
 does not restrict access. Run policy tests in the real tailnet before applying.
 [Grants syntax](https://tailscale.com/docs/reference/syntax/grants).
 
-On Netherlands, after owner approval and node enrollment:
+On Germany, after owner approval and node enrollment:
 
 ```sh
 tailscale serve --bg --https=443 http://127.0.0.1:9001
 tailscale serve status
 ```
 
-Set Iran `AGENT_SERVICE_BASE_URL=https://<full-netherlands-node-name>.ts.net`.
+Set Iran `AGENT_SERVICE_BASE_URL=https://<full-germany-node-name>.ts.net`.
 Use normal TLS verification; no `verify=False` or insecure curl. Docker DNS may not
 inherit MagicDNS. Verify resolution from every calling container; if necessary add an
 operator-reviewed Compose `extra_hosts` override mapping that **same certificate FQDN**
-to the stable Netherlands Tailscale IP. Do not replace HTTPS hostname with an IP and
+to the stable Germany Tailscale IP. Do not replace HTTPS hostname with an IP and
 break certificate verification. A Docker bridge must route through host Tailscale and
 SNAT to the Iran node identity; verify the effective Tailnet source against the policy.
 No advertised subnets, accepted exit node or route for all internet traffic is needed.
 
-Provider/host firewalls: Iran inbound 80/443 public, SSH restricted; Netherlands public
+Provider/host firewalls: Iran inbound 80/443 public, SSH restricted; Germany public
 Agent ports 9001/443 closed (tailnet 443 allowed for Iran only); PostgreSQL/Redis have no
 published ports. Inspect Docker NAT and DOCKER-USER/nft forwarding rules rather than
 assuming UFW covers container ports. Allow only required bridge→tailscale0 traffic and
@@ -136,15 +156,15 @@ loss, reconnect time and completion rates against the application timeout/lease 
 
 ### WireGuard fallback (owner-operated)
 
-Use separate `wg-fitician` interfaces, e.g. Iran `10.77.0.1/32`, Netherlands
+Use separate `wg-fitician` interfaces, e.g. Iran `10.77.0.1/32`, Germany
 `10.77.0.2/32`; peer AllowedIPs are the opposite **single /32**, never `0.0.0.0/0`.
-Choose a non-conflicting subnet. Iran peer endpoint is NL public IP:51820; NL peer
+Choose a non-conflicting subnet. Iran peer endpoint is DE public IP:51820; DE peer
 endpoint is Iran public IP:51820. Permit UDP only between those public IPs. Generate
 private keys on each host, mode 0600, exchange public keys only. PersistentKeepalive
 25 is appropriate if NAT needs it; qualify UDP reachability and MTU with real uploads.
 [WireGuard quick start](https://www.wireguard.com/quickstart/).
 
-Example peer shape on Iran (reverse Address/AllowedIPs/Endpoint on Netherlands):
+Example peer shape on Iran (reverse Address/AllowedIPs/Endpoint on Germany):
 
 ```ini
 [Interface]
@@ -152,8 +172,8 @@ Address = 10.77.0.1/32
 ListenPort = 51820
 PrivateKey = <host-local-secret>
 [Peer]
-PublicKey = <netherlands-public-key>
-Endpoint = <netherlands-public-ip>:51820
+PublicKey = <germany-public-key>
+Endpoint = <germany-public-ip>:51820
 AllowedIPs = 10.77.0.2/32
 PersistentKeepalive = 25
 ```
@@ -183,9 +203,9 @@ necessary but do not prove provider accounts, region acceptance or real user ope
 | SMTP / `auth/providers.py` | Iran SMTP host:port (configured provider, possibly international); verification/password reset emails fail. | TLS/auth and real owner test mailbox delivery. Do not send during read-only audit. |
 | Faraz SMS / `auth/providers.py` | Iran api.iranpayamak.com pattern API; domestic does not guarantee DNS/TLS, allowed source IP or account acceptance. | Approved test OTP receipt, quotas/pattern/sender and IP allowlist. |
 | Payment / `billing/providers/`, mobile billing | This checkout contains **only the local/test fake web payment adapter**, disabled in production. Do not invent a production payment endpoint. The current mobile purchase service delegates external HTTP checkout and returns null for native checkout; no operational store verification adapter was found here. | Owner identifies actual enabled provider/store and tests purchase/restore/webhook from Iran; web gateway availability remains a blocker if required. |
-| Prices / `nutrition/{price_providers,marketplace_price_providers,public_price_sources,ai_price_research}.py` | Iran scheduler calls configured public/API providers; Basalam, Digikala, Tapsi/qcommerce, PersianAPI settings and domestic public sites may fail independently. Agent-based research runs in NL and still needs its own source access. | Actual enabled source refresh; stale values remain historical, never replaced with invented prices. |
+| Prices / `nutrition/{price_providers,marketplace_price_providers,public_price_sources,ai_price_research}.py` | Iran scheduler calls configured public/API providers; Basalam, Digikala, Tapsi/qcommerce, PersianAPI settings and domestic public sites may fail independently. Agent-based research runs in DE and still needs its own source access. | Actual enabled source refresh; stale values remain historical, never replaced with invented prices. |
 | Public/private S3 / `media/{factory,storage,private_storage}.py` | Iran API/workers, browser/CDN and backup script; uploads, media fetches and encrypted backup fail without storage access. Bucket physical residency is unverified. | Signed private read/write/delete in test namespace, anonymous private denial, public playback from Iran, multipart upload and backup/restore. Test virtual-host bucket DNS as well as base endpoint. |
-| Agent CLI vendors / `agent-service/Dockerfile`, runners/auth | Netherlands needs Google/OpenAI/Anthropic auth and generation endpoints; persistent login state alone is not provider acceptance. | Current real model capabilities, test generation/image task and admin auth/proxy flows through private link. |
+| Agent CLI vendors / `agent-service/Dockerfile`, runners/auth | Germany needs Google/OpenAI/Anthropic auth and generation endpoints; persistent login state alone is not provider acceptance. | Current real model capabilities, test generation/image task and admin auth/proxy flows through private link. |
 | Registry/build / CI + Dockerfiles | Iran needs Docker Hub auth/registry/CDN for immutable app images and PostgreSQL/Redis/Caddy images. Build also uses GitHub/npm/Python registries on CI; Iran does not build images. | Pull exact SHA and infrastructure digests from Iran; validate offline alternative below. |
 | TLS/DNS/time | Iran Caddy ACME CA, DNS resolvers and time synchronization, and Tailscale certificate/control endpoints. Failed issuance/clock skew affects HTTPS, OAuth and TLS. | Certificate issuance/renewal before DNS cutover via approved DNS challenge or staged domain, synchronized time, correct A/AAAA. |
 
@@ -200,14 +220,14 @@ Standalone regional contracts:
 - `compose.prod.iran.yaml`: Caddy, frontend, both API replicas, migrations, PostgreSQL,
   Redis and all four workers. All callers receive operator-provided Agent URL/token;
   Agent startup dependencies are absent. Only Caddy publishes public ports.
-- `compose.prod.netherlands.yaml`: Agent only, loopback 9001 and explicitly named external
+- `compose.prod.germany.yaml`: Agent only, loopback 9001 and explicitly named external
   auth volume; no Iran `.env`, S3 settings or private media mounts are injected.
-- `ops/env/{iran,netherlands}.env.example`: role-specific templates. Preserve existing
+- `ops/env/{iran,germany}.env.example`: role-specific templates. Preserve existing
   production secrets/configuration securely; blank fields must be populated by owner.
-  Never copy the full Iran env to Netherlands. Runtime `.env` has mode 0600.
+  Never copy the full Iran env to Germany. Runtime `.env` has mode 0600.
 
 External volumes deliberately fail if absent. Provision **new** Iran volumes explicitly,
-then restore and verify the database. On Netherlands inspect actual legacy container
+then restore and verify the database. On Germany inspect actual legacy container
 mount metadata, record the existing home-volume name and bind exactly that name. Never
 `docker volume rm`, `compose down -v`, guessed names or automatic empty-home creation.
 Avoid running two Agent containers with the same CLI home at once.
@@ -217,7 +237,7 @@ Capacity uses rendered Compose, including the bounded one-shot Iran migration:
 ```sh
 python3 ops/check-runtime-capacity.py --region iran --compose-file compose.prod.iran.yaml --env-file /opt/fitician-iran/.env
 python3 ops/check-db-connection-budget.py --replicas 2
-python3 ops/check-runtime-capacity.py --region netherlands --compose-file compose.prod.netherlands.yaml --env-file /opt/fitician-agent/.env
+python3 ops/check-runtime-capacity.py --region germany --compose-file compose.prod.germany.yaml --env-file /opt/fitician-agent/.env
 ```
 
 Reproduce the isolated topology from the repository root:
@@ -234,7 +254,7 @@ through a private test ingress. Both API replicas start before Agent exists. Foc
 provider/admin/queue tests run against this project's PostgreSQL, followed by real HTTP
 bearer/capability/multipart probes with a fake CLI, an outage and recovery. No production
 environment or Agent authentication volume is mounted. Test output is retained under
-`.codex-tmp/iran-netherlands/`; disposable token files are removed on exit. Containers
+`.codex-tmp/iran-germany/`; disposable token files are removed on exit. Containers
 and networks are removed, while uniquely named test volumes are retained. Repeated runs
 consume disk; identify these test volumes explicitly before any separately approved cleanup.
 
@@ -246,12 +266,12 @@ Iran routing, real CLI authentication, real vendor generation or live user accep
 GitHub Actions remains the only central CI. Full image publishing additionally requires
 `split-region-smoke` in `.github/workflows/ci.yml`; focused component build/validation
 paths remain unchanged. `.github/workflows/deploy-regional.yml` is **manual only**.
-Selecting Netherlands cannot invoke Iran backups, migrations or application recreation.
+Selecting Germany cannot invoke Iran backups, migrations or application recreation.
 Selecting Iran never deploys Agent or gates application readiness on Agent availability.
 
 Owner setup, before any dispatch:
 
-1. Create GitHub environments `production-iran` and `production-netherlands`, each with
+1. Create GitHub environments `production-iran` and `production-germany`, each with
    required owner reviewer and restricted deployment branches. Remove broad repository
    VPS credentials from those environments' effective scope or ensure environment-specific
    secrets override them. Use distinct keys/users/host-key pins for each server.
@@ -268,7 +288,7 @@ Owner setup, before any dispatch:
    using the migration checklist. An active regional contract marker records the exact
    Compose file under that host's `releases/<SHA>/` directory.
 
-Regional workflow deploy kinds are Iran `full|frontend|backend`, Netherlands `agent`.
+Regional workflow deploy kinds are Iran `full|frontend|backend`, Germany `agent`.
 Use the successful exact-SHA validation run: full/Agent need full CI publication;
 frontend/backend use the existing exact component evidence and cumulative scope gate.
 A frontend-only release touches frontend only. A backend-only component release touches
@@ -286,7 +306,7 @@ never downgrade Alembic automatically. A failed Agent release does not stop Iran
 
 Before DNS changes, verify Iran HTTPS with `curl --resolve fitician.fit:443:<IRAN_IP>`;
 server-side verification must resolve the ingress to its own loopback. A request following
-current public DNS could otherwise falsely verify the old Netherlands application.
+current public DNS could otherwise falsely verify the original source application.
 Test each replica `/readyz` and `/livez`, DB SELECT 1/current Alembic head, authenticated
 Redis ping and worker heartbeats. Agent status separately checks local health and
 bearer-authenticated capabilities; model/provider acceptance is a separate real task.
@@ -345,7 +365,7 @@ counters, and test dump/restore at the **actual DB cgroup**. Do not blindly prun
 or current/rollback images. Monitoring consumes another 512 MiB and CPU; omit the full
 monitoring overlay until rendered capacity and measured load justify it.
 
-Netherlands's existing 448 MiB Agent limit is preserved as a default. CLI memory/concurrency
+The existing 448 MiB Agent limit is preserved as a default. CLI memory/concurrency
 must be measured independently; this task does not qualify its capacity. Persistent auth
 contains private credentials: snapshots must be encrypted and access limited to owner.
 
@@ -380,7 +400,7 @@ any step that deploys, stops a live service, changes DB/DNS or writes production
   PostgreSQL restore target; `pg_restore --exit-on-error --no-owner --no-acl`. Confirm
   Alembic head, selected table counts, referential integrity and private object references.
   Use the target's actual PostgreSQL major version. Do not restore over a live database.
-- [ ] Quiesce the Netherlands Agent after approved downtime; stop only the verified Agent
+- [ ] Quiesce the source Agent after approved downtime; stop only the verified Agent
   container, never delete its home volume. Confirm no other container writes that volume.
 - [ ] Back up that **verified exact volume** with a read-only mount and network disabled:
 
@@ -410,7 +430,7 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
   clones must not send notifications, run schedulers or accept normal member writes.
   Use controlled test accounts and bounded acceptance probes. Do not let both copies
   process the same durable jobs or send duplicate notifications.
-- [ ] Adopt Agent-only Netherlands config with the existing auth volume after stopping
+- [ ] Adopt Agent-only Germany config with the verified restored auth volume after stopping
   legacy Agent; keep the old contract/image for independent rollback. Attach Serve and
   verify remote admin settings/auth/proxy/provider/image operations from Iran.
 - [ ] Bootstrap Iran from the restored member database; never bootstrap an empty DB as
@@ -418,7 +438,7 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
   scalability acceptance evidence before allowing ordinary releases.
 - [ ] Prepare valid Iran TLS without changing the live origin (approved DNS challenge,
   staged test domain or protected existing Caddy certificate transfer). The default Caddy
-  HTTP challenge cannot prove Iran TLS while fitician.fit still resolves to Netherlands.
+  HTTP challenge cannot prove Iran TLS while fitician.fit still resolves to the Netherlands source.
 - [ ] Use client/server `--resolve` tests and actual Web/PWA/device workflows. Check
   both API replicas, S3 isolation, private access, AI result persistence and worker recovery.
 - [ ] Drill independent Iran and Agent rollback on isolated copies; confirm schema changes
@@ -429,7 +449,7 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
 - [ ] Lower DNS TTL in advance only with owner approval. Schedule maintenance and define
   measurable rollback triggers (auth failures, failed private media, queue age/error rates,
   API latency, VPN instability, backup/OOM/disk pressure) with owner acceptance windows.
-- [ ] Present exact Iran/NL contracts, images, checksums, volumes, backups, schema delta,
+- [ ] Present exact Iran/DE contracts, images, checksums, volumes, backups, schema delta,
   acceptance results and rollback destination. Obtain explicit owner **cutover approval**.
 - [ ] Freeze member writes on source, stop source API workers/scheduler/notification
   consumers, take a final encrypted DB snapshot and reconcile all durable job states.
@@ -445,7 +465,7 @@ docker run --rm --network none --read-only --user 0 --entrypoint tar \
 ### 5. Rollback without losing new writes
 
 Before Iran accepts member writes: restore DNS to source, restore source application
-contract/images and consumers; keep the Netherlands Agent's independent healthy version.
+contract/images and consumers; keep the Germany Agent's independent healthy version.
 Never run source and Iran schedulers/workers simultaneously against copied jobs.
 
 After Iran accepts writes: **DNS-only rollback to the old source DB loses new data**.
@@ -459,14 +479,20 @@ with bounded AI errors and durable retries during recovery.
 
 ## Verification record and limitations
 
-Locally verified on 2026-10-10:
+Germany rename qualification: 115 ops tests, 10 CI contract tests and the complete
+isolated topology simulation (46 focused Backend tests) pass. Workflow/shell lint and
+tracked secret scan pass. The complete Agent suite is now a required Full CI gate;
+Full CI failure resolution and exact run evidence are reported separately.
+
+
+Prior local verification on 2026-10-10 (before the Germany rename and complete-CI qualification):
 
 | Check | Result and scope |
 | --- | --- |
 | Ops/deployment/release/capacity regressions | `python3 -m unittest discover -s ops/tests -q`: 114 passed, including backup failure, reviewed schema gates, regional rollback, empty-bootstrap rollback, Agent single-writer recovery and preloaded infrastructure checks. Deployment execution uses command fakes, not live VPS deployments. |
 | Rendered regional Compose | Both standalone files validate with disposable placeholder settings; external volume names, private ports, Iran caller URL propagation and region-specific resource ceilings checked. |
 | Iran capacity | All services including one-shot migrations: 2,944 MiB, 2.40 aggregate CPU ceilings; 1,152 MiB host headroom on 4 GiB. This permits CPU oversubscription and does not establish latency, throughput or 30 GB disk sufficiency. DB connection estimate 36 including reserve, within configured 40. |
-| CI contract | `node --test mobile/scripts/ciConfig.test.mjs`: 10 passed. Actionlint accepts both changed workflows; shell syntax and Git whitespace checks pass. Full official GitHub CI and image publication remain unrun for this feature branch. |
+| CI contract | `node --test mobile/scripts/ciConfig.test.mjs`: 10 passed. Actionlint accepts both changed workflows; shell syntax and Git whitespace checks pass. Full GitHub CI is being qualified on this feature branch; its exact run and results are reported separately. Production image publication remains main-only and is not authorized here. |
 | Backend static checks | Ruff accepts both changed provider files, new topology regressions and probe. Strict mypy accepts both changed provider files. |
 | Agent process suite | Pinned local Agent image with Docker init: 274 passed, 3 deselected. Exclusions are the default-registry test requiring an authenticated/unknown AGY installation and two helpers requiring absent `/usr/bin/python3`. The host full suite had 276 passes/one failure because installed AGY 1.2.2 differs from expected versions. No complete Agent suite or real CLI auth acceptance is claimed. |
 | Offline image transfer | Existing immutable frontend SHA image locally saved, compressed, checksum-checked and loaded with identical image ID (47,382,756-byte archive). This validates the local archive mechanism only; candidate full bundle and Iran transfer/load remain required. |
@@ -478,7 +504,7 @@ length, unauthorized capability access returned 401, direct Agent bypass was una
 and Agent request workspaces were deleted. During an Agent outage the provider normalized
 the gateway failure to a sanitized `provider_unavailable`; both API replicas stayed ready.
 After restart the same image path succeeded again and its workspace was deleted.
-Evidence: `.codex-tmp/iran-netherlands/split-test-disconnected-final.log` (local artifact,
+Evidence: `.codex-tmp/iran-germany/simulation.log` (local artifact,
 not committed; contains no production settings). Real vendor CLI execution is replaced
 only in this simulation, so authentication/model acceptance is still an operator gate.
 
@@ -488,10 +514,10 @@ only in this simulation, so authentication/model acceptance is still an operator
 | --- | --- |
 | `.env.example` | Point operators to regional settings without changing development defaults. |
 | `compose.prod.iran.yaml` | Standalone Iran services, configurable private Agent URL, no local Agent health gates, explicit external volumes, digest-pinned infrastructure and resource limits. |
-| `compose.prod.netherlands.yaml` | Agent-only loopback runtime, existing auth volume, CLI process init, no private media or Iran secrets. |
+| `compose.prod.germany.yaml` | Agent-only loopback runtime, existing auth volume, CLI process init, no private media or Iran secrets. |
 | `ops/env/iran.env.example` | Iran-specific operator configuration template. |
-| `ops/env/netherlands.env.example` | Agent-only operator configuration template. |
-| `ops/check-runtime-capacity.py` | Validate legacy, Iran and Netherlands service/resource budgets independently. |
+| `ops/env/germany.env.example` | Agent-only operator configuration template. |
+| `ops/check-runtime-capacity.py` | Validate legacy, Iran and Germany service/resource budgets independently. |
 | `ops/tests/test_regional_topology.py` | Rendered placement, private port, volume, URL, init and capacity regressions. |
 | `backend/app/ai/task_provider.py` | Pass the existing configured Agent connect timeout into task providers. |
 | `backend/app/body_analysis/providers/agent_service.py` | Bound remote connection setup independently of generation time. |
@@ -505,8 +531,8 @@ only in this simulation, so authentication/model acceptance is still an operator
 | `ops/verify-regional.sh` | Independent actual-image, health, schema, ingress and Agent-auth checks. |
 | `ops/tests/test_regional_deploy.py` | Executable regional deployment failure and rollback regressions. |
 | `ops/tests/test_split_ci.py` | Ensure full image publishing depends on the new smoke gate. |
-| `docs/superpowers/plans/2026-10-10-iran-netherlands.md` | Bounded implementation and review checklist. |
-| `docs/iran-netherlands-architecture.md` | Architecture, audit, networking, risk, CI/CD, verification and migration/rollback runbook. |
+| `docs/superpowers/plans/2026-10-10-iran-germany.md` | Bounded implementation and review checklist. |
+| `docs/iran-germany-architecture.md` | Architecture, audit, networking, risk, CI/CD, verification and migration/rollback runbook. |
 
 No application schema, frontend/mobile API contract, development Compose, legacy production
 contract or live environment is changed.

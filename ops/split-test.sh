@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 project="fitician-split-test-${UID:-user}-$$"
-run_dir="$repo_root/.codex-tmp/iran-netherlands/$project"
+run_dir="$repo_root/.codex-tmp/iran-germany/$project"
 env_file="$run_dir/compose.env"
 mkdir -p "$run_dir/pytest-tmp"
 token="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
