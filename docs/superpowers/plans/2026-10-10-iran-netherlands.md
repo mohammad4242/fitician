@@ -18,10 +18,13 @@
 - Interrupted requests retain durable retry/lease semantics and bounded attempts.
 
 ## Tasks
-- [ ] Audit all runtime/HTTP/queue/external dependency/release contracts; verify current Git and local services.
-- [ ] Write failing regional topology/capacity tests; add standalone regional Compose and operator environment examples; validate rendered service placement, private ports, external volumes, CPU/RAM limits.
-- [ ] Add regional deployment and verification scripts/workflow with executable failure tests; preserve legacy CI and component gates.
-- [ ] Add isolated two-network simulation and remote provider regression tests; execute actual HTTP/auth/image transport and Agent-down replica smoke.
-- [ ] Run focused provider, admin, queue, Agent and ops tests. Review delegated diffs and final combined diff.
-- [ ] Document network gates, direct WireGuard fallback, registry transfer, backups/restore, staged cutover/rollback and exact limitations.
-- [ ] Commit reviewed work on feature branch and push only that branch.
+- [x] Audit all runtime/HTTP/queue/external dependency/release contracts; verify current Git and local services.
+- [x] Write failing regional topology/capacity tests; add standalone regional Compose and operator environment examples; validate rendered service placement, private ports, external volumes, CPU/RAM limits.
+- [x] Add regional deployment and verification scripts/workflow with executable failure tests; preserve legacy CI and component gates.
+- [x] Add isolated two-network simulation and remote provider regression tests; execute actual HTTP/auth/image transport and Agent-down replica smoke.
+- [x] Run focused provider, admin, queue, Agent and ops tests. Review delegated diffs and final combined diff.
+- [x] Document network gates, direct WireGuard fallback, registry transfer, backups/restore, staged cutover/rollback and exact limitations.
+- [x] Commit reviewed work on feature branch and push only that branch.
+
+## Remaining production gates
+Actual Iran provider networking, VPN/container reachability, registry delivery, disk/load/backup restore, S3 residency and real authentication/AI/payment/delivery acceptance require owner-operated qualification. No live changes or main merge are authorized.
