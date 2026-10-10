@@ -75,7 +75,7 @@ export function Screen({
   const body = scroll && keyboardAware && keyboardFocusAware ? (
     <KeyboardFocusScrollView
       {...scrollProps}
-      keyboardOffset={(keyboardVerticalOffset ?? insets.top) + fiticianTokens.spacing[4]}
+      keyboardOffset={fiticianTokens.spacing[4]}
     >
       {children}
     </KeyboardFocusScrollView>

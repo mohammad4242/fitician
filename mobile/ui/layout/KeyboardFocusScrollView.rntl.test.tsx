@@ -2,12 +2,13 @@ import { act, renderHook } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { Keyboard, Platform, TextInput, type ScrollView } from "react-native";
 
-import { useAndroidKeyboardFocusScroll } from "./KeyboardFocusScrollView";
-
 const mockScroll = jest.fn();
-const focusedInput = {};
+let inputY = 230;
+const focusedInput = { measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => callback(16, inputY, 328, 52) };
 let onKeyboardShow: () => void;
 let mockRemove: ReturnType<typeof jest.fn>;
+
+import { useAndroidKeyboardFocusScroll } from "./KeyboardFocusScrollView";
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -19,26 +20,27 @@ beforeEach(() => {
     if (event === "keyboardDidShow") onKeyboardShow = listener as () => void;
     return { remove: mockRemove } as never;
   });
+  inputY = 230;
   mockScroll.mockClear();
 });
 
-afterEach(() => {
-  jest.restoreAllMocks();
-  jest.useRealTimers();
-});
+afterEach(() => { jest.restoreAllMocks(); jest.useRealTimers(); });
 
 function useScroll() {
   return useAndroidKeyboardFocusScroll({
-    current: { scrollResponderScrollNativeHandleToKeyboard: mockScroll } as unknown as ScrollView,
-  }, 40);
+    current: {
+      getNativeScrollRef: () => ({ measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => callback(0, 22, 360, 253) }),
+      scrollTo: mockScroll,
+    } as unknown as ScrollView,
+  }, 16, { current: 200 });
 }
 
-test("reveals the focused input after Android keyboard layout settles", () => {
+test("reveals the complete focused input within the reduced Android scroll viewport", () => {
   renderHook(useScroll);
   act(() => onKeyboardShow());
   expect(mockScroll).not.toHaveBeenCalled();
   act(() => jest.advanceTimersByTime(20));
-  expect(mockScroll).toHaveBeenCalledWith(focusedInput, 40, true);
+  expect(mockScroll).toHaveBeenCalledWith({ y: 223, animated: true });
 });
 
 test("reveals a new OTP input when the keyboard is already open", () => {
@@ -46,6 +48,22 @@ test("reveals a new OTP input when the keyboard is already open", () => {
   act(() => result.current());
   act(() => jest.advanceTimersByTime(20));
   expect(mockScroll).toHaveBeenCalledTimes(1);
+});
+
+test("does not move an input already fully visible", () => {
+  inputY = 100;
+  const { result } = renderHook(useScroll);
+  act(() => result.current());
+  act(() => jest.advanceTimersByTime(20));
+  expect(mockScroll).not.toHaveBeenCalled();
+});
+
+test("reveals an input above the viewport without negative offsets", () => {
+  inputY = 10;
+  const { result } = renderHook(useScroll);
+  act(() => result.current());
+  act(() => jest.advanceTimersByTime(20));
+  expect(mockScroll).toHaveBeenCalledWith({ y: 172, animated: true });
 });
 
 test("does not scroll after the keyboard closes or the form unmounts", () => {

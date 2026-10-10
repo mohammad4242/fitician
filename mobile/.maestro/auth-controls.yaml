@@ -4,7 +4,8 @@
 appId: com.fitician.app
 ---
 - launchApp
-- tapOn: "شروع کنیم"
+- tapOn: "باز کردن منو"
+- tapOn: "ساخت برنامه"
 - scrollUntilVisible:
     element: "ساخت حساب و ذخیره پاسخ‌ها"
     visibilityPercentage: 100
