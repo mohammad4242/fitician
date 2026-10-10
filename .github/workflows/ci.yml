@@ -583,7 +583,10 @@ jobs:
       - run: uv sync --frozen --group dev
       - run: uv run ruff check .
       - run: uv run mypy app
-      - run: uv run pytest -q --basetemp=../.codex-tmp/agent-ci
+      - name: Run complete Agent suite
+        run: |
+          mkdir -p ../.codex-tmp
+          uv run pytest -q --basetemp=../.codex-tmp/agent-ci
 
   container-images:
     name: Build and publish immutable production images

@@ -16,6 +16,7 @@ class SplitCITests(unittest.TestCase):
         agent = re.search(r"(?ms)^  agent:\n(.*?)(?=^  [\w-]+:|\Z)", workflow).group(1)
         self.assertIn("needs.changes.outputs.full_ci_required == 'true'", agent)
         self.assertIn("uv run pytest", agent)
+        self.assertLess(agent.index("mkdir -p ../.codex-tmp"), agent.index("uv run pytest"))
         self.assertNotIn("-k ", agent)
         self.assertNotIn("continue-on-error", agent)
 

@@ -488,6 +488,14 @@ read-only pinned Agent container with init. Ruff and strict mypy pass. The suite
 a required Full CI gate; Full CI failure resolution and exact run evidence are reported
 separately. No test was removed or disabled.
 
+The first Full CI qualification run, [38067601879](https://github.com/mohammad4242/fitician/actions/runs/38067601879),
+exposed a fresh-runner setup error: pytest's configured base directory had no parent.
+That caused 195 fixture setup errors while 86 tests passed. The job now explicitly creates
+`.codex-tmp` before pytest; all 281 tests pass locally with that command. The workflow
+regression requires directory creation before the complete suite. This is a CI setup fix,
+not a changed application contract or excluded test. Final exact-SHA CI evidence is
+reported separately after all jobs finish.
+
 
 Prior local verification on 2026-10-10 (before the Germany rename and complete-CI qualification):
 
