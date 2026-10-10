@@ -73,7 +73,14 @@ class RegionalDeployTests(unittest.TestCase):
             "docker",
             r'''#!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FAKE_CALLS"
-if [[ "$*" == *" ps -q "* ]]; then
+if [[ "$*" == "ps -aq --filter volume=agent-home" ]]; then
+  printf 'legacy-agent\n'
+  if [[ "${FAKE_EXTRA_AUTH_CONTAINER:-false}" == true ]]; then
+    printf 'stopped-agent\n'
+  fi
+elif [[ "$*" == "ps -q --filter volume=agent-home" ]]; then
+  printf 'legacy-agent\n'
+elif [[ "$*" == *" ps -q "* ]]; then
   for arg in "$@"; do service=$arg; done
   printf 'container-%s\n' "$service"
 elif [[ "$*" == *"config --format json"* ]]; then
@@ -94,6 +101,8 @@ elif [[ "$1" == ps ]]; then
   printf 'legacy-agent\n'
 elif [[ "$*" == *"com.docker.compose.service"* ]]; then
   printf 'agent-service\n'
+elif [[ "$*" == *"com.docker.compose.project"* ]]; then
+  printf '%s\n' "${FAKE_LEGACY_PROJECT:-fitician-agent-source}"
 elif [[ "$*" == *"RestartPolicy.Name"* ]]; then
   printf 'unless-stopped\n'
 elif [[ "$*" == *"stop agent-service"* ]]; then
@@ -275,6 +284,46 @@ fi
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("start legacy-agent", self.calls.read_text().splitlines())
+
+    def test_initial_germany_rejects_stopped_containers_using_auth_volume(self) -> None:
+        (self.app / ".regional-germany-active-contract").unlink()
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            INITIAL_DEPLOY="true",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_EXTRA_AUTH_CONTAINER="true",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("exactly one running Agent", result.stderr)
+        calls = self.calls.read_text().splitlines()
+        self.assertFalse(any(" stop agent-service" in line or " up -d" in line for line in calls))
+
+    def test_initial_germany_rejects_baseline_in_target_compose_project(self) -> None:
+        (self.app / ".regional-germany-active-contract").unlink()
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            INITIAL_DEPLOY="true",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_LEGACY_PROJECT="fitician_de",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Compose project must be separate", result.stderr)
+        calls = self.calls.read_text().splitlines()
+        self.assertFalse(any(" stop agent-service" in line or " up -d" in line for line in calls))
 
     def test_approved_schema_migration_uses_candidate_images_and_manual_recovery(self) -> None:
         self.env.update(

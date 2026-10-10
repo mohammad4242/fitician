@@ -257,16 +257,17 @@ legacy_agent_id=''
 legacy_agent_restart=''
 if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
   auth_volume=$(awk -F= '$1 == "AGENT_HOME_VOLUME_NAME" {value=$2} END {print value}' "$env_file")
-  legacy_ids=$(docker ps -q --filter "volume=$auth_volume")
-  [[ -n "$legacy_ids" ]] || fail 'Initial Germany deployment requires an existing Agent using the auth volume'
-  for id in $legacy_ids; do
-    service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
-    [[ "$service" == agent-service ]] || fail 'Unexpected running container uses the Agent authentication volume'
-    [[ -z "$legacy_agent_id" ]] || fail 'Multiple running Agents use the authentication volume'
-    legacy_agent_id=$id
-    legacy_agent_restart=$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$id")
-  done
-  [[ -n "$legacy_agent_id" ]] || fail 'Existing Agent container was not found for auth-volume adoption'
+  all_auth_ids=$(docker ps -aq --filter "volume=$auth_volume") || fail 'Unable to inventory Agent authentication volume users'
+  running_auth_ids=$(docker ps -q --filter "volume=$auth_volume") || fail 'Unable to inventory running Agent authentication volume users'
+  [[ -n "$all_auth_ids" && "$all_auth_ids" == "$running_auth_ids" && "$all_auth_ids" != *$'\n'* ]] || \
+    fail 'Initial Germany adoption requires exactly one running Agent and no other auth-volume containers'
+  legacy_agent_id=$all_auth_ids
+  service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$legacy_agent_id")
+  [[ "$service" == agent-service ]] || fail 'Unexpected running container uses the Agent authentication volume'
+  legacy_agent_project=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' "$legacy_agent_id")
+  [[ -n "$legacy_agent_project" ]] || fail 'Existing Agent must have a Compose project label for auth-volume adoption'
+  [[ "$legacy_agent_project" != "$project" ]] || fail 'Existing Agent Compose project must be separate from the Germany target project'
+  legacy_agent_restart=$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$legacy_agent_id")
 fi
 
 if [[ "$initial_deploy" == true && "$kind" == full ]]; then
