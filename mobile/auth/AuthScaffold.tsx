@@ -15,7 +15,7 @@ export interface AuthScaffoldProps {
 
 export function AuthScaffold({ children, eyebrow, subtitle, title }: AuthScaffoldProps) {
   return (
-    <Screen contentContainerStyle={authStyles.screen} contentWidth="reading">
+    <Screen contentContainerStyle={authStyles.screen} contentWidth="reading" keyboardFocusAware keyboardDismissMode="none">
       <View style={authStyles.panel} testID="auth-form-panel">
         <View style={authStyles.brandRow}>
           <Text style={authStyles.brand}>{authCopy.common.brand}</Text>

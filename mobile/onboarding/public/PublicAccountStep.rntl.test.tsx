@@ -169,6 +169,7 @@ test("restored public registration uses a scroll container and content-height ac
   await screen.findByTestId("public-account-card");
   const scroll = screen.UNSAFE_getByType(ScrollView);
   expect(scroll.props.keyboardShouldPersistTaps).toBe("handled");
+  expect(scroll.props.keyboardDismissMode).toBe("none");
   const surface = screen.getByTestId("public-account-surface");
   const surfaceStyle = StyleSheet.flatten(surface.props.style);
   expect(surfaceStyle.flex).toBeUndefined();

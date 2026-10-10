@@ -295,6 +295,7 @@ test("the dedicated OTP route retains scroll taps, focuses the code and returns 
   mockUseLocalSearchParams.mockReturnValue({ phoneNumber: "09123456789", source: "public-onboarding" });
   renderScreen(<PhoneOtpScreen />);
   expect(screen.UNSAFE_getByType(ScrollView).props.keyboardShouldPersistTaps).toBe("handled");
+  expect(screen.UNSAFE_getByType(ScrollView).props.keyboardDismissMode).toBe("none");
   expect(screen.getByLabelText("کد ورود").props.autoFocus).toBe(true);
   fireEvent.changeText(screen.getByLabelText("کد ورود"), "123456");
   fireEvent.press(screen.getByRole("button", { name: "تأیید و ورود" }));

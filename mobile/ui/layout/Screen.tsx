@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   type StyleProp,
   type ViewStyle,
+  type ScrollViewProps,
 } from "react-native";
 import {
   SafeAreaView,
@@ -18,6 +19,7 @@ import {
 import { getResponsiveLayout } from "../layoutMetrics";
 import { RTL_LAYOUT } from "../rtl";
 import { fiticianTokens } from "../tokens";
+import { KeyboardFocusScrollView } from "./KeyboardFocusScrollView";
 
 export type ScreenContentWidth = "content" | "full" | "reading";
 
@@ -27,6 +29,8 @@ export interface ScreenProps {
   readonly contentWidth?: ScreenContentWidth;
   readonly edges?: Edges;
   readonly keyboardAware?: boolean;
+  readonly keyboardFocusAware?: boolean;
+  readonly keyboardDismissMode?: ScrollViewProps["keyboardDismissMode"];
   readonly keyboardVerticalOffset?: number;
   readonly scroll?: boolean;
   readonly style?: StyleProp<ViewStyle>;
@@ -38,6 +42,8 @@ export function Screen({
   contentWidth = "content",
   edges = ["top", "bottom"],
   keyboardAware = true,
+  keyboardFocusAware = false,
+  keyboardDismissMode = "on-drag",
   keyboardVerticalOffset,
   scroll = true,
   style,
@@ -59,13 +65,23 @@ export function Screen({
     },
     contentContainerStyle,
   ];
-  const body = scroll ? (
+  const scrollProps = {
+    contentContainerStyle: [styles.scrollContent, contentStyle],
+    keyboardDismissMode,
+    keyboardShouldPersistTaps: "handled" as const,
+    showsVerticalScrollIndicator: false,
+    style: RTL_LAYOUT,
+  };
+  const body = scroll && keyboardAware && keyboardFocusAware ? (
+    <KeyboardFocusScrollView
+      {...scrollProps}
+      keyboardOffset={(keyboardVerticalOffset ?? insets.top) + fiticianTokens.spacing[4]}
+    >
+      {children}
+    </KeyboardFocusScrollView>
+  ) : scroll ? (
     <ScrollView
-      contentContainerStyle={[styles.scrollContent, contentStyle]}
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-      style={RTL_LAYOUT}
+      {...scrollProps}
     >
       {children}
     </ScrollView>
