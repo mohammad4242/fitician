@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...RTL_CENTER_TEXT,
+    flexShrink: 1,
     fontFamily: fiticianTokens.typography.fontFamily.bodyPersian,
     fontSize: fiticianTokens.typography.fontSize.body,
     fontWeight: fiticianTokens.typography.fontWeight.extraBold,

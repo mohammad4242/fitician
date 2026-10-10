@@ -229,6 +229,7 @@ export default function SignInScreen() {
                   render={({ field, fieldState }) => (
                     <TextField
                       autoComplete="one-time-code"
+                      autoFocus
                       error={fieldState.error?.message}
                       keyboardType="number-pad"
                       label={authCopy.common.otpCode}

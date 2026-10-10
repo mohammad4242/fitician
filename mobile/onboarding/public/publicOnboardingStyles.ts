@@ -6,8 +6,10 @@ export const publicOnboardingStyles = StyleSheet.create({
   accountSurface: {
     alignItems: "center",
     backgroundColor: fiticianTokens.colors.canvas,
-    flex: 1,
-    justifyContent: "center",
+    // Preserve intrinsic form height when the keyboard reduces the viewport.
+    flexGrow: 1,
+    flexShrink: 0,
+    justifyContent: "flex-start",
     paddingHorizontal: fiticianTokens.spacing[3],
     paddingVertical: fiticianTokens.spacing[3],
     width: "100%",
@@ -198,9 +200,13 @@ export const publicOnboardingStyles = StyleSheet.create({
     textAlign: "center",
     writingDirection: "rtl",
   },
+  phoneAction: {
+    maxWidth: "100%",
+  },
   phoneActions: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: fiticianTokens.spacing[2],
     justifyContent: "space-between",
   },

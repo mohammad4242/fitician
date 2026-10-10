@@ -22,6 +22,8 @@ import type { AppleAuthCredential } from "./appleCredential";
 import { useGoogleSignIn } from "./GoogleSignIn";
 import { useMobileAuth } from "./MobileAuthProvider";
 import { authStyles } from "./authStyles";
+import PhoneOtpScreen from "../app/(auth)/auth/phone-otp";
+import { ScrollView } from "react-native";
 import RegisterScreen from "../app/(auth)/auth/register";
 import SignInScreen from "../app/(auth)/auth/sign-in";
 import VerifyEmailScreen from "../app/(auth)/auth/verify-email";
@@ -204,6 +206,7 @@ test("renders inline OTP verification and resend countdown", async () => {
     fireEvent.press(screen.getByRole("button", { name: "ارسال کد ورود" }));
 
     await waitFor(() => expect(screen.getByLabelText("کد ورود")).toBeTruthy());
+    expect(screen.getByLabelText("کد ورود").props.autoFocus).toBe(true);
     expect(screen.getByText("ارسال مجدد تا ۲ ثانیه")).toBeTruthy();
 
     act(() => jest.advanceTimersByTime(2_000));
@@ -286,4 +289,15 @@ test("preserves the public onboarding source through Register", async () => {
     pathname: "/onboarding",
     params: { source: "public-onboarding" },
   });
+});
+
+test("the dedicated OTP route retains scroll taps, focuses the code and returns to public onboarding", async () => {
+  mockUseLocalSearchParams.mockReturnValue({ phoneNumber: "09123456789", source: "public-onboarding" });
+  renderScreen(<PhoneOtpScreen />);
+  expect(screen.UNSAFE_getByType(ScrollView).props.keyboardShouldPersistTaps).toBe("handled");
+  expect(screen.getByLabelText("کد ورود").props.autoFocus).toBe(true);
+  fireEvent.changeText(screen.getByLabelText("کد ورود"), "123456");
+  fireEvent.press(screen.getByRole("button", { name: "تأیید و ورود" }));
+  await waitFor(() => expect(mockAuth.verifyPhoneOtp).toHaveBeenCalledWith("09123456789", "123456"));
+  expect(mockReplace).toHaveBeenCalledWith({ pathname: "/onboarding", params: { source: "public-onboarding" } });
 });

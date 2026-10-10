@@ -141,3 +141,27 @@ This Linux workspace has no Xcode, CocoaPods, EAS CLI/token, Apple signing
 credentials, or physical iPhone. It can verify source/config/prebuild
 contracts and release tooling; it cannot claim a local signed IPA, TestFlight
 upload, App Store review, or physical-device result.
+
+## Myket authentication acceptance
+
+For an authentication release, install the remotely signed `production-device`
+APK against `https://fitician.fit` before building the `production` AAB.
+Retain the APK/AAB source SHA, EAS build IDs, package/version metadata,
+certificate SHA-256, artifact SHA-256, and sanitized physical-device evidence.
+The APK profile does not increment the remote version; the AAB profile does.
+
+Run `.maestro/auth-controls.yaml` with a signed-out user and persisted public
+onboarding answers at the account step. It checks real scrolling and tappable
+empty-form validation without sending SMS or deleting data. Separately complete
+real SMS registration, resend, incorrect-code recovery, successful verification,
+existing phone login, and email/password login on the signed APK. Verify the
+onboarding answers survive authentication and navigation.
+
+Repeat keyboard-open/closed checks at approximately 360×640 dp, normal display
+size, and increased font/display scaling, including gesture and three-button
+navigation where available. The OTP input, resend, errors, and submit controls
+must scroll fully above the keyboard/navigation area. Restore device settings
+after testing. Jest layout assertions cannot establish physical visibility.
+Do not retain OTPs, credentials, session tokens, or personal information in
+screenshots, UI dumps, logs, or committed evidence. Production screenshot
+protection must not be silently weakened to collect evidence.

@@ -82,6 +82,7 @@ export default function PhoneOtpScreen() {
               <TextField
                 autoCapitalize="none"
                 autoComplete="one-time-code"
+                autoFocus
                 error={fieldState.error?.message}
                 keyboardType="number-pad"
                 label={authCopy.common.otpCode}

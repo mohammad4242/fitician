@@ -176,3 +176,9 @@ test("renders every shared two-day preset", () => {
   expect(screen.getByRole("radio", { name: "دوشنبه · پنجشنبه" }).props.accessibilityState)
     .toMatchObject({ selected: true });
 });
+
+test("allows long scaled authentication button labels to wrap within the touch target", () => {
+  render(<Button label="ساخت حساب و ذخیره پاسخ‌ها" onPress={jest.fn()} />);
+  expect(StyleSheet.flatten(screen.getByText("ساخت حساب و ذخیره پاسخ‌ها").props.style)).toMatchObject({ flexShrink: 1 });
+  expect(screen.getByText("ساخت حساب و ذخیره پاسخ‌ها").props.allowFontScaling).toBe(true);
+});

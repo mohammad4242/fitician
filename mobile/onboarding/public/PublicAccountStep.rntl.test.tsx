@@ -1,16 +1,30 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
-import { StyleSheet } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({}) }));
 jest.mock("../../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
 jest.mock("../../auth/GoogleSignIn", () => ({ useGoogleSignIn: jest.fn() }));
+jest.mock("expo-router", () => ({ useRouter: () => ({ replace: mockReplace }) }));
+jest.mock("../../ui/navigation/BackBehaviorProvider", () => ({ useAndroidBackHandler: jest.fn() }));
+jest.mock("../publicOnboardingDraftStore", () => ({
+  SecurePublicOnboardingDraftStore: jest.fn().mockImplementation(() => ({
+    load: mockLoadDraft,
+    save: jest.fn(),
+  })),
+}));
 
 import { useGoogleSignIn } from "../../auth/GoogleSignIn";
 import { useMobileAuth } from "../../auth/MobileAuthProvider";
+import { publicOnboardingStyles } from "./publicOnboardingStyles";
 import { PublicAccountStep } from "./PublicAccountStep";
+import { PublicOnboardingScreen } from "../PublicOnboardingScreen";
+import { createInitialOnboardingState, transitionOnboardingState } from "@fitician/core/onboarding";
+
+const mockReplace = jest.fn();
+const mockLoadDraft = jest.fn<() => Promise<unknown>>();
 
 const mockUseGoogleSignIn = jest.mocked(useGoogleSignIn);
 const mockUseMobileAuth = jest.mocked(useMobileAuth);
@@ -107,6 +121,7 @@ test("supports existing-account login, Google, and inline phone OTP resend", asy
     fireEvent.press(screen.getByRole("button", { name: "ارسال کد ورود" }));
     await waitFor(() => expect(screen.getByLabelText("کد ورود")).toBeTruthy());
     expect(mockAuth.sendPhoneOtp).toHaveBeenCalledWith("09123456789");
+    expect(screen.getByLabelText("کد ورود").props.autoFocus).toBe(true);
 
     act(() => jest.advanceTimersByTime(2_000));
     fireEvent.press(screen.getByRole("button", { name: "ارسال دوباره کد" }));
@@ -123,4 +138,74 @@ test("supports existing-account login, Google, and inline phone OTP resend", asy
   } finally {
     jest.useRealTimers();
   }
+});
+
+// These assertions protect the native layout contract. Physical IME/viewport
+// acceptance is separate; Jest does not calculate Yoga layout or tap geometry.
+test("restored public registration uses a scroll container and content-height account surface", async () => {
+  const shared = {
+    birth_date: "1992-05-12", current_weight_kg: 70, display_name: "QA",
+    fitness_goal: "build_muscle" as const, height_cm: 170, sex: "male" as const,
+  };
+  const selected = transitionOnboardingState(createInitialOnboardingState(), { type: "select_product_mode", mode: "training" });
+  const answered = transitionOnboardingState(selected, { type: "save_shared_profile", profile: shared });
+  const draft = transitionOnboardingState(answered, { type: "save_training_profile", profile: {
+    ...shared, shoulder_circumference_cm: null, waist_circumference_cm: null,
+    hip_circumference_cm: null, experience_level: "beginner", training_age_months: null,
+    training_days_per_week: 3, preferred_weekdays: null, priority_muscles: null,
+    training_location: "gym", home_training_setup: null, available_equipment: null,
+    session_duration_minutes: 45, training_intensity: "moderate", training_cautions: [],
+    plan_duration_weeks: 4,
+  } });
+  mockLoadDraft.mockResolvedValue({ status: "valid", state: draft });
+  render(
+    <SafeAreaProvider initialMetrics={{
+      frame: { width: 360, height: 640, x: 0, y: 0 },
+      insets: { top: 24, bottom: 24, left: 0, right: 0 },
+    }}>
+      <PublicOnboardingScreen />
+    </SafeAreaProvider>,
+  );
+  await screen.findByTestId("public-account-card");
+  const scroll = screen.UNSAFE_getByType(ScrollView);
+  expect(scroll.props.keyboardShouldPersistTaps).toBe("handled");
+  const surface = screen.getByTestId("public-account-surface");
+  const surfaceStyle = StyleSheet.flatten(surface.props.style);
+  expect(surfaceStyle.flex).toBeUndefined();
+  expect(surfaceStyle.justifyContent).toBe("flex-start");
+
+  fireEvent.press(screen.getByRole("tab", { name: "شماره تلفن" }));
+  fireEvent.changeText(screen.getByPlaceholderText("۰۹۱۲۳۴۵۶۷۸۹"), "09123456789");
+  fireEvent.press(screen.getByRole("button", { name: "ارسال کد ورود" }));
+  await screen.findByLabelText("کد ورود");
+  expect(screen.getByLabelText("کد ورود").props.autoFocus).toBe(true);
+  fireEvent.changeText(screen.getByLabelText("کد ورود"), "123456");
+  fireEvent.press(screen.getByRole("button", { name: "تأیید و ذخیره پاسخ‌ها" }));
+  await waitFor(() => expect(mockReplace).toHaveBeenCalledWith({ pathname: "/onboarding", params: { source: "public-onboarding" } }));
+  expect(mockLoadDraft).toHaveBeenCalledTimes(1);
+});
+
+test("keeps phone verification retryable after validation and backend errors", async () => {
+  const onAuthenticated = jest.fn();
+  mockAuth.verifyPhoneOtp.mockRejectedValueOnce(new Error("network unavailable"));
+  renderAccount(onAuthenticated);
+  fireEvent.press(screen.getByRole("tab", { name: "شماره تلفن" }));
+  fireEvent.changeText(screen.getByPlaceholderText("۰۹۱۲۳۴۵۶۷۸۹"), "09123456789");
+  fireEvent.press(screen.getByRole("button", { name: "ارسال کد ورود" }));
+  await screen.findByLabelText("کد ورود");
+  const confirm = () => screen.getByRole("button", { name: "تأیید و ذخیره پاسخ‌ها" });
+  fireEvent.press(confirm());
+  expect(mockAuth.verifyPhoneOtp).not.toHaveBeenCalled();
+  expect(onAuthenticated).not.toHaveBeenCalled();
+  fireEvent.changeText(screen.getByLabelText("کد ورود"), "123456");
+  fireEvent.press(confirm());
+  await waitFor(() => expect(mockAuth.verifyPhoneOtp).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(confirm()).not.toBeDisabled());
+  expect(onAuthenticated).not.toHaveBeenCalled();
+  fireEvent.press(confirm());
+  await waitFor(() => expect(onAuthenticated).toHaveBeenCalledTimes(1));
+});
+
+test("lets resend and change-number controls wrap at large font and display sizes", () => {
+  expect(StyleSheet.flatten(publicOnboardingStyles.phoneActions)).toMatchObject({ flexWrap: "wrap" });
 });

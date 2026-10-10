@@ -206,7 +206,7 @@ export function PublicOnboardingScreen() {
   const accountMode = state.step === "review" || state.step === "nutrition_preferences" ? state.mode : null;
   if (accountMode !== null) {
     return (
-      <Screen contentWidth="full" contentContainerStyle={styles.accountScreen} scroll={false}>
+      <Screen contentWidth="full" contentContainerStyle={styles.accountScreen}>
         {error ? <Notice message={error} variant="danger" /> : null}
         <PublicAccountStep
           mode={accountMode}

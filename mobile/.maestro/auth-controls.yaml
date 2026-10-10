@@ -1,0 +1,31 @@
+# Preconditions: signed production APK; signed-out user; persisted public
+# onboarding answers at the final account step. Never clear user data here.
+# Run at 360x640 dp, normal size, and increased font/display scaling.
+appId: com.fitician.app
+---
+- launchApp
+- openLink: "fitician:///public-onboarding"
+- scrollUntilVisible:
+    element: "ساخت حساب و ذخیره پاسخ‌ها"
+    visibilityPercentage: 100
+- assertVisible: "ساخت حساب و ذخیره پاسخ‌ها"
+- scrollUntilVisible:
+    element: "تکرار رمز عبور"
+    direction: UP
+- tapOn:
+    text: "تکرار رمز عبور"
+    index: 1
+- scrollUntilVisible:
+    element: "ساخت حساب و ذخیره پاسخ‌ها"
+    visibilityPercentage: 100
+- tapOn: "ساخت حساب و ذخیره پاسخ‌ها"
+- hideKeyboard
+- scrollUntilVisible:
+    element: "شماره تلفن"
+    direction: UP
+- tapOn: "شماره تلفن"
+- scrollUntilVisible:
+    element: "ارسال کد ورود"
+    visibilityPercentage: 100
+- tapOn: "ارسال کد ورود"
+- assertVisible: "ارسال کد ورود"

@@ -167,7 +167,7 @@ if (
 const config: ExpoConfig = {
   name: "Fitician",
   slug: "fitician",
-  version: "0.1.2",
+  version: "0.1.3",
   orientation: "portrait",
   scheme: "fitician",
   icon: "./assets/branding/fitician-icon.png",

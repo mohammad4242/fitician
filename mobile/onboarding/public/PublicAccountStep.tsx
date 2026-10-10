@@ -179,7 +179,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
   }
 
   return (
-    <View style={styles.accountSurface}>
+    <View style={styles.accountSurface} testID="public-account-surface">
       <View style={[styles.accountCard, compactLayout && styles.accountCardCompact]} testID="public-account-card">
         <View style={[styles.account, compactLayout && styles.accountCompact]} testID="public-account-step">
       <View style={[styles.accountTopline, compactLayout && styles.accountToplineCompact]}>
@@ -332,6 +332,7 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
             <>
               <TextField
                 autoComplete="one-time-code"
+                autoFocus
                 keyboardType="number-pad"
                 label={copy.otpCode}
                 maxLength={6}
@@ -347,12 +348,13 @@ export function PublicAccountStep({ onAuthenticated, onEdit }: PublicAccountStep
                   accessibilityRole="button"
                   disabled={busy || countdown > 0}
                   onPress={resendPhone}
+                  style={styles.phoneAction}
                 >
                   <Text style={styles.textButton}>
                     {countdown > 0 ? `${copy.resendCountdown} ${faNumber(countdown)} ${copy.seconds}` : copy.resend}
                   </Text>
                 </Pressable>
-                <Pressable accessibilityRole="button" disabled={busy} onPress={changePhone}>
+                <Pressable accessibilityRole="button" disabled={busy} onPress={changePhone} style={styles.phoneAction}>
                   <Text style={styles.textButton}>{copy.changePhone}</Text>
                 </Pressable>
               </View>
