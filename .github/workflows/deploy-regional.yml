@@ -216,6 +216,8 @@ jobs:
           test "$TARGET" = iran || test "$TARGET" = germany
       - uses: webfactory/ssh-agent@v0.9.0
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       - name: Pin regional VPS host key
         env:
@@ -233,10 +235,14 @@ jobs:
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
           remote_contract="$release_dir/compose.prod.$TARGET.yaml"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "set -eu; if [ -f '$VPS_APP_DIR/.regional-$TARGET-active-contract' ]; then active=\$(cat '$VPS_APP_DIR/.regional-$TARGET-active-contract'); test \"\$active\" != '$remote_contract'; else test '$INITIAL_DEPLOY' = true; fi; mkdir -p '$release_dir/ops'"
           scp "compose.prod.$TARGET.yaml" "$VPS_USER@$VPS_HOST:$remote_contract"
           scp Caddyfile "$VPS_USER@$VPS_HOST:$release_dir/Caddyfile"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
           scp ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
           scp ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
@@ -251,6 +257,8 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           test -n "$DOCKERHUB_TOKEN"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Read running regional baseline
@@ -258,6 +266,8 @@ jobs:
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           tag=$(ssh "$VPS_USER@$VPS_HOST" \
             "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED=true IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' INSPECT_ONLY=true bash '$release_dir/ops/deploy-regional.sh'")
           printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
@@ -281,5 +291,7 @@ jobs:
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED='$OWNER_APPROVED' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' bash '$release_dir/ops/deploy-regional.sh'"

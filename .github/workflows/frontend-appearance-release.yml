@@ -154,6 +154,8 @@ jobs:
       - uses: webfactory/ssh-agent@v0.9.0
         if: inputs.deploy_production
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       - name: Pin production host key
         if: inputs.deploy_production
@@ -168,6 +170,8 @@ jobs:
         id: baseline
         run: |
           set -euo pipefail
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           tag=$(ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='frontend' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' INSPECT_ONLY=true bash -s" \
             < release-ops/ops/deploy-component.sh)
@@ -178,6 +182,8 @@ jobs:
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Deploy frontend with isolation, health checks and rollback
@@ -185,6 +191,8 @@ jobs:
         env:
           CURRENT_TAG: ${{ steps.baseline.outputs.tag }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='frontend' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' PREVIOUS_IMAGE_TAG='$CURRENT_TAG' EXPECTED_CURRENT_TAG='$CURRENT_TAG' bash -s" \
             < release-ops/ops/deploy-component.sh

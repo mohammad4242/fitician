@@ -56,6 +56,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: webfactory/ssh-agent@v0.9.0
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       - name: Pin VPS host key
         env:
@@ -89,6 +91,8 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
@@ -195,6 +199,8 @@ jobs:
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "cd '$VPS_APP_DIR' && docker compose -f compose.prod.yaml ps caddy && docker compose -f compose.prod.yaml logs --no-color --tail=200 caddy"
       - name: Roll back Caddy after failed public verification
@@ -205,6 +211,8 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
@@ -222,5 +230,7 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "rm -f '$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-rollback' '$VPS_APP_DIR/.Caddyfile-$DEPLOY_SHA-candidate'"

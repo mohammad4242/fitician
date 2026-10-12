@@ -90,6 +90,8 @@ jobs:
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
 
       - name: Pin VPS host key
@@ -118,6 +120,8 @@ jobs:
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
           set +e
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh -o BatchMode=yes "$VPS_USER@$VPS_HOST" \
             "test -f '$VPS_APP_DIR/.scalability-foundation-accepted'"
           status=$?
@@ -210,6 +214,8 @@ jobs:
       - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
 
       - name: Pin VPS host key
@@ -243,6 +249,8 @@ jobs:
         run: |
           test -n "$DOCKERHUB_USERNAME"
           test -n "$DOCKERHUB_TOKEN"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
 
@@ -252,6 +260,8 @@ jobs:
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "mkdir -p '$VPS_APP_DIR/ops/redis'; if [ -f '$VPS_APP_DIR/compose.prod.yaml' ]; then cp '$VPS_APP_DIR/compose.prod.yaml' '$VPS_APP_DIR/.compose.prod.rollback.yaml'; else rm -f '$VPS_APP_DIR/.compose.prod.rollback.yaml'; fi"
           scp compose.prod.yaml "$VPS_USER@$VPS_HOST:$VPS_APP_DIR/compose.prod.yaml"
@@ -269,6 +279,8 @@ jobs:
           VPS_USER: ${{ vars.VPS_USER }}
           VPS_APP_DIR: ${{ vars.VPS_APP_DIR || secrets.VPS_APP_DIR || '/opt/fitician' }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' ROLLBACK_COMPOSE_FILE='$VPS_APP_DIR/.compose.prod.rollback.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
 

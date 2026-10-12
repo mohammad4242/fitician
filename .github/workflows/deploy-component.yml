@@ -85,6 +85,8 @@ jobs:
       - uses: webfactory/ssh-agent@v0.9.0
         if: steps.current.outputs.eligible == 'true'
         with:
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       - name: Pin VPS host key
         if: steps.current.outputs.eligible == 'true'
@@ -98,6 +100,8 @@ jobs:
         if: steps.current.outputs.eligible == 'true'
         id: baseline
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           tag=$(ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='$COMPONENT' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' INSPECT_ONLY=true bash -s" \
             < ops/deploy-component.sh)
@@ -122,6 +126,8 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           test -n "$DOCKERHUB_TOKEN"
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Deploy, verify isolation and HTTPS, rollback on failure
@@ -129,6 +135,8 @@ jobs:
         env:
           CURRENT_TAG: ${{ steps.baseline.outputs.tag }}
         run: |
+          # Reviewed target arguments expand locally; remote variables are escaped.
+          # shellcheck disable=SC2029
           ssh "$VPS_USER@$VPS_HOST" \
             "VPS_APP_DIR='$VPS_APP_DIR' COMPONENT='$COMPONENT' IMAGE_TAG='$IMAGE_TAG' DOCKERHUB_USERNAME='$DOCKERHUB_USERNAME' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' EXPECTED_CURRENT_TAG='$CURRENT_TAG' bash -s" \
             < ops/deploy-component.sh
