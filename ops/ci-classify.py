@@ -13,6 +13,9 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+BASELINE_SPEC = importlib.util.spec_from_file_location("ci_baseline", ROOT / "ops/ci-baseline.py")
+baseline = importlib.util.module_from_spec(BASELINE_SPEC)
+BASELINE_SPEC.loader.exec_module(baseline)
 SCOPES = (
     "run_backend",
     "run_frontend",
@@ -24,6 +27,7 @@ SCOPES = (
     "run_production_contract",
     "run_scalability",
     "run_multi_replica",
+    "run_split_region",
 )
 DOMAIN_TESTS = {
     "workouts": (
@@ -330,6 +334,7 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
         backend_only=path_kind == "backend",
         mobile_only=path_kind == "mobile",
         full_ci_required=full,
+        selective_ci_required=False,
         shared_changed=shared,
         contracts_changed=contracts,
         migration_changed=migrations,
@@ -342,6 +347,27 @@ def classify(paths: list[str], root: Path = ROOT, *, force_full: bool = False) -
         backend_tests=sorted(suites),
         changed_paths=paths,
         full_reasons=sorted(reasons),
+    )
+    return plan
+
+
+def classify_with_baseline(
+    paths: list[str], evidence: dict, repository: str, head: str, root: Path = ROOT
+) -> dict:
+    plan = classify(paths, root)
+    try:
+        proof = baseline.verify(evidence, repository, head, root)
+    except ValueError:
+        return plan
+    plan.update({key: False for key in SCOPES})
+    plan.update(
+        path="ops", full_ci_required=False, selective_ci_required=True,
+        run_dependencies=True, run_production_contract=True, run_split_region=True,
+        run_backend=False, run_frontend=False, run_shared=False, run_mobile=False,
+        deployable=True, deploy_frontend=True, deploy_backend=True, deploy_agent=True,
+        frontend_only=False, backend_only=False, mobile_only=False,
+        backend_tests=[], backend_domains=[], full_reasons=[], baseline=proof,
+        changed_paths=proof["changed_paths"],
     )
     return plan
 
@@ -391,10 +417,16 @@ def main() -> None:
     parser.add_argument("--head", default=os.environ.get("GITHUB_SHA", "HEAD"))
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--baseline-evidence", type=Path)
     args = parser.parse_args()
     plan = classify(
         git_paths(args.base, args.head) if not args.full else [], force_full=args.full
     )
+    if args.baseline_evidence and not args.full:
+        plan = classify_with_baseline(
+            git_paths(args.base, args.head), json.loads(args.baseline_evidence.read_text()),
+            os.environ["GITHUB_REPOSITORY"], args.head,
+        )
     plan["base_sha"] = args.base
     plan["release_requested"] = os.environ.get(
         "EVENT_NAME", os.environ.get("GITHUB_EVENT_NAME")

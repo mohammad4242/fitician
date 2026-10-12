@@ -20,6 +20,39 @@ def classifier():
 
 
 class ClassifierTests(unittest.TestCase):
+    def test_verified_ops_baseline_skips_unchanged_application_suites(self):
+        from unittest.mock import patch
+
+        module = classifier()
+        proof = {
+            "run_id": 123,
+            "sha": "a" * 40,
+            "changed_paths": ["compose.prod.iran.yaml", "ops/deploy-regional.sh"],
+        }
+        with patch.object(module.baseline, "verify", return_value=proof):
+            plan = module.classify_with_baseline(
+                ["backend/app/ai/task_provider.py"], {"run": {}}, "owner/repo", "HEAD", ROOT
+            )
+        self.assertFalse(plan["full_ci_required"])
+        self.assertTrue(plan["selective_ci_required"])
+        self.assertTrue(plan["run_production_contract"])
+        self.assertTrue(plan["run_dependencies"])
+        self.assertTrue(plan["run_split_region"])
+        for name in ("run_backend", "run_frontend", "run_mobile", "run_android", "run_shared"):
+            self.assertFalse(plan[name])
+        self.assertEqual(plan["baseline"], proof)
+
+    def test_missing_or_invalid_baseline_keeps_full_fallback(self):
+        from unittest.mock import patch
+
+        module = classifier()
+        with patch.object(module.baseline, "verify", side_effect=ValueError("invalid")):
+            plan = module.classify_with_baseline(
+                ["compose.prod.iran.yaml"], {}, "owner/repo", "HEAD", ROOT
+            )
+        self.assertTrue(plan["full_ci_required"])
+        self.assertFalse(plan["selective_ci_required"])
+
     def test_requested_examples(self):
         module = classifier()
         for path, expected in (

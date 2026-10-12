@@ -15,6 +15,64 @@ def success(*names):
 
 
 class ReleaseGateTests(unittest.TestCase):
+    def test_selective_gate_reverifies_api_evidence_and_actual_tree(self):
+        from unittest.mock import patch
+
+        proof = {"run_id": 123, "sha": "a" * 40, "changed_paths": ["ops/deploy-regional.sh"]}
+        plan = {
+            "sha": SHA,
+            "selective_ci_required": True,
+            "baseline": proof,
+            "changed_paths": proof["changed_paths"],
+        }
+        with (
+            patch.object(module.classifier.baseline, "load_run", return_value={}) as load,
+            patch.object(module.classifier.baseline, "verify", return_value=proof) as verify,
+        ):
+            module.require_selective_evidence("owner/repo", plan, SHA, Path(".ci-evidence"))
+            load.assert_called_once_with("owner/repo", 123, Path(".ci-evidence"))
+            verify.assert_called_once_with({}, "owner/repo", SHA)
+        with (
+            patch.object(module.classifier.baseline, "load_run", return_value={}),
+            patch.object(
+                module.classifier.baseline,
+                "verify",
+                return_value={**proof, "changed_paths": ["backend/app/main.py"]},
+            ),
+            self.assertRaises(SystemExit),
+        ):
+            module.require_selective_evidence("owner/repo", plan, SHA, Path(".ci-evidence"))
+
+    def test_selective_full_image_release_requires_all_current_checks_and_baseline(self):
+        plan = dict(
+            sha=SHA,
+            release_requested=True,
+            deployable=True,
+            full_ci_required=False,
+            selective_ci_required=True,
+            changed_paths=["ops/deploy-regional.sh"],
+            baseline={"run_id": 123, "sha": "a" * 40, "changed_paths": ["ops/deploy-regional.sh"]},
+        )
+        names = (
+            "Secret scan",
+            "Dependency audit",
+            "Production Compose and deployment checks",
+            "Isolated Iran and Germany HTTP smoke",
+            "Build and publish immutable production images",
+        )
+        self.assertEqual(module.release_path(plan, success(*names), SHA), "selective")
+        for missing in names:
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                module.release_path(
+                    plan, success(*(name for name in names if name != missing)), SHA
+                )
+        with self.assertRaises(ValueError):
+            module.release_path(
+                {**plan, "changed_paths": ["backend/app/main.py"]}, success(*names), SHA
+            )
+        with self.assertRaises(ValueError):
+            module.release_path({**plan, "baseline": {}}, success(*names), SHA)
+
     def test_frontend_fast_does_not_require_full_images(self):
         plan = dict(
             sha=SHA,
@@ -35,9 +93,7 @@ class ReleaseGateTests(unittest.TestCase):
             module.release_path(plan, jobs[:-1], SHA)
 
     def test_sha_mismatch_and_missing_full_images_fail_closed(self):
-        plan = dict(
-            sha=SHA, release_requested=True, deployable=True, full_ci_required=True
-        )
+        plan = dict(sha=SHA, release_requested=True, deployable=True, full_ci_required=True)
         with self.assertRaises(ValueError):
             module.release_path(plan, success("Secret scan"), SHA)
         with self.assertRaises(ValueError):
@@ -106,9 +162,7 @@ class FullFrontendReleaseTests(unittest.TestCase):
             self.assertEqual(
                 module.release_path(
                     plan,
-                    success(
-                        "Secret scan", "Build and publish immutable production images"
-                    ),
+                    success("Secret scan", "Build and publish immutable production images"),
                     SHA,
                 ),
                 "full",
@@ -134,9 +188,7 @@ class ExactMainEvidenceTests(unittest.TestCase):
             ("head_repository", {"full_name": "fork/repo"}),
         ]:
             self.assertFalse(
-                module.trusted_run(
-                    {**run, key: value}, SHA, "owner/repo", "Fitician CI"
-                )
+                module.trusted_run({**run, key: value}, SHA, "owner/repo", "Fitician CI")
             )
 
     def test_seo_evidence_requires_successful_exact_main_sha(self):

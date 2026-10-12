@@ -271,10 +271,41 @@ Iran routing, real CLI authentication, real vendor generation or live user accep
 
 ## CI/CD and independent rollback
 
+### Image-only release policy (2026-10-12)
+
+Production deployment entry points are disabled in source, including reusable and manual
+component/Caddy/appearance/regional jobs; the legacy `workflow_run` trigger is removed.
+Existing deployment workflows are also disabled through GitHub before merging. Re-enabling
+production requires a separately reviewed code change and explicit owner authorization.
+Image publication cannot connect to a VPS or perform database migrations.
+
+`ops/ci-baseline.py` verifies recent (at most seven days), successful same-repository
+Full CI evidence, its exact-SHA release-plan artifact, all required successful job results,
+and candidate ancestry. A narrow allowlist covers regional Compose, reviewed ops helpers,
+workflow routing/disabled CD and their tests. It checks the cumulative diff from that
+validated ancestor, including deletes and renames. Application, schema, build-context,
+dependency/lockfile and unknown changes retain the existing fail-closed Full CI behavior.
+Nightly and explicit `mode=full` continue to run complete validation; `mode=selective` is
+validation-only. No complete test suite is removed or suppressed.
+
+For the eligible ops path, current secret scan, dependency audit, all ops tests,
+workflow/Compose/Caddy/shell checks and isolated regional HTTP/outage smoke are required.
+Unchanged Backend/Frontend/Agent/shared/mobile/native suites use the complete ancestor
+evidence. The image job and release gate independently re-fetch and verify that evidence
+and actual candidate tree; missing, stale, skipped, failed or forged proof fails closed.
+Only a successful final-main-SHA run publishes Backend, Frontend and Agent images with
+that SHA on Docker Hub. Publication has no object-store connectivity probe, no Arvan
+registry or mirror, and no deployment side effect. Existing application media build
+configuration remains unchanged.
+
+The current pinned actionlint predates GitHub's supported `concurrency.queue` field;
+only that unsupported-key diagnostic is excluded, while queue/cancellation contracts are
+covered by ops tests. See [GitHub concurrency reference](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
 GitHub Actions remains the only central CI. Full image publishing additionally requires
 `split-region-smoke` in `.github/workflows/ci.yml`; focused component build/validation
 paths remain unchanged. `.github/workflows/deploy-regional.yml` is **manual only**.
-Selecting Germany cannot invoke Iran backups, migrations or application recreation.
+When separately re-enabled, selecting Germany cannot invoke Iran backups, migrations or application recreation.
 Selecting Iran never deploys Agent or gates application readiness on Agent availability.
 
 Owner setup, before any dispatch:
@@ -297,7 +328,8 @@ Owner setup, before any dispatch:
    Compose file under that host's `releases/<SHA>/` directory.
 
 Regional workflow deploy kinds are Iran `full|frontend|backend`, Germany `agent`.
-Use the successful exact-SHA validation run: full/Agent need full CI publication;
+Use the successful exact-SHA validation run: full/Agent need all three images published
+after Full CI or verified selective baseline validation;
 frontend/backend use the existing exact component evidence and cumulative scope gate.
 A frontend-only release touches frontend only. A backend-only component release touches
 both API replicas, never workers or migrations, and requires equal Alembic heads.

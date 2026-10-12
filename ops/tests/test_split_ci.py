@@ -31,6 +31,18 @@ class SplitCITests(unittest.TestCase):
         self.assertIn("bash ops/split-test.sh", smoke)
         self.assertNotIn("secrets.", smoke)
 
+    def test_selective_release_requires_current_ops_and_remote_boundary_smoke(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("  container-images:", 1)[1]
+        self.assertIn("needs.changes.outputs.selective_ci_required == 'true'", job)
+        self.assertIn("needs.production-contract.result == 'success'", job)
+        self.assertIn("needs.dependencies.result == 'success'", job)
+        self.assertIn("needs.split-region-smoke.result == 'success'", job)
+        self.assertIn("--verify-selective-plan", job)
+        self.assertIn("ops/ci-baseline.py", workflow)
+        self.assertIn("--baseline-evidence", workflow)
+        self.assertIn("actionlint", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

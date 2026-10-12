@@ -15,6 +15,7 @@ on:
         options:
           - full
           - release
+          - selective
         default: full
 
 permissions:
@@ -42,6 +43,8 @@ jobs:
       run_multi_replica: ${{ steps.classify.outputs.run_multi_replica }}
       deployable: ${{ steps.classify.outputs.deployable }}
       full_ci_required: ${{ steps.classify.outputs.full_ci_required }}
+      selective_ci_required: ${{ steps.classify.outputs.selective_ci_required }}
+      run_split_region: ${{ steps.classify.outputs.run_split_region }}
       deploy_frontend: ${{ steps.classify.outputs.deploy_frontend }}
       deploy_backend: ${{ steps.classify.outputs.deploy_backend }}
       deploy_agent: ${{ steps.classify.outputs.deploy_agent }}
@@ -60,6 +63,11 @@ jobs:
         run: node --test mobile/scripts/ciConfig.test.mjs
       - name: Test deterministic classifier
         run: python3 -m unittest ops/tests/test_ci_classifier.py ops/tests/test_backend_quality.py ops/tests/test_ci_release_gate.py ops/tests/test_component_workflows.py -q
+      - name: Discover complete ancestor validation
+        if: github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'full')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ops/ci-baseline.py --output .ci-evidence/baseline.json
       - name: Classify changed paths
         id: classify
         env:
@@ -69,13 +77,13 @@ jobs:
           DISPATCH_MODE: ${{ inputs.mode }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = schedule ] || [ "$EVENT_NAME" = workflow_dispatch ]; then
+          if [ "$EVENT_NAME" = schedule ] || { [ "$EVENT_NAME" = workflow_dispatch ] && [ "$DISPATCH_MODE" = full ]; }; then
             python3 ops/ci-classify.py --full --output .ci-evidence/release-plan.json
           elif [ "$EVENT_NAME" = pull_request ]; then
             base=$(git merge-base "$BASE_SHA" HEAD)
-            python3 ops/ci-classify.py --base "$base" --output .ci-evidence/release-plan.json
+            python3 ops/ci-classify.py --base "$base" --baseline-evidence .ci-evidence/baseline.json --output .ci-evidence/release-plan.json
           else
-            python3 ops/ci-classify.py --base "$BEFORE_SHA" --output .ci-evidence/release-plan.json
+            python3 ops/ci-classify.py --base "$BEFORE_SHA" --baseline-evidence .ci-evidence/baseline.json --output .ci-evidence/release-plan.json
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -369,6 +377,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate workflow syntax and deployment isolation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .codex-tmp/actionlint
+          gh release download v1.7.12 --repo rhysd/actionlint --dir .codex-tmp/actionlint \
+            --pattern actionlint_1.7.12_linux_amd64.tar.gz --pattern actionlint_1.7.12_checksums.txt
+          (cd .codex-tmp/actionlint && sha256sum --check --ignore-missing actionlint_1.7.12_checksums.txt && tar -xzf actionlint_1.7.12_linux_amd64.tar.gz)
+          # actionlint 1.7.12 predates GitHub's documented concurrency queue property.
+          # Existing queue:max/cancel-in-progress:false contracts are covered by ops tests.
+          .codex-tmp/actionlint/actionlint -ignore 'unexpected key "queue"' .github/workflows/*.yml
+          node --test mobile/scripts/ciConfig.test.mjs
       - name: Validate Compose, Caddy, and deployment helpers
         run: |
           test ! -e .env
@@ -387,7 +408,8 @@ jobs:
             -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
           sh -n ops/deploy-production.sh
-          bash -n ops/backup-production.sh
+          bash -n ops/backup-production.sh ops/deploy-regional.sh ops/split-test.sh
+          sh -n ops/verify-regional.sh
           python3 -m unittest discover -s ops/tests -p 'test_*.py' -v
 
   scalability-contract:
@@ -553,7 +575,7 @@ jobs:
 
   split-region-smoke:
     name: Isolated Iran and Germany HTTP smoke
-    if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
+    if: ${{ needs.changes.outputs.full_ci_required == 'true' || needs.changes.outputs.run_split_region == 'true' }}
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -592,16 +614,20 @@ jobs:
     name: Build and publish immutable production images
     if: >-
       always() && !cancelled() && github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.full_ci_required == 'true' &&
       needs.secrets.result == 'success' &&
+      ((needs.changes.outputs.full_ci_required == 'true' &&
       needs.backend.result == 'success' && needs.frontend.result == 'success' &&
       needs.frontend-browser.result == 'success' && needs.shared.result == 'success' &&
       needs.mobile.result == 'success' && needs.android.result == 'success' &&
       needs.dependencies.result == 'success' && needs.production-contract.result == 'success' &&
       needs.scalability-contract.result == 'success' && needs.multi-replica-smoke.result == 'success' &&
       needs.split-region-smoke.result == 'success' &&
-      needs.agent.result == 'success' &&
-      (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      needs.agent.result == 'success') ||
+      (needs.changes.outputs.selective_ci_required == 'true' &&
+      needs.production-contract.result == 'success' && needs.dependencies.result == 'success' &&
+      needs.split-region-smoke.result == 'success')) &&
+      (github.event_name == 'push' || github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode != 'selective'))
     needs:
       - changes
       - backend
@@ -620,8 +646,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download exact-run selective release plan
+        if: needs.changes.outputs.selective_ci_required == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-release-plan
+          path: .ci-evidence
+      - name: Reverify baseline before image publication
+        if: needs.changes.outputs.selective_ci_required == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ops/ci-release-gate.py --verify-selective-plan .ci-evidence/release-plan.json --sha "${{ github.sha }}"
       - uses: docker/setup-buildx-action@v3
       - name: Require public S3 media URL
         env:

@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -47,13 +48,29 @@ def release_path(plan: dict, jobs: list[dict], sha: str) -> str:
         return "none"
 
     def passed(name):
-        return any(
-            job["name"].endswith(name) and job["conclusion"] == "success"
-            for job in jobs
-        )
+        matches = [job for job in jobs if job["name"].split(" / ")[-1] == name]
+        return len(matches) == 1 and matches[0]["conclusion"] == "success"
 
     if not passed("Secret scan"):
         raise ValueError("Missing successful secret scan")
+    if plan.get("selective_ci_required"):
+        proof = plan.get("baseline", {})
+        if (
+            plan.get("full_ci_required")
+            or not isinstance(proof.get("run_id"), int)
+            or proof["run_id"] < 1
+            or not re.fullmatch(r"[0-9a-f]{40}", proof.get("sha", ""))
+            or proof.get("changed_paths") != plan.get("changed_paths")
+            or not classifier.baseline.ops_only(plan.get("changed_paths", []))
+        ):
+            raise ValueError("Invalid selective baseline proof")
+        for name in (
+            "Dependency audit", "Production Compose and deployment checks",
+            "Isolated Iran and Germany HTTP smoke", "Build and publish immutable production images",
+        ):
+            if not passed(name):
+                raise ValueError(f"Missing successful selective check: {name}")
+        return "selective"
     if plan.get("full_ci_required"):
         if not passed("Build and publish immutable production images"):
             raise ValueError("Exact SHA did not publish full release images")
@@ -81,15 +98,35 @@ def release_path(plan: dict, jobs: list[dict], sha: str) -> str:
     return "component"
 
 
+def require_selective_evidence(repository: str, plan: dict, sha: str, directory: Path) -> None:
+    if plan.get("sha") != sha or not plan.get("selective_ci_required"):
+        raise SystemExit("Invalid exact-SHA selective release plan")
+    proof = plan.get("baseline", {})
+    run_id = proof.get("run_id")
+    if not isinstance(run_id, int) or run_id < 1:
+        raise SystemExit("Missing Full CI baseline run")
+    evidence = classifier.baseline.load_run(repository, run_id, directory)
+    verified = classifier.baseline.verify(evidence, repository, sha)
+    if proof != verified or plan.get("changed_paths") != verified["changed_paths"]:
+        raise SystemExit("Selective release proof does not match the actual candidate tree")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--run-id", required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--run-id")
+    source.add_argument("--verify-selective-plan", type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--require-full", action="store_true")
     parser.add_argument("--require-frontend-full", action="store_true")
     parser.add_argument("--directory", type=Path, default=Path(".ci-evidence"))
     args = parser.parse_args()
     repository = os.environ["GITHUB_REPOSITORY"]
+    if args.verify_selective_plan:
+        plan = json.loads(args.verify_selective_plan.read_text())
+        require_selective_evidence(repository, plan, args.sha, args.directory)
+        print(f"Verified exact-SHA selective baseline: {args.sha}")
+        return
     endpoint = f"repos/{repository}/actions/runs/{args.run_id}"
     run = json.loads(subprocess.check_output(["gh", "api", endpoint]))
     if not trusted_run(run, args.sha, repository, "Fitician CI"):
@@ -111,26 +148,17 @@ def main() -> None:
         check=True,
     )
     plan = json.loads((args.directory / "release-plan.json").read_text())
-    pages = json.loads(
-        subprocess.check_output(
-            [
-                "gh",
-                "api",
-                "--paginate",
-                "--slurp",
-                endpoint + "/jobs?per_page=100&filter=latest",
-            ]
-        )
-    )
-    jobs = [job for page in pages for job in page["jobs"]]
+    jobs = classifier.baseline.api_jobs(endpoint)
     path = release_path(plan, jobs, args.sha)
+    if path == "selective":
+        require_selective_evidence(repository, plan, args.sha, args.directory)
     if args.require_frontend_full and path != "frontend-full":
         raise SystemExit("Frontend-only Full CI deployment scope was not verified")
     if path == "frontend-full":
         require_seo_evidence(repository, args.sha)
-    if args.require_full and path != "full":
+    if args.require_full and path not in {"full", "selective"}:
         raise SystemExit(
-            "Manual full deployment requires successful Full CI and published images for this SHA"
+            "Full image release requires complete or verified selective CI and published images"
         )
     print(f"Verified release path={path}; sha={args.sha}; CI run={args.run_id}")
     if os.environ.get("GITHUB_OUTPUT"):
