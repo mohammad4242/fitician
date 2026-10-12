@@ -4,6 +4,8 @@ Status: local architecture and implementation prepared; **not production-ready**
 production database, credential or volume changes are authorized by this document.
 Latest read-only host qualification and configuration transfer manifest:
 [2026-10-12 readiness audit](iran-germany-readiness-2026-10-12.md).
+Latest authorized preparation, real backup/restore evidence and access blockers:
+[2026-10-13 migration progress](iran-germany-migration-progress-2026-10-13.md).
 Audit baseline: branch `main`, commit `bf182dd4`, 2026-10-10. Implementation is on
 `feat/iran-netherlands-architecture`. All unrelated untracked work is preserved.
 
