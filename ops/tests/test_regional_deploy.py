@@ -7,7 +7,6 @@ import unittest
 from datetime import UTC, datetime
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/deploy-regional.sh"
 OLD = "a" * 40
@@ -61,7 +60,13 @@ class RegionalDeployTests(unittest.TestCase):
         )
         for name in ("check-db-connection-budget.py", "check-runtime-capacity.py"):
             path = self.new_release / "ops" / name
-            path.write_text("#!/usr/bin/env python3\nraise SystemExit(0)\n")
+            path.write_text(
+                "#!/usr/bin/env python3\nimport os, sys\n"
+                "with open(os.environ['FAKE_CALLS'], 'a') as calls:\n"
+                "    calls.write('PREFLIGHT ' + ' '.join(sys.argv) + '\\n')\n"
+                "raise SystemExit(int(os.environ.get('FAKE_CAPACITY_STATUS', '0')) "
+                "if 'runtime-capacity' in sys.argv[0] else 0)\n"
+            )
             path.chmod(0o755)
         self.calls = self.app / "calls"
         self.calls.touch()
@@ -182,6 +187,48 @@ fi
         return subprocess.run(
             ["bash", str(SCRIPT)], env=self.env, capture_output=True, text=True, check=False
         )
+
+    def test_capacity_failure_blocks_iran_before_pull_or_runtime_mutation(self) -> None:
+        self.env["FAKE_CAPACITY_STATUS"] = "1"
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text()
+        self.assertNotIn(" pull ", calls)
+        self.assertNotIn(" up -d", calls)
+        self.assertNotIn("backup-production.sh", calls)
+
+    def test_germany_capacity_failure_blocks_agent_adoption(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        (self.old_release / "compose.prod.germany.yaml").touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_CAPACITY_STATUS="1",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text()
+        self.assertNotIn(" pull ", calls)
+        self.assertNotIn(" up -d", calls)
+        self.assertNotIn("update --restart", calls)
+
+    def test_capacity_gate_uses_measured_host_before_pull(self) -> None:
+        result = self.run_deploy()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        capacity = next(line for line in calls if "PREFLIGHT" in line and "runtime-capacity" in line)
+        self.assertIn("--host-memory-mib ", capacity)
+        self.assertIn("--host-cpus ", capacity)
+        self.assertIn("--region iran", capacity)
+        self.assertLess(calls.index(capacity), next(i for i, line in enumerate(calls) if " pull " in line))
 
     def test_iran_full_backs_up_before_rollout_and_persists_tags_after_verify(self) -> None:
         result = self.run_deploy()
@@ -377,8 +424,8 @@ fi
         self.assertNotEqual(result.returncode, 0)
         states = [line for line in self.calls.read_text().splitlines() if line.startswith("TAGSTATE|")]
         self.assertEqual(len(states), 2)
-        self.assertEqual(states[0], "TAGSTATE|" + "|".join([NEW, NEW, NEW, OLD]))
-        self.assertEqual(states[1], "TAGSTATE|" + "|".join([frontend, api, worker, OLD]))
+        self.assertEqual(states[0], f"TAGSTATE|{NEW}|{NEW}|{NEW}|{OLD}")
+        self.assertEqual(states[1], f"TAGSTATE|{frontend}|{api}|{worker}|{OLD}")
         self.assertEqual(
             (self.app / ".regional-iran-active-contract").read_text(),
             str(self.old_contract) + "\n",

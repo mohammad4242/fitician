@@ -2,6 +2,8 @@
 
 Status: local architecture and implementation prepared; **not production-ready**. No live VPS, DNS,
 production database, credential or volume changes are authorized by this document.
+Latest read-only host qualification and configuration transfer manifest:
+[2026-10-12 readiness audit](iran-germany-readiness-2026-10-12.md).
 Audit baseline: branch `main`, commit `bf182dd4`, 2026-10-10. Implementation is on
 `feat/iran-netherlands-architecture`. All unrelated untracked work is preserved.
 
@@ -238,9 +240,13 @@ Capacity uses rendered Compose, including the bounded one-shot Iran migration:
 
 ```sh
 python3 ops/check-runtime-capacity.py --region iran --compose-file compose.prod.iran.yaml --env-file /opt/fitician-iran/.env
-python3 ops/check-db-connection-budget.py --replicas 2
+python3 ops/check-db-connection-budget.py --compose-file compose.prod.iran.yaml --env-file /opt/fitician-iran/.env
 python3 ops/check-runtime-capacity.py --region germany --compose-file compose.prod.germany.yaml --env-file /opt/fitician-agent/.env
 ```
+
+For manual capacity checks, pass measured `--host-memory-mib` and `--host-cpus` for
+each host. The regional deployment script measures them automatically and gates both
+regions before pulling images or mutating runtime. It checks DB pools from rendered Compose.
 
 Reproduce the isolated topology from the repository root:
 

@@ -18,7 +18,9 @@ class RegionalTopologyTests(unittest.TestCase):
         self.addCleanup(self.scratch.cleanup)
         self.env_file = Path(self.scratch.name) / ".env"
         self.env_file.write_text("")
-        self.env = os.environ | {
+        self.env = {
+            "PATH": os.environ["PATH"],
+            "HOME": os.environ["HOME"],
             "FITICIAN_ENV_FILE": str(self.env_file),
             "DOCKERHUB_USERNAME": "example",
             "IMAGE_TAG": "a" * 40,
@@ -40,6 +42,8 @@ class RegionalTopologyTests(unittest.TestCase):
             [
                 "docker",
                 "compose",
+                "--env-file",
+                str(self.env_file),
                 "-f",
                 f"compose.prod.{region}.yaml",
                 "config",
@@ -112,12 +116,23 @@ class RegionalTopologyTests(unittest.TestCase):
         self.assertTrue(volume["external"])
         self.assertEqual(volume["name"], "existing-agent-home")
 
+    def test_regional_services_bound_disk_usage_from_container_logs(self):
+        for region in ("iran", "germany"):
+            for name, service in self.render(region)["services"].items():
+                with self.subTest(region=region, service=name):
+                    self.assertEqual(service.get("logging"), {
+                        "driver": "json-file",
+                        "options": {"max-size": "10m", "max-file": "3"},
+                    })
+
     def test_capacity_uses_region_specific_rendered_limits(self):
         for region in ("iran", "germany"):
             result = subprocess.run(
                 [
                     sys.executable,
                     "ops/check-runtime-capacity.py",
+                    "--env-file",
+                    str(self.env_file),
                     "--region",
                     region,
                     "--compose-file",
@@ -148,6 +163,8 @@ class RegionalTopologyTests(unittest.TestCase):
                 [
                     sys.executable,
                     "ops/check-runtime-capacity.py",
+                    "--env-file",
+                    str(self.env_file),
                     "--region",
                     region,
                     "--compose-file",
@@ -167,6 +184,8 @@ class RegionalTopologyTests(unittest.TestCase):
             [
                 sys.executable,
                 "ops/check-runtime-capacity.py",
+                "--env-file",
+                str(self.env_file),
                 "--region",
                 "iran",
                 "--compose-file",
@@ -180,6 +199,67 @@ class RegionalTopologyTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(json.loads(result.stdout)["within_budget"])
+
+    def test_database_budget_uses_rendered_pool_settings(self):
+        for pool_size, expected_status, expected_connections in ((5, 0, 32), (20, 1, 62)):
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "ops/check-db-connection-budget.py",
+                    "--compose-file",
+                    "compose.prod.iran.yaml",
+                    "--env-file",
+                    str(self.env_file),
+                ],
+                cwd=ROOT,
+                env=self.env | {"DB_POOL_SIZE": str(pool_size)},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, expected_status, result.stderr)
+            self.assertEqual(
+                json.loads(result.stdout)["possible_connections"], expected_connections
+            )
+
+    def test_database_budget_rejects_missing_application_topology(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "ops/check-db-connection-budget.py",
+                "--compose-file",
+                "compose.prod.germany.yaml",
+                "--env-file",
+                str(self.env_file),
+            ],
+            cwd=ROOT,
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Invalid rendered database connection budget", result.stderr)
+
+    def test_database_budget_reads_env_file_budget_and_rejects_unbounded_pool(self):
+        for settings in ("DB_CONNECTION_BUDGET=30\n", "DB_MAX_OVERFLOW=-1\n"):
+            self.env_file.write_text(settings)
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "ops/check-db-connection-budget.py",
+                    "--compose-file",
+                    "compose.prod.iran.yaml",
+                    "--env-file",
+                    str(self.env_file),
+                ],
+                cwd=ROOT,
+                env=self.env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == "__main__":

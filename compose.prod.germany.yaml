@@ -1,4 +1,10 @@
 # Standalone Germany runtime. Host Tailscale Serve proxies loopback only.
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   agent-service:
     init: true
@@ -35,6 +41,7 @@ services:
       retries: 10
     mem_limit: ${AGENT_MEMORY_LIMIT:-448m}
     cpus: ${AGENT_CPU_LIMIT:-0.40}
+    logging: *bounded-logging
     restart: unless-stopped
 
 volumes:

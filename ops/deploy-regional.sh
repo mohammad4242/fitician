@@ -190,6 +190,22 @@ for volume in "${volume_names[@]}"; do
   docker volume inspect "$volume" >/dev/null 2>&1 || fail 'A required persistent volume does not exist'
 done
 
+# Measure this host rather than assuming the legacy 4 GiB / 2 CPU envelope.
+host_capacity=$(python3 -c 'import os; print(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") // (1024 * 1024), len(os.sched_getaffinity(0)))')
+read -r host_memory_mib host_cpus <<< "$host_capacity"
+FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
+  FRONTEND_IMAGE_TAG="$image_tag" BACKEND_API_IMAGE_TAG="$image_tag" \
+  WORKER_IMAGE_TAG="$image_tag" AGENT_IMAGE_TAG="$image_tag" \
+  python3 "$release_dir/ops/check-runtime-capacity.py" --region "$region" \
+    --host-memory-mib "$host_memory_mib" --host-cpus "$host_cpus" \
+    --compose-file "$compose_file" --env-file "$env_file"
+if [[ "$region" == iran ]]; then
+  FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
+    BACKEND_API_IMAGE_TAG="$image_tag" WORKER_IMAGE_TAG="$image_tag" \
+    python3 "$release_dir/ops/check-db-connection-budget.py" \
+      --compose-file "$compose_file" --env-file "$env_file"
+fi
+
 image_services_csv=$(IFS=,; printf '%s' "${image_services[*]}")
 if ! image_refs=$(compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
   config --format json 2>/dev/null | IMAGE_SERVICES="$image_services_csv" python3 -c '
@@ -374,9 +390,6 @@ case "$kind" in
 esac
 
 if [[ "$region" == iran && "$kind" == full ]]; then
-  python3 "$release_dir/ops/check-db-connection-budget.py" --replicas 2
-  python3 "$release_dir/ops/check-runtime-capacity.py" --region iran --replicas 2 \
-    --compose-file "$compose_file" --env-file "$env_file"
   backup_contract=$active_contract
   if [[ "$initial_deploy" == true ]]; then
     rollback_needed=true

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 
 
@@ -30,13 +31,50 @@ def main() -> int:
     )
     parser.add_argument("--budget", type=int, default=env_int("DB_CONNECTION_BUDGET", 40))
     parser.add_argument("--headroom", type=int, default=env_int("DB_CONNECTION_HEADROOM", 4))
+    parser.add_argument("--compose-file")
+    parser.add_argument("--env-file")
     args = parser.parse_args()
     values = vars(args)
-    if any(value < 0 for value in values.values()) or args.replicas < 1:
+    if any(value < 0 for value in values.values() if isinstance(value, int)) or args.replicas < 1:
         parser.error("connection counts must be non-negative and replicas must be positive")
 
     api_connections = args.replicas * (args.backend_pool_size + args.backend_overflow)
     worker_connections = args.workers * (args.worker_pool_size + args.worker_overflow)
+    if args.compose_file:
+        command = ["docker", "compose"]
+        if args.env_file:
+            command.extend(("--env-file", args.env_file))
+        command.extend(("-f", args.compose_file, "config", "--format", "json"))
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+            if result.returncode:
+                raise ValueError("Compose render failed")
+            services = json.loads(result.stdout)["services"]
+
+            def pool(name: str) -> int:
+                environment = services[name]["environment"]
+                size = int(environment["DB_POOL_SIZE"])
+                overflow = int(environment["DB_MAX_OVERFLOW"])
+                if size < 1 or overflow < 0:
+                    raise ValueError("Unbounded or invalid database pool")
+                return size + overflow
+
+            api_connections = sum(pool(name) for name in ("backend", "backend-2"))
+            worker_connections = sum(
+                pool(name)
+                for name in (
+                    "food-photo-worker", "body-analysis-worker", "notification-worker", "scheduler"
+                )
+            )
+            environment = services["backend"]["environment"]
+            args.budget = int(environment.get("DB_CONNECTION_BUDGET", args.budget))
+            args.headroom = int(environment.get("DB_CONNECTION_HEADROOM", args.headroom))
+            if args.budget < 1 or args.headroom < 0:
+                raise ValueError("Invalid database budget")
+            args.replicas, args.workers = 2, 4
+        except (OSError, ValueError, KeyError, TypeError):
+            print("Invalid rendered database connection budget", file=sys.stderr)
+            return 1
     possible = api_connections + worker_connections
     payload = {
         "replicas": args.replicas,
