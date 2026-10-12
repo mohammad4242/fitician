@@ -38,8 +38,12 @@ jobs:
             caddy:2.10.2-alpine caddy validate --config /etc/caddy/Caddyfile
 
   deploy-caddy-production:
+    # Production CD is disabled until a separately reviewed re-enablement.
     name: Deploy Caddy only and verify www TLS
-    if: inputs.deploy_production
+    if: >-
+      false && (
+      inputs.deploy_production
+      )
     needs: validate-caddy
     runs-on: ubuntu-latest
     environment: production

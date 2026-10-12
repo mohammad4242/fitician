@@ -170,9 +170,13 @@ jobs:
           echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
 
   deploy:
+    # Production CD is disabled until a separately reviewed re-enablement.
     name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
     needs: verify-release
-    if: inputs.owner_approved
+    if: >-
+      false && (
+      inputs.owner_approved
+      )
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:

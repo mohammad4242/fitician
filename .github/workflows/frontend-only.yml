@@ -90,8 +90,6 @@ jobs:
             https://*) ;;
             *) echo "VITE_MEDIA_PUBLIC_BASE_URL must be an HTTPS bucket base URL" >&2; exit 1 ;;
           esac
-          curl --fail --silent --show-error --head --max-time 20 \
-            "${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4" >/dev/null
       - name: Mask Google web client ID
         env:
           GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
@@ -154,7 +152,11 @@ jobs:
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
 
   deploy-frontend-production:
-    if: github.event_name == 'workflow_dispatch' && !inputs.called_by_router && inputs.deploy_production && github.ref == 'refs/heads/main'
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (
+      github.event_name == 'workflow_dispatch' && !inputs.called_by_router && inputs.deploy_production && github.ref == 'refs/heads/main'
+      )
     needs: frontend-image
     uses: ./.github/workflows/deploy-component.yml
     with:

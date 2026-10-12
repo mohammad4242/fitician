@@ -28,6 +28,9 @@ permissions:
 
 jobs:
   deploy:
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (github.repository != '')
     name: Deploy ${{ inputs.component }} only
     runs-on: ubuntu-latest
     environment: production

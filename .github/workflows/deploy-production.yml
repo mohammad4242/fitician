@@ -1,9 +1,6 @@
 name: Deploy Fitician production
 
 on:
-  workflow_run:
-    workflows: [Fitician CI]
-    types: [completed]
   workflow_dispatch:
     inputs:
       image_tag:
@@ -40,13 +37,16 @@ permissions:
 
 jobs:
   automatic_images_gate:
+    # Production CD is disabled until a separately reviewed re-enablement.
     name: Confirm immutable images were published
     if: >-
+      false && (
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository
+      )
     runs-on: ubuntu-latest
     outputs:
       images_ready: ${{ steps.inspect-images.outputs.ready }}
@@ -69,8 +69,10 @@ jobs:
         run: python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$RELEASE_SHA"
 
   automatic_deploy_gate:
+    # Production CD is disabled until a separately reviewed re-enablement.
     name: Check automatic first scalability gate
     if: >-
+      false && (
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -78,6 +80,7 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository &&
       needs.automatic_images_gate.outputs.images_ready == 'true' &&
       needs.automatic_images_gate.outputs.release_path == 'full'
+      )
     needs: automatic_images_gate
     runs-on: ubuntu-latest
     environment: production
@@ -130,6 +133,7 @@ jobs:
           fi
 
   deploy:
+    # Production CD is disabled until a separately reviewed re-enablement.
     name: Deploy immutable images to VPS
     concurrency:
       group: fitician-production
@@ -137,6 +141,7 @@ jobs:
       queue: max
     needs: [automatic_images_gate, automatic_deploy_gate]
     if: >-
+      false && (
       always() && !cancelled() &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.conclusion == 'success' &&
@@ -148,6 +153,7 @@ jobs:
         needs.automatic_images_gate.outputs.release_path == 'full' &&
         needs.automatic_deploy_gate.result == 'success' &&
         needs.automatic_deploy_gate.outputs.deploy == 'true'))
+      )
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -267,7 +273,11 @@ jobs:
             "set -e; trap 'rm -f \"$VPS_APP_DIR/.deploy-production.sh\"' EXIT; IMAGE_TAG='$IMAGE_TAG' PREVIOUS_IMAGE_TAG='$PREVIOUS_IMAGE_TAG' INITIAL_DEPLOY='$INITIAL_DEPLOY' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' COMPOSE_FILE='$VPS_APP_DIR/compose.prod.yaml' ROLLBACK_COMPOSE_FILE='$VPS_APP_DIR/.compose.prod.rollback.yaml' sh '$VPS_APP_DIR/.deploy-production.sh'"
 
   deploy-frontend-component:
-    if: (needs.automatic_images_gate.outputs.release_path == 'component' || needs.automatic_images_gate.outputs.release_path == 'frontend-full') && needs.automatic_images_gate.outputs.deploy_frontend == 'true'
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (
+      (needs.automatic_images_gate.outputs.release_path == 'component' || needs.automatic_images_gate.outputs.release_path == 'frontend-full') && needs.automatic_images_gate.outputs.deploy_frontend == 'true'
+      )
     needs: automatic_images_gate
     uses: ./.github/workflows/deploy-component.yml
     with:
@@ -278,7 +288,11 @@ jobs:
     secrets: inherit
 
   deploy-backend-component:
-    if: needs.automatic_images_gate.outputs.release_path == 'component' && needs.automatic_images_gate.outputs.deploy_backend == 'true'
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (
+      needs.automatic_images_gate.outputs.release_path == 'component' && needs.automatic_images_gate.outputs.deploy_backend == 'true'
+      )
     needs: automatic_images_gate
     uses: ./.github/workflows/deploy-component.yml
     with:

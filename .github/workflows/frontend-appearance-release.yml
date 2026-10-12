@@ -17,6 +17,9 @@ permissions:
 
 jobs:
   frontend-release:
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (github.repository != '')
     name: Verify and release frontend only
     runs-on: ubuntu-latest
     environment: production

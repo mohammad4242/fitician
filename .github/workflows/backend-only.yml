@@ -209,7 +209,11 @@ jobs:
         run: docker push "$BACKEND_IMAGE"
 
   deploy-backend-production:
-    if: github.event_name == 'workflow_dispatch' && inputs.domains == '' && inputs.deploy_production && github.ref == 'refs/heads/main'
+    # Production CD is disabled until a separately reviewed re-enablement.
+    if: >-
+      false && (
+      github.event_name == 'workflow_dispatch' && inputs.domains == '' && inputs.deploy_production && github.ref == 'refs/heads/main'
+      )
     needs: [backend-image, manual-scope]
     uses: ./.github/workflows/deploy-component.yml
     with:
