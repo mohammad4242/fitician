@@ -157,6 +157,24 @@ class RegionalSSHDiagnosticTests(unittest.TestCase):
         self.assertNotIn("unrelated diagnostic text", result.stdout + result.stderr)
         self.assertNotIn("SHA256:AbCdEf0123456789+/=", result.stdout + result.stderr)
 
+    def test_crlf_ssh_debug_output_still_identifies_rejected_key_phase(self) -> None:
+        self.env["FAKE_SSH_ERROR"] = "fitician@vps.example.test: Permission denied (publickey)."
+        self.env["FAKE_SSH_DEBUG"] = (
+            "debug1: Host '[vps.example.test]:9011' is known and matches the ED25519 host key.\n"
+            "debug1: Offering public key: /home/runner/.ssh/identity ED25519 "
+            "SHA256:AbCdEf0123456789+/= explicit agent"
+        ).replace("\n", "\r\n")
+
+        result = self.run_diagnostic()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("host_key_verified=yes", result.stdout)
+        self.assertIn("key_offered=yes", result.stdout)
+        self.assertIn("authentication_accepted=no", result.stdout)
+        self.assertIn("auth_detail=publickey_rejected", result.stdout)
+        self.assertNotIn("debug1:", result.stdout + result.stderr)
+        self.assertNotIn("SHA256:AbCdEf0123456789+/=", result.stdout + result.stderr)
+
     def test_expected_host_hash_is_checked_without_revealing_host_or_hash(self) -> None:
         expected = hashlib.sha256(b"vps.example.test").hexdigest()
         self.env["EXPECTED_HOST_SHA256"] = expected

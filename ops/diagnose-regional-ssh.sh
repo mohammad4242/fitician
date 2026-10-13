@@ -129,8 +129,9 @@ printf 'remote_uid=%s\napp_dir_readable=%s\napp_dir_writable=%s\ndocker_access=%
   "$remote_uid" "$readable" "$writable" "$docker_access"
 REMOTE_CHECKS
 ); then
-  :
+  remote_output=${remote_output//$'\r'/}
 else
+  remote_output=${remote_output//$'\r'/}
   if printf '%s\n' "$remote_output" | grep -E \
     "^debug1: Host '.*' is known and matches the [A-Za-z0-9_-]+ host key\\.$" >/dev/null; then
     host_key_verified=yes
