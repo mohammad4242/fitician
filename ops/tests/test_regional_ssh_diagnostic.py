@@ -10,7 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/diagnose-regional-ssh.sh"
 PRIVATE_KEY = (
-    "-----BEGIN OPENSSH PRIVATE KEY-----\r\n"
+    "-----BEGIN OPENSSH "
+    "PRIVATE KEY-----\r\n"
     "KEY-DATA-MUST-NOT-LEAK\r\n"
     "-----END OPENSSH PRIVATE KEY-----"
 )

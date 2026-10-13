@@ -236,6 +236,42 @@ test("uses Google and keeps the public onboarding destination", async () => {
   });
 });
 
+test("blocks Google while another authentication request is pending and re-enables it afterwards", () => {
+  mockAuth.busy = true;
+  const view = renderSignIn();
+  const google = screen.getByRole("button", { name: "ادامه با گوگل" });
+  expect(google.props.accessibilityState.disabled).toBe(true);
+  fireEvent.press(google);
+  expect(mockGoogleCredential).not.toHaveBeenCalled();
+
+  mockAuth.busy = false;
+  view.rerender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { height: 800, width: 390, x: 0, y: 0 },
+        insets: { bottom: 0, left: 0, right: 0, top: 0 },
+      }}
+    >
+      <SignInScreen />
+    </SafeAreaProvider>,
+  );
+  expect(screen.getByRole("button", { name: "ادامه با گوگل" }).props.accessibilityState.disabled).toBe(false);
+});
+
+test("blocks email and phone submission while the Google account chooser is pending", async () => {
+  let cancelGoogle: ((reason: Error) => void) | undefined;
+  mockGoogleCredential.mockImplementation(() => new Promise((_resolve, reject) => {
+    cancelGoogle = reject;
+  }));
+  renderSignIn();
+  fireEvent.press(screen.getByRole("button", { name: "ادامه با گوگل" }));
+  expect(screen.getByRole("button", { name: "ورود به فیتیشن" }).props.accessibilityState.disabled).toBe(true);
+  fireEvent.press(screen.getByRole("radio", { name: "شماره موبایل" }));
+  expect(screen.getByRole("button", { name: "ارسال کد ورود" }).props.accessibilityState.disabled).toBe(true);
+  await act(async () => cancelGoogle?.(new Error("cancelled")));
+  expect(screen.getByRole("button", { name: "ارسال کد ورود" }).props.accessibilityState.disabled).toBe(false);
+});
+
 test("does not repeat email verification when the auth snapshot changes", async () => {
   mockUseLocalSearchParams.mockReturnValue({ token: "verification-token" } as never);
   const firstAuth = mockAuth;
