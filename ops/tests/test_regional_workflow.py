@@ -65,6 +65,10 @@ class RegionalWorkflowTests(unittest.TestCase):
         self.assertNotIn("workflow_run:", workflow)
         self.assertNotIn("push:", workflow)
         self.assertIn("contents: read", workflow)
+        self.assertIn("expected_iran_host_sha256:", workflow)
+        self.assertIn("expected_germany_host_sha256:", workflow)
+        self.assertIn("EXPECTED_HOST_SHA256: ${{ inputs.expected_iran_host_sha256 }}", workflow)
+        self.assertIn("EXPECTED_HOST_SHA256: ${{ inputs.expected_germany_host_sha256 }}", workflow)
 
 
 if __name__ == "__main__":
