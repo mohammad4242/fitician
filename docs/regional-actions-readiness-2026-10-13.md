@@ -1,5 +1,28 @@
 # Regional GitHub Actions readiness — 2026-10-13
 
+## Germany SSH recovery — subsequent verification
+
+[Run 38400390396](https://github.com/mohammad4242/fitician/actions/runs/38400390396)
+completed successfully on source `67af46bab011190bff95c91c68f5696dcfd47702`.
+The Iran job was intentionally skipped. Germany verified the expected target,
+pinned host key and public-key authentication on port 9011. UID was 0; project
+directory read/write permission predicates passed and Docker daemon access was
+available. No remote application files were written by this diagnostic.
+
+The local `id_ed25519_alman_cd` key pair matched, with private file mode 600.
+Its public key was absent from root's standard `authorized_keys`; exclusive
+authentication with this key failed. The existing SSH alias could connect using
+another identity, which explained the misleading initial local success.
+
+The CD public key was appended without removing existing authorized keys. The
+existing directory/file permissions (700/600) and ownership were retained; no
+SSH daemon policy was changed. Exclusive local authentication then succeeded.
+`VPS_SSH_PRIVATE_KEY` in `production-germany` was set securely from the local key
+file. The successful hosted runner's fingerprint hash matched that exact local
+CD key. This supersedes the Germany authentication blocker below; Iran and the
+release/cutover gates remain pending. Deployment remains disabled in source and
+GitHub. Netherlands, DNS, database and application services were untouched.
+
 ## Result
 
 The regional settings are present, but authenticated SSH from GitHub Actions is
