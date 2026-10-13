@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 
 host=${VPS_HOST:-}
 user=${VPS_USER:-}
@@ -7,10 +8,27 @@ app_dir=${VPS_APP_DIR:-}
 port=${VPS_SSH_PORT:-9011}
 private_key=${VPS_SSH_PRIVATE_KEY:-}
 known_hosts=${VPS_KNOWN_HOSTS:-}
+expected_host_sha256=${EXPECTED_HOST_SHA256:-}
 workspace=${GITHUB_WORKSPACE:-$PWD}
+client_key_loaded=no
+client_key_fingerprint_sha256=not_available
+target_host_matches_expected=not_provided
+pinned_host_entry_present=no
+host_key_verified=no
+key_offered=no
+authentication_accepted=no
+
+report_proofs() {
+  printf 'client_key_loaded=%s\nclient_key_fingerprint_sha256=%s\ntarget_host_matches_expected=%s\npinned_host_entry_present=%s\nhost_key_verified=%s\nkey_offered=%s\nauthentication_accepted=%s\n' \
+    "$client_key_loaded" "$client_key_fingerprint_sha256" "$target_host_matches_expected" \
+    "$pinned_host_entry_present" "$host_key_verified" "$key_offered" \
+    "$authentication_accepted"
+}
 
 blocked() {
+  report_proofs
   printf 'ssh=blocked class=%s\n' "$1"
+  if [[ -n "${2:-}" ]]; then printf 'auth_detail=%s\n' "$2"; fi
   exit 1
 }
 
@@ -21,6 +39,16 @@ blocked() {
 [[ "$port" =~ ^[0-9]{1,5}$ ]] || blocked settings
 port=$((10#$port))
 ((port >= 1 && port <= 65535)) || blocked settings
+if [[ -n "$expected_host_sha256" ]]; then
+  [[ "$expected_host_sha256" =~ ^[A-Fa-f0-9]{64}$ ]] || blocked settings
+  expected_host_sha256=${expected_host_sha256,,}
+  actual_host_sha256=$(printf '%s' "$host" | sha256sum | awk '{print $1}')
+  if [[ "$actual_host_sha256" != "$expected_host_sha256" ]]; then
+    target_host_matches_expected=no
+    blocked target_mismatch
+  fi
+  target_host_matches_expected=yes
+fi
 [[ -n "$private_key" ]] || blocked key
 [[ -n "$known_hosts" ]] || blocked host_key
 
@@ -46,6 +74,7 @@ unset VPS_SSH_PRIVATE_KEY VPS_KNOWN_HOSTS private_key known_hosts
 if ! ssh-keygen -F "[$host]:$port" -f "$known_hosts_file" >/dev/null 2>&1; then
   blocked host_key
 fi
+pinned_host_entry_present=yes
 
 if ! agent_output=$(ssh-agent -s 2>/dev/null) || ! eval "$agent_output" >/dev/null; then
   blocked key
@@ -54,6 +83,11 @@ agent_started=true
 if ! SSH_ASKPASS_REQUIRE=never DISPLAY='' ssh-add -q "$key_file" >/dev/null 2>&1; then
   blocked key
 fi
+client_key_loaded=yes
+fingerprint_token=$(ssh-keygen -lf "$key_file" -E sha256 2>/dev/null | awk '{print $2}') || blocked key
+[[ "$fingerprint_token" =~ ^SHA256:[A-Za-z0-9+/=]+$ ]] || blocked key
+client_key_fingerprint_sha256=$(printf '%s' "$fingerprint_token" | sha256sum | awk '{print $1}')
+unset fingerprint_token
 
 printf -v remote_command 'sh -s -- %q' "$app_dir"
 if remote_output=$(ssh \
@@ -74,7 +108,7 @@ if remote_output=$(ssh \
   -o KbdInteractiveAuthentication=no \
   -o ClearAllForwardings=yes \
   -o RequestTTY=no \
-  -o LogLevel=ERROR \
+  -o LogLevel=DEBUG1 \
   "$user@$host" "$remote_command" 2>&1 <<'REMOTE_CHECKS'
 set -eu
 app_dir=$1
@@ -97,18 +131,56 @@ REMOTE_CHECKS
 ); then
   :
 else
+  if printf '%s\n' "$remote_output" | grep -E \
+    "^debug1: Host '.*' is known and matches the [A-Za-z0-9_-]+ host key\\.$" >/dev/null; then
+    host_key_verified=yes
+  fi
+  if printf '%s\n' "$remote_output" | grep -E \
+    '^debug1: Offering public key: .+ SHA256:[A-Za-z0-9+/=]+.*$' >/dev/null; then
+    key_offered=yes
+  fi
+  if printf '%s\n' "$remote_output" | grep -E \
+    '^Authenticated to .+ using "publickey"\.$' >/dev/null; then
+    authentication_accepted=yes
+  fi
+  failure_class=ssh_client
+  auth_detail=none
   case "$remote_output" in
     *'Host key verification failed'*|*'REMOTE HOST IDENTIFICATION HAS CHANGED'*|*'host key is known'*)
-      blocked host_key
-      ;;
-    *'Permission denied'*|*'Too many authentication failures'*|*'No supported authentication methods available'*|*'sign_and_send_pubkey'*)
-      blocked authentication
+      failure_class=host_key
       ;;
     *'Connection timed out'*|*'Connection refused'*|*'Connection reset by peer'*|*'Connection closed by'*|*'No route to host'*|*'Network is unreachable'*|*'Could not resolve hostname'*|*'Operation timed out'*)
-      blocked network
+      failure_class=network
       ;;
-    *) blocked ssh_client ;;
+    *'Too many authentication failures'*)
+      failure_class=authentication
+      auth_detail=too_many_authentication_failures
+      ;;
+    *'sign_and_send_pubkey: signing failed'*|*'agent refused operation'*)
+      failure_class=key
+      auth_detail=agent_signing_failed
+      ;;
+    *'Permission denied'*|*'No supported authentication methods available'*)
+      failure_class=authentication
+      if [[ "$key_offered" == yes && "$authentication_accepted" == no ]]; then
+        auth_detail=publickey_rejected
+      fi
+      ;;
   esac
+  blocked "$failure_class" "$auth_detail"
+fi
+
+if printf '%s\n' "$remote_output" | grep -E \
+  "^debug1: Host '.*' is known and matches the [A-Za-z0-9_-]+ host key\\.$" >/dev/null; then
+  host_key_verified=yes
+fi
+if printf '%s\n' "$remote_output" | grep -E \
+  '^debug1: Offering public key: .+ SHA256:[A-Za-z0-9+/=]+.*$' >/dev/null; then
+  key_offered=yes
+fi
+if printf '%s\n' "$remote_output" | grep -E \
+  '^Authenticated to .+ using "publickey"\.$' >/dev/null; then
+  authentication_accepted=yes
 fi
 
 remote_uid=$(printf '%s\n' "$remote_output" | sed -n 's/^remote_uid=//p')
@@ -120,7 +192,9 @@ docker_access=$(printf '%s\n' "$remote_output" | sed -n 's/^docker_access=//p')
 [[ "$writable" == yes || "$writable" == no ]] || blocked remote_report
 [[ "$docker_access" == available || "$docker_access" == unavailable || "$docker_access" == missing ]] || \
   blocked remote_report
-printf 'ssh=connected\nremote_uid=%s\napp_dir_readable=%s\napp_dir_writable=%s\ndocker_access=%s\n' \
+printf 'ssh=connected\n'
+report_proofs
+printf 'remote_uid=%s\napp_dir_readable=%s\napp_dir_writable=%s\ndocker_access=%s\n' \
   "$remote_uid" "$readable" "$writable" "$docker_access"
 if [[ "$readable" != yes || "$writable" != yes || "$docker_access" != available ]]; then
   blocked remote_capabilities

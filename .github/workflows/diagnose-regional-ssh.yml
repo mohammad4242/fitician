@@ -9,6 +9,14 @@ on:
         type: choice
         options: [iran, germany, both]
         default: both
+      expected_iran_host_sha256:
+        description: SHA-256 of the exact Iran VPS_HOST value (optional)
+        required: false
+        type: string
+      expected_germany_host_sha256:
+        description: SHA-256 of the exact Germany VPS_HOST value (optional)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -33,6 +41,7 @@ jobs:
           VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          EXPECTED_HOST_SHA256: ${{ inputs.expected_iran_host_sha256 }}
         run: bash ops/diagnose-regional-ssh.sh
 
   diagnose-germany:
@@ -54,4 +63,5 @@ jobs:
           VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          EXPECTED_HOST_SHA256: ${{ inputs.expected_germany_host_sha256 }}
         run: bash ops/diagnose-regional-ssh.sh
