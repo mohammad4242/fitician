@@ -60,6 +60,13 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
         for volume in volumes.values()
     ):
         raise ValueError("only explicitly provisioned rehearsal volumes are allowed")
+    if len({volume["name"] for volume in volumes.values()}) != len(volumes):
+        raise ValueError("storage roles require distinct rehearsal volumes")
+    storage_targets = {
+        "db": {"/var/lib/postgresql"},
+        "redis": {"/data"},
+        "caddy": {"/data", "/config"},
+    }
     memory = 0
     cpus = 0.0
     for name, service in services.items():
@@ -67,6 +74,17 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("every rehearsal service must remain on its internal network")
         if service.get("container_name"):
             raise ValueError("explicit shared container names are forbidden")
+        required_targets = storage_targets.get(name, set())
+        found_targets = set()
+        for mount in service.get("volumes", []):
+            if mount.get("type") == "volume" and mount.get("source") not in volumes:
+                raise ValueError("every named mount must use a dedicated rehearsal volume")
+            if mount.get("target") in required_targets:
+                if mount.get("type") != "volume" or mount.get("source") not in volumes:
+                    raise ValueError("persistent storage must use a dedicated rehearsal volume")
+                found_targets.add(mount["target"])
+        if found_targets != required_targets:
+            raise ValueError("persistent storage requires a dedicated rehearsal volume")
         ports = service.get("ports", [])
         if name != "caddy" and ports:
             raise ValueError("only loopback Caddy ports may be published")
