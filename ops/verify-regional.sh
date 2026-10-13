@@ -7,6 +7,23 @@ image_tag=${IMAGE_TAG:?IMAGE_TAG is required}
 compose_file=${COMPOSE_FILE:?COMPOSE_FILE is required}
 project=${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}
 env_file=${FITICIAN_ENV_FILE:?FITICIAN_ENV_FILE is required}
+image_owner=$(python3 - "$env_file" <<'PY'
+import re
+import sys
+
+values = {}
+for line in open(sys.argv[1], encoding="utf-8"):
+    raw = line.strip()
+    if not raw or raw.startswith("#") or "=" not in raw:
+        continue
+    key, value = raw.split("=", 1)
+    values[key] = value.strip().strip("\"'")
+owner = values.get("DOCKERHUB_USERNAME", "")
+if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,29}", owner):
+    raise SystemExit("DOCKERHUB_USERNAME is missing or invalid")
+print(owner)
+PY
+)
 
 compose() {
   COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
@@ -27,9 +44,13 @@ require_healthy() {
   if [ "$health" != healthy ]; then echo "Service is unhealthy: $service ($health)" >&2; return 1; fi
   if [ -n "$expected_image" ]; then
     image=$(docker inspect --format '{{.Config.Image}}' "$id")
-    case "$image" in */"$expected_image":"$expected_tag") ;; *)
-      echo "Immutable image mismatch: $service uses $image" >&2; return 1 ;;
-    esac
+    printf '%s' "$expected_tag" | grep -Eq '^[0-9a-f]{40}$' || {
+      echo "Expected image tag is not a full Git SHA: $service" >&2; return 1;
+    }
+    expected_ref="$image_owner/$expected_image:$expected_tag"
+    [ "$image" = "$expected_ref" ] || {
+      echo "Immutable image mismatch: $service uses $image" >&2; return 1;
+    }
   fi
 }
 
@@ -40,9 +61,13 @@ require_image_tag() {
   id=$(compose ps -q "$service")
   if [ -z "$id" ]; then echo "Required service is missing: $service" >&2; return 1; fi
   image=$(docker inspect --format '{{.Config.Image}}' "$id")
-  case "$image" in */"$expected_image":"$expected_tag") ;; *)
-    echo "Immutable image mismatch: $service uses $image" >&2; return 1 ;;
-  esac
+  printf '%s' "$expected_tag" | grep -Eq '^[0-9a-f]{40}$' || {
+    echo "Expected image tag is not a full Git SHA: $service" >&2; return 1;
+  }
+  expected_ref="$image_owner/$expected_image:$expected_tag"
+  [ "$image" = "$expected_ref" ] || {
+    echo "Immutable image mismatch: $service uses $image" >&2; return 1;
+  }
 }
 
 require_running() {
@@ -53,9 +78,7 @@ require_running() {
   if [ "$state" != running ]; then echo "Service is not running: $service" >&2; return 1; fi
 }
 
-for command in docker; do
-  command -v "$command" >/dev/null || { echo "$command is required" >&2; exit 1; }
-done
+command -v docker >/dev/null || { echo 'docker is required' >&2; exit 1; }
 printf '%s' "$image_tag" | grep -Eq '^[0-9a-f]{40}$' || {
   echo 'IMAGE_TAG must be a full Git SHA' >&2; exit 1;
 }

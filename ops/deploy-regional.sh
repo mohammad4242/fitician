@@ -128,6 +128,8 @@ for key in "${volume_keys[@]}"; do
   volume_names+=("$value")
 done
 expected_volumes=$(IFS=,; printf '%s' "${volume_names[*]}")
+auth_volume=''
+if [[ "$region" == germany ]]; then auth_volume=${volume_names[0]}; fi
 if ! compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
   config --format json 2>/dev/null | EXPECTED_REGION="$region" EXPECTED_VOLUMES="$expected_volumes" \
   EXPECTED_ENV_FILE="$env_file" python3 -c '
@@ -207,22 +209,55 @@ if [[ "$region" == iran ]]; then
 fi
 
 image_services_csv=$(IFS=,; printf '%s' "${image_services[*]}")
+registry_owner=$(python3 - "$env_file" <<'PY'
+import re
+import sys
+
+values = {}
+for line in open(sys.argv[1], encoding="utf-8"):
+    raw = line.strip()
+    if not raw or raw.startswith("#") or "=" not in raw:
+        continue
+    key, value = raw.split("=", 1)
+    values[key] = value.strip().strip("\"'")
+owner = values.get("DOCKERHUB_USERNAME", "")
+if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,29}", owner):
+    raise SystemExit("DOCKERHUB_USERNAME is missing or invalid")
+print(owner)
+PY
+)
 if ! image_refs=$(compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
-  config --format json 2>/dev/null | IMAGE_SERVICES="$image_services_csv" python3 -c '
+  config --format json 2>/dev/null | IMAGE_SERVICES="$image_services_csv" \
+  EXPECTED_IMAGE_TAG="$image_tag" EXPECTED_IMAGE_OWNER="$registry_owner" python3 -c '
 import json
 import os
+import re
 import sys
 
 config = json.load(sys.stdin)
 services = config.get("services", {})
+username = os.environ["EXPECTED_IMAGE_OWNER"]
+expected_repositories = {
+    "backend": f"{username}/fitician-backend",
+    "frontend": f"{username}/fitician-frontend",
+    "agent": f"{username}/fitician-agent",
+}
+image_tag = os.environ["EXPECTED_IMAGE_TAG"]
 images = []
 for name in os.environ["IMAGE_SERVICES"].split(","):
     image = services.get(name, {}).get("image")
-    tag = image.rsplit(":", 1)[-1] if isinstance(image, str) else ""
     if not isinstance(image, str) or not image:
         raise SystemExit("Candidate image reference is missing or invalid")
-    if name not in {"db", "redis", "caddy"} and not __import__("re").fullmatch(r"[0-9a-f]{40}", tag):
-        raise SystemExit("Candidate application image must use an immutable Git SHA")
+    if name in {"db", "redis", "caddy"}:
+        if "@sha256:" not in image or not re.fullmatch(r".+@sha256:[0-9a-f]{64}", image):
+            raise SystemExit("Infrastructure images must be pinned by digest")
+    else:
+        expected_repository = expected_repositories[
+            "frontend" if name == "frontend" else "agent" if name == "agent-service" else "backend"
+        ]
+        expected_image = f"{expected_repository}:{image_tag}"
+        if image != expected_image:
+            raise SystemExit("Candidate application image must match the approved repository and Git SHA")
     images.append(image)
 print("\n".join(dict.fromkeys(images)))
 '); then
@@ -247,6 +282,17 @@ service_tag() {
   image=$(docker inspect --format '{{.Config.Image}}' "$id")
   tag=${image##*:}
   [[ "$tag" =~ ^[0-9a-f]{40}$ ]] || fail "Running $service image does not use an immutable SHA"
+  case "$service" in
+    frontend) expected_image="$registry_owner/fitician-frontend" ;;
+    agent-service) expected_image="$registry_owner/fitician-agent" ;;
+    backend|backend-2|scheduler|food-photo-worker|body-analysis-worker|notification-worker)
+      expected_image="$registry_owner/fitician-backend" ;;
+    *) fail "Cannot validate immutable image repository for $service" ;;
+  esac
+  [[ "$image" == "$expected_image:$tag" ]] || \
+    fail "Running $service image does not match the configured immutable repository"
+  docker image inspect "$image" >/dev/null 2>&1 || \
+    fail "Rollback image is missing locally for $service"
   printf '%s' "$tag"
 }
 
@@ -271,8 +317,9 @@ previous_worker_tag=$worker_tag
 previous_agent_tag=$agent_tag
 legacy_agent_id=''
 legacy_agent_restart=''
+auth_image=''
+auth_baseline_digest=''
 if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
-  auth_volume=$(awk -F= '$1 == "AGENT_HOME_VOLUME_NAME" {value=$2} END {print value}' "$env_file")
   all_auth_ids=$(docker ps -aq --filter "volume=$auth_volume") || fail 'Unable to inventory Agent authentication volume users'
   running_auth_ids=$(docker ps -q --filter "volume=$auth_volume") || fail 'Unable to inventory running Agent authentication volume users'
   [[ -n "$all_auth_ids" && "$all_auth_ids" == "$running_auth_ids" && "$all_auth_ids" != *$'\n'* ]] || \
@@ -284,6 +331,10 @@ if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != tr
   [[ -n "$legacy_agent_project" ]] || fail 'Existing Agent must have a Compose project label for auth-volume adoption'
   [[ "$legacy_agent_project" != "$project" ]] || fail 'Existing Agent Compose project must be separate from the Germany target project'
   legacy_agent_restart=$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$legacy_agent_id")
+  auth_image=$(docker inspect --format '{{.Config.Image}}' "$legacy_agent_id")
+  [[ "$auth_image" == "$registry_owner/fitician-agent:"* && "${auth_image##*:}" =~ ^[0-9a-f]{40}$ ]] || \
+    fail 'Existing Agent image must use the configured repository and a full Git SHA'
+  docker image inspect "$auth_image" >/dev/null 2>&1 || fail 'Existing Agent image is missing locally'
 fi
 
 if [[ "$initial_deploy" == true && "$kind" == full ]]; then
@@ -324,9 +375,51 @@ else
   agent_tag=$(service_tag agent-service)
   previous_agent_tag=$agent_tag
   if [[ "$inspect_only" == true ]]; then printf '%s\n' "$agent_tag"; exit 0; fi
+  auth_image="$registry_owner/fitician-agent:$agent_tag"
   agent_tag=$image_tag
 fi
 [[ "$inspect_only" == true ]] && exit 0
+
+auth_volume_digest() {
+  docker run --pull never --rm --network none --read-only --memory 128m --cpus 0.2 \
+    --pids-limit 64 --cap-drop ALL \
+    --security-opt no-new-privileges --user 0:0 \
+    --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
+    --entrypoint python3 "$auth_image" -c '
+import hashlib
+import json
+import os
+import stat
+
+root = "/home/agent"
+if not os.path.isdir(root):
+    raise SystemExit("Agent auth home is unavailable")
+records = []
+root_info = os.lstat(root)
+records.append(["", stat.S_IMODE(root_info.st_mode), root_info.st_uid, root_info.st_gid])
+for parent, directories, files in os.walk(root, topdown=True, followlinks=False):
+    for name in sorted(directories + files):
+        path = os.path.join(parent, name)
+        relative = os.fsencode(os.path.relpath(path, root)).hex()
+        info = os.lstat(path)
+        record = [relative, stat.S_IFMT(info.st_mode), stat.S_IMODE(info.st_mode), info.st_uid, info.st_gid]
+        if stat.S_ISREG(info.st_mode):
+            digest = hashlib.sha256()
+            with open(path, "rb") as source:
+                for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            record.extend((info.st_size, digest.hexdigest()))
+        elif stat.S_ISLNK(info.st_mode):
+            record.append(os.fsencode(os.readlink(path)).hex())
+        records.append(record)
+records.sort(key=lambda record: record[0])
+print(hashlib.sha256(json.dumps(records, separators=(",", ":")).encode()).hexdigest())
+'
+}
+if [[ "$region" == germany && "$kind" == agent ]]; then
+  auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture read-only Agent auth inventory'
+  [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Agent auth inventory returned an invalid digest'
+fi
 
 schema_changed=false
 rollback_needed=false
@@ -337,10 +430,6 @@ rollback() {
   [[ $status -ne 0 ]] || status=1
   trap - ERR INT TERM
   if [[ "$rollback_needed" != true ]]; then exit "$status"; fi
-  if [[ -n "$old_env_copy" && -f "$old_env_copy" ]]; then cp -p "$old_env_copy" "$env_file"; fi
-  if [[ -n "$old_marker_copy" && -f "$old_marker_copy" ]]; then cp -p "$old_marker_copy" "$active_marker"; fi
-  if [[ "$initial_deploy" == true ]]; then rm -f -- "$active_marker"; fi
-  if [[ "$first_scalability_release" == true ]]; then rm -f -- "$scalability_marker"; fi
   if [[ "$schema_changed" == true ]]; then
     if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
       stop caddy frontend backend backend-2 scheduler food-photo-worker body-analysis-worker notification-worker; then
@@ -351,14 +440,29 @@ rollback() {
   fi
   echo "Restoring $region deployment with its previous immutable image versions" >&2
   local rollback_status=0
-  if [[ "$initial_deploy" == true && "$region" == germany ]]; then
+  if [[ "$region" == germany && "$kind" == agent ]]; then
     if ! compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
       stop agent-service >/dev/null 2>&1; then
-      echo 'Candidate Agent could not stop; legacy Agent remains stopped to protect authentication state' >&2
+      echo 'Candidate Agent could not stop; no previous Agent was restarted to protect authentication state' >&2
       exit "$status"
     fi
-    docker update --restart="$legacy_agent_restart" "$legacy_agent_id" >/dev/null 2>&1 || true
-    docker start "$legacy_agent_id" >/dev/null 2>&1 || rollback_status=$?
+    local current_auth_digest
+    current_auth_digest=$(auth_volume_digest) || {
+      echo 'Agent auth inventory failed after candidate stop; manual encrypted-auth recovery is required' >&2
+      exit "$status"
+    }
+    if [[ "$current_auth_digest" != "$auth_baseline_digest" ]]; then
+      echo 'Agent auth volume changed; previous Agent was not restarted. Manual encrypted-auth recovery is required' >&2
+      exit "$status"
+    fi
+    if [[ "$initial_deploy" == true ]]; then
+      docker update --restart="$legacy_agent_restart" "$legacy_agent_id" >/dev/null 2>&1 || true
+      docker start "$legacy_agent_id" >/dev/null 2>&1 || rollback_status=$?
+    else
+      compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+        "$previous_worker_tag" "$previous_agent_tag" \
+        up -d --pull never --no-deps --wait agent-service || rollback_status=$?
+    fi
   elif [[ "$initial_deploy" == true ]]; then
     compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" stop backend backend-2 frontend scheduler food-photo-worker body-analysis-worker notification-worker caddy redis db >/dev/null 2>&1 || true
   elif [[ "$kind" == full ]]; then
@@ -375,6 +479,12 @@ rollback() {
       FRONTEND_IMAGE_TAG="$previous_frontend_tag" BACKEND_API_IMAGE_TAG="$previous_api_tag" \
       WORKER_IMAGE_TAG="$previous_worker_tag" AGENT_IMAGE_TAG="$previous_agent_tag" \
       COMPOSE_FILE="$active_contract" sh "$release_dir/ops/verify-regional.sh" || rollback_status=$?
+  fi
+  if [[ "$rollback_status" -eq 0 ]]; then
+    if [[ -n "$old_env_copy" && -f "$old_env_copy" ]]; then cp -p "$old_env_copy" "$env_file"; fi
+    if [[ -n "$old_marker_copy" && -f "$old_marker_copy" ]]; then cp -p "$old_marker_copy" "$active_marker"; fi
+    if [[ "$initial_deploy" == true ]]; then rm -f -- "$active_marker"; fi
+    if [[ "$first_scalability_release" == true ]]; then rm -f -- "$scalability_marker"; fi
   fi
   [[ "$rollback_status" -eq 0 ]] || echo 'Regional rollback failed' >&2
   exit "$status"
@@ -437,6 +547,14 @@ if [[ "$initial_deploy" == true && "$region" == germany ]]; then
   rollback_needed=true
   docker update --restart=no "$legacy_agent_id" >/dev/null
   docker stop "$legacy_agent_id" >/dev/null
+  auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
+  [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
+elif [[ "$region" == germany && "$kind" == agent ]]; then
+  rollback_needed=true
+  compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" stop agent-service >/dev/null
+  auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
+  [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
 fi
 if [[ "$kind" == full ]]; then
   rollback_needed=true

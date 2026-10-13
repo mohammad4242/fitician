@@ -1,4 +1,4 @@
-"""All production actions must stay unreachable during regional qualification."""
+"""Automatic production actions stay disabled during regional qualification."""
 
 import re
 import unittest
@@ -14,7 +14,6 @@ DEPLOY_JOBS = {
         "deploy-backend-component",
     ),
     "deploy-component.yml": ("deploy",),
-    "deploy-regional.yml": ("deploy",),
     "deploy-caddy-production.yml": ("deploy-caddy-production",),
     "frontend-appearance-release.yml": ("frontend-release",),
     "frontend-only.yml": ("deploy-frontend-production",),
@@ -49,6 +48,10 @@ class CDSafetyTests(unittest.TestCase):
     def test_no_automatic_production_trigger_or_object_store_dependency(self):
         production = (ROOT / ".github/workflows/deploy-production.yml").read_text()
         self.assertNotIn("  workflow_run:", production)
+        regional = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
+        self.assertIn("  workflow_dispatch:", regional)
+        self.assertNotIn("  workflow_run:", regional)
+        self.assertNotIn("  push:", regional)
         for filename in ("ci.yml", "frontend-only.yml"):
             workflow = (ROOT / ".github/workflows" / filename).read_text()
             self.assertNotIn('"${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4"', workflow)

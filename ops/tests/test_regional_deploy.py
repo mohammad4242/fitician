@@ -31,7 +31,9 @@ class RegionalDeployTests(unittest.TestCase):
         self.old_contract.touch()
         self.contract = self.new_release / "compose.prod.iran.yaml"
         self.contract.touch()
-        (self.app / ".regional-iran-active-contract").write_text(str(self.old_contract) + "\n")
+        (self.app / ".regional-iran-active-contract").write_text(
+            str(self.old_contract) + "\n"
+        )
         (self.app / ".regional-germany-active-contract").write_text(
             str(self.old_contract).replace("iran", "germany") + "\n"
         )
@@ -44,7 +46,8 @@ class RegionalDeployTests(unittest.TestCase):
         (self.app / ".env").write_text(
             f"IMAGE_TAG={OLD}\nFRONTEND_IMAGE_TAG={OLD}\n"
             f"BACKEND_API_IMAGE_TAG={OLD}\nWORKER_IMAGE_TAG={OLD}\n"
-            f"AGENT_IMAGE_TAG={OLD}\nPOSTGRES_VOLUME_NAME=pg-data\n"
+            f"AGENT_IMAGE_TAG={OLD}\nDOCKERHUB_USERNAME=example\n"
+            "POSTGRES_VOLUME_NAME=pg-data\n"
             "REDIS_VOLUME_NAME=redis-data\nCADDY_DATA_VOLUME_NAME=caddy-data\n"
             "CADDY_CONFIG_VOLUME_NAME=caddy-config\nAGENT_HOME_VOLUME_NAME=agent-home\n"
         )
@@ -71,12 +74,20 @@ class RegionalDeployTests(unittest.TestCase):
         self.calls = self.app / "calls"
         self.calls.touch()
         self.tags = self.app / "running-tags"
-        self.tags.write_text(
-            f"FRONTEND={OLD}\nAPI={OLD}\nWORKER={OLD}\nAGENT={OLD}\n"
-        )
+        self.tags.write_text(f"FRONTEND={OLD}\nAPI={OLD}\nWORKER={OLD}\nAGENT={OLD}\n")
         self.command(
             "docker",
-            r'''#!/usr/bin/env bash
+            r"""#!/usr/bin/env bash
+if [[ "$1" == run && "$*" == *"--mount type=volume,source=agent-home,target=/home/agent,readonly"* ]]; then
+  printf 'AUTH_DIGEST\n' >> "$FAKE_CALLS"
+  count=$(grep -c '^AUTH_DIGEST$' "$FAKE_CALLS")
+  if [[ "${FAKE_AUTH_CHANGED:-false}" == true && "$count" -gt 2 ]]; then
+    printf '%064d\n' 2
+  else
+    printf '%064d\n' 1
+  fi
+  exit 0
+fi
 printf '%s\n' "$*" >> "$FAKE_CALLS"
 if [[ "$*" == "ps -aq --filter volume=agent-home" ]]; then
   printf 'legacy-agent\n'
@@ -92,7 +103,7 @@ elif [[ "$*" == *"config --format json"* ]]; then
   if [[ "${COMPOSE_PROJECT_NAME:-}" == fitician_de ]]; then
     printf '{"services":{"agent-service":{"image":"example/fitician-agent:%s","volumes":[{"type":"volume","source":"agent-state","target":"/home/agent"}]}},"volumes":{"agent-state":{"name":"agent-home","external":true}}}' "$IMAGE_TAG"
   else
-    printf '{"services":{"db":{"image":"postgres:18-alpine","environment":{"POSTGRES_DB":"fitician"}},"redis":{"image":"redis:8-alpine"},"caddy":{"image":"caddy:2-alpine"},"migrations":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend-2":{"image":"example/fitician-backend:%s"},"scheduler":{"image":"example/fitician-backend:%s"},"food-photo-worker":{"image":"example/fitician-backend:%s"},"body-analysis-worker":{"image":"example/fitician-backend:%s"},"notification-worker":{"image":"example/fitician-backend:%s"},"frontend":{"image":"example/fitician-frontend:%s"}},"volumes":{"pg":{"name":"pg-data","external":%s},"redis":{"name":"redis-data","external":true},"caddy-data":{"name":"caddy-data","external":true},"caddy-config":{"name":"caddy-config","external":true}}}' \
+    printf '{"services":{"db":{"image":"postgres:18-alpine@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","environment":{"POSTGRES_DB":"fitician"}},"redis":{"image":"redis:8-alpine@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},"caddy":{"image":"caddy:2-alpine@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},"migrations":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend":{"image":"example/fitician-backend:%s","environment":{"DATABASE_URL":"%s"}},"backend-2":{"image":"example/fitician-backend:%s"},"scheduler":{"image":"example/fitician-backend:%s"},"food-photo-worker":{"image":"example/fitician-backend:%s"},"body-analysis-worker":{"image":"example/fitician-backend:%s"},"notification-worker":{"image":"example/fitician-backend:%s"},"frontend":{"image":"example/fitician-frontend:%s"}},"volumes":{"pg":{"name":"pg-data","external":%s},"redis":{"name":"redis-data","external":true},"caddy-data":{"name":"caddy-data","external":true},"caddy-config":{"name":"caddy-config","external":true}}}' \
       "$IMAGE_TAG" \
       "${FAKE_DATABASE_URL:-postgresql+psycopg://user:pass@db:5432/fitician}" \
       "$IMAGE_TAG" \
@@ -117,6 +128,7 @@ elif [[ "$*" == *"image inspect"* ]]; then
 elif [[ "$*" == *"Config.Image"* ]]; then
   for arg in "$@"; do id=$arg; done
   service=${id#container-}
+  [[ "$id" == legacy-agent ]] && service=agent-service
   case "$service" in
     frontend) tag=$(awk -F= '$1=="FRONTEND" {print $2}' "$FAKE_TAGS") ;;
     backend|backend-2) tag=$(awk -F= '$1=="API" {print $2}' "$FAKE_TAGS") ;;
@@ -125,10 +137,10 @@ elif [[ "$*" == *"Config.Image"* ]]; then
     *) tag=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ;;
   esac
   case "$service" in
-    frontend) image=example/fitician-frontend:$tag ;;
-    backend|backend-2) image=example/fitician-backend:$tag ;;
-    agent-service) image=example/fitician-agent:$tag ;;
-    *) image=example/fitician-backend:$tag ;;
+    frontend) image=${FAKE_RUNNING_PREFIX:-example}/fitician-frontend:$tag ;;
+    backend|backend-2) image=${FAKE_RUNNING_PREFIX:-example}/fitician-backend:$tag ;;
+    agent-service) image=${FAKE_RUNNING_PREFIX:-example}/fitician-agent:$tag ;;
+    *) image=${FAKE_RUNNING_PREFIX:-example}/fitician-backend:$tag ;;
   esac
   printf '%s\n' "$image"
 elif [[ "$*" == *"State.Status"* ]]; then
@@ -158,7 +170,7 @@ elif [[ "$*" == *" up "* ]]; then
     "${FRONTEND_IMAGE_TAG:-}" "${BACKEND_API_IMAGE_TAG:-}" \
     "${WORKER_IMAGE_TAG:-}" "${AGENT_IMAGE_TAG:-}" >> "$FAKE_CALLS"
 fi
-''',
+""",
         )
         self.command("curl", "#!/bin/sh\nexit ${FAKE_CURL_STATUS:-0}\n")
         self.env = {
@@ -185,7 +197,11 @@ fi
 
     def run_deploy(self) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["bash", str(SCRIPT)], env=self.env, capture_output=True, text=True, check=False
+            ["bash", str(SCRIPT)],
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
     def test_capacity_failure_blocks_iran_before_pull_or_runtime_mutation(self) -> None:
@@ -224,22 +240,32 @@ fi
 
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls.read_text().splitlines()
-        capacity = next(line for line in calls if "PREFLIGHT" in line and "runtime-capacity" in line)
+        capacity = next(
+            line for line in calls if "PREFLIGHT" in line and "runtime-capacity" in line
+        )
         self.assertIn("--host-memory-mib ", capacity)
         self.assertIn("--host-cpus ", capacity)
         self.assertIn("--region iran", capacity)
-        self.assertLess(calls.index(capacity), next(i for i, line in enumerate(calls) if " pull " in line))
+        self.assertLess(
+            calls.index(capacity),
+            next(i for i, line in enumerate(calls) if " pull " in line),
+        )
 
-    def test_iran_full_backs_up_before_rollout_and_persists_tags_after_verify(self) -> None:
+    def test_iran_full_backs_up_before_rollout_and_persists_tags_after_verify(
+        self,
+    ) -> None:
         result = self.run_deploy()
 
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls.read_text().splitlines()
-        backup = next(index for index, line in enumerate(calls) if "backup-production.sh" in line)
+        backup = next(
+            index for index, line in enumerate(calls) if "backup-production.sh" in line
+        )
         rollout = next(index for index, line in enumerate(calls) if " up -d" in line)
         self.assertLess(backup, rollout)
         self.assertEqual(
-            (self.app / ".regional-iran-active-contract").read_text(), str(self.contract) + "\n"
+            (self.app / ".regional-iran-active-contract").read_text(),
+            str(self.contract) + "\n",
         )
         self.assertIn("IMAGE_TAG=" + NEW, (self.app / ".env").read_text())
         self.assertEqual((self.app / ".env").stat().st_mode & 0o777, 0o600)
@@ -250,13 +276,17 @@ fi
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
         self.assertEqual(
             (self.app / ".env").stat().st_mode & 0o777, self.original_env_mode
         )
 
     def test_unapproved_schema_change_stops_after_backup(self) -> None:
-        self.env.update(FAKE_CURRENT_REVISION="old_head", FAKE_TARGET_REVISION="new_head")
+        self.env.update(
+            FAKE_CURRENT_REVISION="old_head", FAKE_TARGET_REVISION="new_head"
+        )
 
         result = self.run_deploy()
 
@@ -265,7 +295,9 @@ fi
         self.assertTrue(any("backup-production.sh" in line for line in calls))
         self.assertFalse(any(" up -d" in line for line in calls))
 
-    def test_initial_iran_writes_scalability_marker_only_after_verified_release(self) -> None:
+    def test_initial_iran_writes_scalability_marker_only_after_verified_release(
+        self,
+    ) -> None:
         (self.app / ".regional-iran-active-contract").unlink()
         (self.app / ".scalability-foundation-accepted").unlink()
         self.env.update(
@@ -281,7 +313,9 @@ fi
         self.assertIn(f"image_tag={NEW}\n", marker)
         self.assertIn("evidence_run_id=67890\n", marker)
 
-    def test_failed_initial_iran_release_does_not_accept_scalability_foundation(self) -> None:
+    def test_failed_initial_iran_release_does_not_accept_scalability_foundation(
+        self,
+    ) -> None:
         (self.app / ".regional-iran-active-contract").unlink()
         (self.app / ".scalability-foundation-accepted").unlink()
         self.env.update(
@@ -301,17 +335,26 @@ fi
         self.env.update(INITIAL_DEPLOY="true", FAKE_USER_COUNT="0")
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
-        self.assertTrue(any(" stop backend backend-2 " in line
-                            for line in self.calls.read_text().splitlines()))
+        self.assertTrue(
+            any(
+                " stop backend backend-2 " in line
+                for line in self.calls.read_text().splitlines()
+            )
+        )
         self.assertFalse((self.app / ".regional-iran-active-contract").exists())
 
     def test_initial_germany_stops_candidate_before_restarting_legacy(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
         contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        self.env.update(REGION="germany", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
-                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_de",
-                        FAKE_AGENT_STATUS="1")
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            INITIAL_DEPLOY="true",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_AGENT_STATUS="1",
+        )
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
         calls = self.calls.read_text().splitlines()
@@ -325,12 +368,71 @@ fi
         (self.app / ".regional-germany-active-contract").unlink()
         contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
-        self.env.update(REGION="germany", DEPLOY_KIND="agent", INITIAL_DEPLOY="true",
-                        COMPOSE_FILE=str(contract), COMPOSE_PROJECT_NAME="fitician_de",
-                        FAKE_AGENT_STATUS="1", FAKE_STOP_CANDIDATE_STATUS="1")
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            INITIAL_DEPLOY="true",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_AGENT_STATUS="1",
+            FAKE_STOP_CANDIDATE_STATUS="1",
+        )
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("start legacy-agent", self.calls.read_text().splitlines())
+
+    def test_initial_germany_auth_change_blocks_legacy_restart(self) -> None:
+        (self.app / ".regional-germany-active-contract").unlink()
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            INITIAL_DEPLOY="true",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_AGENT_STATUS="1",
+            FAKE_AUTH_CHANGED="true",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn(
+            "Agent auth volume changed; previous Agent was not restarted. Manual encrypted-auth recovery is required",
+            result.stderr,
+        )
+        self.assertNotIn("start legacy-agent", calls)
+        self.assertEqual(calls.count("AUTH_DIGEST"), 3)
+
+    def test_germany_auth_change_blocks_rollback_to_old_agent_image(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_release / "compose.prod.germany.yaml") + "\n"
+        )
+        (self.old_release / "compose.prod.germany.yaml").touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_AGENT_STATUS="1",
+            FAKE_AUTH_CHANGED="true",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "Agent auth volume changed; previous Agent was not restarted", result.stderr
+        )
+        calls = self.calls.read_text().splitlines()
+        ups = [line for line in calls if " up -d" in line]
+        self.assertEqual(len(ups), 1)
+        self.assertEqual(calls.count("AUTH_DIGEST"), 3)
+        self.assertTrue(any(" stop agent-service" in line for line in calls))
 
     def test_initial_germany_rejects_stopped_containers_using_auth_volume(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
@@ -350,7 +452,9 @@ fi
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("exactly one running Agent", result.stderr)
         calls = self.calls.read_text().splitlines()
-        self.assertFalse(any(" stop agent-service" in line or " up -d" in line for line in calls))
+        self.assertFalse(
+            any(" stop agent-service" in line or " up -d" in line for line in calls)
+        )
 
     def test_initial_germany_rejects_baseline_in_target_compose_project(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
@@ -370,9 +474,13 @@ fi
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Compose project must be separate", result.stderr)
         calls = self.calls.read_text().splitlines()
-        self.assertFalse(any(" stop agent-service" in line or " up -d" in line for line in calls))
+        self.assertFalse(
+            any(" stop agent-service" in line or " up -d" in line for line in calls)
+        )
 
-    def test_approved_schema_migration_uses_candidate_images_and_manual_recovery(self) -> None:
+    def test_approved_schema_migration_uses_candidate_images_and_manual_recovery(
+        self,
+    ) -> None:
         self.env.update(
             ALLOW_SCHEMA_MIGRATIONS="true",
             FAKE_CURRENT_REVISION="old_head",
@@ -386,15 +494,21 @@ fi
         self.assertIn("manual recovery", result.stderr.lower())
 
         calls = self.calls.read_text().splitlines()
-        migration = next(line for line in calls if line.startswith("MIGRATION_TAGSTATE|"))
+        migration = next(
+            line for line in calls if line.startswith("MIGRATION_TAGSTATE|")
+        )
         self.assertEqual(migration, f"MIGRATION_TAGSTATE|{NEW}|{NEW}")
         self.assertFalse(any(" up -d" in line for line in calls))
-        stopped = next(line for line in calls if " stop caddy frontend backend " in line)
+        stopped = next(
+            line for line in calls if " stop caddy frontend backend " in line
+        )
         self.assertIn("body-analysis-worker notification-worker", stopped)
         self.assertNotIn(" db", stopped)
         self.assertNotIn(" redis", stopped)
 
-    def test_approved_schema_failure_requires_manual_recovery_without_image_rollback(self) -> None:
+    def test_approved_schema_failure_requires_manual_recovery_without_image_rollback(
+        self,
+    ) -> None:
         self.env.update(
             ALLOW_SCHEMA_MIGRATIONS="true",
             FAKE_CURRENT_REVISION="old_head",
@@ -406,9 +520,16 @@ fi
 
         self.assertNotEqual(result.returncode, 0)
         calls = self.calls.read_text().splitlines()
-        self.assertFalse(any(" up -d" in line and "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" in line for line in calls))
+        self.assertFalse(
+            any(
+                " up -d" in line and "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" in line
+                for line in calls
+            )
+        )
         self.assertIn("manual recovery", result.stderr.lower())
-        stopped = next(line for line in calls if " stop caddy frontend backend " in line)
+        stopped = next(
+            line for line in calls if " stop caddy frontend backend " in line
+        )
         self.assertNotIn(" db", stopped)
         self.assertNotIn(" redis", stopped)
 
@@ -422,7 +543,11 @@ fi
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
-        states = [line for line in self.calls.read_text().splitlines() if line.startswith("TAGSTATE|")]
+        states = [
+            line
+            for line in self.calls.read_text().splitlines()
+            if line.startswith("TAGSTATE|")
+        ]
         self.assertEqual(len(states), 2)
         self.assertEqual(states[0], f"TAGSTATE|{NEW}|{NEW}|{NEW}|{OLD}")
         self.assertEqual(states[1], f"TAGSTATE|{frontend}|{api}|{worker}|{OLD}")
@@ -442,18 +567,36 @@ fi
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
-        self.assertFalse(any("backup-production.sh" in line for line in self.calls.read_text().splitlines()))
-        self.assertIn(f"HEADS_TAGSTATE|{NEW}|{NEW}", self.calls.read_text().splitlines())
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
+        self.assertFalse(
+            any(
+                "backup-production.sh" in line
+                for line in self.calls.read_text().splitlines()
+            )
+        )
+        self.assertIn(
+            f"HEADS_TAGSTATE|{NEW}|{NEW}", self.calls.read_text().splitlines()
+        )
 
-    def test_iran_rejects_database_url_pointing_outside_local_database_service(self) -> None:
-        self.env["FAKE_DATABASE_URL"] = "postgresql+psycopg://user:pass@germany:5432/fitician"
+    def test_iran_rejects_database_url_pointing_outside_local_database_service(
+        self,
+    ) -> None:
+        self.env["FAKE_DATABASE_URL"] = (
+            "postgresql+psycopg://user:pass@germany:5432/fitician"
+        )
 
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("DATABASE_URL", result.stderr)
-        self.assertFalse(any("backup-production.sh" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(
+                "backup-production.sh" in line
+                for line in self.calls.read_text().splitlines()
+            )
+        )
         self.assertNotIn("germany", result.stderr)
 
     def test_iran_rejects_non_external_persistent_volume_before_rollout(self) -> None:
@@ -463,26 +606,93 @@ fi
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Compose safety", result.stderr)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
 
-    def test_preloaded_release_requires_every_candidate_image_before_mutation(self) -> None:
+    def test_preloaded_release_requires_every_candidate_image_before_mutation(
+        self,
+    ) -> None:
         self.env.update(IMAGE_SOURCE="preloaded", FAKE_IMAGE_PRESENT="false")
 
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("preloaded immutable image is missing", result.stderr)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
 
-    def test_preloaded_full_release_checks_infrastructure_images_before_bootstrap(self) -> None:
+    def test_preloaded_full_release_checks_infrastructure_images_before_bootstrap(
+        self,
+    ) -> None:
         (self.app / ".regional-iran-active-contract").unlink()
         self.env.update(INITIAL_DEPLOY="true", IMAGE_SOURCE="preloaded")
         result = self.run_deploy()
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls.read_text()
-        for image in ("postgres:18-alpine", "redis:8-alpine", "caddy:2-alpine"):
+        for image in (
+            "postgres:18-alpine@sha256:" + "a" * 64,
+            "redis:8-alpine@sha256:" + "b" * 64,
+            "caddy:2-alpine@sha256:" + "c" * 64,
+        ):
             self.assertIn(f"image inspect {image}", calls)
             self.assertLess(calls.index(f"image inspect {image}"), calls.index("up -d"))
+
+    def test_image_reference_must_match_configured_registry_owner(self) -> None:
+        env_file = Path(self.env["FITICIAN_ENV_FILE"])
+        env_file.write_text(
+            env_file.read_text().replace(
+                "DOCKERHUB_USERNAME=example", "DOCKERHUB_USERNAME=untrusted"
+            )
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("approved repository", result.stderr)
+        calls = self.calls.read_text()
+        self.assertNotIn(" pull ", calls)
+        self.assertNotIn(" up -d", calls)
+
+    def test_running_rollback_baseline_must_match_configured_repository(self) -> None:
+        self.env["FAKE_RUNNING_PREFIX"] = "untrusted"
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("configured immutable repository", result.stderr)
+        calls = self.calls.read_text()
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertNotIn(" up -d", calls)
+
+    def test_missing_local_rollback_image_stops_before_runtime_mutation(self) -> None:
+        self.env["FAKE_IMAGE_PRESENT"] = "false"
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Rollback image is missing locally", result.stderr)
+        calls = self.calls.read_text()
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertNotIn(" up -d", calls)
+
+    def test_unpinned_infrastructure_image_stops_before_pull_or_rollout(self) -> None:
+        docker_stub = self.bin / "docker"
+        contents = docker_stub.read_text()
+        contents = contents.replace(
+            "postgres:18-alpine@sha256:" + "a" * 64,
+            "postgres:18-alpine",
+        )
+        docker_stub.write_text(contents)
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("pinned by digest", result.stderr)
+        calls = self.calls.read_text()
+        self.assertNotIn(" pull ", calls)
+        self.assertNotIn(" up -d", calls)
 
     def test_iran_requires_valid_scalability_marker_before_mutation(self) -> None:
         (self.app / ".scalability-foundation-accepted").unlink()
@@ -491,9 +701,13 @@ fi
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("scalability evidence", result.stderr)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
 
-    def test_germany_agent_deploy_skips_database_and_checks_auth_capabilities(self) -> None:
+    def test_germany_agent_deploy_skips_database_and_checks_auth_capabilities(
+        self,
+    ) -> None:
         contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
         (self.app / ".regional-germany-active-contract").write_text(
@@ -538,7 +752,9 @@ fi
         self.assertTrue(all(line.endswith("agent-service") for line in ups))
         self.assertNotIn("AGENT_IMAGE_TAG=" + NEW, (self.app / ".env").read_text())
 
-    def test_germany_requires_existing_external_auth_volume_before_rollout(self) -> None:
+    def test_germany_requires_existing_external_auth_volume_before_rollout(
+        self,
+    ) -> None:
         contract = self.new_release / "compose.prod.germany.yaml"
         contract.touch()
         (self.app / ".regional-germany-active-contract").write_text(
@@ -556,7 +772,9 @@ fi
         result = self.run_deploy()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
 
     def test_workflow_is_manual_and_uses_separate_region_environments(self) -> None:
         workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()

@@ -170,13 +170,13 @@ jobs:
           echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
 
   deploy:
-    # Production CD is disabled until a separately reviewed re-enablement.
+    # Manual dispatch only; the workflow itself remains disabled in GitHub.
     name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
     needs: verify-release
     if: >-
-      false && (
+      github.event_name == 'workflow_dispatch' &&
+      needs.verify-release.result == 'success' &&
       inputs.owner_approved
-      )
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:
@@ -200,6 +200,7 @@ jobs:
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
       COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -212,6 +213,8 @@ jobs:
           printf '%s' "$VPS_USER" | grep -Eq '^[A-Za-z0-9._-]+$'
           printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
           printf '%s' "$COMPOSE_PROJECT_NAME" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_-]*$'
+          printf '%s' "$VPS_SSH_PORT" | grep -Eq '^[0-9]+$'
+          test "$VPS_SSH_PORT" -ge 1 && test "$VPS_SSH_PORT" -le 65535
           test "$OWNER_APPROVED" = true
           test "$TARGET" = iran || test "$TARGET" = germany
       - uses: webfactory/ssh-agent@v0.9.0
@@ -237,19 +240,19 @@ jobs:
           remote_contract="$release_dir/compose.prod.$TARGET.yaml"
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
-          ssh "$VPS_USER@$VPS_HOST" \
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
             "set -eu; if [ -f '$VPS_APP_DIR/.regional-$TARGET-active-contract' ]; then active=\$(cat '$VPS_APP_DIR/.regional-$TARGET-active-contract'); test \"\$active\" != '$remote_contract'; else test '$INITIAL_DEPLOY' = true; fi; mkdir -p '$release_dir/ops'"
-          scp "compose.prod.$TARGET.yaml" "$VPS_USER@$VPS_HOST:$remote_contract"
-          scp Caddyfile "$VPS_USER@$VPS_HOST:$release_dir/Caddyfile"
+          scp -P "$VPS_SSH_PORT" "compose.prod.$TARGET.yaml" "$VPS_USER@$VPS_HOST:$remote_contract"
+          scp -P "$VPS_SSH_PORT" Caddyfile "$VPS_USER@$VPS_HOST:$release_dir/Caddyfile"
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
-          ssh "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
-          scp ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
-          scp ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
-          scp ops/verify-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/verify-regional.sh"
-          scp ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
-          scp ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
-          scp ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
+          scp -P "$VPS_SSH_PORT" ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
+          scp -P "$VPS_SSH_PORT" ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
+          scp -P "$VPS_SSH_PORT" ops/verify-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/verify-regional.sh"
+          scp -P "$VPS_SSH_PORT" ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
+          scp -P "$VPS_SSH_PORT" ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
+          scp -P "$VPS_SSH_PORT" ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
       - name: Authenticate regional Docker client
         if: inputs.image_source == 'registry'
         env:
@@ -259,7 +262,7 @@ jobs:
           test -n "$DOCKERHUB_TOKEN"
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
-          printf '%s' "$DOCKERHUB_TOKEN" | ssh "$VPS_USER@$VPS_HOST" \
+          printf '%s' "$DOCKERHUB_TOKEN" | ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Read running regional baseline
         id: baseline
@@ -268,7 +271,7 @@ jobs:
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
-          tag=$(ssh "$VPS_USER@$VPS_HOST" \
+          tag=$(ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
             "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED=true IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' INSPECT_ONLY=true bash '$release_dir/ops/deploy-regional.sh'")
           printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
@@ -293,5 +296,5 @@ jobs:
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
-          ssh "$VPS_USER@$VPS_HOST" \
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
             "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED='$OWNER_APPROVED' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' bash '$release_dir/ops/deploy-regional.sh'"
