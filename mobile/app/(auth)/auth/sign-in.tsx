@@ -45,6 +45,7 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [appleBusy, setAppleBusy] = useState(false);
+  const providerBusy = googleBusy || appleBusy;
   const emailForm = useForm<EmailSignInFormValues>({ defaultValues: { email: "", password: "" } });
   const phoneForm = useForm<PhoneSignInFormValues>({ defaultValues: { code: "", phoneNumber: "" } });
   const sessionExpired = params.reason === "session-expired" || auth.sessionExpired;
@@ -93,6 +94,7 @@ export default function SignInScreen() {
   });
 
   const submitGoogle = async () => {
+    if (auth.busy || providerBusy) return;
     setError(null);
     setGoogleBusy(true);
     try {
@@ -197,7 +199,7 @@ export default function SignInScreen() {
               )}
             />
             {error ? <Notice message={error} variant="danger" /> : null}
-            <Button label={authCopy.login.submit} loading={auth.busy} onPress={submitEmail} />
+            <Button disabled={providerBusy} label={authCopy.login.submit} loading={auth.busy} onPress={submitEmail} />
           </AuthFormSection>
         ) : (
           <AuthFormSection>
@@ -242,7 +244,7 @@ export default function SignInScreen() {
                   )}
                 />
                 <View style={authStyles.fieldHeading}>
-                  <Pressable accessibilityRole="button" disabled={countdown > 0 || auth.busy} onPress={resendPhoneCode}>
+                  <Pressable accessibilityRole="button" disabled={countdown > 0 || auth.busy || providerBusy} onPress={resendPhoneCode}>
                     <Text style={authStyles.inlineLink}>
                       {countdown > 0 ? authCopy.login.resendCountdown.replace("{{seconds}}", faNumber(countdown)) : authCopy.login.resend}
                     </Text>
@@ -252,6 +254,7 @@ export default function SignInScreen() {
             ) : null}
             {error ? <Notice message={error} variant="danger" /> : null}
             <Button
+              disabled={providerBusy}
               label={phoneStep === "request" ? authCopy.login.sendOtp : authCopy.login.verifyOtp}
               loading={auth.busy}
               onPress={submitPhone}
@@ -265,7 +268,7 @@ export default function SignInScreen() {
           <View style={authStyles.dividerLine} />
         </View>
         <Button
-          disabled={google.available && !google.ready}
+          disabled={auth.busy || appleBusy || (google.available && !google.ready)}
           label="ادامه با گوگل"
           leadingIcon={<GoogleBrandIcon testID="google-brand-icon" />}
           loading={googleBusy}
@@ -279,10 +282,10 @@ export default function SignInScreen() {
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
             cornerRadius={8}
             onPress={() => {
-              if (appleBusy || auth.busy || !apple.ready) return;
+              if (providerBusy || auth.busy || !apple.ready) return;
               void submitApple();
             }}
-            style={[authStyles.appleButton, (appleBusy || auth.busy) && { opacity: 0.6 }]}
+            style={[authStyles.appleButton, (providerBusy || auth.busy) && { opacity: 0.6 }]}
           />
         ) : null}
         <View style={authStyles.footer}>
