@@ -42,6 +42,10 @@ main was not modified. This is preparation, not production cutover acceptance.
   health returned 200; unauthenticated capabilities returned 401. First sample:
   156.1 MiB / 448 MiB, CPU 0.26%, host available 1,427 MiB. Existing host ports
   443/2096 were preserved; this is not a public/private ingress qualification.
+- A real Docker permission probe found that a UID-zero process with all capabilities
+  dropped cannot read Agent-owned 0600 auth files. The inventory now uses the image
+  user. The actual shell function passed twice on a dedicated synthetic auth volume
+  with unchanged digest; no production auth volume was mounted.
 - The unrelated local APP_ENV=local notification Worker had a stale 96 MiB Docker
   cap and repeated OOM/restarts. Raising that runtime cap to 256 MiB restored
   healthy operation at about 172 MiB; no further restart occurred during observation.
@@ -58,7 +62,8 @@ main was not modified. This is preparation, not production cutover acceptance.
 
 `.codex-tmp/regional-completion/ops-tests-final.log`, `split-test.log`,
 `root-20261013-final.evidence.json`, `root-final-sync.log`, `runtime-audit.json`,
-`rehearsal-validation.json`, and `github-references.json`. These are local,
+`rehearsal-validation.json`, `auth-inventory-permissions.json`, and
+`github-references.json`. These are local,
 ignored artifacts and are not committed. They contain no real secret values.
 
 ## Owner and future execution gates

@@ -383,7 +383,7 @@ fi
 auth_volume_digest() {
   docker run --pull never --rm --network none --read-only --memory 128m --cpus 0.2 \
     --pids-limit 64 --cap-drop ALL \
-    --security-opt no-new-privileges --user 0:0 \
+    --security-opt no-new-privileges \
     --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
     --entrypoint python3 "$auth_image" -c '
 import hashlib
