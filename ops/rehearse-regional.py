@@ -44,7 +44,9 @@ def compose_command(env_file: Path) -> list[str]:
     ]
 
 
-def validate_config(config: dict[str, Any]) -> dict[str, Any]:
+def validate_config(
+    config: dict[str, Any], project_root: Path = ROOT
+) -> dict[str, Any]:
     if config.get("name") != PROJECT:
         raise ValueError("a separate rehearsal project is required")
     networks = config.get("networks", {})
@@ -67,21 +69,62 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
         "redis": {"/data"},
         "caddy": {"/data", "/config"},
     }
+    configuration_binds = {
+        ("redis", "/usr/local/etc/redis/redis.conf"): {
+            project_root / "ops/redis/redis.conf"
+        },
+        ("caddy", "/etc/caddy/Caddyfile"): {
+            project_root / "ops/Caddyfile.offline-rehearsal",
+            project_root / "rehearsal.Caddyfile",
+        },
+    }
     memory = 0
     cpus = 0.0
     for name, service in services.items():
+        if any(
+            service.get(option)
+            for option in (
+                "privileged",
+                "network_mode",
+                "pid",
+                "ipc",
+                "devices",
+                "cap_add",
+                "device_cgroup_rules",
+                "volumes_from",
+                "userns_mode",
+                "uts",
+                "use_api_socket",
+            )
+        ):
+            raise ValueError("rehearsal services must not request extra host access")
         if set(service.get("networks", {})) != {"default"}:
-            raise ValueError("every rehearsal service must remain on its internal network")
+            raise ValueError(
+                "every rehearsal service must remain on its internal network"
+            )
         if service.get("container_name"):
             raise ValueError("explicit shared container names are forbidden")
         required_targets = storage_targets.get(name, set())
         found_targets = set()
         for mount in service.get("volumes", []):
+            if mount.get("type") == "bind":
+                allowed = configuration_binds.get((name, mount.get("target")), set())
+                source = Path(mount.get("source", "")).resolve()
+                if not mount.get("read_only") or source not in {
+                    path.resolve() for path in allowed
+                }:
+                    raise ValueError(
+                        "only read-only rehearsal configuration binds are allowed"
+                    )
             if mount.get("type") == "volume" and mount.get("source") not in volumes:
-                raise ValueError("every named mount must use a dedicated rehearsal volume")
+                raise ValueError(
+                    "every named mount must use a dedicated rehearsal volume"
+                )
             if mount.get("target") in required_targets:
                 if mount.get("type") != "volume" or mount.get("source") not in volumes:
-                    raise ValueError("persistent storage must use a dedicated rehearsal volume")
+                    raise ValueError(
+                        "persistent storage must use a dedicated rehearsal volume"
+                    )
                 found_targets.add(mount["target"])
         if found_targets != required_targets:
             raise ValueError("persistent storage requires a dedicated rehearsal volume")
@@ -97,7 +140,9 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
         if name in SERVICES - {"db", "redis", "frontend", "caddy"}:
             url = urlsplit(service.get("environment", {}).get("DATABASE_URL", ""))
             if url.hostname != "db" or url.path != "/fitician_offline_rehearsal":
-                raise ValueError("application commands must use only the synthetic rehearsal DB")
+                raise ValueError(
+                    "application commands must use only the synthetic rehearsal DB"
+                )
         budget = int(service.get("mem_limit", 0))
         cpu = float(service.get("cpus", 0))
         if budget <= 0 or cpu <= 0:
@@ -138,14 +183,18 @@ def verify_capacity(budget: dict[str, Any]) -> None:
     others = 0
     running = subprocess.check_output(["docker", "ps", "--quiet"], text=True).split()
     if running:
-        containers = json.loads(subprocess.check_output(["docker", "inspect", *running]))
+        containers = json.loads(
+            subprocess.check_output(["docker", "inspect", *running])
+        )
         for container in containers:
             labels = container["Config"].get("Labels") or {}
             if labels.get("com.docker.compose.project") == PROJECT:
                 continue
             limit = container["HostConfig"].get("Memory", 0)
             if limit <= 0:
-                raise ValueError("another running container has an unbounded memory limit")
+                raise ValueError(
+                    "another running container has an unbounded memory limit"
+                )
             others += limit
     capacity = int(host["MemTotal"]) // (1024 * 1024)
     if budget["memory_mib"] + others // (1024 * 1024) + 750 > capacity:
@@ -180,8 +229,14 @@ def main() -> int:
                 check=False,
             )
             if result.returncode:
-                raise RuntimeError("rehearsal startup failed; inspect only its isolated services")
-        print(json.dumps({**budget, "action": args.action, "source_or_dns_changed": False}))
+                raise RuntimeError(
+                    "rehearsal startup failed; inspect only its isolated services"
+                )
+        print(
+            json.dumps(
+                {**budget, "action": args.action, "source_or_dns_changed": False}
+            )
+        )
         return 0
     except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(f"BLOCKED: {type(error).__name__}", file=sys.stderr)
