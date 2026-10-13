@@ -1,0 +1,57 @@
+name: Read-only regional SSH diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Region to check
+        required: true
+        type: choice
+        options: [iran, germany, both]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-iran:
+    name: Read-only Iran SSH diagnostics
+    if: inputs.target == 'iran' || inputs.target == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production-iran
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Check pinned SSH access and read-only capabilities
+        timeout-minutes: 3
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: bash ops/diagnose-regional-ssh.sh
+
+  diagnose-germany:
+    name: Read-only Germany SSH diagnostics
+    if: inputs.target == 'germany' || inputs.target == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production-germany
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Check pinned SSH access and read-only capabilities
+        timeout-minutes: 3
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: bash ops/diagnose-regional-ssh.sh

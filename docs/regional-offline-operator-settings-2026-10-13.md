@@ -1,7 +1,8 @@
 # Regional offline completion: operator settings
 
 Preparation only: automatic CD stays disabled; the regional manual workflow stays
-disabled in GitHub. Its source is prepared for a future owner-approved manual run.
+disabled in GitHub. The main deploy job is also unconditionally disabled in source under the latest
+readiness-audit instruction; the separate SSH diagnostic is manual and read-only.
 Netherlands and DNS were not modified. This document names
 settings only; it contains no secret values. Existing production signing/encryption
 keys and original volumes must be preserved.
@@ -152,8 +153,8 @@ for the existing isolated runtime. Verify artifact completeness before offline u
 
 The regional workflow remains disabled in GitHub. Later use **Actions → Deploy
 Fitician regional production → Enable workflow** only after the release/cutover
-decision and environment setup. No source edit is needed to permit its guarded
-manual job; never restore a push/workflow_run production trigger. All legacy
+decision and environment setup. The source deployment condition must also be separately reviewed and re-enabled
+after Cutover readiness; never restore a push/workflow_run production trigger. All legacy
 Netherlands production jobs remain disabled in source and GitHub. Later manual **Run workflow** requires
 `target`, `deploy_kind`, full `image_tag`, successful exact-SHA `ci_run_id` and
 `owner_approved=true`. Initial Iran adoption additionally needs

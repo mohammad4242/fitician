@@ -18,6 +18,7 @@ DEPLOY_JOBS = {
     "frontend-appearance-release.yml": ("frontend-release",),
     "frontend-only.yml": ("deploy-frontend-production",),
     "backend-only.yml": ("deploy-backend-production",),
+    "deploy-regional.yml": ("deploy",),
 }
 
 
@@ -28,7 +29,8 @@ class CDSafetyTests(unittest.TestCase):
             for name in names:
                 with self.subTest(workflow=filename, job=name):
                     match = re.search(
-                        r"(?ms)^  " + re.escape(name) + r":\n(.*?)(?=^  [\w-]+:|\Z)", text
+                        r"(?ms)^  " + re.escape(name) + r":\n(.*?)(?=^  [\w-]+:|\Z)",
+                        text,
                     )
                     self.assertIsNotNone(match)
                     body = match.group(1)
@@ -52,8 +54,14 @@ class CDSafetyTests(unittest.TestCase):
         self.assertIn("  workflow_dispatch:", regional)
         self.assertNotIn("  workflow_run:", regional)
         self.assertNotIn("  push:", regional)
+        diagnostic = (ROOT / ".github/workflows/diagnose-regional-ssh.yml").read_text()
+        self.assertIn("  workflow_dispatch:", diagnostic)
+        self.assertNotIn("  workflow_run:", diagnostic)
+        self.assertNotIn("  push:", diagnostic)
         for filename in ("ci.yml", "frontend-only.yml"):
             workflow = (ROOT / ".github/workflows" / filename).read_text()
-            self.assertNotIn('"${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4"', workflow)
+            self.assertNotIn(
+                '"${MEDIA_BASE%/}/public/landing/videos/landfilm.mp4"', workflow
+            )
         for path in (ROOT / ".github/workflows").glob("*.yml"):
             self.assertNotRegex(path.read_text().lower(), r"arvan|arvancloud")

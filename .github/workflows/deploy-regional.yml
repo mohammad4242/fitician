@@ -170,13 +170,14 @@ jobs:
           echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
 
   deploy:
-    # Manual dispatch only; the workflow itself remains disabled in GitHub.
+    # Re-enable only after separate owner review; deploy diagnostics run elsewhere.
     name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
     needs: verify-release
     if: >-
-      github.event_name == 'workflow_dispatch' &&
-      needs.verify-release.result == 'success' &&
-      inputs.owner_approved
+      false && (
+        github.event_name == 'workflow_dispatch' &&
+        needs.verify-release.result == 'success'
+      )
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:
@@ -210,6 +211,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$VPS_HOST"
+          printf '%s' "$VPS_HOST" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9.-]*$'
           printf '%s' "$VPS_USER" | grep -Eq '^[A-Za-z0-9._-]+$'
           printf '%s' "$VPS_APP_DIR" | grep -Eq '^/[A-Za-z0-9._/-]+$'
           printf '%s' "$COMPOSE_PROJECT_NAME" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_-]*$'
@@ -226,9 +228,26 @@ jobs:
         env:
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
+          set -euo pipefail
           test -n "$VPS_KNOWN_HOSTS"
           mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          umask 077
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          if ! ssh-keygen -F "[$VPS_HOST]:$VPS_SSH_PORT" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+            echo 'Pinned host key for configured host and port is missing' >&2
+            exit 1
+          fi
+          printf '%s\n' \
+            'Host *' \
+            '  BatchMode yes' \
+            '  StrictHostKeyChecking yes' \
+            "  UserKnownHostsFile $HOME/.ssh/known_hosts" \
+            '  GlobalKnownHostsFile /dev/null' \
+            '  ConnectionAttempts 1' \
+            '  ConnectTimeout 10' > "$HOME/.ssh/config"
+          chmod 600 "$HOME/.ssh/config"
       - name: Prepare immutable candidate contract directory
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
