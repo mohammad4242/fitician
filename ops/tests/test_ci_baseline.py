@@ -40,6 +40,17 @@ class BaselineTests(unittest.TestCase):
     def test_docs_only_changes_do_not_request_image_publication(self):
         self.assertFalse(module.ops_only(["docs/architecture.md"]))
 
+    def test_reviewed_offline_ops_tools_reuse_only_unchanged_application_evidence(self):
+        paths = [
+            "ops/regional-cutover.py",
+            "ops/rehearse-regional.py",
+            "ops/compose.offline-rehearsal.yaml",
+            "ops/Caddyfile.offline-rehearsal",
+        ]
+        self.assertTrue(module.ops_only(paths))
+        self.assertFalse(module.ops_only(paths + ["backend/app/main.py"]))
+        self.assertFalse(module.ops_only(paths + ["ops/unknown-command.py"]))
+
     def verify(self, data):
         with patch.object(module, "git_delta", return_value=["ops/deploy-regional.sh"]):
             return module.verify(data, "owner/repo", HEAD, ROOT, now=NOW)

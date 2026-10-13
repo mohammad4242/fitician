@@ -1,0 +1,52 @@
+networks:
+  default:
+    internal: true
+
+services:
+  db:
+    environment:
+      POSTGRES_DB: fitician_offline_rehearsal
+  caddy:
+    ports: !override
+      - "127.0.0.1:18080:80"
+      - "127.0.0.1:18443:443"
+    volumes: !override
+      - ./ops/Caddyfile.offline-rehearsal:/etc/caddy/Caddyfile:ro
+      - fitician_caddy_data:/data:ro
+      - fitician_caddy_config:/config
+
+  backend:
+    environment:
+      ACCOUNT_DELETION_ENABLED: "false"
+  backend-2:
+    environment:
+      ACCOUNT_DELETION_ENABLED: "false"
+
+  migrations:
+    cpus: 0.75
+    environment:
+      ACCOUNT_DELETION_ENABLED: "false"
+  scheduler:
+    mem_limit: 192m
+    healthcheck:
+      start_period: 120s
+  notification-worker:
+    mem_limit: 192m
+    healthcheck:
+      start_period: 120s
+  food-photo-worker:
+    mem_limit: 256m
+    healthcheck:
+      start_period: 120s
+  body-analysis-worker:
+    healthcheck:
+      start_period: 120s
+volumes:
+  fitician_prod_postgres_data:
+    name: fitician_offline_rehearsal_pg_${REHEARSAL_ID:?A dedicated rehearsal ID is required}
+  fitician_prod_redis_data:
+    name: fitician_offline_rehearsal_redis_${REHEARSAL_ID:?A dedicated rehearsal ID is required}
+  fitician_caddy_data:
+    name: fitician_offline_rehearsal_tls_${REHEARSAL_ID:?A dedicated rehearsal ID is required}
+  fitician_caddy_config:
+    name: fitician_offline_rehearsal_caddy_config_${REHEARSAL_ID:?A dedicated rehearsal ID is required}

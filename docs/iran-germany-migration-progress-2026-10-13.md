@@ -1,8 +1,11 @@
 # Regional migration progress — 2026-10-13
 
 **Cutover has not occurred. Netherlands remains the authoritative, live production.**
-The owner has fully authorized deployment, DNS and cutover; no renewed approval is
-required. Essential Cloudflare and Tailscale access is still missing.
+The latest owner instruction limits execution to isolated preparation while Iran
+has domestic Internet only: **no DNS changes, cutover or source freeze**. See
+[the current offline preparation report](iran-germany-offline-preparation-2026-10-13.md).
+The older access and network observations below are historical; Tailscale enrollment
+is not a current prerequisite or requested action.
 
 ## Executed and verified
 

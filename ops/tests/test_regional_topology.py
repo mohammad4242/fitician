@@ -35,17 +35,20 @@ class RegionalTopologyTests(unittest.TestCase):
             "CADDY_DATA_VOLUME_NAME": "test-caddy",
             "CADDY_CONFIG_VOLUME_NAME": "test-caddy-config",
             "AGENT_HOME_VOLUME_NAME": "existing-agent-home",
+            "REHEARSAL_ID": "qa-tests",
         }
 
-    def render(self, region):
+    def render(self, region, offline=False):
         result = subprocess.run(
             [
                 "docker",
                 "compose",
+                *(["--project-name", "fitician-offline-rehearsal"] if offline else []),
                 "--env-file",
                 str(self.env_file),
                 "-f",
                 f"compose.prod.{region}.yaml",
+                *(["-f", "ops/compose.offline-rehearsal.yaml"] if offline else []),
                 "config",
                 "--format",
                 "json",
@@ -58,6 +61,32 @@ class RegionalTopologyTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
+
+    def test_iran_worker_startup_grace_covers_measured_cold_start(self):
+        services = self.render("iran")["services"]
+        for name in (
+            "food-photo-worker",
+            "body-analysis-worker",
+            "notification-worker",
+            "scheduler",
+        ):
+            self.assertEqual(services[name]["healthcheck"]["start_period"], "2m0s")
+
+    def test_offline_rehearsal_cannot_bind_production_volumes_or_public_ports(self):
+        self.env_file.write_text("COMPOSE_PROJECT_NAME=fitician-iran\n")
+        config = self.render("iran", offline=True)
+        self.assertEqual(config["name"], "fitician-offline-rehearsal")
+        self.assertTrue(config["networks"]["default"]["internal"])
+        for volume in config["volumes"].values():
+            self.assertTrue(volume["name"].startswith("fitician_offline_rehearsal_"))
+            self.assertTrue(volume["name"].endswith("qa-tests"))
+        ports = config["services"]["caddy"]["ports"]
+        self.assertEqual({str(port["published"]) for port in ports}, {"18080", "18443"})
+        self.assertTrue(all(port["host_ip"] == "127.0.0.1" for port in ports))
+        self.assertEqual(
+            config["services"]["db"]["environment"]["POSTGRES_DB"],
+            "fitician_offline_rehearsal",
+        )
 
     def test_iran_starts_without_local_agent_and_keeps_data_private(self):
         config = self.render("iran")
@@ -120,10 +149,13 @@ class RegionalTopologyTests(unittest.TestCase):
         for region in ("iran", "germany"):
             for name, service in self.render(region)["services"].items():
                 with self.subTest(region=region, service=name):
-                    self.assertEqual(service.get("logging"), {
-                        "driver": "json-file",
-                        "options": {"max-size": "10m", "max-file": "3"},
-                    })
+                    self.assertEqual(
+                        service.get("logging"),
+                        {
+                            "driver": "json-file",
+                            "options": {"max-size": "10m", "max-file": "3"},
+                        },
+                    )
 
     def test_capacity_uses_region_specific_rendered_limits(self):
         for region in ("iran", "germany"):

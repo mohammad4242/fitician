@@ -1,0 +1,29 @@
+{
+    auto_https disable_certs
+    admin off
+}
+
+https://www.fitician.fit {
+	tls /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/www.fitician.fit/www.fitician.fit.crt /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/www.fitician.fit/www.fitician.fit.key
+	redir https://fitician.fit{uri} 308
+}
+
+https://fitician.fit {
+    tls /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/fitician.fit/fitician.fit.crt /data/caddy/certificates/acme-v02.api.letsencrypt.org-directory/fitician.fit/fitician.fit.key
+    handle /healthz {
+        reverse_proxy backend:8000 backend-2:8000
+    }
+    handle /api/* {
+        reverse_proxy backend:8000 backend-2:8000
+    }
+    handle /media/* {
+        reverse_proxy backend:8000 backend-2:8000
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+http://fitician.fit {
+    redir https://fitician.fit:18443{uri} 308
+}
