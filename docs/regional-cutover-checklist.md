@@ -41,7 +41,14 @@ python3 ops/regional-cutover.py dns-rollback-plan --manifest 'post-write-evidenc
 ```
 
 `inventory` displays only selected fields from a local manifest and makes no network
-calls. `integrity` streams the local file and compares its SHA-256. `restore-plan` only
+calls. `integrity` streams the local file and compares its SHA-256. The production
+backup script verifies both uploaded size and a downloaded ciphertext SHA-256 before
+it reports success. Final sync also runs `ops/final-database-snapshot.py`; it refuses
+to dump unless the six listed writer IDs are stopped and source DB, Redis and Agent
+remain running. It exports one repeatable-read, read-only PostgreSQL snapshot and
+records all public-table counts, selected row fingerprints and Alembic revision from
+that same snapshot as the dump. The metadata is separately age-encrypted before
+upload. `restore-plan` only
 prints an age-to-`pg_restore` pipeline by default. `--execute` requires
 `--confirm-target` to exactly match the container name and runs remote preflight before
 restore. It requires the fixed `iran` SSH alias, a local mode-0600 age identity, a
@@ -96,13 +103,24 @@ Rollback requires an explicit `writes_started` boolean; after `true`, both
    current IDs for `backend`, `backend-2`, `food-photo-worker`, `body-analysis-worker`,
    `notification-worker`, and `scheduler`; the cutover gate rejects missing/extra IDs.
 3. **Freeze and final snapshots.** Only in a separately approved cutover window,
-   stop writes by draining/stopping the two verified API IDs and four verified consumer
-   IDs. Keep source PostgreSQL, Redis and Agent service/volume intact; do not remove
-   volumes or run `down -v`. Stop new Agent auth/config writes through a reviewed
-   access-drain procedure while keeping the Agent service and original home volume
-   present. Capture fresh encrypted PostgreSQL and Agent snapshots after their writers
-   are quiescent. Use the existing `ops/backup-production.sh` for the PostgreSQL
-   encrypted upload path. The backup command in `plan` reuses this script without sudo.
+   drain ingress and freshly inventory source container IDs and service labels. Stop
+   the two verified API IDs with a 60-second grace period, then confirm both have
+   exited before stopping the four verified consumer IDs with up to 450 seconds for
+   in-flight jobs to finish. Confirm all six have exited. The `plan` command prints
+   this ordered, non-executing sequence. Keep source PostgreSQL, Redis and Agent
+   service/volume intact; do not remove volumes or run `down -v`. Stop new Agent
+   auth/config writes through a reviewed access-drain procedure while keeping the
+   Agent service and original home volume present. Capture fresh encrypted PostgreSQL
+   and Agent snapshots after their writers are quiescent. Use the existing
+   `ops/backup-production.sh` for the PostgreSQL encrypted upload path. The backup
+   command in `plan` reuses this script without sudo. Create a mode-0600 freeze
+   manifest from the just-verified IDs and stopped states; include `source_host`,
+   `ingress_drained`, `freeze_complete`, `frozen_container_ids`, and
+   `preserved_services` as required by `ops/final-database-snapshot.py`. Run with
+   `FINAL_SYNC=1 FINAL_FREEZE_MANIFEST=<path>` so the helper validates those IDs
+   against live Docker state before exporting the final snapshot. The helper never
+   stops containers. Download the encrypted `.snapshot.json.age` companion and
+   decrypt it locally for the `restore-plan --expected-snapshot` input.
    Verify local
    and remote SHA-256 with `integrity`, then run `restore-plan` without `--execute` to
    review the isolated database restore checks and command pipeline. For a later

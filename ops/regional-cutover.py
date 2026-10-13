@@ -21,9 +21,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 SOURCE = "mohammad@141.11.0.99"
 ZONE = "fitician.fit"
-POSTGRES_IMAGE = (
-    "postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
-)
+POSTGRES_IMAGE = "postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
 FREEZE_SERVICES = {
     "backend",
     "backend-2",
@@ -56,7 +54,11 @@ def check_sha256(path: Path, expected: str) -> str:
 
 
 def https_probe_command(domain: str, address: str) -> list[str]:
-    if not re.fullmatch(r"[a-z0-9.-]+", domain) or ".." in domain or domain.startswith("."):
+    if (
+        not re.fullmatch(r"[a-z0-9.-]+", domain)
+        or ".." in domain
+        or domain.startswith(".")
+    ):
         raise ValueError("domain must be a plain DNS name")
     ip = ipaddress.ip_address(address)
     return [
@@ -99,21 +101,31 @@ def plan_dns_updates(snapshot: dict[str, Any], target_ipv4: str) -> dict[str, An
             continue
         record_id = record.get("id")
         if not isinstance(record_id, str) or not record_id or record_id in seen_ids:
-            raise ValueError("every in-scope DNS record needs a unique provider record ID")
+            raise ValueError(
+                "every in-scope DNS record needs a unique provider record ID"
+            )
         seen_ids.add(record_id)
         if record_type == "AAAA":
-            raise ValueError(f"unexpected {name} AAAA record; IPv6 must be explicitly qualified")
+            raise ValueError(
+                f"unexpected {name} AAAA record; IPv6 must be explicitly qualified"
+            )
         if name == f"www.{ZONE}" and record_type == "CNAME":
             if str(record.get("content", "")).rstrip(".").lower() != ZONE:
-                raise ValueError("www CNAME must already point to the apex; manual review required")
+                raise ValueError(
+                    "www CNAME must already point to the apex; manual review required"
+                )
             selected[name].append(record)
         elif record_type == "A":
             selected[name].append(record)
         else:
-            raise ValueError(f"unsupported in-scope record type for {name}: {record_type}")
+            raise ValueError(
+                f"unsupported in-scope record type for {name}: {record_type}"
+            )
 
     if not selected[ZONE] or not selected[f"api.{ZONE}"] or not selected[f"www.{ZONE}"]:
-        raise ValueError("apex, api, and www records must all be present in the zone snapshot")
+        raise ValueError(
+            "apex, api, and www records must all be present in the zone snapshot"
+        )
     updates = []
     for name in (ZONE, f"api.{ZONE}", f"www.{ZONE}"):
         for record in selected[name]:
@@ -130,12 +142,16 @@ def plan_dns_updates(snapshot: dict[str, Any], target_ipv4: str) -> dict[str, An
         "target_ipv4": address,
         "updates": updates,
         "preserved_unrelated_record_count": unrelated,
-        "www_cname_preserved": any(record["type"] == "CNAME" for record in selected[f"www.{ZONE}"]),
+        "www_cname_preserved": any(
+            record["type"] == "CNAME" for record in selected[f"www.{ZONE}"]
+        ),
         "writes_performed": False,
     }
 
 
-def plan_dns_rollback(before: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+def plan_dns_rollback(
+    before: dict[str, Any], current: dict[str, Any]
+) -> dict[str, Any]:
     """Plan restoration of owned DNS fields from a pre-cutover snapshot only."""
     if before.get("zone") != ZONE or current.get("zone") != ZONE:
         raise ValueError(f"both DNS snapshots must be for exactly {ZONE}")
@@ -155,14 +171,22 @@ def plan_dns_rollback(before: dict[str, Any], current: dict[str, Any]) -> dict[s
             if not isinstance(record, dict):
                 raise TypeError("each DNS record must be an object")
             name = normalize_name(record.get("name", ""))
-            if name not in names or record.get("type") in {"MX", "TXT", "NS", "SRV", "CAA"}:
+            if name not in names or record.get("type") in {
+                "MX",
+                "TXT",
+                "NS",
+                "SRV",
+                "CAA",
+            }:
                 unrelated += 1
                 continue
             record_id = record.get("id")
             if not isinstance(record_id, str) or not record_id or record_id in indexed:
                 raise ValueError("owned DNS records need unique provider record IDs")
             if record.get("type") == "AAAA":
-                raise ValueError("unexpected owned AAAA record; manual rollback review required")
+                raise ValueError(
+                    "unexpected owned AAAA record; manual rollback review required"
+                )
             if record.get("type") not in {"A", "CNAME"}:
                 raise ValueError("unsupported owned DNS record type")
             if record.get("type") == "CNAME" and name != f"www.{ZONE}":
@@ -176,7 +200,9 @@ def plan_dns_rollback(before: dict[str, Any], current: dict[str, Any]) -> dict[s
     old, _ = owned(before)
     new, new_unrelated = owned(current)
     if not old or set(old) != set(new):
-        raise ValueError("owned DNS record IDs differ between before and current snapshots")
+        raise ValueError(
+            "owned DNS record IDs differ between before and current snapshots"
+        )
     if {normalize_name(record["name"]) for record in old.values()} != names:
         raise ValueError("before snapshot must include apex, api, and www records")
     updates = []
@@ -186,10 +212,16 @@ def plan_dns_rollback(before: dict[str, Any], current: dict[str, Any]) -> dict[s
             normalize_name(original.get("name")),
             original.get("type"),
         ):
-            raise ValueError("owned DNS record identity changed; manual rollback review required")
+            raise ValueError(
+                "owned DNS record identity changed; manual rollback review required"
+            )
         fields = ("content", "ttl", "proxied")
         if any(live.get(field) != original.get(field) for field in fields):
-            patch = {key: original[key] for key in ("type", "name", *fields) if key in original}
+            patch = {
+                key: original[key]
+                for key in ("type", "name", *fields)
+                if key in original
+            }
             updates.append({"record_id": record_id, "patch": patch})
     return {
         "zone": ZONE,
@@ -215,9 +247,15 @@ def _validate_restore_snapshot(value: dict[str, Any]) -> dict[str, Any]:
         or not isinstance(fingerprints, dict)
         or not fingerprints
     ):
-        raise ValueError("expected snapshot must include nonempty counts and fingerprints maps")
+        raise ValueError(
+            "expected snapshot must include nonempty counts and fingerprints maps"
+        )
     for table, count in counts.items():
-        if not re.fullmatch(r"[a-z_][a-z0-9_]*", str(table)) or type(count) is not int or count < 0:
+        if (
+            not re.fullmatch(r"[a-z_][a-z0-9_]*", str(table))
+            or type(count) is not int
+            or count < 0
+        ):
             raise ValueError("snapshot table names/counts are invalid")
     for table, fingerprint in fingerprints.items():
         if (
@@ -259,7 +297,9 @@ def build_verify_sql(snapshot: dict[str, Any]) -> str:
     )
     return (
         "SELECT json_build_object("
-        "'counts',(SELECT json_object_agg(tablename,row_count) FROM (" + counts_sql + ") c),"
+        "'counts',(SELECT json_object_agg(tablename,row_count) FROM ("
+        + counts_sql
+        + ") c),"
         "'tables',(SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables "
         "WHERE schemaname='public'),"
         "'fingerprints',(SELECT json_object_agg(tablename,fingerprint) FROM ("
@@ -310,7 +350,17 @@ def _inspect_target(container: str, timeout: int = 30) -> None:
         "{{json .NetworkSettings.Ports}}|{{json .Mounts}}|{{.Config.Image}}"
     )
     result = subprocess.run(
-        _ssh_command(["docker", "inspect", "--type", "container", "--format", template, container]),
+        _ssh_command(
+            [
+                "docker",
+                "inspect",
+                "--type",
+                "container",
+                "--format",
+                template,
+                container,
+            ]
+        ),
         capture_output=True,
         text=True,
         check=False,
@@ -319,11 +369,15 @@ def _inspect_target(container: str, timeout: int = 30) -> None:
     if result.returncode != 0:
         raise RuntimeError("destination restore container could not be inspected")
     try:
-        running, network, raw_ports, raw_mounts, image = result.stdout.strip().split("|", 4)
+        running, network, raw_ports, raw_mounts, image = result.stdout.strip().split(
+            "|", 4
+        )
         ports = json.loads(raw_ports)
         mounts = json.loads(raw_mounts)
     except (ValueError, json.JSONDecodeError):
-        raise RuntimeError("destination restore container inspection was invalid") from None
+        raise RuntimeError(
+            "destination restore container inspection was invalid"
+        ) from None
     no_ports = ports is None or (
         isinstance(ports, dict) and all(not bindings for bindings in ports.values())
     )
@@ -333,7 +387,8 @@ def _inspect_target(container: str, timeout: int = 30) -> None:
         and isinstance(mounts[0], dict)
         and mounts[0].get("Type") == "volume"
         and re.fullmatch(
-            r"fitician[_-][a-z0-9_-]*restore[_-][a-z0-9_-]+", str(mounts[0].get("Name", ""))
+            r"fitician[_-][a-z0-9_-]*restore[_-][a-z0-9_-]+",
+            str(mounts[0].get("Name", "")),
         )
         and mounts[0].get("Destination") == "/var/lib/postgresql"
         and mounts[0].get("RW") is True
@@ -366,7 +421,9 @@ def _inspect_target(container: str, timeout: int = 30) -> None:
         timeout=timeout,
     )
     if attached.returncode != 0 or attached.stdout.strip().splitlines() != [container]:
-        raise RuntimeError("restore volume must be attached only to the named restore container")
+        raise RuntimeError(
+            "restore volume must be attached only to the named restore container"
+        )
 
 
 def _target_table_count(container: str, timeout: int = 30) -> int:
@@ -383,7 +440,9 @@ def _target_table_count(container: str, timeout: int = 30) -> int:
             EMPTY_TABLE_SQL,
         ]
     )
-    result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=timeout)
+    result = subprocess.run(
+        command, capture_output=True, text=True, check=False, timeout=timeout
+    )
     if result.returncode != 0:
         raise RuntimeError("restore target empty-database check failed")
     try:
@@ -428,7 +487,9 @@ def _remote_verify(container: str, sql: str, timeout: int = 120) -> dict[str, An
 
 def _compare_restore(actual: dict[str, Any], expected: dict[str, Any]) -> None:
     if sorted(actual.get("tables") or []) != sorted(expected["counts"]):
-        raise RuntimeError("restored public table inventory differs from source snapshot")
+        raise RuntimeError(
+            "restored public table inventory differs from source snapshot"
+        )
     checks = (
         actual.get("counts") == expected["counts"],
         actual.get("fingerprints") == expected["fingerprints"],
@@ -451,7 +512,9 @@ def execute_restore(
     confirmation: str,
 ) -> dict[str, Any]:
     if not _restore_container_valid(container) or confirmation != container:
-        raise ValueError("execute requires exact confirmation of a fitician-*-restore-* target")
+        raise ValueError(
+            "execute requires exact confirmation of a fitician-*-restore-* target"
+        )
     if not identity_file.is_file() or identity_file.is_symlink():
         raise ValueError("local age identity file is missing or unsafe")
     if stat.S_IMODE(identity_file.stat().st_mode) != 0o600:
@@ -464,7 +527,9 @@ def execute_restore(
     _inspect_target(container)
     _target_table_count(container)
 
-    remote_restore = shlex.join(["docker", "exec", "-i", container, "sh", "-c", RESTORE_SCRIPT])
+    remote_restore = shlex.join(
+        ["docker", "exec", "-i", container, "sh", "-c", RESTORE_SCRIPT]
+    )
     age = subprocess.Popen(
         ["age", "--decrypt", "--identity", str(identity_file), str(encrypted_file)],
         stdout=subprocess.PIPE,
@@ -532,14 +597,18 @@ def validate_manifest(manifest: dict[str, Any], action: str = "cutover") -> list
         errors.append(f"source.host must remain {SOURCE}")
     if source.get("live_preserved") is not True:
         errors.append("source.live_preserved must be true")
-    preserved = _mapping(source.get("preserved_services"), "source.preserved_services", errors)
+    preserved = _mapping(
+        source.get("preserved_services"), "source.preserved_services", errors
+    )
     for service in ("postgres", "redis", "agent"):
         if preserved.get(service) is not True:
             errors.append(f"source.preserved_services.{service} must be true")
 
     evidence = _mapping(manifest.get("evidence"), "evidence", errors)
     if action == "cutover":
-        ids = _mapping(source.get("frozen_container_ids"), "source.frozen_container_ids", errors)
+        ids = _mapping(
+            source.get("frozen_container_ids"), "source.frozen_container_ids", errors
+        )
         has_invalid_id = any(
             not isinstance(value, str) or not value.strip() for value in ids.values()
         )
@@ -619,9 +688,9 @@ def validate_manifest(manifest: dict[str, Any], action: str = "cutover") -> list
             if completed.tzinfo is None:
                 raise ValueError
             age = datetime.now(UTC) - completed.astimezone(UTC)
-            if (candidate_type == "application" and age > timedelta(days=7)) or age < timedelta(
-                minutes=-10
-            ):
+            if (
+                candidate_type == "application" and age > timedelta(days=7)
+            ) or age < timedelta(minutes=-10):
                 errors.append(
                     "application CI evidence must be no older than 7 days and not over "
                     "10 minutes in the future"
@@ -679,14 +748,49 @@ def _print_plan() -> None:
             ],
         ),
         (
-            "Freeze after external gates",
+            "Read-only source writer inventory after gates",
+            [
+                "ssh",
+                SOURCE,
+                (
+                    "docker ps --all --no-trunc --filter label=com.docker.compose.project=fitician "
+                    "--format '{{.ID}} {{.State}} {{.Names}} {{.Label \"com.docker.compose.service\"}}'"
+                ),
+            ],
+        ),
+        (
+            "Freeze the two verified APIs after ingress drain",
             [
                 "ssh",
                 SOURCE,
                 "docker",
                 "stop",
+                "--time",
+                "60",
                 "VERIFIED_API_ID",
                 "VERIFIED_API_2_ID",
+            ],
+        ),
+        (
+            "Confirm both APIs exited before draining workers",
+            [
+                "ssh",
+                SOURCE,
+                (
+                    "docker inspect --format '{{.State.Status}}' VERIFIED_API_ID "
+                    "VERIFIED_API_2_ID"
+                ),
+            ],
+        ),
+        (
+            "Drain and freeze the four verified workers",
+            [
+                "ssh",
+                SOURCE,
+                "docker",
+                "stop",
+                "--time",
+                "450",
                 "VERIFIED_FOOD_WORKER_ID",
                 "VERIFIED_BODY_WORKER_ID",
                 "VERIFIED_NOTIFICATION_WORKER_ID",
@@ -694,11 +798,26 @@ def _print_plan() -> None:
             ],
         ),
         (
+            "Confirm all six writers exited; keep DB, Redis and Agent running",
+            [
+                "ssh",
+                SOURCE,
+                (
+                    "docker inspect --format '{{.State.Status}}' VERIFIED_API_ID "
+                    "VERIFIED_API_2_ID VERIFIED_FOOD_WORKER_ID VERIFIED_BODY_WORKER_ID "
+                    "VERIFIED_NOTIFICATION_WORKER_ID VERIFIED_SCHEDULER_ID"
+                ),
+            ],
+        ),
+        (
             "Encrypted final PostgreSQL snapshot",
             [
                 "ssh",
                 SOURCE,
+                "FINAL_SYNC=1",
+                "FINAL_FREEZE_MANIFEST=/opt/fitician/diagnostics/final-freeze.json",
                 "COMPOSE_FILE=/opt/fitician/compose.prod.yaml",
+                "COMPOSE_PROJECT_NAME=fitician",
                 "BACKUP_ENV_FILE=/opt/fitician/backup.env",
                 "bash",
                 "/opt/fitician/backup-production.sh",
@@ -734,7 +853,10 @@ def _print_plan() -> None:
                 "fitician-regional-restore-run-id",
             ],
         ),
-        ("Target health after an approved deployment", ["bash", "ops/verify-regional.sh"]),
+        (
+            "Target health after an approved deployment",
+            ["bash", "ops/verify-regional.sh"],
+        ),
         (
             "Pinned HTTPS probe plan",
             [
@@ -784,7 +906,9 @@ def _print_plan() -> None:
             ],
         ),
     ]
-    print("DRY RUN ONLY. Commands are examples for later operator review; none were executed.")
+    print(
+        "DRY RUN ONLY. Commands are examples for later operator review; none were executed."
+    )
     for title, argv in phases:
         print(f"\n{title}:\n  {shlex.join(argv)}")
     print(
@@ -795,13 +919,18 @@ def _print_plan() -> None:
         "Rollback after target writes: freeze target writes, reconcile data, then "
         "consider DNS; DNS-only is unsafe."
     )
-    print("No command above was executed. Replace IDs only with freshly inventoried IDs.")
+    print(
+        "No command above was executed. Drain ingress first; replace IDs only with "
+        "freshly inventoried IDs and confirm all six show exited before the final dump."
+    )
 
 
 def _restore_pipeline(identity_file: Path, encrypted_file: Path, container: str) -> str:
     if not _restore_container_valid(container):
         raise ValueError("restore target must match fitician-*-restore-*")
-    remote_restore = shlex.join(["docker", "exec", "-i", container, "sh", "-c", RESTORE_SCRIPT])
+    remote_restore = shlex.join(
+        ["docker", "exec", "-i", container, "sh", "-c", RESTORE_SCRIPT]
+    )
     script = 'age --decrypt --identity "$1" "$2" | ssh -o BatchMode=yes iran "$3"'
     return shlex.join(
         [
@@ -865,7 +994,9 @@ def _print_restore_plan(args: argparse.Namespace) -> None:
             build_verify_sql(snapshot),
         ]
     )
-    print("DRY RUN ONLY. No SSH, decryption, restore, or verification query was executed.")
+    print(
+        "DRY RUN ONLY. No SSH, decryption, restore, or verification query was executed."
+    )
     print(
         "Preflight (requires network=none, no published ports, PostgreSQL 18, "
         "dedicated restore volume):"
@@ -881,8 +1012,14 @@ def _print_restore_plan(args: argparse.Namespace) -> None:
     print(f"Encrypted SHA-256 expected: {args.sha256}")
     print("Local age identity path (identity bytes stay on this machine):")
     print(str(args.identity_file))
-    print("Restore pipeline (destination name must be confirmed explicitly with --execute):")
-    print(_restore_pipeline(args.identity_file, args.encrypted_file, args.restore_container))
+    print(
+        "Restore pipeline (destination name must be confirmed explicitly with --execute):"
+    )
+    print(
+        _restore_pipeline(
+            args.identity_file, args.encrypted_file, args.restore_container
+        )
+    )
     print("Post-restore verification query:")
     print(shlex.join(verify))
 
@@ -891,17 +1028,24 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("plan", help="print a dry-run operator sequence")
-    integrity = sub.add_parser("integrity", help="stream-verify a local encrypted artifact")
+    integrity = sub.add_parser(
+        "integrity", help="stream-verify a local encrypted artifact"
+    )
     integrity.add_argument("--file", type=Path, required=True)
     integrity.add_argument("--sha256", required=True)
-    https = sub.add_parser("https-plan", help="print a pinned HTTPS health probe; does not run it")
+    https = sub.add_parser(
+        "https-plan", help="print a pinned HTTPS health probe; does not run it"
+    )
     https.add_argument("--domain", default=ZONE)
     https.add_argument("--address", required=True)
-    dns = sub.add_parser("dns-plan", help="print exact in-scope Cloudflare updates; never writes")
+    dns = sub.add_parser(
+        "dns-plan", help="print exact in-scope Cloudflare updates; never writes"
+    )
     dns.add_argument("--snapshot", type=Path, required=True)
     dns.add_argument("--target-ipv4", required=True)
     dns_rollback = sub.add_parser(
-        "dns-rollback-plan", help="print owned DNS restoration patches after rollback gates"
+        "dns-rollback-plan",
+        help="print owned DNS restoration patches after rollback gates",
     )
     dns_rollback.add_argument("--manifest", type=Path, required=True)
     dns_rollback.add_argument("--before", type=Path, required=True)
@@ -920,9 +1064,13 @@ def main(argv: list[str] | None = None) -> int:
     restore.add_argument(
         "--confirm-target", help="must exactly equal --restore-container when executing"
     )
-    inventory = sub.add_parser("inventory", help="display sanitized local evidence only")
+    inventory = sub.add_parser(
+        "inventory", help="display sanitized local evidence only"
+    )
     inventory.add_argument("--manifest", type=Path, required=True)
-    validate = sub.add_parser("validate", help="validate a cutover or rollback evidence manifest")
+    validate = sub.add_parser(
+        "validate", help="validate a cutover or rollback evidence manifest"
+    )
     validate.add_argument("--manifest", type=Path, required=True)
     validate.add_argument("--action", choices=("cutover", "rollback"), required=True)
     args = parser.parse_args(argv)
@@ -935,7 +1083,11 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError) as exc:
             print(f"INTEGRITY FAILED: {exc}", file=sys.stderr)
             return 1
-        print(json.dumps({"sha256": digest, "bytes": args.file.stat().st_size, "matched": True}))
+        print(
+            json.dumps(
+                {"sha256": digest, "bytes": args.file.stat().st_size, "matched": True}
+            )
+        )
         return 0
     if args.command == "https-plan":
         try:
@@ -958,12 +1110,16 @@ def main(argv: list[str] | None = None) -> int:
             gate = validate_manifest(_load_manifest(args.manifest), action="rollback")
             if gate:
                 raise ValueError("rollback gate blocked: " + "; ".join(gate))
-            plan = plan_dns_rollback(_load_manifest(args.before), _load_manifest(args.current))
+            plan = plan_dns_rollback(
+                _load_manifest(args.before), _load_manifest(args.current)
+            )
         except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
             print(f"DNS rollback plan blocked: {exc}", file=sys.stderr)
             return 2
         print(json.dumps(plan, indent=2, sort_keys=True))
-        print("DNS patches only; this command does not write DNS or reconcile application data.")
+        print(
+            "DNS patches only; this command does not write DNS or reconcile application data."
+        )
         return 0
     if args.command == "restore-plan":
         try:
@@ -982,7 +1138,13 @@ def main(argv: list[str] | None = None) -> int:
                 container=args.restore_container,
                 confirmation=args.confirm_target,
             )
-        except (OSError, TypeError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+        except (
+            OSError,
+            TypeError,
+            ValueError,
+            RuntimeError,
+            subprocess.SubprocessError,
+        ) as exc:
             print(f"Restore plan blocked: {exc}", file=sys.stderr)
             return 2
         if args.execute:

@@ -71,7 +71,25 @@ def ready_manifest() -> dict[str, object]:
 
 
 class RegionalCutoverGateTests(unittest.TestCase):
-    def test_cutover_rejects_missing_external_network_auth_and_snapshot_restore(self) -> None:
+    def test_operator_plan_drains_apis_then_workers_before_final_backup(self) -> None:
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = regional_cutover.main(["plan"])
+
+        plan = output.getvalue()
+        self.assertEqual(status, 0)
+        self.assertLess(
+            plan.index("Freeze the two verified APIs"), plan.index("Drain and freeze")
+        )
+        self.assertLess(
+            plan.index("Drain and freeze"), plan.index("Encrypted final PostgreSQL")
+        )
+        self.assertIn("--time 450", plan)
+        self.assertIn("No command above was executed", plan)
+
+    def test_cutover_rejects_missing_external_network_auth_and_snapshot_restore(
+        self,
+    ) -> None:
         manifest = ready_manifest()
         evidence = manifest["evidence"]
         assert isinstance(evidence, dict)
@@ -81,9 +99,13 @@ class RegionalCutoverGateTests(unittest.TestCase):
 
         errors = regional_cutover.validate_manifest(manifest, action="cutover")
 
-        self.assertTrue(any("external_network_authenticated" in error for error in errors))
+        self.assertTrue(
+            any("external_network_authenticated" in error for error in errors)
+        )
         self.assertTrue(any("database.restore_verified" in error for error in errors))
-        self.assertTrue(any("agent.auth_validation_passed" in error for error in errors))
+        self.assertTrue(
+            any("agent.auth_validation_passed" in error for error in errors)
+        )
 
     def test_rehearsal_manifest_cannot_be_promoted_to_cutover(self) -> None:
         manifest = ready_manifest()
@@ -116,7 +138,10 @@ class RegionalCutoverGateTests(unittest.TestCase):
     def test_post_write_rollback_requires_freeze_and_reconciliation(self) -> None:
         manifest = ready_manifest()
         manifest["writes_started"] = True
-        manifest["rollback"] = {"target_writes_frozen": False, "reconciliation_complete": False}
+        manifest["rollback"] = {
+            "target_writes_frozen": False,
+            "reconciliation_complete": False,
+        }
 
         errors = regional_cutover.validate_manifest(manifest, action="rollback")
 
@@ -131,7 +156,10 @@ class RegionalCutoverGateTests(unittest.TestCase):
         errors = regional_cutover.validate_manifest(manifest, action="rollback")
 
         self.assertTrue(
-            any("writes_started must be explicitly true or false" in error for error in errors)
+            any(
+                "writes_started must be explicitly true or false" in error
+                for error in errors
+            )
         )
 
     def test_cutover_requires_matching_recent_ci_evidence(self) -> None:
@@ -144,18 +172,24 @@ class RegionalCutoverGateTests(unittest.TestCase):
 
     def test_cutover_rejects_stale_ci_run(self) -> None:
         manifest = ready_manifest()
-        manifest["ci"]["completed_at_utc"] = (datetime.now(UTC) - timedelta(days=8)).isoformat()
+        manifest["ci"]["completed_at_utc"] = (
+            datetime.now(UTC) - timedelta(days=8)
+        ).isoformat()
 
         errors = regional_cutover.validate_manifest(manifest, action="cutover")
 
         self.assertTrue(any("no older than 7 days" in error for error in errors))
 
-    def test_stable_config_can_reuse_older_ci_for_exact_stable_application_sha(self) -> None:
+    def test_stable_config_can_reuse_older_ci_for_exact_stable_application_sha(
+        self,
+    ) -> None:
         manifest = ready_manifest()
         manifest["candidate_type"] = "stable-config"
         manifest["candidate_sha"] = "e" * 40
         manifest["stable_application_sha"] = manifest["ci"]["commit_sha"]
-        manifest["ci"]["completed_at_utc"] = (datetime.now(UTC) - timedelta(days=90)).isoformat()
+        manifest["ci"]["completed_at_utc"] = (
+            datetime.now(UTC) - timedelta(days=90)
+        ).isoformat()
 
         errors = regional_cutover.validate_manifest(manifest, action="cutover")
 
@@ -234,12 +268,16 @@ class RegionalCutoverGateTests(unittest.TestCase):
 
         self.assertEqual({item["record_id"] for item in plan["updates"]}, {"r1", "r2"})
         self.assertEqual(plan["preserved_unrelated_record_count"], 2)
-        self.assertEqual({item["patch"]["content"] for item in plan["updates"]}, {"203.0.113.20"})
+        self.assertEqual(
+            {item["patch"]["content"] for item in plan["updates"]}, {"203.0.113.20"}
+        )
 
     def test_dns_plan_rejects_records_without_provider_ids(self) -> None:
         snapshot = {
             "zone": "fitician.fit",
-            "records": [{"type": "A", "name": "fitician.fit", "content": "141.11.0.99"}],
+            "records": [
+                {"type": "A", "name": "fitician.fit", "content": "141.11.0.99"}
+            ],
         }
 
         with self.assertRaises(ValueError):
@@ -290,7 +328,9 @@ class RegionalCutoverGateTests(unittest.TestCase):
         plan = regional_cutover.plan_dns_rollback(before, current)
 
         self.assertEqual({item["record_id"] for item in plan["updates"]}, {"a", "b"})
-        self.assertEqual({item["patch"]["content"] for item in plan["updates"]}, {"141.11.0.99"})
+        self.assertEqual(
+            {item["patch"]["content"] for item in plan["updates"]}, {"141.11.0.99"}
+        )
         self.assertEqual(plan["preserved_unrelated_record_count"], 1)
 
     def test_https_plan_is_exact_pinned_read_only_probe(self) -> None:
@@ -315,7 +355,9 @@ class RegionalCutoverGateTests(unittest.TestCase):
 
     def test_restore_plan_is_shell_valid_and_limited_to_isolated_name(self) -> None:
         command = regional_cutover._restore_pipeline(
-            Path("/secure/key file"), Path("/backup/snapshot.age"), "fitician-regional-restore-run1"
+            Path("/secure/key file"),
+            Path("/backup/snapshot.age"),
+            "fitician-regional-restore-run1",
         )
         syntax = subprocess.run(
             ["bash", "-n", "-c", command], check=False, capture_output=True, text=True
@@ -448,14 +490,17 @@ else:
         error = io.StringIO()
         with redirect_stderr(error):
             status = regional_cutover.main(
-                self._restore_args() + ["--execute", "--confirm-target", "wrong-container"]
+                self._restore_args()
+                + ["--execute", "--confirm-target", "wrong-container"]
             )
 
         self.assertEqual(status, 2)
         self.assertIn("exactly match", error.getvalue())
         self.assertEqual(self.ssh_calls.read_text(), "")
 
-    def test_synthetic_isolated_restore_streams_and_compares_snapshot_evidence(self) -> None:
+    def test_synthetic_isolated_restore_streams_and_compares_snapshot_evidence(
+        self,
+    ) -> None:
         result = self._restore()
 
         self.assertEqual(self.restored.read_bytes(), self.payload)
@@ -498,9 +543,12 @@ else:
             "postgres:18-evil@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15",
             "postgres:18-alpine@sha256:" + "0" * 64,
         ):
-            with self.subTest(image=image), patch.dict(self.environment, {"FAKE_IMAGE": image}):
-                with self.assertRaisesRegex(RuntimeError, "pinned PostgreSQL 18"):
-                    self._restore()
+            with (
+                self.subTest(image=image),
+                patch.dict(self.environment, {"FAKE_IMAGE": image}),
+                self.assertRaisesRegex(RuntimeError, "pinned PostgreSQL 18"),
+            ):
+                self._restore()
         self.assertEqual(self.ssh_calls.read_text().count("pg_restore"), 0)
 
     def test_restore_rejects_unexpected_or_missing_public_tables(self) -> None:
@@ -518,7 +566,9 @@ else:
                 with self.assertRaisesRegex(RuntimeError, "table inventory"):
                     self._restore()
 
-    def test_restore_refuses_published_database_port_before_streaming_archive(self) -> None:
+    def test_restore_refuses_published_database_port_before_streaming_archive(
+        self,
+    ) -> None:
         self.environment["FAKE_PORTS"] = json.dumps(
             {"5432/tcp": [{"HostIp": "0.0.0.0", "HostPort": "5432"}]}
         )
