@@ -53,19 +53,27 @@ export function useAndroidKeyboardFocusScroll(
 
 export function KeyboardFocusScrollView({
   keyboardOffset,
+  scrollRef: externalScrollRef,
   onFocus,
   onLayout,
   onContentSizeChange,
   onScroll,
   ...props
-}: ScrollViewProps & { readonly keyboardOffset: number }) {
+}: ScrollViewProps & {
+  readonly keyboardOffset: number;
+  readonly scrollRef?: RefObject<ScrollView | null>;
+}) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollOffset = useRef(0);
   const reveal = useAndroidKeyboardFocusScroll(scrollRef, keyboardOffset, scrollOffset);
+  const attachScrollRef = useCallback((instance: ScrollView | null) => {
+    scrollRef.current = instance;
+    if (externalScrollRef) externalScrollRef.current = instance;
+  }, [externalScrollRef]);
   return (
     <ScrollView
       {...props}
-      ref={scrollRef}
+      ref={attachScrollRef}
       scrollEventThrottle={props.scrollEventThrottle ?? 16}
       onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; onScroll?.(event); }}
       onFocus={(event) => { onFocus?.(event); reveal(); }}

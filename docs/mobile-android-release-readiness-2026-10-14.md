@@ -23,8 +23,10 @@ Retained artifact, not a final release candidate:
 - Historical data-preserving update was verified on the phone on October 13.
   Reconnected October 14: Samsung SM-A127F, Android 13, arm64-v8a. Installed
   code 11 base-APK hash matches the retained artifact. The actual email entry
-  screen was inspected with empty fields. No new physical update or successful
-  login is claimed today.
+  screen was inspected with empty fields. The owner then personally completed
+  email/password login with an authorized test account. Actual authenticated
+  member tabs, existing workout/exercise lists and nutrition summary loaded.
+  No new physical update is claimed today.
 
 Before final builds, confirm the highest version code in both store consoles and
 EAS, then use a strictly higher release code. Preserve remote Production signing.
@@ -79,6 +81,11 @@ version increment, final APK, or final AAB was performed by this task.
   identity, so their connection-error copy stays generic. Queued and terminal
   cases have regressions; no specific network cause is inferred from the legacy
   generic code. This is an app-only compatibility correction.
+- Profile Edit now reveals the measured personal editor, including section
+  switches, delayed initial layout and a cleared save notice. Screen exposes an
+  optional scroll reference while retaining keyboard-focus scrolling. The
+  defect was observed on the installed APK; the correction has native
+  regressions and still needs physical acceptance on the updated signed APK.
 
 ## Verification and blocked acceptance
 
@@ -94,16 +101,35 @@ version increment, final APK, or final AAB was performed by this task.
   health preflights and preserves the authenticated POST/image/result assertions.
   Its focused E2E passed on a new isolated local test database; Ruff checks passed.
   New candidate CI must pass.
-- ADB initially returned an empty list, then confirmed the reconnected handset.
-  Existing app was brought to foreground and the real email form was inspected
-  without exposing input values. Personal test-account entry is still pending;
-  no successful authentication or authenticated feature test is claimed.
+- ADB confirmed the handset after reconnects on changing Wireless ADB ports.
+  UI actions resolve the active authorized model afresh. No debugging/security
+  settings were changed. Input values, passwords and OTPs were not output.
+- Real email login: Pass on the retained signed APK. The owner confirmed the
+  method and authorized test-account use; authenticated UI was observed via ADB.
+- Cold-process session restore: Pass. ADB cold launch returned 2099 ms, and
+  member home with existing plans returned without credential entry. The restore
+  client invokes native refresh. The new process had zero observed fatal/JS
+  error entries and zero ANR mentions during this checked window.
+- Existing workout/exercise lists and nutrition calorie/macro summary: Pass
+  for read-only content. Current account's generation/management access is
+  expired or disabled per UI; no entitlement was granted or bypassed.
+- Progress overview/body empty state: Pass. Populated measurement charts are
+  unverified because the current test account has no measurement history.
+- Exercise-detail media: Blocked/partial. The detail link was tapped, but
+  UIAutomator could not obtain its hierarchy; Back returned correctly. Playback,
+  GIF pixels and image rendering are not claimed verified.
+- Profile loads. Submitting unchanged values returned to member home with no
+  observed error; changed-value persistence has not been established. No profile
+  field value was edited. The Edit control physically left the form below the
+  viewport; manual scroll revealed it. A scoped editor-scroll correction and
+  regressions now exist, but require a new signed-device build for acceptance.
 - Legacy outage regressions: 2 failures before correction; 13 model/unit tests
   and 24 native UI tests passed afterward. TypeScript, production validation,
   diff checks and Luna review passed. CI for the latest candidate is still required.
-- Email, phone and Google successful login: Blocked.
+- Phone and Google successful login: Pending personal entry/OTP on the phone.
 - Profile saves, existing plans, exercise media, history, progress and settings:
-  Blocked pending real sign-in.
+  Partial as detailed above; profile writes and media/filled-history acceptance
+  remain unverified.
 - AI unavailable/recovery behavior on a phone: Blocked. Agent communication is
   disconnected per owner; no Production connectivity or feature flags were changed.
 - Push token, delivery and notification navigation: Blocked by absent Firebase
@@ -112,6 +138,11 @@ version increment, final APK, or final AAB was performed by this task.
   account through an explicitly authorized process; do not write the user database,
   borrow real member data, or bypass authentication. Supply credentials only in
   private store review fields after verifying normal sign-in.
+
+Full CI 38564212249 passed for source 2bd04e8f, including backend, Android,
+mobile and browser checks. Subsequent profile-scroll source changes passed all
+63 native suites / 400 tests and TypeScript locally. Latest-source CI and signed
+physical acceptance are still required before merge/release.
 
 Fresh EAS inventory after reconnect confirmed GOOGLE_SERVICES_JSON absent,
 Google Android/Web IDs and media origin present, EXPO_UPDATES_URL absent, and

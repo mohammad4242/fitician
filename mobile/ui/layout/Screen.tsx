@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, type RefObject } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -32,6 +32,7 @@ export interface ScreenProps {
   readonly keyboardFocusAware?: boolean;
   readonly keyboardDismissMode?: ScrollViewProps["keyboardDismissMode"];
   readonly keyboardVerticalOffset?: number;
+  readonly scrollRef?: RefObject<ScrollView | null>;
   readonly scroll?: boolean;
   readonly style?: StyleProp<ViewStyle>;
 }
@@ -45,6 +46,7 @@ export function Screen({
   keyboardFocusAware = false,
   keyboardDismissMode = "on-drag",
   keyboardVerticalOffset,
+  scrollRef,
   scroll = true,
   style,
 }: ScreenProps) {
@@ -76,12 +78,14 @@ export function Screen({
     <KeyboardFocusScrollView
       {...scrollProps}
       keyboardOffset={fiticianTokens.spacing[4]}
+      scrollRef={scrollRef}
     >
       {children}
     </KeyboardFocusScrollView>
   ) : scroll ? (
     <ScrollView
       {...scrollProps}
+      ref={scrollRef}
     >
       {children}
     </ScrollView>

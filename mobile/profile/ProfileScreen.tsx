@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Image,
   Pressable,
   StyleSheet,
   Switch,
+  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -224,6 +225,9 @@ export function ProfileScreen() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const personalEditorY = useRef<number | null>(null);
+  const revealAfterLayout = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -412,7 +416,7 @@ export function ProfileScreen() {
   if (loaded === null || values === null) return null;
 
   return (
-    <Screen contentWidth="reading" contentContainerStyle={styles.screen}>
+    <Screen contentWidth="reading" contentContainerStyle={styles.screen} scrollRef={scrollRef}>
       <PageHeading title="پروفایل ورزشی" />
 
       <ProfileOverviewCard
@@ -421,9 +425,20 @@ export function ProfileScreen() {
         profile={loaded.profile}
         shared={loaded.shared}
         onEdit={() => {
+          const personalEditorPositionIsStable = section === "personal"
+            && saveMessage === null && personalEditorY.current !== null;
+          revealAfterLayout.current = true;
           setSection("personal");
           setFieldErrors({});
           setSaveMessage(null);
+          if (personalEditorPositionIsStable) {
+            requestAnimationFrame(() => {
+              if (personalEditorY.current !== null) {
+                scrollRef.current?.scrollTo({ y: personalEditorY.current, animated: true });
+              }
+              revealAfterLayout.current = false;
+            });
+          }
         }}
       />
       <ProfilePhotoControl
@@ -464,6 +479,13 @@ export function ProfileScreen() {
           showCircumferences={loaded.profile !== null}
           values={values}
           onChange={updateValue}
+          onLayout={(event) => {
+            personalEditorY.current = event.nativeEvent.layout.y;
+            if (revealAfterLayout.current) {
+              scrollRef.current?.scrollTo({ y: personalEditorY.current, animated: true });
+              revealAfterLayout.current = false;
+            }
+          }}
         />
       ) : null}
       {section === "training" ? (
@@ -578,11 +600,13 @@ function ProfileFormGroup({
 
 function PersonalSection({
   errors,
+  onLayout,
   showCircumferences,
   values,
   onChange,
 }: {
   readonly errors: ProfileFieldErrors;
+  readonly onLayout: (event: { nativeEvent: { layout: { y: number } } }) => void;
   readonly showCircumferences: boolean;
   readonly values: ProfileFormValues;
   readonly onChange: (field: keyof ProfileFormValues, value: ProfileFormValues[keyof ProfileFormValues]) => void;
@@ -590,7 +614,7 @@ function PersonalSection({
   const birthDateBounds = getProfileBirthDateBounds(new Date());
   const birthDateCopy = fa.translation.onboarding.validation;
   return (
-    <View style={styles.formGroups}>
+    <View onLayout={onLayout} style={styles.formGroups} testID="profile-personal-editor">
       <ProfileFormGroup icon="profile" title="مشخصات فردی">
         <TextField
           autoComplete="name"
