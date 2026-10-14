@@ -1,5 +1,5 @@
-import { ApiError, resolveAppError } from "@fitician/core";
 import type { components } from "@fitician/core";
+import { agentNetworkMessage } from "../ui/agentAvailability";
 
 import { formatNutritionNumber } from "./nutritionModel";
 import type { NutritionFoodPhotoEstimate } from "./nutritionTrackingApi";
@@ -50,15 +50,12 @@ export function photoEstimatePresentation(estimate: NutritionFoodPhotoEstimate):
   readonly message: string;
   readonly title: string;
 } {
+  const networkMessage = agentNetworkMessage(estimate.error_code, null, "nutrition");
   if (estimate.status === "queued") {
     return {
       canConfirm: false,
-      message: estimate.error_code === "agent_network_unavailable"
-        ? resolveAppError(
-          new ApiError(503, "", null, estimate.error_code, { retryable: true }),
-          { audience: "member", context: "nutrition", locale: "fa" },
-        ).message
-        : "می‌توانی از برنامه استفاده کنی؛ نتیجه بعد از آماده شدن نمایش داده می‌شود.",
+      message: networkMessage
+        ?? "می‌توانی از برنامه استفاده کنی؛ نتیجه بعد از آماده شدن نمایش داده می‌شود.",
       title: "تحلیل عکس در صف است",
     };
   }
@@ -72,12 +69,7 @@ export function photoEstimatePresentation(estimate: NutritionFoodPhotoEstimate):
   if (estimate.status === "failed") {
     return {
       canConfirm: false,
-      message: estimate.error_code === "agent_network_unavailable"
-        ? resolveAppError(
-          new ApiError(503, "", null, estimate.error_code, { retryable: true }),
-          { audience: "member", context: "nutrition", locale: "fa" },
-        ).message
-        : "تحلیل انجام نشد؛ عکس را دوباره ارسال کن.",
+      message: networkMessage ?? "تحلیل انجام نشد؛ عکس را دوباره ارسال کن.",
       title: "تحلیل عکس ناموفق بود",
     };
   }

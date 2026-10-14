@@ -119,4 +119,9 @@ it("keeps queued and failed photo jobs outside the confirmation flow", () => {
     status: "failed",
     error_code: "agent_network_unavailable",
   }).message).toBe("اینترنت بین‌الملل در دسترس نیست");
+  for (const status of ["queued", "failed"] as const) {
+    expect(photoEstimatePresentation({
+      ...base, status, error_code: "connection_failure",
+    }).message).toBe("ارتباط با سرویس هوشمند برقرار نشد. کمی بعد دوباره تلاش کنید.");
+  }
 });

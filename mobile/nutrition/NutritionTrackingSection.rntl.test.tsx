@@ -530,7 +530,10 @@ test("renders the photo result with estimated calories and all three macros", as
   expect(photoResult.getByText("چربی")).toBeTruthy();
 });
 
-test("keeps analysis in the background after upload and refreshes the queued result", async () => {
+test.each([
+  ["agent_network_unavailable", "اینترنت بین‌الملل در دسترس نیست"],
+  ["connection_failure", "ارتباط با سرویس هوشمند برقرار نشد. کمی بعد دوباره تلاش کنید."],
+])("keeps %s analysis in the background and refreshes the queued result", async (errorCode, expectedMessage) => {
   mockRequestCameraPermissionsAsync.mockResolvedValue({ granted: true } as never);
   mockLaunchCameraAsync.mockResolvedValue({
     canceled: false,
@@ -538,8 +541,8 @@ test("keeps analysis in the background after upload and refreshes the queued res
   } as never);
   const queuedPhotoEstimate = {
     ...photoEstimate,
-    error_code: "agent_network_unavailable",
-    error_message: "اینترنت بین‌الملل در دسترس نیست",
+    error_code: errorCode,
+    error_message: null,
     items: [],
     macro_totals: { calories: 0, carbohydrate_g: 0, fat_g: 0, protein_g: 0 },
     macro_totals_complete: false,
@@ -556,7 +559,7 @@ test("keeps analysis in the background after upload and refreshes the queued res
 
   await waitFor(() => {
     expect(within(screen.getByTestId("nutrition-photo-entry-panel")).getAllByText("تحلیل عکس در صف است").length).toBeGreaterThan(0);
-    expect(within(screen.getByTestId("nutrition-photo-entry-panel")).getByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
+    expect(within(screen.getByTestId("nutrition-photo-entry-panel")).getByText(expectedMessage)).toBeTruthy();
     expect(screen.queryByTestId("nutrition-photo-result")).toBeNull();
   });
 

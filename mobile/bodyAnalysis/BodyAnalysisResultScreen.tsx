@@ -179,9 +179,11 @@ export function BodyAnalysisResultScreen() {
           <Notice message={bodyPhotoCopy.results.notStarted} variant="info" />
         ) : activeAnalysisStates.has(analysis.status) ? (
           <Notice
-            message={analysis.status === "queued" && analysis.error_code === "agent_network_unavailable"
-              ? analysisFailureMessage(analysis)
-              : `${analysisStatusLabel(analysis.status)} · ${bodyPhotoCopy.results.processingHelp}`}
+            message={bodyAnalysisProviderErrorMessage(
+              analysis.error_code,
+              `${analysisStatusLabel(analysis.status)} · ${bodyPhotoCopy.results.processingHelp}`,
+              analysis.provider,
+            )}
             variant="info"
           />
         ) : null}
@@ -403,7 +405,7 @@ function analysisFailureMessage(analysis: BodyAnalysis): string {
   const fallback = providerMessages[analysis.error_code ?? ""]
     ?? analysis.safe_error_message
     ?? bodyPhotoCopy.results.failedSafe;
-  return bodyAnalysisProviderErrorMessage(analysis.error_code, fallback);
+  return bodyAnalysisProviderErrorMessage(analysis.error_code, fallback, analysis.provider);
 }
 
 function hasAnalysisResult(analysis: BodyAnalysis): boolean {

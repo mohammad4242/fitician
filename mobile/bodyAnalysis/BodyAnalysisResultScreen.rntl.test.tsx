@@ -197,14 +197,19 @@ test("follows the Web result story with real metrics, findings, reviews, and com
   expect(screen.getByText(/این بررسی توسط AI انجام شده/)).toBeTruthy();
 });
 
-test("shows persisted Agent network status while body analysis remains queued", async () => {
+test.each([
+  ["queued", "agent_network_unavailable", "اینترنت بین‌الملل در دسترس نیست"],
+  ["queued", "connection_failure", "ارتباط با سرویس هوشمند برقرار نشد. کمی بعد دوباره تلاش کنید."],
+  ["failed", "connection_failure", "ارتباط با سرویس هوشمند برقرار نشد. کمی بعد دوباره تلاش کنید."],
+])("shows persisted Agent %s status with %s", async (status, errorCode, expectedMessage) => {
   mockCreateBodyPhotoApi.mockReturnValue({
     getSession: jest.fn<() => Promise<BodyPhotoSession>>().mockResolvedValue(session),
     getAnalysis: jest.fn<() => Promise<BodyAnalysis | null>>().mockResolvedValue({
     ...analysis,
-    status: "queued",
-    error_code: "agent_network_unavailable",
-    safe_error_message: "اینترنت بین‌الملل در دسترس نیست",
+    status,
+    provider: "agent_service:opencode_zen",
+    error_code: errorCode,
+    safe_error_message: null,
     } as BodyAnalysis),
     getComparison: jest.fn<() => Promise<BodyProgressComparison | null>>().mockResolvedValue(comparison),
     getTimeline: jest.fn<() => Promise<BodyProgressTimelineResponse>>().mockResolvedValue({ schema_version: "1.0", items: [] }),
@@ -212,5 +217,5 @@ test("shows persisted Agent network status while body analysis remains queued", 
 
   renderResult();
 
-  expect(await screen.findByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
+  expect(await screen.findByText(expectedMessage)).toBeTruthy();
 });

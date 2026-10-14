@@ -6,7 +6,7 @@ import type {
   BodyArea,
   BodyProgressTimelineItem,
 } from "@fitician/core/body-photos";
-import { ApiError, resolveAppError } from "@fitician/core";
+import { agentNetworkMessage } from "../ui/agentAvailability";
 
 import type { FiticianIconName } from "../ui/icons";
 import { bodyAnalysisCopy } from "./bodyAnalysisCopy";
@@ -38,13 +38,9 @@ export type BodyProgressLandingSummary = {
 export function bodyAnalysisProviderErrorMessage(
   code: string | null | undefined,
   fallback: string,
+  provider?: string | null,
 ): string {
-  if (code !== "agent_network_unavailable") return fallback;
-  return resolveAppError(new ApiError(503, "", null, code, { retryable: true }), {
-    audience: "member",
-    context: "body_analysis",
-    locale: "fa",
-  }).message;
+  return agentNetworkMessage(code, provider, "body_analysis") ?? fallback;
 }
 
 export function buildBodyProgressLandingSummary(

@@ -21,7 +21,10 @@ Retained artifact, not a final release candidate:
 - Signature reverified: release certificate SHA-256
   `71e088feb1767f45d9e907ff3484ae6411e557d3623df88d843cdf964265562c`.
 - Historical data-preserving update was verified on the phone on October 13.
-  No new physical update or login is claimed today.
+  Reconnected October 14: Samsung SM-A127F, Android 13, arm64-v8a. Installed
+  code 11 base-APK hash matches the retained artifact. The actual email entry
+  screen was inspected with empty fields. No new physical update or successful
+  login is claimed today.
 
 Before final builds, confirm the highest version code in both store consoles and
 EAS, then use a strictly higher release code. Preserve remote Production signing.
@@ -44,6 +47,12 @@ version increment, final APK, or final AAB was performed by this task.
 - Google signing registration, international verifier access, successful token
   exchange and current media rendering require real acceptance. ID presence alone
   does not establish working Google login.
+- Both Iran backend replicas currently use image tag
+  bf182dd42d97304aa55d39e7f51a92a073f9e021. New backend recovery behavior must
+  not be assumed deployed. Read-only source inspection identified legacy Agent
+  errors persisted as connection_failure rather than agent_network_unavailable.
+  The legacy worker retries are bounded and eventually terminal if workers run.
+  No deployment occurred.
 
 ## Local corrections and limits
 
@@ -64,6 +73,12 @@ version increment, final APK, or final AAB was performed by this task.
   and isolated recovery tests are not physical Iran-to-Germany acceptance.
 - EAS documentation now states the required public media/Web OAuth values, optional
   OTA behavior, actual FCM requirements and safe private reviewer-account handoff.
+- Legacy Agent connection failures now display a generic service-connection
+  message in body results rather than incorrectly naming OpenRouter. Other body
+  providers keep their original messages. Food-photo responses omit provider
+  identity, so their connection-error copy stays generic. Queued and terminal
+  cases have regressions; no specific network cause is inferred from the legacy
+  generic code. This is an app-only compatibility correction.
 
 ## Verification and blocked acceptance
 
@@ -79,11 +94,16 @@ version increment, final APK, or final AAB was performed by this task.
   health preflights and preserves the authenticated POST/image/result assertions.
   Its focused E2E passed on a new isolated local test database; Ruff checks passed.
   New candidate CI must pass.
-- ADB repeatedly returned an empty device list. No physical tests were executed
-  this turn. Reconnection and personal credential/OTP entry were requested.
+- ADB initially returned an empty list, then confirmed the reconnected handset.
+  Existing app was brought to foreground and the real email form was inspected
+  without exposing input values. Personal test-account entry is still pending;
+  no successful authentication or authenticated feature test is claimed.
+- Legacy outage regressions: 2 failures before correction; 13 model/unit tests
+  and 24 native UI tests passed afterward. TypeScript, production validation,
+  diff checks and Luna review passed. CI for the latest candidate is still required.
 - Email, phone and Google successful login: Blocked.
 - Profile saves, existing plans, exercise media, history, progress and settings:
-  Blocked pending real sign-in and a connected phone.
+  Blocked pending real sign-in.
 - AI unavailable/recovery behavior on a phone: Blocked. Agent communication is
   disconnected per owner; no Production connectivity or feature flags were changed.
 - Push token, delivery and notification navigation: Blocked by absent Firebase
@@ -92,6 +112,11 @@ version increment, final APK, or final AAB was performed by this task.
   account through an explicitly authorized process; do not write the user database,
   borrow real member data, or bypass authentication. Supply credentials only in
   private store review fields after verifying normal sign-in.
+
+Fresh EAS inventory after reconnect confirmed GOOGLE_SERVICES_JSON absent,
+Google Android/Web IDs and media origin present, EXPO_UPDATES_URL absent, and
+remote Android version code 11. Local Firebase/service-account files were not
+found. Final release code must still exceed the highest code in both stores.
 
 All prior Bazaar/Myket defects are not confirmed resolved. The previous timeout
 and overlapping-login fixes have historical handset evidence; today's new
