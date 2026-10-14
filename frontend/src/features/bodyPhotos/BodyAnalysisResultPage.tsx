@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
-import { ApiError, formatTehranDateTimeForLocale } from "@fitician/core";
+import { ApiError, formatTehranDateTimeForLocale, resolveAppError } from "@fitician/core";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import {
   getBodyPhotoComparison,
@@ -148,7 +148,16 @@ export function BodyAnalysisResultPage() {
 
   const locale = i18n.resolvedLanguage === "en" ? "en" : "fa-IR";
   const sessionDate = formatTehranDateTimeForLocale(session.created_at, locale);
-  const failedAnalysisMessage = analysis?.error_code === null || analysis?.error_code === undefined
+  const failedAnalysisMessage = analysis?.error_code === "agent_network_unavailable"
+    ? resolveAppError(
+      new ApiError(503, "", null, analysis.error_code, { retryable: true }),
+      {
+        audience: "member",
+        context: "body_analysis",
+        locale: i18n.resolvedLanguage === "en" ? "en" : "fa",
+      },
+    ).message
+    : analysis?.error_code === null || analysis?.error_code === undefined
     ? analysis?.safe_error_message ?? t("bodyPhotos.results.failedSafe")
     : t(`bodyPhotos.results.providerErrors.${analysis.error_code}`, {
       defaultValue: analysis.safe_error_message ?? t("bodyPhotos.results.failedSafe"),
@@ -204,7 +213,9 @@ export function BodyAnalysisResultPage() {
           <span className="body-analysis-spinner" aria-hidden="true" />
           <div>
             <strong>{t(`bodyPhotos.results.analysisStatus.${analysis.status}`)}</strong>
-            <p>{t("bodyPhotos.results.processingHelp")}</p>
+            <p>{analysis.status === "queued" && analysis.error_code === "agent_network_unavailable"
+              ? failedAnalysisMessage
+              : t("bodyPhotos.results.processingHelp")}</p>
           </div>
         </section>
       )}

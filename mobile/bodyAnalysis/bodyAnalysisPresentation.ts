@@ -6,6 +6,7 @@ import type {
   BodyArea,
   BodyProgressTimelineItem,
 } from "@fitician/core/body-photos";
+import { ApiError, resolveAppError } from "@fitician/core";
 
 import type { FiticianIconName } from "../ui/icons";
 import { bodyAnalysisCopy } from "./bodyAnalysisCopy";
@@ -33,6 +34,18 @@ export type BodyProgressLandingSummary = {
   readonly latestAnalysis: BodyProgressTimelineItem | null;
   readonly submitted: readonly BodyProgressTimelineItem[];
 };
+
+export function bodyAnalysisProviderErrorMessage(
+  code: string | null | undefined,
+  fallback: string,
+): string {
+  if (code !== "agent_network_unavailable") return fallback;
+  return resolveAppError(new ApiError(503, "", null, code, { retryable: true }), {
+    audience: "member",
+    context: "body_analysis",
+    locale: "fa",
+  }).message;
+}
 
 export function buildBodyProgressLandingSummary(
   items: readonly BodyProgressTimelineItem[],

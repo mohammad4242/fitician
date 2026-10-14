@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -20,6 +20,7 @@ const api = vi.hoisted(() => ({
   getActiveWorkoutPlan: vi.fn(),
   getWorkoutPlanHistory: vi.fn(),
   getWorkoutPlan: vi.fn(),
+  getAiConnectivity: vi.fn(),
   generateWorkoutPlan: vi.fn(),
   downloadWorkoutPlanPdf: vi.fn(),
   recordExerciseReplacement: vi.fn(),
@@ -210,6 +211,7 @@ beforeEach(async () => {
   api.getActiveWorkoutPlan.mockReset();
   api.getWorkoutPlanHistory.mockReset();
   api.getWorkoutPlan.mockReset();
+  api.getAiConnectivity.mockReset();
   api.generateWorkoutPlan.mockReset();
   api.downloadWorkoutPlanPdf.mockReset();
   api.recordExerciseReplacement.mockReset();
@@ -690,6 +692,7 @@ it("renders the pending plan returned by generation with its review warning", as
   api.generateWorkoutPlan.mockResolvedValue({
     plan: { ...plan, status: "pending_review", activated_at: null },
     reused: false,
+    notice_code: "agent_network_unavailable",
   });
   const user = userEvent.setup();
 
@@ -698,11 +701,40 @@ it("renders the pending plan returned by generation with its review warning", as
   await user.click(await screen.findByRole("button", { name: "ساخت برنامه" }));
 
   expect(await screen.findByText("در انتظار تایید مربی")).toBeInTheDocument();
+  expect(screen.getByText("اینترنت بین‌الملل در دسترس نیست")).toBeInTheDocument();
   expect(screen.getByText("اسکوات در انتظار تأیید")).toBeInTheDocument();
   expect(screen.getAllByRole("heading", { name: "برنامه تمرینی من" })).toHaveLength(1);
   expect(screen.getAllByRole("list", { name: "روزهای تمرین تو" })).toHaveLength(1);
   expect(screen.queryByText("پرس سینه دمبل")).not.toBeInTheDocument();
   await waitFor(() => expect(api.getProgramTimelineToday).toHaveBeenCalledTimes(2));
+});
+
+it("clears the workout fallback notice after connectivity recovers", async () => {
+  api.generateWorkoutPlan.mockResolvedValue({ plan, reused: false, notice_code: "agent_network_unavailable" });
+  const intervalCallbacks: Array<() => void> = [];
+  const originalSetInterval = window.setInterval.bind(window);
+  vi.spyOn(window, "setInterval").mockImplementation(((callback: TimerHandler, delay?: number) => {
+    if (delay === 30_000 && typeof callback === "function") {
+      intervalCallbacks.push(callback as () => void);
+      return 1;
+    }
+    return originalSetInterval(callback, delay);
+  }) as typeof window.setInterval);
+  api.getActiveWorkoutPlan.mockResolvedValue(plan);
+  api.getWorkoutPlanHistory.mockResolvedValue([]);
+  api.getAiConnectivity
+    .mockRejectedValueOnce(new Error("temporary transport error"))
+    .mockResolvedValueOnce({ network_unavailable: false, error_code: null });
+  const user = userEvent.setup();
+
+  render(<MemoryRouter><WorkoutPlanPage planDurationWeeks={4} /></MemoryRouter>);
+  await user.click(await screen.findByRole("button", { name: "به‌روزرسانی برنامه" }));
+  expect(await screen.findByText("اینترنت بین‌الملل در دسترس نیست")).toBeInTheDocument();
+
+  await act(async () => { intervalCallbacks[0]?.(); await Promise.resolve(); });
+  expect(screen.getByText("اینترنت بین‌الملل در دسترس نیست")).toBeInTheDocument();
+  await act(async () => { intervalCallbacks[0]?.(); await Promise.resolve(); });
+  await waitFor(() => expect(screen.queryByText("اینترنت بین‌الملل در دسترس نیست")).not.toBeInTheDocument());
 });
 
 it("keeps the active plan visible while a generated proposal awaits approval", async () => {

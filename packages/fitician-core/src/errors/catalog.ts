@@ -842,6 +842,11 @@ export const ERROR_CATALOG: Readonly<Record<string, ErrorCatalogEntry>> = {
       },
     },
   ),
+  agent_network_unavailable: entry(
+    text("ارتباط اینترنتی در دسترس نیست", "International internet is unavailable"),
+    text("اینترنت بین‌الملل در دسترس نیست", "International internet is unavailable"),
+    text("تلاش دوباره", "Try again"),
+  ),
   BODY_ANALYSIS_STATE_INVALID: entry(
     text("وضعیت تحلیل معتبر نیست", "Body analysis state is invalid"),
     text("وضعیت تحلیل بدن اجازه این عملیات را نمی‌دهد.", "The body analysis is not in a state that allows this operation."),

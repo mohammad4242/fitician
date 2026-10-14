@@ -14,7 +14,9 @@ from urllib.parse import SplitResult, urlsplit, urlunsplit
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from app.body_analysis.providers.models import (
+    AIProviderError,
     ModelRoute,
+    ProviderErrorCode,
     ProviderRoutingPreferences,
     StructuredGenerationRequest,
     StructuredGenerationResponse,
@@ -469,7 +471,12 @@ class AgentFoodPriceResearcher:
         except Exception as error:
             raise FoodPriceResearchError(
                 "Agent price research request failed",
-                code="request_failed",
+                code=(
+                    ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+                    if isinstance(error, AIProviderError)
+                    and error.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
+                    else "request_failed"
+                ),
                 evidence=evidence,
                 request_ids=tuple(request_ids),
                 expanded=expanded,

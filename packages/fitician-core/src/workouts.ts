@@ -178,6 +178,7 @@ export type WorkoutPlan = {
 export type WorkoutPlanGeneration = {
   plan: WorkoutPlan;
   reused: boolean;
+  notice_code?: string | null;
 };
 
 export type WorkoutPlanVersionSummary = {

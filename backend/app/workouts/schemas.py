@@ -265,6 +265,7 @@ class WorkoutPlanGenerateResponse(BaseModel):
 
     plan: WorkoutPlanResponse
     reused: bool
+    notice_code: str | None = None
 
 
 class ProgramGenerationOverrides(BaseModel):

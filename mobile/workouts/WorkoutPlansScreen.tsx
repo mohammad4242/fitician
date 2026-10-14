@@ -1,6 +1,6 @@
 import { ConversationPanel } from "../communication/ConversationPanel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { workoutExecutionGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
+import { ApiError, resolveAppError, workoutExecutionGuidance, cardioGuidance, formatTehranDateTime, localIsoDate, resolvedIanaTimeZone } from "@fitician/core";
 import type { TimelineWorkout } from "@fitician/core/program-timeline";
 import type { WorkoutGenerationMethod } from "@fitician/core/profile";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -109,6 +109,7 @@ export function WorkoutPlansScreen() {
   const cycleTargetId = firstParam(params.cycleId);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(planTargetId ?? null);
   const [generationError, setGenerationError] = useState<WorkoutGenerationFailure | null>(null);
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [replacementRequest, setReplacementRequest] = useState<WorkoutReplacementRequest | null>(null);
   const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [generationMethodError, setGenerationMethodError] = useState<string | null>(null);
@@ -121,6 +122,24 @@ export function WorkoutPlansScreen() {
   const [cycleStartError, setCycleStartError] = useState<string | null>(null);
   const [sessionActionError, setSessionActionError] = useState<string | null>(null);
   const [memberReviewActionError, setMemberReviewActionError] = useState<string | null>(null);
+  useEffect(() => {
+    if (generationNotice === null) return;
+    let ignoreResult = false;
+    const interval = setInterval(() => {
+      void auth.request<{ network_unavailable: boolean; error_code: string | null }>({
+        method: "GET",
+        path: "/api/v1/ai/connectivity",
+      })
+        .then((status) => {
+          if (!ignoreResult && status.network_unavailable === false) setGenerationNotice(null);
+        })
+        .catch(() => undefined);
+    }, 30_000);
+    return () => {
+      ignoreResult = true;
+      clearInterval(interval);
+    };
+  }, [auth.request, generationNotice]);
   const deviceTimezone = resolvedIanaTimeZone();
   const canGenerateEntitled = entitlements.hasEntitlement("training.plan.generate");
   const coachReviewQuota = entitlements.quotaFor("training.coach_review");
@@ -221,6 +240,13 @@ export function WorkoutPlansScreen() {
     }),
     onSuccess: async (result) => {
       setGenerationError(null);
+      setGenerationNotice(result.notice_code === "agent_network_unavailable"
+        ? resolveAppError(new ApiError(503, "", null, result.notice_code, { retryable: true }), {
+          audience: "member",
+          context: "workout_generation",
+          locale: "fa",
+        }).message
+        : null);
       setSelectedPlanId(null);
       setGeneratedForegroundPlan(result.plan);
       queryClient.setQueryData(workoutKeys.plan(result.plan.id), result.plan);
@@ -371,6 +397,7 @@ export function WorkoutPlansScreen() {
   function startGeneration() {
     if (generation.isPending || !canGenerate) return;
     setGenerationError(null);
+    setGenerationNotice(null);
     generation.mutate();
   }
 
@@ -630,6 +657,7 @@ export function WorkoutPlansScreen() {
           variant={generationError.kind === "unsupported" || generationError.kind === "quota" ? "warning" : "danger"}
         />
       ) : null}
+      {generationNotice !== null ? <Notice message={generationNotice} variant="info" /> : null}
 
       {selectedPlanId !== null && selectedState.status === "loading" ? <Skeleton height={300} /> : null}
       {selectedPlanId !== null && selectedState.status === "error" && selectedPlan === undefined ? (

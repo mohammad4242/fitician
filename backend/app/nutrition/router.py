@@ -818,6 +818,11 @@ async def research_single_food_price(
     try:
         result = await researcher.research(research_food, expand_sources=False)
     except FoodPriceResearchError as error:
+        if error.code == "agent_network_unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": error.code},
+            ) from None
         return SingleFoodPriceResearchResponse(
             food_slug=food.slug,
             food_name_fa=food.name_fa,

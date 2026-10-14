@@ -9,7 +9,9 @@ import type { components } from "@fitician/core";
 export type WorkoutPlan = components["schemas"]["WorkoutPlanResponse"];
 export type WorkoutPlanExercise = components["schemas"]["WorkoutPlanExerciseResponse"];
 export type WorkoutDay = components["schemas"]["WorkoutDayResponse"];
-export type WorkoutPlanGeneration = components["schemas"]["WorkoutPlanGenerateResponse"];
+export type WorkoutPlanGeneration = components["schemas"]["WorkoutPlanGenerateResponse"] & {
+  notice_code?: string | null;
+};
 export type WorkoutPlanVersionSummary = components["schemas"]["WorkoutPlanVersionSummaryResponse"];
 export type ProgramGenerationOverrides = components["schemas"]["ProgramGenerationOverrides"];
 

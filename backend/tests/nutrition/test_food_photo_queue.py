@@ -88,6 +88,20 @@ class _FailingProvider:
         raise AIProviderError(ProviderErrorCode.PROVIDER_UNAVAILABLE, "provider unavailable")
 
 
+class _AgentNetworkUnavailableProvider:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def analyze_images(
+        self, request: StructuredGenerationRequest, *, images: tuple[ImageInput, ...]
+    ) -> StructuredGenerationResponse:
+        self.calls += 1
+        raise AIProviderError(
+            ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
+            "private Agent connection detail",
+        )
+
+
 def _configured_provider(provider: Any) -> ConfiguredAIProvider:
     return ConfiguredAIProvider(
         provider=cast(AIProvider, provider),
@@ -336,6 +350,83 @@ def test_food_photo_worker_retries_transient_failure_then_marks_failed(
         )
     )
     assert event is not None
+
+
+def test_agent_network_outage_preserves_photo_job_and_recovers_automatically(
+    client: TestClient,
+    db: Session,
+    test_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    test_settings.food_photo_max_attempts = 2
+    estimate_id = _enqueue_photo(client, db, test_settings, tmp_path)
+    monkeypatch.setattr(
+        "app.nutrition.food_photo_service.decrypted_key", lambda *_args, **_kwargs: "secret"
+    )
+    outage_provider = _AgentNetworkUnavailableProvider()
+    current_provider: Any = outage_provider
+    monkeypatch.setattr(
+        "app.nutrition.food_photo_service.build_task_provider",
+        lambda *_args, **_kwargs: _configured_provider(current_provider),
+    )
+    job = db.scalar(
+        select(NutritionFoodPhotoAnalysisJob).where(
+            NutritionFoodPhotoAnalysisJob.estimate_id == estimate_id
+        )
+    )
+    estimate = db.get(NutritionFoodPhotoEstimate, estimate_id)
+    assert job is not None and estimate is not None
+    original_job_id = job.id
+
+    for _attempt in range(test_settings.food_photo_max_attempts + 3):
+        assert _run_worker_once(db, test_settings) == 1
+        db.refresh(job)
+        db.refresh(estimate)
+        assert job.status == "queued"
+        assert job.attempt_count == 0
+        assert job.locked_at is None
+        assert job.locked_by is None
+        assert job.last_error_code == ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+        assert job.last_error_message == "اینترنت بین‌الملل در دسترس نیست"
+        assert estimate.status == "queued"
+        assert estimate.error_code == ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+        assert estimate.error_message == "اینترنت بین‌الملل در دسترس نیست"
+        assert estimate.raw_estimate == {}
+        assert estimate.mapped_items == []
+        job.available_at = datetime.now(UTC) - timedelta(seconds=1)
+        db.commit()
+
+    assert outage_provider.calls == test_settings.food_photo_max_attempts + 3
+    assert job.id == original_job_id
+    assert not list(
+        db.scalars(
+            select(NotificationOutboxEvent).where(
+                NotificationOutboxEvent.event_type == "food_photo_analysis_failed"
+            )
+        ).all()
+    )
+
+    recovered_provider = _SuccessfulProvider()
+    current_provider = recovered_provider
+    assert _run_worker_once(db, test_settings) == 1
+    db.refresh(job)
+    db.refresh(estimate)
+    assert job.id == original_job_id
+    assert job.status == "completed"
+    assert job.attempt_count == 1
+    assert job.locked_at is None
+    assert job.locked_by is None
+    assert estimate.status == "estimated"
+    assert estimate.error_code is None
+    assert estimate.error_message is None
+    assert estimate.raw_estimate["items"][0]["name_guess"] == "نان"
+    assert job.last_error_code == ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+    assert db.scalar(
+        select(NotificationOutboxEvent).where(
+            NotificationOutboxEvent.event_type == "food_photo_analysis_completed"
+        )
+    ) is not None
 
 
 def test_food_photo_worker_reclaims_an_expired_lease(

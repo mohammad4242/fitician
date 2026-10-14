@@ -16,7 +16,8 @@ from app.body_analysis.admin_config.service import (
     AIConfigError,
     decrypted_key,
 )
-from app.body_analysis.providers import AIProvider
+from app.body_analysis.providers import AgentServiceProvider, AIProvider
+from app.body_analysis.providers.models import AIProviderError
 from app.body_analysis.service import AnalysisExecutionConfig
 from app.config import Settings
 
@@ -25,6 +26,17 @@ from app.config import Settings
 class BodyAnalysisRuntime:
     provider: AIProvider
     config: AnalysisExecutionConfig
+
+
+async def require_agent_connection(provider: AIProvider) -> None:
+    if isinstance(provider, AgentServiceProvider):
+        try:
+            await provider.ensure_connection()
+        except AIProviderError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": error.code.value},
+            ) from None
 
 
 def get_body_analysis_runtime(

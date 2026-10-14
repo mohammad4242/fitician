@@ -196,3 +196,21 @@ test("follows the Web result story with real metrics, findings, reviews, and com
 
   expect(screen.getByText(/این بررسی توسط AI انجام شده/)).toBeTruthy();
 });
+
+test("shows persisted Agent network status while body analysis remains queued", async () => {
+  mockCreateBodyPhotoApi.mockReturnValue({
+    getSession: jest.fn<() => Promise<BodyPhotoSession>>().mockResolvedValue(session),
+    getAnalysis: jest.fn<() => Promise<BodyAnalysis | null>>().mockResolvedValue({
+    ...analysis,
+    status: "queued",
+    error_code: "agent_network_unavailable",
+    safe_error_message: "اینترنت بین‌الملل در دسترس نیست",
+    } as BodyAnalysis),
+    getComparison: jest.fn<() => Promise<BodyProgressComparison | null>>().mockResolvedValue(comparison),
+    getTimeline: jest.fn<() => Promise<BodyProgressTimelineResponse>>().mockResolvedValue({ schema_version: "1.0", items: [] }),
+  } as never);
+
+  renderResult();
+
+  expect(await screen.findByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
+});

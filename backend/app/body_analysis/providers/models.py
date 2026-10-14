@@ -13,6 +13,7 @@ class ProviderErrorCode(StrEnum):
     NOT_CONFIGURED = "not_configured"
     TIMEOUT = "timeout"
     CONNECTION_FAILURE = "connection_failure"
+    AGENT_NETWORK_UNAVAILABLE = "agent_network_unavailable"
     UNAUTHORIZED = "unauthorized"
     RATE_LIMITED = "rate_limited"
     PROVIDER_UNAVAILABLE = "provider_unavailable"

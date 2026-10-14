@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { resolvedIanaTimeZone, formatTehranDateForLocale } from "@fitician/core";
+import { ApiError, resolvedIanaTimeZone, formatTehranDateForLocale, resolveAppError } from "@fitician/core";
 import { localIsoDate } from "@fitician/core/local-date";
 
 import { useLocalDate } from "../../shared/useLocalDate";
@@ -421,11 +421,21 @@ export function NutritionTrackingPage() {
       </section>}
       {photoEstimate && photoIsProcessing && <div className="nutrition-photo-status nutrition-photo-status--pending" role="status">
         <strong>{foodPhotoStatusLabel(photoEstimate.status, l)}</strong>
-        <p>{l("می‌توانی به استفاده از صفحه ادامه بدهی؛ نتیجه بعد از آماده شدن همین‌جا نمایش داده می‌شود.", "You can keep using this page; the result will appear here when it is ready.")}</p>
+        <p>{photoEstimate.status === "queued" && photoEstimate.error_code === "agent_network_unavailable"
+          ? resolveAppError(
+            new ApiError(503, "", null, photoEstimate.error_code, { retryable: true }),
+            { audience: "member", context: "nutrition", locale: fa ? "fa" : "en" },
+          ).message
+          : l("می‌توانی به استفاده از صفحه ادامه بدهی؛ نتیجه بعد از آماده شدن همین‌جا نمایش داده می‌شود.", "You can keep using this page; the result will appear here when it is ready.")}</p>
       </div>}
       {photoEstimate && (photoEstimate.status === "failed" || photoEstimate.status === "expired") && <div className="nutrition-photo-status nutrition-photo-status--error" role="alert">
         <strong>{foodPhotoStatusLabel(photoEstimate.status, l)}</strong>
-        <p>{l("عکس را دوباره ارسال کن تا تحلیل جدید در صف قرار بگیرد.", "Upload the photo again to queue a new analysis.")}</p>
+        <p>{photoEstimate.error_code === "agent_network_unavailable"
+          ? resolveAppError(
+            new ApiError(503, "", null, photoEstimate.error_code, { retryable: true }),
+            { audience: "member", context: "nutrition", locale: fa ? "fa" : "en" },
+          ).message
+          : l("عکس را دوباره ارسال کن تا تحلیل جدید در صف قرار بگیرد.", "Upload the photo again to queue a new analysis.")}</p>
       </div>}
       {photoEstimate && photoIsResult && (() => {
         const macroTotals = photoEstimate.macro_totals ?? { calories: 0, protein_g: 0, carbohydrate_g: 0, fat_g: 0 };

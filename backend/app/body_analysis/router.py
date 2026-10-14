@@ -28,6 +28,7 @@ from app.body_analysis.normalization import normalize_visual_physique_assessment
 from app.body_analysis.presentation import build_body_analysis_experience_v4
 from app.body_analysis.runtime import (
     BodyAnalysisRuntimeDependency,
+    require_agent_connection,
 )
 from app.body_analysis.schemas import BodyPhotoPreflight, NormalizedBodyAnalysis
 from app.body_analysis.service import (
@@ -229,6 +230,7 @@ async def start_session_analysis(
         )
         require_entitlement(db, user.id, EntitlementCode.BODY_ANALYSIS_RUN)
         service = BodyAnalysisService(db)
+        await require_agent_connection(runtime.provider)
         analysis = service.queue(
             session_id,
             user.id,
@@ -288,6 +290,7 @@ async def retry_session_analysis(
             BodyAnalysisStatus.ANALYZING,
         }:
             raise BodyAnalysisStateError("only failed or stale analyses can be retried")
+        await require_agent_connection(runtime.provider)
         analysis = service.retry(
             latest.id,
             user.id,
@@ -318,7 +321,7 @@ async def retry_session_analysis(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_trusted_origin)],
 )
-def retry_analysis_as_admin(
+async def retry_analysis_as_admin(
     analysis_id: UUID,
     db: DatabaseSession,
     _admin: AdminUser,
@@ -335,6 +338,7 @@ def retry_analysis_as_admin(
         latest = service.latest_for_session(analysis.session_id, analysis.session.user_id)
         if latest is None or latest.id != analysis.id:
             raise BodyAnalysisStateError("only the latest analysis revision can be retried")
+        await require_agent_connection(runtime.provider)
         queued = service.retry(
             analysis.id,
             analysis.session.user_id,

@@ -98,10 +98,14 @@ def test_remote_agent_url_is_used_and_connection_errors_are_sanitized() -> None:
     client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
     provider = _configured_provider(client)
     _run(provider.generate_structured_text(_request()))
-    assert seen == ["https://de-agent.example.test/v1/generate"]
+    assert seen == [
+        "https://de-agent.example.test/healthz",
+        "https://de-agent.example.test/v1/generate",
+    ]
     assert timeouts[0]["connect"] == 2.5
-    assert timeouts[0]["read"] == 9
-    assert timeouts[0]["write"] == 9
+    assert timeouts[0]["read"] == 2.5
+    assert timeouts[1]["read"] == 9
+    assert timeouts[1]["write"] == 9
 
     def disconnected(_: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("private topology detail")
@@ -112,7 +116,7 @@ def test_remote_agent_url_is_used_and_connection_errors_are_sanitized() -> None:
     try:
         _run(disconnected_provider.generate_structured_text(_request()))
     except AIProviderError as error:
-        assert error.code is ProviderErrorCode.CONNECTION_FAILURE
+        assert error.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
         assert "private topology detail" not in error.safe_message
     else:
         raise AssertionError("disconnected remote Agent must map to a safe connection error")

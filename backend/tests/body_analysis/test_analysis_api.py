@@ -4,6 +4,7 @@ import asyncio
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import httpx
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.body_analysis.enums import BodyAnalysisStatus, SpecialistRole
 from app.body_analysis.models import BodyAnalysis, UserSpecialistRole
+from app.body_analysis.providers.agent_service import AgentServiceProvider
 from app.body_analysis.runtime import BodyAnalysisRuntime, get_body_analysis_runtime
 from app.body_analysis.service import BodyAnalysisService
 from app.body_photos.enums import BodyPhotoSessionState
@@ -61,9 +63,7 @@ def _v4_runtime_override(client: TestClient) -> None:
     )
 
 
-def test_start_only_enqueues_and_does_not_execute_provider(
-    client: TestClient, db: Session
-) -> None:
+def test_start_only_enqueues_and_does_not_execute_provider(client: TestClient, db: Session) -> None:
     provider = _Provider()
     client.app.dependency_overrides[get_body_analysis_runtime] = lambda: BodyAnalysisRuntime(
         provider=provider,
@@ -87,6 +87,41 @@ def test_start_only_enqueues_and_does_not_execute_provider(
     analysis = db.scalar(select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id))
     assert analysis is not None
     assert analysis.correlation_id == "body-queue-request-1"
+
+
+def test_agent_outage_rejects_admission_before_quota_or_job_creation(
+    client: TestClient, db: Session
+) -> None:
+    def offline(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("DNS failure", request=request)
+
+    provider = AgentServiceProvider(
+        httpx.AsyncClient(transport=httpx.MockTransport(offline)),
+        base_url="http://agent:9001",
+        token="test",
+        agent_name="codex",
+    )
+    client.app.dependency_overrides[get_body_analysis_runtime] = lambda: BodyAnalysisRuntime(
+        provider=provider,
+        config=_config(),
+    )
+    email = f"network-quota-{uuid4()}@example.com"
+    _register(client, email, db)
+    owner = db.scalar(select(User).where(User.email == email))
+    assert owner is not None
+    _, photo_session = _submitted_session(db, owner)
+    usage_before = db.query(EntitlementUsageEvent).filter_by(user_id=owner.id).count()
+    response = client.post(
+        f"/api/v1/body-photo-sessions/{photo_session.id}/analysis",
+        headers=ORIGIN,
+        json={"confirm_measurements_current": True},
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "agent_network_unavailable"
+    assert db.query(EntitlementUsageEvent).filter_by(user_id=owner.id).count() == usage_before
+    assert (
+        db.scalar(select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id)) is None
+    )
 
 
 def test_analysis_result_api_is_owner_only_and_hides_provider_envelopes(
@@ -187,9 +222,7 @@ def test_v4_analysis_result_exposes_deterministic_experience_read_model(
     assert payload["schema_version"] == "4.0"
     assert payload["visual_result"] is None
     assert payload["experience_result"]["schema_version"] == "4.0"
-    assert payload["experience_result"]["presentation_version"] == (
-        "body-analysis-experience-v2"
-    )
+    assert payload["experience_result"]["presentation_version"] == ("body-analysis-experience-v2")
     assert "body_composition" in payload["experience_result"]
     assert set(payload["experience_result"]["indicators"]) == {
         "upper_lower_balance",
@@ -279,9 +312,7 @@ def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
         json={"confirm_measurements_current": True},
     )
     assert started.status_code == 202, started.text
-    analysis = db.scalar(
-        select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id)
-    )
+    analysis = db.scalar(select(BodyAnalysis).where(BodyAnalysis.session_id == photo_session.id))
     assert analysis is not None
     analysis.status = BodyAnalysisStatus.FAILED
     db.commit()
@@ -292,14 +323,17 @@ def test_body_analysis_quota_is_idempotent_and_blocks_a_new_session(
         json={"confirm_measurements_current": True},
     )
     assert retried.status_code == 202, retried.text
-    assert len(
-        db.scalars(
-            select(EntitlementUsageEvent).where(
-                EntitlementUsageEvent.user_id == owner.id,
-                EntitlementUsageEvent.entitlement_key == "body_analysis.run",
-            )
-        ).all()
-    ) == 1
+    assert (
+        len(
+            db.scalars(
+                select(EntitlementUsageEvent).where(
+                    EntitlementUsageEvent.user_id == owner.id,
+                    EntitlementUsageEvent.entitlement_key == "body_analysis.run",
+                )
+            ).all()
+        )
+        == 1
+    )
 
     new_session = client.post(
         "/api/v1/body-photo-sessions",

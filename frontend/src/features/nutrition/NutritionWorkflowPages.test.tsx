@@ -956,6 +956,8 @@ describe("Food photo nutrition estimation redesigned flow", () => {
     const queuedEstimate: api.FoodPhotoEstimate = {
       id: "estimate-queued",
       status: "queued",
+      error_code: "agent_network_unavailable",
+      error_message: "اینترنت بین‌الملل در دسترس نیست",
       items: [],
       overall_confidence: null,
       needs_user_confirmation: true,
@@ -969,10 +971,12 @@ describe("Food photo nutrition estimation redesigned flow", () => {
 
     await openAndUpload(user);
     await waitFor(() => expect(document.querySelector(".nutrition-photo-status")).toHaveTextContent("Photo analysis is queued"));
+    expect(document.querySelector(".nutrition-photo-status")).toHaveTextContent("International internet is unavailable");
     expect(screen.queryByText("Estimated calories")).not.toBeInTheDocument();
 
     await waitFor(() => expect(api.getFoodPhotoEstimate).toHaveBeenCalledWith("estimate-queued"), { timeout: 4_000 });
     expect(await screen.findByText("Estimated calories")).toBeInTheDocument();
+    expect(screen.queryByText("International internet is unavailable")).not.toBeInTheDocument();
     expect(screen.getByText("≈ 350 kcal")).toBeInTheDocument();
     expect(api.getFoodPhotoEstimate).toHaveBeenCalledWith("estimate-queued");
   });

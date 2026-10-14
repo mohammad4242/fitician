@@ -538,6 +538,8 @@ test("keeps analysis in the background after upload and refreshes the queued res
   } as never);
   const queuedPhotoEstimate = {
     ...photoEstimate,
+    error_code: "agent_network_unavailable",
+    error_message: "اینترنت بین‌الملل در دسترس نیست",
     items: [],
     macro_totals: { calories: 0, carbohydrate_g: 0, fat_g: 0, protein_g: 0 },
     macro_totals_complete: false,
@@ -554,6 +556,7 @@ test("keeps analysis in the background after upload and refreshes the queued res
 
   await waitFor(() => {
     expect(within(screen.getByTestId("nutrition-photo-entry-panel")).getAllByText("تحلیل عکس در صف است").length).toBeGreaterThan(0);
+    expect(within(screen.getByTestId("nutrition-photo-entry-panel")).getByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
     expect(screen.queryByTestId("nutrition-photo-result")).toBeNull();
   });
 
@@ -566,6 +569,7 @@ test("keeps analysis in the background after upload and refreshes the queued res
   await waitFor(() => {
     expect(trackingApi.getPhotoEstimate).toHaveBeenCalledWith("photo-estimate-1");
     expect(screen.getByTestId("nutrition-photo-result")).toBeTruthy();
+    expect(screen.queryByText("اینترنت بین‌الملل در دسترس نیست")).toBeNull();
   });
 });
 

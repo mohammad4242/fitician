@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import type { BodyAnalysisExperienceV4 } from "@fitician/core/body-photos";
 
 import {
+  bodyAnalysisProviderErrorMessage,
   bodyBmiLabel,
   bodyMetricProgress,
   bodyRegionClassificationLabel,
@@ -20,6 +21,13 @@ const experience = {
     visible_symmetry: { score_percent: 91, status: "no_clear_difference" },
   },
 } as unknown as BodyAnalysisExperienceV4;
+
+it("uses the shared Agent network error copy for persisted body-analysis jobs", () => {
+  expect(bodyAnalysisProviderErrorMessage("agent_network_unavailable", "fallback"))
+    .toBe("اینترنت بین‌الملل در دسترس نیست");
+  expect(bodyAnalysisProviderErrorMessage("unauthorized", "safe provider message"))
+    .toBe("safe provider message");
+});
 
 it("keeps the website indicator order and normalizes display scores", () => {
   const indicators = buildBodyIndicatorSummary(experience);

@@ -78,6 +78,10 @@ export function generateWorkoutPlan(): Promise<WorkoutPlanGeneration> {
   return request<WorkoutPlanGeneration>(`${workoutPlansPath}/generate`, { method: "POST" });
 }
 
+export function getAiConnectivity(): Promise<{ network_unavailable: boolean; error_code: string | null }> {
+  return request<{ network_unavailable: boolean; error_code: string | null }>("/api/v1/ai/connectivity");
+}
+
 export function getWorkoutPlanHistory(): Promise<WorkoutPlanVersionSummary[]> {
   return request<WorkoutPlanVersionSummary[]>(`${workoutPlansPath}/history`);
 }

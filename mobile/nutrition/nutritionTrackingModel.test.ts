@@ -114,4 +114,9 @@ it("keeps queued and failed photo jobs outside the confirmation flow", () => {
     canConfirm: false,
     title: "تحلیل عکس ناموفق بود",
   });
+  expect(photoEstimatePresentation({
+    ...base,
+    status: "failed",
+    error_code: "agent_network_unavailable",
+  }).message).toBe("اینترنت بین‌الملل در دسترس نیست");
 });

@@ -29436,6 +29436,17 @@
       "WorkoutPlanGenerateResponse": {
         "additionalProperties": false,
         "properties": {
+          "notice_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notice Code"
+          },
           "plan": {
             "$ref": "#/components/schemas/WorkoutPlanResponse"
           },
@@ -34747,6 +34758,46 @@
         "summary": "Update Training Template Slot",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/ai/connectivity": {
+      "get": {
+        "operationId": "agent_connectivity_api_v1_ai_connectivity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Agent Connectivity Api V1 Ai Connectivity Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Agent Connectivity",
+        "tags": [
+          "ai"
         ]
       }
     },

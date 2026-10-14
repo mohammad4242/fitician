@@ -201,11 +201,18 @@ async def generate_plan(
         status_code = _provider_failure_status(error.provider_error_code)
         raise HTTPException(
             status_code=status_code,
-            detail={"code": "WORKOUT_GENERATION_FAILED"},
+            detail={
+                "code": (
+                    ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+                    if error.provider_error_code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
+                    else "WORKOUT_GENERATION_FAILED"
+                )
+            },
         ) from None
     return WorkoutPlanGenerateResponse(
         plan=to_plan_response(result.plan, db=db),
         reused=result.reused,
+        notice_code=result.notice_code,
     )
 
 
@@ -528,6 +535,7 @@ def _provider_failure_status(error_code: ProviderErrorCode | None) -> int:
     if error_code is ProviderErrorCode.TIMEOUT:
         return status.HTTP_504_GATEWAY_TIMEOUT
     if error_code in {
+        ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
         ProviderErrorCode.CONNECTION_FAILURE,
         ProviderErrorCode.PROVIDER_UNAVAILABLE,
         ProviderErrorCode.MALFORMED_RESPONSE,

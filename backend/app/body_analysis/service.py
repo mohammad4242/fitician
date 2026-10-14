@@ -687,6 +687,8 @@ class BodyAnalysisService:
             image_inputs = self._image_inputs(images)
             analysis.status = BodyAnalysisStatus.ANALYZING
             analysis.session.state = BodyPhotoSessionState.ANALYZING
+            analysis.error_code = None
+            analysis.error_message = None
             self._db.commit()
 
             response = await provider.analyze_images(
@@ -830,7 +832,11 @@ class BodyAnalysisService:
             now = datetime.now(UTC)
             analysis.error_code = provider_error.code.value
             analysis.error_message = self._safe_failure_message(provider_error.code)
-            if (
+            network_outage = provider_error.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
+            if network_outage:
+                # No model ran; preserve the generation retry budget across prolonged outages.
+                analysis.attempt_count = max(0, analysis.attempt_count - 1)
+            if network_outage or (
                 provider_error.code in _RETRYABLE_PROVIDER_ERRORS
                 and analysis.attempt_count <= execution_config.retry_limit
             ):
@@ -1168,6 +1174,8 @@ class BodyAnalysisService:
 
     @staticmethod
     def _safe_failure_message(code: ProviderErrorCode) -> str:
+        if code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE:
+            return "اینترنت بین‌الملل در دسترس نیست"
         if code is ProviderErrorCode.UNAUTHORIZED:
             return (
                 "The configured AI provider credential was rejected. "

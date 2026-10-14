@@ -8,6 +8,26 @@ import {
 import { resolveAppError } from "./resolve";
 
 describe("resolveAppError", () => {
+  it("resolves Agent network failures with shared localized copy", () => {
+    const persian = resolveAppError(
+      new ApiError(503, "private Agent detail", null, "agent_network_unavailable", {
+        retryable: true,
+      }),
+      { audience: "member", context: "body_analysis", locale: "fa" },
+    );
+    const english = resolveAppError(
+      new ApiError(503, "private Agent detail", null, "agent_network_unavailable", {
+        retryable: true,
+      }),
+      { audience: "member", context: "nutrition", locale: "en" },
+    );
+
+    expect(persian.message).toBe("اینترنت بین‌الملل در دسترس نیست");
+    expect(english.message).toBe("International internet is unavailable");
+    expect(persian.message).not.toContain("private Agent detail");
+    expect(persian.retryable).toBe(true);
+  });
+
   it("uses the domain code before HTTP status for member presentation", () => {
     const result = resolveAppError(
       new ApiError(403, "internal entitlement detail", null, "ENTITLEMENT_REQUIRED", {

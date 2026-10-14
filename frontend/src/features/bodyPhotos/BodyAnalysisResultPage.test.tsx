@@ -331,6 +331,35 @@ it("explains when the selected model returned an invalid analysis response", asy
   );
 });
 
+it("uses shared localized copy for a persisted Agent network failure", async () => {
+  api.getBodyPhotoAnalysis.mockResolvedValue({
+    ...analysis,
+    status: "failed",
+    normalized_result: null,
+    overall_confidence: null,
+    error_code: "agent_network_unavailable",
+    safe_error_message: "provider failure detail",
+  });
+  renderPage();
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "International internet is unavailable",
+  );
+  expect(screen.getByRole("alert")).not.toHaveTextContent("provider failure detail");
+});
+
+it("shows persisted Agent network status while body analysis remains queued", async () => {
+  api.getBodyPhotoAnalysis.mockResolvedValue({
+    ...analysis,
+    status: "queued",
+    error_code: "agent_network_unavailable",
+    safe_error_message: "اینترنت بین‌الملل در دسترس نیست",
+  });
+  renderPage();
+
+  expect(await screen.findByText("International internet is unavailable")).toBeInTheDocument();
+});
+
 it("shows view-specific retake reasons when photo validation rejects an upload", async () => {
   api.getBodyPhotoAnalysis.mockResolvedValue({
     ...analysis,

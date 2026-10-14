@@ -135,6 +135,7 @@ def _workout_provider_error(error: AIProviderError) -> WorkoutProviderError:
         OpenRouterErrorCode.NOT_CONFIGURED: ProviderErrorCode.NOT_CONFIGURED,
         OpenRouterErrorCode.TIMEOUT: ProviderErrorCode.TIMEOUT,
         OpenRouterErrorCode.CONNECTION_FAILURE: ProviderErrorCode.CONNECTION_FAILURE,
+        OpenRouterErrorCode.AGENT_NETWORK_UNAVAILABLE: ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
         OpenRouterErrorCode.UNAUTHORIZED: ProviderErrorCode.UNAUTHORIZED,
         OpenRouterErrorCode.RATE_LIMITED: ProviderErrorCode.RATE_LIMITED,
         OpenRouterErrorCode.PROVIDER_UNAVAILABLE: ProviderErrorCode.PROVIDER_UNAVAILABLE,

@@ -3,10 +3,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { workoutExecutionGuidance, cardioGuidance, formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
+import { ApiError, resolveAppError, workoutExecutionGuidance, cardioGuidance, formatIsoDate, formatPersianDateWithWeekday, formatTehranDateTimeForLocale } from "@fitician/core";
 import { localIsoDate, resolvedIanaTimeZone } from "@fitician/core/local-date";
 
-import { ApiError } from "../../shared/apiClient";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { PersianDatePicker } from "../../shared/PersianDatePicker";
@@ -21,6 +20,7 @@ import {
   downloadWorkoutPlanPdf,
   deleteWorkoutPlan,
   generateWorkoutPlan,
+  getAiConnectivity,
   getActiveWorkoutPlan,
   getCurrentWorkoutCycle,
   getWorkoutPlan,
@@ -172,6 +172,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const [reused, setReused] = useState(false);
   const [generationError, setGenerationError] = useState<GenerationError | null>(null);
   const [generationCause, setGenerationCause] = useState<unknown | null>(null);
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [generationMethod, setGenerationMethod] = useState<WorkoutGenerationMethod>("fitician_coach");
   const [savingGenerationMethod, setSavingGenerationMethod] = useState(false);
@@ -191,6 +192,21 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
   const canGenerate = hasEntitlement("training.plan.generate");
   const isEnglish = i18n.resolvedLanguage === "en";
   const l = (fa: string, en: string) => isEnglish ? en : fa;
+  useEffect(() => {
+    if (generationNotice === null) return;
+    let ignoreResult = false;
+    const interval = window.setInterval(() => {
+      void getAiConnectivity()
+        .then((status) => {
+          if (!ignoreResult && status.network_unavailable === false) setGenerationNotice(null);
+        })
+        .catch(() => undefined);
+    }, 30_000);
+    return () => {
+      ignoreResult = true;
+      window.clearInterval(interval);
+    };
+  }, [generationNotice]);
   const pendingVersionId = history.find((version) => version.status === "pending_review")?.id ?? null;
   const loadedCurrentPlan = activePlan ?? (
     pendingVersionId !== null && pendingPlan?.id === pendingVersionId
@@ -357,8 +373,16 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
     setReused(false);
     setGenerationError(null);
     setGenerationCause(null);
+    setGenerationNotice(null);
     void generateWorkoutPlan()
       .then(async (result) => {
+        setGenerationNotice(result.notice_code === "agent_network_unavailable"
+          ? resolveAppError(new ApiError(503, "", null, result.notice_code, { retryable: true }), {
+            audience: "member",
+            context: "workout_generation",
+            locale: isEnglish ? "en" : "fa",
+          }).message
+          : null);
         setSelectedHistoricalPlan(null);
         setActivePlan(result.plan.status === "active" ? result.plan : null);
         setPendingPlan(result.plan.status === "pending_review" ? result.plan : null);
@@ -646,6 +670,7 @@ export function WorkoutPlanPage({ planDurationWeeks }: { planDurationWeeks: numb
             </section>
             <div className="workout-plan-statuses">
               {reused && <p className="workout-reused" role="status">{t("workoutPlan.reused")}</p>}
+              {generationNotice !== null && <p role="status">{generationNotice}</p>}
               {displayedPlan.ai_coach_program_explanation_fa && (
                 <aside className="workout-ai-coach" aria-label={t("workoutPlan.aiCoach")}>
                   <span className="workout-ai-coach__icon" aria-hidden="true">✦</span>

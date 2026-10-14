@@ -5,6 +5,7 @@ import binascii
 import json
 import math
 import re
+import ssl
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -31,6 +32,7 @@ _SAFE_MESSAGES: dict[ProviderErrorCode, str] = {
     ProviderErrorCode.NOT_CONFIGURED: "The Agent Service is not configured.",
     ProviderErrorCode.TIMEOUT: "The Agent Service request timed out.",
     ProviderErrorCode.CONNECTION_FAILURE: "The Agent Service is temporarily unreachable.",
+    ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE: "اینترنت بین‌الملل در دسترس نیست",
     ProviderErrorCode.UNAUTHORIZED: "The Agent Service credential was rejected.",
     ProviderErrorCode.RATE_LIMITED: "The Agent Service is busy. Please try again.",
     ProviderErrorCode.PROVIDER_UNAVAILABLE: "The Agent Service is temporarily unavailable.",
@@ -210,6 +212,19 @@ class AgentServiceProvider:
     def normalize_error(self, error: Exception) -> AIProviderError:
         if isinstance(error, AIProviderError):
             return error
+        if isinstance(error, (httpx.ConnectError, httpx.ConnectTimeout)):
+            cause: BaseException | None = error
+            while cause is not None:
+                if isinstance(cause, ssl.SSLError):
+                    return AIProviderError(
+                        ProviderErrorCode.CONNECTION_FAILURE,
+                        _SAFE_MESSAGES[ProviderErrorCode.CONNECTION_FAILURE],
+                    )
+                cause = cause.__cause__ or cause.__context__
+            return AIProviderError(
+                ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
+                _SAFE_MESSAGES[ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE],
+            )
         if isinstance(error, httpx.TimeoutException):
             return AIProviderError(
                 ProviderErrorCode.TIMEOUT,
@@ -225,6 +240,24 @@ class AgentServiceProvider:
             _SAFE_MESSAGES[ProviderErrorCode.PROVIDER_UNAVAILABLE],
         )
 
+    async def ensure_connection(self) -> None:
+        """Probe without running a model; never retry an ambiguous generation POST."""
+        timeout = min(3.0, self._timeout.connect or 3.0)
+        for attempt in range(2):
+            try:
+                response = await self._client.get(
+                    f"{self._base_url}/healthz",
+                    timeout=httpx.Timeout(timeout),
+                )
+                if response.status_code >= 400:
+                    raise self._http_error(response)
+                return
+            except httpx.RequestError as error:
+                normalized = self.normalize_error(error)
+                if attempt == 0 and normalized.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE:
+                    continue
+                raise normalized from error
+
     async def _generate(
         self,
         request: StructuredGenerationRequest,
@@ -237,6 +270,7 @@ class AgentServiceProvider:
                 "Too many images were supplied for analysis.",
             )
         self._validate_schema(request.response_schema)
+        await self.ensure_connection()
         model_ids = dict.fromkeys((request.route.primary_model, *request.route.fallback_models))
         attempted_models: list[str] = []
         last_error: AIProviderError | None = None
@@ -266,6 +300,8 @@ class AgentServiceProvider:
                     cost=None,
                 )
             except AIProviderError as error:
+                if error.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE:
+                    raise
                 last_error = error
                 continue
 

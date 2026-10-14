@@ -27,7 +27,7 @@ import { fiticianTokens } from "../ui/tokens";
 import { createBodyPhotoApi } from "./bodyPhotoApi";
 import { BodyAnalysisExperienceTabs } from "./BodyAnalysisExperienceTabs";
 import { bodyAnalysisCopy, bodyPhotoCopy } from "./bodyAnalysisCopy";
-import { bodyAreaLabel } from "./bodyAnalysisPresentation";
+import { bodyAnalysisProviderErrorMessage, bodyAreaLabel } from "./bodyAnalysisPresentation";
 import {
   createPrivateBodyPhotoClient,
   loadPrivateBodyPhotoUris,
@@ -178,7 +178,12 @@ export function BodyAnalysisResultScreen() {
         {analysis === null ? (
           <Notice message={bodyPhotoCopy.results.notStarted} variant="info" />
         ) : activeAnalysisStates.has(analysis.status) ? (
-          <Notice message={`${analysisStatusLabel(analysis.status)} · ${bodyPhotoCopy.results.processingHelp}`} variant="info" />
+          <Notice
+            message={analysis.status === "queued" && analysis.error_code === "agent_network_unavailable"
+              ? analysisFailureMessage(analysis)
+              : `${analysisStatusLabel(analysis.status)} · ${bodyPhotoCopy.results.processingHelp}`}
+            variant="info"
+          />
         ) : null}
         {failedAnalysis ? (
           <Notice
@@ -395,9 +400,10 @@ function analysisStatusLabel(status: BodyAnalysis["status"]): string {
 
 function analysisFailureMessage(analysis: BodyAnalysis): string {
   const providerMessages: Record<string, string> = bodyPhotoCopy.results.providerErrors;
-  return providerMessages[analysis.error_code ?? ""]
+  const fallback = providerMessages[analysis.error_code ?? ""]
     ?? analysis.safe_error_message
     ?? bodyPhotoCopy.results.failedSafe;
+  return bodyAnalysisProviderErrorMessage(analysis.error_code, fallback);
 }
 
 function hasAnalysisResult(analysis: BodyAnalysis): boolean {

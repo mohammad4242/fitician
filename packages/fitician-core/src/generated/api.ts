@@ -903,6 +903,23 @@ export type paths = {
         patch: operations["update_training_template_slot_api_v1_admin_training_program_templates__template_id__days__day_id__slots__slot_id__patch"];
         trace?: never;
     };
+    "/api/v1/ai/connectivity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Agent Connectivity */
+        get: operations["agent_connectivity_api_v1_ai_connectivity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/apple": {
         parameters: {
             query?: never;
@@ -14309,6 +14326,8 @@ export type components = {
         };
         /** WorkoutPlanGenerateResponse */
         WorkoutPlanGenerateResponse: {
+            /** Notice Code */
+            notice_code?: string | null;
             plan: components["schemas"]["WorkoutPlanResponse"];
             /** Reused */
             reused: boolean;
@@ -16831,6 +16850,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agent_connectivity_api_v1_ai_connectivity_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean | string | null;
+                    };
                 };
             };
         };

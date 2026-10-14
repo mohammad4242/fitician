@@ -186,6 +186,7 @@ def legacy_training_age_months(experience_level: ExperienceLevel) -> int:
 class WorkoutPlanGenerationResult:
     plan: WorkoutPlan
     reused: bool
+    notice_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -627,7 +628,15 @@ class WorkoutGenerationService:
                 cast(dict[str, object], _json_ready(asdict(result.program.validation_report)))
             ]
             self._persist_generated_plan(plan, generation, review_required=review_required)
-            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+            return WorkoutPlanGenerationResult(
+                plan=plan,
+                reused=False,
+                notice_code=(
+                    ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+                    if fallback_reason_code == "AGENT_NETWORK_UNAVAILABLE"
+                    else None
+                ),
+            )
         except SQLAlchemyError as error:
             self._db.rollback()
             self._mark_failure(

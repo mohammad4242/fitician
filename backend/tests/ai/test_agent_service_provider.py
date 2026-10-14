@@ -67,7 +67,12 @@ def _stored_image() -> ImageInput:
 def _provider(
     handler: Callable[[httpx.Request], httpx.Response],
 ) -> AgentServiceProvider:
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    def reachable_handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/healthz":
+            return httpx.Response(200, json={"status": "ok"})
+        return handler(request)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(reachable_handler))
     return AgentServiceProvider(
         client,
         base_url="http://agent-service:9001/",
@@ -392,7 +397,7 @@ def test_timeout_and_connection_errors_normalize_without_raw_exception_text() ->
     connection = provider.normalize_error(httpx.ConnectError("private host details"))
 
     assert timeout.code is ProviderErrorCode.TIMEOUT
-    assert connection.code is ProviderErrorCode.CONNECTION_FAILURE
+    assert connection.code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
     assert "socket timed out" not in timeout.safe_message
     assert "private host details" not in connection.safe_message
 

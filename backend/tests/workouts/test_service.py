@@ -1521,6 +1521,20 @@ def test_ai_provider_unavailable_falls_back_to_one_deterministic_reviewable_plan
     assert generation.workout_plan_id == result.plan.id
 
 
+@pytest.mark.parametrize("reason", ["AGENT_NETWORK_UNAVAILABLE", "UNAUTHORIZED", "INVALID_OUTPUT"])
+def test_deterministic_fallback_network_notice_is_transient_and_specific(
+    db: Session, reason: str
+) -> None:
+    user = _user_with_profile(db)
+    _seed_candidates(db)
+    service = _service(db, generation_method="ai")
+    result = asyncio.run(service._generate_deterministic(user.id, fallback_reason_code=reason))
+    assert result.plan.generation_method == "deterministic_domain"
+    expected = "agent_network_unavailable" if reason == "AGENT_NETWORK_UNAVAILABLE" else None
+    assert result.notice_code == expected
+    assert "agent_network_unavailable" not in result.plan.warnings
+
+
 def test_ai_generation_reuses_the_current_pending_plan(
     db: Session,
     monkeypatch: pytest.MonkeyPatch,

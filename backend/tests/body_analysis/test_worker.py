@@ -64,6 +64,15 @@ class _NamedProvider(_Provider):
         )
 
 
+class _AgentNetworkUnavailableProvider(_Provider):
+    async def analyze_images(self, request: object, *, images: tuple[object, ...]) -> object:
+        self.calls += 1
+        raise AIProviderError(
+            ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
+            "private Agent connection detail",
+        )
+
+
 async def _run_stale_worker_race(
     db: Session,
     monkeypatch: pytest.MonkeyPatch,
@@ -308,6 +317,92 @@ def test_owned_worker_requeues_retryable_failure_and_releases_lease(
     assert analysis.locked_by is None
     assert analysis.locked_at is None
     assert _analysis_events(db, analysis.id) == []
+
+
+def test_agent_network_outage_preserves_retry_budget_and_recovers_queued_analysis(
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, photo_session = _submitted_session(db)
+    config = _config().model_copy(
+        update={"retry_limit": 1, "retry_base_seconds": 1, "retry_max_seconds": 2}
+    )
+    analysis = BodyAnalysisService(db).queue(photo_session.id, user.id, config)
+    outage_provider = _AgentNetworkUnavailableProvider()
+    current_provider = outage_provider
+    monkeypatch.setattr(
+        "app.body_analysis.worker.build_body_analysis_runtime",
+        lambda *args, **kwargs: BodyAnalysisRuntime(
+            provider=current_provider,
+            config=config,
+        ),
+    )
+    settings = Settings(app_env="test", _env_file=None)
+
+    async def run(worker_id: str, now: datetime) -> bool:
+        async with httpx.AsyncClient() as ai_client, httpx.AsyncClient() as agent_client:
+            claimed = claim_body_analysis_jobs(
+                db,
+                worker_id=worker_id,
+                now=now,
+                lease_seconds=60,
+                batch_size=1,
+            )
+            assert claimed == [analysis.id]
+            return await process_body_analysis_job(
+                db,
+                analysis.id,
+                worker_id=worker_id,
+                settings=settings,
+                ai_http_client=ai_client,
+                agent_http_client=agent_client,
+                now=now,
+            )
+
+    for attempt in range(config.retry_limit + 4):
+        now = datetime.now(UTC)
+        assert asyncio.run(run(f"agent-outage-{attempt}", now)) is True
+        db.refresh(analysis)
+        assert analysis.status is BodyAnalysisStatus.QUEUED
+        assert analysis.attempt_count == 0
+        assert analysis.error_code == ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
+        assert analysis.error_message == "اینترنت بین‌الملل در دسترس نیست"
+        assert analysis.completed_at is None
+        assert analysis.locked_by is None
+        assert analysis.locked_at is None
+        assert analysis.normalized_result is None
+        analysis.available_at = now - timedelta(seconds=1)
+        db.commit()
+
+    assert outage_provider.calls == config.retry_limit + 4
+    assert _analysis_events(db, analysis.id) == []
+
+    recovered_provider = _NamedProvider()
+    current_provider = recovered_provider
+    now = datetime.now(UTC)
+    assert asyncio.run(run("agent-recovered", now)) is True
+    db.refresh(analysis)
+    assert recovered_provider.calls == 1
+    assert analysis.status is BodyAnalysisStatus.REVIEW_PENDING
+    assert analysis.attempt_count == 1
+    assert analysis.error_code is None
+    assert analysis.error_message is None
+    assert analysis.locked_by is None
+    assert analysis.locked_at is None
+    assert analysis.model_id == "winning-worker-model"
+    assert analysis.provider_request_id == "winning-worker-request"
+    versions = list(
+        db.scalars(
+            select(BodyAnalysisResultVersion).where(
+                BodyAnalysisResultVersion.analysis_id == analysis.id
+            )
+        ).all()
+    )
+    assert len(versions) == 1
+    assert versions[0].normalized_result["findings"][0]["classification"] == "clear_lag"
+    assert [event.event_type for event in _analysis_events(db, analysis.id)] == [
+        "body_analysis_completed"
+    ]
 
 
 def test_claim_body_analysis_jobs_assigns_a_lease_and_is_bounded(db: Session) -> None:

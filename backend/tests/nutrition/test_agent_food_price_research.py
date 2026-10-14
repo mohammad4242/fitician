@@ -5,7 +5,9 @@ from typing import Any
 import pytest
 
 from app.body_analysis.providers.models import (
+    AIProviderError,
     ModelRoute,
+    ProviderErrorCode,
     ProviderRoutingPreferences,
     StructuredGenerationRequest,
     StructuredGenerationResponse,
@@ -27,6 +29,22 @@ FOOD = FoodPriceResearchFood(
     category="protein",
     aliases=("سینه مرغ تازه",),
 )
+
+
+def test_agent_network_error_survives_price_research_without_inventing_prices() -> None:
+    class OfflineProvider(FakeStructuredProvider):
+        async def generate_structured_text(
+            self, request: StructuredGenerationRequest
+        ) -> StructuredGenerationResponse:
+            raise AIProviderError(
+                ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE,
+                "اینترنت بین‌الملل در دسترس نیست",
+            )
+
+    with pytest.raises(FoodPriceResearchError) as failure:
+        run_research(OfflineProvider([]))
+    assert failure.value.code == "agent_network_unavailable"
+    assert failure.value.evidence == ()
 
 
 class FakeStructuredProvider:

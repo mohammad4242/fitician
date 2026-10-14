@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react-native";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
 import { workoutExecutionGuidance, formatPersianDateWithWeekday, formatTehranDateTime, type BinaryDownload } from "@fitician/core";
 import { Alert, Linking } from "react-native";
@@ -956,7 +956,7 @@ test("shows the generated pending replacement immediately instead of the old act
   const generate = jest.fn().mockImplementation(async () => {
     mockActivePlan = null;
     mockHistory = [makeHistoryVersion(newPlan.id), makeHistoryVersion(oldPlan.id, "superseded")];
-    return { plan: newPlan, reused: false };
+    return { plan: newPlan, reused: false, notice_code: "agent_network_unavailable" };
   });
   mockCreateWorkoutPlanApi.mockReturnValue({
     deletePlan: mockDeletePlan,
@@ -966,6 +966,18 @@ test("shows the generated pending replacement immediately instead of the old act
     getActive: resolved(null),
     getHistory: resolved(mockHistory),
   } as never);
+  let connectivityPoll: (() => void) | undefined;
+  const originalSetInterval = global.setInterval.bind(global);
+  jest.spyOn(global, "setInterval").mockImplementation(((callback: (...args: unknown[]) => void, delay?: number) => {
+    if (delay === 30_000) {
+      connectivityPoll = callback;
+      return 1 as never;
+    }
+    return originalSetInterval(callback, delay);
+  }) as typeof setInterval);
+  mockRequest
+    .mockRejectedValueOnce(new Error("temporary transport error"))
+    .mockResolvedValueOnce({ network_unavailable: false, error_code: null });
   executeMutation = true;
 
   renderWorkoutPlans();
@@ -974,6 +986,12 @@ test("shows the generated pending replacement immediately instead of the old act
   expect(mockMutate).toHaveBeenCalledTimes(1);
   expect(generate).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(screen.getByTestId("workout-plan-overview-pending-plan")).toBeTruthy());
+  expect(screen.getByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
+  await act(async () => { connectivityPoll?.(); await Promise.resolve(); });
+  expect(screen.getByText("اینترنت بین‌الملل در دسترس نیست")).toBeTruthy();
+  await act(async () => { connectivityPoll?.(); await Promise.resolve(); });
+  await waitFor(() => expect(screen.queryByText("اینترنت بین‌الملل در دسترس نیست")).toBeNull());
+  expect(mockRequest).toHaveBeenCalledWith({ method: "GET", path: "/api/v1/ai/connectivity" });
   expect(screen.queryByText("حرکت قبلی")).toBeNull();
   expect(screen.getByText("حرکت جدید")).toBeTruthy();
   expect(screen.getAllByTestId(/workout-plan-view-/)).toHaveLength(1);

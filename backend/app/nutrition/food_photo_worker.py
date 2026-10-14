@@ -41,6 +41,7 @@ _RETRYABLE_ERRORS = frozenset(
 )
 
 _SAFE_FAILURE_MESSAGES: dict[ProviderErrorCode, str] = {
+    ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE: "اینترنت بین‌الملل در دسترس نیست",
     ProviderErrorCode.NOT_CONFIGURED: "سرویس تحلیل عکس غذا در دسترس نیست.",
     ProviderErrorCode.TIMEOUT: "تحلیل عکس غذا زمان زیادی برد؛ دوباره تلاش می‌کنیم.",
     ProviderErrorCode.CONNECTION_FAILURE: "سرویس تحلیل عکس غذا موقتاً در دسترس نیست.",
@@ -187,7 +188,10 @@ def _record_failure(
     job.last_error_message = message
     if provider_request_id is not None:
         estimate.provider_request_id = provider_request_id
-    retry = code in _RETRYABLE_ERRORS and job.attempt_count < job.max_attempts
+    network_outage = code is ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE
+    if network_outage:
+        job.attempt_count = max(0, job.attempt_count - 1)
+    retry = network_outage or (code in _RETRYABLE_ERRORS and job.attempt_count < job.max_attempts)
     if retry:
         estimate.status = "queued"
         estimate.error_code = code.value
