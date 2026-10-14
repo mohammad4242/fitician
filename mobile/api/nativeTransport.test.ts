@@ -289,6 +289,7 @@ it("serializes multipart bytes without native temporary files", async () => {
 });
 
 it("does not pass the upload manager signal to native fetch", async () => {
+  const managerSignal = { aborted: false };
   const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
     new Response(JSON.stringify({ uploaded: true }), { status: 200 }),
   );
@@ -306,11 +307,14 @@ it("does not pass the upload manager signal to native fetch", async () => {
       name: "file",
     }],
     path: "/api/v1/nutrition/tracking/photo-estimates?language=fa",
-    signal: { aborted: false },
+    signal: managerSignal,
   });
 
   const [, init] = fetchImpl.mock.calls[0];
-  expect(init?.signal).toBeUndefined();
+  // The structural upload-manager signal stays outside native fetch; the
+  // transport now supplies its own real AbortSignal for the finite deadline.
+  expect(init?.signal).toBeInstanceOf(AbortSignal);
+  expect(init?.signal).not.toBe(managerSignal);
 });
 
 it("rejects absolute API paths so requests cannot escape the configured backend", async () => {

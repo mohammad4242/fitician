@@ -36,6 +36,7 @@ type PreparedMultipartBody = {
 let multipartBoundarySequence = 0;
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 30_000;
+const LONG_REQUEST_TIMEOUT_MS = 180_000;
 
 function needsAuthDeadline(path: string): boolean {
   const pathname = path.split(/[?#]/u)[0];
@@ -43,10 +44,11 @@ function needsAuthDeadline(path: string): boolean {
     || pathname === "/api/v1/profile/status";
 }
 
-async function withAuthDeadline<T>(
+async function withRequestDeadline<T>(
   request: TransportRequest,
   requestId: string,
   operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = LONG_REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const callerSignal = nativeAbortSignal(request.signal);
   if (callerSignal?.aborted) throw new TransportError("aborted", requestId);
@@ -63,7 +65,7 @@ async function withAuthDeadline<T>(
       // Reject before aborting so native AbortError does not hide the timeout.
       reject(new TransportError("timeout", requestId));
       controller.abort();
-    }, AUTH_BOOTSTRAP_TIMEOUT_MS);
+    }, timeoutMs);
   });
   try {
     return await Promise.race([operation(controller.signal), interrupted]);
@@ -304,34 +306,38 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
         if (response.status === 204) return undefined as TResponse;
         return (await response.json()) as TResponse;
       };
-      if (!needsAuthDeadline(request.path)) return readResponse(request);
       const requestId = correlationIdFactory();
-      return withAuthDeadline(request, requestId, (signal) => (
+      return withRequestDeadline(request, requestId, (signal) => (
         readResponse({ ...request, signal }, requestId)
-      ));
+      ), needsAuthDeadline(request.path) ? AUTH_BOOTSTRAP_TIMEOUT_MS : LONG_REQUEST_TIMEOUT_MS);
     },
 
     async download(request: BinaryDownloadRequest): Promise<BinaryDownload> {
-      const response = await send(request, requestBody(request.body), "download");
-      return {
-        bytes: new Uint8Array(await response.arrayBuffer()),
-        contentType: response.headers.get("Content-Type"),
-        filename: responseFilename(response),
-      };
+      const requestId = correlationIdFactory();
+      return withRequestDeadline(request, requestId, async (signal) => {
+        const response = await send({ ...request, signal }, requestBody(request.body), "download", null, requestId);
+        return {
+          bytes: new Uint8Array(await response.arrayBuffer()),
+          contentType: response.headers.get("Content-Type"),
+          filename: responseFilename(response),
+        };
+      });
     },
 
     async upload<TResponse>(request: MultipartUploadRequest): Promise<TResponse> {
       const prepared = multipartBody(request.parts);
-      const response = await send(
-        request,
-        prepared.body as unknown as BodyInit,
-        "upload",
-        prepared.contentType,
-      );
-      if (response.status === 204) {
-        return undefined as TResponse;
-      }
-      return (await response.json()) as TResponse;
+      const requestId = correlationIdFactory();
+      return withRequestDeadline(request, requestId, async (signal) => {
+        const response = await send(
+          { ...request, signal },
+          prepared.body as unknown as BodyInit,
+          "upload",
+          prepared.contentType,
+          requestId,
+        );
+        if (response.status === 204) return undefined as TResponse;
+        return (await response.json()) as TResponse;
+      });
     },
   };
 }
