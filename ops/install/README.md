@@ -1,6 +1,6 @@
 # Independent installation page (Germany)
 
-Build only the public page with `npm run build:install --workspace frontend`.
+Build only the public page with `npm run build:standalone-install --workspace frontend`.
 Output: `frontend/dist-standalone/`. No API, authentication providers, service
 worker, application manifest, database, media server, or Iran request is required
 to render it. The existing React component, styles, fonts, and logo are reused.
@@ -20,7 +20,7 @@ The supplied Compose project is separate from the Germany Agent and uses only
 Caddy obtains and renews a public certificate through HTTP-01 on port 80.
 TLS-ALPN validation on 443 is explicitly disabled.
 
-**Do not deploy this topology until the owner approves its Cloudflare changes.**
+**The owner must approve the limited Cloudflare routing before deployment.**
 Required external configuration, restricted to `install.fitician.fit`:
 
 1. Proxy the existing DNS record (orange cloud).
