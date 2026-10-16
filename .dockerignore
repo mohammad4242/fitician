@@ -10,6 +10,13 @@
 var/
 .worktrees
 mobile
+!mobile/
+mobile/*
+!mobile/assets/
+mobile/assets/*
+!mobile/assets/landing/
+mobile/assets/landing/*
+!mobile/assets/landing/pic_land.jpg
 backend/
 agent-service/
 docs/
