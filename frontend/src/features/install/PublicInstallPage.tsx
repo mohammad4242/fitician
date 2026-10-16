@@ -115,14 +115,18 @@ const installCopy: Record<Language, {
 };
 
 export type PublicInstallPageProps = {
-  topNotice?: string;
+  standaloneNotice?: Record<Language, string>;
+  hideHeroDescription?: boolean;
+  storeIcons?: { cafeBazaar?: string; myket?: string };
   continueHref?: string;
   iosInstallHref?: string;
   copyHref?: string;
 };
 
 export function PublicInstallPage({
-  topNotice,
+  standaloneNotice,
+  hideHeroDescription = false,
+  storeIcons,
   continueHref = "/",
   iosInstallHref,
   copyHref,
@@ -195,8 +199,7 @@ export function PublicInstallPage({
   return (
     <main className="public-install" dir={language === "fa" ? "rtl" : "ltr"} lang={language}>
       <div className="public-install__shell">
-        <header className={`public-install__header${topNotice ? " public-install__header--standalone" : ""}`}>
-          {topNotice && <p className="public-install__standalone-notice">{topNotice}</p>}
+        <header className="public-install__header">
           <LanguageSwitcher />
         </header>
 
@@ -208,10 +211,11 @@ export function PublicInstallPage({
               {heroTitle}
               {environment === "installed" && <span aria-hidden="true"> ✓</span>}
             </h1>
-            <p className="public-install__hero-description">{heroDescription}</p>
+            {!hideHeroDescription && <p className="public-install__hero-description">{heroDescription}</p>}
           </section>
 
           <div className="public-install__content">
+            {standaloneNotice && <p className="public-install__standalone-notice">{standaloneNotice[language]}</p>}
             <div className="public-install__tabs" role="tablist" aria-label={language === "fa" ? "انتخاب دستگاه" : "Choose your device"}>
               {(["android", "iphone"] as const).map((platform) => (
                 <button key={platform} id={`install-tab-${platform}`} type="button" role="tab"
@@ -240,9 +244,11 @@ export function PublicInstallPage({
                     {language === "fa" ? "دانلود مستقیم APK" : "Download APK"}
                   </a>
                   <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {storeIcons?.cafeBazaar && <img className="public-install__store-icon" src={storeIcons.cafeBazaar} alt="" />}
                     {language === "fa" ? "دریافت از کافه بازار" : "Cafe Bazaar"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
                   <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {storeIcons?.myket && <img className="public-install__store-icon" src={storeIcons.myket} alt="" />}
                     {language === "fa" ? "دریافت از مایکت" : "Myket"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
                 </div>

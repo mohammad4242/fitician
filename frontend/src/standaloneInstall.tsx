@@ -8,6 +8,8 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import "./index.css";
+import cafeBazaarIcon from "./assets/branding/cafe-bazaar-official.png";
+import myketIcon from "./assets/branding/myket-official.svg";
 import { PublicInstallPage } from "./features/install/PublicInstallPage";
 import "./features/install/publicInstall.css";
 import { applyDesignSystem } from "./styles/designSystem";
@@ -35,7 +37,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <PublicInstallPage
-        topNotice="برای نصب اپلیکیشن فیتیشن، فیلترشکن خود را خاموش کنید."
+        standaloneNotice={{ fa: "برای نصب و استفاده، فیلترشکنتو خاموش کن.", en: "Turn off your VPN to install and use Fitician." }}
+        hideHeroDescription
+        storeIcons={{ cafeBazaar: cafeBazaarIcon, myket: myketIcon }}
         continueHref="https://fitician.fit/"
         iosInstallHref="https://fitician.fit/install"
         copyHref="https://fitician.fit/install"
