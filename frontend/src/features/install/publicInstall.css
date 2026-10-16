@@ -40,6 +40,21 @@
   justify-content: flex-end;
 }
 
+.public-install__header--standalone {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.public-install__standalone-notice {
+  flex: 1 1 12rem;
+  margin: 0;
+  color: var(--fitician-mist);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  text-align: start;
+}
+
 .public-install__header .language-switcher {
   min-height: 2.5rem;
   border-color: var(--fitician-line);

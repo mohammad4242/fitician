@@ -45,3 +45,7 @@ backend/var/media/meal-catalogue/*
 frontend/dist-server/
 frontend/seo-*.log
 frontend/test-results/
+
+# Independent install page build outputs
+frontend/dist-standalone/
+frontend/standalone/dist-standalone/

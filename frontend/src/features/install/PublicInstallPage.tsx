@@ -114,7 +114,19 @@ const installCopy: Record<Language, {
   },
 };
 
-export function PublicInstallPage() {
+export type PublicInstallPageProps = {
+  topNotice?: string;
+  continueHref?: string;
+  iosInstallHref?: string;
+  copyHref?: string;
+};
+
+export function PublicInstallPage({
+  topNotice,
+  continueHref = "/",
+  iosInstallHref,
+  copyHref,
+}: PublicInstallPageProps = {}) {
   const { i18n } = useTranslation();
   const language: Language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const copy = installCopy[language];
@@ -154,7 +166,7 @@ export function PublicInstallPage() {
   async function copyCurrentLink() {
     try {
       if (navigator.clipboard?.writeText === undefined) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(copyHref ?? window.location.href);
       setCopyStatus("copied");
     } catch {
       setCopyStatus("failed");
@@ -183,7 +195,8 @@ export function PublicInstallPage() {
   return (
     <main className="public-install" dir={language === "fa" ? "rtl" : "ltr"} lang={language}>
       <div className="public-install__shell">
-        <header className="public-install__header">
+        <header className={`public-install__header${topNotice ? " public-install__header--standalone" : ""}`}>
+          {topNotice && <p className="public-install__standalone-notice">{topNotice}</p>}
           <LanguageSwitcher />
         </header>
 
@@ -235,9 +248,11 @@ export function PublicInstallPage() {
                 </div>
               )}
               {selectedPlatform === "iphone" && environment !== "installed" && (
-                <button className="public-install__button" type="button" onClick={showIosInstructions}>
-                  <StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}
-                </button>
+                iosInstallHref
+                  ? <a className="public-install__button" href={iosInstallHref}><StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}</a>
+                  : <button className="public-install__button" type="button" onClick={showIosInstructions}>
+                    <StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}
+                  </button>
               )}
               {selectedPlatform === "iphone" && environment === "ios-in-app-browser" && (
                 <section className="public-install__panel public-install__panel--handoff" aria-labelledby="public-install-handoff-title">
@@ -311,7 +326,9 @@ export function PublicInstallPage() {
               )}
 
             </div>
-            <Link className="public-install__browser-link" to="/">{copy.continueAction}</Link>
+            {continueHref.startsWith("/")
+              ? <Link className="public-install__browser-link" to={continueHref}>{copy.continueAction}</Link>
+              : <a className="public-install__browser-link" href={continueHref}>{copy.continueAction}</a>}
           </div>
         </div>
 

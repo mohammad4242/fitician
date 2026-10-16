@@ -1,0 +1,30 @@
+# Isolated static site: no Agent networks, volumes, or configuration.
+services:
+  install-site:
+    image: ${INSTALL_CADDY_IMAGE:?Set a verified Caddy image digest}
+    ports:
+      - "80:80"
+      - "8443:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/install:ro
+      - install_tls:/data
+      - install_config:/config
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    mem_limit: 96m
+    cpus: 0.20
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+volumes:
+  install_tls:
+  install_config:
