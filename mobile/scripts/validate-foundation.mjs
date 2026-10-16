@@ -119,7 +119,6 @@ for (const required of [
   /environment\s*===\s*["']development["']/u,
   /cleartextTrafficPermitted="false"/u,
   /fitician_backup_rules/,
-  /FLAG_SECURE/,
 ]) {
   assert.match(androidHardening, required);
 }
@@ -203,11 +202,7 @@ try {
   }
   try {
     const mainActivity = await readFile(androidMainActivityPath, "utf8");
-    if (appVariant === "development") {
-      assert.doesNotMatch(mainActivity, /FLAG_SECURE/u);
-    } else {
-      assert.match(mainActivity, /FLAG_SECURE/u);
-    }
+    assert.doesNotMatch(mainActivity, /FLAG_SECURE/u);
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
