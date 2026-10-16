@@ -41,3 +41,11 @@ export function detectInstallEnvironment(input: InstallEnvironmentInput): Instal
 
   return "other";
 }
+
+export type InstallPlatform = "android" | "iphone";
+
+export function detectInstallPlatform(input: InstallEnvironmentInput): InstallPlatform {
+  const isIos = /iPad|iPhone|iPod/i.test(input.userAgent)
+    || input.platform === "MacIntel" && (input.maxTouchPoints ?? 0) > 1;
+  return isIos ? "iphone" : "android";
+}

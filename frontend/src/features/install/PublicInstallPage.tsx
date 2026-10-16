@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { BrandLogo } from "../../shared/BrandLogo";
 import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
 import { usePwaInstall } from "../../pwa/usePwaInstall";
-import { detectInstallEnvironment } from "./installEnvironment";
+import { detectInstallEnvironment, detectInstallPlatform, type InstallPlatform } from "./installEnvironment";
 import "./publicInstall.css";
 
 type Language = "fa" | "en";
@@ -22,8 +22,6 @@ const installCopy: Record<Language, {
   installedTitle: string;
   heroDescription: string;
   installedDescription: string;
-  appIconAlt: string;
-  appIconCaption: string;
   iosTitle: string;
   iosDescription: string;
   iosSteps: InstallStep[];
@@ -38,20 +36,14 @@ const installCopy: Record<Language, {
   chromiumDescription: string;
   installAction: string;
   installError: string;
-  chromiumUnavailableTitle: string;
-  chromiumUnavailableDescription: string;
-  desktopTitle: string;
-  desktopDescription: string;
   continueAction: string;
 }> = {
   fa: {
-    eyebrow: "بدون نیاز به App Store",
-    heroTitle: "فیتیشن را مثل یک اپ روی آیفونت نصب کن",
+    eyebrow: "همراه تمرین و تغذیهٔ تو",
+    heroTitle: "فیتیشن رو نصب کن",
     installedTitle: "فیتیشن روی دستگاهت نصب شده",
-    heroDescription: "فقط چند لمس تا فیتیشن روی صفحهٔ اصلی آیفونت؛ همیشه دم دست.",
+    heroDescription: "روی اندروید یا آیفون؛ همیشه دم دست.",
     installedDescription: "فیتیشن آماده است؛ از آیکن روی صفحهٔ اصلی بازش کن.",
-    appIconAlt: "آیکن فیتیشن",
-    appIconCaption: "روی صفحهٔ اصلی",
     iosTitle: "نصب فیتیشن روی صفحهٔ اصلی",
     iosDescription: "در Safari این چهار قدم را انجام بده:",
     iosSteps: [
@@ -87,20 +79,14 @@ const installCopy: Record<Language, {
     chromiumDescription: "مرورگرت آمادهٔ نصب فیتیشن است. با تأیید پنجرهٔ نصب، آیکن فیتیشن به دستگاهت اضافه می‌شود.",
     installAction: "نصب فیتیشن",
     installError: "مرورگر نتوانست پنجرهٔ نصب را باز کند. فیتیشن را می‌توانی در همین مرورگر ادامه بدهی.",
-    chromiumUnavailableTitle: "فیتیشن همیشه در دسترس توست",
-    chromiumUnavailableDescription: "در حال حاضر مرورگر گزینهٔ نصب را آماده نکرده. می‌توانی فیتیشن را همین‌جا در مرورگر استفاده کنی.",
-    desktopTitle: "این صفحه برای نصب روی موبایل طراحی شده",
-    desktopDescription: "فیتیشن را روی موبایلت باز کن تا آن را به صفحهٔ اصلی اضافه کنی. در همین دستگاه هم می‌توانی نسخهٔ وب را ببینی.",
     continueAction: "ورود به فیتیشن",
   },
   en: {
-    eyebrow: "No App Store needed",
-    heroTitle: "Add Fitician to your iPhone Home Screen",
+    eyebrow: "Your training and nutrition companion",
+    heroTitle: "Install Fitician",
     installedTitle: "Fitician is installed on this device",
-    heroDescription: "A few taps put Fitician on your iPhone Home Screen, ready whenever you need it.",
+    heroDescription: "On Android or iPhone. Always close at hand.",
     installedDescription: "Fitician is ready. Open it from the icon on your Home Screen.",
-    appIconAlt: "Fitician app icon",
-    appIconCaption: "On your Home Screen",
     iosTitle: "Install Fitician on your Home Screen",
     iosDescription: "In Safari, follow these four steps:",
     iosSteps: [
@@ -124,10 +110,6 @@ const installCopy: Record<Language, {
     chromiumDescription: "Your browser can install Fitician now. Confirm its install prompt to add the app icon to this device.",
     installAction: "Install Fitician",
     installError: "Your browser could not open the install prompt. You can keep using Fitician in this browser.",
-    chromiumUnavailableTitle: "Keep Fitician close at hand",
-    chromiumUnavailableDescription: "Your browser has not made its install option available yet. You can keep using Fitician here in the browser.",
-    desktopTitle: "Install Fitician on your phone",
-    desktopDescription: "Open Fitician on your phone to add it to the Home Screen. You can also continue to the web app on this device.",
     continueAction: "Go to Fitician",
   },
 };
@@ -150,6 +132,18 @@ export function PublicInstallPage() {
     canPrompt,
     pwaState,
   });
+
+  const [selectedPlatform, setSelectedPlatform] = useState<InstallPlatform>(() => detectInstallPlatform({
+    userAgent: browserNavigator?.userAgent ?? "",
+    platform: browserNavigator?.platform,
+    maxTouchPoints: browserNavigator?.maxTouchPoints,
+  }));
+
+  function selectPlatform(platform: InstallPlatform) {
+    setSelectedPlatform(platform);
+    setCopyStatus(null);
+    setInstallFailed(false);
+  }
 
   useEffect(() => {
     if (copyStatus === null) return;
@@ -176,6 +170,13 @@ export function PublicInstallPage() {
     }
   }
 
+  function showIosInstructions() {
+    const title = document.getElementById(environment === "ios-in-app-browser"
+      ? "public-install-handoff-title" : "public-install-steps-title");
+    title?.focus({ preventScroll: true });
+    title?.scrollIntoView({ block: "start" });
+  }
+
   const heroTitle = environment === "installed" ? copy.installedTitle : copy.heroTitle;
   const heroDescription = environment === "installed" ? copy.installedDescription : copy.heroDescription;
 
@@ -195,117 +196,122 @@ export function PublicInstallPage() {
               {environment === "installed" && <span aria-hidden="true"> ✓</span>}
             </h1>
             <p className="public-install__hero-description">{heroDescription}</p>
-            <div className="public-install__icon-stage">
-              <span className="public-install__icon-caption">{copy.appIconCaption}</span>
-              <div className="public-install__icon-frame">
-                <img
-                  src="/pwa/apple-touch-icon.png"
-                  alt={copy.appIconAlt}
-                  width="180"
-                  height="180"
-                  fetchPriority="high"
-                  data-testid="public-install-app-icon"
-                />
-              </div>
-            </div>
           </section>
 
           <div className="public-install__content">
-            {environment === "ios-in-app-browser" && (
-              <section className="public-install__panel public-install__panel--handoff" aria-labelledby="public-install-handoff-title">
-                <div className="public-install__panel-heading">
-                  <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="share" /></span>
-                  <div>
-                    <p className="public-install__section-kicker">{language === "fa" ? "اول مرورگر اصلی" : "FIRST, YOUR MAIN BROWSER"}</p>
-                    <h2 id="public-install-handoff-title">{copy.instagramTitle}</h2>
-                  </div>
-                </div>
-                <p className="public-install__panel-description">{copy.instagramDescription}</p>
-                <ol className="public-install__handoff-steps">
-                  {copy.instagramSteps.map((step) => <li key={step}>{step}</li>)}
-                </ol>
-                <div className="public-install__copy-action">
-                  <button className="public-install__button public-install__button--quiet" type="button" onClick={() => void copyCurrentLink()}>
-                    <CopyIcon />
-                    {copy.copyLink}
+            <div className="public-install__tabs" role="tablist" aria-label={language === "fa" ? "انتخاب دستگاه" : "Choose your device"}>
+              {(["android", "iphone"] as const).map((platform) => (
+                <button key={platform} id={`install-tab-${platform}`} type="button" role="tab"
+                  className="public-install__tab" aria-selected={selectedPlatform === platform}
+                  aria-controls={`install-panel-${platform}`} tabIndex={selectedPlatform === platform ? 0 : -1}
+                  onClick={() => selectPlatform(platform)}
+                  onKeyDown={(event) => {
+                    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === "Home" ? "android" : event.key === "End" ? "iphone" : platform === "android" ? "iphone" : "android";
+                    selectPlatform(next);
+                    document.getElementById(`install-tab-${next}`)?.focus();
+                  }}>
+                  <PlatformIcon platform={platform} />
+                  <span>{platform === "android" ? (language === "fa" ? "اندروید" : "Android") : (language === "fa" ? "آیفون" : "iPhone")}</span>
+                </button>
+              ))}
+            </div>
+            <div hidden role="tabpanel" id={`install-panel-${selectedPlatform === "android" ? "iphone" : "android"}`} aria-labelledby={`install-tab-${selectedPlatform === "android" ? "iphone" : "android"}`} />
+            <div key={selectedPlatform} className="public-install__platform-panel" role="tabpanel"
+              id={`install-panel-${selectedPlatform}`} aria-labelledby={`install-tab-${selectedPlatform}`} tabIndex={0}>
+              {selectedPlatform === "android" && (
+                <div className="public-install__downloads">
+                  <a className="public-install__button" href="/download/android">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></svg>
+                    {language === "fa" ? "دانلود مستقیم APK" : "Download APK"}
+                  </a>
+                  <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {language === "fa" ? "دریافت از کافه بازار" : "Cafe Bazaar"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
-                  <p className="public-install__status" role="status" aria-live="polite" aria-atomic="true">
-                    {copyStatus === "copied" ? copy.copied : copyStatus === "failed" ? copy.copyFailed : ""}
-                  </p>
-                </div>
-              </section>
-            )}
-
-            {(environment === "ios" || environment === "ios-in-app-browser") && (
-              <section className="public-install__panel public-install__panel--steps" aria-labelledby="public-install-steps-title">
-                <div className="public-install__panel-heading">
-                  <span className="public-install__panel-mark public-install__panel-mark--steps" aria-hidden="true">4</span>
-                  <div>
-                    <p className="public-install__section-kicker">{language === "fa" ? "نصب از Safari" : "FROM SAFARI"}</p>
-                    <h2 id="public-install-steps-title">{copy.iosTitle}</h2>
-                  </div>
-                </div>
-                <p className="public-install__panel-description">{copy.iosDescription}</p>
-                <ol className="public-install__steps">
-                  {copy.iosSteps.map((step, index) => (
-                    <li className="public-install__step" key={step.icon}>
-                      <span className="public-install__step-number" aria-hidden="true">{index + 1}</span>
-                      <span className="public-install__step-icon"><StepIcon name={step.icon} /></span>
-                      <span className="public-install__step-copy">{step.content}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            )}
-
-            {environment === "installed" && (
-              <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
-                <span className="public-install__success-mark" aria-hidden="true">✓</span>
-                <div>
-                  <h2 id="public-install-state-title">{copy.installedMessage}</h2>
-                  <Link className="public-install__button" to="/">{copy.continueAction}</Link>
-                </div>
-              </section>
-            )}
-
-            {environment === "chromium-prompt" && (
-              <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
-                <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="add" /></span>
-                <div>
-                  <p className="public-install__section-kicker">{language === "fa" ? "آمادهٔ نصب" : "READY TO INSTALL"}</p>
-                  <h2 id="public-install-state-title">{copy.chromiumTitle}</h2>
-                  <p className="public-install__panel-description">{copy.chromiumDescription}</p>
-                  {installFailed && <p className="public-install__error" role="alert">{copy.installError}</p>}
-                  <button className="public-install__button" type="button" onClick={() => void promptInstallation()}>
-                    {copy.installAction}
+                  <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {language === "fa" ? "دریافت از مایکت" : "Myket"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
                 </div>
-              </section>
-            )}
+              )}
+              {selectedPlatform === "iphone" && environment !== "installed" && (
+                <button className="public-install__button" type="button" onClick={showIosInstructions}>
+                  <StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}
+                </button>
+              )}
+              {selectedPlatform === "iphone" && environment === "ios-in-app-browser" && (
+                <section className="public-install__panel public-install__panel--handoff" aria-labelledby="public-install-handoff-title">
+                  <div className="public-install__panel-heading">
+                    <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="share" /></span>
+                    <div>
+                      <p className="public-install__section-kicker">{language === "fa" ? "اول مرورگر اصلی" : "FIRST, YOUR MAIN BROWSER"}</p>
+                      <h2 id="public-install-handoff-title" tabIndex={-1}>{copy.instagramTitle}</h2>
+                    </div>
+                  </div>
+                  <p className="public-install__panel-description">{copy.instagramDescription}</p>
+                  <ol className="public-install__handoff-steps">
+                    {copy.instagramSteps.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                  <div className="public-install__copy-action">
+                    <button className="public-install__button public-install__button--quiet" type="button" onClick={() => void copyCurrentLink()}>
+                      <CopyIcon />
+                      {copy.copyLink}
+                    </button>
+                    <p className="public-install__status" role="status" aria-live="polite" aria-atomic="true">
+                      {copyStatus === "copied" ? copy.copied : copyStatus === "failed" ? copy.copyFailed : ""}
+                    </p>
+                  </div>
+                </section>
+              )}
 
-            {environment === "chromium-unavailable" && (
-              <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
-                <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="home" /></span>
-                <div>
-                  <p className="public-install__section-kicker">{language === "fa" ? "نسخهٔ وب" : "WEB APP"}</p>
-                  <h2 id="public-install-state-title">{copy.chromiumUnavailableTitle}</h2>
-                  <p className="public-install__panel-description">{copy.chromiumUnavailableDescription}</p>
-                  <Link className="public-install__button public-install__button--quiet" to="/">{copy.continueAction}</Link>
-                </div>
-              </section>
-            )}
+              {selectedPlatform === "iphone" && environment !== "installed" && (
+                <section className="public-install__panel public-install__panel--steps" aria-labelledby="public-install-steps-title">
+                  <div className="public-install__panel-heading">
+                    <span className="public-install__panel-mark public-install__panel-mark--steps" aria-hidden="true">4</span>
+                    <div>
+                      <p className="public-install__section-kicker">{language === "fa" ? "نصب از Safari" : "FROM SAFARI"}</p>
+                      <h2 id="public-install-steps-title" tabIndex={-1}>{copy.iosTitle}</h2>
+                    </div>
+                  </div>
+                  <p className="public-install__panel-description">{copy.iosDescription}</p>
+                  <ol className="public-install__steps">
+                    {copy.iosSteps.map((step, index) => (
+                      <li className="public-install__step" key={step.icon}>
+                        <span className="public-install__step-number" aria-hidden="true">{index + 1}</span>
+                        <span className="public-install__step-icon"><StepIcon name={step.icon} /></span>
+                        <span className="public-install__step-copy">{step.content}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
 
-            {environment === "other" && (
-              <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
-                <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="home" /></span>
-                <div>
-                  <p className="public-install__section-kicker">{language === "fa" ? "فیتیشن روی موبایل" : "FITICIAN ON MOBILE"}</p>
-                  <h2 id="public-install-state-title">{copy.desktopTitle}</h2>
-                  <p className="public-install__panel-description">{copy.desktopDescription}</p>
-                  <Link className="public-install__button public-install__button--quiet" to="/">{copy.continueAction}</Link>
-                </div>
-              </section>
-            )}
+              {environment === "installed" && (
+                <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
+                  <span className="public-install__success-mark" aria-hidden="true">✓</span>
+                  <div>
+                    <h2 id="public-install-state-title">{copy.installedMessage}</h2>
+                  </div>
+                </section>
+              )}
+
+              {selectedPlatform === "android" && environment === "chromium-prompt" && (
+                <section className="public-install__panel public-install__panel--state" aria-labelledby="public-install-state-title">
+                  <span className="public-install__panel-mark" aria-hidden="true"><StepIcon name="add" /></span>
+                  <div>
+                    <p className="public-install__section-kicker">{language === "fa" ? "آمادهٔ نصب" : "READY TO INSTALL"}</p>
+                    <h2 id="public-install-state-title">{copy.chromiumTitle}</h2>
+                    <p className="public-install__panel-description">{copy.chromiumDescription}</p>
+                    {installFailed && <p className="public-install__error" role="alert">{copy.installError}</p>}
+                    <button className="public-install__button" type="button" onClick={() => void promptInstallation()}>
+                      {copy.installAction}
+                    </button>
+                  </div>
+                </section>
+              )}
+
+            </div>
+            <Link className="public-install__browser-link" to="/">{copy.continueAction}</Link>
           </div>
         </div>
 
@@ -333,4 +339,11 @@ function StepIcon({ name }: { name: StepIconName }) {
 
 function CopyIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="13" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2" /></svg>;
+}
+
+function PlatformIcon({ platform }: { platform: InstallPlatform }) {
+  if (platform === "android") {
+    return <svg viewBox="0 0 24 24" fill="#3DDC84" aria-hidden="true" focusable="false"><path d="m17.523 15.341 1.931-3.345a.399.399 0 0 0-.146-.546.399.399 0 0 0-.546.146l-1.956 3.388a11.898 11.898 0 0 0-4.806-.994c-1.696 0-3.322.353-4.806.994l-1.956-3.388a.399.399 0 0 0-.546-.146.399.399 0 0 0-.146.546l1.931 3.345C2.99 17.113.638 20.408.294 24h23.412c-.344-3.592-2.696-6.887-6.183-8.659zM6.622 20.539a.978.978 0 1 1 0-1.956.978.978 0 0 1 0 1.956zm10.756 0a.978.978 0 1 1 0-1.956.978.978 0 0 1 0 1.956z" transform="translate(0 -6)" /></svg>;
+  }
+  return <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true" focusable="false"><path d="M17.05 12.54c.03 3.28 2.88 4.37 2.91 4.39-.02.08-.46 1.56-1.51 3.09-.91 1.32-1.85 2.64-3.34 2.67-1.46.03-1.93-.86-3.6-.86-1.67 0-2.19.83-3.57.89-1.44.05-2.54-1.44-3.46-2.76-1.88-2.71-3.31-7.65-1.38-10.99.96-1.66 2.67-2.71 4.53-2.74 1.41-.03 2.75.95 3.6.95.84 0 2.43-1.18 4.09-1.01.7.03 2.67.28 3.94 2.14-.1.06-2.35 1.37-2.21 4.23zM14.3 4.37c.76-.92 1.27-2.19 1.13-3.46-1.09.04-2.4.73-3.18 1.65-.7.81-1.31 2.1-1.14 3.34 1.21.09 2.44-.62 3.19-1.53z" /></svg>;
 }
