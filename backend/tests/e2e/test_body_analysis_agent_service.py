@@ -150,11 +150,17 @@ def test_body_analysis_agent_service_e2e_uses_current_images_and_normalizes_v4(
     db.add(task)
     db.commit()
 
-    calls: list[tuple[str, bytes]] = []
+    calls: list[tuple[str, str, bytes]] = []
 
     def agent_handler(request: httpx.Request) -> httpx.Response:
         body = request.content
-        calls.append((request.url.path, body))
+        calls.append((request.method, request.url.path, body))
+        if request.method == "GET" and request.url.path == "/healthz":
+            assert body == b""
+            assert "authorization" not in request.headers
+            return httpx.Response(200, json={"status": "ok"})
+
+        assert request.method == "POST"
         assert request.url.path == "/v1/analyze-stored-images"
         assert request.headers["authorization"] == "Bearer agent-service-test-token"
         assert request.headers["content-type"] == "application/json"
@@ -228,8 +234,9 @@ def test_body_analysis_agent_service_e2e_uses_current_images_and_normalizes_v4(
         assert analysis.normalized_result["requires_doctor_review"] is True
         session = db.get(BodyPhotoSession, session_id)
         assert session is not None and session.state is BodyPhotoSessionState.REVIEW_PENDING
-        assert len(calls) == 1
-        assert all(path == "/v1/analyze-stored-images" for path, _ in calls)
+        assert calls[-1][:2] == ("POST", "/v1/analyze-stored-images")
+        assert len(calls) >= 2
+        assert all((method, path) == ("GET", "/healthz") for method, path, _ in calls[:-1])
     finally:
         asyncio.run(client.app.state.agent_http_client.aclose())
         asyncio.run(client.app.state.ai_http_client.aclose())

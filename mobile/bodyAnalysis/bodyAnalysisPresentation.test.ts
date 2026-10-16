@@ -29,6 +29,15 @@ it("uses the shared Agent network error copy for persisted body-analysis jobs", 
     .toBe("safe provider message");
 });
 
+it("identifies legacy Agent connection failures without blaming an upstream vendor", () => {
+  expect(bodyAnalysisProviderErrorMessage("connection_failure", "OpenRouter error", "agent_service:opencode_zen"))
+    .toBe("ارتباط با سرویس هوشمند برقرار نشد. کمی بعد دوباره تلاش کنید.");
+  for (const provider of ["openrouter", "agent_service_other", undefined]) {
+    expect(bodyAnalysisProviderErrorMessage("connection_failure", "original provider error", provider))
+      .toBe("original provider error");
+  }
+});
+
 it("keeps the website indicator order and normalizes display scores", () => {
   const indicators = buildBodyIndicatorSummary(experience);
 

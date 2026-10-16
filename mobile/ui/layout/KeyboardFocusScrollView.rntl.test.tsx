@@ -1,6 +1,7 @@
-import { act, renderHook } from "@testing-library/react-native";
+import { act, render, renderHook, screen } from "@testing-library/react-native";
+import { createRef } from "react";
 import { afterEach, beforeEach, expect, jest, test } from "@jest/globals";
-import { Keyboard, Platform, TextInput, type ScrollView } from "react-native";
+import { Keyboard, Platform, ScrollView, TextInput, type ScrollView as ScrollViewType } from "react-native";
 
 const mockScroll = jest.fn();
 let inputY = 230;
@@ -8,7 +9,7 @@ const focusedInput = { measureInWindow: (callback: (x: number, y: number, width:
 let onKeyboardShow: () => void;
 let mockRemove: ReturnType<typeof jest.fn>;
 
-import { useAndroidKeyboardFocusScroll } from "./KeyboardFocusScrollView";
+import { KeyboardFocusScrollView, useAndroidKeyboardFocusScroll } from "./KeyboardFocusScrollView";
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -78,4 +79,11 @@ test("does not scroll after the keyboard closes or the form unmounts", () => {
   act(() => jest.advanceTimersByTime(20));
   expect(mockScroll).not.toHaveBeenCalled();
   expect(mockRemove).toHaveBeenCalled();
+});
+
+test("forwards the external scroll ref while keeping the keyboard focus scroll view mounted", () => {
+  const externalRef = createRef<ScrollViewType>();
+  render(<KeyboardFocusScrollView keyboardOffset={16} scrollRef={externalRef}>Form</KeyboardFocusScrollView>);
+
+  expect(externalRef.current).toBe(screen.UNSAFE_getByType(ScrollView).instance);
 });

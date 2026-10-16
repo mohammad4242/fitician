@@ -101,7 +101,7 @@ it("preserves long-running AI requests", async () => {
     .then(() => { outcome = "success"; });
   await vi.advanceTimersByTimeAsync(60_000);
   expect(outcome).toBe("pending");
-  expect(vi.getTimerCount()).toBe(0);
+  expect(vi.getTimerCount()).toBe(1);
   resolveFetch(new Response("{}", { status: 200 }));
   await completed;
   expect(outcome).toBe("success");
@@ -147,3 +147,20 @@ it("preserves API authentication errors and clears their deadline", async () => 
     .rejects.toMatchObject({ status: 401 });
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it.each(["request", "download", "upload"] as const)(
+  "bounds a stalled non-auth %s without replaying it", async (operation) => {
+    const { transport, fetchImpl } = pendingTransport();
+    const request = { path: "/api/v1/nutrition/food-photo-estimates", parts: [], responseType: "binary" as const };
+    let outcome = "pending";
+    const completed = transport[operation](request).catch((error: { kind: string }) => { outcome = error.kind; });
+    await vi.advanceTimersByTimeAsync(179_999);
+    expect(outcome).toBe("pending");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(outcome).toBe("timeout");
+    await completed;
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);

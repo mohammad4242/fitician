@@ -1,4 +1,6 @@
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+
+afterEach(() => vi.useRealTimers());
 
 import {
   requestAndroidGoogleIdToken,
@@ -86,4 +88,52 @@ it("rejects a success response that contains no ID token", async () => {
   await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).rejects.toThrow(
     "ورود با گوگل انجام نشد. دوباره تلاش کنید.",
   );
+});
+
+it.each(["checkPlayServices", "signIn", "createAccount", "presentExplicitSignIn"] as const)(
+  "recovers when native %s never settles", async (stage) => {
+    vi.useFakeTimers();
+    const api = createApi();
+    api.signIn.mockResolvedValue(noSavedCredential());
+    api.createAccount.mockResolvedValue(noSavedCredential());
+    api[stage].mockImplementation(() => new Promise(() => undefined));
+    let outcome = "pending";
+    const completed = requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")
+      .catch((error: Error) => { outcome = error.message; });
+    await vi.advanceTimersByTimeAsync(90_000);
+    expect(outcome).toContain("زمان");
+    await completed;
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
+
+it("does not open a fallback sheet after a timed-out native result arrives", async () => {
+  vi.useFakeTimers();
+  const api = createApi();
+  let resolve!: (response: AndroidGoogleSignInResponse) => void;
+  api.signIn.mockImplementation(() => new Promise((done) => { resolve = done; }));
+  const completed = requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com").catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(90_000);
+  resolve(noSavedCredential());
+  await vi.advanceTimersByTimeAsync(0);
+  expect(api.createAccount).not.toHaveBeenCalled();
+  expect(api.presentExplicitSignIn).not.toHaveBeenCalled();
+  await completed;
+});
+
+it("blocks a competing native retry until the original cancellation settles", async () => {
+  vi.useFakeTimers();
+  const api = createApi();
+  let resolve!: (response: AndroidGoogleSignInResponse) => void;
+  api.signIn.mockImplementation(() => new Promise((done) => { resolve = done; }));
+  const completed = requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com").catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(90_000);
+  await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).rejects.toThrow("ورود قبلی");
+  expect(api.configure).toHaveBeenCalledOnce();
+  resolve({ data: null, type: "cancelled" });
+  await vi.advanceTimersByTimeAsync(0);
+  await completed;
+  api.signIn.mockResolvedValue(success("test-retry-token"));
+  await expect(requestAndroidGoogleIdToken(api, "web.apps.googleusercontent.com")).resolves.toBe("test-retry-token");
+  expect(vi.getTimerCount()).toBe(0);
 });

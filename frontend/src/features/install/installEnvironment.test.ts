@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectInstallEnvironment } from "./installEnvironment";
+import { detectInstallEnvironment, detectInstallPlatform } from "./installEnvironment";
 
 const iphone = {
   userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1",
@@ -69,5 +69,18 @@ describe("detectInstallEnvironment", () => {
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
       canPrompt: false,
     })).toBe("other");
+  });
+});
+
+describe("detectInstallPlatform", () => {
+  it("defaults Android browsers including Instagram to Android", () => {
+    expect(detectInstallPlatform({ userAgent: "Linux; Android 14 Instagram 372" })).toBe("android");
+  });
+  it("defaults iPhone and desktop-mode iPad to iPhone", () => {
+    expect(detectInstallPlatform(iphone)).toBe("iphone");
+    expect(detectInstallPlatform({ userAgent: "Macintosh", platform: "MacIntel", maxTouchPoints: 5 })).toBe("iphone");
+  });
+  it("offers Android first on unknown devices and during prerendering", () => {
+    expect(detectInstallPlatform({ userAgent: "" })).toBe("android");
   });
 });

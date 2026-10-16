@@ -16,16 +16,12 @@ test("serves the public install page directly without authentication", async ({ 
   await page.goto("/install", { waitUntil: "networkidle" });
 
   await expect(page).toHaveURL(`${baseURL}/install`);
-  await expect(page.getByRole("heading", { name: "فیتیشن را مثل یک اپ روی آیفونت نصب کن" }))
+  await expect(page.getByRole("heading", { name: "فیتیشن رو نصب کن" }))
     .toBeVisible();
   await expect(page.locator('[data-testid="public-install-brand-logo"]')).toBeVisible();
 
-  const appIcon = page.locator('img[src="/pwa/apple-touch-icon.png"]');
-  await expect(appIcon).toBeVisible();
-  await expect.poll(() => appIcon.evaluate((image: HTMLImageElement) => image.naturalWidth > 0))
-    .toBe(true);
-  const iconResponse = await request.get("/pwa/apple-touch-icon.png");
-  expect(iconResponse.status()).toBe(200);
+  await expect(page.getByRole("tab", { name: "اندروید" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "آیفون" })).toBeVisible();
 
   await page.reload({ waitUntil: "networkidle" });
   await expect(page).toHaveURL(`${baseURL}/install`);
@@ -81,7 +77,7 @@ test("supports English LTR switching and a narrow 320px iPhone screen", async ({
     await page.locator(".public-install__header .language-switcher").click();
 
     await expect(page.locator(".public-install")).toHaveAttribute("dir", "ltr");
-    await expect(page.getByRole("heading", { name: "Add Fitician to your iPhone Home Screen" }))
+    await expect(page.getByRole("heading", { name: "Install Fitician", exact: true }))
       .toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   } finally {
@@ -169,7 +165,7 @@ test("uses the existing Chromium install prompt when the browser provides it", a
     const page = await context.newPage();
     await page.goto("/install", { waitUntil: "networkidle" });
     await expect(page.getByRole("button", { name: "نصب فیتیشن" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "فیتیشن همیشه در دسترس توست" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "دانلود مستقیم APK" })).toBeVisible();
     await expect(page.getByRole("link", { name: "ورود به فیتیشن" })).toHaveAttribute("href", "/");
 
     await page.evaluate(() => {
@@ -181,6 +177,10 @@ test("uses the existing Chromium install prompt when the browser provides it", a
       event.userChoice = Promise.resolve({ outcome: "accepted" });
       window.dispatchEvent(event);
     });
+
+    await page.getByRole("tab", { name: "آیفون" }).click();
+    await expect(page.getByRole("button", { name: "نصب فیتیشن", exact: true })).toHaveCount(0);
+    await page.getByRole("tab", { name: "اندروید" }).click();
 
     const installButton = page.getByRole("button", { name: "نصب فیتیشن" });
     await expect(installButton).toBeVisible();
@@ -203,10 +203,60 @@ test("offers a web app link on desktop browsers", async ({ browser }) => {
     const page = await context.newPage();
     await page.goto("/install", { waitUntil: "networkidle" });
 
-    await expect(page.getByRole("heading", { name: "این صفحه برای نصب روی موبایل طراحی شده" }))
-      .toBeVisible();
+    await expect(page.getByRole("tab", { name: "اندروید" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("link", { name: "ورود به فیتیشن" })).toHaveAttribute("href", "/");
   } finally {
     await context.close();
   }
+});
+
+for (const instagram of [false, true]) {
+  test(`Android ${instagram ? "Instagram" : "Chrome"} defaults to APK with both platform tabs visible`, async ({ browser }) => {
+    const context = await browser.newContext({
+      ...devices["Pixel 7"], baseURL,
+      userAgent: `${devices["Pixel 7"].userAgent}${instagram ? " Instagram 372.0" : ""}`,
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto("/install", { waitUntil: "networkidle" });
+      const android = page.getByRole("tab", { name: "اندروید" });
+      const iphone = page.getByRole("tab", { name: "آیفون" });
+      await expect(android).toHaveAttribute("aria-selected", "true");
+      await expect(iphone).toBeVisible();
+      await expect(page.getByRole("link", { name: "دانلود مستقیم APK" })).toHaveAttribute("href", "/download/android");
+      await expect(page.getByRole("button", { name: /دریافت از کافه بازار.*به‌زودی/ })).toBeDisabled();
+      await expect(page.getByRole("button", { name: /دریافت از مایکت.*به‌زودی/ })).toBeDisabled();
+      await expect(page.locator(".public-install__downloads a")).toHaveCount(1);
+      await iphone.click();
+      await expect(iphone).toHaveAttribute("aria-selected", "true");
+      await expect(android).toBeVisible();
+      await expect(page.getByRole("button", { name: "نصب وب‌اپلیکیشن فیتیشن" })).toBeVisible();
+      await expect(page.getByText("Add to Home Screen", { exact: true })).toBeVisible();
+      await iphone.press("Home");
+      await expect(android).toBeFocused();
+      await expect(android).toHaveAttribute("aria-selected", "true");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    } finally { await context.close(); }
+  });
+}
+
+test("iPhone defaults to Safari instructions and can switch to Android", async ({ browser }) => {
+  const context = await browser.newContext(iphoneOptions);
+  try {
+    const page = await context.newPage();
+    await page.goto("/install", { waitUntil: "networkidle" });
+    await expect(page.getByRole("tab", { name: "آیفون" })).toHaveAttribute("aria-selected", "true");
+    await page.getByRole("button", { name: "نصب وب‌اپلیکیشن فیتیشن" }).click();
+    await expect(page.getByText("Share", { exact: true })).toBeVisible();
+    await page.getByRole("tab", { name: "اندروید" }).click();
+    await expect(page.getByRole("link", { name: "دانلود مستقیم APK" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "آیفون" })).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test("keeps the public install page dark when the saved app theme is light", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("fitician.theme", "light"));
+  await page.goto("/install", { waitUntil: "networkidle" });
+  await expect(page.locator(".public-install__title")).toHaveCSS("color", "rgb(232, 244, 241)");
+  await expect(page.locator(".public-install")).toHaveCSS("color-scheme", "dark");
 });

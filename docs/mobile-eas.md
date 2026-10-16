@@ -29,15 +29,31 @@ Configure these values in EAS environments or protected CI secret storage:
 | `EXPO_PUBLIC_API_BASE_URL` | environment value | mobile builds and updates |
 | `EXPO_PUBLIC_FRONTEND_ORIGIN` | environment value | mobile builds and updates |
 | `EAS_PROJECT_ID` | optional environment override | exceptional project tooling only |
-| `EXPO_UPDATES_URL` | environment value | mobile builds and updates |
+| `EXPO_UPDATES_URL` | optional environment value | enables OTA; without it, deliver a new signed binary |
+| `VITE_MEDIA_PUBLIC_BASE_URL` | required public HTTPS environment value | Production public media origin, shared with Web |
 | `FITICIAN_APP_LINK_HOST` | environment value | verified production associated domain |
 | `GOOGLE_SERVICES_JSON` | protected file secret | Android FCM build config |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | environment value | Google native sign-in |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | environment value | required Android Credential Manager token audience |
 | `FCM_SERVICE_ACCOUNT_JSON` | protected backend/worker secret | notification delivery |
 
 Never commit signing files, Google service files, FCM service accounts, API
 keys, or `.env` files. `GOOGLE_SERVICES_JSON` is consumed only as a protected
 file path by `app.config.ts`; it is not checked into the repository.
+
+Firebase configuration is currently optional in app config. Its absence does not
+establish push readiness: Android FCM needs the protected Google Services file,
+a configured backend delivery provider, and real token/delivery acceptance. Do not
+enable a live provider or change Production credentials as part of an APK build.
+
+Before Android store submission, retain a dedicated least-privileged reviewer
+member account with synthetic profile data and any required access grant.
+Provision it only through an explicitly authorized production-account process.
+Verify ordinary email/password sign-in on the exact release APK; provide access
+only through the private Cafe Bazaar/Myket review fields. Never commit reviewer
+credentials, reuse a real member's data, add an authentication bypass, or depend
+on the developer's personal OTP/device approval. If that account cannot be
+provided and physically verified, record reviewer access as blocked.
 
 The required commands are:
 

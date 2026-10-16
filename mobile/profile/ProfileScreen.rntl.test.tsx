@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { ScrollView } from "react-native";
 import { beforeEach, expect, jest, test } from "@jest/globals";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -180,6 +181,65 @@ test("renders the Web profile summary before the native section editor", async (
   expect(screen.getByRole("button", { name: "ویرایش پروفایل" })).toBeTruthy();
   expect(screen.getByRole("header", { name: "آخرین اندازه‌گیری وزن" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "مشاهده روند بدن" })).toBeTruthy();
+});
+
+test("Edit waits for an unmeasured personal editor", async () => {
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  const personalEditor = screen.getByTestId("profile-personal-editor");
+  const scrollView = screen.UNSAFE_getByType(ScrollView).instance;
+  const scrollTo = jest.spyOn(scrollView, "scrollTo");
+
+  fireEvent.press(screen.getByRole("button", { name: "ویرایش پروفایل" }));
+  fireEvent(personalEditor, "layout", { nativeEvent: { layout: { x: 0, y: 920, width: 340, height: 500 } } });
+
+  expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ y: 920, animated: true }));
+});
+
+test("Edit reveals the measured personal editor when it is already selected", async () => {
+  renderProfile();
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  const scrollTo = jest.spyOn(screen.UNSAFE_getByType(ScrollView).instance, "scrollTo");
+  fireEvent(screen.getByTestId("profile-personal-editor"), "layout", {
+    nativeEvent: { layout: { x: 0, y: 920, width: 340, height: 500 } },
+  });
+  fireEvent.press(screen.getByRole("button", { name: "ویرایش پروفایل" }));
+  await waitFor(() => expect(scrollTo).toHaveBeenCalledWith(
+    expect.objectContaining({ y: 920, animated: true }),
+  ));
+});
+
+test("Edit waits for the personal editor to remount from another section", async () => {
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  const scrollView = screen.UNSAFE_getByType(ScrollView).instance;
+  const scrollTo = jest.spyOn(scrollView, "scrollTo");
+  fireEvent.press(screen.getByRole("radio", { name: "تمرینی" }));
+  fireEvent.press(screen.getByRole("button", { name: "ویرایش پروفایل" }));
+  const personalEditor = screen.getByTestId("profile-personal-editor");
+  fireEvent(personalEditor, "layout", { nativeEvent: { layout: { x: 0, y: 1240, width: 340, height: 500 } } });
+
+  expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ y: 1240, animated: true }));
+});
+
+test("Edit uses the updated editor position after clearing a save notice", async () => {
+  renderProfile();
+
+  await screen.findByRole("header", { name: "پروفایل ورزشی" });
+  const personalEditor = screen.getByTestId("profile-personal-editor");
+  const scrollTo = jest.spyOn(screen.UNSAFE_getByType(ScrollView).instance, "scrollTo");
+  fireEvent.press(screen.getByRole("button", { name: "ذخیره تغییرات" }));
+  await screen.findByText("تغییرات ذخیره شد.");
+  fireEvent(personalEditor, "layout", { nativeEvent: { layout: { x: 0, y: 1100, width: 340, height: 500 } } });
+  scrollTo.mockClear();
+
+  fireEvent.press(screen.getByRole("button", { name: "ویرایش پروفایل" }));
+  expect(scrollTo).not.toHaveBeenCalled();
+  fireEvent(personalEditor, "layout", { nativeEvent: { layout: { x: 0, y: 920, width: 340, height: 500 } } });
+
+  expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ y: 920, animated: true }));
 });
 
 test("bounds the profile birth-date picker with the Core age policy", async () => {
