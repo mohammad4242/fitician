@@ -7,6 +7,7 @@
     "prepare:mediapipe": "node ./scripts/prepare-mediapipe-assets.mjs",
     "dev": "npm run prepare:mediapipe && vite",
     "build": "npm run export:exercises && npm run prepare:mediapipe && tsc -b && vite build && SEO_SERVER=1 vite build --ssr src/seo/render.tsx --outDir dist-server && node scripts/prerender.mjs",
+    "build:standalone-install": "vite build --config vite.standalone.config.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",

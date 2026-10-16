@@ -1,0 +1,35 @@
+{
+	admin off
+	https_port 8443
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
+install.fitician.fit {
+	tls {
+		issuer acme {
+			disable_tlsalpn_challenge
+		}
+	}
+	root * /srv/install
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	@apk path /download/android
+	header @apk Cache-Control no-store
+	redir @apk https://fitician-media.s3.ir-thr-at1.arvanstorage.ir/public/download/android/latest.apk 302
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	@document path / /install /install/ /index.html
+	header @document Cache-Control no-cache
+	rewrite @document /index.html
+	file_server
+}
+
+http://install.fitician.fit {
+	redir https://install.fitician.fit{uri} 308
+}

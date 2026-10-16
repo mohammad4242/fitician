@@ -114,7 +114,23 @@ const installCopy: Record<Language, {
   },
 };
 
-export function PublicInstallPage() {
+export type PublicInstallPageProps = {
+  standaloneNotice?: Record<Language, string>;
+  hideHeroDescription?: boolean;
+  storeIcons?: { cafeBazaar?: string; myket?: string };
+  continueHref?: string;
+  iosInstallHref?: string;
+  copyHref?: string;
+};
+
+export function PublicInstallPage({
+  standaloneNotice,
+  hideHeroDescription = false,
+  storeIcons,
+  continueHref = "/",
+  iosInstallHref,
+  copyHref,
+}: PublicInstallPageProps = {}) {
   const { i18n } = useTranslation();
   const language: Language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const copy = installCopy[language];
@@ -154,7 +170,7 @@ export function PublicInstallPage() {
   async function copyCurrentLink() {
     try {
       if (navigator.clipboard?.writeText === undefined) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(copyHref ?? window.location.href);
       setCopyStatus("copied");
     } catch {
       setCopyStatus("failed");
@@ -195,10 +211,11 @@ export function PublicInstallPage() {
               {heroTitle}
               {environment === "installed" && <span aria-hidden="true"> ✓</span>}
             </h1>
-            <p className="public-install__hero-description">{heroDescription}</p>
+            {!hideHeroDescription && <p className="public-install__hero-description">{heroDescription}</p>}
           </section>
 
           <div className="public-install__content">
+            {standaloneNotice && <p className="public-install__standalone-notice">{standaloneNotice[language]}</p>}
             <div className="public-install__tabs" role="tablist" aria-label={language === "fa" ? "انتخاب دستگاه" : "Choose your device"}>
               {(["android", "iphone"] as const).map((platform) => (
                 <button key={platform} id={`install-tab-${platform}`} type="button" role="tab"
@@ -227,17 +244,21 @@ export function PublicInstallPage() {
                     {language === "fa" ? "دانلود مستقیم APK" : "Download APK"}
                   </a>
                   <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {storeIcons?.cafeBazaar && <img className="public-install__store-icon" src={storeIcons.cafeBazaar} alt="" />}
                     {language === "fa" ? "دریافت از کافه بازار" : "Cafe Bazaar"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
                   <button className="public-install__button public-install__button--quiet" type="button" disabled>
+                    {storeIcons?.myket && <img className="public-install__store-icon" src={storeIcons.myket} alt="" />}
                     {language === "fa" ? "دریافت از مایکت" : "Myket"}<small>{language === "fa" ? "به‌زودی" : "Coming soon"}</small>
                   </button>
                 </div>
               )}
               {selectedPlatform === "iphone" && environment !== "installed" && (
-                <button className="public-install__button" type="button" onClick={showIosInstructions}>
-                  <StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}
-                </button>
+                iosInstallHref
+                  ? <a className="public-install__button" href={iosInstallHref}><StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}</a>
+                  : <button className="public-install__button" type="button" onClick={showIosInstructions}>
+                    <StepIcon name="add" />{language === "fa" ? "نصب وب‌اپلیکیشن فیتیشن" : "Install Fitician web app"}
+                  </button>
               )}
               {selectedPlatform === "iphone" && environment === "ios-in-app-browser" && (
                 <section className="public-install__panel public-install__panel--handoff" aria-labelledby="public-install-handoff-title">
@@ -311,7 +332,9 @@ export function PublicInstallPage() {
               )}
 
             </div>
-            <Link className="public-install__browser-link" to="/">{copy.continueAction}</Link>
+            {continueHref.startsWith("/")
+              ? <Link className="public-install__browser-link" to={continueHref}>{copy.continueAction}</Link>
+              : <a className="public-install__browser-link" href={continueHref}>{copy.continueAction}</a>}
           </div>
         </div>
 

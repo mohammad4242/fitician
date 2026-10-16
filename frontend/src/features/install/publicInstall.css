@@ -40,6 +40,19 @@
   justify-content: flex-end;
 }
 
+.public-install__standalone-notice {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--fitician-line-strong);
+  border-radius: 0.8rem;
+  color: var(--fitician-aqua);
+  background: rgb(80 223 206 / 7%);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .public-install__header .language-switcher {
   min-height: 2.5rem;
   border-color: var(--fitician-line);
@@ -212,6 +225,13 @@
   color: var(--fitician-aqua);
   font-size: 0.65rem;
   font-weight: 800;
+}
+
+.public-install__store-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .public-install__platform-panel {
