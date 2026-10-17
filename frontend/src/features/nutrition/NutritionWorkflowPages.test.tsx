@@ -740,7 +740,7 @@ it("separates physician queue views and keeps approved revisions read-only", asy
   vi.mocked(api.listPhysicianSupplementOrders).mockResolvedValue([]);
   render(<MemoryRouter><PhysicianNutritionReviewPage /></MemoryRouter>);
 
-  expect(await screen.findByRole("tab", { name: /^History/ })).toHaveTextContent("1");
+  await waitFor(() => expect(screen.getByRole("tab", { name: /^History/ })).toHaveTextContent("1"));
   await user.click(screen.getByRole("tab", { name: /^History/ }));
   await user.click(screen.getByRole("button", { name: "View revision" }));
   expect(await screen.findByTestId("physician-review-case-header")).toBeInTheDocument();
