@@ -18,6 +18,22 @@ function clientPlatform(): "web" | "ios_pwa" {
   return extendedNavigator.standalone === true && isAppleMobile ? "ios_pwa" : "web";
 }
 
+function browserOsVersion(): string {
+  if (typeof navigator === "undefined") return "unknown";
+  const agent = navigator.userAgent;
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) return "ipados:unknown";
+  for (const [category, pattern] of [
+    ["ios", /(?:iPhone|iPad|iPod).*OS (\d{1,2})(?:[_.](\d{1,2}))?/u],
+    ["android", /Android (\d{1,2})(?:\.(\d{1,2}))?/u],
+    ["windows_nt", /Windows NT (\d{1,2})(?:\.(\d{1,2}))?/u],
+    ["macos", /Mac OS X (\d{1,2})(?:[_.](\d{1,2}))?/u],
+  ] as const) {
+    const match = pattern.exec(agent);
+    if (match) return `${category}:${match[1]}${match[2] ? `.${match[2]}` : ""}`;
+  }
+  return /Linux/u.test(agent) ? "linux:unknown" : "unknown";
+}
+
 async function sendDiagnostics(events: readonly ClientDiagnosticEvent[]): Promise<void> {
   if (typeof fetch !== "function") throw new Error("diagnostics transport unavailable");
   const controller = new AbortController();
@@ -47,7 +63,7 @@ export function reportWebClientDiagnostic(
   try {
     const build = import.meta.env.VITE_APP_BUILD_SHA as unknown;
     const buildFields = typeof build === "string" && /^[a-f0-9]{7,40}$/u.test(build) ? { build } : {};
-    const event = createClientDiagnosticEvent({ ...input, ...buildFields, platform: clientPlatform(), error_code: errorCode });
+    const event = createClientDiagnosticEvent({ ...input, ...buildFields, platform: clientPlatform(), os_version: browserOsVersion(), error_code: errorCode });
     if (event !== null) queue.enqueue(event);
   } catch { /* Telemetry cannot alter the original UI or transport result. */ }
 }

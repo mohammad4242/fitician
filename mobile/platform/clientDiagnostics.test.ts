@@ -6,6 +6,7 @@ vi.mock("react-native", () => ({ Platform: { OS: "android", Version: 35 } }));
 import {
   clearMobileClientDiagnostics,
   configureMobileClientDiagnostics,
+  flushMobileClientDiagnostics,
   reportMobileClientDiagnostic,
 } from "./clientDiagnostics";
 
@@ -45,4 +46,27 @@ it("queues a privacy-safe event and suppresses telemetry recursion", async () =>
   expect(Object.keys(event).sort()).not.toContain("body");
   expect(JSON.stringify(batches)).not.toContain("private health data");
   clearMobileClientDiagnostics();
+});
+
+
+it("delivers the same bounded event after connectivity recovery and discards account-cleared events", async () => {
+  let online = false;
+  const send = vi.fn(async () => { if (!online) throw new Error("offline"); });
+  configureMobileClientDiagnostics(send);
+  reportMobileClientDiagnostic({ component: "NativeTransport", operation: "request", stage: "failed" });
+  await flushMobileClientDiagnostics();
+  expect(send).toHaveBeenCalledTimes(1);
+  online = true;
+  await flushMobileClientDiagnostics();
+  expect(send).toHaveBeenCalledTimes(2);
+  await flushMobileClientDiagnostics();
+  expect(send).toHaveBeenCalledTimes(2);
+  online = false;
+  reportMobileClientDiagnostic({ component: "NativeTransport", operation: "upload", stage: "failed" });
+  await flushMobileClientDiagnostics();
+  expect(send).toHaveBeenCalledTimes(3);
+  clearMobileClientDiagnostics();
+  online = true;
+  await flushMobileClientDiagnostics();
+  expect(send).toHaveBeenCalledTimes(3);
 });

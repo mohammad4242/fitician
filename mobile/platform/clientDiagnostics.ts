@@ -25,6 +25,10 @@ export function configureMobileClientDiagnostics(send: DiagnosticSender): void {
   });
 }
 
+export async function flushMobileClientDiagnostics(): Promise<void> {
+  try { await queue?.flush(); } catch { /* Reconnection telemetry cannot affect app state. */ }
+}
+
 export function clearMobileClientDiagnostics(): void {
   queue?.clear();
 }

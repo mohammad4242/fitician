@@ -30,7 +30,7 @@ No request bodies, raw error messages, prompts, medical forms, credentials, scre
 
 Client event times are server receipt times; an offline report can arrive later than its original failure. Correlation IDs link it to earlier server evidence.
 
-Client queues hold at most thirty safe events, deduplicate for sixty seconds and retry three times with backoff. They clear on account changes/logout. Web retries on reconnect. Queues live in memory and do not survive process termination. Identity comes from authentication at delivery, never from submitted user IDs.
+Client queues hold at most thirty safe events, deduplicate for sixty seconds and retry three times with backoff. They clear on account changes/logout. Web retries on reconnect; native delivery flushes through the existing connectivity monitor when connectivity returns. Queues live in memory and do not survive process termination. Identity comes from authentication at delivery, never from submitted user IDs.
 
 Raw events expire after thirty days; issue summaries, status history and alerts after ninety days. Maintenance runs hourly and after every hundred writer events; ingestion also prunes. Soft volume caps are 100,000 events and 10,000 rows per aggregate/history table, pruned in bounded batches. A burst can exceed a cap until the next maintenance batch. User deletion anonymizes diagnostic user references with `ON DELETE SET NULL`; entitlement reservations cascade with the user.
 
