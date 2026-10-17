@@ -324,6 +324,13 @@ class WorkoutPlanGeneration(Base):
         ),
         Index("ix_workout_plan_generations_user_id", "user_id"),
         Index(
+            "uq_workout_generation_request",
+            "user_id",
+            "request_key_hash",
+            unique=True,
+            postgresql_where=text("request_key_hash IS NOT NULL"),
+        ),
+        Index(
             "uq_workout_plan_generations_one_running_per_user",
             "user_id",
             unique=True,
@@ -338,6 +345,7 @@ class WorkoutPlanGeneration(Base):
     workout_plan_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("workout_plans.id", ondelete="SET NULL")
     )
+    request_key_hash: Mapped[str | None] = mapped_column(String(64))
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     model_id: Mapped[str] = mapped_column(String(160), nullable=False)
     provider_request_id: Mapped[str | None] = mapped_column(String(160))

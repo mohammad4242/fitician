@@ -15,6 +15,7 @@ from app.auth.service import (
 )
 from app.config import Settings, get_settings
 from app.database.session import get_db
+from app.observability.diagnostics_runtime import set_request_user
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -107,7 +108,9 @@ CurrentAuthentication = Annotated[
 ]
 
 
-def get_current_user(authentication: CurrentAuthentication) -> User:
+def get_current_user(authentication: CurrentAuthentication, request: Request) -> User:
+    request.state.diagnostics_user_id = authentication.user.id
+    set_request_user(authentication.user.id)
     return authentication.user
 
 

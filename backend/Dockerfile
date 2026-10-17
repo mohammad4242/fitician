@@ -24,4 +24,7 @@ RUN pip install --no-cache-dir . \
 
 EXPOSE 8000
 
+ARG APP_BUILD_SHA=
+ENV APP_BUILD_SHA=${APP_BUILD_SHA}
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

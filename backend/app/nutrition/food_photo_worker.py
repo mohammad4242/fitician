@@ -22,6 +22,7 @@ from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
+from app.observability.diagnostics_logs import install_diagnostic_log_bridge
 from app.observability.logging import configure_structured_logging, log_event
 from app.resilience.policy import bounded_backoff_seconds
 
@@ -470,6 +471,7 @@ async def run_worker(
     stop_event: asyncio.Event | None = None,
 ) -> None:
     configure_structured_logging()
+    install_diagnostic_log_bridge(settings)
     worker_id = _worker_id()
     requested_stop = stop_event or asyncio.Event()
     if stop_event is None:

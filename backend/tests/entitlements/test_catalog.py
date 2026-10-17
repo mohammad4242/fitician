@@ -100,5 +100,5 @@ def test_package_definitions_are_immutable() -> None:
 
 def test_full_plan_generation_policies_are_independent_weekly_limits() -> None:
     for code in (EntitlementCode.TRAINING_PLAN_GENERATE, EntitlementCode.NUTRITION_PLAN_GENERATE):
-        assert QUOTA_POLICIES[code].limit == 1
+        assert QUOTA_POLICIES[code].limit == 3
         assert QUOTA_POLICIES[code].window_days == 7

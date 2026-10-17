@@ -5,8 +5,12 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.models import User
+from app.entitlements.enums import EntitlementCode
+from app.entitlements.reservations import finalize_reservation, release_reservation
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.workout_reviews.diff import build_coach_difference_summary
@@ -233,6 +237,12 @@ class WorkoutReviewService:
                 active.id if active is not None and active.id != review.source_plan_id else None
             ),
         )
+        finalize_reservation(
+            self._db,
+            review.user_id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            f"workout-plan:{review.source_plan_id}",
+        )
         review.status = WorkoutReviewStatus.APPROVED
         review.approved_plan_id = proposal.id
         review.approved_at = now
@@ -342,6 +352,12 @@ class WorkoutReviewService:
             previous_active_plan_id=active.id if active is not None else None,
         )
         self._db.flush()
+        finalize_reservation(
+            self._db,
+            review.user_id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            f"workout-plan:{review.source_plan_id}",
+        )
         review.status = WorkoutReviewStatus.APPROVED
         review.approved_plan_id = approved.id
         review.approved_at = now
@@ -374,11 +390,22 @@ class WorkoutReviewService:
         if not normalized_explanation:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_EXPLANATION_REQUIRED)
         review.coach_note = normalized_explanation
+        release_reservation(
+            self._db,
+            review.user_id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            f"workout-plan:{review.source_plan_id}",
+        )
         review.status = WorkoutReviewStatus.REJECTED
         self._db.commit()
         return review
 
     def _required_review(self, review_id: UUID) -> WorkoutPlanReview:
+        owner_id = self._db.scalar(
+            select(WorkoutPlanReview.user_id).where(WorkoutPlanReview.id == review_id)
+        )
+        if owner_id is not None:
+            self._db.scalar(select(User.id).where(User.id == owner_id).with_for_update())
         review = get_review_for_update(self._db, review_id)
         if review is None:
             raise ReviewConflict(WorkoutReviewErrorCode.REVIEW_NOT_FOUND)

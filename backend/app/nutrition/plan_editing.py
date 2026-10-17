@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.body_analysis.enums import SpecialistRole
 from app.entitlements.enums import EntitlementCode
+from app.entitlements.reservations import finalize_reservation, release_reservation
 from app.entitlements.service import consume_quota
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
@@ -1289,6 +1290,13 @@ def physician_action(
         require_physician(db, physician_id)
     except ClinicalError as error:
         raise PlanEditError("PHYSICIAN_ROLE_REQUIRED") from error
+    from app.auth.models import User
+
+    owner_id = db.scalar(
+        select(NutritionWeeklyPlan.user_id).where(NutritionWeeklyPlan.id == plan_id)
+    )
+    if owner_id is not None:
+        db.scalar(select(User.id).where(User.id == owner_id).with_for_update())
     plan = db.scalar(_query().where(NutritionWeeklyPlan.id == plan_id).with_for_update())
     if plan is None:
         raise PlanEditError("NUTRITION_PLAN_NOT_FOUND")
@@ -1342,6 +1350,13 @@ def physician_action(
             or plan.budget_status == NutritionPlanBudgetStatus.OVER_BUDGET
         ):
             raise PlanEditError("PLAN_HARD_INVARIANTS_FAILED")
+        if plan.generation.bundle_id is not None:
+            finalize_reservation(
+                db,
+                plan.user_id,
+                EntitlementCode.NUTRITION_PLAN_GENERATE,
+                f"nutrition-plan-bundle:{plan.generation.bundle_id}",
+            )
         plan.review.status = NutritionPlanReviewStatus.APPROVED
         plan.review.reviewed_at = now
         plan.lifecycle_status = NutritionPlanLifecycleStatus.READY_TO_START
@@ -1359,6 +1374,13 @@ def physician_action(
             NutritionPlanReviewStatus.AWAITING_LAB_INFORMATION,
         }:
             raise PlanEditError("REVIEW_NOT_IN_PROGRESS")
+        if plan.generation.bundle_id is not None:
+            release_reservation(
+                db,
+                plan.user_id,
+                EntitlementCode.NUTRITION_PLAN_GENERATE,
+                f"nutrition-plan-bundle:{plan.generation.bundle_id}",
+            )
         plan.review.status = NutritionPlanReviewStatus.REJECTED
         plan.review.reviewed_at = now
         plan.lifecycle_status = NutritionPlanLifecycleStatus.REJECTED

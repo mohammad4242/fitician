@@ -16,6 +16,7 @@ from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import cancel_tasks, install_async_signal_handlers
 from app.nutrition.price_scheduler import scheduler_loop
 from app.nutrition.retention_scheduler import retention_scheduler_loop
+from app.observability.diagnostics_logs import install_diagnostic_log_bridge
 from app.observability.logging import configure_structured_logging
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ async def run_scheduler(
     stop_event: asyncio.Event | None = None,
 ) -> None:
     configure_structured_logging()
+    install_diagnostic_log_bridge(settings)
     """Run all periodic loops in one independently deployable process."""
     requested_stop = stop_event or asyncio.Event()
     if stop_event is None:

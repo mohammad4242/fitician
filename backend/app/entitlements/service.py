@@ -21,7 +21,11 @@ from app.entitlements.exceptions import (
     EntitlementQuotaExceededError,
     EntitlementRequiredError,
 )
-from app.entitlements.models import EntitlementUsageEvent, UserAccessGrant
+from app.entitlements.models import (
+    EntitlementQuotaReservation,
+    EntitlementUsageEvent,
+    UserAccessGrant,
+)
 
 VALID_ACCESS_TERM_WEEKS = frozenset({4, 6, 8})
 
@@ -205,12 +209,39 @@ def quota_status(
     used = (
         db.scalar(select(func.count()).select_from(EntitlementUsageEvent).where(*base_filter)) or 0
     )
+    reserved = (
+        db.scalar(
+            select(func.count())
+            .select_from(EntitlementQuotaReservation)
+            .where(
+                EntitlementQuotaReservation.user_id == user_id,
+                EntitlementQuotaReservation.entitlement_key == code.value,
+                EntitlementQuotaReservation.created_at > window_start,
+                EntitlementQuotaReservation.created_at <= reference,
+            )
+        )
+        or 0
+    )
     first_event = db.scalar(
         select(EntitlementUsageEvent.occurred_at)
         .where(*base_filter)
         .order_by(asc(EntitlementUsageEvent.occurred_at))
         .limit(1)
     )
+    first_reservation = db.scalar(
+        select(func.min(EntitlementQuotaReservation.created_at)).where(
+            EntitlementQuotaReservation.user_id == user_id,
+            EntitlementQuotaReservation.entitlement_key == code.value,
+            EntitlementQuotaReservation.created_at > window_start,
+            EntitlementQuotaReservation.created_at <= reference,
+        )
+    )
+    if first_reservation is not None:
+        first_event = (
+            min(_utc_now(first_event), _utc_now(first_reservation))
+            if first_event
+            else first_reservation
+        )
     reset_at = (
         _utc_now(first_event) + timedelta(days=policy.window_days)
         if first_event is not None
@@ -220,7 +251,7 @@ def quota_status(
         entitlement=code,
         limit=policy.limit,
         used=int(used),
-        remaining=max(0, policy.limit - int(used)),
+        remaining=max(0, policy.limit - int(used) - int(reserved)),
         window_days=policy.window_days,
         reset_at=reset_at,
     )
@@ -273,6 +304,17 @@ def consume_quota(
     if existing is not None:
         return False
 
+    # Finalize this resource reservation under the same user lock and transaction.
+    reservation = db.scalar(
+        select(EntitlementQuotaReservation).where(
+            EntitlementQuotaReservation.user_id == user_id,
+            EntitlementQuotaReservation.entitlement_key == code.value,
+            EntitlementQuotaReservation.resource_key == resource_key,
+        )
+    )
+    if reservation is not None:
+        db.delete(reservation)
+        db.flush()
     require_entitlement(db, user_id, code, now=reference)
     status = quota_status(db, user_id, code, now=reference)
     if status is None:  # Only full-plan generation policies exempt admins.

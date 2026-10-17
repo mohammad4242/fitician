@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -969,21 +969,12 @@ def test_weekly_full_generation_quota_and_admin_review_exemption(client, db, adm
     if not admin:
         assert events[0].resource_key == f"nutrition-plan-bundle:{first.json()['bundle_id']}"
     second = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
-    if admin:
-        assert second.status_code == 201
-        assert second.json()["outcome"] == "success"
-        assert db.query(NutritionPlanPhysicianReview).count() == 2
-        assert db.query(EntitlementUsageEvent).count() == 0
-    else:
-        assert second.status_code == 429
-        assert second.json()["detail"]["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
-        assert second.json()["detail"]["meta"]["reset_at"]
-        assert int(second.headers["Retry-After"]) > 0
-        events[0].occurred_at = datetime.now(UTC) - timedelta(days=7, seconds=1)
-        db.commit()
-        third = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
-        assert third.status_code == 201
-        assert third.json()["outcome"] == "success"
+    assert second.status_code == 201
+    assert second.json()["bundle_id"] == first.json()["bundle_id"]
+    assert db.query(NutritionWeeklyPlan).count() == 2
+    assert db.query(EntitlementUsageEvent).filter_by(
+        entitlement_key=EntitlementCode.NUTRITION_PLAN_GENERATE.value
+    ).count() == (0 if admin else 1)
 
 
 def test_final_nutrition_quota_check_rolls_back_the_entire_bundle(client, db, monkeypatch):
@@ -993,9 +984,13 @@ def test_final_nutrition_quota_check_rolls_back_the_entire_bundle(client, db, mo
     _register_and_estimate(client, db, "nutrition-quota-race@example.com")
     _seed_foods_and_prices(db)
     user = db.scalar(select(User).where(User.email == "nutrition-quota-race@example.com"))
-    consume_quota(
-        db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE, "nutrition-plan-bundle:competing"
-    )
+    for index in range(3):
+        consume_quota(
+            db,
+            user.id,
+            EntitlementCode.NUTRITION_PLAN_GENERATE,
+            f"nutrition-plan-bundle:competing:{index}",
+        )
     db.commit()
     check = plan_service.require_quota_available
 
@@ -1010,4 +1005,133 @@ def test_final_nutrition_quota_check_rolls_back_the_entire_bundle(client, db, mo
     assert error.value.entitlement is EntitlementCode.NUTRITION_PLAN_GENERATE
     assert db.query(NutritionWeeklyPlan).count() == 0
     assert db.query(NutritionPlanBundle).count() == 0
-    assert db.query(EntitlementUsageEvent).count() == 1
+    assert db.query(EntitlementUsageEvent).count() == 3
+
+
+def test_three_distinct_nutrition_bundles_then_fourth_rejected_without_partial_rows(client, db):
+    email = "nutrition-three-generations@example.com"
+    _register_and_estimate(client, db, email, package=AccessPackageCode.NUTRITION)
+    _seed_foods_and_prices(db)
+    user = db.scalar(select(User).where(User.email == email))
+    profile = db.get(NutritionProfile, user.id)
+    identifiers = set()
+    for _ in range(3):
+        profile.individual_monthly_food_budget_irr += 1_000_000
+        db.commit()
+        response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+        assert response.status_code == 201 and response.json()["outcome"] == "success"
+        identifiers.add(response.json()["bundle_id"])
+        retry = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+        assert retry.json()["bundle_id"] == response.json()["bundle_id"]
+    assert len(identifiers) == 3
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.NUTRITION_PLAN_GENERATE.value)
+        .count()
+        == 3
+    )
+    profile.individual_monthly_food_budget_irr += 1_000_000
+    db.commit()
+    assert client.post("/api/v1/nutrition/plans", headers=ORIGIN).status_code == 429
+    assert db.query(NutritionPlanBundle).filter_by(user_id=user.id).count() == 3
+
+
+def test_input_change_during_construction_rolls_back_without_a_charge(client, db, monkeypatch):
+    from sqlalchemy import update
+
+    email = "nutrition-input-race@example.com"
+    _register_and_estimate(client, db, email, package=AccessPackageCode.NUTRITION)
+    _seed_foods_and_prices(db)
+    user = db.scalar(select(User).where(User.email == email))
+    compare = plan_service.compare_plans
+
+    def change_inputs(*args, **kwargs):
+        result = compare(*args, **kwargs)
+        db.execute(
+            update(NutritionProfile)
+            .where(NutritionProfile.user_id == user.id)
+            .values(individual_monthly_food_budget_irr=1)
+        )
+        return result
+
+    monkeypatch.setattr(plan_service, "compare_plans", change_inputs)
+    response = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "NUTRITION_GENERATION_INPUTS_CHANGED"
+    assert db.query(NutritionPlanBundle).count() == 0
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(entitlement_key=EntitlementCode.NUTRITION_PLAN_GENERATE.value)
+        .count()
+        == 0
+    )
+
+
+def test_consumption_history_does_not_make_each_unchanged_retry_generate_again(client, db):
+    from uuid import UUID
+
+    from app.nutrition.enums import NutritionConsumptionSource
+    from app.nutrition.models import NutritionConsumptionEntry
+
+    email = "nutrition-history-retry@example.com"
+    _register_and_estimate(client, db, email, package=AccessPackageCode.NUTRITION)
+    _seed_foods_and_prices(db)
+    first = client.post("/api/v1/nutrition/plans", headers=ORIGIN).json()
+    user = db.scalar(select(User).where(User.email == email))
+    plan = first["budget_plan"]
+    meal = plan["days"][0]["meals"][0]
+    db.add(
+        NutritionConsumptionEntry(
+            user_id=user.id,
+            entry_date=date.today(),
+            plan_revision_id=UUID(plan["id"]),
+            planned_meal_id=UUID(meal["id"]),
+            display_name="Synthetic test meal",
+            quantity_grams=Decimal(100),
+            source=NutritionConsumptionSource.PLANNED_CONFIRMED,
+            confidence=EstimateConfidence.HIGH,
+            user_confirmed=True,
+            nutrients={},
+            warning_codes=[],
+        )
+    )
+    profile = db.get(NutritionProfile, user.id)
+    profile.individual_monthly_food_budget_irr += 1_000_000
+    db.commit()
+    second = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert second.status_code == 201 and second.json()["outcome"] == "success"
+    retry = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
+    assert retry.status_code == 201
+    assert retry.json()["bundle_id"] == second.json()["bundle_id"]
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.NUTRITION_PLAN_GENERATE.value)
+        .count()
+        == 2
+    )
+
+
+def test_nutrition_request_key_retrieves_commit_and_never_charges_changed_retry(client, db):
+    email = "nutrition-request-key@example.com"
+    _register_and_estimate(client, db, email, package=AccessPackageCode.NUTRITION)
+    _seed_foods_and_prices(db)
+    user = db.scalar(select(User).where(User.email == email))
+    key = "stable-nutrition-request-after-timeout"
+    headers = {**ORIGIN, "Idempotency-Key": key}
+    first = client.post("/api/v1/nutrition/plans", headers=headers)
+    assert first.status_code == 201 and first.json()["outcome"] == "success"
+    retry = client.post("/api/v1/nutrition/plans", headers=headers)
+    assert retry.status_code == 201 and retry.json()["bundle_id"] == first.json()["bundle_id"]
+    profile = db.get(NutritionProfile, user.id)
+    profile.individual_monthly_food_budget_irr += 1_000_000
+    db.commit()
+    rejected = client.post("/api/v1/nutrition/plans", headers=headers)
+    assert rejected.status_code == 409
+    assert db.query(NutritionPlanBundle).filter_by(user_id=user.id).count() == 1
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.NUTRITION_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+    assert key != db.query(NutritionPlanBundle).one().request_key_hash

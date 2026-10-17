@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
 from uuid import UUID
 
+from fastapi import HTTPException
 from sqlalchemy import Select, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -15,7 +16,14 @@ from app.auth.models import User
 from app.body_analysis.enums import SpecialistRole
 from app.entitlements.enums import AccessPackageCode, EntitlementCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
-from app.entitlements.service import consume_quota, require_quota_available
+from app.entitlements.generation_requests import (
+    current_key_hash,
+    generation_request,
+    key_hash,
+    require_compatible_outcome,
+)
+from app.entitlements.reservations import reserve_quota
+from app.entitlements.service import consume_quota, require_entitlement, require_quota_available
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import specialist_user_ids
@@ -56,6 +64,7 @@ from app.nutrition.exceptions import (
     StructuredExerciseRequiredError,
     WeeklyPlanBundleNotFoundError,
 )
+from app.nutrition.generation_fingerprint import generation_source_fingerprint
 from app.nutrition.medical_context import current_medical_safety_decision
 from app.nutrition.models import (
     NutritionCatalogueFood,
@@ -147,6 +156,7 @@ from app.nutrition.schemas import (
     WeeklyPlanResponse,
 )
 from app.nutrition.service import current_safety_decision
+from app.observability.diagnostics_runtime import bind_resource, bind_version, emit, set_stage
 from app.profile.models import UserProfile
 from app.profile.review_summary import ReviewProfileSummary
 from app.time_context import local_date_for_timezone, member_timezone_or_default
@@ -351,17 +361,23 @@ def _backfill_comparison_metrics(
     return comp
 
 
-def generate_weekly_plan(
+def _generate_weekly_plan(
     db: Session,
     user_id: UUID,
     *,
     physician_review_allowed: bool = False,
     now: datetime | None = None,
 ) -> WeeklyPlanGenerationResponse:
+    bind_version(PLANNER_VERSION)
     reference = now or datetime.now(UTC)
-    require_quota_available(db, user_id, EntitlementCode.NUTRITION_PLAN_GENERATE, now=reference)
+    # Serialize reuse, persistence, and quota decisions for this member.
+    _lock_user_for_plan_lifecycle(db, user_id)
+    require_entitlement(db, user_id, EntitlementCode.NUTRITION_PLAN_GENERATE, now=reference)
     user = db.get(User, user_id)
     generation_admin_exempt = user is not None and user.is_admin
+    source_fingerprint = generation_source_fingerprint(db, user_id)
+    user_input_fingerprint = generation_source_fingerprint(db, user_id, include_catalogue=False)
+    set_stage("medical_safety", component="nutrition_engine")
     safety = current_safety_decision(db, user_id)
     if (
         safety.outcome is SafetyOutcome.AUTOMATIC_DRAFT_REQUIRES_PHYSICIAN_REVIEW
@@ -374,6 +390,7 @@ def generate_weekly_plan(
                 AccessPackageCode.COMPLETE_CARE,
             ),
         )
+    set_stage("profile_completeness")
     profile = db.get(NutritionProfile, user_id)
     if safety.outcome in {
         SafetyOutcome.PHYSICIAN_MANUAL_PLAN_REQUIRED,
@@ -419,7 +436,8 @@ def generate_weekly_plan(
         return _generation_response(generation, None)
 
     try:
-        estimate_response = create_estimate(db, user_id)
+        set_stage("nutrition_estimate")
+        estimate_response = create_estimate(db, user_id, commit=False)
     except GoalReselectionRequiredDomainError:
         generation = _persist_generation(
             db,
@@ -473,6 +491,7 @@ def generate_weekly_plan(
     food_items = db.scalars(
         select(NutritionFoodItem).where(NutritionFoodItem.user_id == user_id)
     ).all()
+    set_stage("dietary_constraints")
     normalized_constraints = constraints_for_items(db, food_items)
     unresolved_hard = tuple(
         c for c in normalized_constraints if c.code == "UNRESOLVED_HARD_FOOD_CONSTRAINT"
@@ -507,6 +526,7 @@ def generate_weekly_plan(
     disliked_food_ids = preference_snapshot.disliked_food_ids
     liked_meal_ids = preference_snapshot.liked_meal_ids
     disliked_meal_ids = preference_snapshot.disliked_meal_ids
+    set_stage("catalogue_availability")
     foods, price_snapshot, food_manifest = _planner_foods(db)
     meal_templates, meal_manifest = _planner_meal_templates(db)
     programs = list_programs(db)
@@ -538,6 +558,7 @@ def generate_weekly_plan(
             )
             for prog in programs
         }
+        set_stage("budget_and_program_selection")
         base_selection_result = rank_base_programs(
             programs,
             normalized_request,
@@ -619,6 +640,64 @@ def generate_weekly_plan(
         "nutrition_program_id": None,
         "nutrition_program_code": None,
     }
+    # Hash meaningful normalized inputs and the exact current engine catalogue.
+    # The preimage stays in the existing private generation snapshot, never diagnostics.
+    reuse_signature = sha256(
+        json.dumps(
+            {
+                "input": {
+                    **base_input_snapshot,
+                    # Unconsumed newly generated meals are not new member input.
+                    "historical_meal_adherence": [],
+                    "source_fingerprint": user_input_fingerprint,
+                },
+                "foods": [asdict(item) for item in foods],
+                "meals": [asdict(item) for item in meal_templates],
+                "programs": [
+                    {
+                        "id": str(item.id),
+                        "code": item.code,
+                        "diet_style": item.diet_style.value,
+                        "budget_tier": str(item.budget_tier_hint),
+                        "post_workout_enabled": item.post_workout_enabled,
+                        "days": [
+                            [
+                                day.day_number,
+                                day.post_workout_enabled,
+                                [
+                                    [slot.kind.value, slot.category.value, str(slot.meal_id)]
+                                    for slot in day.slots
+                                ],
+                            ]
+                            for day in item.days
+                        ],
+                    }
+                    for item in programs
+                ],
+                "review_required": physician_review_allowed,
+                "planner_version": PLANNER_VERSION,
+            },
+            sort_keys=True,
+            default=str,
+        ).encode()
+    ).hexdigest()
+    set_stage("reuse_evaluation")
+    previous = _reusable_nutrition_bundle(db, user_id, reuse_signature, reference)
+    if previous is not None:
+        require_compatible_outcome(previous.bundle_id)
+        emit(
+            category="unknown",
+            severity="info",
+            error_code="EXISTING_PLAN_REUSED",
+            outcome="reused",
+            resource_id=previous.bundle_id,
+            input_fingerprint=reuse_signature,
+        )
+        return previous
+    require_compatible_outcome(None)
+    set_stage("quota_availability")
+    require_quota_available(db, user_id, EntitlementCode.NUTRITION_PLAN_GENERATE, now=reference)
+    base_input_snapshot["reuse_signature"] = reuse_signature
     base_planner_input = PlannerInput(
         daily_targets=targets,
         maintenance_calories=next(
@@ -654,6 +733,7 @@ def generate_weekly_plan(
     evaluations: tuple[CandidateEvaluation, ...] = ()
     fallback_batches = 0
 
+    set_stage("meal_construction")
     if base_candidates:
         blueprint, evaluations, fallback_batches = _construct_frozen_base_blueprint(
             candidates=base_candidates,
@@ -795,6 +875,7 @@ def generate_weekly_plan(
             round(budget_result.minimum_feasible_weekly_cost_irr * Decimal("30") / Decimal("7"))
         )
 
+    set_stage("candidate_comparison")
     comparison_report = compare_plans(
         user_monthly_budget_irr=profile.individual_monthly_food_budget_irr,
         budget_plan_result=budget_result
@@ -813,6 +894,13 @@ def generate_weekly_plan(
                 warning_codes=(*budget_result.warning_codes, "BUDGET_PLAN_PROTEIN_PREFERRED_GAP"),
             )
 
+    set_stage("input_consistency_validation")
+    if (
+        generation_source_fingerprint(db, user_id) != source_fingerprint
+        or _planner_foods(db)[0] != foods
+    ):
+        raise HTTPException(409, detail={"code": "NUTRITION_GENERATION_INPUTS_CHANGED"})
+    set_stage("plan_persistence")
     bundle = NutritionPlanBundle(
         user_id=user_id,
         estimate_id=estimate.id,
@@ -820,6 +908,7 @@ def generate_weekly_plan(
     )
     db.add(bundle)
     db.flush()
+    bind_resource(bundle.id, fingerprint=reuse_signature)
 
     budget_input_snapshot = {
         **base_input_snapshot,
@@ -972,6 +1061,7 @@ def generate_weekly_plan(
     ):
         selected_plan = budget_plan_model or ideal_plan_model
         if selected_plan is not None:
+            set_stage("review_lifecycle" if physician_review_allowed else "activation")
             _finalize_selected_plan(
                 db,
                 bundle=bundle,
@@ -990,18 +1080,24 @@ def generate_weekly_plan(
 
     try:
         if budget_plan_model is not None or ideal_plan_model is not None:
-            consume_quota(
+            bundle.request_key_hash = current_key_hash()
+            # Both valid direct candidates can be selected immediately; review candidates cannot.
+            usable = not physician_review_allowed
+            set_stage("quota_consumption" if usable else "quota_reservation")
+            (consume_quota if usable else reserve_quota)(
                 db,
                 user_id,
                 EntitlementCode.NUTRITION_PLAN_GENERATE,
                 f"nutrition-plan-bundle:{bundle.id}",
                 now=now,
             )
+        set_stage("transaction_commit")
         db.commit()
     except (SQLAlchemyError, EntitlementQuotaExceededError, EntitlementRequiredError):
         db.rollback()
         raise
 
+    set_stage("response_serialization")
     loaded_budget_plan = _load_plan(db, budget_plan_model.id) if budget_plan_model else None
     loaded_ideal_plan = _load_plan(db, ideal_plan_model.id) if ideal_plan_model else None
 
@@ -1044,6 +1140,15 @@ def generate_weekly_plan(
         NutritionPlanGenerationOutcome.SUCCESS.value
         if (loaded_budget_plan is not None or loaded_ideal_plan is not None)
         else budget_generation.outcome.value
+    )
+    emit(
+        category="unknown",
+        severity="info",
+        error_code="PLAN_PENDING_REVIEW" if physician_review_allowed else "PLAN_CREATED",
+        outcome="pending_review" if physician_review_allowed else "success",
+        resource_id=bundle.id,
+        version=PLANNER_VERSION,
+        input_fingerprint=reuse_signature,
     )
     return WeeklyPlanGenerationResponse(
         generation_id=budget_generation.id,
@@ -1661,6 +1766,13 @@ def _finalize_selected_plan(
             if other_plan.lifecycle_status is not NutritionPlanLifecycleStatus.ACTIVE:
                 other_plan.lifecycle_status = NutritionPlanLifecycleStatus.ARCHIVED
 
+    (reserve_quota if physician_review_allowed else consume_quota)(
+        db,
+        target_plan.user_id,
+        EntitlementCode.NUTRITION_PLAN_GENERATE,
+        f"nutrition-plan-bundle:{bundle.id}",
+        now=reference,
+    )
     bundle.selected_plan_id = target_plan.id
     bundle.selected_plan_role = target_role
     bundle.selected_at = reference
@@ -2779,6 +2891,17 @@ def _generation_response(
     ideal_plan: NutritionWeeklyPlan | None = None,
     comparison: PlanComparisonResponse | None = None,
 ) -> WeeklyPlanGenerationResponse:
+    if plan is None:
+        blocked = generation.outcome is NutritionPlanGenerationOutcome.SAFETY_BLOCKED
+        emit(
+            category="safety_restriction" if blocked else "engine_validation",
+            severity="warning" if blocked else "error",
+            error_code=str(
+                next(iter(generation.reason_codes or []), "NUTRITION_GENERATION_FAILED")
+            ).upper()[:64],
+            outcome="blocked" if blocked else "failure",
+            resource_id=generation.id,
+        )
     plan_resp = weekly_plan_response(plan, db=db) if plan else None
     budget_resp = weekly_plan_response(budget_plan, db=db) if budget_plan else plan_resp
     ideal_resp = weekly_plan_response(ideal_plan, db=db) if ideal_plan else None
@@ -2866,3 +2989,89 @@ def _nutrient_unit(code: str, metadata: dict[str, dict[str, object]]) -> str:
 
 def _reference_kind(code: str, metadata: dict[str, dict[str, object]]) -> str | None:
     return str(metadata[code]["reference_kind"]) if code in metadata else None
+
+
+def _reusable_nutrition_bundle(
+    db: Session, user_id: UUID, signature: str, now: datetime
+) -> WeeklyPlanGenerationResponse | None:
+    bundle = db.scalar(
+        select(NutritionPlanBundle)
+        .where(NutritionPlanBundle.user_id == user_id)
+        .order_by(NutritionPlanBundle.created_at.desc())
+        .limit(1)
+    )
+    if bundle is None:
+        return None
+    generations = db.scalars(
+        select(NutritionPlanGeneration).where(NutritionPlanGeneration.bundle_id == bundle.id)
+    ).all()
+    plans = db.scalars(
+        _plan_query().where(
+            NutritionWeeklyPlan.generation_id.in_([item.id for item in generations])
+        )
+    ).all()
+    eligible = {
+        NutritionPlanLifecycleStatus.GENERATED,
+        NutritionPlanLifecycleStatus.PENDING_PHYSICIAN_REVIEW,
+        NutritionPlanLifecycleStatus.PHYSICIAN_REVIEW_IN_PROGRESS,
+        NutritionPlanLifecycleStatus.AWAITING_LAB_INFORMATION,
+        NutritionPlanLifecycleStatus.CHANGES_REQUESTED,
+        NutritionPlanLifecycleStatus.READY_TO_START,
+        NutritionPlanLifecycleStatus.ACTIVE,
+        NutritionPlanLifecycleStatus.PHYSICIAN_APPROVED,
+    }
+    if not plans or not all(
+        item.input_snapshot.get("reuse_signature") == signature for item in plans
+    ):
+        return None
+    visible = (
+        [item for item in plans if item.id == bundle.selected_plan_id]
+        if bundle.selected_plan_id
+        else plans
+    )
+    if not visible or any(
+        item.lifecycle_status not in eligible
+        or (
+            item.review is not None
+            and item.review.status
+            in {
+                NutritionPlanReviewStatus.REJECTED,
+                NutritionPlanReviewStatus.INVALIDATED_BY_REVISION,
+            }
+        )
+        or (item.started_at is not None and item.start_date + timedelta(days=7) <= now.date())
+        for item in visible
+    ):
+        return None
+    return latest_plan_bundle(db, user_id)
+
+
+def generate_weekly_plan(
+    db: Session,
+    user_id: UUID,
+    *,
+    physician_review_allowed: bool = False,
+    now: datetime | None = None,
+    idempotency_key: str | None = None,
+) -> WeeklyPlanGenerationResponse:
+    """Rollback every incomplete generation, including failures during lifecycle finalization."""
+    try:
+        request_hash = key_hash(idempotency_key)
+        _lock_user_for_plan_lifecycle(db, user_id)
+        existing = (
+            db.scalar(
+                select(NutritionPlanBundle.id).where(
+                    NutritionPlanBundle.user_id == user_id,
+                    NutritionPlanBundle.request_key_hash == request_hash,
+                )
+            )
+            if request_hash
+            else None
+        )
+        with generation_request(request_hash, existing):
+            return _generate_weekly_plan(
+                db, user_id, physician_review_allowed=physician_review_allowed, now=now
+            )
+    except BaseException:
+        db.rollback()
+        raise

@@ -158,6 +158,8 @@ def test_full_generation_rolling_boundary_and_idempotency(db: Session, code) -> 
     now = datetime.now(UTC)
     assert consume_quota(db, user.id, code, "plan:first", now=now)
     assert not consume_quota(db, user.id, code, "plan:first", now=now)
+    consume_quota(db, user.id, code, "plan:additional-1", now=now)
+    consume_quota(db, user.id, code, "plan:additional-2", now=now)
     with pytest.raises(EntitlementQuotaExceededError):
         require_quota_available(db, user.id, code, now=now + timedelta(days=7, microseconds=-1))
     assert consume_quota(db, user.id, code, "plan:second", now=now + timedelta(days=7))
@@ -194,6 +196,12 @@ def test_concurrent_generation_consumption_is_serialized(db: Session, same_resou
         setup.flush()
         grant_package(setup, user.id, AccessPackageCode.TRAINING)
         user_id = user.id
+        consume_quota(
+            setup, user_id, EntitlementCode.TRAINING_PLAN_GENERATE, "workout-plan:prior-1"
+        )
+        consume_quota(
+            setup, user_id, EntitlementCode.TRAINING_PLAN_GENERATE, "workout-plan:prior-2"
+        )
         setup.commit()
     barrier = Barrier(2)
 
@@ -227,10 +235,54 @@ def test_concurrent_generation_consumption_is_serialized(db: Session, same_resou
                         )
                     ).all()
                 )
-                == 1
+                == 3
             )
     finally:
         with Session(engine) as cleanup:
             cleanup.execute(delete(User).where(User.id == user_id))
             cleanup.commit()
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "code", [EntitlementCode.TRAINING_PLAN_GENERATE, EntitlementCode.NUTRITION_PLAN_GENERATE]
+)
+def test_three_new_plans_allowed_and_fourth_blocked(db: Session, code) -> None:
+    user = make_user(db)
+    now = datetime.now(UTC)
+    for number in range(3):
+        assert consume_quota(db, user.id, code, f"new-plan:{number}", now=now)
+    status = quota_status(db, user.id, code, now=now)
+    assert status is not None and status.used == 3 and status.remaining == 0
+    assert not consume_quota(db, user.id, code, "new-plan:0", now=now)
+    with pytest.raises(EntitlementQuotaExceededError):
+        consume_quota(db, user.id, code, "new-plan:fourth", now=now)
+
+
+def test_pending_review_reserves_capacity_without_charging_and_rejection_releases(
+    db: Session,
+) -> None:
+    from app.entitlements.reservations import release_reservation, reserve_quota
+
+    user = make_user(db)
+    code = EntitlementCode.TRAINING_PLAN_GENERATE
+    for number in range(3):
+        reserve_quota(db, user.id, code, f"review:{number}")
+    state = quota_status(db, user.id, code)
+    assert state is not None and state.used == 0 and state.remaining == 0
+    with pytest.raises(EntitlementQuotaExceededError):
+        reserve_quota(db, user.id, code, "review:fourth")
+    release_reservation(db, user.id, code, "review:0")
+    assert consume_quota(db, user.id, code, "review:1")
+    state = quota_status(db, user.id, code)
+    assert state is not None and state.used == 1 and state.remaining == 1
+    assert not consume_quota(db, user.id, code, "review:1")
+
+
+def test_generation_charge_rollback_removes_usage(db: Session) -> None:
+    user = make_user(db)
+    with db.begin_nested() as transaction:
+        consume_quota(db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE, "rollback:plan")
+        transaction.rollback()
+    state = quota_status(db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE)
+    assert state is not None and state.used == 0

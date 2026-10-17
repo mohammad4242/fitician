@@ -1389,12 +1389,22 @@ class NutritionPlannerPolicyVersion(Base):
 
 class NutritionPlanBundle(Base):
     __tablename__ = "nutrition_plan_bundles"
-    __table_args__ = (Index("ix_nutrition_plan_bundles_user_created", "user_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_nutrition_plan_bundles_user_created", "user_id", "created_at"),
+        Index(
+            "uq_nutrition_bundle_request",
+            "user_id",
+            "request_key_hash",
+            unique=True,
+            postgresql_where=sql_text("request_key_hash IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    request_key_hash: Mapped[str | None] = mapped_column(String(64))
     estimate_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("nutrition_estimates.id", ondelete="RESTRICT"), nullable=True
     )
