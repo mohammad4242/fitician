@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="enamad" content="74257848" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script id="ios-pwa-environment">
+      (function () {
+        var ios = /iPad|iPhone|iPod/i.test(navigator.userAgent)
+          || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+        var installed = navigator.standalone === true
+          || typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches;
+        document.documentElement.dataset.iosPwa = String(ios && installed);
+      })();
+    </script>
+    <style>
+      /* Hide browser prerender until the installed iOS welcome takes ownership. */
+      html[data-ios-pwa="true"] #root[data-prerendered="true"] > .public-landing { visibility: hidden; }
+    </style>
     <meta name="theme-color" content="#020607" />
     <script>
       (function () {
