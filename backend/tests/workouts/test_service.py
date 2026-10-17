@@ -2498,3 +2498,52 @@ def test_workout_request_key_returns_committed_outcome_and_rejects_changed_input
         == 1
     )
     assert key not in str(db.query(WorkoutPlanGeneration).one().request_key_hash)
+
+
+def test_same_request_key_committed_after_initial_read_rejects_different_inputs(db, monkeypatch):
+    from fastapi import HTTPException
+
+    user = _user_with_profile(db)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    profile = get_profile(db, user.id).profile
+    profile.training_days_per_week = 4
+    profile.preferred_weekdays = [0, 1, 3, 5]
+    _seed_candidates(db)
+    service = _service(db)
+    key = "concurrent-request-key-different-inputs"
+    first = asyncio.run(service.generate(user.id, idempotency_key=key))
+    profile.preferred_weekdays = [0, 2, 4, 6]
+    db.flush()
+    scalar = db.scalar
+    stale = True
+
+    def stale_initial_key_read(statement, *args, **kwargs):
+        nonlocal stale
+        sql = str(statement)
+        if (
+            stale
+            and "SELECT workout_plan_generations.workout_plan_id" in sql
+            and "request_key_hash" in sql
+        ):
+            stale = False
+            return None
+        return scalar(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db, "scalar", stale_initial_key_read)
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(service.generate(user.id, idempotency_key=key))
+    assert error.value.status_code == 409
+    assert error.value.detail["code"] == "GENERATION_REQUEST_OUTCOME_INELIGIBLE"
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).one().id == first.plan.id
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+    assert (
+        db.query(WorkoutPlanGeneration)
+        .filter_by(user_id=user.id, status=WorkoutGenerationStatus.GENERATING)
+        .count()
+        == 0
+    )

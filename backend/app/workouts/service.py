@@ -10,6 +10,7 @@ from time import perf_counter
 from typing import cast
 from uuid import UUID
 
+from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -1255,6 +1256,35 @@ class WorkoutGenerationService:
             # flushing the losing candidate or consuming any quota/reservation.
             with self._db.no_autoflush:
                 current = get_current_foreground_plan(self._db, plan.user_id)
+                request_hash = current_key_hash()
+                committed = (
+                    self._db.scalar(
+                        select(WorkoutPlanGeneration).where(
+                            WorkoutPlanGeneration.user_id == plan.user_id,
+                            WorkoutPlanGeneration.request_key_hash == request_hash,
+                            WorkoutPlanGeneration.status == WorkoutGenerationStatus.SUCCEEDED,
+                        )
+                    )
+                    if request_hash
+                    else None
+                )
+                if committed is not None and (
+                    current is None
+                    or committed.workout_plan_id != current.id
+                    or current.generation_signature != plan.generation_signature
+                    or self._is_plan_expired(current)
+                    or not self._review_eligible_for_reuse(current)
+                ):
+                    self._db.rollback()
+                    self._mark_failure(
+                        generation,
+                        "GENERATION_REQUEST_OUTCOME_INELIGIBLE",
+                        "The committed request outcome is no longer eligible.",
+                        [],
+                    )
+                    raise HTTPException(
+                        409, detail={"code": "GENERATION_REQUEST_OUTCOME_INELIGIBLE"}
+                    )
                 if (
                     current is not None
                     and current.generation_signature == plan.generation_signature
