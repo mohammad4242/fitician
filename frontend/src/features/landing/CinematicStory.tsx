@@ -1,57 +1,30 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import androidGymImage from "../../../../mobile/assets/landing/pic_land.jpg";
 import foodPhoto from "../../assets/landing/food.webp";
 import landingPoster from "../../assets/landing/landfilm-poster.webp";
-import { getPwaInstallState } from "../../pwa/usePwaInstall";
 import { publicMediaUrl } from "../../shared/publicMedia";
 import { useScrollProgress } from "./useScrollProgress";
 
 export function CinematicStory({ reducedMotion }: { reducedMotion: boolean }) {
   const { t } = useTranslation();
   const storyRef = useScrollProgress<HTMLElement>("cinematic", reducedMotion);
-  const [iosStandalone, setIosStandalone] = useState(false);
-
-  useEffect(() => {
-    const isIos = getPwaInstallState({
-      userAgent: navigator.userAgent,
-      platform: navigator.platform,
-      maxTouchPoints: navigator.maxTouchPoints,
-      standalone: false,
-      displayModeStandalone: false,
-    }) === "ios-instructions";
-    const standalone = window.matchMedia?.("(display-mode: standalone)").matches === true
-      || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIosStandalone(isIos && standalone);
-  }, []);
 
   return (
     <section className="cinematic-story" ref={storyRef} aria-label={t("landing.story.label")}>
       <div className="cinematic-story__stage">
-        {iosStandalone ? (
-          <img
-            className="cinematic-story__film"
-            data-testid="landing-gym-image"
-            src={androidGymImage}
-            alt=""
-            aria-hidden="true"
-          />
-        ) : (
-          <video
-            className="cinematic-story__film"
-            data-testid="landing-film"
-            src={publicMediaUrl("public/landing/videos/landfilm.mp4")}
-            poster={landingPoster}
-            autoPlay={!reducedMotion}
-            muted
-            playsInline
-            loop
-            preload="metadata"
-            aria-hidden="true"
-          />
-        )}
+        <video
+          className="cinematic-story__film"
+          data-testid="landing-film"
+          src={publicMediaUrl("public/landing/videos/landfilm.mp4")}
+          poster={landingPoster}
+          autoPlay={!reducedMotion}
+          muted
+          playsInline
+          loop
+          preload="metadata"
+          aria-hidden="true"
+        />
         <div className="cinematic-story__shade" aria-hidden="true" />
 
         <section className="cinematic-hero" aria-labelledby="landing-hero-title">

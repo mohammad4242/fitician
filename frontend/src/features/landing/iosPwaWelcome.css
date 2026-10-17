@@ -1,0 +1,82 @@
+/* Dimensions and colours mirror mobile/public/PublicLandingScreen.tsx. */
+html:has(.ios-pwa-welcome),
+body:has(.ios-pwa-welcome) {
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
+}
+
+.ios-pwa-welcome {
+  position: fixed;
+  inset: 0;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+  color: #e8f4f1;
+  font-family: "Vazirmatn Variable", sans-serif;
+}
+
+.ios-pwa-welcome__background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ios-pwa-welcome__actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) calc(env(safe-area-inset-bottom, 0px) + 24px) env(safe-area-inset-left, 0px);
+}
+
+.ios-pwa-welcome__start,
+.ios-pwa-welcome__login {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+  line-height: 24px;
+  text-decoration: none;
+}
+
+.ios-pwa-welcome__start {
+  width: 86%;
+  max-width: 480px;
+  min-height: 60px;
+  padding: 12px 32px;
+  border: 1px solid #50dfce;
+  border-radius: 999px;
+  background: #50dfce;
+  color: #020607;
+  font-weight: 800;
+}
+
+.ios-pwa-welcome__login {
+  max-width: 100%;
+  min-height: 48px;
+  padding-inline: 24px;
+  color: #e8f4f1;
+  white-space: pre-wrap;
+}
+
+.ios-pwa-welcome__login span {
+  color: #50dfce;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.ios-pwa-welcome a:focus-visible {
+  outline: 2px solid #e8f4f1;
+  outline-offset: 4px;
+}
+
+.ios-pwa-welcome a:active { opacity: 0.86; }

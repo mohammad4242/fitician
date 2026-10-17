@@ -1,11 +1,12 @@
 import { PublicDiscovery } from "../../seo/PublicDiscovery";
 import "../../seo/public.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { BrandLogo } from "../../shared/BrandLogo";
 import { LanguageSwitcher } from "../../shared/LanguageSwitcher";
+import { IosPwaWelcome } from "./IosPwaWelcome";
 import { BodyIntelligence } from "./BodyIntelligence";
 import { CinematicStory } from "./CinematicStory";
 import { ProcessStory } from "./ProcessStory";
@@ -28,7 +29,17 @@ function useReducedMotion() {
   return reducedMotion;
 }
 
+// The synchronous head bootstrap is the single source of environment detection.
+const subscribe = () => () => {};
+const iosPwaSnapshot = () => document.documentElement.dataset.iosPwa === "true";
+const serverSnapshot = () => false;
+
 export function PublicLandingPage() {
+  const iosPwa = useSyncExternalStore(subscribe, iosPwaSnapshot, serverSnapshot);
+  return iosPwa ? <IosPwaWelcome /> : <WebLandingPage />;
+}
+
+function WebLandingPage() {
   const { i18n, t } = useTranslation();
   const language = i18n.resolvedLanguage === "en" ? "en" : "fa";
   const reducedMotion = useReducedMotion();
