@@ -9687,6 +9687,28 @@
             "title": "Event Id",
             "type": "string"
           },
+          "exception_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Error",
+                  "TypeError",
+                  "ReferenceError",
+                  "RangeError",
+                  "SyntaxError",
+                  "URIError",
+                  "EvalError",
+                  "AggregateError",
+                  "InvariantViolation"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception Type"
+          },
           "http_status": {
             "anyOf": [
               {
@@ -9758,6 +9780,19 @@
               }
             ],
             "title": "Request Id"
+          },
+          "source_location": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "pattern": "^(?:[A-Za-z][A-Za-z0-9]{0,60}-[A-Za-z0-9_-]{6,16}\\.js|index\\.(?:android|ios)\\.bundle|main\\.jsbundle):[0-9]{1,7}:[0-9]{1,7}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location"
           },
           "stage": {
             "enum": [

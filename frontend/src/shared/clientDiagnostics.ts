@@ -1,5 +1,6 @@
 import {
   ClientDiagnosticsQueue,
+  safeClientException,
   createClientDiagnosticEvent,
   type ClientDiagnosticErrorCode,
   type ClientDiagnosticEvent,
@@ -70,11 +71,11 @@ export function reportWebApiFailure(input: {
 
 export function installWebRuntimeDiagnostics(): () => void {
   if (typeof window === "undefined") return () => {};
-  const onError = () => {
-    reportWebClientDiagnostic({ component: "Window", operation: "error_event", stage: "unhandled" }, "CLIENT_RUNTIME_ERROR");
+  const onError = (event: ErrorEvent) => {
+    reportWebClientDiagnostic({ component: "Window", operation: "error_event", stage: "unhandled", ...safeClientException(event.error) }, "CLIENT_RUNTIME_ERROR");
   };
-  const onRejection = () => {
-    reportWebClientDiagnostic({ component: "Window", operation: "promise_rejection", stage: "unhandled" }, "CLIENT_UNHANDLED_REJECTION");
+  const onRejection = (event: PromiseRejectionEvent) => {
+    reportWebClientDiagnostic({ component: "Window", operation: "promise_rejection", stage: "unhandled", ...safeClientException(event.reason) }, "CLIENT_UNHANDLED_REJECTION");
   };
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onRejection);
@@ -87,8 +88,8 @@ export function installWebRuntimeDiagnostics(): () => void {
   };
 }
 
-export function reportReactRootError(stage: "caught" | "uncaught"): void {
-  reportWebClientDiagnostic({ component: "ReactRoot", operation: "render", stage }, "CLIENT_RENDER_ERROR");
+export function reportReactRootError(stage: "caught" | "uncaught", error?: unknown): void {
+  reportWebClientDiagnostic({ component: "ReactRoot", operation: "render", stage, ...safeClientException(error) }, "CLIENT_RENDER_ERROR");
 }
 
 export async function flushWebClientDiagnostics(): Promise<void> {

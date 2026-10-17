@@ -1,5 +1,6 @@
 import {
   CORRELATION_ID_HEADER as CORE_CORRELATION_ID_HEADER,
+  safeClientException,
   createCorrelationId as createCoreCorrelationId,
 } from "@fitician/core";
 
@@ -230,7 +231,7 @@ export class MobileTelemetryLogger implements MobileLogger {
       }
     }
     try {
-      diagnosticReporter?.(safeContext);
+      diagnosticReporter?.({ ...safeContext, ...safeClientException(error) });
     } catch {
       // Diagnostics must never interrupt the app.
     }

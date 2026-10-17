@@ -21,7 +21,9 @@ it("chains existing native error and rejection handlers while reporting fixed fi
   vi.stubGlobal("onunhandledrejection", previousRejection);
 
   const uninstall = installMobileRuntimeDiagnostics();
-  currentHandler(new Error("private member data"), true);
+  const error = new Error("private member data");
+  error.stack = "Error: private member data\n at anonymous (index.android.bundle:1:77)";
+  currentHandler(error, true);
   const rejectionHandler = (globalThis as typeof globalThis & {
     onunhandledrejection: (event: { reason?: unknown }) => void;
   }).onunhandledrejection;
@@ -33,6 +35,8 @@ it("chains existing native error and rejection handlers while reporting fixed fi
     component: "ReactNativeRuntime",
     operation: "global_error",
     stage: "fatal",
+    exception_type: "Error",
+    source_location: "index.android.bundle:1:77",
   }, "CLIENT_RUNTIME_ERROR");
   expect(reportMobileClientDiagnostic).toHaveBeenNthCalledWith(2, {
     component: "ReactNativeRuntime",

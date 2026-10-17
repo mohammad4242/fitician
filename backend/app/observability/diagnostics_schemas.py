@@ -8,6 +8,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+CLIENT_SOURCE_PATTERN = (
+    r"^(?:[A-Za-z][A-Za-z0-9]{0,60}-[A-Za-z0-9_-]{6,16}\.js|"
+    r"index\.(?:android|ios)\.bundle|main\.jsbundle):[0-9]{1,7}:[0-9]{1,7}$"
+)
+
 
 class DiagnosticHours(IntEnum):
     HOUR = 1
@@ -107,6 +112,8 @@ class EventInput(StrictModel):
     def sanitize_source_location(cls, value: str | None) -> str | None:
         if value is None:
             return None
+        if re.fullmatch(CLIENT_SOURCE_PATTERN, value):
+            return value
         match = re.search(r"(?:^|[/\\])([^/\\]+\.py|[^/\\]+\.(?:tsx?|jsx?)):(\d{1,7})$", value)
         if match is None:
             raise ValueError("source location must be basename:line")
@@ -142,6 +149,23 @@ class ClientEventInput(StrictModel):
     stage: Literal[
         "failed", "response_failed", "transport_failed", "unhandled", "fatal", "caught", "uncaught"
     ]
+    exception_type: (
+        Literal[
+            "Error",
+            "TypeError",
+            "ReferenceError",
+            "RangeError",
+            "SyntaxError",
+            "URIError",
+            "EvalError",
+            "AggregateError",
+            "InvariantViolation",
+        ]
+        | None
+    ) = None
+    source_location: (
+        Annotated[str, StringConstraints(max_length=100, pattern=CLIENT_SOURCE_PATTERN)] | None
+    ) = None
     error_code: ClientErrorCode
     request_id: (
         Annotated[str, StringConstraints(max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")] | None

@@ -7653,6 +7653,8 @@ export type components = {
              * Format: uuid
              */
             event_id: string;
+            /** Exception Type */
+            exception_type?: ("Error" | "TypeError" | "ReferenceError" | "RangeError" | "SyntaxError" | "URIError" | "EvalError" | "AggregateError" | "InvariantViolation") | null;
             /** Http Status */
             http_status?: number | null;
             /**
@@ -7669,6 +7671,8 @@ export type components = {
             platform: "android" | "ios_pwa" | "web";
             /** Request Id */
             request_id?: string | null;
+            /** Source Location */
+            source_location?: string | null;
             /**
              * Stage
              * @enum {string}

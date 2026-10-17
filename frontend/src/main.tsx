@@ -17,11 +17,11 @@ installWebRuntimeDiagnostics();
 
 const rootErrorHandlers = {
   onCaughtError(error: unknown, info: { componentStack?: string | null }) {
-    reportReactRootError("caught");
+    reportReactRootError("caught", error);
     console.error(error, info.componentStack);
   },
   onUncaughtError(error: unknown) {
-    reportReactRootError("uncaught");
+    reportReactRootError("uncaught", error);
     if (typeof window.reportError === "function") window.reportError(error);
     else console.error(error);
   },

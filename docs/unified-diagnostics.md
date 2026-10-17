@@ -26,7 +26,7 @@ Overview/chart/platform aggregates use all retained terminal events in the selec
 
 ## Privacy and retention
 
-No request bodies, raw error messages, prompts, medical forms, credentials, screenshots, private media or session recordings enter diagnostics. Stack evidence is a bounded source basename and line. Client free text and server-owned fields are rejected. Admin notes are internal and must contain no secrets.
+No request bodies, raw error messages, prompts, medical forms, credentials, screenshots, private media or session recordings enter diagnostics. Stack evidence is a bounded source basename and line. Client free text and server-owned fields are rejected. JavaScript exception types come from a fixed allowlist; source evidence is only a hashed web bundle or native bundle basename with numeric line/column, never a URL, local path, message or raw stack. Client evidence remains unverified and cannot confirm root cause. Admin notes are internal and must contain no secrets.
 
 Client event times are server receipt times; an offline report can arrive later than its original failure. Correlation IDs link it to earlier server evidence.
 
@@ -57,4 +57,4 @@ A valid direct nutrition bundle is immediately selectable and costs one generati
 
 Keep regional GitHub Actions CD disabled. Review the additive migration and test upgrade/downgrade on isolated PostgreSQL. Before production migration, take and restore-verify a fresh backup. Transfer exact-SHA images with `docker save`, SSH and `docker load`; use `--pull never` and preserve active Compose volumes, secrets and unrelated services.
 
-Rollback application images with the additive tables retained. Do not downgrade/drop diagnostic tables or restore an older production database after new writes. A schema/data recovery needs a write freeze and reconciliation. Keep the backup and previous image IDs until production smoke checks pass.
+Rollback the frontend independently with additive tables retained. Prefer disabling diagnostics capture and rolling forward for backend incidents. Before reverting backend images to older quota logic, freeze generation/review writes and reconcile any new pending-review reservations; older review code cannot finalize them correctly. Do not downgrade/drop diagnostic tables or restore an older production database after new writes. A schema/data recovery needs a write freeze and reconciliation. Keep the backup and previous image IDs until production smoke checks pass.

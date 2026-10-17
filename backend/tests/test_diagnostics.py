@@ -380,3 +380,47 @@ def test_infrastructure_reports_observed_database_and_unknown_unconfigured_servi
     assert signals["workers"]["status"] == "unknown"
     assert all(item["business_operation_verified"] is False for item in signals.values())
     assert response.json()["queues"]["body_analysis"]["stale_leases"] == 0
+
+
+def test_safe_client_exception_location_is_persisted_without_confirming_cause(client, db):
+    origin = {"Origin": "http://localhost:5173"}
+    assert (
+        client.post(
+            "/api/v1/auth/register",
+            headers=origin,
+            json={"email": f"client-stack-{uuid4()}@example.com", "password": "long test password"},
+        ).status_code
+        == 201
+    )
+    event = {
+        "event_id": str(uuid4()),
+        "platform": "web",
+        "component": "ReactRoot",
+        "operation": "render",
+        "stage": "caught",
+        "error_code": "CLIENT_RENDER_ERROR",
+        "exception_type": "TypeError",
+        "source_location": "WorkoutPage-AbCd1234.js:1:321",
+    }
+    assert (
+        client.post(
+            "/api/v1/diagnostics/client", headers=origin, json={"events": [event]}
+        ).status_code
+        == 202
+    )
+    row = db.scalar(select(DiagnosticEvent).where(DiagnosticEvent.id == event["event_id"]))
+    assert row.exception_type == "TypeError" and row.source_location == event["source_location"]
+    assert db.get(DiagnosticIssue, row.issue_id).confidence == "unknown"
+    for field, value in (
+        ("exception_type", "PrivateMedicalValue"),
+        ("source_location", "/private/form.tsx:2:3"),
+        ("source_location", "https://example.com/assets/index-AbCd1234.js:1:2"),
+    ):
+        assert (
+            client.post(
+                "/api/v1/diagnostics/client",
+                headers=origin,
+                json={"events": [{**event, "event_id": str(uuid4()), field: value}]},
+            ).status_code
+            == 422
+        )

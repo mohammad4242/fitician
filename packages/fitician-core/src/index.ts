@@ -296,3 +296,5 @@ export * from "./progress-presentation.js";
 export { diagnosticWorkflow } from "./diagnostics";
 
 export { createGenerationRequestKeys } from "./generationRequests";
+
+export { safeClientException } from "./clientException";

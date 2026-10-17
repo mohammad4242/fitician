@@ -42,6 +42,8 @@ export function reportMobileClientDiagnostic(
       operation: safeToken(context.operation, "request", 80),
       stage: safeToken(context.stage, "failed", 80),
       error_code: code,
+      ...(typeof context.exception_type === "string" ? { exception_type: context.exception_type } : {}),
+      ...(typeof context.source_location === "string" ? { source_location: context.source_location } : {}),
       ...(safeToken(context.correlation_id, "", 128) ? { request_id: safeToken(context.correlation_id, "", 128) } : {}),
       ...(safeToken(Constants.expoConfig?.version, "", 64) ? { version: safeToken(Constants.expoConfig?.version, "", 64) } : {}),
       ...(safeToken(Constants.nativeBuildVersion, "", 64) ? { build: safeToken(Constants.nativeBuildVersion, "", 64) } : {}),

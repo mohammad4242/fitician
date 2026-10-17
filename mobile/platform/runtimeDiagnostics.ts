@@ -1,3 +1,4 @@
+import { safeClientException } from "@fitician/core";
 import { reportMobileClientDiagnostic } from "./clientDiagnostics";
 
 interface GlobalErrorUtils {
@@ -23,6 +24,7 @@ export function installMobileRuntimeDiagnostics(): () => void {
       component: "ReactNativeRuntime",
       operation: "global_error",
       stage: isFatal ? "fatal" : "unhandled",
+      ...safeClientException(error),
     }, "CLIENT_RUNTIME_ERROR");
     previousErrorHandler?.(error, isFatal);
   };
@@ -34,6 +36,7 @@ export function installMobileRuntimeDiagnostics(): () => void {
       component: "ReactNativeRuntime",
       operation: "promise_rejection",
       stage: "unhandled",
+      ...safeClientException(event.reason),
     }, "CLIENT_UNHANDLED_REJECTION");
     previousRejectionHandler?.(event);
   };

@@ -1,3 +1,5 @@
+import { CLIENT_EXCEPTION_TYPES, CLIENT_SOURCE_PATTERN } from "./clientException";
+
 export type ClientDiagnosticPlatform = "android" | "ios_pwa" | "web";
 
 export type ClientDiagnosticErrorCode =
@@ -19,6 +21,8 @@ export interface ClientDiagnosticEvent {
   readonly duration_ms?: number;
   readonly http_status?: number;
   readonly os_version?: string;
+  readonly exception_type?: string;
+  readonly source_location?: string;
 }
 
 export interface ClientDiagnosticBatch {
@@ -43,7 +47,7 @@ export function isClientDiagnosticEvent(value: unknown): value is ClientDiagnost
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const event = value as Record<string, unknown>;
   const required = ["event_id", "platform", "component", "operation", "stage", "error_code"];
-  const allowed = new Set([...required, "request_id", "version", "build", "duration_ms", "http_status", "os_version"]);
+  const allowed = new Set([...required, "request_id", "version", "build", "duration_ms", "http_status", "os_version", "exception_type", "source_location"]);
   if (Object.keys(event).some((key) => !allowed.has(key))) return false;
   if (required.some((key) => !(key in event))) return false;
   if (typeof event.event_id !== "string" || !UUID.test(event.event_id)) return false;
@@ -54,6 +58,8 @@ export function isClientDiagnosticEvent(value: unknown): value is ClientDiagnost
   if (event.request_id !== undefined && !validToken(event.request_id, 128)) return false;
   if (event.version !== undefined && !validToken(event.version, 64)) return false;
   if (event.build !== undefined && !validToken(event.build, 64)) return false;
+  if (event.exception_type !== undefined && (typeof event.exception_type !== "string" || !CLIENT_EXCEPTION_TYPES.has(event.exception_type))) return false;
+  if (event.source_location !== undefined && (typeof event.source_location !== "string" || !CLIENT_SOURCE_PATTERN.test(event.source_location))) return false;
   if (event.os_version !== undefined && !validToken(event.os_version, 40)) return false;
   if (event.duration_ms !== undefined && (typeof event.duration_ms !== "number"
     || !Number.isInteger(event.duration_ms) || event.duration_ms < 0 || event.duration_ms > 86_400_000)) return false;
@@ -106,7 +112,7 @@ export class ClientDiagnosticsQueue {
     for (const [key, timestamp] of this.deduplicated) {
       if (now - timestamp >= 60_000) this.deduplicated.delete(key);
     }
-    const dedupeKey = [event.component, event.operation, event.error_code, event.http_status ?? ""].join("|");
+    const dedupeKey = [event.component, event.operation, event.stage, event.error_code, event.http_status ?? "", event.exception_type ?? "", event.source_location ?? ""].join("|");
     const previous = this.deduplicated.get(dedupeKey);
     if (previous !== undefined && now - previous < 60_000) return false;
     if (this.deduplicated.size >= 128) this.deduplicated.delete(this.deduplicated.keys().next().value!);
