@@ -184,9 +184,9 @@ it("keeps expanded exercise details as separate web-parity stats and actions", a
   expect(row).toContain("styles.exerciseStatValue");
   expect(row).toContain("styles.exerciseAction");
   expect(row).toContain("styles.exerciseActionText");
-  expect(row).toContain("onStartReplacement");
+  expect(row).toContain("canReplace");
   expect(row).toContain("onOpen();");
-  expect(row).toContain("onStartReplacement(exercise.id)");
+  expect(row).toContain("<WorkoutExerciseReplacementFlow item={exercise}");
   expect(row).toContain("event.stopPropagation()");
   expect(source).not.toContain("formatExerciseMetadata");
   expect(source).not.toContain("formatWorkoutPrescription(exercise)");
@@ -209,7 +209,8 @@ it("keeps cycle, check-in, replacement, and completion behavior secondary to the
   expect(summary).not.toContain("MetricStrip");
   expect(summary).toContain("summaryCard");
   expect(source).toContain("WeeklyCheckInPanel");
-  expect(source).toContain("ReplacementPanel");
+  expect(source).not.toContain("ReplacementPanel");
+  expect(source).toContain("WorkoutExerciseReplacementFlow");
   expect(source).toContain("useCompletionFeedbackController");
   expect(source).toContain("CompletionFeedbackToolCell");
   expect(source).toContain("CompletionFeedbackDetails");
@@ -294,7 +295,7 @@ it("keeps video preview separate from the exercise detail action", async () => {
   expect(row).toContain('exercise.exercise.media_type === "video"');
   expect(row).toContain("onTogglePreview(exercise.id)");
   expect(row).toContain("onOpen();");
-  expect(row).toContain("onStartReplacement(exercise.id)");
+  expect(row).toContain("<WorkoutExerciseReplacementFlow item={exercise}");
   expect(row).not.toContain('label="راهنما"');
 });
 
@@ -332,13 +333,13 @@ it("shows alternatives independently of executability and keeps the web action o
   expect(source).toContain("alternative.reason_fa");
 });
 
-it("keeps executable replacement on the existing cycle flow and blocks non-executable submission", async () => {
+it("keeps executable replacement inline and blocks non-executable submission", async () => {
   const source = await readFile(new URL("./WorkoutPlansScreen.tsx", import.meta.url), "utf8");
 
-  expect(source).toContain("onStartReplacement(exercise.id)");
-  expect(source).toContain("replacementRequest={replacementRequest}");
-  expect(source).toContain("onStartReplacement={executable && !pending ? onStartReplacement : undefined}");
-  expect(source).toContain("onStartReplacement ?");
+  expect(source).toContain("<WorkoutExerciseReplacementFlow item={exercise}");
+  expect(source).not.toContain("replacementRequest");
+  expect(source).toContain("canReplace={executable && !pending}");
+  expect(source).toContain("!canReplace && alternativesExpanded");
   expect(source).toContain("setAlternativesExpanded");
   expect(source).toContain("onOpenAlternative");
 });

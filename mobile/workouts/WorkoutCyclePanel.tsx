@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatTehranDateTime } from "@fitician/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
@@ -17,7 +17,7 @@ import {
 import { formatPersianNumber } from "../ui/locale";
 import { getMobileViewState, mobileRequestErrorMessage, type MobileViewState } from "../ui/requestState";
 import { fiticianTokens } from "../ui/tokens";
-import type { WorkoutPlan } from "./workoutApi";
+import type { WorkoutPlan, WorkoutPlanExercise } from "./workoutApi";
 import {
   createWorkoutCycleApi,
   type WorkoutCycleApi,
@@ -40,6 +40,7 @@ import { WorkoutTimelineCard, type WorkoutTimelineCardProps } from "./WorkoutTim
 
 type Choice<TValue extends string> = {
   readonly label: string;
+  readonly description?: string;
   readonly value: TValue;
 };
 
@@ -78,7 +79,7 @@ const replacementReasons: readonly Choice<ReplacementReason>[] = [
   { label: "تجهیزاتش را ندارم", value: "equipment_unavailable" },
   { label: "با این حرکت راحت نیستم", value: "uncomfortable" },
   { label: "درد یا ناراحتی دارم", value: "pain_or_discomfort" },
-  { label: "فعلاً در دسترس نیست", value: "temporary_unavailable" },
+  { label: "فعلاً دستگاه/محل در دسترس نیست", value: "temporary_unavailable" },
   { label: "این حرکت را دوست ندارم", value: "dislike" },
   { label: "دلیل دیگر", value: "other" },
 ];
@@ -88,21 +89,14 @@ const replacementScopes: readonly Choice<"this_time" | "persistent">[] = [
   { label: "از این به بعد", value: "persistent" },
 ];
 
-export type WorkoutReplacementRequest = {
-  readonly exerciseId: string;
-  readonly requestId: number;
-};
-
 export function WorkoutCyclePanel({
   expectedCycleId,
   plan,
-  replacementRequest,
   timeline,
   timelineCardProps,
 }: {
   readonly expectedCycleId?: string;
   readonly plan: WorkoutPlan;
-  readonly replacementRequest?: WorkoutReplacementRequest | null;
   readonly timeline?: TimelineWorkout | null;
   readonly timelineCardProps?: Omit<WorkoutTimelineCardProps, "timeline">;
 }) {
@@ -159,13 +153,6 @@ export function WorkoutCyclePanel({
             connectivityStatus={connectivityStatus}
             plan={plan}
             cycle={cycle}
-          />
-          <ReplacementPanel
-            api={api}
-            connectivityStatus={connectivityStatus}
-            initialExerciseId={replacementRequest?.exerciseId}
-            initialRequestId={replacementRequest?.requestId}
-            plan={plan}
           />
         </>
       ) : null}
@@ -362,134 +349,104 @@ function WeeklyCheckInPanel({
   );
 }
 
-function ReplacementPanel({
-  api,
-  connectivityStatus,
-  initialExerciseId,
-  initialRequestId,
-  plan,
-}: {
-  readonly api: WorkoutCycleApi;
-  readonly connectivityStatus: ConnectivityStatus;
-  readonly initialExerciseId?: string;
-  readonly initialRequestId?: number;
-  readonly plan: WorkoutPlan;
-}) {
-  const options = useMemo(
-    () => plan.days.flatMap((day) => day.exercises).filter((exercise) => exercise.alternatives.length > 0),
-    [plan],
-  );
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+export function WorkoutExerciseReplacementFlow({ item }: { readonly item: WorkoutPlanExercise }) {
+  const auth = useMobileAuth();
+  const api = useMemo(() => createWorkoutCycleApi(auth.request), [auth.request]);
+  const connectivityStatus = useConnectivityStatus();
   const [reason, setReason] = useState<ReplacementReason | null>(null);
   const [alternativeId, setAlternativeId] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [step, setStep] = useState<"reason" | "alternative" | "scope" | "success">("reason");
   const [error, setError] = useState<string | null>(null);
-  const save = useMutation({
-    mutationFn: api.recordReplacement,
-    onError: (requestError: unknown) => setError(mobileRequestErrorMessage(
-      requestError,
-      "ثبت جایگزین انجام نشد؛ دوباره تلاش کن.",
-      { audience: "member", context: "workout" },
-    )),
-    onSuccess: () => {
-      setSuccess("جایگزین با موفقیت ثبت شد.");
-      setError(null);
-      setSelectedExerciseId(null);
-      setReason(null);
-      setAlternativeId(null);
-    },
-  });
-  const selectedExercise = options.find((exercise) => exercise.id === selectedExerciseId);
-  const selectedAlternative = selectedExercise?.alternatives.find(({ exercise }) => exercise.id === alternativeId);
+  const [submitting, setSubmitting] = useState(false);
+  const submissionLocked = useRef(false);
+  const selectedAlternative = item.alternatives.find(({ exercise }) => exercise.id === alternativeId);
   const offline = connectivityStatus === "offline";
 
-  useEffect(() => {
-    if (initialExerciseId === undefined || !options.some((exercise) => exercise.id === initialExerciseId)) return;
-    setSelectedExerciseId(initialExerciseId);
-    setReason(null);
-    setAlternativeId(null);
-    setSuccess(null);
-    setError(null);
-  }, [initialExerciseId, initialRequestId, options]);
-
-  if (options.length === 0) return null;
-
-  function chooseExercise(id: string) {
-    setSelectedExerciseId(id);
-    setReason(null);
-    setAlternativeId(null);
-    setSuccess(null);
-    setError(null);
-  }
-
-  function chooseReason(value: ReplacementReason) {
-    setReason(value);
-    setAlternativeId(null);
-    setSuccess(null);
-    setError(null);
-  }
-
-  function submit(scope: "this_time" | "persistent") {
-    if (selectedExercise === undefined || reason === null || selectedAlternative === undefined) return;
-    if (offline) {
+  async function submit(scope: "this_time" | "persistent") {
+    if (submissionLocked.current || reason === null || selectedAlternative === undefined) return;
+    if (connectivityMonitor.getSnapshot().status === "offline") {
       setError("ثبت جایگزین بدون اینترنت انجام نمی‌شود.");
       return;
     }
-    save.mutate({
-      reason,
-      replacement_exercise_id: selectedAlternative.exercise.id,
-      scope,
-      workout_plan_exercise_id: selectedExercise.id,
-    });
+    submissionLocked.current = true;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.recordReplacement({
+        reason,
+        replacement_exercise_id: selectedAlternative.exercise.id,
+        scope,
+        workout_plan_exercise_id: item.id,
+      });
+      setStep("success");
+    } catch (cause: unknown) {
+      submissionLocked.current = false;
+      setError(mobileRequestErrorMessage(cause, "ثبت جایگزین انجام نشد؛ دوباره تلاش کن.", {
+        audience: "member", context: "workout",
+      }));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
-    <Card style={styles.formCard}>
-      <Text style={styles.sectionTitle}>جایگزینی حرکت</Text>
-      <Text style={styles.bodyText}>اگر حرکت مناسبت نیست، فقط از گزینه‌های تأییدشدهٔ همین برنامه انتخاب کن.</Text>
-      <ChoiceGroup
-        label="حرکتی که می‌خواهی عوض کنی"
-        options={options.map((exercise) => ({
-          label: exercise.exercise.name_fa || exercise.exercise.name_en,
-          value: exercise.id,
-        }))}
-        selected={selectedExerciseId ?? ""}
-        onSelect={chooseExercise}
-      />
-      {selectedExercise !== undefined ? (
-        <>
-          <ChoiceGroup
-            label="دلیل تعویض"
-            options={replacementReasons}
-            selected={reason ?? ""}
-            onSelect={(value) => chooseReason(value as ReplacementReason)}
-          />
-          {reason !== null ? (
-            <ChoiceGroup
-              label="جایگزین"
-              options={selectedExercise.alternatives.map(({ exercise }) => ({
-                label: exercise.name_fa || exercise.name_en,
-                value: exercise.id,
-              }))}
-              selected={alternativeId ?? ""}
-              onSelect={setAlternativeId}
-            />
-          ) : null}
-          {selectedAlternative !== undefined ? (
-            <ChoiceGroup
-              label="مدت جایگزینی"
-              options={replacementScopes}
-              selected=""
-              onSelect={(value) => submit(value as "this_time" | "persistent")}
-            />
-          ) : null}
-        </>
-      ) : null}
-      {success !== null ? <Notice message={success} variant="success" /> : null}
-      {error !== null ? <Notice message={error} variant="danger" /> : null}
-      {offline ? <Notice message="برای ثبت جایگزین به اینترنت وصل شو." variant="offline" /> : null}
-      {save.isPending ? <Skeleton height={48} /> : null}
-    </Card>
+    <View accessibilityState={{ busy: submitting }} testID={`workout-replacement-${item.id}`}>
+      <Card style={styles.formCard}>
+        {step === "success" && selectedAlternative !== undefined ? (
+          <Notice message={`جایگزین انتخاب‌شده: ${selectedAlternative.exercise.name_fa}`} variant="success" />
+        ) : (
+          <>
+            {step === "reason" ? (
+              <>
+                <Text style={styles.bodyText}>اول دلیل تعویض را انتخاب کن.</Text>
+                <ChoiceGroup
+                  label="دلیل تعویض"
+                  options={replacementReasons}
+                  selected=""
+                  onSelect={(value) => {
+                    setReason(value);
+                    setStep("alternative");
+                  }}
+                />
+              </>
+            ) : null}
+            {step === "alternative" ? (
+              <>
+                <Text style={styles.bodyText}>حالا یک حرکت امن از فهرست زیر انتخاب کن.</Text>
+                <ChoiceGroup
+                  label="حرکت‌های جایگزین امن"
+                  options={item.alternatives.map(({ exercise, reason_fa }) => ({
+                    label: exercise.name_fa,
+                    description: reason_fa,
+                    value: exercise.id,
+                  }))}
+                  selected=""
+                  onSelect={(value) => {
+                    setAlternativeId(value);
+                    setStep("scope");
+                  }}
+                />
+              </>
+            ) : null}
+            {step === "scope" && selectedAlternative !== undefined ? (
+              <>
+                <Text style={styles.bodyText}>برای «{selectedAlternative.exercise.name_fa}» این تعویض تا چه زمانی باشد؟</Text>
+                <ChoiceGroup
+                  disabled={submitting || offline}
+                  label="مدت جایگزینی"
+                  options={replacementScopes}
+                  selected=""
+                  onSelect={(value) => void submit(value)}
+                />
+              </>
+            ) : null}
+            {error !== null ? <Notice message={error} variant="danger" /> : null}
+            {offline ? <Notice message="برای ثبت جایگزین به اینترنت وصل شو." variant="offline" /> : null}
+            {submitting ? <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.bodyText}>در حال ثبت جایگزین…</Text> : null}
+          </>
+        )}
+      </Card>
+    </View>
   );
 }
 
@@ -815,11 +772,13 @@ export function CompletionFeedbackDetails({
 }
 
 function ChoiceGroup<TValue extends string>({
+  disabled = false,
   label,
   onSelect,
   options,
   selected,
 }: {
+  readonly disabled?: boolean;
   readonly label: string;
   readonly onSelect: (value: TValue) => void;
   readonly options: readonly Choice<TValue>[];
@@ -832,14 +791,20 @@ function ChoiceGroup<TValue extends string>({
         {options.map((option) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ selected: option.value === selected }}
+            accessibilityLabel={option.label}
+            disabled={disabled}
+            accessibilityState={{ disabled, selected: option.value === selected }}
             key={option.value}
-            onPress={() => onSelect(option.value)}
+            onPress={(event) => {
+              event?.stopPropagation();
+              if (!disabled) onSelect(option.value);
+            }}
             style={[styles.choice, option.value === selected && styles.choiceSelected]}
           >
             <Text style={[styles.choiceText, option.value === selected && styles.choiceTextSelected]}>
               {option.label}
             </Text>
+            {option.description ? <Text style={styles.bodyText}>{option.description}</Text> : null}
           </Pressable>
         ))}
       </View>
