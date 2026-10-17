@@ -29,7 +29,7 @@ test("robots and sitemap expose only public canonical URLs", async ({ request })
   expect(sitemap).not.toContain("/get-started");
 });
 test("nginx keeps member deep links and returns true 404s", async ({ request }) => {
-  for (const path of ["/dashboard", "/workout-plan", "/exercises/", "/exercises/dumbbell-bench-press", "/body-progress/new", "/admin/support", "/get-started"]) {
+  for (const path of ["/dashboard", "/workout-plan", "/exercises/", "/exercises/dumbbell-bench-press", "/body-progress/new", "/admin/support", "/admin/diagnostics", "/admin/diagnostics?tab=events&request_id=release-test", "/get-started"]) {
     const response = await request.get(path);
     expect(response.status()).toBe(200);
     expect(response.headers()["x-robots-tag"]).toBe("noindex, follow");

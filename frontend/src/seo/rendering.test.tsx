@@ -29,6 +29,6 @@ it("shards canonical public sitemap URLs without fake timestamps", () => {
   expect(Object.values(xml).join("")).not.toContain("lastmod");
 });
 it("limits PWA fallback to legitimate member routes", () => {
-  for (const path of ["/dashboard", "/exercises/dumbbell-bench-press", "/body-progress/123", "/admin/support", "/get-started"]) expect(memberNavigationPattern.test(path)).toBe(true);
-  for (const path of ["/workout-program", "/exercise-library/missing", "/api/v1/exercises", "/media/missing", "/assets/missing.js", "/invalid", "/dashboard/invalid"]) expect(memberNavigationPattern.test(path)).toBe(false);
+  for (const path of ["/dashboard", "/exercises/dumbbell-bench-press", "/body-progress/123", "/admin/support", "/admin/diagnostics", "/admin/diagnostics?tab=events&request_id=release-test", "/get-started"]) expect(memberNavigationPattern.test(path)).toBe(true);
+  for (const path of ["/workout-program", "/exercise-library/missing", "/api/v1/exercises", "/media/missing", "/assets/missing.js", "/invalid", "/dashboard/invalid", "/admin/diagnostics/invalid"]) expect(memberNavigationPattern.test(path)).toBe(false);
 });
