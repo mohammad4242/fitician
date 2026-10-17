@@ -38,7 +38,7 @@ async function start() {
   let element;
   if (path === "/") {
     const { HomeApp } = await import("./seo/HomeApp");
-    if (document.documentElement.lang !== "fa") root.removeAttribute("data-prerendered");
+    if (document.documentElement.lang !== "fa" || document.documentElement.dataset.iosPwa === "true") root.removeAttribute("data-prerendered");
     element = <HomeApp seo={(await readPublicPayload()).seo} />;
   } else if (root.dataset.publicKind === "knowledge" || (import.meta.env.DEV && !legacyPublic.includes(path) && (await import("./seo/registry")).findPublicPage(path))) {
     document.documentElement.lang = "fa";

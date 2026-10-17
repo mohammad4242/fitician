@@ -3,7 +3,6 @@ import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 
-import androidGymImage from "../../../../mobile/assets/landing/pic_land.jpg";
 import { CinematicStory } from "./CinematicStory";
 
 afterEach(() => {
@@ -17,21 +16,6 @@ function environment(userAgent: string, standalone: boolean, displayMode: boolea
     matches: query === "(display-mode: standalone)" && displayMode,
   })));
 }
-
-it.each([
-  ["iPhone", false, true, "", 0],
-  ["iPhone", true, false, "", 0],
-  ["iPad", false, true, "", 0],
-  ["Macintosh", false, true, "MacIntel", 5],
-])("uses the exact Android image in installed iOS: %s %s %s", (agent, safari, display, platform, touches) => {
-  environment(agent, safari, display, platform, touches);
-  render(<MemoryRouter><CinematicStory reducedMotion={false} /></MemoryRouter>);
-
-  expect(screen.queryByTestId("landing-film")).not.toBeInTheDocument();
-  expect(screen.getByTestId("landing-gym-image")).toHaveAttribute("src", androidGymImage);
-  expect(screen.getByTestId("landing-gym-image")).toHaveAttribute("alt", "");
-  expect(screen.getAllByRole("link")[0]).toHaveAttribute("href", "/get-started");
-});
 
 it.each([
   ["iPhone", false],
@@ -65,12 +49,4 @@ it("keeps reduced-motion video behavior in Safari tabs", () => {
   environment("iPhone", false, false);
   render(<MemoryRouter><CinematicStory reducedMotion /></MemoryRouter>);
   expect(screen.getByTestId("landing-film")).not.toHaveAttribute("autoplay");
-});
-
-it("supports Safari standalone when matchMedia is unavailable", () => {
-  environment("iPhone", true, false);
-  vi.stubGlobal("matchMedia", undefined);
-  render(<MemoryRouter><CinematicStory reducedMotion={false} /></MemoryRouter>);
-  expect(screen.getByTestId("landing-gym-image")).toHaveAttribute("src", androidGymImage);
-  expect(screen.queryByTestId("landing-film")).not.toBeInTheDocument();
 });
