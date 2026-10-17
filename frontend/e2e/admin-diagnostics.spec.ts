@@ -10,7 +10,7 @@ for (const language of ["fa", "en"] as const) {
       test.setTimeout(60_000);
       const origin = new URL(testInfo.project.use.baseURL as string ?? "http://127.0.0.1:4173").origin;
       const email = `diagnostics-${randomUUID()}@example.com`;
-      const password = `${randomUUID()}!aA9`;
+      const password = randomUUID() + "!aA9";
       const created = await page.request.post("/api/v1/auth/register", { headers: { Origin: origin }, data: { email, password } });
       expect(created.status()).toBe(201);
       execFileSync("uv", ["run", "python", "-m", "scripts.e2e_fixture", "prepare-user", "--email", email, "--admin"], {
