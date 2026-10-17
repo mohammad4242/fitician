@@ -111,3 +111,29 @@ it("does not remove a new account's queued event when an old delivery finishes",
   expect(delivered).toEqual([[event(1).event_id], [event(2).event_id]]);
   expect(queue.size()).toBe(0);
 });
+
+it("calls default host timers without attaching the queue as their receiver", async () => {
+  const nativeSchedule = globalThis.setTimeout;
+  const nativeCancel = globalThis.clearTimeout;
+  const scheduledReceivers: unknown[] = [];
+  const cancelledReceivers: unknown[] = [];
+  vi.stubGlobal("setTimeout", function (this: unknown, callback: () => void, delay: number) {
+    scheduledReceivers.push(this);
+    return nativeSchedule(callback, delay);
+  });
+  vi.stubGlobal("clearTimeout", function (this: unknown, timer: ReturnType<typeof setTimeout>) {
+    cancelledReceivers.push(this);
+    nativeCancel(timer);
+  });
+  const queue = new ClientDiagnosticsQueue({ send: async () => { throw new Error("offline"); } });
+  try {
+    queue.enqueue(event());
+    await queue.flush();
+    queue.clear();
+    expect(scheduledReceivers).toEqual([undefined]);
+    expect(cancelledReceivers).toEqual([undefined]);
+  } finally {
+    queue.clear();
+    vi.unstubAllGlobals();
+  }
+});

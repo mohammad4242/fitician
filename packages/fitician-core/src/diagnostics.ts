@@ -102,8 +102,8 @@ export class ClientDiagnosticsQueue {
 
   constructor(private readonly options: ClientDiagnosticsQueueOptions) {
     this.now = options.now ?? Date.now;
-    this.schedule = options.schedule ?? setTimeout;
-    this.cancel = options.cancel ?? clearTimeout;
+    this.schedule = options.schedule ?? ((callback, delay) => setTimeout(callback, delay));
+    this.cancel = options.cancel ?? ((timer) => clearTimeout(timer));
   }
 
   enqueue(event: ClientDiagnosticEvent): boolean {

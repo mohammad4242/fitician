@@ -6,6 +6,8 @@ for (const mode of ["safari", "display", "browser"] as const) {
       await page.setViewportSize(size);
       await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: '{"detail":"Not authenticated"}' }));
       await page.addInitScript(mode => {
+        // Both browser projects must emulate an iOS device for this iOS-only surface.
+        Object.defineProperty(navigator, "userAgent", { value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1" });
         if (mode === "safari") Object.defineProperty(navigator, "standalone", { value: true });
         if (mode === "display") {
           const original = window.matchMedia.bind(window);
@@ -58,7 +60,10 @@ for (const mode of ["safari", "display", "browser"] as const) {
 }
 
 test("hides prerendered web content before application JavaScript runs", async ({ page }) => {
-  await page.addInitScript(() => Object.defineProperty(navigator, "standalone", { value: true }));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "userAgent", { value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1" });
+    Object.defineProperty(navigator, "standalone", { value: true });
+  });
   await page.route("**/assets/*.js", route => route.abort());
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ios-pwa", "true");
