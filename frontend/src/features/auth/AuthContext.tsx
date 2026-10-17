@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 
+import { clearWebClientDiagnostics, configureWebClientDiagnostics } from "../../shared/clientDiagnostics";
+
 import * as api from "./api";
 import type { Credentials, User } from "./types";
 
@@ -61,7 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [startupAttempt]);
 
+  const diagnosticsAuthenticated = user !== null;
+  useEffect(() => {
+    configureWebClientDiagnostics(diagnosticsAuthenticated);
+    return () => configureWebClientDiagnostics(false);
+  }, [user?.id, diagnosticsAuthenticated]);
+
   const cancelStartupRequest = () => {
+    clearWebClientDiagnostics();
     requestGeneration.current += 1;
     setLoading(false);
     setStartupError(null);

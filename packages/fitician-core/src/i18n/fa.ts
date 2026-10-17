@@ -855,6 +855,7 @@ const fa = {
       adminAiModels: "مدل‌های هوش مصنوعی",
       adminAiSettings: "تنظیمات وظایف هوش مصنوعی",
       adminTrainingTemplates: "کتابخانه برنامه‌ها",
+      loggingDebugging: "لاگینگ و دیباگینگ",
       adminMealCatalogue: "کاتالوگ وعده‌های غذایی",
       adminNutritionPrograms: "کاتالوگ برنامه‌های غذایی",
       completeProfile: "تکمیل پروفایل",

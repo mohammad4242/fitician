@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 
+import type { JsonValue } from "@fitician/core";
 import type { Credentials, GenericMessage, User } from "@fitician/core/auth";
 import type {
   BinaryDownload,
@@ -20,7 +21,13 @@ import type {
 
 import { createNativeTransport } from "../api/nativeTransport";
 import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
-import { logDevelopmentDiagnostic } from "../platform/logging";
+import { configureMobileDiagnosticReporter, logDevelopmentDiagnostic } from "../platform/logging";
+import {
+  clearMobileClientDiagnostics,
+  configureMobileClientDiagnostics,
+  reportMobileClientDiagnostic,
+} from "../platform/clientDiagnostics";
+import { installMobileRuntimeDiagnostics } from "../platform/runtimeDiagnostics";
 import { createSecureRefreshTokenStore } from "./tokenStore";
 import { resolveMobileClientMetadata } from "./deviceMetadata";
 import type { AppleAuthCredential } from "./appleCredential";
@@ -78,6 +85,23 @@ export function MobileAuthProvider({ children, session }: MobileAuthProviderProp
 
   useEffect(() => {
     const unsubscribe = activeSession.subscribe(setSnapshot);
+    let currentUserId = activeSession.getSnapshot().user?.id ?? null;
+    configureMobileClientDiagnostics(async (events) => {
+      await activeSession.request<void>({
+        method: "POST",
+        path: "/api/v1/diagnostics/client",
+        body: { events: [...events] } as unknown as JsonValue,
+      });
+    });
+    configureMobileDiagnosticReporter((context) => reportMobileClientDiagnostic(context));
+    const uninstallRuntimeDiagnostics = installMobileRuntimeDiagnostics();
+    const unsubscribeDiagnostics = activeSession.subscribe((next) => {
+      const nextUserId = next.user?.id ?? null;
+      if (nextUserId !== currentUserId) {
+        currentUserId = nextUserId;
+        clearMobileClientDiagnostics();
+      }
+    });
     const restoreSession = async (): Promise<void> => {
       try {
         await activeSession.restore();
@@ -97,7 +121,13 @@ export function MobileAuthProvider({ children, session }: MobileAuthProviderProp
       }
     };
     void restoreSession();
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeDiagnostics();
+      uninstallRuntimeDiagnostics();
+      configureMobileDiagnosticReporter(null);
+      clearMobileClientDiagnostics();
+    };
   }, [activeSession]);
 
   const forgotPassword = useCallback((email: string) => activeSession.forgotPassword(email), [activeSession]);

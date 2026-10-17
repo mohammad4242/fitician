@@ -1,3 +1,4 @@
+import { createGenerationRequestKeys, diagnosticWorkflow } from "@fitician/core";
 import {
   ApiError,
   TransportError,
@@ -262,6 +263,8 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
   const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
   const networkStateProvider = options.networkStateProvider ?? (() => "unknown" as const);
 
+  const generationKeys = createGenerationRequestKeys();
+
   async function send(
     request: TransportRequest,
     body: BodyInit | undefined,
@@ -271,13 +274,18 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
   ): Promise<Response> {
     const startedAt = Date.now();
     let response: Response | undefined;
+    if (request.path.startsWith("/api/v1/auth/")) generationKeys.clear();
+    const init = requestInit(request, body, options.trustedOrigin, correlationId, contentType);
+    init.headers = generationKeys.headers(request.path, request.method, new Headers(init.headers));
     try {
       response = await fetchRequest(
         requestUrl(options.apiBaseUrl, request.path),
-        requestInit(request, body, options.trustedOrigin, correlationId, contentType),
+        init,
       );
+      generationKeys.completed(request.path, response.status, new Headers(init.headers).get("Idempotency-Key"));
       await ensureOk(response);
-      logger.captureMessage("native_request_completed", "info", {
+      const isDiagnosticsRequest = request.path.startsWith("/api/v1/diagnostics/client");
+      if (!isDiagnosticsRequest) logger.captureMessage("native_request_completed", "info", {
         correlation_id: correlationId,
         duration_ms: Date.now() - startedAt,
         http_status: response.status,
@@ -286,12 +294,16 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
       });
       return response;
     } catch (error) {
-      logger.captureException("native_request_failed", error, {
+      const isDiagnosticsRequest = request.path.startsWith("/api/v1/diagnostics/client");
+      if (!isDiagnosticsRequest) logger.captureException("native_request_failed", error, {
+        component: "NativeTransport",
         correlation_id: correlationId,
         duration_ms: Date.now() - startedAt,
+        error_code: "API_REQUEST_FAILED",
         http_status: response?.status ?? null,
         method: request.method ?? "GET",
-        operation,
+        operation: diagnosticWorkflow(request.path, operation),
+        stage: "failed",
       });
       throw normalizeFetchError(error, correlationId, networkStateProvider());
     }

@@ -4846,6 +4846,38 @@
         "title": "AgentServiceTestResponse",
         "type": "object"
       },
+      "AlertResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_id",
+          "created_at",
+          "reason"
+        ],
+        "title": "AlertResponse",
+        "type": "object"
+      },
       "AnalysisItem": {
         "properties": {
           "completed_at": {
@@ -9581,6 +9613,190 @@
         "title": "CatalogueNutrientInput",
         "type": "object"
       },
+      "ClientBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ClientEventInput"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "ClientBatch",
+        "type": "object"
+      },
+      "ClientEventInput": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^(?:[0-9]{1,10}|[a-fA-F0-9]{7,64})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Build"
+          },
+          "component": {
+            "enum": [
+              "WebTransport",
+              "Window",
+              "ReactRoot",
+              "NativeTransport",
+              "ReactNativeRuntime"
+            ],
+            "title": "Component",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "enum": [
+              "CLIENT_RUNTIME_ERROR",
+              "API_REQUEST_FAILED",
+              "CLIENT_UNHANDLED_REJECTION",
+              "CLIENT_RENDER_ERROR"
+            ],
+            "title": "Error Code",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "maximum": 599.0,
+                "minimum": 100.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "operation": {
+            "enum": [
+              "request",
+              "download",
+              "upload",
+              "error_event",
+              "promise_rejection",
+              "render",
+              "global_error",
+              "registration",
+              "login",
+              "authentication",
+              "onboarding",
+              "workout_generation",
+              "nutrition",
+              "body_analysis",
+              "notifications",
+              "subscriptions",
+              "entitlements",
+              "media"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "os_version": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os Version"
+          },
+          "platform": {
+            "enum": [
+              "android",
+              "ios_pwa",
+              "web"
+            ],
+            "title": "Platform",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "stage": {
+            "enum": [
+              "failed",
+              "response_failed",
+              "transport_failed",
+              "unhandled",
+              "fatal",
+              "caught",
+              "uncaught"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[0-9]{1,4}(?:\\.[0-9]{1,4}){1,3}(?:[-+][A-Za-z0-9.-]{1,32})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "event_id",
+          "platform",
+          "component",
+          "operation",
+          "stage",
+          "error_code"
+        ],
+        "title": "ClientEventInput",
+        "type": "object"
+      },
       "CoachQualityMetricsResponse": {
         "additionalProperties": false,
         "properties": {
@@ -11123,6 +11339,16 @@
         "title": "DailyCheckInInput",
         "type": "object"
       },
+      "DiagnosticHours": {
+        "enum": [
+          1,
+          24,
+          168,
+          720
+        ],
+        "title": "DiagnosticHours",
+        "type": "integer"
+      },
       "DietaryPattern": {
         "enum": [
           "omnivore",
@@ -11258,6 +11484,231 @@
         ],
         "title": "EstimateConfidence",
         "type": "string"
+      },
+      "EventResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Build"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "title": "Error Code",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "exception_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception Type"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "input_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Fingerprint"
+          },
+          "issue_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
+          "os_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os Version"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "retry_count": {
+            "title": "Retry Count",
+            "type": "integer"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "event_id",
+          "issue_id",
+          "timestamp",
+          "request_id",
+          "operation_id",
+          "user_id",
+          "component",
+          "operation",
+          "stage",
+          "platform",
+          "version",
+          "build",
+          "category",
+          "severity",
+          "error_code",
+          "exception_type",
+          "source_location",
+          "input_fingerprint",
+          "resource_id",
+          "outcome",
+          "duration_ms",
+          "retry_count",
+          "http_status",
+          "os_version"
+        ],
+        "title": "EventResponse",
+        "type": "object"
       },
       "ExerciseCategories": {
         "properties": {
@@ -12657,6 +13108,133 @@
         "title": "FreeMealTrackingInput",
         "type": "object"
       },
+      "GenerationMetricsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "engine_versions": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Engine Versions",
+            "type": "array"
+          },
+          "failure_reasons": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Failure Reasons",
+            "type": "array"
+          },
+          "hours": {
+            "title": "Hours",
+            "type": "integer"
+          },
+          "incomplete_attempts": {
+            "title": "Incomplete Attempts",
+            "type": "integer"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/GenerationSummary"
+            },
+            "title": "Operations",
+            "type": "array"
+          },
+          "quota_integrity": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Quota Integrity",
+            "type": "object"
+          }
+        },
+        "required": [
+          "hours",
+          "operations",
+          "failure_reasons",
+          "incomplete_attempts",
+          "quota_integrity",
+          "engine_versions"
+        ],
+        "title": "GenerationMetricsResponse",
+        "type": "object"
+      },
+      "GenerationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "average_duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Duration Ms"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "outcomes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Outcomes",
+            "type": "object"
+          },
+          "success_count": {
+            "title": "Success Count",
+            "type": "integer"
+          },
+          "success_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success Rate"
+          },
+          "terminal_count": {
+            "title": "Terminal Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation",
+          "terminal_count",
+          "success_count",
+          "success_rate",
+          "average_duration_ms",
+          "outcomes"
+        ],
+        "title": "GenerationSummary",
+        "type": "object"
+      },
       "GenericMessageResponse": {
         "properties": {
           "message": {
@@ -12741,6 +13319,279 @@
         ],
         "title": "ImpactLimit",
         "type": "string"
+      },
+      "InfrastructureResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "queues": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Queues",
+            "type": "object"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/InfrastructureSignal"
+            },
+            "title": "Signals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "signals",
+          "queues"
+        ],
+        "title": "InfrastructureResponse",
+        "type": "object"
+      },
+      "InfrastructureSignal": {
+        "additionalProperties": false,
+        "properties": {
+          "business_operation_verified": {
+            "default": false,
+            "title": "Business Operation Verified",
+            "type": "boolean"
+          },
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "evidence": {
+            "title": "Evidence",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "component",
+          "status",
+          "observed_at",
+          "evidence"
+        ],
+        "title": "InfrastructureSignal",
+        "type": "object"
+      },
+      "IssueDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_user_count": {
+            "title": "Affected User Count",
+            "type": "integer"
+          },
+          "affected_versions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Affected Versions",
+            "type": "array"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventResponse"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "issue": {
+            "$ref": "#/components/schemas/IssueResponse"
+          },
+          "status_history": {
+            "items": {
+              "$ref": "#/components/schemas/StatusHistoryResponse"
+            },
+            "title": "Status History",
+            "type": "array"
+          }
+        },
+        "required": [
+          "issue",
+          "events",
+          "status_history",
+          "affected_user_count",
+          "affected_versions"
+        ],
+        "title": "IssueDetailResponse",
+        "type": "object"
+      },
+      "IssueResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "component": {
+            "title": "Component",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "error_code": {
+            "title": "Error Code",
+            "type": "string"
+          },
+          "exception_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exception Type"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_alert_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Alert At"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "regression_count": {
+            "title": "Regression Count",
+            "type": "integer"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Location"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fingerprint",
+          "component",
+          "operation",
+          "stage",
+          "platform",
+          "severity",
+          "category",
+          "error_code",
+          "exception_type",
+          "source_location",
+          "confidence",
+          "title",
+          "first_seen",
+          "last_seen",
+          "count",
+          "status",
+          "regression_count",
+          "last_alert_at"
+        ],
+        "title": "IssueResponse",
+        "type": "object"
+      },
+      "IssueStatusUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "investigating",
+              "resolved",
+              "ignored"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "IssueStatusUpdate",
+        "type": "object"
       },
       "JsonObject": {
         "additionalProperties": {
@@ -18504,6 +19355,101 @@
         "title": "NutritionWeightTrendResponse",
         "type": "object"
       },
+      "OverviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_users": {
+            "title": "Affected Users",
+            "type": "integer"
+          },
+          "critical_count": {
+            "title": "Critical Count",
+            "type": "integer"
+          },
+          "error_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Rate"
+          },
+          "event_count": {
+            "title": "Event Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "title": "Failure Count",
+            "type": "integer"
+          },
+          "hours": {
+            "title": "Hours",
+            "type": "integer"
+          },
+          "http_response_count": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Http Response Count",
+            "type": "object"
+          },
+          "infrastructure": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Infrastructure",
+            "type": "object"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "new_issue_count": {
+            "title": "New Issue Count",
+            "type": "integer"
+          },
+          "platforms": {
+            "items": {
+              "$ref": "#/components/schemas/PlatformCount"
+            },
+            "title": "Platforms",
+            "type": "array"
+          },
+          "trend": {
+            "items": {
+              "$ref": "#/components/schemas/TrendPoint"
+            },
+            "title": "Trend",
+            "type": "array"
+          }
+        },
+        "required": [
+          "hours",
+          "event_count",
+          "issue_count",
+          "failure_count",
+          "critical_count",
+          "new_issue_count",
+          "affected_users",
+          "error_rate",
+          "http_response_count",
+          "infrastructure",
+          "trend",
+          "platforms"
+        ],
+        "title": "OverviewResponse",
+        "type": "object"
+      },
       "Page_ActivityItem_": {
         "properties": {
           "items": {
@@ -19854,6 +20800,25 @@
           "status"
         ],
         "title": "PlannedMealTrackingInput",
+        "type": "object"
+      },
+      "PlatformCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "count"
+        ],
+        "title": "PlatformCount",
         "type": "object"
       },
       "PreferredVariety": {
@@ -25249,6 +26214,68 @@
         "title": "StabilityDemand",
         "type": "string"
       },
+      "StatusHistoryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "new_status": {
+            "title": "New Status",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "previous_status": {
+            "title": "Previous Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_id",
+          "actor_user_id",
+          "previous_status",
+          "new_status",
+          "note",
+          "created_at"
+        ],
+        "title": "StatusHistoryResponse",
+        "type": "object"
+      },
       "StatusInput": {
         "additionalProperties": false,
         "properties": {
@@ -26344,6 +27371,26 @@
           "completed"
         ],
         "title": "TrainingWeek",
+        "type": "object"
+      },
+      "TrendPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "title": "Timestamp",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timestamp",
+          "count"
+        ],
+        "title": "TrendPoint",
         "type": "object"
       },
       "TrialStateResponse": {
@@ -33393,6 +34440,728 @@
         ]
       }
     },
+    "/api/v1/admin/diagnostics/alerts": {
+      "get": {
+        "operationId": "list_alerts_api_v1_admin_diagnostics_alerts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AlertResponse"
+                  },
+                  "title": "Response List Alerts Api V1 Admin Diagnostics Alerts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Alerts",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/events": {
+      "get": {
+        "operationId": "list_events_api_v1_admin_diagnostics_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resource_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resource Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Operation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "issue_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DiagnosticHours",
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventResponse"
+                  },
+                  "title": "Response List Events Api V1 Admin Diagnostics Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Events",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/generations": {
+      "get": {
+        "operationId": "generation_metrics_api_v1_admin_diagnostics_generations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DiagnosticHours",
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerationMetricsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generation Metrics",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/infrastructure": {
+      "get": {
+        "operationId": "infrastructure_api_v1_admin_diagnostics_infrastructure_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfrastructureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Infrastructure",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues": {
+      "get": {
+        "operationId": "list_issues_api_v1_admin_diagnostics_issues_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform"
+            }
+          },
+          {
+            "in": "query",
+            "name": "component",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Component"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "last_seen",
+              "pattern": "^(last_seen|first_seen|count|severity)$",
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DiagnosticHours",
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IssueResponse"
+                  },
+                  "title": "Response List Issues Api V1 Admin Diagnostics Issues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Issues",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}": {
+      "get": {
+        "operationId": "issue_detail_api_v1_admin_diagnostics_issues__issue_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Issue Detail",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      },
+      "patch": {
+        "operationId": "update_issue_api_v1_admin_diagnostics_issues__issue_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueStatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Issue",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/overview": {
+      "get": {
+        "operationId": "overview_api_v1_admin_diagnostics_overview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DiagnosticHours",
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Overview",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
     "/api/v1/admin/exercises": {
       "get": {
         "operationId": "read_admin_exercises_api_v1_admin_exercises_get",
@@ -37035,6 +38804,56 @@
         ]
       }
     },
+    "/api/v1/diagnostics/client": {
+      "post": {
+        "operationId": "ingest_client_events_api_v1_diagnostics_client_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Ingest Client Events Api V1 Diagnostics Client Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ingest Client Events",
+        "tags": [
+          "diagnostics"
+        ]
+      }
+    },
     "/api/v1/entitlements/me": {
       "get": {
         "operationId": "my_entitlements_api_v1_entitlements_me_get",
@@ -40498,6 +42317,27 @@
     "/api/v1/nutrition/plans": {
       "post": {
         "operationId": "generate_plan_api_v1_nutrition_plans_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 16,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "content": {
@@ -40508,6 +42348,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -45814,6 +47664,27 @@
     "/api/v1/workout-plans/generate": {
       "post": {
         "operationId": "generate_plan_api_v1_workout_plans_generate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 16,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

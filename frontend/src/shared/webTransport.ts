@@ -1,3 +1,4 @@
+import { createGenerationRequestKeys, diagnosticWorkflow } from "@fitician/core";
 import {
   ApiError,
   CORRELATION_ID_HEADER,
@@ -11,6 +12,8 @@ import {
   type MultipartUploadRequest,
   type TransportRequest,
 } from "@fitician/core";
+
+import { reportWebApiFailure } from "./clientDiagnostics";
 
 export type FetchLike = typeof fetch;
 
@@ -186,30 +189,52 @@ export function createWebTransport(
 ): WebFiticianTransport {
   const fetchRequest: FetchLike = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
+  const generationKeys = createGenerationRequestKeys();
 
   async function send(
     request: TransportRequest,
     body: BodyInit | undefined,
+    operation: "request" | "download" | "upload",
     isMultipart = false,
   ): Promise<Response> {
     const suppliedCorrelationId = request.headers === undefined
       ? null
       : new Headers(request.headers).get(CORRELATION_ID_HEADER);
     const correlationId = suppliedCorrelationId ?? correlationIdFactory();
+    const startedAt = Date.now();
+    if (request.path.startsWith("/api/v1/auth/")) generationKeys.clear();
+    const init = requestInit(request, body, correlationId, isMultipart);
+    init.headers = generationKeys.headers(request.path, request.method, new Headers(init.headers));
     try {
       const response = await fetchRequest(
         request.path,
-        requestInit(request, body, correlationId, isMultipart),
+        init,
       );
+      generationKeys.completed(request.path, response.status, new Headers(init.headers).get("Idempotency-Key"));
       return await ensureOk(response);
     } catch (error) {
-      throw normalizeFetchError(error, correlationId);
+      const normalized = normalizeFetchError(error, correlationId);
+      if (!request.path.includes("/api/v1/diagnostics/client")
+        && !(normalized instanceof TransportError && normalized.kind === "aborted")) {
+        const requestId = normalized instanceof ApiError || normalized instanceof TransportError
+          ? normalized.requestId
+          : correlationId;
+        const httpStatus = normalized instanceof ApiError ? normalized.status : undefined;
+        reportWebApiFailure({
+          durationMs: Date.now() - startedAt,
+          operation: diagnosticWorkflow(request.path, operation),
+          requestId,
+          stage: normalized instanceof ApiError ? "response_failed" : "transport_failed",
+          ...(httpStatus !== undefined ? { httpStatus } : {}),
+        });
+      }
+      throw normalized;
     }
   }
 
   return {
     async request<TResponse>(request: TransportRequest): Promise<TResponse> {
-      const response = await send(request, requestBody(request.body));
+      const response = await send(request, requestBody(request.body), "request");
       if (response.status === 204) {
         return undefined as TResponse;
       }
@@ -217,7 +242,7 @@ export function createWebTransport(
     },
 
     async download(request: BinaryDownloadRequest): Promise<BinaryDownload> {
-      const response = await send(request, requestBody(request.body));
+      const response = await send(request, requestBody(request.body), "download");
       return {
         bytes: new Uint8Array(await response.arrayBuffer()),
         contentType: response.headers.get("Content-Type"),
@@ -226,7 +251,7 @@ export function createWebTransport(
     },
 
     async upload<TResponse>(request: MultipartUploadRequest): Promise<TResponse> {
-      const response = await send(request, multipartFormData(request.parts), true);
+      const response = await send(request, multipartFormData(request.parts), "upload", true);
       if (response.status === 204) {
         return undefined as TResponse;
       }
@@ -236,7 +261,7 @@ export function createWebTransport(
     async uploadFormData<TResponse>(
       request: Omit<MultipartUploadRequest, "parts"> & { formData: FormData },
     ): Promise<TResponse> {
-      const response = await send(request, request.formData, true);
+      const response = await send(request, request.formData, "upload", true);
       if (response.status === 204) {
         return undefined as TResponse;
       }

@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import {
   MobileTelemetryLogger,
+  configureMobileDiagnosticReporter,
   configureMobileTelemetry,
   createCorrelationId,
   logDevelopmentDiagnostic,
@@ -81,6 +82,29 @@ it("sends only allowlisted redacted context through the Sentry-compatible adapte
   expect(JSON.stringify(context)).not.toContain("member-1");
   expect(JSON.stringify(context)).not.toContain("medical");
   expect(JSON.stringify(context)).not.toContain("secret-token");
+});
+
+it("forwards only sanitized transport fields to client diagnostics", () => {
+  const reporter = vi.fn();
+  configureMobileDiagnosticReporter(reporter);
+  const logger = new MobileTelemetryLogger(null, () => "corr-safe");
+  logger.captureException("native_request_failed", new Error("member@example.com secret"), {
+    component: "NativeTransport",
+    correlation_id: "req-123",
+    error_code: "API_REQUEST_FAILED",
+    operation: "request",
+    stage: "failed",
+    body: { medical: "private" },
+  });
+  expect(reporter).toHaveBeenCalledWith(expect.objectContaining({
+    component: "NativeTransport",
+    correlation_id: "req-123",
+    operation: "request",
+    stage: "failed",
+  }));
+  expect(JSON.stringify(reporter.mock.calls[0])).not.toContain("member@example.com");
+  expect(JSON.stringify(reporter.mock.calls[0])).not.toContain("private");
+  configureMobileDiagnosticReporter(null);
 });
 
 it("uses a UUID-shaped correlation id and the singleton can be configured", () => {

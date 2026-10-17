@@ -740,6 +740,126 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Alerts */
+        get: operations["list_alerts_api_v1_admin_diagnostics_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_v1_admin_diagnostics_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/generations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Generation Metrics */
+        get: operations["generation_metrics_api_v1_admin_diagnostics_generations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/infrastructure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Infrastructure */
+        get: operations["infrastructure_api_v1_admin_diagnostics_infrastructure_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Issues */
+        get: operations["list_issues_api_v1_admin_diagnostics_issues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Issue Detail */
+        get: operations["issue_detail_api_v1_admin_diagnostics_issues__issue_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Issue */
+        patch: operations["update_issue_api_v1_admin_diagnostics_issues__issue_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_v1_admin_diagnostics_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/exercises": {
         parameters: {
             query?: never;
@@ -1717,6 +1837,23 @@ export type paths = {
         get: operations["read_access_api_v1_coach_workout_reviews_access_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diagnostics/client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest Client Events */
+        post: operations["ingest_client_events_api_v1_diagnostics_client_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5694,6 +5831,26 @@ export type components = {
          * @enum {string}
          */
         AITaskType: "workout_plan_generation" | "body_photo_analysis" | "progress_comparison" | "food_photo_estimation" | "food_price_search";
+        /** AlertResponse */
+        AlertResponse: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issue Id
+             * Format: uuid
+             */
+            issue_id: string;
+            /** Reason */
+            reason: string;
+        };
         /** AnalysisItem */
         AnalysisItem: {
             /** Completed At */
@@ -7470,6 +7627,56 @@ export type components = {
             /** Value Per 100G */
             value_per_100g: number;
         };
+        /** ClientBatch */
+        ClientBatch: {
+            /** Events */
+            events: components["schemas"]["ClientEventInput"][];
+        };
+        /** ClientEventInput */
+        ClientEventInput: {
+            /** Build */
+            build?: string | null;
+            /**
+             * Component
+             * @enum {string}
+             */
+            component: "WebTransport" | "Window" | "ReactRoot" | "NativeTransport" | "ReactNativeRuntime";
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Error Code
+             * @enum {string}
+             */
+            error_code: "CLIENT_RUNTIME_ERROR" | "API_REQUEST_FAILED" | "CLIENT_UNHANDLED_REJECTION" | "CLIENT_RENDER_ERROR";
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Http Status */
+            http_status?: number | null;
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "request" | "download" | "upload" | "error_event" | "promise_rejection" | "render" | "global_error" | "registration" | "login" | "authentication" | "onboarding" | "workout_generation" | "nutrition" | "body_analysis" | "notifications" | "subscriptions" | "entitlements" | "media";
+            /** Os Version */
+            os_version?: string | null;
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "android" | "ios_pwa" | "web";
+            /** Request Id */
+            request_id?: string | null;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "failed" | "response_failed" | "transport_failed" | "unhandled" | "fatal" | "caught" | "uncaught";
+            /** Version */
+            version?: string | null;
+        };
         /** CoachQualityMetricsResponse */
         CoachQualityMetricsResponse: {
             body_analysis_target_satisfaction: components["schemas"]["CoachQualityRatioResponse"];
@@ -7949,6 +8156,11 @@ export type components = {
             status: components["schemas"]["NutritionDailyCheckInStatus"];
         };
         /**
+         * DiagnosticHours
+         * @enum {integer}
+         */
+        DiagnosticHours: 1 | 24 | 168 | 720;
+        /**
          * DietaryPattern
          * @enum {string}
          */
@@ -7995,6 +8207,63 @@ export type components = {
          * @enum {string}
          */
         EstimateConfidence: "high" | "medium" | "low";
+        /** EventResponse */
+        EventResponse: {
+            /** Build */
+            build: string | null;
+            /** Category */
+            category: string;
+            /** Component */
+            component: string;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Error Code */
+            error_code: string;
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Exception Type */
+            exception_type: string | null;
+            /** Http Status */
+            http_status: number | null;
+            /** Input Fingerprint */
+            input_fingerprint: string | null;
+            /** Issue Id */
+            issue_id: string | null;
+            /** Operation */
+            operation: string;
+            /** Operation Id */
+            operation_id: string | null;
+            /** Os Version */
+            os_version: string | null;
+            /** Outcome */
+            outcome: string;
+            /** Platform */
+            platform: string;
+            /** Request Id */
+            request_id: string | null;
+            /** Resource Id */
+            resource_id: string | null;
+            /** Retry Count */
+            retry_count: number;
+            /** Severity */
+            severity: string;
+            /** Source Location */
+            source_location: string | null;
+            /** Stage */
+            stage: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /** User Id */
+            user_id: string | null;
+            /** Version */
+            version: string | null;
+        };
         /** ExerciseCategories */
         ExerciseCategories: {
             /** Body Regions */
@@ -8462,6 +8731,44 @@ export type components = {
             /** Protein G */
             protein_g: number;
         };
+        /** GenerationMetricsResponse */
+        GenerationMetricsResponse: {
+            /** Engine Versions */
+            engine_versions: {
+                [key: string]: string | number;
+            }[];
+            /** Failure Reasons */
+            failure_reasons: {
+                [key: string]: string | number;
+            }[];
+            /** Hours */
+            hours: number;
+            /** Incomplete Attempts */
+            incomplete_attempts: number;
+            /** Operations */
+            operations: components["schemas"]["GenerationSummary"][];
+            /** Quota Integrity */
+            quota_integrity: {
+                [key: string]: number;
+            };
+        };
+        /** GenerationSummary */
+        GenerationSummary: {
+            /** Average Duration Ms */
+            average_duration_ms: number | null;
+            /** Operation */
+            operation: string;
+            /** Outcomes */
+            outcomes: {
+                [key: string]: number;
+            };
+            /** Success Count */
+            success_count: number;
+            /** Success Rate */
+            success_rate: number | null;
+            /** Terminal Count */
+            terminal_count: number;
+        };
         /** GenericMessageResponse */
         GenericMessageResponse: {
             /** Message */
@@ -8497,6 +8804,105 @@ export type components = {
          * @enum {string}
          */
         ImpactLimit: "low" | "moderate" | "high";
+        /** InfrastructureResponse */
+        InfrastructureResponse: {
+            /** Queues */
+            queues: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** Signals */
+            signals: components["schemas"]["InfrastructureSignal"][];
+        };
+        /** InfrastructureSignal */
+        InfrastructureSignal: {
+            /**
+             * Business Operation Verified
+             * @default false
+             */
+            business_operation_verified: boolean;
+            /** Component */
+            component: string;
+            /** Evidence */
+            evidence: string;
+            /** Observed At */
+            observed_at: string | null;
+            /** Status */
+            status: string;
+        };
+        /** IssueDetailResponse */
+        IssueDetailResponse: {
+            /** Affected User Count */
+            affected_user_count: number;
+            /** Affected Versions */
+            affected_versions: string[];
+            /** Events */
+            events: components["schemas"]["EventResponse"][];
+            issue: components["schemas"]["IssueResponse"];
+            /** Status History */
+            status_history: components["schemas"]["StatusHistoryResponse"][];
+        };
+        /** IssueResponse */
+        IssueResponse: {
+            /** Category */
+            category: string;
+            /** Component */
+            component: string;
+            /** Confidence */
+            confidence: string;
+            /** Count */
+            count: number;
+            /** Error Code */
+            error_code: string;
+            /** Exception Type */
+            exception_type: string | null;
+            /** Fingerprint */
+            fingerprint: string;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Alert At */
+            last_alert_at: string | null;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Operation */
+            operation: string;
+            /** Platform */
+            platform: string;
+            /** Regression Count */
+            regression_count: number;
+            /** Severity */
+            severity: string;
+            /** Source Location */
+            source_location: string | null;
+            /** Stage */
+            stage: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /** IssueStatusUpdate */
+        IssueStatusUpdate: {
+            /** Note */
+            note?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "new" | "investigating" | "resolved" | "ignored";
+        };
         JsonObject: {
             [key: string]: string | number | boolean | null;
         };
@@ -10643,6 +11049,37 @@ export type components = {
             /** Weight Kg */
             weight_kg: number;
         };
+        /** OverviewResponse */
+        OverviewResponse: {
+            /** Affected Users */
+            affected_users: number;
+            /** Critical Count */
+            critical_count: number;
+            /** Error Rate */
+            error_rate: number | null;
+            /** Event Count */
+            event_count: number;
+            /** Failure Count */
+            failure_count: number;
+            /** Hours */
+            hours: number;
+            /** Http Response Count */
+            http_response_count: {
+                [key: string]: number;
+            };
+            /** Infrastructure */
+            infrastructure: {
+                [key: string]: string | null;
+            };
+            /** Issue Count */
+            issue_count: number;
+            /** New Issue Count */
+            new_issue_count: number;
+            /** Platforms */
+            platforms: components["schemas"]["PlatformCount"][];
+            /** Trend */
+            trend: components["schemas"]["TrendPoint"][];
+        };
         /** Page[ActivityItem] */
         Page_ActivityItem_: {
             /** Items */
@@ -11085,6 +11522,13 @@ export type components = {
              * @enum {string}
              */
             status: "consumed" | "adjusted" | "skipped";
+        };
+        /** PlatformCount */
+        PlatformCount: {
+            /** Count */
+            count: number;
+            /** Platform */
+            platform: string;
         };
         /**
          * PreferredVariety
@@ -12754,6 +13198,32 @@ export type components = {
          * @enum {string}
          */
         StabilityDemand: "low" | "moderate" | "high";
+        /** StatusHistoryResponse */
+        StatusHistoryResponse: {
+            /** Actor User Id */
+            actor_user_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issue Id
+             * Format: uuid
+             */
+            issue_id: string;
+            /** New Status */
+            new_status: string;
+            /** Note */
+            note: string | null;
+            /** Previous Status */
+            previous_status: string;
+        };
         /** StatusInput */
         StatusInput: {
             /**
@@ -13136,6 +13606,16 @@ export type components = {
              * Format: date
              */
             start_date: string;
+        };
+        /** TrendPoint */
+        TrendPoint: {
+            /** Count */
+            count: number;
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
         };
         /** TrialStateResponse */
         TrialStateResponse: {
@@ -16205,6 +16685,269 @@ export interface operations {
             };
         };
     };
+    list_alerts_api_v1_admin_diagnostics_alerts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_events_api_v1_admin_diagnostics_events_get: {
+        parameters: {
+            query?: {
+                hours?: components["schemas"]["DiagnosticHours"];
+                issue_id?: string | null;
+                limit?: number;
+                offset?: number;
+                operation_id?: string | null;
+                platform?: string | null;
+                request_id?: string | null;
+                resource_id?: string | null;
+                user_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generation_metrics_api_v1_admin_diagnostics_generations_get: {
+        parameters: {
+            query?: {
+                hours?: components["schemas"]["DiagnosticHours"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerationMetricsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    infrastructure_api_v1_admin_diagnostics_infrastructure_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InfrastructureResponse"];
+                };
+            };
+        };
+    };
+    list_issues_api_v1_admin_diagnostics_issues_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+                component?: string | null;
+                error_code?: string | null;
+                hours?: components["schemas"]["DiagnosticHours"];
+                limit?: number;
+                offset?: number;
+                platform?: string | null;
+                q?: string | null;
+                request_id?: string | null;
+                severity?: string | null;
+                sort?: string;
+                status?: string | null;
+                user_id?: string | null;
+                version?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_detail_api_v1_admin_diagnostics_issues__issue_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_issue_api_v1_admin_diagnostics_issues__issue_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_v1_admin_diagnostics_overview_get: {
+        parameters: {
+            query?: {
+                hours?: components["schemas"]["DiagnosticHours"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_admin_exercises_api_v1_admin_exercises_get: {
         parameters: {
             query?: {
@@ -18422,6 +19165,41 @@ export interface operations {
             };
         };
     };
+    ingest_client_events_api_v1_diagnostics_client_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     my_entitlements_api_v1_entitlements_me_get: {
         parameters: {
             query?: never;
@@ -20439,7 +21217,9 @@ export interface operations {
     generate_plan_api_v1_nutrition_plans_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -20452,6 +21232,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeeklyPlanGenerationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -23704,7 +24493,9 @@ export interface operations {
     generate_plan_api_v1_workout_plans_generate_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

@@ -855,6 +855,7 @@ const en = {
       adminAiModels: "AI models",
       adminAiSettings: "AI task settings",
       adminTrainingTemplates: "Program library",
+      loggingDebugging: "Logging & Debugging",
       adminMealCatalogue: "Nutrition meal catalogue",
       adminNutritionPrograms: "Nutrition program catalogue",
       completeProfile: "Complete profile",
