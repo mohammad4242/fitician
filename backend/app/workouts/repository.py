@@ -141,6 +141,15 @@ def activate_plan(
     from app.workout_reviews.repository import supersede_open_review
 
     for previous in previous_plans:
+        from app.entitlements.enums import EntitlementCode
+        from app.entitlements.reservations import release_reservation
+
+        release_reservation(
+            db,
+            previous.user_id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            f"workout-plan:{previous.id}",
+        )
         supersede_open_review(db, previous.id)
         previous.status = WorkoutPlanStatus.SUPERSEDED
         previous.superseded_at = now
@@ -179,6 +188,15 @@ def persist_pending_review_plan(
     from app.workout_reviews.repository import supersede_open_review
 
     for previous in previous_plans:
+        from app.entitlements.enums import EntitlementCode
+        from app.entitlements.reservations import release_reservation
+
+        release_reservation(
+            db,
+            previous.user_id,
+            EntitlementCode.TRAINING_PLAN_GENERATE,
+            f"workout-plan:{previous.id}",
+        )
         supersede_open_review(db, previous.id)
         previous.status = WorkoutPlanStatus.SUPERSEDED
         previous.superseded_at = now

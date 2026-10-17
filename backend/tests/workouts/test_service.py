@@ -1319,6 +1319,7 @@ def test_deterministic_generation_persists_exact_profile_weekdays_and_invalidate
 
     profile.preferred_weekdays = [0, 1, 3, 4]
     db.flush()
+    _fill_generation_capacity(db, user.id)
     with pytest.raises(EntitlementQuotaExceededError):
         second = asyncio.run(service.generate(user.id))
     for usage in db.query(EntitlementUsageEvent).filter_by(
@@ -1398,6 +1399,12 @@ def test_coach_generation_has_one_review_and_one_quota_event(db: Session) -> Non
 
     assert first.plan.status is WorkoutPlanStatus.PENDING_REVIEW
     assert second.reused
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key="training.plan.generate")
+        .count()
+        == 0
+    )
     assert db.query(WorkoutPlanReview).filter_by(user_id=user.id).count() == 1
     assert (
         db.query(EntitlementUsageEvent)
@@ -1451,6 +1458,7 @@ def test_review_policy_is_part_of_generation_reuse_compatibility(db: Session) ->
         source=GrantSource.MANUAL,
         starts_at=datetime.now(UTC),
     )
+    _fill_generation_capacity(db, user.id)
     with pytest.raises(EntitlementQuotaExceededError):
         coached = asyncio.run(service.generate(user.id, review_required=True))
     for usage in db.query(EntitlementUsageEvent).filter_by(
@@ -1594,8 +1602,9 @@ def test_ai_generation_reuses_the_current_pending_plan(
         db.query(EntitlementUsageEvent)
         .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
         .count()
-        == 1
+        == 0
     )
+    _fill_generation_capacity(db, user.id)
     first.plan.generation_signature = "c" * 64
     db.commit()
     with pytest.raises(EntitlementQuotaExceededError) as error:
@@ -2004,6 +2013,7 @@ def test_specialist_correction_changes_signature_and_marks_active_plan_stale(
     )
 
     active = service.get_active(user.id)
+    _fill_generation_capacity(db, user.id)
     with pytest.raises(EntitlementQuotaExceededError):
         replacement = asyncio.run(service.generate(user.id))
     for usage in db.query(EntitlementUsageEvent).filter_by(
@@ -2345,6 +2355,7 @@ def test_weekly_generation_consumes_only_new_plan_and_resets(db: Session, pure_b
     assert events[0].resource_key == f"workout-plan:{first.plan.id}"
     first.plan.generation_signature = "c" * 64
     db.commit()
+    _fill_generation_capacity(db, user.id)
     with pytest.raises(EntitlementQuotaExceededError) as error:
         asyncio.run(service.generate(user.id))
     assert error.value.entitlement is EntitlementCode.TRAINING_PLAN_GENERATE
@@ -2380,10 +2391,7 @@ def test_final_workout_quota_check_rolls_back_plan_with_correct_error(db, monkey
     persist = service._persist_generated_plan
 
     def competing_success(plan, generation, *, review_required):
-        workout_service_module.consume_quota(
-            db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE, "workout-plan:competing"
-        )
-        db.commit()
+        _fill_generation_capacity(db, user.id)
         persist(plan, generation, review_required=review_required)
 
     monkeypatch.setattr(service, "_persist_generated_plan", competing_success)
@@ -2394,3 +2402,148 @@ def test_final_workout_quota_check_rolls_back_plan_with_correct_error(db, monkey
     generation = db.query(WorkoutPlanGeneration).one()
     assert generation.status is WorkoutGenerationStatus.FAILED
     assert generation.error_code == "ENTITLEMENT_QUOTA_EXCEEDED"
+
+
+def _fill_generation_capacity(db: Session, user_id) -> None:
+    from app.entitlements.service import consume_quota, quota_status
+
+    state = quota_status(db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
+    assert state is not None
+    for index in range(state.remaining):
+        consume_quota(db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE, f"other-success:{index}")
+    db.commit()
+
+
+def test_three_distinct_successful_workout_generations_charge_once_each(db: Session) -> None:
+    user = _user_with_profile(db)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    profile = get_profile(db, user.id).profile
+    profile.training_days_per_week = 4
+    _seed_candidates(db)
+    service = _service(db)
+    identifiers = set()
+    for weekdays in ([0, 1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5]):
+        profile.preferred_weekdays = weekdays
+        db.flush()
+        result = asyncio.run(service.generate(user.id))
+        assert not result.reused and result.plan.status is WorkoutPlanStatus.ACTIVE
+        identifiers.add(result.plan.id)
+        assert asyncio.run(service.generate(user.id)).reused
+    assert len(identifiers) == 3
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 3
+    )
+    profile.preferred_weekdays = [0, 1, 4, 6]
+    db.flush()
+    with pytest.raises(EntitlementQuotaExceededError):
+        asyncio.run(service.generate(user.id))
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 3
+
+
+def test_delayed_identical_workout_rechecks_reuse_under_member_lock(db, monkeypatch):
+    import app.workouts.service as module
+
+    user = _user_with_profile(db)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    _seed_candidates(db)
+    service = _service(db)
+    first = asyncio.run(service.generate(user.id))
+    lookup = module.get_current_foreground_plan
+    calls = 0
+
+    def stale_initial_read(session, user_id):
+        nonlocal calls
+        calls += 1
+        return None if calls == 1 else lookup(session, user_id)
+
+    monkeypatch.setattr(module, "get_current_foreground_plan", stale_initial_read)
+    second = asyncio.run(service.generate(user.id))
+    assert second.reused and second.plan.id == first.plan.id
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 1
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+
+
+def test_workout_request_key_returns_committed_outcome_and_rejects_changed_inputs(db):
+    from fastapi import HTTPException
+
+    user = _user_with_profile(db)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    profile = get_profile(db, user.id).profile
+    profile.training_days_per_week = 4
+    profile.preferred_weekdays = [0, 1, 3, 5]
+    _seed_candidates(db)
+    service = _service(db)
+    key = "stable-request-after-client-timeout"
+    first = asyncio.run(service.generate(user.id, idempotency_key=key))
+    retry = asyncio.run(service.generate(user.id, idempotency_key=key))
+    assert retry.reused and retry.plan.id == first.plan.id
+    profile.preferred_weekdays = [0, 2, 4, 6]
+    db.flush()
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(service.generate(user.id, idempotency_key=key))
+    assert error.value.status_code == 409
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).count() == 1
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+    assert key not in str(db.query(WorkoutPlanGeneration).one().request_key_hash)
+
+
+def test_same_request_key_committed_after_initial_read_rejects_different_inputs(db, monkeypatch):
+    from fastapi import HTTPException
+
+    user = _user_with_profile(db)
+    grant_package(db, user.id, AccessPackageCode.TRAINING)
+    profile = get_profile(db, user.id).profile
+    profile.training_days_per_week = 4
+    profile.preferred_weekdays = [0, 1, 3, 5]
+    _seed_candidates(db)
+    service = _service(db)
+    key = "concurrent-request-key-different-inputs"
+    first = asyncio.run(service.generate(user.id, idempotency_key=key))
+    profile.preferred_weekdays = [0, 2, 4, 6]
+    db.flush()
+    scalar = db.scalar
+    stale = True
+
+    def stale_initial_key_read(statement, *args, **kwargs):
+        nonlocal stale
+        sql = str(statement)
+        if (
+            stale
+            and "SELECT workout_plan_generations.workout_plan_id" in sql
+            and "request_key_hash" in sql
+        ):
+            stale = False
+            return None
+        return scalar(statement, *args, **kwargs)
+
+    monkeypatch.setattr(db, "scalar", stale_initial_key_read)
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(service.generate(user.id, idempotency_key=key))
+    assert error.value.status_code == 409
+    assert error.value.detail["code"] == "GENERATION_REQUEST_OUTCOME_INELIGIBLE"
+    assert db.query(WorkoutPlan).filter_by(user_id=user.id).one().id == first.plan.id
+    assert (
+        db.query(EntitlementUsageEvent)
+        .filter_by(user_id=user.id, entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
+        .count()
+        == 1
+    )
+    assert (
+        db.query(WorkoutPlanGeneration)
+        .filter_by(user_id=user.id, status=WorkoutGenerationStatus.GENERATING)
+        .count()
+        == 0
+    )

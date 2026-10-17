@@ -240,11 +240,27 @@ it("reports failed HTTP requests without sending response details", async () => 
       correlation_id: "corr-failure-1",
       http_status: 403,
       event: "native_request_failed",
-      operation: "request",
+      operation: "onboarding",
     }),
   );
   expect(JSON.stringify(captureException.mock.calls[0])).not.toContain("member@example.com");
   expect(JSON.stringify(captureException.mock.calls[0])).not.toContain("PROFILE_PRIVATE");
+});
+
+it("does not re-report diagnostics ingestion failures", async () => {
+  const logger = {
+    captureException: vi.fn<MobileLogger["captureException"]>(),
+    captureMessage: vi.fn<MobileLogger["captureMessage"]>(),
+  } satisfies MobileLogger;
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch")),
+    logger,
+  });
+
+  await expect(transport.request({ method: "POST", path: "/api/v1/diagnostics/client" })).rejects.toMatchObject({ kind: "network" });
+  expect(logger.captureException).not.toHaveBeenCalled();
+  expect(logger.captureMessage).not.toHaveBeenCalled();
 });
 
 it("serializes multipart bytes without native temporary files", async () => {

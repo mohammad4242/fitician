@@ -8,6 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    diagnostics_enabled: bool = True
+    app_build_sha: str = ""
+
     database_url: str = "postgresql+psycopg://fitician:fitician@localhost:5432/fitician"
     db_pool_size: int = Field(default=5, ge=1, le=50)
     db_max_overflow: int = Field(default=5, ge=0, le=50)

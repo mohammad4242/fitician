@@ -233,6 +233,7 @@ def _override_fake_generation_service(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             return WorkoutPlanGenerationResult(plan=plan, reused=False)
@@ -293,6 +294,7 @@ def test_training_generation_route_uses_direct_lifecycle(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             lifecycle.append(review_required)
@@ -466,6 +468,7 @@ def test_training_coach_generation_route_uses_review_lifecycle(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             lifecycle.append(review_required)
@@ -973,6 +976,7 @@ def test_generate_uses_authenticated_user_and_returns_reuse_flag(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             called_user_ids.append(current_user_id)
             return WorkoutPlanGenerationResult(plan=plan, reused=True)
@@ -1045,6 +1049,7 @@ def test_generate_accepts_typed_optional_engine_evidence(client: TestClient, db:
             payload: ProgramGenerationOverrides,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             captured_seed.append(payload.seed_optional)
@@ -1084,6 +1089,7 @@ def test_generate_rejects_multiple_or_duplicate_user_priority_overrides(
             payload: ProgramGenerationOverrides,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             assert current_user_id == user_id
             captured.append(payload)
@@ -1117,6 +1123,7 @@ def test_generate_returns_structured_professional_review_status(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise ProgramGenerationRejectedError("PROGRAM_REJECTED_SAFETY_STATUS", "stop_and_refer")
 
@@ -1170,6 +1177,7 @@ def test_generate_maps_bodyweight_rejections_to_actionable_422(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise ProgramGenerationRejectedError(error_code)
 
@@ -1200,6 +1208,7 @@ def test_generate_returns_construction_exhaustion_as_a_specific_422(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise WorkoutConstructionUnsatisfiedError()
 
@@ -1230,6 +1239,7 @@ def test_generate_exposes_preferred_calendar_conflict_reason(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise WorkoutConstructionUnsatisfiedError(
                 reason_codes=("PREFERRED_WEEKDAYS_RECOVERY_CONFLICT",),
@@ -1262,6 +1272,7 @@ def test_generate_returns_retry_after_during_a_generation_cooldown(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise GenerationCooldownError(42)
 
@@ -1299,6 +1310,7 @@ def test_generate_maps_provider_failures_to_safe_statuses(
             current_user_id: UUID,
             *,
             review_required: bool,
+            idempotency_key: str | None = None,
         ) -> WorkoutPlanGenerationResult:
             raise WorkoutGenerationFailedError(error_code)
 
@@ -1330,8 +1342,14 @@ def test_real_generation_quota_error_is_structured_and_reuse_is_free(client, db)
     )
     assert reused.status_code == 200
     assert reused.json()["reused"] is True
+    # Fill the two remaining successful-generation slots before testing rejection.
+    for seed in (12, 13):
+        created = client.post(
+            "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": seed}
+        )
+        assert created.status_code == 200
     blocked = client.post(
-        "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": 12}
+        "/api/v1/workout-plans/generate", headers=ORIGIN, json={"seed_optional": 14}
     )
     assert blocked.status_code == 429, blocked.json()
     detail = blocked.json()["detail"]
@@ -1343,5 +1361,5 @@ def test_real_generation_quota_error_is_structured_and_reuse_is_free(client, db)
         db.query(EntitlementUsageEvent)
         .filter_by(entitlement_key=EntitlementCode.TRAINING_PLAN_GENERATE.value)
         .count()
-        == 1
+        == 3
     )

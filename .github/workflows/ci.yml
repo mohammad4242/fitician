@@ -700,6 +700,8 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
           push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') }}
           load: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full') }}
           tags: |
@@ -716,6 +718,7 @@ jobs:
           build-args: |
             VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
             VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+            VITE_APP_BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:main

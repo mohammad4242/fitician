@@ -75,7 +75,7 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
     }
     if (question === labels.length - 1) {
       const completionErrors = onCompleteRef.current(values);
-      if (completionErrors?.birth_date !== undefined) {
+      if (completionErrors && completionErrors.birth_date !== undefined) {
         setBirthError(getBirthDateError(values.birth_date) ?? t("onboarding.validation.birthDateInvalid"));
         setQuestion(1);
       }
@@ -184,7 +184,7 @@ export function GuidedSharedProfileQuestions({ values, onChange, onBack, onCompl
                   () => onChange("fitness_goal", goal),
                   () => {
                     const completionErrors = onCompleteRef.current({ ...values, fitness_goal: goal });
-                    if (completionErrors?.birth_date !== undefined) {
+                    if (completionErrors && completionErrors.birth_date !== undefined) {
                       setBirthError(getBirthDateError(values.birth_date) ?? t("onboarding.validation.birthDateInvalid"));
                       setQuestion(1);
                     }

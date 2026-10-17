@@ -17,6 +17,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.jobs.heartbeat import threaded_heartbeat
 from app.jobs.runtime import install_sync_signal_handlers
+from app.observability.diagnostics_logs import install_diagnostic_log_bridge
 from app.observability.logging import configure_structured_logging
 
 from .apns import ApnsConfigurationError, build_apns_provider
@@ -464,6 +465,7 @@ def run_worker(
     stop_event: threading.Event | None = None,
 ) -> None:
     configure_structured_logging()
+    install_diagnostic_log_bridge(settings)
     worker_id = _worker_id()
     requested_stop = stop_event or threading.Event()
     restore_signals = install_sync_signal_handlers(requested_stop) if stop_event is None else None

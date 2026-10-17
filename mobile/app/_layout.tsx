@@ -12,6 +12,7 @@ import { EntitlementProvider } from "../entitlements/EntitlementProvider";
 import { logMobileRuntimeConfiguration } from "../config/nativeRuntimeConfig";
 import { E2ERoleNavigator } from "../e2e/RoleNavigator";
 import { connectivityMonitor } from "../platform/connectivity";
+import { flushMobileClientDiagnostics } from "../platform/clientDiagnostics";
 import {
   completeMobileColdStart,
   mobilePerformanceRecorder,
@@ -102,7 +103,13 @@ export default function RootLayout() {
     completeMobileColdStart();
     logMobileRuntimeConfiguration();
     connectivityMonitor.start();
-    return () => connectivityMonitor.stop();
+    const unsubscribeDiagnostics = connectivityMonitor.subscribe((state) => {
+      if (state.isOnline) void flushMobileClientDiagnostics();
+    });
+    return () => {
+      unsubscribeDiagnostics();
+      connectivityMonitor.stop();
+    };
   }, []);
 
   return (

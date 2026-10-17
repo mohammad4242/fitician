@@ -112,6 +112,7 @@ export function AuthenticatedHeader() {
     { to: "/admin/nutrition-monitoring", label: t("header.nutritionMonitoring"), active: location.pathname.startsWith("/admin/nutrition-monitoring"), visible: user.is_admin },
     { to: "/admin/nutrition-meals", label: t("header.adminMealCatalogue"), active: location.pathname.startsWith("/admin/nutrition-meals"), visible: user.is_admin },
     { to: "/admin/nutrition-programs", label: t("header.adminNutritionPrograms"), active: location.pathname.startsWith("/admin/nutrition-programs"), visible: user.is_admin },
+    { to: "/admin/diagnostics", label: t("header.loggingDebugging"), active: location.pathname.startsWith("/admin/diagnostics"), visible: user.is_admin },
     { to: "/admin/ai-settings", label: t("header.adminAiSettings"), active: location.pathname.startsWith("/admin/ai-settings"), visible: user.is_admin },
     { to: "/admin/training-program-templates", label: t("header.adminTrainingTemplates"), active: location.pathname.startsWith("/admin/training-program-templates"), visible: user.is_admin },
   ].find((item) => item.visible && item.active);
@@ -187,6 +188,7 @@ export function AuthenticatedHeader() {
                     <Link to="/admin/nutrition-monitoring" onClick={() => setMenuOpen(false)}>{t("header.nutritionMonitoring")}</Link>
                     <Link to="/admin/nutrition-meals" onClick={() => setMenuOpen(false)}>{t("header.adminMealCatalogue")}</Link>
                     <Link to="/admin/nutrition-programs" onClick={() => setMenuOpen(false)}>{t("header.adminNutritionPrograms")}</Link>
+                    <Link to="/admin/diagnostics" onClick={() => setMenuOpen(false)}>{t("header.loggingDebugging")}</Link>
                     <Link to="/admin/ai-settings" onClick={() => setMenuOpen(false)}>{t("header.adminAiSettings")}</Link>
                     <Link to="/admin/training-program-templates" onClick={() => setMenuOpen(false)}>{t("header.adminTrainingTemplates")}</Link>
                   </div>

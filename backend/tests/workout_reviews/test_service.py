@@ -600,9 +600,7 @@ def test_coach_cannot_add_bodyweight_push_for_wrist_caution_without_explicit_tag
     )
     profile = db.get(UserProfile, member.id)
     assert profile is not None
-    profile.training_caution_items.append(
-        UserProfileTrainingCaution(caution=TrainingCaution.WRIST)
-    )
+    profile.training_caution_items.append(UserProfileTrainingCaution(caution=TrainingCaution.WRIST))
     db.flush()
     service = WorkoutReviewService(db, clock=Clock())
     service.claim(review.id, coach.id)
@@ -858,6 +856,15 @@ def test_approval_activates_pending_plan_without_creating_review_loop(db: Sessio
         exercises=[exercise],
         status=WorkoutPlanStatus.PENDING_REVIEW,
     )
+    from app.entitlements.enums import AccessPackageCode, EntitlementCode
+    from app.entitlements.reservations import reserve_quota
+    from app.entitlements.service import grant_package, quota_status
+
+    grant_package(db, member.id, AccessPackageCode.TRAINING_COACH)
+    reserve_quota(
+        db, member.id, EntitlementCode.TRAINING_PLAN_GENERATE, f"workout-plan:{source.id}"
+    )
+    assert quota_status(db, member.id, EntitlementCode.TRAINING_PLAN_GENERATE).used == 0
     review = ensure_pending_review(db, source)
     assert (
         db.scalars(select(WorkoutCycle).where(WorkoutCycle.workout_plan_id == source.id)).all()
@@ -883,6 +890,12 @@ def test_approval_activates_pending_plan_without_creating_review_loop(db: Sessio
         expected_revision=saved.draft_revision,
     )
 
+    assert quota_status(db, member.id, EntitlementCode.TRAINING_PLAN_GENERATE).used == 1
+    assert (
+        service.approve(review.id, coach.id, expected_revision=saved.draft_revision).id
+        == approved.id
+    )
+    assert quota_status(db, member.id, EntitlementCode.TRAINING_PLAN_GENERATE).used == 1
     db.refresh(source)
     db.refresh(review)
     assert source.status is WorkoutPlanStatus.SUPERSEDED

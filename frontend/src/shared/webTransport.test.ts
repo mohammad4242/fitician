@@ -2,6 +2,9 @@ import { expect, it, vi } from "vitest";
 
 import { createWebTransport } from "./webTransport";
 
+const reportWebApiFailure = vi.hoisted(() => vi.fn());
+vi.mock("./clientDiagnostics", () => ({ reportWebApiFailure }));
+
 it("maps JSON requests through an injected fetch implementation", async () => {
   const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
     new Response(JSON.stringify({ ok: true }), {
@@ -147,7 +150,7 @@ it("adds one correlation id to every web request", async () => {
   await transport.request({ path: "/api/v1/test" });
 
   const [, init] = fetchImpl.mock.calls[0];
-  expect((init?.headers as Headers).get("X-Correlation-ID")).toBe("web-correlation-1");
+  expect(new Headers(init?.headers).get("X-Correlation-ID")).toBe("web-correlation-1");
 });
 
 it.each([
@@ -177,4 +180,12 @@ it("keeps offline failures distinct from generic network failures", async () => 
   } finally {
     Object.defineProperty(navigator, "onLine", { configurable: true, value: previous });
   }
+});
+
+it("does not report diagnostics ingestion failures back into diagnostics", async () => {
+  reportWebApiFailure.mockClear();
+  const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
+  const transport = createWebTransport(fetchImpl);
+  await expect(transport.request({ path: "/api/v1/diagnostics/client", method: "POST" })).rejects.toMatchObject({ kind: "network" });
+  expect(reportWebApiFailure).not.toHaveBeenCalled();
 });

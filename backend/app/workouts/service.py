@@ -10,6 +10,7 @@ from time import perf_counter
 from typing import cast
 from uuid import UUID
 
+from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -23,6 +24,13 @@ from app.auth.models import User
 from app.body_analysis.providers import ProviderRoutingPreferences
 from app.entitlements.enums import EntitlementCode
 from app.entitlements.exceptions import EntitlementQuotaExceededError, EntitlementRequiredError
+from app.entitlements.generation_requests import (
+    current_key_hash,
+    generation_request,
+    key_hash,
+    require_compatible_outcome,
+)
+from app.entitlements.reservations import reserve_quota
 from app.entitlements.service import consume_quota, require_quota_available
 from app.exercises.enums import (
     Equipment,
@@ -36,6 +44,7 @@ from app.exercises.media_resolver import resolve_primary_media
 from app.exercises.models import Exercise
 from app.exercises.programming_metadata import infer_exercise_demands
 from app.exercises.substitution_groups import effective_substitution_group
+from app.observability.diagnostics_runtime import bind_resource, bind_version, emit, set_stage
 from app.profile.enums import ExperienceLevel, Sex
 from app.profile.exceptions import InvalidProfilePreferencesError
 from app.profile.service import ProfileSnapshot, get_profile
@@ -271,7 +280,31 @@ class WorkoutGenerationService:
         overrides: ProgramGenerationOverrides | None = None,
         *,
         review_required: bool = False,
+        idempotency_key: str | None = None,
     ) -> WorkoutPlanGenerationResult:
+        request_hash = key_hash(idempotency_key)
+        existing = (
+            self._db.scalar(
+                select(WorkoutPlanGeneration.workout_plan_id).where(
+                    WorkoutPlanGeneration.user_id == user_id,
+                    WorkoutPlanGeneration.request_key_hash == request_hash,
+                    WorkoutPlanGeneration.status == WorkoutGenerationStatus.SUCCEEDED,
+                )
+            )
+            if request_hash
+            else None
+        )
+        with generation_request(request_hash, existing):
+            return await self._generate(user_id, overrides, review_required=review_required)
+
+    async def _generate(
+        self,
+        user_id: UUID,
+        overrides: ProgramGenerationOverrides | None = None,
+        *,
+        review_required: bool = False,
+    ) -> WorkoutPlanGenerationResult:
+        set_stage("profile_completeness", component="workout_engine")
         bodyweight_context = self._bodyweight_route_context(user_id, overrides)
         if bodyweight_context is not None:
             return await self._generate_bodyweight(
@@ -291,6 +324,7 @@ class WorkoutGenerationService:
         user_id: UUID,
         overrides: ProgramGenerationOverrides | None,
     ) -> _BodyweightRouteContext | None:
+        set_stage("profile_completeness", component="workout_engine")
         source_profile = get_profile(self._db, user_id)
         profile = source_profile.profile
         effective_overrides = self._with_previous_volume_history(user_id, overrides)
@@ -356,7 +390,9 @@ class WorkoutGenerationService:
         *,
         review_required: bool = False,
     ) -> WorkoutPlanGenerationResult:
+        bind_version(BODYWEIGHT_ENGINE_VERSION)
         request = context.request
+        set_stage("candidate_selection")
         catalog = self._load_catalog(context.source_profile.profile.sex)
         catalog_hash = self._catalog_hash(catalog)
         signature = self._bodyweight_generation_signature(
@@ -365,15 +401,28 @@ class WorkoutGenerationService:
             context.template_fingerprint,
             review_required=review_required,
         )
+        set_stage("reuse_evaluation")
         current_plan = get_current_foreground_plan(self._db, request.user_id)
         if (
             current_plan is not None
             and current_plan.generation_signature == signature
             and not self._is_plan_expired(current_plan)
+            and self._review_eligible_for_reuse(current_plan)
         ):
+            emit(
+                category="unknown",
+                severity="info",
+                error_code="EXISTING_PLAN_REUSED",
+                outcome="reused",
+                resource_id=current_plan.id,
+                input_fingerprint=signature,
+            )
+            require_compatible_outcome(current_plan.id)
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
 
+        require_compatible_outcome(None)
         self._enforce_cooldown(request.user_id)
+        set_stage("quota_availability")
         require_quota_available(self._db, request.user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(request.user_id, review_required)
         generation = self._start_generation(request.user_id, len(catalog))
@@ -388,6 +437,7 @@ class WorkoutGenerationService:
             )
             raise ProgramGenerationRejectedError(BODYWEIGHT_TEMPLATE_DAYS_NOT_SUPPORTED)
         try:
+            set_stage("engine_construction")
             program = build_bodyweight_template_program(
                 request=request,
                 experience_level=template.experience_level,
@@ -442,6 +492,7 @@ class WorkoutGenerationService:
             raise WorkoutGenerationFailedError(error_code="generation_inputs_changed")
 
         try:
+            set_stage("program_construction")
             plan = self._build_plan(
                 user_id=request.user_id,
                 signature=signature,
@@ -456,8 +507,8 @@ class WorkoutGenerationService:
             generation.validation_diagnostics = [
                 cast(dict[str, object], _json_ready(asdict(program.validation_report)))
             ]
-            self._persist_generated_plan(plan, generation, review_required=review_required)
-            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+            reused = self._persist_generated_plan(plan, generation, review_required=review_required)
+            return WorkoutPlanGenerationResult(plan=reused or plan, reused=reused is not None)
         except SQLAlchemyError as error:
             self._db.rollback()
             self._mark_failure(
@@ -477,6 +528,8 @@ class WorkoutGenerationService:
         fallback_reason_code: str | None = None,
         review_required: bool = False,
     ) -> WorkoutPlanGenerationResult:
+        bind_version(self._ruleset.engine_version)
+        set_stage("profile_completeness", component="workout_engine")
         source_profile = get_profile(self._db, user_id)
         effective_overrides = self._with_previous_volume_history(user_id, overrides)
         body_analysis_influence = applicable_body_analysis_influence(
@@ -492,8 +545,10 @@ class WorkoutGenerationService:
             raise ProgramGenerationRejectedError("INVALID_PROFILE_INPUT") from error
         except ValidationError as error:
             raise ProgramGenerationRejectedError("INVALID_PROFILE_INPUT") from error
+        set_stage("candidate_selection")
         catalog = self._load_catalog(source_profile.profile.sex)
         catalog_hash = self._catalog_hash(catalog)
+        set_stage("template_selection")
         references = load_template_references(self._db)
         reference_hash = self._template_reference_hash(references)
         signature = self._generation_signature(
@@ -502,15 +557,28 @@ class WorkoutGenerationService:
             reference_hash,
             review_required=review_required,
         )
+        set_stage("reuse_evaluation")
         current_plan = get_current_foreground_plan(self._db, user_id)
         if (
             current_plan is not None
             and current_plan.generation_signature == signature
             and not self._is_plan_expired(current_plan)
+            and self._review_eligible_for_reuse(current_plan)
         ):
+            emit(
+                category="unknown",
+                severity="info",
+                error_code="EXISTING_PLAN_REUSED",
+                outcome="reused",
+                resource_id=current_plan.id,
+                input_fingerprint=signature,
+            )
+            require_compatible_outcome(current_plan.id)
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
 
+        require_compatible_outcome(None)
         self._enforce_cooldown(user_id)
+        set_stage("quota_availability")
         require_quota_available(self._db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(user_id, review_required)
         if generation is None:
@@ -518,6 +586,7 @@ class WorkoutGenerationService:
         else:
             generation.candidate_count = len(catalog)
         started_at = perf_counter()
+        set_stage("engine_construction")
         result = generate_program(
             request,
             catalog,
@@ -601,6 +670,7 @@ class WorkoutGenerationService:
             raise WorkoutGenerationFailedError(error_code="generation_inputs_changed")
 
         try:
+            set_stage("program_construction")
             plan = self._build_plan(
                 user_id=user_id,
                 signature=signature,
@@ -627,10 +697,10 @@ class WorkoutGenerationService:
             generation.validation_diagnostics = [
                 cast(dict[str, object], _json_ready(asdict(result.program.validation_report)))
             ]
-            self._persist_generated_plan(plan, generation, review_required=review_required)
+            reused = self._persist_generated_plan(plan, generation, review_required=review_required)
             return WorkoutPlanGenerationResult(
-                plan=plan,
-                reused=False,
+                plan=reused or plan,
+                reused=reused is not None,
                 notice_code=(
                     ProviderErrorCode.AGENT_NETWORK_UNAVAILABLE.value
                     if fallback_reason_code == "AGENT_NETWORK_UNAVAILABLE"
@@ -774,6 +844,7 @@ class WorkoutGenerationService:
         *,
         review_required: bool = False,
     ) -> WorkoutPlanGenerationResult:
+        bind_version("template_library_v1")
         if self._ai_coach_provider is None:
             if self._settings.deterministic_fallback_enabled:
                 return await self._generate_deterministic(
@@ -782,6 +853,7 @@ class WorkoutGenerationService:
                     review_required=review_required,
                 )
             raise WorkoutGenerationFailedError(error_code="no_enabled_ai_model")
+        set_stage("profile_completeness", component="workout_engine")
         source_profile = get_profile(self._db, user_id)
         profile = self._to_generation_profile(source_profile)
         preferred_weekdays = tuple(source_profile.profile.preferred_weekdays or ())
@@ -824,14 +896,27 @@ class WorkoutGenerationService:
             preferred_weekdays=preferred_weekdays,
             review_required=review_required,
         )
+        set_stage("reuse_evaluation")
         current_plan = get_current_foreground_plan(self._db, user_id)
         if (
             current_plan is not None
             and current_plan.generation_signature == signature
             and not self._is_plan_expired(current_plan)
+            and self._review_eligible_for_reuse(current_plan)
         ):
+            emit(
+                category="unknown",
+                severity="info",
+                error_code="EXISTING_PLAN_REUSED",
+                outcome="reused",
+                resource_id=current_plan.id,
+                input_fingerprint=signature,
+            )
+            require_compatible_outcome(current_plan.id)
             return WorkoutPlanGenerationResult(plan=current_plan, reused=True)
+        require_compatible_outcome(None)
         self._enforce_cooldown(user_id)
+        set_stage("quota_availability")
         require_quota_available(self._db, user_id, EntitlementCode.TRAINING_PLAN_GENERATE)
         self._require_coach_review_quota(user_id, review_required)
         catalog = {item.id: item for item in self._load_catalog(profile.sex)}
@@ -870,6 +955,7 @@ class WorkoutGenerationService:
         generation = self._start_generation(user_id, len(library_candidates))
         started_at = perf_counter()
         try:
+            set_stage("ai_provider")
             recommendation = await self._ai_coach_provider.recommend(
                 AiCoachRecommendationRequest(
                     profile=profile_payload,
@@ -933,8 +1019,8 @@ class WorkoutGenerationService:
             generation.input_tokens = recommendation.input_tokens
             generation.output_tokens = recommendation.output_tokens
             generation.latency_ms = int((perf_counter() - started_at) * 1000)
-            self._persist_generated_plan(plan, generation, review_required=review_required)
-            return WorkoutPlanGenerationResult(plan=plan, reused=False)
+            reused = self._persist_generated_plan(plan, generation, review_required=review_required)
+            return WorkoutPlanGenerationResult(plan=reused or plan, reused=reused is not None)
         except WorkoutProviderError as error:
             if self._settings.deterministic_fallback_enabled:
                 return await self._generate_deterministic(
@@ -1150,10 +1236,12 @@ class WorkoutGenerationService:
         generation: WorkoutPlanGeneration,
         *,
         review_required: bool,
-    ) -> None:
+    ) -> WorkoutPlan | None:
         try:
             # Read the database status without flushing the delayed request's ORM state.
             # Hold the generation lock through activation/quota consumption and commit.
+            set_stage("plan_persistence")
+            self._db.scalar(select(User.id).where(User.id == plan.user_id).with_for_update())
             with self._db.no_autoflush:
                 status = self._db.scalar(
                     select(WorkoutPlanGeneration.status)
@@ -1163,6 +1251,60 @@ class WorkoutGenerationService:
             if status is not WorkoutGenerationStatus.GENERATING:
                 self._db.rollback()
                 raise WorkoutGenerationFailedError(error_code="STALE_GENERATION_RECOVERED")
+            # A competing request may have committed after our initial reuse lookup.
+            # Recheck the stable semantic key while holding the member lock, before
+            # flushing the losing candidate or consuming any quota/reservation.
+            with self._db.no_autoflush:
+                current = get_current_foreground_plan(self._db, plan.user_id)
+                request_hash = current_key_hash()
+                committed = (
+                    self._db.scalar(
+                        select(WorkoutPlanGeneration).where(
+                            WorkoutPlanGeneration.user_id == plan.user_id,
+                            WorkoutPlanGeneration.request_key_hash == request_hash,
+                            WorkoutPlanGeneration.status == WorkoutGenerationStatus.SUCCEEDED,
+                        )
+                    )
+                    if request_hash
+                    else None
+                )
+                if committed is not None and (
+                    current is None
+                    or committed.workout_plan_id != current.id
+                    or current.generation_signature != plan.generation_signature
+                    or self._is_plan_expired(current)
+                    or not self._review_eligible_for_reuse(current)
+                ):
+                    self._db.rollback()
+                    self._mark_failure(
+                        generation,
+                        "GENERATION_REQUEST_OUTCOME_INELIGIBLE",
+                        "The committed request outcome is no longer eligible.",
+                        [],
+                    )
+                    raise HTTPException(
+                        409, detail={"code": "GENERATION_REQUEST_OUTCOME_INELIGIBLE"}
+                    )
+                if (
+                    current is not None
+                    and current.generation_signature == plan.generation_signature
+                    and not self._is_plan_expired(current)
+                    and self._review_eligible_for_reuse(current)
+                ):
+                    generation.workout_plan_id = current.id
+                    generation.status = WorkoutGenerationStatus.SUCCEEDED
+                    generation.completed_at = datetime.now(UTC)
+                    self._db.commit()
+                    emit(
+                        category="unknown",
+                        severity="info",
+                        error_code="EXISTING_PLAN_REUSED",
+                        outcome="reused",
+                        resource_id=current.id,
+                        input_fingerprint=plan.generation_signature,
+                    )
+                    return current
+            set_stage("review_lifecycle" if review_required else "activation")
             if review_required:
                 persist_pending_review_plan(self._db, plan, generation)
                 user = self._db.get(User, plan.user_id)
@@ -1175,7 +1317,10 @@ class WorkoutGenerationService:
                     )
             else:
                 activate_plan(self._db, plan, generation)
-            consume_quota(
+            generation.request_key_hash = current_key_hash()
+            bind_resource(plan.id, fingerprint=plan.generation_signature)
+            set_stage("quota_reservation" if review_required else "quota_consumption")
+            (reserve_quota if review_required else consume_quota)(
                 self._db,
                 plan.user_id,
                 EntitlementCode.TRAINING_PLAN_GENERATE,
@@ -1198,7 +1343,9 @@ class WorkoutGenerationService:
                 occurred_at=datetime.now(UTC),
                 deduplication_key=f"workout-plan:{plan.id}:generated",
             )
+            set_stage("transaction_commit")
             self._db.commit()
+            return None
         except (EntitlementQuotaExceededError, EntitlementRequiredError) as error:
             self._db.rollback()
             self._mark_failure(
@@ -1243,6 +1390,7 @@ class WorkoutGenerationService:
         except IntegrityError as error:
             self._db.rollback()
             raise GenerationInProgressError from error
+        bind_resource(generation.id)
         return generation
 
     def _build_plan(
@@ -1660,6 +1808,13 @@ class WorkoutGenerationService:
         safe_message: str,
         diagnostics: list[dict[str, object]],
     ) -> None:
+        emit(
+            category="engine_validation",
+            severity="error",
+            error_code=error_code.upper()[:64],
+            outcome="failure",
+            resource_id=generation.id,
+        )
         try:
             with self._db.no_autoflush:
                 status = self._db.scalar(
@@ -1772,6 +1927,12 @@ class WorkoutGenerationService:
         if not isinstance(value, int):
             value = plan.profile_snapshot.get("plan_duration_weeks")
         return value if isinstance(value, int) and 2 <= value <= 52 else 4
+
+    @staticmethod
+    def _review_eligible_for_reuse(plan: WorkoutPlan) -> bool:
+        if plan.status is WorkoutPlanStatus.PENDING_REVIEW and plan.source_review is not None:
+            return str(plan.source_review.status) not in {"rejected", "superseded"}
+        return True
 
     @classmethod
     def _is_plan_expired(cls, plan: WorkoutPlan) -> bool:

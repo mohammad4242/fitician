@@ -1,12 +1,13 @@
 import {
   CORRELATION_ID_HEADER as CORE_CORRELATION_ID_HEADER,
+  safeClientException,
   createCorrelationId as createCoreCorrelationId,
 } from "@fitician/core";
 
 const REDACTED = "[REDACTED]";
 const SENSITIVE_KEY = /(access[_-]?token|refresh[_-]?token|id[_-]?token|device[_-]?token|fcm[_-]?token|token|authorization|cookie|password|secret|api[_-]?key|email|phone|user[_-]?id|image|photo|body|lab|laboratory|medical|diagnos|symptom|medication|supplement|document|filename|uri|address|latitude|longitude|date[_-]?of[_-]?birth|dob|full[_-]?name|display[_-]?name)/iu;
 const SAFE_CORRELATION_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
-const SAFE_CONTEXT_KEY = /^(app_version|attempt|build_number|cache_hit|correlation_id|duration_ms|error_code|error_type|event|http_status|is_online|method|operation|outcome|permission_status|platform|release|retryable|route_kind|screen|status|success|type)$/u;
+const SAFE_CONTEXT_KEY = /^(app_version|attempt|build_number|cache_hit|component|correlation_id|duration_ms|error_code|error_type|event|http_status|is_online|method|operation|outcome|permission_status|platform|release|retryable|route_kind|screen|stage|status|success|type)$/u;
 const SAFE_DIAGNOSTIC_KEY = /^(api_base_url|environment|error_type|is_online|message|network_type|operation|role|route_kind|status|target)$/u;
 
 declare const __DEV__: boolean | undefined;
@@ -50,6 +51,13 @@ export interface MobileLogger {
     level: MobileTelemetryLevel,
     context?: MobileTelemetryContext,
   ): void;
+}
+
+type MobileDiagnosticReporter = (context: MobileTelemetryContext) => void;
+let diagnosticReporter: MobileDiagnosticReporter | null = null;
+
+export function configureMobileDiagnosticReporter(reporter: MobileDiagnosticReporter | null): void {
+  diagnosticReporter = reporter;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -208,18 +216,24 @@ export class MobileTelemetryLogger implements MobileLogger {
     context: MobileTelemetryContext = {},
   ): void {
     const adapter = this.adapter;
-    if (adapter === null) return;
     const safeContext = telemetryContext(
       { ...context, error_type: safeErrorType(error), event },
       this.correlationIdFactory,
     );
+    if (adapter !== null) {
+      try {
+        adapter.captureException(
+          new Error("Fitician mobile telemetry exception"),
+          safeContext,
+        );
+      } catch {
+        // Telemetry failures must never interrupt the app.
+      }
+    }
     try {
-      adapter.captureException(
-        new Error("Fitician mobile telemetry exception"),
-        safeContext,
-      );
+      diagnosticReporter?.({ ...safeContext, ...safeClientException(error) });
     } catch {
-      // Telemetry failures must never interrupt the app.
+      // Diagnostics must never interrupt the app.
     }
   }
 }

@@ -13,6 +13,7 @@ from app.auth.models import User
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.entitlements.enums import EntitlementCode
+from app.entitlements.generation_requests import GenerationRequestKey
 from app.entitlements.service import (
     ensure_requested_term_weeks,
     has_entitlement,
@@ -22,6 +23,7 @@ from app.exercises.dependencies import require_completed_profile
 from app.exercises.media_resolver import resolve_primary_media
 from app.exercises.models import Exercise
 from app.exercises.schemas import ExerciseSummary
+from app.observability.diagnostics_runtime import emit, set_stage
 from app.profile.models import UserProfile
 from app.rate_limits.dependency import (
     DistributedRateLimitUnavailable,
@@ -121,6 +123,7 @@ async def generate_plan(
     request: Request,
     settings: AppSettings,
     payload: ProgramGenerationOverrides | None = None,
+    idempotency_key: GenerationRequestKey = None,
 ) -> WorkoutPlanGenerateResponse:
     try:
         await enforce_distributed_rate_limit(
@@ -135,6 +138,7 @@ async def generate_plan(
         )
     except (DistributedRateLimitExceeded, DistributedRateLimitUnavailable) as error:
         raise rate_limit_http_exception(error) from None
+    set_stage("entitlement_check", component="workout_engine")
     access = require_entitlement(db, user.id, EntitlementCode.TRAINING_PLAN_GENERATE)
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
     if profile is not None and profile.plan_duration_weeks is not None:
@@ -147,9 +151,18 @@ async def generate_plan(
     review_required = access.has(EntitlementCode.TRAINING_COACH_REVIEW)
     try:
         result = (
-            await service.generate(user.id, review_required=review_required)
+            await service.generate(
+                user.id,
+                review_required=review_required,
+                idempotency_key=idempotency_key,
+            )
             if payload is None
-            else await service.generate(user.id, payload, review_required=review_required)
+            else await service.generate(
+                user.id,
+                payload,
+                review_required=review_required,
+                idempotency_key=idempotency_key,
+            )
         )
     except GenerationCooldownError as error:
         raise HTTPException(
@@ -209,6 +222,24 @@ async def generate_plan(
                 )
             },
         ) from None
+    set_stage("response_serialization")
+    emit(
+        category="unknown",
+        severity="info",
+        error_code="EXISTING_PLAN_REUSED"
+        if result.reused
+        else "PLAN_PENDING_REVIEW"
+        if result.plan.status.value == "pending_review"
+        else "PLAN_CREATED",
+        outcome="reused"
+        if result.reused
+        else "pending_review"
+        if result.plan.status.value == "pending_review"
+        else "success",
+        resource_id=result.plan.id,
+        version=result.plan.engine_version,
+        input_fingerprint=result.plan.generation_signature,
+    )
     return WorkoutPlanGenerateResponse(
         plan=to_plan_response(result.plan, db=db),
         reused=result.reused,

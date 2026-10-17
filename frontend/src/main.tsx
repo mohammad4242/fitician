@@ -10,8 +10,22 @@ import "./index.css";
 import "./pwa/pwa.css";
 import { applyDesignSystem } from "./styles/designSystem";
 import { readTheme } from "./theme/ThemeProvider";
+import { installWebRuntimeDiagnostics, reportReactRootError } from "./shared/clientDiagnostics";
 
 applyDesignSystem(document.documentElement, readTheme());
+installWebRuntimeDiagnostics();
+
+const rootErrorHandlers = {
+  onCaughtError(error: unknown, info: { componentStack?: string | null }) {
+    reportReactRootError("caught", error);
+    console.error(error, info.componentStack);
+  },
+  onUncaughtError(error: unknown) {
+    reportReactRootError("uncaught", error);
+    if (typeof window.reportError === "function") window.reportError(error);
+    else console.error(error);
+  },
+};
 
 const path = window.location.pathname;
 const root = document.getElementById("root")!;
@@ -41,11 +55,11 @@ async function start() {
     root.removeAttribute("data-prerendered");
     element = <App />;
   }
-  if (root.dataset.prerendered === "true") hydrateRoot(root, <StrictMode>{element}</StrictMode>);
+  if (root.dataset.prerendered === "true") hydrateRoot(root, <StrictMode>{element}</StrictMode>, rootErrorHandlers);
   else {
     // Hand ownership of build-rendered metadata to React when using the legacy CSR shell.
     document.head.querySelectorAll("[data-fitician-seo]").forEach(node => node.remove());
-    createRoot(root).render(<StrictMode>{element}</StrictMode>);
+    createRoot(root, rootErrorHandlers).render(<StrictMode>{element}</StrictMode>);
   }
 }
 void start();

@@ -31,6 +31,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
+from app.observability.diagnostics_logs import install_diagnostic_log_bridge
 from app.observability.logging import configure_structured_logging, log_event
 
 logger = logging.getLogger(__name__)
@@ -266,6 +267,7 @@ async def run_worker(
     stop_event: asyncio.Event | None = None,
 ) -> None:
     configure_structured_logging()
+    install_diagnostic_log_bridge(settings)
     worker_id = _worker_id()
     requested_stop = stop_event or asyncio.Event()
     if stop_event is None:

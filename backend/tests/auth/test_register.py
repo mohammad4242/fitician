@@ -148,6 +148,8 @@ def test_production_cookie_uses_host_security_prefix(
     production_settings = test_settings.model_copy(
         update={
             "app_env": "production",
+            # This cookie test uses a rollback fixture, not a live telemetry database.
+            "diagnostics_enabled": False,
             "frontend_origin": "https://fitician.example",
             "cookie_secure": True,
             "session_cookie_name": "__Host-fitician_session",

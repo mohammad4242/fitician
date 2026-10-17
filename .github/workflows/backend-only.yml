@@ -193,6 +193,8 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
           load: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:${{ github.sha }}
           cache-from: type=gha,scope=fitician-backend

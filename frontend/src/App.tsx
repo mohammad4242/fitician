@@ -27,6 +27,7 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 import { PwaUpdatePrompt } from "./pwa/PwaUpdatePrompt";
 
 const AdminAiSettingsPage = lazy(() => import("./features/admin/AdminAiSettingsPage").then(({ AdminAiSettingsPage }) => ({ default: AdminAiSettingsPage })));
+const AdminDiagnosticsPage = lazy(() => import("./features/diagnostics/DiagnosticsPage").then(({ DiagnosticsPage }) => ({ default: DiagnosticsPage })));
 const AdminAccessAuditPage = lazy(() => import("./features/accessManagement/AdminAccessAuditPage").then(({ AdminAccessAuditPage }) => ({ default: AdminAccessAuditPage })));
 const AdminAccessCampaignsPage = lazy(() => import("./features/accessManagement/AdminAccessCampaignsPage").then(({ AdminAccessCampaignsPage }) => ({ default: AdminAccessCampaignsPage })));
 const AdminSubscriptionCenterPage = lazy(() => import("./features/accessManagement/AdminSubscriptionCenterPage").then(({ AdminSubscriptionCenterPage }) => ({ default: AdminSubscriptionCenterPage })));
@@ -127,6 +128,7 @@ function ThemedAppRoutes() {
           <Route path="/physician/nutrition" element={deferred(<PhysicianNutritionReviewPage />)} />
         </Route>
         <Route element={<AdminRoute />}>
+          <Route path="/admin/diagnostics" element={deferred(<AdminDiagnosticsPage />)} />
           <Route path="/admin/support" element={deferred(<AdminSupportPage />)} />
           <Route path="/admin/support/:ticketId" element={deferred(<SupportTicketPage admin />)} />
           <Route path="/admin/ai-settings" element={deferred(<AdminAiSettingsPage />)} />

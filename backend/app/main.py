@@ -2,7 +2,7 @@ import logging
 import mimetypes
 import socket
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
@@ -64,6 +64,20 @@ from app.media.factory import build_s3_storage
 from app.media.storage import ObjectStorage
 from app.notifications.router import router as notifications_router
 from app.nutrition.router import router as nutrition_router
+from app.observability.diagnostics_router import (
+    client_router as diagnostics_client_router,
+)
+from app.observability.diagnostics_router import (
+    router as diagnostics_admin_router,
+)
+from app.observability.diagnostics_runtime import (
+    DiagnosticsRuntime,
+    mark_database_failure,
+    mark_http_error,
+)
+from app.observability.diagnostics_runtime import (
+    diagnostics_middleware as run_diagnostics_middleware,
+)
 from app.observability.logging import configure_structured_logging, log_event
 from app.observability.metrics import MetricsRegistry, route_label_from_scope
 from app.profile.router import router as profile_router
@@ -104,6 +118,7 @@ def create_app(
         key_secret=active_settings.phone_otp_hmac_secret.get_secret_value(),
         metrics=metrics,
     )
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         zen_timeout = httpx.Timeout(active_settings.opencode_zen_timeout_seconds)
@@ -131,14 +146,26 @@ def create_app(
             app.state.redis = redis_service
             app.state.cache = cache_service
             app.state.rate_limiter = rate_limiter
+            diagnostics_runtime = getattr(app.state, "diagnostics_runtime", None)
+            if diagnostics_runtime is None:
+                diagnostics_runtime = DiagnosticsRuntime(active_settings)
+                app.state.diagnostics_runtime = diagnostics_runtime
+            try:
+                diagnostics_runtime.start()
+            except Exception:
+                log_event(
+                    logger, "diagnostics startup failed", error_code="DIAGNOSTICS_START_FAILED"
+                )
             try:
                 yield
             finally:
                 app.state.draining = True
+                diagnostics_runtime.stop()
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
     app.state.draining = False
+    app.state.diagnostics_runtime = None
     app.state.metrics = metrics
     app.state.billing_providers = build_payment_providers(active_settings)
     app.state.email_provider = build_email_provider(active_settings)
@@ -315,6 +342,17 @@ def create_app(
     )
 
     @app.middleware("http")
+    async def diagnostics_context_middleware(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        return await run_diagnostics_middleware(
+            request,
+            call_next,
+            getattr(app.state, "diagnostics_runtime", None),
+        )
+
+    @app.middleware("http")
     async def correlation_id_middleware(
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
@@ -374,6 +412,9 @@ def create_app(
 
     @app.exception_handler(HTTPException)
     async def http_error_handler(request: Request, error: HTTPException) -> JSONResponse:
+        detail = error.detail
+        code = detail.get("code") if isinstance(detail, Mapping) else None
+        mark_http_error(request, code=code, error=error)
         return build_error_response(error, request_id(request))
 
     @app.exception_handler(SQLAlchemyError)
@@ -381,6 +422,14 @@ def create_app(
         request: Request,
         _error: SQLAlchemyError,
     ) -> JSONResponse:
+        mark_database_failure(request)
+        log_event(
+            logger,
+            "database_failure",
+            request_id=request_id(request),
+            status="database_failure",
+            error_code="DATABASE_UNAVAILABLE",
+        )
         logger.exception(
             "Database request failed",
             extra={"request_id": request_id(request)},
@@ -396,6 +445,7 @@ def create_app(
         request: Request,
         error: RequestValidationError,
     ) -> JSONResponse:
+        mark_http_error(request, code="VALIDATION_ERROR", error=error)
         error_types = {item["type"] for item in error.errors()}
         error_code: str | None = None
         error_message: str | None = None
@@ -420,6 +470,7 @@ def create_app(
         request: Request,
         error: EntitlementRequiredError,
     ) -> JSONResponse:
+        mark_http_error(request, code="ENTITLEMENT_REQUIRED", error=error)
         return error_response(
             status.HTTP_403_FORBIDDEN,
             {"code": "ENTITLEMENT_REQUIRED"},
@@ -436,6 +487,7 @@ def create_app(
         request: Request,
         error: EntitlementQuotaExceededError,
     ) -> JSONResponse:
+        mark_http_error(request, code="ENTITLEMENT_QUOTA_EXCEEDED", error=error)
         return error_response(
             status.HTTP_429_TOO_MANY_REQUESTS,
             {"code": "ENTITLEMENT_QUOTA_EXCEEDED"},
@@ -454,6 +506,7 @@ def create_app(
         request: Request,
         error: AccessTermTooShortError,
     ) -> JSONResponse:
+        mark_http_error(request, code="ACCESS_TERM_TOO_SHORT", error=error)
         return error_response(
             status.HTTP_403_FORBIDDEN,
             {"code": "ACCESS_TERM_TOO_SHORT"},
@@ -470,6 +523,7 @@ def create_app(
         request: Request,
         error: BillingError,
     ) -> JSONResponse:
+        mark_http_error(request, code=error.code, error=error)
         return error_response(
             error.status_code,
             {"code": error.code, "message": error.message},
@@ -481,6 +535,7 @@ def create_app(
         request: Request,
         error: AccessManagementError,
     ) -> JSONResponse:
+        mark_http_error(request, code=error.code, error=error)
         return error_response(
             error.status_code,
             {"code": error.code, "message": error.message},
@@ -489,6 +544,7 @@ def create_app(
 
     @app.exception_handler(Exception)
     async def internal_error_handler(request: Request, _error: Exception) -> JSONResponse:
+        mark_http_error(request, code="INTERNAL_SERVER_ERROR", error=_error)
         logger.exception(
             "Unhandled application exception",
             extra={"request_id": request_id(request)},
@@ -504,6 +560,8 @@ def create_app(
     app.include_router(billing_router)
     app.include_router(billing_admin_router)
     app.include_router(admin_audit_router)
+    app.include_router(diagnostics_admin_router)
+    app.include_router(diagnostics_client_router)
     app.include_router(public_campaign_router)
     app.include_router(access_management_router)
     app.include_router(entitlements_router)

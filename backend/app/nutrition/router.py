@@ -34,6 +34,7 @@ from app.cache.service import CacheResult
 from app.config import Settings, get_settings
 from app.database.session import get_db, isolated_session
 from app.entitlements.enums import EntitlementCode
+from app.entitlements.generation_requests import GenerationRequestKey
 from app.entitlements.service import require_entitlement
 from app.infrastructure.rate_limiter import RedisRateLimitUnavailable
 from app.media.uploads import SingleFileUpload, bounded_upload_form, multipart_openapi
@@ -335,6 +336,7 @@ from app.nutrition.tracking_service import (
     submit_check_in,
 )
 from app.nutrition.uploads import LabUploadForm
+from app.observability.diagnostics_runtime import set_stage
 from app.profile.enums import ProductMode
 from app.profile.models import UserProfile
 
@@ -1761,13 +1763,16 @@ def read_review_requirement(
 def generate_plan(
     db: DatabaseSession,
     user: CurrentUser,
+    idempotency_key: GenerationRequestKey = None,
 ) -> WeeklyPlanGenerationResponse:
+    set_stage("entitlement_check", component="nutrition_engine")
     access = require_entitlement(db, user.id, EntitlementCode.NUTRITION_PLAN_GENERATE)
     try:
         return generate_weekly_plan(
             db,
             user.id,
             physician_review_allowed=access.has(EntitlementCode.NUTRITION_PHYSICIAN_REVIEW),
+            idempotency_key=idempotency_key,
         )
     except SafetyDecisionNotFoundError:
         raise _domain_error(

@@ -115,3 +115,20 @@ class EntitlementUsageEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class EntitlementQuotaReservation(Base):
+    """Pending professional review capacity; never a successful usage event."""
+
+    __tablename__ = "entitlement_quota_reservations"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "entitlement_key", "resource_key", name="uq_quota_reservation_resource"
+        ),
+        Index("ix_quota_reservation_user_entitlement", "user_id", "entitlement_key"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    entitlement_key: Mapped[str] = mapped_column(String(128))
+    resource_key: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

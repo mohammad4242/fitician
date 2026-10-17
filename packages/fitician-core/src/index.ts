@@ -1,6 +1,20 @@
 export const FITICIAN_CORE_VERSION = "0.1.0";
 
 export {
+  createClientDiagnosticEvent,
+  ClientDiagnosticsQueue,
+  createDiagnosticUuid,
+  isClientDiagnosticEvent,
+} from "./diagnostics";
+export type {
+  ClientDiagnosticBatch,
+  ClientDiagnosticsQueueOptions,
+  ClientDiagnosticErrorCode,
+  ClientDiagnosticEvent,
+  ClientDiagnosticPlatform,
+} from "./diagnostics";
+
+export {
   accessPackageCodes,
   accessPackageKinds,
   entitlementCodes,
@@ -278,3 +292,9 @@ export * from "./support.js";
 export * from './progress.js';
 
 export * from "./progress-presentation.js";
+
+export { diagnosticWorkflow } from "./diagnostics";
+
+export { createGenerationRequestKeys } from "./generationRequests";
+
+export { safeClientException } from "./clientException";

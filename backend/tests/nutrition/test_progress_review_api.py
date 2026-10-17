@@ -165,17 +165,26 @@ def test_plateau_review_is_read_only_and_confirmation_is_explicit_and_idempotent
 
     later = review_progress(db, plan.user_id, now=datetime.now(UTC) + timedelta(days=8))
     assert later.status == "new_plan_required"
+    from app.entitlements.service import consume_quota
+
+    # Fill the remaining slots under the independent three-per-seven-days policy.
+    for slot in range(2):
+        consume_quota(
+            db, plan.user_id, EntitlementCode.NUTRITION_PLAN_GENERATE, f"test-prior-plan-{slot}"
+        )
+    db.commit()
     blocked = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert blocked.status_code == 429
     assert blocked.json()["detail"]["code"] == "ENTITLEMENT_QUOTA_EXCEEDED"
-    usage = db.scalar(
+    usages = db.scalars(
         select(EntitlementUsageEvent).where(
             EntitlementUsageEvent.user_id == plan.user_id,
             EntitlementUsageEvent.entitlement_key == EntitlementCode.NUTRITION_PLAN_GENERATE.value,
         )
-    )
-    assert usage is not None
-    usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
+    ).all()
+    assert len(usages) == 3
+    for usage in usages:
+        usage.occurred_at = datetime.now(UTC) - timedelta(days=8)
     db.commit()
     generated = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert generated.status_code == 201, generated.text
