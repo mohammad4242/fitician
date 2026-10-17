@@ -1,11 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { ApiError } from "@fitician/core";
 
-import "../i18n";
+import i18n from "../i18n";
 
 const logout = vi.fn(async () => undefined);
 const auth = vi.hoisted(() => ({ isAdmin: false }));
@@ -245,4 +245,31 @@ it("exposes an accessible appearance selector in Settings", async () => {
   await userEvent.click(within(settings).getByRole("radio", { name: "روشن" }));
   expect(document.documentElement.dataset.fiticianTheme).toBe("light");
   expect(within(settings).getByRole("radio", { name: "روشن" })).toBeChecked();
+});
+
+it.each([
+  ["fa", "لاگینگ و دیباگینگ"],
+  ["en", "Logging & Debugging"],
+])("opens diagnostics from the admin workspace in %s", async (language, title) => {
+  auth.isAdmin = true;
+  await i18n.changeLanguage(language);
+  const user = userEvent.setup();
+  render(<MemoryRouter><ThemeProvider><Routes>
+    <Route path="/" element={<MorePage />} />
+    <Route path="/admin/diagnostics" element={<h1>Diagnostics destination</h1>} />
+  </Routes></ThemeProvider></MemoryRouter>);
+
+  const workspace = screen.getByRole("region", { name: language === "fa" ? "فضاهای تخصصی" : "Workspaces" });
+  const link = within(workspace).getByRole("link", { name: title });
+  expect(link).toHaveAttribute("href", "/admin/diagnostics");
+  await user.click(link);
+  expect(screen.getByRole("heading", { name: "Diagnostics destination" })).toBeInTheDocument();
+  await i18n.changeLanguage("fa");
+});
+
+it("hides diagnostics from non-admin members", () => {
+  auth.isAdmin = false;
+  render(<MemoryRouter><ThemeProvider><MorePage /></ThemeProvider></MemoryRouter>);
+  expect(screen.queryByRole("link", { name: /لاگینگ و دیباگینگ|Logging & Debugging/ })).not.toBeInTheDocument();
+  expect(document.querySelector('a[href="/admin/diagnostics"]')).toBeNull();
 });
