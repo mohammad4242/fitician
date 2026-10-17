@@ -1100,6 +1100,11 @@ def test_consumption_history_does_not_make_each_unchanged_retry_generate_again(c
     db.commit()
     second = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert second.status_code == 201 and second.json()["outcome"] == "success"
+    # PostgreSQL now() is fixed for the outer transaction, including savepoints.
+    # New bundles must still have persistence timestamps that distinguish their order.
+    first_bundle = db.get(NutritionPlanBundle, first["bundle_id"])
+    second_bundle = db.get(NutritionPlanBundle, second.json()["bundle_id"])
+    assert second_bundle.created_at > first_bundle.created_at
     retry = client.post("/api/v1/nutrition/plans", headers=ORIGIN)
     assert retry.status_code == 201
     assert retry.json()["bundle_id"] == second.json()["bundle_id"]

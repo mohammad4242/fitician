@@ -8,7 +8,7 @@ from hashlib import sha256
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
@@ -902,6 +902,8 @@ def _generate_weekly_plan(
         raise HTTPException(409, detail={"code": "NUTRITION_GENERATION_INPUTS_CHANGED"})
     set_stage("plan_persistence")
     bundle = NutritionPlanBundle(
+        # Transaction-start timestamps can tie across savepoints or predate a user lock.
+        created_at=func.clock_timestamp(),
         user_id=user_id,
         estimate_id=estimate.id,
         comparison_snapshot=comparison_report.to_snapshot(),
