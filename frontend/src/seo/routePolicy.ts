@@ -7,6 +7,6 @@ export const memberRouteSources = [
   "support/(?:new|tickets(?:/[a-zA-Z0-9-]+)?)",
   "billing/(?:history|result|checkout-result|checkout/[^/]+)",
   "(?:coach/workouts|physician/nutrition)",
-  "admin/(?:support(?:/[^/]+)?|ai-settings|nutrition-supplements|nutrition-monitoring|exercises(?:/new|/[^/]+/edit)?|nutrition-meals(?:/new|/[^/]+/edit)?|nutrition-programs(?:/new|/[^/]+/edit)?|training-program-templates(?:/new|/[^/]+/edit)?|training-program-structures(?:/new|/[^/]+/edit)?|billing(?:/(?:offers|campaigns|users(?:/[^/]+)?|orders(?:/[^/]+)?|audit))?)",
+  "admin/(?:diagnostics|support(?:/[^/]+)?|ai-settings|nutrition-supplements|nutrition-monitoring|exercises(?:/new|/[^/]+/edit)?|nutrition-meals(?:/new|/[^/]+/edit)?|nutrition-programs(?:/new|/[^/]+/edit)?|training-program-templates(?:/new|/[^/]+/edit)?|training-program-structures(?:/new|/[^/]+/edit)?|billing(?:/(?:offers|campaigns|users(?:/[^/]+)?|orders(?:/[^/]+)?|audit))?)",
 ];
 export const memberNavigationPattern = new RegExp(`^/(?:${memberRouteSources.join("|")})/?(?:\\?.*)?$`);
