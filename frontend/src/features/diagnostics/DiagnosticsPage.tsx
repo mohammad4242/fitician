@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { AuthenticatedHeader } from "../../shared/AuthenticatedHeader";
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
+import { RequestTraces } from "./RequestTraces";
 import {
   getDiagnosticAlerts,
   getDiagnosticInfrastructure,
@@ -26,7 +27,7 @@ import {
 } from "./api";
 import "./diagnostics.css";
 
-const tabs = ["overview", "issues", "events", "generations", "infrastructure", "alerts"] as const;
+const tabs = ["overview", "traces", "issues", "events", "generations", "infrastructure", "alerts"] as const;
 type DiagnosticTab = (typeof tabs)[number];
 const hoursChoices = [1, 24, 168, 720] as const;
 
@@ -34,7 +35,7 @@ const words = {
   fa: {
     title: "لاگینگ و دیباگینگ",
     intro: "نشانه‌های فنی ثبت‌شده را بررسی و دسته‌بندی کن. گزارش‌ها ممکن است ناقص باشند و علت قطعی را نشان ندهند.",
-    overview: "نمای کلی", issues: "مسئله‌ها", events: "رویدادها", generations: "تولید برنامه", infrastructure: "زیرساخت", alerts: "هشدارها",
+    overview: "نمای کلی", traces: "ردگیری درخواست", issues: "مسئله‌ها", events: "رویدادها", generations: "تولید برنامه", infrastructure: "زیرساخت", alerts: "هشدارها",
     hours: "بازه زمانی", hour: "۱ ساعت", day: "۲۴ ساعت", week: "۷ روز", month: "۳۰ روز",
     failures: "رخدادهای خطا", criticalFailures: "خطاهای بحرانی", newIssues: "مسئله‌های جدید", affectedUsers: "کاربران متأثر", errorRate: "نرخ خطای سرور",
     eventCount: "رویدادهای بازه", issueCount: "مسئله‌های دیده‌شده در بازه", httpSuccess: "پاسخ‌های موفق HTTP", httpFailure: "پاسخ‌های ناموفق HTTP",
@@ -57,7 +58,7 @@ const words = {
   en: {
     title: "Logging & Debugging",
     intro: "Review and classify recorded technical signals. Reports may be incomplete and do not establish a root cause.",
-    overview: "Overview", issues: "Issues", events: "Events", generations: "Generations", infrastructure: "Infrastructure", alerts: "Alerts",
+    overview: "Overview", traces: "Request traces", issues: "Issues", events: "Events", generations: "Generations", infrastructure: "Infrastructure", alerts: "Alerts",
     hours: "Time window", hour: "1 hour", day: "24 hours", week: "7 days", month: "30 days",
     failures: "Recorded failures", criticalFailures: "Critical failures", newIssues: "New issues", affectedUsers: "Affected users", errorRate: "Server error rate",
     eventCount: "Events in window", issueCount: "Issues seen in window", httpSuccess: "Successful HTTP responses", httpFailure: "Failed HTTP responses",
@@ -89,6 +90,7 @@ function useCopy() {
 
 function safeTab(value: string | null, search: URLSearchParams): DiagnosticTab {
   if (tabs.includes(value as DiagnosticTab)) return value as DiagnosticTab;
+  if (search.has("trace_id")) return "traces";
   if (search.has("issue")) return "issues";
   if (search.has("request_id")) return "events";
   return "overview";
@@ -207,6 +209,7 @@ export function DiagnosticsPage() {
 
         <section aria-labelledby={`diagnostics-tab-${tab}`} className="diagnostics-panel" id={`diagnostics-panel-${tab}`} role="tabpanel" tabIndex={0}>
           {tab === "overview" && <OverviewPanel hours={hours} />}
+          {tab === "traces" && <RequestTraces />}
           {tab === "issues" && <IssuesPanel search={search} setSearch={setSearch} />}
           {tab === "events" && <EventsPanel search={search} setSearch={setSearch} />}
           {tab === "generations" && <GenerationsPanel hours={hours} />}

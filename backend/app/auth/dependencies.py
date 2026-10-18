@@ -16,6 +16,7 @@ from app.auth.service import (
 from app.config import Settings, get_settings
 from app.database.session import get_db
 from app.observability.diagnostics_runtime import set_request_user
+from app.observability.tracing import traced
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings)]
@@ -52,6 +53,7 @@ def _bearer_token(
     return token.strip()
 
 
+@traced("authentication_authorization", component="auth")
 def get_current_authentication(
     request: Request,
     db: DatabaseSession,

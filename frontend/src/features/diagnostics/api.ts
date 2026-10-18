@@ -28,6 +28,7 @@ export interface DiagnosticIssue {
 }
 
 export interface DiagnosticEvent {
+  readonly app_version?: string | null;
   readonly event_id: string;
   readonly issue_id: string | null;
   readonly timestamp: string;
@@ -142,6 +143,101 @@ export interface DiagnosticEventFilters {
   readonly platform?: string;
 }
 
+export interface TraceSummary {
+  readonly business_outcome?: string;
+  readonly transport_outcome?: string;
+  readonly worker_outcome?: string;
+  readonly trace_id: string;
+  readonly request_id: string;
+  readonly operation_id: string;
+  readonly user_id: string | null;
+  readonly operation: string;
+  readonly component: string;
+  readonly platform: string;
+  readonly started_at: string;
+  readonly ended_at: string | null;
+  readonly duration_ms: number | null;
+  readonly stage_count: number;
+  readonly outcome: string;
+  readonly failure_stage: string | null;
+  readonly http_status: number | null;
+  readonly incomplete: boolean;
+  readonly dropped_count: number;
+}
+
+export interface TracePage {
+  readonly items: readonly TraceSummary[];
+  readonly limit: number;
+  readonly offset: number;
+  readonly has_more: boolean;
+}
+
+export interface TraceFilters {
+  readonly limit: number;
+  readonly offset: number;
+  readonly user_id?: string;
+  readonly trace_id?: string;
+  readonly request_id?: string;
+  readonly operation_id?: string;
+  readonly platform?: string;
+  readonly component?: string;
+  readonly operation?: string;
+  readonly outcome?: string;
+  readonly error_code?: string;
+  readonly since?: string;
+  readonly until?: string;
+  readonly sort: "newest" | "slowest" | "failed";
+}
+
+export interface TraceSpan extends DiagnosticEvent {
+  readonly trace_id: string;
+  readonly span_id: string;
+  readonly parent_span_id: string | null;
+  readonly record_type: "span";
+  readonly started_at: string;
+  readonly ended_at: string | null;
+  readonly offset_ms: number;
+  readonly clock_domain: string;
+}
+
+export interface TraceDetail {
+  readonly trace: TraceSummary;
+  readonly spans: readonly TraceSpan[];
+  readonly summary: {
+    readonly operation: string;
+    readonly platform: string;
+    readonly observed_stages: readonly string[];
+    readonly succeeded_stages: readonly string[];
+    readonly failure_stage: string | null;
+    readonly cause: string;
+    readonly confidence: DiagnosticConfidence;
+    readonly persistence: "confirmed" | "unknown";
+    readonly recommendation: string;
+    readonly description_fa: string;
+  };
+  readonly related_issue_ids: readonly string[];
+  readonly truncated: boolean;
+}
+
+export interface TraceAnalytics {
+  readonly observed_requests: number;
+  readonly success_count: number;
+  readonly failure_count: number;
+  readonly incomplete_count: number;
+  readonly success_rate: number | null;
+  readonly stages: readonly { readonly stage: string; readonly count: number; readonly failure_count: number; readonly p50_ms: number | null; readonly p95_ms: number | null }[];
+  readonly operations: readonly { readonly operation: string; readonly count: number; readonly failure_count: number; readonly affected_users: number }[];
+  readonly platforms: readonly { readonly platform: string; readonly count: number; readonly failure_count: number }[];
+  readonly trend: readonly { readonly timestamp: string; readonly count: number; readonly failure_count: number }[];
+  readonly limitations: string;
+  readonly capture?: {
+    readonly success_sample_rate: number;
+    readonly process_dropped_count: number;
+    readonly queue_depth: number;
+    readonly process_local: boolean;
+  };
+}
+
 function queryString(params: Readonly<Record<string, string | number | undefined>>): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -184,6 +280,18 @@ export function getDiagnosticAlerts(limit: number, offset: number): Promise<Diag
 
 export function getDiagnosticGenerations(hours: number): Promise<DiagnosticGenerationMetrics> {
   return request(`${base}/generations${queryString({ hours })}`);
+}
+
+export function getDiagnosticTraces(filters: TraceFilters): Promise<TracePage> {
+  return request(`${base}/traces${queryString({ ...filters })}`);
+}
+
+export function getDiagnosticTrace(traceId: string): Promise<TraceDetail> {
+  return request(`${base}/traces/${encodeURIComponent(traceId)}`);
+}
+
+export function getDiagnosticTraceAnalytics(hours: number): Promise<TraceAnalytics> {
+  return request(`${base}/trace-analytics${queryString({ hours })}`);
 }
 
 

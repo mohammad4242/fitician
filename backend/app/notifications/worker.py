@@ -18,6 +18,7 @@ from app.database.session import get_engine
 from app.jobs.heartbeat import threaded_heartbeat
 from app.jobs.runtime import install_sync_signal_handlers
 from app.observability.diagnostics_logs import install_diagnostic_log_bridge
+from app.observability.job_tracing import job_trace
 from app.observability.logging import configure_structured_logging
 
 from .apns import ApnsConfigurationError, build_apns_provider
@@ -259,101 +260,107 @@ def process_notification_delivery(
         db.rollback()
         return False
     event = db.get(NotificationOutboxEvent, delivery.event_id)
-    token = db.scalar(
-        select(NotificationDeviceToken)
-        .where(NotificationDeviceToken.id == delivery.token_id)
-        .with_for_update()
-    )
-    if event is None or token is None or token.invalid_at is not None:
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = "TOKEN_UNAVAILABLE"
-        delivery.locked_at = None
-        delivery.locked_by = None
-        db.commit()
-        return True
-
-    preference = db.get(NotificationPreference, event.user_id)
-    preference_field = PREFERENCE_FIELDS.get(event.category)
-    if not personal_event_is_current(db, event, now) or (
-        preference is not None
-        and (
-            not preference.enabled
-            or (preference_field is not None and not getattr(preference, preference_field))
-        )
+    with job_trace(
+        event,
+        component="notifications",
+        user_id=event.user_id if event else None,
+        status_source=delivery,
     ):
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = "NOTIFICATION_NO_LONGER_DUE"
-        delivery.locked_at = None
-        delivery.locked_by = None
-        db.commit()
-        return True
-    selected_provider = _provider_for_token(provider, token.provider)
-    if selected_provider is None:
-        delivery.status = "pending"
-        delivery.locked_at = None
-        delivery.locked_by = None
-        delivery.last_error = "PROVIDER_UNAVAILABLE"
-        db.commit()
-        return True
-
-    device = db.get(NotificationDevice, token.device_id)
-    if device is None:
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = "TOKEN_UNAVAILABLE"
-        delivery.locked_at = None
-        delivery.locked_by = None
-        db.commit()
-        return True
-    if device.user_id != event.user_id:
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = "TOKEN_OWNER_MISMATCH"
-        delivery.locked_at = None
-        delivery.locked_by = None
-        db.commit()
-        return True
-
-    delivery.attempt_count += 1
-    try:
-        outcome = selected_provider.send(
-            token_value=token.token_value,
-            event_type=event.event_type,
-            payload=event.payload,
+        token = db.scalar(
+            select(NotificationDeviceToken)
+            .where(NotificationDeviceToken.id == delivery.token_id)
+            .with_for_update()
         )
-    except Exception:
-        logger.exception("Notification provider delivery failed")
-        outcome = NotificationSendOutcome.retryable("PROVIDER_EXCEPTION")
+        if event is None or token is None or token.invalid_at is not None:
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = "TOKEN_UNAVAILABLE"
+            delivery.locked_at = None
+            delivery.locked_by = None
+            db.commit()
+            return True
 
-    delivery.locked_at = None
-    delivery.locked_by = None
-    if outcome.kind == "sent":
-        delivery.status = "sent"
-        delivery.sent_at = now
-        delivery.provider_message_id = outcome.provider_message_id
-        delivery.last_error = None
-    elif outcome.kind == "invalid_token":
-        token.invalid_at = now
-        token.invalid_reason = outcome.error_code or "INVALID_TOKEN"
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = outcome.error_code or "INVALID_TOKEN"
-    elif outcome.kind == "permanent" or delivery.attempt_count >= max(1, max_attempts):
-        delivery.status = "dead_letter"
-        delivery.dead_letter_at = now
-        delivery.last_error = outcome.error_code or "PROVIDER_ERROR"
-    else:
-        delay = min(
-            retry_max_seconds,
-            retry_base_seconds * 2 ** max(delivery.attempt_count - 1, 0),
-        )
-        delivery.status = "pending"
-        delivery.next_attempt_at = now + timedelta(seconds=delay)
-        delivery.last_error = outcome.error_code or "PROVIDER_ERROR"
-    db.commit()
-    return True
+        preference = db.get(NotificationPreference, event.user_id)
+        preference_field = PREFERENCE_FIELDS.get(event.category)
+        if not personal_event_is_current(db, event, now) or (
+            preference is not None
+            and (
+                not preference.enabled
+                or (preference_field is not None and not getattr(preference, preference_field))
+            )
+        ):
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = "NOTIFICATION_NO_LONGER_DUE"
+            delivery.locked_at = None
+            delivery.locked_by = None
+            db.commit()
+            return True
+        selected_provider = _provider_for_token(provider, token.provider)
+        if selected_provider is None:
+            delivery.status = "pending"
+            delivery.locked_at = None
+            delivery.locked_by = None
+            delivery.last_error = "PROVIDER_UNAVAILABLE"
+            db.commit()
+            return True
+
+        device = db.get(NotificationDevice, token.device_id)
+        if device is None:
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = "TOKEN_UNAVAILABLE"
+            delivery.locked_at = None
+            delivery.locked_by = None
+            db.commit()
+            return True
+        if device.user_id != event.user_id:
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = "TOKEN_OWNER_MISMATCH"
+            delivery.locked_at = None
+            delivery.locked_by = None
+            db.commit()
+            return True
+
+        delivery.attempt_count += 1
+        try:
+            outcome = selected_provider.send(
+                token_value=token.token_value,
+                event_type=event.event_type,
+                payload=event.payload,
+            )
+        except Exception:
+            logger.exception("Notification provider delivery failed")
+            outcome = NotificationSendOutcome.retryable("PROVIDER_EXCEPTION")
+
+        delivery.locked_at = None
+        delivery.locked_by = None
+        if outcome.kind == "sent":
+            delivery.status = "sent"
+            delivery.sent_at = now
+            delivery.provider_message_id = outcome.provider_message_id
+            delivery.last_error = None
+        elif outcome.kind == "invalid_token":
+            token.invalid_at = now
+            token.invalid_reason = outcome.error_code or "INVALID_TOKEN"
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = outcome.error_code or "INVALID_TOKEN"
+        elif outcome.kind == "permanent" or delivery.attempt_count >= max(1, max_attempts):
+            delivery.status = "dead_letter"
+            delivery.dead_letter_at = now
+            delivery.last_error = outcome.error_code or "PROVIDER_ERROR"
+        else:
+            delay = min(
+                retry_max_seconds,
+                retry_base_seconds * 2 ** max(delivery.attempt_count - 1, 0),
+            )
+            delivery.status = "pending"
+            delivery.next_attempt_at = now + timedelta(seconds=delay)
+            delivery.last_error = outcome.error_code or "PROVIDER_ERROR"
+        db.commit()
+        return True
 
 
 def run_delivery_once(

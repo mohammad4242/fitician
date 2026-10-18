@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, TypeVar, cast
 
 from app.config import Settings
+from app.observability.tracing import timed_stage
 
 from .keys import cache_key, generation_key
 
@@ -41,6 +42,10 @@ class CacheService:
         self._default_ttl_seconds = settings.cache_default_ttl_seconds
         self._lock_ttl_seconds = settings.cache_lock_ttl_seconds
         self._lock_wait_seconds = settings.cache_lock_wait_ms / 1000
+
+    async def _observed_redis(self, operation: str, *args: Any, **kwargs: Any) -> Any:
+        with timed_stage(f"redis_{operation}", component="redis"):
+            return await getattr(self._redis, operation)(*args, **kwargs)
 
     async def get_or_load(
         self,
@@ -104,28 +109,28 @@ class CacheService:
                 separators=(",", ":"),
                 sort_keys=True,
             ).encode("utf-8")
-            result = await self._redis.set(key, encoded, ex=ttl_seconds)
+            result = await self._observed_redis("set", key, encoded, ex=ttl_seconds)
             return bool(result)
         except Exception:  # noqa: BLE001 - cache failure must not break the request
             return False
 
     async def invalidate(self, namespace: str) -> bool:
         try:
-            await self._redis.incr(generation_key(namespace))
+            await self._observed_redis("incr", generation_key(namespace))
             return True
         except Exception:  # noqa: BLE001 - cache failure must not break mutations
             return False
 
     async def release_lock(self, key: str, owner: str) -> bool:
         try:
-            result = await self._redis.eval(_RELEASE_LOCK_SCRIPT, 1, key, owner)
+            result = await self._observed_redis("eval", _RELEASE_LOCK_SCRIPT, 1, key, owner)
             return bool(result)
         except Exception:  # noqa: BLE001 - best-effort cleanup
             return False
 
     async def _generation(self, namespace: str) -> tuple[int, bool]:
         try:
-            value = await self._redis.get(generation_key(namespace))
+            value = await self._observed_redis("get", generation_key(namespace))
             if value is None:
                 return 0, True
             return int(value), True
@@ -138,7 +143,7 @@ class CacheService:
         deserialize: Deserializer[T],
     ) -> object:
         try:
-            raw = await self._redis.get(key)
+            raw = await self._observed_redis("get", key)
             if raw is None:
                 return _MISSING
             if isinstance(raw, bytes):
@@ -152,7 +157,8 @@ class CacheService:
 
     async def _acquire_lock(self, key: str, owner: str) -> bool | None:
         try:
-            result = await self._redis.set(
+            result = await self._observed_redis(
+                "set",
                 key,
                 owner.encode("utf-8"),
                 ex=self._lock_ttl_seconds,
@@ -164,7 +170,7 @@ class CacheService:
 
     async def _delete(self, key: str) -> None:
         try:
-            await self._redis.delete(key)
+            await self._observed_redis("delete", key)
         except Exception:  # noqa: BLE001 - best effort only
             pass
 

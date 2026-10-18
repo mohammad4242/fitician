@@ -38,8 +38,11 @@ def _get_engine(
     connect_args: dict[str, object] = {}
     if statement_timeout_ms > 0 and database_url.startswith("postgresql"):
         connect_args["options"] = f"-c statement_timeout={statement_timeout_ms}"
+    from app.observability.dependency_tracing import traced_pool_class
+
     return create_engine(
         database_url,
+        poolclass=traced_pool_class(),
         pool_pre_ping=True,
         pool_size=pool_size,
         max_overflow=max_overflow,

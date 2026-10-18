@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 vi.mock("expo-secure-store", () => ({}));
+vi.mock("../platform/clientDiagnostics", () => ({
+  mobileClientPlatform: () => "android",
+  mobileClientVersion: () => null,
+  reportMobileClientRequestSpan: vi.fn(),
+}));
 
 import { createNativeTransport } from "./nativeTransport";
 import { MobileAuthSession } from "../auth/authSession";
 import { loadMobileProfileStatus } from "../ui/navigation/profileRouteState";
+import { reportMobileClientRequestSpan } from "../platform/clientDiagnostics";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -118,13 +124,79 @@ it("cleans up the deadline after a successful response", async () => {
 
 it("keeps caller cancellation distinct from a timeout even if fetch ignores abort", async () => {
   const { transport, fetchImpl } = pendingTransport();
+  const report = vi.mocked(reportMobileClientRequestSpan);
+  report.mockClear();
   const controller = new AbortController();
   const completed = transport.request({ path: "/api/v1/profile/status", signal: controller.signal });
   const rejected = expect(completed).rejects.toMatchObject({ kind: "aborted" });
   controller.abort();
   await rejected;
+  expect(report).toHaveBeenCalledTimes(1);
+  expect(report).toHaveBeenCalledWith(expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: "aborted",
+  }));
   expect(fetchImpl.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
   expect(vi.getTimerCount()).toBe(0);
+});
+
+it("reports a deadline timeout once when fetch ignores abort", async () => {
+  const { transport } = pendingTransport();
+  const report = vi.mocked(reportMobileClientRequestSpan);
+  report.mockClear();
+  const completed = transport.request({ path: "/api/v1/profile/status" }).catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(30_000);
+  await completed;
+  expect(report).toHaveBeenCalledTimes(1);
+  expect(report).toHaveBeenCalledWith(expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: "timeout",
+  }));
+});
+
+it("reports a stalled response body as timeout while retaining response receipt", async () => {
+  const report = vi.mocked(reportMobileClientRequestSpan);
+  report.mockClear();
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: () => new Promise(() => undefined),
+    } as unknown as Response),
+  });
+  const completed = transport.request({ path: "/api/v1/profile/status" }).catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(30_000);
+  await completed;
+  expect(report).toHaveBeenCalledTimes(2);
+  expect(report).toHaveBeenNthCalledWith(1, expect.objectContaining({
+    terminalStage: "response_received",
+    httpStatus: 200,
+  }));
+  expect(report).toHaveBeenNthCalledWith(2, expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: "timeout",
+  }));
+});
+
+it("reports an AbortError caused by the deadline as timeout", async () => {
+  const report = vi.mocked(reportMobileClientRequestSpan);
+  report.mockClear();
+  const fetchImpl = vi.fn<typeof fetch>((_input, init) => new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => {
+      reject(new DOMException("The request was aborted", "AbortError"));
+    }, { once: true });
+  }));
+  const transport = createNativeTransport({ apiBaseUrl: "https://fitician.example", fetchImpl });
+  const completed = transport.request({ path: "/api/v1/profile/status" }).catch(() => undefined);
+  await vi.advanceTimersByTimeAsync(30_000);
+  await completed;
+  expect(report).toHaveBeenCalledTimes(1);
+  expect(report).toHaveBeenCalledWith(expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: "timeout",
+  }));
 });
 
 it("does not send an already cancelled authentication request", async () => {

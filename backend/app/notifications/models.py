@@ -18,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.observability.trace_carrier import TraceCarrier
 
 
 class NotificationDevice(Base):
@@ -165,7 +166,7 @@ class NotificationPreference(Base):
     )
 
 
-class NotificationOutboxEvent(Base):
+class NotificationOutboxEvent(TraceCarrier, Base):
     __tablename__ = "notification_outbox_events"
     __table_args__ = (
         UniqueConstraint(

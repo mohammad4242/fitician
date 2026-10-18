@@ -2,6 +2,7 @@ export const FITICIAN_CORE_VERSION = "0.1.0";
 
 export {
   createClientDiagnosticEvent,
+  createClientRequestTraceContext,
   ClientDiagnosticsQueue,
   createDiagnosticUuid,
   isClientDiagnosticEvent,
@@ -12,6 +13,7 @@ export type {
   ClientDiagnosticErrorCode,
   ClientDiagnosticEvent,
   ClientDiagnosticPlatform,
+  ClientRequestTraceContext,
 } from "./diagnostics";
 
 export {

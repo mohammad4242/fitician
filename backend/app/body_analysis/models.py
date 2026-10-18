@@ -31,13 +31,14 @@ from app.body_analysis.enums import (
 )
 from app.body_photos.models import BodyPhotoSession
 from app.database.base import Base
+from app.observability.trace_carrier import TraceCarrier
 
 
 def enum_values(members: type[StrEnum]) -> list[str]:
     return [member.value for member in members]
 
 
-class BodyAnalysis(Base):
+class BodyAnalysis(TraceCarrier, Base):
     __tablename__ = "body_analyses"
     __table_args__ = (
         Index(

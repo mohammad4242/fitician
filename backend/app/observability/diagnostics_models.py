@@ -44,6 +44,8 @@ class DiagnosticEvent(Base):
     __tablename__ = "diagnostic_events"
     __table_args__ = (
         Index("ix_diagnostic_events_timestamp", "timestamp"),
+        Index("ix_diagnostic_events_trace_span", "trace_id", "span_id", "timestamp"),
+        Index("ix_diagnostic_events_record_time", "record_type", "timestamp"),
         Index("ix_diagnostic_events_resource_attempt", "resource_id", "component", "retry_count"),
         Index("ix_diagnostic_events_request_timestamp", "request_id", "timestamp"),
         Index("ix_diagnostic_events_operation_id_timestamp", "operation_id", "timestamp"),
@@ -62,6 +64,18 @@ class DiagnosticEvent(Base):
     user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
+    app_version: Mapped[str | None] = mapped_column(String(64))
+    origin_platform: Mapped[str | None] = mapped_column(String(32))
+    trace_id: Mapped[str | None] = mapped_column(String(32))
+    span_id: Mapped[str | None] = mapped_column(String(16))
+    parent_span_id: Mapped[str | None] = mapped_column(String(16))
+    record_type: Mapped[str] = mapped_column(String(8), default="event", server_default="event")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    offset_ms: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    clock_domain: Mapped[str | None] = mapped_column(String(64))
+    expected_span_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    dropped_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     component: Mapped[str] = mapped_column(String(80), nullable=False)
     operation: Mapped[str] = mapped_column(String(80), nullable=False)
     stage: Mapped[str] = mapped_column(String(80), nullable=False)

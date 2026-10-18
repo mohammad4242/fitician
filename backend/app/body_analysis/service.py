@@ -58,6 +58,7 @@ from app.entitlements.service import consume_quota
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.notifications.recipients import enqueue_specialist_notification
+from app.observability.tracing import traced
 from app.profile.enums import FitnessGoal, Sex
 from app.profile.models import BodyMeasurement, UserProfile
 from app.resilience.policy import bounded_backoff_seconds
@@ -295,6 +296,7 @@ class BodyAnalysisService:
     def __init__(self, db: Session) -> None:
         self._db = db
 
+    @traced("body_analysis_schedule", component="body_analysis")
     def queue(
         self,
         session_id: UUID,
@@ -341,6 +343,7 @@ class BodyAnalysisService:
             correlation_id=correlation_id,
         )
 
+    @traced("body_analysis_retry_schedule", component="body_analysis")
     def retry(
         self,
         analysis_id: UUID,
@@ -652,6 +655,7 @@ class BodyAnalysisService:
             schema_version=analysis.schema_version,
         )
 
+    @traced("body_analysis_execute", component="body_analysis")
     async def execute(
         self,
         analysis_id: UUID,

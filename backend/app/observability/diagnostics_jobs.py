@@ -60,6 +60,7 @@ def reconcile_job_failures(db: Session) -> int:
             code = code if code in _KNOWN_CODES else "BACKGROUND_JOB_FAILED"
             # Expired/disabled device subscriptions are expected business outcomes.
             expected = code in {"TOKEN_UNAVAILABLE", "INVALID_TOKEN", "NOTIFICATION_NO_LONGER_DUE"}
+            trace_job = job
             user_id = None
             correlation_id = getattr(job, "correlation_id", None)
             if component == "body_analysis":
@@ -73,6 +74,7 @@ def reconcile_job_failures(db: Session) -> int:
             elif component == "notifications":
                 outbox = db.get(NotificationOutboxEvent, job.event_id)
                 if outbox is not None:
+                    trace_job = outbox
                     user_id, correlation_id = outbox.user_id, outbox.correlation_id
             if correlation_id is not None and not re.fullmatch(
                 r"[A-Za-z0-9_.:-]{1,128}", correlation_id
@@ -84,6 +86,9 @@ def reconcile_job_failures(db: Session) -> int:
                     event_id=uuid5(
                         NAMESPACE_URL, f"fitician:job:{component}:{job.id}:{job.attempt_count}"
                     ),
+                    trace_id=getattr(trace_job, "trace_id", None),
+                    parent_span_id=getattr(trace_job, "trace_parent_span_id", None),
+                    operation_id=getattr(trace_job, "trace_operation_id", None),
                     component=component,
                     operation="background_job",
                     stage="terminal_failure",

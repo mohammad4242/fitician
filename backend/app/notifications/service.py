@@ -8,6 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth.service import MobileAccessContext
+from app.observability.tracing import traced
 
 from .models import NotificationDevice, NotificationDeviceToken, NotificationPreference
 from .provider import NotificationProviderName
@@ -40,6 +41,7 @@ def _device_response(device: NotificationDevice) -> NotificationDeviceResponse:
     )
 
 
+@traced("register_current_device_token", component="notifications")
 def register_current_device_token(
     db: Session,
     context: MobileAccessContext,
@@ -187,6 +189,7 @@ def get_notification_preferences(
     return _preferences_response(db.get(NotificationPreference, user_id))
 
 
+@traced("update_notification_preferences", component="notifications")
 def update_notification_preferences(
     db: Session,
     user_id: UUID,
