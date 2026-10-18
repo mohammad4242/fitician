@@ -24,6 +24,7 @@ from app.nutrition.models import (
     NutritionFoodItem,
     NutritionWeeklyPlan,
 )
+from app.observability.tracing import traced
 from app.user_activity.service import record_activity
 
 
@@ -56,6 +57,7 @@ def _entry_response(entry: NutritionConsumptionEntry) -> dict[str, object]:
     }
 
 
+@traced("submit_check_in", component="nutrition_tracking")
 def submit_check_in(
     db: Session,
     user_id: UUID,
@@ -148,6 +150,7 @@ def submit_check_in(
     return daily_summary(db, user_id, entry_date)
 
 
+@traced("add_catalogue_food", component="nutrition_tracking")
 def add_catalogue_food(
     db: Session,
     user_id: UUID,
@@ -207,6 +210,7 @@ def actual_intake_warnings(
     return list(dict.fromkeys(warnings))
 
 
+@traced("save_quick_approximation", component="nutrition_tracking")
 def save_quick_approximation(
     db: Session,
     user_id: UUID,
@@ -234,6 +238,7 @@ def save_quick_approximation(
     return _entry_response(entry)
 
 
+@traced("save_free_meal", component="nutrition_tracking")
 def save_free_meal(
     db: Session,
     user_id: UUID,
@@ -320,6 +325,7 @@ def history(db: Session, user_id: UUID, start: date, end: date) -> list[dict[str
     return [daily_summary(db, user_id, current) for current in _date_range(start, end)]
 
 
+@traced("edit_entry", component="nutrition_tracking")
 def edit_entry(
     db: Session,
     user_id: UUID,
@@ -518,6 +524,7 @@ def _date_range(start: date, end: date) -> Iterator[date]:
         current = date.fromordinal(current.toordinal() + 1)
 
 
+@traced("delete_entry", component="nutrition_tracking")
 def delete_entry(db: Session, user_id: UUID, entry_id: UUID) -> None:
     entry = db.scalar(
         select(NutritionConsumptionEntry).where(

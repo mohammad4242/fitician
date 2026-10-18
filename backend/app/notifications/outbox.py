@@ -6,9 +6,12 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.observability.tracing import traced
+
 from .models import NotificationOutboxEvent
 
 
+@traced("notification_schedule", component="notifications")
 def enqueue_notification_event(
     db: Session,
     *,

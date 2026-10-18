@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -121,7 +122,17 @@ def create_app(
 
     @app.middleware("http")
     async def add_request_id(request: Request, call_next):  # type: ignore[no-untyped-def]
-        request.state.request_id = str(uuid4())
+        correlation = request.headers.get("X-Correlation-ID", "")
+        request.state.request_id = (
+            correlation if re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", correlation) else str(uuid4())
+        )
+        incoming_trace = request.headers.get("traceparent", "")
+        match = re.fullmatch(r"00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})", incoming_trace)
+        valid_trace = match is not None and int(match[1], 16) != 0 and int(match[2], 16) != 0
+        trace_id = match[1] if valid_trace else uuid4().hex
+        span_id = uuid4().hex[:16]
+        request.state.trace_id = trace_id
+        request.state.span_id = span_id
         started = perf_counter()
         response = None
         try:
@@ -136,18 +147,25 @@ def create_app(
             is_auth_endpoint = request.url.path.startswith("/v1/auth/")
             telemetry = {
                 "request_id": request.state.request_id,
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "parent_span_id": match[2] if valid_trace else None,
                 "endpoint": request.url.path,
                 "duration_ms": round((perf_counter() - started) * 1000, 3),
                 "status": response.status_code if response is not None else "error",
             }
-            telemetry_fields = ("agent", "error_code") if is_auth_endpoint else (
-                "agent",
-                "model",
-                "task_kind",
-                "image_count",
-                "input_tokens",
-                "output_tokens",
-                "error_code",
+            telemetry_fields = (
+                ("agent", "error_code")
+                if is_auth_endpoint
+                else (
+                    "agent",
+                    "model",
+                    "task_kind",
+                    "image_count",
+                    "input_tokens",
+                    "output_tokens",
+                    "error_code",
+                )
             )
             if not is_auth_endpoint:
                 telemetry["input_bytes"] = input_bytes
@@ -158,6 +176,8 @@ def create_app(
             emit_log(telemetry)
             if response is not None:
                 response.headers["X-Request-ID"] = request.state.request_id
+                response.headers["X-Correlation-ID"] = request.state.request_id
+                response.headers["traceparent"] = f"00-{trace_id}-{span_id}-01"
 
     @app.exception_handler(AgentServiceError)
     async def service_error_handler(request: Request, exc: AgentServiceError) -> JSONResponse:

@@ -9,9 +9,14 @@ import traceback
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
+
+if TYPE_CHECKING:
+    from .tracing import Span
 
 from fastapi import Request, Response
 from sqlalchemy import Engine, create_engine
@@ -63,6 +68,25 @@ class RequestDiagnosticsContext:
     source_location: str | None = None
     duration_ms: int | None = None
     version: str | None = None
+    app_version: str | None = None
+    retry_count: int = 0
+    telemetry_platform: str = "backend"
+    clock_domain: str = "backend"
+    origin_platform: str | None = None
+    trace_id: str = field(default_factory=lambda: uuid4().hex)
+    root_span_id: str = field(default_factory=lambda: uuid4().hex[:16])
+    trace_started: float = field(default_factory=time.perf_counter)
+    trace_sampled: bool = True
+    trace_dropped: int = 0
+    trace_buffer: list[EventInput] = field(default_factory=list)
+    span_count: int = 0
+    dependency_span_count: int = 0
+    active_stage: Span | None = None
+    exception_stage: tuple[BaseException, str] | None = None
+    failure_stage: str | None = None
+    validation_span: Span | None = None
+    response_span: Span | None = None
+    stage_spans: dict[str, Span] = field(default_factory=dict)
 
 
 _REQUEST_CONTEXT: ContextVar[RequestDiagnosticsContext | None] = ContextVar(
@@ -87,22 +111,10 @@ def set_request_user(user_id: UUID) -> None:
 
 @contextmanager
 def stage(name: str, *, component: str | None = None) -> Iterator[None]:
-    """Set the current bounded operation stage; a failing stage remains visible."""
-    context = _REQUEST_CONTEXT.get()
-    if context is None or not isinstance(name, str) or not _TOKEN_RE.fullmatch(name):
+    from .tracing import timed_stage
+
+    with timed_stage(name, component=component):
         yield
-        return
-    previous_stage, previous_component = context.stage_name, context.component
-    context.stage_name = name
-    if component is not None and _TOKEN_RE.fullmatch(component):
-        context.component = component
-    try:
-        yield
-    except BaseException:
-        raise
-    else:
-        context.stage_name = previous_stage
-        context.component = previous_component
 
 
 def set_stage(name: str, *, component: str | None = None) -> bool:
@@ -110,12 +122,21 @@ def set_stage(name: str, *, component: str | None = None) -> bool:
     context = _REQUEST_CONTEXT.get()
     if context is None or not isinstance(name, str) or not _TOKEN_RE.fullmatch(name):
         return False
+    from .tracing import deliver, start_span
+
+    if context.active_stage is not None:
+        context.active_stage.finish()
+    context.active_stage = start_span(name, component or context.component, critical=True)
+    if context.active_stage is not None:
+        context.stage_spans[name] = context.active_stage
     context.stage_name = name
     if component is not None and _TOKEN_RE.fullmatch(component):
         context.component = component
     try:
-        context.submit(
+        deliver(
             EventInput(
+                trace_id=context.trace_id,
+                origin_platform=context.origin_platform,
                 request_id=context.request_id,
                 operation_id=context.operation_id,
                 component=context.component,
@@ -127,7 +148,6 @@ def set_stage(name: str, *, component: str | None = None) -> bool:
                 error_code="WORKFLOW_STAGE_ENTERED",
                 outcome="stage",
             ),
-            context.user_id,
         )
     except Exception:
         return False
@@ -160,6 +180,14 @@ def emit(
     )
     if outcome not in _ALLOWED_OUTCOMES:
         return False
+    if outcome in {"failure", "blocked", "timeout", "cancelled"}:
+        context.failure_stage = context.failure_stage or stage_name or context.stage_name
+        observed_stage = context.stage_spans.get(context.failure_stage)
+        if observed_stage is not None:
+            if observed_stage.ended:
+                observed_stage.observe(outcome, exception)
+            else:
+                observed_stage.finish(outcome, exception)
     context.outcome = outcome
     context.error_code = code
     context.category = category
@@ -384,10 +412,15 @@ class DiagnosticsRuntime:
 
     def submit(self, event: EventInput, user_id: UUID | None = None) -> bool:
         if self._injected_sink is not None:
+            from .tracing import _SUPPRESSED
+
+            suppressed = _SUPPRESSED.set(True)
             try:
                 self._injected_sink(event, user_id)
             except Exception:
                 return False
+            finally:
+                _SUPPRESSED.reset(suppressed)
             return True
         if event.build is None and re.fullmatch(r"[a-f0-9]{7,40}", self.settings.app_build_sha):
             event = event.model_copy(update={"build": self.settings.app_build_sha})
@@ -397,6 +430,24 @@ class DiagnosticsRuntime:
             self._queue.put_nowait((event, user_id))
         except queue.Full:
             self.dropped_count += 1
+            if event.record_type == "event" and event.outcome in {
+                "failure",
+                "blocked",
+                "timeout",
+                "cancelled",
+            }:
+                try:
+                    self._queue.get_nowait()
+                    self._queue.task_done()
+                    self._queue.put_nowait(
+                        (
+                            event.model_copy(update={"dropped_count": event.dropped_count + 1}),
+                            user_id,
+                        )
+                    )
+                    return True
+                except (queue.Empty, queue.Full):
+                    pass
             return False
         return True
 
@@ -449,6 +500,7 @@ class DiagnosticsRuntime:
                     next_cleanup = time.monotonic() + 3600
                     written = 0
             except Exception:
+                self.dropped_count += 1
                 log_event(
                     logger, "diagnostics persistence failed", error_code="DIAGNOSTICS_WRITE_FAILED"
                 )
@@ -464,10 +516,6 @@ def should_record_request(request: Request) -> bool:
         return False
     if path in {"/api/v1/healthz", "/api/v1/livez", "/api/v1/readyz", "/api/v1/metrics"}:
         return False
-    if path.startswith("/api/v1/admin/") and request.method.upper() in {"GET", "HEAD"}:
-        return False
-    if "/admin/" in path and request.method.upper() in {"GET", "HEAD"}:
-        return False
     return True
 
 
@@ -476,7 +524,11 @@ async def diagnostics_middleware(
     call_next: Callable[[Request], Awaitable[Response]],
     runtime: DiagnosticsRuntime | None,
 ) -> Response:
-    if runtime is None or not should_record_request(request):
+    if (
+        runtime is None
+        or (not runtime.enabled and runtime._injected_sink is None)
+        or not should_record_request(request)
+    ):
         return await call_next(request)
 
     request_id = str(getattr(request.state, "request_id", "") or uuid4())
@@ -492,13 +544,43 @@ async def diagnostics_middleware(
         ),
         user_id=getattr(request.state, "diagnostics_user_id", None),
     )
+    from .tracing import Span, parse_traceparent
+
+    incoming = parse_traceparent(request.headers.get("traceparent"))
+    client_version = request.headers.get("X-Fitician-Version", "")
+    context.app_version = (
+        client_version
+        if re.fullmatch(
+            r"[0-9]{1,4}(?:\.[0-9]{1,4}){1,3}(?:[-+][A-Za-z0-9.-]{1,32})?", client_version
+        )
+        else None
+    )
+    origin = request.headers.get("X-Fitician-Platform")
+    context.origin_platform = origin if origin in {"web", "ios_pwa", "android", "ios"} else None
+    if incoming:
+        context.trace_id = incoming[0]
+    context.trace_sampled = (
+        int(context.trace_id[:8], 16) / 0xFFFFFFFF
+        < runtime.settings.diagnostics_success_sample_rate
+    )
     token: Token[RequestDiagnosticsContext | None] = _REQUEST_CONTEXT.set(context)
+    root = Span(
+        "backend_request",
+        "api",
+        span_id=context.root_span_id,
+        parent_span_id=incoming[1] if incoming else None,
+    )
+    root.observe("started")
+    request.state.diagnostics_trace_context = context
+    request.state.diagnostics_root_span = root
     started = time.perf_counter()
     try:
-        if context.operation in {"workout_generation", "nutrition_generation"}:
+        if context.trace_sampled:
             try:
                 runtime.submit(
                     EventInput(
+                        trace_id=context.trace_id,
+                        origin_platform=context.origin_platform,
                         request_id=context.request_id,
                         operation_id=context.operation_id,
                         component="api",
@@ -520,7 +602,7 @@ async def diagnostics_middleware(
             context.operation = route_operation(template, request.method)
             if context.component == "api":
                 context.component = route_component(template)
-            context.user_id = getattr(request.state, "diagnostics_user_id", None)
+            context.user_id = getattr(request.state, "diagnostics_user_id", None) or context.user_id
             status_code = response.status_code
             if status_code < 400:
                 code = "HTTP_REQUEST_COMPLETED"
@@ -541,15 +623,30 @@ async def diagnostics_middleware(
             category = context.category or category
             outcome = context.outcome or ("success" if status_code < 400 else "failure")
             exception = getattr(request.state, "diagnostics_exception", None)
+            if (
+                status_code >= 400
+                and context.exception_stage
+                and context.exception_stage[0] is exception
+            ):
+                context.failure_stage = context.failure_stage or context.exception_stage[1]
             event = EventInput(
+                trace_id=context.trace_id,
+                origin_platform=context.origin_platform,
+                span_id=context.root_span_id,
+                started_at=root.started_at,
+                ended_at=datetime.now(UTC),
+                clock_domain="backend",
+                expected_span_count=context.span_count + 1,
+                dropped_count=context.trace_dropped,
                 event_id=uuid4(),
                 request_id=context.request_id,
                 operation_id=context.operation_id,
                 component=context.component,
                 operation=context.operation,
-                stage=context.stage_name,
+                stage=context.failure_stage or context.stage_name,
                 platform="backend",
                 version=context.version,
+                app_version=context.app_version,
                 category=category,
                 severity=severity,
                 error_code=code,
@@ -563,23 +660,64 @@ async def diagnostics_middleware(
                 if context.duration_ms is not None
                 else min(max(0, round((time.perf_counter() - started) * 1000)), 86_400_000),
             )
+            if context.active_stage is not None:
+                context.active_stage.finish(
+                    outcome if context.active_stage.name == context.failure_stage else "success",
+                    exception,
+                )
+            elapsed = round((time.perf_counter() - started) * 1000)
+            keep = (
+                context.trace_sampled
+                or outcome != "success"
+                or elapsed >= runtime.settings.diagnostics_slow_request_ms
+            )
+            if keep and not context.trace_sampled:
+                for buffered in context.trace_buffer:
+                    if not runtime.submit(buffered, context.user_id):
+                        context.trace_dropped += 1
+                context.trace_buffer.clear()
+                context.trace_sampled = True
             try:
-                runtime.submit(event, context.user_id)
+                if keep:
+                    runtime.submit(
+                        event.model_copy(update={"dropped_count": context.trace_dropped}),
+                        context.user_id,
+                    )
             except Exception:
                 log_event(
                     logger, "diagnostics delivery failed", error_code="DIAGNOSTICS_WRITE_FAILED"
                 )
+        flags = "01" if context.trace_sampled else "00"
+        response.headers["traceparent"] = f"00-{context.trace_id}-{context.root_span_id}-{flags}"
+        response.headers["X-Operation-ID"] = context.operation_id
+        if not request.scope.get("diagnostics_asgi"):
+            root.name = "backend_response_prepared"
+            root.finish()
         return response
     except BaseException as error:
         template = getattr(request.scope.get("route"), "path", None)
         context.operation = route_operation(template, request.method)
         if context.component == "api":
             context.component = route_component(template)
+        if context.exception_stage is not None and context.exception_stage[0] is error:
+            context.failure_stage = context.failure_stage or context.exception_stage[1]
+        if context.active_stage is not None:
+            context.active_stage.finish(
+                "failure" if isinstance(error, Exception) else "cancelled", error
+            )
+        if not context.trace_sampled:
+            for buffered in context.trace_buffer:
+                if not runtime.submit(buffered, context.user_id):
+                    context.trace_dropped += 1
+            context.trace_sampled = True
+        root.finish("failure" if isinstance(error, Exception) else "cancelled", error)
         # Preserve cancellations and the original exception. Never write nested DB transactions.
         if isinstance(error, SQLAlchemyError):
             log_event(
                 logger,
                 "database operation failed",
+                trace_id=context.trace_id,
+                origin_platform=context.origin_platform,
                 request_id=context.request_id,
                 error_code=type(error).__name__,
             )
@@ -587,11 +725,15 @@ async def diagnostics_middleware(
             try:
                 runtime.submit(
                     EventInput(
+                        trace_id=context.trace_id,
+                        dropped_count=context.trace_dropped,
+                        expected_span_count=context.span_count + 1,
+                        origin_platform=context.origin_platform,
                         request_id=context.request_id,
                         operation_id=context.operation_id,
                         component=context.component,
                         operation=context.operation,
-                        stage=context.stage_name,
+                        stage=context.failure_stage or context.stage_name,
                         platform="backend",
                         category="interrupted"
                         if not isinstance(error, Exception)

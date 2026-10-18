@@ -1,10 +1,15 @@
-import { createGenerationRequestKeys, diagnosticWorkflow } from "@fitician/core";
+import {
+  createClientRequestTraceContext,
+  createGenerationRequestKeys,
+  diagnosticWorkflow,
+} from "@fitician/core";
 import {
   ApiError,
   CORRELATION_ID_HEADER,
   TransportError,
   createCorrelationId,
   parseApiErrorPayload,
+  type ClientRequestTraceContext,
   type BinaryDownload,
   type BinaryDownloadRequest,
   type FiticianTransport,
@@ -13,7 +18,11 @@ import {
   type TransportRequest,
 } from "@fitician/core";
 
-import { reportWebApiFailure } from "./clientDiagnostics";
+import {
+  reportWebClientRequestSpan,
+  webClientPlatform,
+  webClientVersion,
+} from "./clientDiagnostics";
 
 export type FetchLike = typeof fetch;
 
@@ -25,6 +34,9 @@ export interface WebFiticianTransport extends FiticianTransport {
 
 export interface WebTransportOptions {
   readonly correlationIdFactory?: () => string;
+  readonly successSampleRate?: number;
+  readonly random?: () => number;
+  readonly monotonicNow?: () => number;
 }
 
 function requestBody(body: TransportRequest["body"]): BodyInit | undefined {
@@ -35,6 +47,7 @@ function requestHeaders(
   headers: TransportRequest["headers"],
   isMultipart: boolean,
   correlationId: string,
+  trace: ClientRequestTraceContext | null,
 ): Headers {
   const result = new Headers(headers);
   if (!isMultipart && !result.has("Content-Type")) {
@@ -43,6 +56,10 @@ function requestHeaders(
   if (!result.has(CORRELATION_ID_HEADER)) {
     result.set(CORRELATION_ID_HEADER, correlationId);
   }
+  if (trace !== null) result.set("traceparent", trace.traceparent);
+  result.set("X-Fitician-Platform", webClientPlatform());
+  const version = webClientVersion();
+  if (version !== null) result.set("X-Fitician-Version", version);
   return result;
 }
 
@@ -50,12 +67,13 @@ function requestInit(
   request: TransportRequest,
   body: BodyInit | undefined,
   correlationId: string,
+  trace: ClientRequestTraceContext | null,
   isMultipart = false,
 ): RequestInit {
   return {
     body,
     credentials: "include",
-    headers: requestHeaders(request.headers, isMultipart, correlationId),
+    headers: requestHeaders(request.headers, isMultipart, correlationId, trace),
     method: request.method ?? "GET",
     signal: request.signal as AbortSignal | undefined,
   };
@@ -189,6 +207,11 @@ export function createWebTransport(
 ): WebFiticianTransport {
   const fetchRequest: FetchLike = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
+  const successSampleRate = Number.isFinite(options.successSampleRate)
+    ? Math.min(1, Math.max(0, options.successSampleRate!))
+    : 0.1;
+  const random = options.random ?? Math.random;
+  const monotonicNow = options.monotonicNow ?? (() => globalThis.performance?.now?.() ?? 0);
   const generationKeys = createGenerationRequestKeys();
 
   async function send(
@@ -201,31 +224,57 @@ export function createWebTransport(
       ? null
       : new Headers(request.headers).get(CORRELATION_ID_HEADER);
     const correlationId = suppliedCorrelationId ?? correlationIdFactory();
-    const startedAt = Date.now();
+    const telemetryPath = request.path.split(/[?#]/u)[0] ?? "";
+    const diagnosticRequest = telemetryPath.startsWith("/api/v1/diagnostics/")
+      || telemetryPath.startsWith("/api/v1/admin/diagnostics");
+    const suppliedTraceparent = request.headers === undefined
+      ? null
+      : new Headers(request.headers).get("traceparent");
+    const trace = diagnosticRequest
+      ? null
+      : createClientRequestTraceContext(suppliedTraceparent);
+    const sampledSuccess = random() < successSampleRate;
+    const startedAt = monotonicNow();
     if (request.path.startsWith("/api/v1/auth/")) generationKeys.clear();
-    const init = requestInit(request, body, correlationId, isMultipart);
+    const init = requestInit(request, body, correlationId, trace, isMultipart);
     init.headers = generationKeys.headers(request.path, request.method, new Headers(init.headers));
+    let response: Response | undefined;
     try {
-      const response = await fetchRequest(
+      response = await fetchRequest(
         request.path,
         init,
       );
+      if (trace !== null) {
+        const durationMs = Math.max(0, monotonicNow() - startedAt);
+        reportWebClientRequestSpan({
+          operation: diagnosticWorkflow(request.path, operation),
+          requestId: correlationId,
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
+          terminalStage: "response_received",
+          durationMs,
+          httpStatus: response.status,
+          shouldRecord: !response.ok || sampledSuccess,
+        });
+      }
       generationKeys.completed(request.path, response.status, new Headers(init.headers).get("Idempotency-Key"));
       return await ensureOk(response);
     } catch (error) {
       const normalized = normalizeFetchError(error, correlationId);
-      if (!request.path.includes("/api/v1/diagnostics/client")
-        && !(normalized instanceof TransportError && normalized.kind === "aborted")) {
-        const requestId = normalized instanceof ApiError || normalized instanceof TransportError
-          ? normalized.requestId
-          : correlationId;
-        const httpStatus = normalized instanceof ApiError ? normalized.status : undefined;
-        reportWebApiFailure({
-          durationMs: Date.now() - startedAt,
+      if (trace !== null && response === undefined) {
+        // A resolved HTTP response was already recorded before status/body handling.
+        // Only failures before receiving response headers end as transport_failed.
+        reportWebClientRequestSpan({
           operation: diagnosticWorkflow(request.path, operation),
-          requestId,
-          stage: normalized instanceof ApiError ? "response_failed" : "transport_failed",
-          ...(httpStatus !== undefined ? { httpStatus } : {}),
+          requestId: correlationId,
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
+          terminalStage: "transport_failed",
+          transportKind: normalized instanceof TransportError ? normalized.kind : "unknown",
+          durationMs: Math.max(0, monotonicNow() - startedAt),
+          shouldRecord: true,
         });
       }
       throw normalized;

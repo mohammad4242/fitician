@@ -116,7 +116,11 @@ def test_terminal_workflow_result_replaces_http_success_event(test_settings):
     response = asyncio.run(diagnostics_middleware(request, call_next, runtime))
 
     assert response.status_code == 200
-    received = [row for row in received if row.outcome not in {"stage", "started"}]
+    received = [
+        row
+        for row in received
+        if row.record_type == "event" and row.outcome not in {"stage", "started"}
+    ]
     assert len(received) == 1
     assert received[0].operation == "workout_generation"
     assert received[0].stage == "provider_call"
@@ -182,6 +186,7 @@ def test_injected_context_can_be_bound_and_reset(test_settings):
         )
         is False
     )
+    received = [row for row in received if row.record_type == "event"]
     assert len(received) == 1 and received[0].outcome == "stage"
 
 
@@ -200,6 +205,7 @@ def test_stage_records_a_bounded_correlated_timeline(test_settings):
     with bind_request_context(context):
         set_stage("candidate_selection", component="workout_engine")
         set_stage("constraint_validation")
+    received = [row for row in received if row.record_type == "event"]
     assert [row.stage for row in received] == ["candidate_selection", "constraint_validation"]
     assert all(row.outcome == "stage" and row.request_id == "request-1" for row in received)
 
@@ -220,6 +226,7 @@ def test_unhandled_api_exception_is_recorded_without_exception_message(client, t
         "/api/v1/diagnostic-failure-probe", headers={"X-Correlation-ID": "safe-error-correlation"}
     )
     assert response.status_code == 500
+    received = [row for row in received if row.record_type == "event" and row.outcome == "failure"]
     assert len(received) == 1
     assert received[0].exception_type == "ValueError"
     assert received[0].error_code == "UNHANDLED_EXCEPTION"

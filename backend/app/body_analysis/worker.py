@@ -32,6 +32,7 @@ from app.database.session import get_engine
 from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
 from app.observability.diagnostics_logs import install_diagnostic_log_bridge
+from app.observability.job_tracing import job_trace
 from app.observability.logging import configure_structured_logging, log_event
 
 logger = logging.getLogger(__name__)
@@ -165,63 +166,64 @@ async def process_body_analysis_job(
     analysis = _locked_body_analysis(db, analysis_id, worker_id=worker_id)
     if analysis is None:
         return False
-    execution_config = BodyAnalysisService.execution_config_for_analysis(analysis)
-    db.commit()  # Release the claim row lock before the provider call.
+    with job_trace(analysis, component="body_analysis", user_id=analysis.session.user_id):
+        execution_config = BodyAnalysisService.execution_config_for_analysis(analysis)
+        db.commit()  # Release the claim row lock before the provider call.
 
-    try:
         try:
-            provider: AIProvider
-            if analysis.provider == LOCAL_FAKE_PROVIDER_NAME:
-                if not local_fake_provider_allowed(settings):
-                    raise ValueError("local fake provider is disabled")
-                provider = LocalFakeBodyAnalysisProvider.from_model_id(analysis.model_id)
-            else:
-                runtime = build_body_analysis_runtime(
-                    db,
-                    settings,
-                    ai_http_client=ai_http_client,
-                    agent_http_client=agent_http_client,
+            try:
+                provider: AIProvider
+                if analysis.provider == LOCAL_FAKE_PROVIDER_NAME:
+                    if not local_fake_provider_allowed(settings):
+                        raise ValueError("local fake provider is disabled")
+                    provider = LocalFakeBodyAnalysisProvider.from_model_id(analysis.model_id)
+                else:
+                    runtime = build_body_analysis_runtime(
+                        db,
+                        settings,
+                        ai_http_client=ai_http_client,
+                        agent_http_client=agent_http_client,
+                    )
+                    provider = runtime.provider
+            except (ValueError, RuntimeError) as error:
+                logger.warning(
+                    "Body analysis provider configuration unavailable for %s: %s",
+                    analysis_id,
+                    type(error).__name__,
                 )
-                provider = runtime.provider
-        except (ValueError, RuntimeError) as error:
-            logger.warning(
-                "Body analysis provider configuration unavailable for %s: %s",
+                provider = cast(AIProvider, _UnavailableProvider())
+            await BodyAnalysisService(db).execute(
                 analysis_id,
-                type(error).__name__,
+                provider,
+                execution_config,
+                worker_id=worker_id,
             )
-            provider = cast(AIProvider, _UnavailableProvider())
-        await BodyAnalysisService(db).execute(
-            analysis_id,
-            provider,
-            execution_config,
-            worker_id=worker_id,
-        )
-    except BodyAnalysisLeaseLost:
-        db.rollback()
+        except BodyAnalysisLeaseLost:
+            db.rollback()
+            log_event(
+                logger,
+                "body analysis lease lost",
+                job_id=str(analysis_id),
+                worker_id=worker_id,
+                status="lease_lost",
+            )
+            return False
+        except Exception:
+            db.rollback()
+            logger.exception("Body analysis worker execution failed for %s", analysis_id)
+            return False
+
         log_event(
             logger,
-            "body analysis lease lost",
-            job_id=str(analysis_id),
+            "body analysis job processed",
+            request_id=analysis.correlation_id,
+            job_id=str(analysis.id),
             worker_id=worker_id,
-            status="lease_lost",
+            attempt=analysis.attempt_count,
+            status=analysis.status.value,
         )
-        return False
-    except Exception:
-        db.rollback()
-        logger.exception("Body analysis worker execution failed for %s", analysis_id)
-        return False
-
-    log_event(
-        logger,
-        "body analysis job processed",
-        request_id=analysis.correlation_id,
-        job_id=str(analysis.id),
-        worker_id=worker_id,
-        attempt=analysis.attempt_count,
-        status=analysis.status.value,
-    )
-    _release_body_analysis_lease(db, analysis_id, worker_id=worker_id)
-    return True
+        _release_body_analysis_lease(db, analysis_id, worker_id=worker_id)
+        return True
 
 
 async def run_body_analysis_once(

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.nutrition.enums import SafetyOutcome
 from app.nutrition.models import NutritionProfile, NutritionSafetyDecision
+from app.observability.tracing import traced
 from app.profile.enums import (
     HomeTrainingSetup,
     ProductMode,
@@ -143,6 +144,7 @@ def select_product_mode(db: Session, user_id: UUID, product_mode: ProductMode) -
     return profile
 
 
+@traced("create_profile", component="onboarding")
 def create_profile(
     db: Session,
     user_id: UUID,
@@ -307,6 +309,7 @@ def update_user_timezone(db: Session, user_id: UUID, timezone_name: str) -> User
     return profile
 
 
+@traced("update_profile", component="onboarding")
 def update_profile(
     db: Session,
     user_id: UUID,
@@ -593,6 +596,7 @@ def apply_profile_update_without_commit(
     return profile
 
 
+@traced("upsert_shared_profile", component="onboarding")
 def upsert_shared_profile(
     db: Session,
     user_id: UUID,

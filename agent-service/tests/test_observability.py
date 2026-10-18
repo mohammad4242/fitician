@@ -48,6 +48,7 @@ def test_http_logging_is_json_and_contains_only_request_metrics(caplog: LogCaptu
     assert record["endpoint"] == "/healthz"
     assert record["status"] == 200
     assert set(record) <= {
+        "trace_id", "span_id", "parent_span_id",
         "request_id", "agent", "model", "endpoint", "task_kind", "duration_ms",
         "status", "error_code", "input_bytes", "image_count", "input_tokens", "output_tokens",
     }

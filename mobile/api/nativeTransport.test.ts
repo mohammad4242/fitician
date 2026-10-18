@@ -31,7 +31,14 @@ const fileSystem = vi.hoisted(() => {
   };
 });
 
+const clientDiagnostics = vi.hoisted(() => ({
+  mobileClientPlatform: () => "android" as const,
+  mobileClientVersion: () => "2.3.1",
+  reportMobileClientRequestSpan: vi.fn(),
+}));
+
 vi.mock("expo-file-system", () => fileSystem);
+vi.mock("../platform/clientDiagnostics", () => clientDiagnostics);
 
 it("builds native requests from the configured API origin", async () => {
   const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
@@ -62,6 +69,95 @@ it("builds native requests from the configured API origin", async () => {
   const headers = init?.headers as Headers;
   expect(headers.get("Content-Type")).toBe("application/json");
   expect(headers.get("Origin")).toBe("https://fitician.example");
+});
+
+it("propagates a child W3C span while preserving correlation and platform headers", async () => {
+  clientDiagnostics.reportMobileClientRequestSpan.mockClear();
+  const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(JSON.stringify({ ok: true }), { status: 200 }),
+  );
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    correlationIdFactory: () => "native-correlation",
+    fetchImpl,
+    monotonicNow: vi.fn().mockReturnValueOnce(700).mockReturnValueOnce(725),
+    random: () => 0,
+    successSampleRate: 1,
+  });
+
+  await transport.request({
+    headers: {
+      "X-Correlation-ID": "caller-correlation",
+      traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01`,
+    },
+    path: "/api/v1/nutrition/plans?private=1",
+  });
+
+  const [, init] = fetchImpl.mock.calls[0]!;
+  const headers = init?.headers as Headers;
+  const traceparent = headers.get("traceparent")!;
+  expect(traceparent).toMatch(new RegExp(`^00-${"a".repeat(32)}-[0-9a-f]{16}-01$`, "u"));
+  expect(traceparent).not.toContain("b".repeat(16));
+  expect(headers.get("X-Correlation-ID")).toBe("caller-correlation");
+  expect(headers.get("X-Fitician-Platform")).toBe("android");
+  expect(headers.get("X-Fitician-Version")).toBe("2.3.1");
+  expect(clientDiagnostics.reportMobileClientRequestSpan).toHaveBeenCalledWith(expect.objectContaining({
+    operation: "nutrition",
+    requestId: "caller-correlation",
+    terminalStage: "response_received",
+    durationMs: 25,
+    httpStatus: 200,
+    shouldRecord: true,
+    parentSpanId: "b".repeat(16),
+  }));
+  expect(JSON.stringify(clientDiagnostics.reportMobileClientRequestSpan.mock.calls)).not.toContain("private=1");
+});
+
+it("records HTTP responses as received and fetch rejections as transport failures", async () => {
+  clientDiagnostics.reportMobileClientRequestSpan.mockClear();
+  const responseTransport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 503 })),
+  });
+  await expect(responseTransport.request({ path: "/api/v1/test" })).rejects.toMatchObject({ status: 503 });
+  expect(clientDiagnostics.reportMobileClientRequestSpan).toHaveBeenLastCalledWith(expect.objectContaining({
+    terminalStage: "response_received",
+    httpStatus: 503,
+    shouldRecord: true,
+  }));
+
+  clientDiagnostics.reportMobileClientRequestSpan.mockClear();
+  const failedTransport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockRejectedValue(new TypeError("network error")),
+  });
+  await expect(failedTransport.request({ path: "/api/v1/test" })).rejects.toMatchObject({ kind: "network" });
+  expect(clientDiagnostics.reportMobileClientRequestSpan).toHaveBeenCalledWith(expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: "network",
+    shouldRecord: true,
+  }));
+});
+
+it.each([
+  ["timeout", new DOMException("The request timed out", "TimeoutError"), "online"],
+  ["aborted", new DOMException("The request was aborted", "AbortError"), "online"],
+  ["offline", new TypeError("Network request failed"), "offline"],
+] as const)("reports normalized native transport kind %s", async (kind, failure, networkState) => {
+  clientDiagnostics.reportMobileClientRequestSpan.mockClear();
+  const transport = createNativeTransport({
+    apiBaseUrl: "https://api.fitician.example",
+    fetchImpl: vi.fn<typeof fetch>().mockRejectedValue(failure),
+    networkStateProvider: () => networkState,
+  });
+  await expect(transport.request({ path: "/api/v1/test" })).rejects.toMatchObject({
+    kind,
+    name: "TransportError",
+  });
+  expect(clientDiagnostics.reportMobileClientRequestSpan).toHaveBeenCalledWith(expect.objectContaining({
+    terminalStage: "transport_failed",
+    transportKind: kind,
+  }));
 });
 
 it("converts API error payloads into the shared ApiError", async () => {
@@ -232,7 +328,11 @@ it("reports failed HTTP requests without sending response details", async () => 
     logger,
   });
 
-  await expect(transport.request({ method: "GET", path: "/api/v1/profile/member-1" })).rejects.toThrow();
+  await expect(transport.request({
+    method: "GET",
+    headers: { traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01` },
+    path: "/api/v1/profile/member-1",
+  })).rejects.toThrow();
 
   expect(captureException).toHaveBeenCalledWith(
     expect.any(Error),
@@ -241,6 +341,9 @@ it("reports failed HTTP requests without sending response details", async () => 
       http_status: 403,
       event: "native_request_failed",
       operation: "onboarding",
+      trace_id: "a".repeat(32),
+      operation_id: "a".repeat(32),
+      parent_span_id: "b".repeat(16),
     }),
   );
   expect(JSON.stringify(captureException.mock.calls[0])).not.toContain("member@example.com");
@@ -345,4 +448,13 @@ it("rejects absolute API paths so requests cannot escape the configured backend"
     path: "https://public.example/api/v1/profile",
   })).rejects.toThrow(/relative/u);
   expect(fetchImpl).not.toHaveBeenCalled();
+});
+
+it("does not trace diagnostics explorer requests", async () => {
+  clientDiagnostics.reportMobileClientRequestSpan.mockClear();
+  const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 200 }));
+  const transport = createNativeTransport({ apiBaseUrl: "https://api.fitician.example", fetchImpl, successSampleRate: 1 });
+  await transport.request({ path: "/api/v1/admin/diagnostics/traces?limit=25" });
+  expect(clientDiagnostics.reportMobileClientRequestSpan).not.toHaveBeenCalled();
+  expect(new Headers(fetchImpl.mock.calls[0]?.[1]?.headers).has("traceparent")).toBe(false);
 });

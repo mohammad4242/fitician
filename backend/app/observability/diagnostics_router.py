@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.routing import APIRoute
@@ -55,6 +55,7 @@ from .diagnostics_service import (
     quota_integrity,
     record_event,
 )
+from .trace_router import router as trace_router
 
 router = APIRouter(
     prefix="/api/v1/admin/diagnostics",
@@ -123,10 +124,11 @@ async def ingest_client_events(
                 "CLIENT_RUNTIME_ERROR": "application_bug",
                 "CLIENT_UNHANDLED_REJECTION": "application_bug",
                 "CLIENT_RENDER_ERROR": "client_runtime",
+                "CLIENT_REQUEST_OBSERVED": "unknown",
             }[event.error_code]
             severity = "error"
             if (
-                event.error_code == "API_REQUEST_FAILED"
+                (event.error_code == "API_REQUEST_FAILED" or event.stage == "response_received")
                 and event.http_status is not None
                 and event.http_status < 500
             ):
@@ -140,17 +142,77 @@ async def ingest_client_events(
                     else "business_rejection"
                 )
                 severity = "warning"
-            record_event(
-                db,
-                EventInput(
-                    **event.model_dump(),
-                    category=category,
-                    severity=severity,
-                    outcome="failure",
-                ),
-                user_id=user.id,
-                trusted=False,
+            tracing = event.error_code == "CLIENT_REQUEST_OBSERVED"
+            if tracing and (event.trace_id is None or event.span_id is None):
+                continue
+            values = event.model_dump(exclude={"transport_kind"})
+            if tracing:
+                # Client times are monotonic durations in a separate clock domain.
+                # Receipt wall times must not be drawn on the backend's elapsed axis.
+                now = datetime.now(UTC)
+                values.update(
+                    record_type="span",
+                    app_version=event.version,
+                    clock_domain="client",
+                    origin_platform=event.platform,
+                    started_at=now,
+                    ended_at=None if event.stage == "dispatch" else now,
+                    offset_ms=0,
+                )
+            if tracing and event.stage == "transport_failed":
+                values["error_code"] = (
+                    f"CLIENT_TRANSPORT_{(event.transport_kind or 'unknown').upper()}"
+                )
+            transport_outcome = (
+                "timeout"
+                if event.transport_kind == "timeout"
+                else "cancelled"
+                if event.transport_kind == "aborted"
+                else "failure"
             )
+            recorded = EventInput(
+                **values,
+                category=category,
+                severity="warning"
+                if tracing and event.stage == "transport_failed"
+                else "info"
+                if tracing
+                else severity,
+                outcome=(
+                    "started"
+                    if event.stage == "dispatch"
+                    else transport_outcome
+                    if event.stage == "transport_failed"
+                    else "success"
+                )
+                if tracing
+                else "failure",
+            )
+            record_event(db, recorded, user_id=user.id, trusted=False)
+            if (
+                tracing
+                and event.component == "WebTransport"
+                and event.stage != "dispatch"
+                and event.transport_kind != "aborted"
+                and (event.stage == "transport_failed" or (event.http_status or 0) >= 400)
+            ):
+                # Preserve the existing Web API issue contract without double-counting span rows.
+                legacy = recorded.model_copy(
+                    update={
+                        "event_id": uuid5(
+                            NAMESPACE_URL, f"fitician:client-trace-error:{event.event_id}"
+                        ),
+                        "record_type": "event",
+                        "error_code": "API_REQUEST_FAILED",
+                        "stage": "transport_failed"
+                        if event.stage == "transport_failed"
+                        else "response_failed",
+                        "outcome": "failure",
+                        "severity": severity,
+                        "category": category if category != "unknown" else "api_failure",
+                    }
+                )
+                record_event(db, legacy, user_id=user.id, trusted=False)
         cleanup_retention(db, limit=100)
         db.commit()
 
@@ -205,7 +267,9 @@ def overview(
 ) -> dict[str, object]:
     since = datetime.now(UTC) - timedelta(hours=hours)
     base = DiagnosticEvent.timestamp >= since
-    terminal = DiagnosticEvent.outcome.not_in(("started", "stage"))
+    terminal = (DiagnosticEvent.record_type == "event") & DiagnosticEvent.outcome.not_in(
+        ("started", "stage")
+    )
 
     def count(*conditions: ColumnElement[bool]) -> int:
         return (
@@ -443,6 +507,7 @@ def generation_metrics(
             DiagnosticEvent.operation.in_(("workout_generation", "nutrition_generation")),
             DiagnosticEvent.timestamp >= since,
             DiagnosticEvent.platform == "backend",
+            DiagnosticEvent.record_type == "event",
             DiagnosticEvent.outcome.in_(
                 (
                     "success",
@@ -477,6 +542,7 @@ def generation_metrics(
                         DiagnosticEvent.operation == operation,
                         DiagnosticEvent.timestamp >= since,
                         DiagnosticEvent.platform == "backend",
+                        DiagnosticEvent.record_type == "event",
                         DiagnosticEvent.outcome.not_in(("started", "stage")),
                     )
                 ),
@@ -492,6 +558,7 @@ def generation_metrics(
                 .where(
                     DiagnosticEvent.timestamp >= since,
                     DiagnosticEvent.platform == "backend",
+                    DiagnosticEvent.record_type == "event",
                     DiagnosticEvent.operation.in_(("workout_generation", "nutrition_generation")),
                     DiagnosticEvent.outcome.in_(("failure", "blocked", "timeout")),
                 )
@@ -519,6 +586,7 @@ def generation_metrics(
                 .where(
                     DiagnosticEvent.timestamp >= since,
                     DiagnosticEvent.platform == "backend",
+                    DiagnosticEvent.record_type == "event",
                     DiagnosticEvent.operation.in_(("workout_generation", "nutrition_generation")),
                     DiagnosticEvent.outcome.not_in(("started", "stage")),
                 )
@@ -719,3 +787,6 @@ async def infrastructure(
             }
         )
     return {"signals": signals, "queues": queues}
+
+
+router.include_router(trace_router)

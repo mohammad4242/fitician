@@ -14,6 +14,9 @@ if not _LOGGER.handlers:
 _ALLOWED_FIELDS = frozenset(
     {
         "request_id",
+        "trace_id",
+        "span_id",
+        "parent_span_id",
         "agent",
         "model",
         "endpoint",

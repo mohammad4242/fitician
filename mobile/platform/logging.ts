@@ -7,7 +7,7 @@ import {
 const REDACTED = "[REDACTED]";
 const SENSITIVE_KEY = /(access[_-]?token|refresh[_-]?token|id[_-]?token|device[_-]?token|fcm[_-]?token|token|authorization|cookie|password|secret|api[_-]?key|email|phone|user[_-]?id|image|photo|body|lab|laboratory|medical|diagnos|symptom|medication|supplement|document|filename|uri|address|latitude|longitude|date[_-]?of[_-]?birth|dob|full[_-]?name|display[_-]?name)/iu;
 const SAFE_CORRELATION_ID = /^[A-Za-z0-9._:-]{1,128}$/u;
-const SAFE_CONTEXT_KEY = /^(app_version|attempt|build_number|cache_hit|component|correlation_id|duration_ms|error_code|error_type|event|http_status|is_online|method|operation|outcome|permission_status|platform|release|retryable|route_kind|screen|stage|status|success|type)$/u;
+const SAFE_CONTEXT_KEY = /^(app_version|attempt|build_number|cache_hit|component|correlation_id|duration_ms|error_code|error_type|event|http_status|is_online|method|operation|operation_id|outcome|parent_span_id|permission_status|platform|release|retryable|route_kind|screen|span_id|stage|status|success|trace_id|type)$/u;
 const SAFE_DIAGNOSTIC_KEY = /^(api_base_url|environment|error_type|is_online|message|network_type|operation|role|route_kind|status|target)$/u;
 
 declare const __DEV__: boolean | undefined;

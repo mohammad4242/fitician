@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ClientDiagnosticsQueue,
   createClientDiagnosticEvent,
+  createClientRequestTraceContext,
   isClientDiagnosticEvent,
   type ClientDiagnosticBatch,
+  type ClientDiagnosticEvent,
 } from "./diagnostics";
 
 const base = {
@@ -26,6 +28,64 @@ describe("client diagnostics", () => {
     expect(createClientDiagnosticEvent({ ...base, component: "private/user@example.com" })).toBeNull();
   });
 
+  it("validates traced request observations and W3C traceparent contexts", () => {
+    const trace = createClientRequestTraceContext(null, (length) => "a".repeat(length));
+    expect(trace).toEqual({
+      traceId: "a".repeat(32),
+      spanId: "a".repeat(16),
+      traceparent: `00-${"a".repeat(32)}-${"a".repeat(16)}-01`,
+    });
+    const child = createClientRequestTraceContext(
+      `00-${"b".repeat(32)}-${"c".repeat(16)}-01`,
+      (length) => "d".repeat(length),
+    );
+    expect(child).toEqual({
+      traceId: "b".repeat(32),
+      spanId: "d".repeat(16),
+      parentSpanId: "c".repeat(16),
+      traceparent: `00-${"b".repeat(32)}-${"d".repeat(16)}-01`,
+    });
+    expect(createClientRequestTraceContext("not-a-trace", (length) => "e".repeat(length)).traceId)
+      .toBe("e".repeat(32));
+    expect(createClientRequestTraceContext(
+      `00-${"0".repeat(32)}-${"f".repeat(16)}-01`,
+      (length) => "e".repeat(length),
+    )).not.toHaveProperty("parentSpanId");
+
+    const observed = createClientDiagnosticEvent({
+      platform: "web",
+      component: "WebTransport",
+      operation: "request",
+      operation_id: trace.traceId,
+      stage: "response_received",
+      error_code: "CLIENT_REQUEST_OBSERVED",
+      request_id: "corr-1",
+      trace_id: trace.traceId,
+      span_id: trace.spanId,
+      offset_ms: 0,
+      duration_ms: 14,
+    });
+    expect(observed).not.toBeNull();
+    expect(isClientDiagnosticEvent({ ...observed, body: "private" })).toBe(false);
+    expect(isClientDiagnosticEvent({ ...observed, stage: "response_failed" })).toBe(false);
+  });
+
+  it.each(["network", "timeout", "aborted", "offline", "unknown"] as const)(
+    "accepts normalized terminal transport kind %s only on transport failures",
+    (transportKind) => {
+      const failed = createClientDiagnosticEvent({
+        ...base,
+        stage: "transport_failed",
+        error_code: "CLIENT_REQUEST_OBSERVED",
+        transport_kind: transportKind,
+      });
+      expect(failed).not.toBeNull();
+      expect(isClientDiagnosticEvent(failed)).toBe(true);
+      expect(isClientDiagnosticEvent({ ...failed, stage: "dispatch" })).toBe(false);
+      expect(isClientDiagnosticEvent({ ...failed, transport_kind: "private" })).toBe(false);
+    },
+  );
+
   it("deduplicates without request IDs and sends no more than ten events per batch", async () => {
     let now = 1_000;
     let releaseFirst!: () => void;
@@ -41,6 +101,34 @@ describe("client diagnostics", () => {
     releaseFirst();
     await queue.flush();
     expect(send.mock.calls.map(([batch]) => batch.events.length)).toEqual([1, 10, 2]);
+  });
+
+  it("keeps distinct client spans when request observations share the same stage", async () => {
+    const received: ClientDiagnosticEvent[][] = [];
+    const queue = new ClientDiagnosticsQueue({
+      send: async ({ events }) => { received.push([...events]); },
+    });
+    const requestEvent = (traceId: string) => createClientDiagnosticEvent({
+      platform: "web",
+      component: "WebTransport",
+      operation: "nutrition",
+      operation_id: traceId,
+      stage: "dispatch",
+      error_code: "CLIENT_REQUEST_OBSERVED",
+      trace_id: traceId,
+      span_id: "1".repeat(16),
+      offset_ms: 0,
+      duration_ms: 0,
+    })!;
+
+    queue.enqueue(requestEvent("2".repeat(32)));
+    queue.enqueue(requestEvent("3".repeat(32)));
+    await queue.flush();
+
+    expect(received.flat().map((item) => item.trace_id)).toEqual([
+      "2".repeat(32),
+      "3".repeat(32),
+    ]);
   });
 
   it("bounds the queue, retries three times with backoff, and clears queued events", async () => {
