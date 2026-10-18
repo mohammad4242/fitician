@@ -49,6 +49,7 @@ ClientErrorCode = Literal[
     "API_REQUEST_FAILED",
     "CLIENT_UNHANDLED_REJECTION",
     "CLIENT_RENDER_ERROR",
+    "CLIENT_REQUEST_OBSERVED",
 ]
 Token = Annotated[
     str, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.:-]+$")
@@ -66,6 +67,18 @@ class EventInput(StrictModel):
     event_id: UUID | None = None
     request_id: str | None = Field(default=None, max_length=128)
     operation_id: str | None = Field(default=None, max_length=128)
+    app_version: Token | None = None
+    origin_platform: Platform | None = None
+    trace_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
+    span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    parent_span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    record_type: Literal["event", "span"] = "event"
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    offset_ms: int = Field(default=0, ge=0, le=86_400_000)
+    clock_domain: Token | None = None
+    expected_span_count: int = Field(default=0, ge=0, le=1024)
+    dropped_count: int = Field(default=0, ge=0)
     component: ClientToken
     operation: ClientToken
     stage: ClientToken
@@ -121,6 +134,14 @@ class EventInput(StrictModel):
 
 
 class ClientEventInput(StrictModel):
+    transport_kind: Literal["network", "timeout", "aborted", "offline", "unknown"] | None = None
+    trace_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
+    span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    parent_span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    operation_id: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.:-]{1,128}$")] | None = (
+        None
+    )
+    offset_ms: int = Field(default=0, ge=0, le=86_400_000)
     event_id: UUID
     platform: Literal["android", "ios_pwa", "web"]
     component: Literal[
@@ -147,7 +168,15 @@ class ClientEventInput(StrictModel):
         "media",
     ]
     stage: Literal[
-        "failed", "response_failed", "transport_failed", "unhandled", "fatal", "caught", "uncaught"
+        "failed",
+        "response_failed",
+        "transport_failed",
+        "unhandled",
+        "fatal",
+        "caught",
+        "uncaught",
+        "dispatch",
+        "response_received",
     ]
     exception_type: (
         Literal[
@@ -227,6 +256,18 @@ class IssueResponse(StrictModel):
 
 
 class EventResponse(StrictModel):
+    app_version: Token | None = None
+    origin_platform: Platform | None = None
+    trace_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
+    span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    parent_span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
+    record_type: Literal["event", "span"] = "event"
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    offset_ms: int = Field(default=0, ge=0, le=86_400_000)
+    clock_domain: Token | None = None
+    expected_span_count: int = Field(default=0, ge=0, le=1024)
+    dropped_count: int = Field(default=0, ge=0)
     id: UUID = Field(validation_alias="id", serialization_alias="event_id")
     issue_id: UUID | None
     timestamp: datetime

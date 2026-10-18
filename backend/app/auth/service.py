@@ -52,6 +52,8 @@ from app.auth.security import (
     verify_password,
 )
 from app.config import Settings
+from app.observability.diagnostics_runtime import set_request_user
+from app.observability.tracing import traced
 from app.user_activity.service import record_activity
 
 logger = logging.getLogger(__name__)
@@ -100,6 +102,7 @@ def _new_session(user: User, ttl_seconds: int, now: datetime) -> tuple[AuthSessi
     )
 
 
+@traced("authenticate_password_user", component="auth")
 def authenticate_password_user(db: Session, payload: LoginRequest) -> User:
     email = normalize_email(str(payload.email))
     user = db.scalar(select(User).where(User.email == email))
@@ -111,6 +114,7 @@ def authenticate_password_user(db: Session, payload: LoginRequest) -> User:
     password_is_valid = verify_password(payload.password, stored_hash)
     if user is None or user.password_hash is None or not password_is_valid:
         raise InvalidCredentialsError
+    set_request_user(user.id)
     return user
 
 
@@ -132,6 +136,7 @@ def _record_mobile_auth_event(
     )
 
 
+@traced("issue_mobile_tokens", component="auth")
 def issue_mobile_tokens(
     db: Session,
     user: User,
@@ -228,6 +233,7 @@ def _deliver_email_verification(
         logger.warning("Authentication email verification delivery failed")
 
 
+@traced("register_user", component="auth")
 def register_user(
     db: Session,
     payload: RegisterRequest,
@@ -281,9 +287,11 @@ def register_user(
         recipient,
         _verification_url(frontend_origin, verification_raw_token),
     )
+    set_request_user(user.id)
     return AuthResult(user=user, raw_token=raw_token)
 
 
+@traced("login_user", component="auth")
 def login_user(
     db: Session,
     payload: LoginRequest,
@@ -309,6 +317,7 @@ def login_user(
     except SQLAlchemyError:
         db.rollback()
         raise
+    set_request_user(user.id)
     return AuthResult(user=user, raw_token=raw_token)
 
 
@@ -372,6 +381,7 @@ def _authenticate_google_user(
     return user, registered
 
 
+@traced("authenticate_google", component="auth")
 def authenticate_google(
     db: Session,
     identity: GoogleIdentity,
@@ -405,9 +415,11 @@ def authenticate_google(
     except SQLAlchemyError:
         db.rollback()
         raise
+    set_request_user(user.id)
     return AuthResult(user=user, raw_token=raw_token)
 
 
+@traced("authenticate_mobile_google", component="auth")
 def authenticate_mobile_google(
     db: Session,
     identity: GoogleIdentity,
@@ -505,6 +517,7 @@ def _authenticate_apple_user(
     return user, registered
 
 
+@traced("authenticate_apple", component="auth")
 def authenticate_apple(
     db: Session,
     identity: AppleIdentity,
@@ -538,9 +551,11 @@ def authenticate_apple(
     except SQLAlchemyError:
         db.rollback()
         raise
+    set_request_user(user.id)
     return AuthResult(user=user, raw_token=raw_token)
 
 
+@traced("authenticate_mobile_apple", component="auth")
 def authenticate_mobile_apple(
     db: Session,
     identity: AppleIdentity,
@@ -642,6 +657,7 @@ def mobile_access_context_for_token(
     return MobileAccessContext(user=user, family=family)
 
 
+@traced("refresh_mobile_tokens", component="auth")
 def refresh_mobile_tokens(
     db: Session,
     raw_refresh_token: str,
@@ -941,6 +957,7 @@ def verify_email(db: Session, raw_token: str, provider: EmailProvider) -> bool:
     return True
 
 
+@traced("send_phone_otp", component="auth")
 def send_phone_otp(
     db: Session,
     raw_phone_number: str,
@@ -1054,6 +1071,7 @@ def _verify_phone_otp_user(
     return user, registered
 
 
+@traced("verify_phone_otp", component="auth")
 def verify_phone_otp(
     db: Session,
     raw_phone_number: str,
@@ -1086,6 +1104,7 @@ def verify_phone_otp(
     except SQLAlchemyError:
         db.rollback()
         raise
+    set_request_user(user.id)
     return AuthResult(user=user, raw_token=raw_token)
 
 

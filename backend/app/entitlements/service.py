@@ -26,6 +26,7 @@ from app.entitlements.models import (
     EntitlementUsageEvent,
     UserAccessGrant,
 )
+from app.observability.tracing import traced
 
 VALID_ACCESS_TERM_WEEKS = frozenset({4, 6, 8})
 
@@ -161,6 +162,7 @@ def has_entitlement(
     return resolve_access_snapshot(db, user_id, now=now).has(entitlement)
 
 
+@traced("require_entitlement", component="entitlements")
 def require_entitlement(
     db: Session,
     user_id: UUID,
@@ -257,6 +259,7 @@ def quota_status(
     )
 
 
+@traced("require_quota_available", component="entitlements")
 def require_quota_available(
     db: Session,
     user_id: UUID,
@@ -276,6 +279,7 @@ def require_quota_available(
     return status
 
 
+@traced("consume_quota", component="entitlements")
 def consume_quota(
     db: Session,
     user_id: UUID,
@@ -334,6 +338,7 @@ def consume_quota(
     return True
 
 
+@traced("grant_package", component="entitlements")
 def grant_package(
     db: Session,
     user_id: UUID,

@@ -329,6 +329,9 @@ def create_app(
             "Content-Type",
             "Idempotency-Key",
             CORRELATION_ID_HEADER,
+            "traceparent",
+            "X-Fitician-Platform",
+            "X-Fitician-Version",
             "X-Fitician-Food-Photo-Consent",
             "X-Fitician-Client-Crop-Confirmed",
             "X-Fitician-Client-Crop-Confidence",
@@ -338,7 +341,7 @@ def create_app(
             "X-Fitician-Processed-SHA256",
             "X-Fitician-Crop-Evidence-SHA256",
         ],
-        expose_headers=[CORRELATION_ID_HEADER],
+        expose_headers=[CORRELATION_ID_HEADER, "traceparent", "X-Operation-ID"],
     )
 
     @app.middleware("http")
@@ -602,6 +605,12 @@ def create_app(
             storage=public_media_storage,
         )
 
+    from app.observability.dependency_tracing import install_database_tracing
+    from app.observability.tracing import DiagnosticsCompletionMiddleware, instrument_routes
+
+    install_database_tracing()
+    instrument_routes(app.routes)
+    app.add_middleware(DiagnosticsCompletionMiddleware)
     return app
 
 

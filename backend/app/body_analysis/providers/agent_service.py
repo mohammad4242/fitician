@@ -26,6 +26,7 @@ from app.body_analysis.providers.models import (
     StructuredGenerationResponse,
     _ProviderCompletion,
 )
+from app.observability.tracing import propagation_headers, traced
 from app.private_media import PrivateMediaError, PrivateMediaResolver
 
 _SAFE_MESSAGES: dict[ProviderErrorCode, str] = {
@@ -353,6 +354,7 @@ class AgentServiceProvider:
             "Inline and stored images cannot be mixed.",
         )
 
+    @traced("agent_service_call", component="agent_service")
     async def _request_stored_images(
         self,
         metadata: dict[str, object],
@@ -403,6 +405,7 @@ class AgentServiceProvider:
             json_body={"generation": metadata, "images": references},
         )
 
+    @traced("agent_service_call", component="agent_service")
     async def _request_multipart(
         self,
         metadata: dict[str, object],
@@ -468,6 +471,7 @@ class AgentServiceProvider:
             raise self.normalize_error(error) from error
         return self._parse_http_response(response)
 
+    @traced("agent_service_call", component="agent_service")
     async def _request_json(
         self,
         method: str,
@@ -590,7 +594,10 @@ class AgentServiceProvider:
 
     def _headers(self) -> dict[str, str]:
         token = self._token_value()
-        return {"Authorization": f"Bearer {token}"} if token is not None else {}
+        return {
+            **propagation_headers(),
+            **({"Authorization": f"Bearer {token}"} if token is not None else {}),
+        }
 
     def _token_value(self) -> str | None:
         if isinstance(self._token, SecretStr):

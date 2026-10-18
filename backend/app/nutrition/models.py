@@ -86,6 +86,7 @@ from app.nutrition.enums import (
     Weekday,
     WeightRateMode,
 )
+from app.observability.trace_carrier import TraceCarrier
 from app.profile.enums import TrainingIntensity
 
 
@@ -2040,7 +2041,7 @@ class NutritionFoodPhotoEstimate(Base):
     )
 
 
-class NutritionFoodPhotoAnalysisJob(Base):
+class NutritionFoodPhotoAnalysisJob(TraceCarrier, Base):
     __tablename__ = "nutrition_food_photo_analysis_jobs"
     __table_args__ = (
         CheckConstraint(

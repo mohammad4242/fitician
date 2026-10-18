@@ -4,7 +4,7 @@
   color: var(--fitician-ink, var(--ink));
   background:
     radial-gradient(circle at 90% 0%, rgb(56 183 165 / 9%), transparent 28rem),
-    var(--mist-50);
+    var(--fitician-canvas);
 }
 
 .diagnostics-page__inner { width: min(1320px, calc(100% - 2rem)); margin-inline: auto; }
@@ -21,25 +21,25 @@
 .diagnostics-hero__copy > p:last-child { max-width: 55rem; margin: .55rem 0 0; color: rgb(255 255 255 / 76%); font-size: .9rem; line-height: 1.75; }
 .diagnostics-window { display: grid; min-width: 9rem; gap: .4rem; color: rgb(255 255 255 / 76%); font-size: .73rem; font-weight: 800; }
 .diagnostics-window select { min-height: 2.7rem; padding: .5rem .75rem; border: 1px solid rgb(255 255 255 / 28%); border-radius: .7rem; color: #fff; background: rgb(255 255 255 / 10%); font: inherit; }
-.diagnostics-window option { color: var(--petrol-950); background: #fff; }
+.diagnostics-window option { color: var(--fitician-ink); background: var(--fitician-surface); }
 
-.diagnostics-tabs { display: flex; gap: .35rem; overflow-x: auto; margin: 1.1rem 0 .9rem; padding: .45rem; border: 1px solid rgb(22 91 84 / 12%); border-radius: 1rem; background: rgb(255 255 255 / 78%); box-shadow: 0 .45rem 1.4rem rgb(10 31 30 / 4%); scrollbar-width: thin; }
-.diagnostics-tab { flex: 0 0 auto; min-height: 2.7rem; padding: .55rem .92rem; border: 0; border-radius: .7rem; color: var(--petrol-900); background: transparent; cursor: pointer; font: inherit; font-size: .83rem; font-weight: 800; }
+.diagnostics-tabs { display: flex; gap: .35rem; overflow-x: auto; margin: 1.1rem 0 .9rem; padding: .45rem; border: 1px solid rgb(22 91 84 / 12%); border-radius: 1rem; background: var(--fitician-surface); box-shadow: 0 .45rem 1.4rem rgb(10 31 30 / 4%); scrollbar-width: thin; }
+.diagnostics-tab { flex: 0 0 auto; min-height: 2.7rem; padding: .55rem .92rem; border: 0; border-radius: .7rem; color: var(--fitician-ink); background: transparent; cursor: pointer; font: inherit; font-size: .83rem; font-weight: 800; }
 .diagnostics-tab[aria-selected="true"] { color: #fff; background: var(--petrol-900); box-shadow: 0 .35rem .9rem rgb(10 31 30 / 18%); }
 .diagnostics-panel { min-width: 0; outline: none; }
 .diagnostics-stack { display: grid; gap: 1rem; min-width: 0; }
 .diagnostics-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(17rem, .75fr); gap: 1rem; }
-.diagnostics-card { min-width: 0; padding: clamp(1rem, 2.5vw, 1.5rem); border: 1px solid rgb(22 91 84 / 12%); border-radius: 1.1rem; background: rgb(255 255 255 / 94%); box-shadow: 0 .65rem 1.9rem rgb(10 31 30 / 5%); }
-.diagnostics-card h2, .diagnostics-card h3 { margin: 0; color: var(--petrol-950); overflow-wrap: anywhere; }
+.diagnostics-card { min-width: 0; padding: clamp(1rem, 2.5vw, 1.5rem); border: 1px solid rgb(22 91 84 / 12%); border-radius: 1.1rem; background: var(--fitician-surface); box-shadow: 0 .65rem 1.9rem rgb(10 31 30 / 5%); }
+.diagnostics-card h2, .diagnostics-card h3 { margin: 0; color: var(--fitician-ink); overflow-wrap: anywhere; }
 .diagnostics-card h2 { font-size: 1.15rem; }
 .diagnostics-card h3 { font-size: 1rem; }
 .diagnostics-card__heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.diagnostics-caption { margin: .55rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.7; }
-.diagnostics-sample { color: var(--muted); font-size: .72rem; font-weight: 750; text-align: end; }
+.diagnostics-caption { margin: .55rem 0 0; color: var(--fitician-muted); font-size: .75rem; line-height: 1.7; }
+.diagnostics-sample { color: var(--fitician-muted); font-size: .72rem; font-weight: 750; text-align: end; }
 .diagnostics-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.diagnostics-metric { position: relative; display: grid; min-height: 7.25rem; align-content: space-between; overflow: hidden; padding: 1rem; border: 1px solid rgb(22 91 84 / 11%); border-radius: 1rem; background: #fff; box-shadow: 0 .5rem 1.4rem rgb(10 31 30 / 4%); }
-.diagnostics-metric > span { max-width: 12rem; color: var(--muted); font-size: .76rem; font-weight: 750; }
-.diagnostics-metric > strong { position: relative; z-index: 1; color: var(--petrol-950); font-size: clamp(1.6rem, 3vw, 2.15rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.diagnostics-metric { position: relative; display: grid; min-height: 7.25rem; align-content: space-between; overflow: hidden; padding: 1rem; border: 1px solid rgb(22 91 84 / 11%); border-radius: 1rem; background: var(--fitician-surface); box-shadow: 0 .5rem 1.4rem rgb(10 31 30 / 4%); }
+.diagnostics-metric > span { max-width: 12rem; color: var(--fitician-muted); font-size: .76rem; font-weight: 750; }
+.diagnostics-metric > strong { position: relative; z-index: 1; color: var(--fitician-ink); font-size: clamp(1.6rem, 3vw, 2.15rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .diagnostics-metric i { position: absolute; inset-inline-end: -1.1rem; inset-block-end: -1.5rem; width: 4rem; height: 4rem; border: 1px solid currentColor; border-radius: 50%; opacity: .14; }
 .diagnostics-metric--aqua { border-block-start: 3px solid #32aa9b; color: #32aa9b; }.diagnostics-metric--saffron { border-block-start: 3px solid #d3a148; color: #d3a148; }.diagnostics-metric--quiet { border-block-start: 3px solid #77908b; color: #77908b; }.diagnostics-metric--coral { border-block-start: 3px solid #c86a58; color: #c86a58; }
 .diagnostics-trend { min-width: 0; }
@@ -48,60 +48,60 @@
 .diagnostics-trend__area { fill: rgb(56 183 165 / 13%); }
 .diagnostics-trend__line { fill: none; stroke: #279f91; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
 .diagnostics-trend__point { fill: #fff; stroke: #279f91; stroke-width: 2; }
-.diagnostics-trend__axis { display: flex; justify-content: space-between; color: var(--muted); font-size: .7rem; }
+.diagnostics-trend__axis { display: flex; justify-content: space-between; color: var(--fitician-muted); font-size: .7rem; }
 .diagnostics-platform-list { display: grid; gap: .35rem; margin: 1rem 0 0; padding: 0; list-style: none; }
 .diagnostics-platform-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .7rem; padding: .72rem .65rem; border-bottom: 1px solid rgb(22 91 84 / 9%); font-variant-numeric: tabular-nums; }
-.diagnostics-platform-list li > span { display: flex; align-items: center; gap: .55rem; color: var(--petrol-900); font-size: .8rem; font-weight: 800; text-transform: capitalize; }
+.diagnostics-platform-list li > span { display: flex; align-items: center; gap: .55rem; color: var(--fitician-ink); font-size: .8rem; font-weight: 800; text-transform: capitalize; }
 .diagnostics-platform-list li > span i { width: .52rem; height: .52rem; border-radius: 50%; background: #31aa9a; box-shadow: 0 0 0 .22rem rgb(56 183 165 / 13%); }
-.diagnostics-platform-list strong { color: var(--petrol-950); }.diagnostics-platform-list small { min-width: 2.6rem; color: var(--muted); text-align: end; }
+.diagnostics-platform-list strong { color: var(--fitician-ink); }.diagnostics-platform-list small { min-width: 2.6rem; color: var(--fitician-muted); text-align: end; }
 
 .diagnostics-filters { display: grid; gap: 1rem; }
 .diagnostics-filters .diagnostics-card__heading { margin: 0; }
 .diagnostics-filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
-.diagnostics-field, .diagnostics-status-form label { display: grid; min-width: 0; gap: .36rem; color: var(--petrol-900); font-size: .73rem; font-weight: 800; }
-.diagnostics-field input, .diagnostics-field select, .diagnostics-status-form select, .diagnostics-status-form textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 2.65rem; padding: .55rem .68rem; border: 1px solid rgb(10 31 30 / 19%); border-radius: .65rem; color: var(--fitician-ink, var(--ink)); background: #fff; font: inherit; font-size: .82rem; }
+.diagnostics-field, .diagnostics-status-form label { display: grid; min-width: 0; gap: .36rem; color: var(--fitician-ink); font-size: .73rem; font-weight: 800; }
+.diagnostics-field input, .diagnostics-field select, .diagnostics-status-form select, .diagnostics-status-form textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 2.65rem; padding: .55rem .68rem; border: 1px solid rgb(10 31 30 / 19%); border-radius: .65rem; color: var(--fitician-ink, var(--ink)); background: var(--fitician-surface); font: inherit; font-size: .82rem; }
 .diagnostics-status-form textarea { min-height: 6rem; resize: vertical; line-height: 1.6; }
 .diagnostics-filter-actions { display: flex; flex-wrap: wrap; gap: .55rem; }
 .diagnostics-button { display: inline-flex; min-height: 2.55rem; align-items: center; justify-content: center; padding: .55rem .85rem; border: 1px solid var(--petrol-900); border-radius: .65rem; color: #fff; background: var(--petrol-900); cursor: pointer; font: inherit; font-size: .78rem; font-weight: 850; text-decoration: none; }
 .diagnostics-button:hover:not(:disabled) { background: var(--petrol-800); }
 .diagnostics-button:disabled { cursor: not-allowed; opacity: .48; }
-.diagnostics-button--quiet { color: var(--petrol-900); background: transparent; }
-.diagnostics-button--quiet:hover:not(:disabled) { color: var(--petrol-950); background: rgb(56 183 165 / 10%); }
+.diagnostics-button--quiet { color: var(--fitician-ink); background: transparent; }
+.diagnostics-button--quiet:hover:not(:disabled) { color: var(--fitician-ink); background: rgb(56 183 165 / 10%); }
 .diagnostics-back { justify-self: start; }
-.diagnostics-state, .diagnostics-empty { margin: 0; padding: 1.5rem; border: 1px dashed rgb(22 91 84 / 25%); border-radius: .9rem; color: var(--muted); background: rgb(255 255 255 / 65%); font-size: .84rem; text-align: center; }
+.diagnostics-state, .diagnostics-empty { margin: 0; padding: 1.5rem; border: 1px dashed rgb(22 91 84 / 25%); border-radius: .9rem; color: var(--fitician-muted); background: var(--fitician-surface-subtle); font-size: .84rem; text-align: center; }
 .diagnostics-error { display: grid; justify-items: start; gap: .55rem; }
 .diagnostics-saved { margin: .6rem 0 0; color: #168273; font-size: .8rem; font-weight: 800; }
 
-.diagnostics-table-wrap { width: 100%; overflow: auto; border: 1px solid rgb(22 91 84 / 13%); border-radius: 1rem; background: #fff; }
+.diagnostics-table-wrap { width: 100%; overflow: auto; border: 1px solid rgb(22 91 84 / 13%); border-radius: 1rem; background: var(--fitician-surface); }
 .diagnostics-table { width: 100%; min-width: 770px; border-collapse: collapse; text-align: start; font-size: .76rem; }
 .diagnostics-table th { position: sticky; inset-block-start: 0; padding: .8rem .75rem; color: #fff; background: var(--petrol-900); font-size: .7rem; font-weight: 850; white-space: nowrap; }
-.diagnostics-table td { max-width: 17rem; padding: .75rem; border-bottom: 1px solid rgb(22 91 84 / 9%); color: var(--petrol-950); vertical-align: top; }
+.diagnostics-table td { max-width: 17rem; padding: .75rem; border-bottom: 1px solid rgb(22 91 84 / 9%); color: var(--fitician-ink); vertical-align: top; }
 .diagnostics-table tr:last-child td { border-bottom: 0; }
 .diagnostics-table tbody tr:hover { background: rgb(56 183 165 / 5%); }
-.diagnostics-table small { display: block; max-width: 18rem; margin-top: .25rem; color: var(--muted); overflow-wrap: anywhere; }
+.diagnostics-table small { display: block; max-width: 18rem; margin-top: .25rem; color: var(--fitician-muted); overflow-wrap: anywhere; }
 .diagnostics-table code, .diagnostics-inline-meta b, .diagnostics-definition-list dd, .diagnostics-table td[dir="ltr"] { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; }
-.diagnostics-table a, .diagnostics-history a, .diagnostics-timeline a { color: var(--turquoise-dark, #137a70); font-weight: 800; text-decoration-thickness: 1px; text-underline-offset: .2em; }
-.diagnostics-link-button { display: grid; gap: .2rem; padding: 0; border: 0; color: var(--petrol-950); background: transparent; cursor: pointer; font: inherit; text-align: start; }
+.diagnostics-table a, .diagnostics-history a, .diagnostics-timeline a { color: var(--fitician-accent-ink); font-weight: 800; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.diagnostics-link-button { display: grid; gap: .2rem; padding: 0; border: 0; color: var(--fitician-ink); background: transparent; cursor: pointer; font: inherit; text-align: start; }
 .diagnostics-link-button > strong { color: #147e73; font-size: .83rem; }
 .diagnostics-link-button:hover > strong { text-decoration: underline; text-underline-offset: .2em; }
-.diagnostics-badge { display: inline-flex; align-items: center; max-width: 100%; padding: .28rem .52rem; border: 1px solid rgb(22 91 84 / 12%); border-radius: 999px; color: var(--petrol-900); background: rgb(22 91 84 / 5%); font-size: .67rem; font-weight: 850; line-height: 1.25; white-space: nowrap; }
+.diagnostics-badge { display: inline-flex; align-items: center; max-width: 100%; padding: .28rem .52rem; border: 1px solid rgb(22 91 84 / 12%); border-radius: 999px; color: var(--fitician-ink); background: rgb(22 91 84 / 5%); font-size: .67rem; font-weight: 850; line-height: 1.25; white-space: nowrap; }
 .diagnostics-badge--new, .diagnostics-badge--critical, .diagnostics-badge--failure, .diagnostics-badge--blocked { border-color: rgb(183 82 63 / 24%); color: #a43f32; background: rgb(183 82 63 / 9%); }
 .diagnostics-badge--investigating, .diagnostics-badge--likely, .diagnostics-badge--pending_review, .diagnostics-badge--timeout { border-color: rgb(211 161 72 / 28%); color: #80591c; background: rgb(211 161 72 / 12%); }
 .diagnostics-badge--resolved, .diagnostics-badge--success, .diagnostics-badge--reused, .diagnostics-badge--confirmed { border-color: rgb(39 159 145 / 26%); color: #137a70; background: rgb(56 183 165 / 10%); }
 .diagnostics-badge-pair { display: flex; flex-wrap: wrap; gap: .35rem; }
-.diagnostics-pager { display: flex; align-items: center; justify-content: center; gap: 1rem; color: var(--muted); font-size: .76rem; font-variant-numeric: tabular-nums; }
+.diagnostics-pager { display: flex; align-items: center; justify-content: center; gap: 1rem; color: var(--fitician-muted); font-size: .76rem; font-variant-numeric: tabular-nums; }
 
 .diagnostics-issue-hero { display: flex; align-items: start; justify-content: space-between; gap: 1rem; border-inline-start: 4px solid #d3a148; }
 .diagnostics-issue-hero h2 { margin-bottom: .3rem; font-size: 1.3rem; }
-.diagnostics-issue-hero p:last-child { max-width: 48rem; margin: .4rem 0 0; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+.diagnostics-issue-hero p:last-child { max-width: 48rem; margin: .4rem 0 0; color: var(--fitician-muted); font-size: .84rem; line-height: 1.7; }
 .diagnostics-detail-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(17rem, .8fr); gap: 1rem; }
 .diagnostics-classification > h3, .diagnostics-status-form > h3 { margin-bottom: .9rem; }
-.diagnostics-classification > p { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; color: var(--petrol-900); font-size: .82rem; }
-.diagnostics-classification > small { display: block; margin: .5rem 0 1rem; color: var(--muted); font-size: .7rem; }
+.diagnostics-classification > p { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; color: var(--fitician-ink); font-size: .82rem; }
+.diagnostics-classification > small { display: block; margin: .5rem 0 1rem; color: var(--fitician-muted); font-size: .7rem; }
 .diagnostics-definition-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin: 0; }
-.diagnostics-definition-list > div { min-width: 0; padding: .68rem; border-radius: .7rem; background: var(--mist-50); }
-.diagnostics-definition-list dt { color: var(--muted); font-size: .67rem; }
-.diagnostics-definition-list dd { margin: .28rem 0 0; color: var(--petrol-950); font-size: .78rem; font-weight: 800; }
+.diagnostics-definition-list > div { min-width: 0; padding: .68rem; border-radius: .7rem; background: var(--fitician-surface-subtle); }
+.diagnostics-definition-list dt { color: var(--fitician-muted); font-size: .67rem; }
+.diagnostics-definition-list dd { margin: .28rem 0 0; color: var(--fitician-ink); font-size: .78rem; font-weight: 800; }
 .diagnostics-status-form form { display: grid; gap: .8rem; }
 .diagnostics-status-form form > button { justify-self: start; }
 .diagnostics-card__heading .diagnostics-caption { max-width: 29rem; margin: 0; text-align: end; }
@@ -109,42 +109,42 @@
 .diagnostics-timeline > li { position: relative; display: grid; grid-template-columns: .7rem minmax(0, 1fr); gap: .8rem; }
 .diagnostics-timeline > li::before { position: absolute; inset-block: .8rem -1rem; inset-inline-start: .28rem; width: 1px; background: rgb(39 159 145 / 25%); content: ""; }
 .diagnostics-timeline > li:last-child::before { display: none; }
-.diagnostics-timeline > li > i { position: relative; z-index: 1; width: .62rem; height: .62rem; margin-top: .15rem; border: 2px solid #299f91; border-radius: 50%; background: #fff; }
-.diagnostics-timeline__content { display: grid; gap: .38rem; min-width: 0; padding: 0 0 1rem; color: var(--petrol-950); font-size: .78rem; }
-.diagnostics-timeline__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; color: var(--muted); font-size: .7rem; }
+.diagnostics-timeline > li > i { position: relative; z-index: 1; width: .62rem; height: .62rem; margin-top: .15rem; border: 2px solid #299f91; border-radius: 50%; background: var(--fitician-surface); }
+.diagnostics-timeline__content { display: grid; gap: .38rem; min-width: 0; padding: 0 0 1rem; color: var(--fitician-ink); font-size: .78rem; }
+.diagnostics-timeline__top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .6rem; color: var(--fitician-muted); font-size: .7rem; }
 .diagnostics-timeline__content > span { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; }
-.diagnostics-inline-meta { display: flex; flex-wrap: wrap; gap: .45rem 1rem; color: var(--muted); font-size: .68rem; }
+.diagnostics-inline-meta { display: flex; flex-wrap: wrap; gap: .45rem 1rem; color: var(--fitician-muted); font-size: .68rem; }
 .diagnostics-history { counter-reset: history; }
-.diagnostics-history li { display: grid; gap: .4rem; padding: .8rem .9rem; border-inline-start: 2px solid #d3a148; border-radius: .25rem .7rem .7rem .25rem; background: var(--mist-50); }
-.diagnostics-history time { color: var(--muted); font-size: .69rem; }
+.diagnostics-history li { display: grid; gap: .4rem; padding: .8rem .9rem; border-inline-start: 2px solid #d3a148; border-radius: .25rem .7rem .7rem .25rem; background: var(--fitician-surface-subtle); }
+.diagnostics-history time { color: var(--fitician-muted); font-size: .69rem; }
 .diagnostics-history strong { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; font-size: .77rem; }
-.diagnostics-history p { margin: 0; color: var(--petrol-900); font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+.diagnostics-history p { margin: 0; color: var(--fitician-ink); font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
 
 .diagnostics-generation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .diagnostics-generation > h3 { margin-bottom: .9rem; text-transform: capitalize; }
 .diagnostics-generation__totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
-.diagnostics-generation__totals > div, .diagnostics-generation__rate { display: grid; gap: .25rem; padding: .8rem; border-radius: .75rem; background: var(--mist-50); }
-.diagnostics-generation__totals span, .diagnostics-generation__rate span { color: var(--muted); font-size: .7rem; }
-.diagnostics-generation__totals strong, .diagnostics-generation__rate strong { color: var(--petrol-950); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.diagnostics-generation__totals > div, .diagnostics-generation__rate { display: grid; gap: .25rem; padding: .8rem; border-radius: .75rem; background: var(--fitician-surface-subtle); }
+.diagnostics-generation__totals span, .diagnostics-generation__rate span { color: var(--fitician-muted); font-size: .7rem; }
+.diagnostics-generation__totals strong, .diagnostics-generation__rate strong { color: var(--fitician-ink); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 .diagnostics-generation__rate { display: flex; align-items: center; justify-content: space-between; margin-top: .6rem; border-inline-start: 3px solid #299f91; }
 .diagnostics-generation ul { display: grid; gap: .35rem; margin: .85rem 0 0; padding: 0; list-style: none; }
-.diagnostics-generation li { display: flex; justify-content: space-between; gap: .7rem; padding: .55rem .2rem; border-bottom: 1px solid rgb(22 91 84 / 9%); color: var(--petrol-900); font-size: .75rem; }
+.diagnostics-generation li { display: flex; justify-content: space-between; gap: .7rem; padding: .55rem .2rem; border-bottom: 1px solid rgb(22 91 84 / 9%); color: var(--fitician-ink); font-size: .75rem; }
 .diagnostics-generation li strong { font-variant-numeric: tabular-nums; }
 
 .diagnostics-infra-status { display: flex; align-items: center; justify-content: space-between; gap: 1.4rem; border-inline-start: 4px solid #d3a148; }
 .diagnostics-infra-status h2 { margin-bottom: .4rem; }
-.diagnostics-infra-status p:last-child { max-width: 50rem; margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.7; }
+.diagnostics-infra-status p:last-child { max-width: 50rem; margin: 0; color: var(--fitician-muted); font-size: .82rem; line-height: 1.7; }
 .diagnostics-unknown { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .45rem; padding: .55rem .75rem; border: 1px solid rgb(211 161 72 / 32%); border-radius: 999px; color: #765417; background: rgb(211 161 72 / 12%); font-size: .72rem; }
 .diagnostics-unknown i { width: .45rem; height: .45rem; border-radius: 50%; background: #c48c28; }
 .diagnostics-infra-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; margin: 0; }
-.diagnostics-infra-meta > div { padding: .9rem; border: 1px solid rgb(22 91 84 / 10%); border-radius: .75rem; background: #fff; }
-.diagnostics-infra-meta dt { color: var(--muted); font-size: .7rem; }
-.diagnostics-infra-meta dd { margin: .3rem 0 0; color: var(--petrol-950); font-size: .82rem; font-weight: 850; }
+.diagnostics-infra-meta > div { padding: .9rem; border: 1px solid rgb(22 91 84 / 10%); border-radius: .75rem; background: var(--fitician-surface); }
+.diagnostics-infra-meta dt { color: var(--fitician-muted); font-size: .7rem; }
+.diagnostics-infra-meta dd { margin: .3rem 0 0; color: var(--fitician-ink); font-size: .82rem; font-weight: 850; }
 .diagnostics-alert-list { display: grid; gap: .7rem; }
 .diagnostics-alert { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .9rem; }
 .diagnostics-alert__pulse { width: .65rem; height: .65rem; border-radius: 50%; background: #cb6a55; box-shadow: 0 0 0 .28rem rgb(203 106 85 / 14%); }
 .diagnostics-alert h3 { margin-bottom: .3rem; }
-.diagnostics-alert code { color: var(--muted); font-size: .69rem; }
+.diagnostics-alert code { color: var(--fitician-muted); font-size: .69rem; }
 
 .diagnostics-page :where(button, a, input, select, textarea):focus-visible { outline: 3px solid #d39c35; outline-offset: 3px; }
 
@@ -181,3 +181,18 @@
 @media (prefers-reduced-motion: reduce) {
   .diagnostics-page *, .diagnostics-page *::before, .diagnostics-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+[data-fitician-theme="dark"] .diagnostics-badge--failure,
+[data-fitician-theme="dark"] .diagnostics-badge--blocked,
+[data-fitician-theme="dark"] .diagnostics-badge--critical { color: var(--fitician-danger); }
+[data-fitician-theme="dark"] .diagnostics-badge--success,
+[data-fitician-theme="dark"] .diagnostics-badge--reused,
+[data-fitician-theme="dark"] .diagnostics-badge--confirmed { color: var(--fitician-success); }
+[data-fitician-theme="dark"] .diagnostics-badge--timeout,
+[data-fitician-theme="dark"] .diagnostics-badge--pending_review { color: var(--fitician-amber); }
+.diagnostics-field input, .diagnostics-field select, .diagnostics-status-form select, .diagnostics-status-form textarea {
+  border-color: var(--fitician-line-strong);
+  background: var(--fitician-surface-raised);
+  color-scheme: var(--fitician-color-scheme);
+}
+.diagnostics-page :focus-visible { outline: 2px solid var(--fitician-aqua); outline-offset: 3px; }

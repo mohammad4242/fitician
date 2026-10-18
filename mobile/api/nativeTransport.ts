@@ -1,4 +1,9 @@
-import { createGenerationRequestKeys, diagnosticWorkflow } from "@fitician/core";
+import {
+  createClientRequestTraceContext,
+  createGenerationRequestKeys,
+  diagnosticWorkflow,
+  type ClientRequestTraceContext,
+} from "@fitician/core";
 import {
   ApiError,
   TransportError,
@@ -10,6 +15,11 @@ import {
   type MultipartUploadRequest,
   type TransportRequest,
 } from "@fitician/core";
+import {
+  mobileClientPlatform,
+  mobileClientVersion,
+  reportMobileClientRequestSpan,
+} from "../platform/clientDiagnostics";
 import {
   CORRELATION_ID_HEADER,
   createCorrelationId,
@@ -26,6 +36,9 @@ export interface NativeTransportOptions {
   readonly fetchImpl?: NativeFetchLike;
   readonly logger?: MobileLogger;
   readonly networkStateProvider?: () => "offline" | "online" | "unknown";
+  readonly successSampleRate?: number;
+  readonly random?: () => number;
+  readonly monotonicNow?: () => number;
   readonly trustedOrigin?: string | null;
 }
 
@@ -35,6 +48,8 @@ type PreparedMultipartBody = {
 };
 
 let multipartBoundarySequence = 0;
+const abortKinds = new WeakMap<AbortSignal, "timeout" | "aborted">();
+const abortListenerCleanup = new WeakMap<AbortSignal, () => void>();
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 30_000;
 const LONG_REQUEST_TIMEOUT_MS = 180_000;
@@ -58,12 +73,14 @@ async function withRequestDeadline<T>(
   let onAbort: (() => void) | undefined;
   const interrupted = new Promise<never>((_, reject) => {
     onAbort = () => {
+      abortKinds.set(controller.signal, "aborted");
       reject(new TransportError("aborted", requestId));
       controller.abort();
     };
     callerSignal?.addEventListener("abort", onAbort, { once: true });
     timer = setTimeout(() => {
       // Reject before aborting so native AbortError does not hide the timeout.
+      abortKinds.set(controller.signal, "timeout");
       reject(new TransportError("timeout", requestId));
       controller.abort();
     }, timeoutMs);
@@ -73,6 +90,9 @@ async function withRequestDeadline<T>(
   } finally {
     if (timer !== undefined) clearTimeout(timer);
     if (onAbort !== undefined) callerSignal?.removeEventListener("abort", onAbort);
+    abortListenerCleanup.get(controller.signal)?.();
+    abortListenerCleanup.delete(controller.signal);
+    abortKinds.delete(controller.signal);
   }
 }
 
@@ -97,6 +117,7 @@ function requestHeaders(
   trustedOrigin: string | null | undefined,
   correlationId: string,
   contentType: string | null,
+  trace: ClientRequestTraceContext | null,
 ): Headers {
   const result = new Headers(headers);
   if (trustedOrigin !== undefined && trustedOrigin !== null && !result.has("Origin")) {
@@ -108,6 +129,10 @@ function requestHeaders(
   if (!result.has(CORRELATION_ID_HEADER)) {
     result.set(CORRELATION_ID_HEADER, correlationId);
   }
+  if (trace !== null) result.set("traceparent", trace.traceparent);
+  result.set("X-Fitician-Platform", mobileClientPlatform());
+  const version = mobileClientVersion();
+  if (version !== null) result.set("X-Fitician-Version", version);
   return result;
 }
 
@@ -116,11 +141,12 @@ function requestInit(
   body: BodyInit | undefined,
   trustedOrigin: string | null | undefined,
   correlationId: string,
+  trace: ClientRequestTraceContext | null,
   contentType: string | null = null,
 ): RequestInit {
   return {
     body,
-    headers: requestHeaders(request.headers, trustedOrigin, correlationId, contentType),
+    headers: requestHeaders(request.headers, trustedOrigin, correlationId, contentType, trace),
     method: request.method ?? "GET",
     signal: nativeAbortSignal(request.signal),
   };
@@ -262,6 +288,11 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
   const logger = options.logger ?? mobileLogger;
   const correlationIdFactory = options.correlationIdFactory ?? createCorrelationId;
   const networkStateProvider = options.networkStateProvider ?? (() => "unknown" as const);
+  const successSampleRate = Number.isFinite(options.successSampleRate)
+    ? Math.min(1, Math.max(0, options.successSampleRate!))
+    : 0.1;
+  const random = options.random ?? Math.random;
+  const monotonicNow = options.monotonicNow ?? (() => globalThis.performance?.now?.() ?? 0);
 
   const generationKeys = createGenerationRequestKeys();
 
@@ -272,40 +303,103 @@ export function createNativeTransport(options: NativeTransportOptions): Fitician
     contentType: string | null = null,
     correlationId = correlationIdFactory(),
   ): Promise<Response> {
-    const startedAt = Date.now();
+    const suppliedCorrelationId = request.headers === undefined
+      ? null
+      : new Headers(request.headers).get(CORRELATION_ID_HEADER);
+    const requestId = suppliedCorrelationId ?? correlationId;
+    const telemetryPath = request.path.split(/[?#]/u)[0] ?? "";
+    const diagnosticRequest = telemetryPath.startsWith("/api/v1/diagnostics/")
+      || telemetryPath.startsWith("/api/v1/admin/diagnostics");
+    const suppliedTraceparent = request.headers === undefined
+      ? null
+      : new Headers(request.headers).get("traceparent");
+    const trace = diagnosticRequest
+      ? null
+      : createClientRequestTraceContext(suppliedTraceparent);
+    const sampledSuccess = random() < successSampleRate;
+    const startedAt = monotonicNow();
     let response: Response | undefined;
     if (request.path.startsWith("/api/v1/auth/")) generationKeys.clear();
-    const init = requestInit(request, body, options.trustedOrigin, correlationId, contentType);
+    const init = requestInit(request, body, options.trustedOrigin, requestId, trace, contentType);
     init.headers = generationKeys.headers(request.path, request.method, new Headers(init.headers));
+    const signal = nativeAbortSignal(request.signal);
+    let transportFailureReported = false;
+    const reportTransportFailure = (transportKind: "network" | "timeout" | "aborted" | "offline" | "unknown") => {
+      if (trace === null || transportFailureReported) return;
+      transportFailureReported = true;
+      reportMobileClientRequestSpan({
+        operation: diagnosticWorkflow(request.path, operation),
+        requestId,
+        traceId: trace.traceId,
+        spanId: trace.spanId,
+        ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
+        terminalStage: "transport_failed",
+        transportKind,
+        durationMs: Math.max(0, monotonicNow() - startedAt),
+        ...(response ? { httpStatus: response.status } : {}),
+        shouldRecord: true,
+      });
+    };
+    if (signal !== undefined && trace !== null) {
+      const onSignalAbort = () => reportTransportFailure(abortKinds.get(signal) ?? "aborted");
+      signal.addEventListener("abort", onSignalAbort, { once: true });
+      abortListenerCleanup.set(signal, () => signal.removeEventListener("abort", onSignalAbort));
+    }
     try {
       response = await fetchRequest(
         requestUrl(options.apiBaseUrl, request.path),
         init,
       );
+      if (trace !== null) {
+        reportMobileClientRequestSpan({
+          operation: diagnosticWorkflow(request.path, operation),
+          requestId,
+          traceId: trace.traceId,
+          spanId: trace.spanId,
+          ...(trace.parentSpanId ? { parentSpanId: trace.parentSpanId } : {}),
+          terminalStage: "response_received",
+          durationMs: Math.max(0, monotonicNow() - startedAt),
+          httpStatus: response.status,
+          shouldRecord: !response.ok || sampledSuccess,
+        });
+      }
       generationKeys.completed(request.path, response.status, new Headers(init.headers).get("Idempotency-Key"));
       await ensureOk(response);
-      const isDiagnosticsRequest = request.path.startsWith("/api/v1/diagnostics/client");
+      const isDiagnosticsRequest = diagnosticRequest;
       if (!isDiagnosticsRequest) logger.captureMessage("native_request_completed", "info", {
         correlation_id: correlationId,
-        duration_ms: Date.now() - startedAt,
+        duration_ms: Math.max(0, monotonicNow() - startedAt),
         http_status: response.status,
         method: request.method ?? "GET",
         operation,
       });
       return response;
     } catch (error) {
-      const isDiagnosticsRequest = request.path.startsWith("/api/v1/diagnostics/client");
+      const isDiagnosticsRequest = diagnosticRequest;
+      const signalAbortKind = signal === undefined ? undefined : abortKinds.get(signal);
+      const normalized = signalAbortKind
+        ? new TransportError(signalAbortKind, requestId)
+        : normalizeFetchError(error, requestId, networkStateProvider());
+      if (response === undefined) {
+        reportTransportFailure(normalized instanceof TransportError ? normalized.kind : "unknown");
+      }
       if (!isDiagnosticsRequest) logger.captureException("native_request_failed", error, {
         component: "NativeTransport",
         correlation_id: correlationId,
-        duration_ms: Date.now() - startedAt,
+        ...(trace ? {
+          operation_id: trace.traceId,
+          trace_id: trace.traceId,
+          span_id: trace.spanId,
+          ...(trace.parentSpanId ? { parent_span_id: trace.parentSpanId } : {}),
+        } : {}),
+        duration_ms: Math.max(0, monotonicNow() - startedAt),
         error_code: "API_REQUEST_FAILED",
         http_status: response?.status ?? null,
         method: request.method ?? "GET",
         operation: diagnosticWorkflow(request.path, operation),
         stage: "failed",
       });
-      throw normalizeFetchError(error, correlationId, networkStateProvider());
+      throw normalized;
     }
   }
 

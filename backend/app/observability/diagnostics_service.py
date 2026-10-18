@@ -74,6 +74,23 @@ def record_event(
     now = datetime.now(UTC)
     event_id = event.event_id or uuid4()
     event_values = {
+        **{
+            key: getattr(event, key)
+            for key in (
+                "app_version",
+                "origin_platform",
+                "trace_id",
+                "span_id",
+                "parent_span_id",
+                "record_type",
+                "started_at",
+                "ended_at",
+                "offset_ms",
+                "clock_domain",
+                "dropped_count",
+                "expected_span_count",
+            )
+        },
         "id": event_id,
         "issue_id": None,
         "request_id": event.request_id,
@@ -111,7 +128,8 @@ def record_event(
         return existing
 
     creates_issue = (
-        event.severity in {"error", "critical"}
+        event.record_type == "event"
+        and event.severity in {"error", "critical"}
         and event.outcome in _ISSUE_OUTCOMES
         and event.category not in _EXPECTED_CATEGORIES
     )
@@ -282,12 +300,14 @@ def abandoned_attempts(db: Session, *, since: datetime | None = None) -> list[Di
     query = (
         select(DiagnosticEvent)
         .where(
+            DiagnosticEvent.record_type == "event",
             DiagnosticEvent.outcome == "started",
             DiagnosticEvent.operation_id.is_not(None),
             DiagnosticEvent.timestamp < now - timedelta(minutes=30),
             DiagnosticEvent.timestamp >= (since or now - timedelta(days=1)),
             ~select(terminal.id)
             .where(
+                terminal.record_type == "event",
                 terminal.operation_id == DiagnosticEvent.operation_id,
                 terminal.outcome.not_in(("started", "stage")),
             )

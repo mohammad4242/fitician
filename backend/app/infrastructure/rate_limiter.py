@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from app.observability.tracing import timed_stage
+
 _SAFE_SEGMENT = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 _FIXED_WINDOW_SCRIPT = """
 local count = redis.call('INCR', KEYS[1])
@@ -65,12 +67,13 @@ class RedisRateLimiter:
         ).hexdigest()
         key = f"fitician:rate:v1:{namespace}:{operation}:{actor_hash}:{window_epoch}"
         try:
-            raw_result = await self._redis.eval(
-                _FIXED_WINDOW_SCRIPT,
-                1,
-                key,
-                str(remaining),
-            )
+            with timed_stage("redis_rate_limit", component="redis"):
+                raw_result = await self._redis.eval(
+                    _FIXED_WINDOW_SCRIPT,
+                    1,
+                    key,
+                    str(remaining),
+                )
             count, ttl = _parse_result(raw_result)
         except Exception:
             self._record_metrics(namespace, operation, allowed=False, available=False)

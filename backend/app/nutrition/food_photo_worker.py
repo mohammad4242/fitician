@@ -23,6 +23,7 @@ from app.jobs.runtime import install_async_signal_handlers, wait_for_stop
 from app.notifications.content import build_notification_payload
 from app.notifications.outbox import enqueue_notification_event
 from app.observability.diagnostics_logs import install_diagnostic_log_bridge
+from app.observability.job_tracing import job_trace
 from app.observability.logging import configure_structured_logging, log_event
 from app.resilience.policy import bounded_backoff_seconds
 
@@ -281,152 +282,153 @@ async def process_food_photo_job(
     if estimate is None or estimate.status in {"deleted", "expired"}:
         return _finish_deleted_job(db, job, now=current)
 
-    execution_config = dict(job.execution_config)
-    estimate.status = "analyzing"
-    estimate.error_code = None
-    estimate.error_message = None
-    job.started_at = job.started_at or current
-    db.commit()
+    with job_trace(job, component="food_photo", user_id=estimate.user_id):
+        execution_config = dict(job.execution_config)
+        estimate.status = "analyzing"
+        estimate.error_code = None
+        estimate.error_message = None
+        job.started_at = job.started_at or current
+        db.commit()
 
-    try:
-        configured = food_photo_service.build_food_photo_provider(
-            db,
-            settings,
-            execution_config,
-            ai_client=ai_client,
-            agent_http_client=agent_http_client,
-        )
-        request = food_photo_service.build_food_photo_request(
-            primary_model=configured.primary_model_id,
-            fallback_models=configured.fallback_model_ids,
-            provider_preferences=configured.routing_preferences,
-            temperature=_config_float(execution_config, "temperature", 0.0),
-            max_output_tokens=_config_int(execution_config, "max_output_tokens", 4096),
-            language=str(execution_config.get("language", "fa")),
-        )
-    except ValueError:
-        return _record_failure(
-            db,
-            job_id,
-            worker_id=worker_id,
-            settings=settings,
-            code=ProviderErrorCode.NOT_CONFIGURED,
-            provider_request_id=None,
-            now=current,
-        )
+        try:
+            configured = food_photo_service.build_food_photo_provider(
+                db,
+                settings,
+                execution_config,
+                ai_client=ai_client,
+                agent_http_client=agent_http_client,
+            )
+            request = food_photo_service.build_food_photo_request(
+                primary_model=configured.primary_model_id,
+                fallback_models=configured.fallback_model_ids,
+                provider_preferences=configured.routing_preferences,
+                temperature=_config_float(execution_config, "temperature", 0.0),
+                max_output_tokens=_config_int(execution_config, "max_output_tokens", 4096),
+                language=str(execution_config.get("language", "fa")),
+            )
+        except ValueError:
+            return _record_failure(
+                db,
+                job_id,
+                worker_id=worker_id,
+                settings=settings,
+                code=ProviderErrorCode.NOT_CONFIGURED,
+                provider_request_id=None,
+                now=current,
+            )
 
-    try:
-        result = await configured.provider.analyze_images(
-            request,
-            images=(
-                ImageInput(
-                    label="food_photo",
-                    mime_type="image/jpeg",
-                    storage_scope="food",
-                    storage_key=estimate.storage_key,
+        try:
+            result = await configured.provider.analyze_images(
+                request,
+                images=(
+                    ImageInput(
+                        label="food_photo",
+                        mime_type="image/jpeg",
+                        storage_scope="food",
+                        storage_key=estimate.storage_key,
+                    ),
                 ),
+            )
+            output = food_photo_service.FoodPhotoOutput.model_validate(result.payload)
+        except AIProviderError as error:
+            code, provider_request_id = _failure_details(error)
+            return _record_failure(
+                db,
+                job_id,
+                worker_id=worker_id,
+                settings=settings,
+                code=code,
+                provider_request_id=provider_request_id,
+                now=current,
+            )
+        except ValueError:
+            return _record_failure(
+                db,
+                job_id,
+                worker_id=worker_id,
+                settings=settings,
+                code=ProviderErrorCode.INVALID_OUTPUT,
+                provider_request_id=None,
+                now=current,
+            )
+        except Exception:
+            logger.exception("Food photo worker provider call failed")
+            return _record_failure(
+                db,
+                job_id,
+                worker_id=worker_id,
+                settings=settings,
+                code=ProviderErrorCode.PROVIDER_UNAVAILABLE,
+                provider_request_id=None,
+                now=current,
+            )
+
+        job, estimate = _locked_job_and_estimate(db, job_id, worker_id)
+        if job is None:
+            return False
+        if estimate is None or estimate.status in {"deleted", "expired"}:
+            return _finish_deleted_job(db, job, now=current)
+
+        estimate.status = "estimated"
+        estimate.provider = configured.provider_name
+        estimate.model_id = result.model_id
+        estimate.provider_request_id = result.provider_request_id
+        estimate.raw_estimate = output.model_dump(mode="json")
+        estimate.mapped_items = food_photo_service._map_items(db, output)
+        estimate.input_tokens = result.input_tokens
+        estimate.output_tokens = result.output_tokens
+        estimate.estimated_cost = result.cost
+        estimate.error_code = None
+        estimate.error_message = None
+        job.status = "completed"
+        job.completed_at = current
+        job.locked_at = None
+        job.locked_by = None
+        audit_security_event(
+            db,
+            actor_user_id=None,
+            owner_user_id=estimate.user_id,
+            event_type="food_photo_estimated",
+            resource_type="food_photo_estimate",
+            resource_id=estimate.id,
+            metadata={"provider": configured.provider_name, "byte_size": estimate.byte_size},
+        )
+        record_operational_event(
+            db,
+            category="ai",
+            event_name="food_photo_estimation",
+            status="success",
+            provider=configured.provider_name,
+            counters={
+                "requests": 1,
+                "errors": 0,
+                "input_tokens": result.input_tokens or 0,
+                "output_tokens": result.output_tokens or 0,
+            },
+        )
+        enqueue_notification_event(
+            db,
+            user_id=estimate.user_id,
+            event_type="food_photo_analysis_completed",
+            category="nutrition_updates",
+            deduplication_key=f"food-photo:{estimate.id}:completed",
+            payload=build_notification_payload(
+                "food_photo_analysis_completed",
+                data={"estimate_id": estimate.id},
             ),
+            correlation_id=job.correlation_id,
         )
-        output = food_photo_service.FoodPhotoOutput.model_validate(result.payload)
-    except AIProviderError as error:
-        code, provider_request_id = _failure_details(error)
-        return _record_failure(
-            db,
-            job_id,
+        log_event(
+            logger,
+            "food photo job completed",
+            request_id=job.correlation_id,
+            job_id=str(job.id),
             worker_id=worker_id,
-            settings=settings,
-            code=code,
-            provider_request_id=provider_request_id,
-            now=current,
+            attempt=job.attempt_count,
+            status=job.status,
         )
-    except ValueError:
-        return _record_failure(
-            db,
-            job_id,
-            worker_id=worker_id,
-            settings=settings,
-            code=ProviderErrorCode.INVALID_OUTPUT,
-            provider_request_id=None,
-            now=current,
-        )
-    except Exception:
-        logger.exception("Food photo worker provider call failed")
-        return _record_failure(
-            db,
-            job_id,
-            worker_id=worker_id,
-            settings=settings,
-            code=ProviderErrorCode.PROVIDER_UNAVAILABLE,
-            provider_request_id=None,
-            now=current,
-        )
-
-    job, estimate = _locked_job_and_estimate(db, job_id, worker_id)
-    if job is None:
-        return False
-    if estimate is None or estimate.status in {"deleted", "expired"}:
-        return _finish_deleted_job(db, job, now=current)
-
-    estimate.status = "estimated"
-    estimate.provider = configured.provider_name
-    estimate.model_id = result.model_id
-    estimate.provider_request_id = result.provider_request_id
-    estimate.raw_estimate = output.model_dump(mode="json")
-    estimate.mapped_items = food_photo_service._map_items(db, output)
-    estimate.input_tokens = result.input_tokens
-    estimate.output_tokens = result.output_tokens
-    estimate.estimated_cost = result.cost
-    estimate.error_code = None
-    estimate.error_message = None
-    job.status = "completed"
-    job.completed_at = current
-    job.locked_at = None
-    job.locked_by = None
-    audit_security_event(
-        db,
-        actor_user_id=None,
-        owner_user_id=estimate.user_id,
-        event_type="food_photo_estimated",
-        resource_type="food_photo_estimate",
-        resource_id=estimate.id,
-        metadata={"provider": configured.provider_name, "byte_size": estimate.byte_size},
-    )
-    record_operational_event(
-        db,
-        category="ai",
-        event_name="food_photo_estimation",
-        status="success",
-        provider=configured.provider_name,
-        counters={
-            "requests": 1,
-            "errors": 0,
-            "input_tokens": result.input_tokens or 0,
-            "output_tokens": result.output_tokens or 0,
-        },
-    )
-    enqueue_notification_event(
-        db,
-        user_id=estimate.user_id,
-        event_type="food_photo_analysis_completed",
-        category="nutrition_updates",
-        deduplication_key=f"food-photo:{estimate.id}:completed",
-        payload=build_notification_payload(
-            "food_photo_analysis_completed",
-            data={"estimate_id": estimate.id},
-        ),
-        correlation_id=job.correlation_id,
-    )
-    log_event(
-        logger,
-        "food photo job completed",
-        request_id=job.correlation_id,
-        job_id=str(job.id),
-        worker_id=worker_id,
-        attempt=job.attempt_count,
-        status=job.status,
-    )
-    db.commit()
-    return True
+        db.commit()
+        return True
 
 
 async def run_food_photo_analysis_once(

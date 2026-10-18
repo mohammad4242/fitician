@@ -46,6 +46,8 @@ class DiagnosticLogHandler(logging.Handler):
                 resource_id = None
             self.runtime.submit(
                 EventInput(
+                    trace_id=context.trace_id if context else None,
+                    parent_span_id=context.root_span_id if context else None,
                     component=component,
                     operation=context.operation if context else "background_operation",
                     stage=context.stage_name if context else "execution",
@@ -75,6 +77,9 @@ def install_diagnostic_log_bridge(settings: Settings) -> DiagnosticsRuntime | No
         if isinstance(handler, DiagnosticLogHandler):
             return handler.runtime
     try:
+        from .dependency_tracing import install_database_tracing
+
+        install_database_tracing()
         runtime = DiagnosticsRuntime(settings)
         runtime.start()
         root.addHandler(DiagnosticLogHandler(runtime))

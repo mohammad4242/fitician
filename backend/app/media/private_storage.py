@@ -17,6 +17,7 @@ from app.media.storage import (
     S3ObjectStorage,
     StoredObject,
 )
+from app.observability.tracing import traced
 
 
 class PrivateStorageError(RuntimeError):
@@ -64,6 +65,8 @@ class LocalPrivateStorage:
             raise PrivateStorageError("Invalid private storage key")
         return path
 
+    @traced("media_write", component="media")
+    @traced("media_put", component="media")
     def put(self, scope: str, content: bytes, extension: str, content_type: str) -> StoredObject:
         del content_type
         if scope not in PRIVATE_SCOPES or extension not in {".jpg", ".png", ".webp", ".pdf"}:
@@ -88,6 +91,8 @@ class LocalPrivateStorage:
         except PrivateStorageError:
             return False
 
+    @traced("media_read", component="media")
+    @traced("media_read", component="media")
     def read(self, scope: str, storage_key: str) -> bytes:
         try:
             return self._path(scope, storage_key).read_bytes()
@@ -114,6 +119,8 @@ class LocalPrivateStorage:
         except OSError as error:
             raise PrivateStorageError("Private media read failed") from error
 
+    @traced("media_delete", component="media")
+    @traced("media_delete", component="media")
     def delete(self, scope: str, storage_key: str) -> None:
         try:
             self._path(scope, storage_key).unlink(missing_ok=True)
@@ -131,6 +138,8 @@ class S3PrivateStorage:
         except MediaObjectKeyError as error:
             raise PrivateStorageError("Invalid private storage key") from error
 
+    @traced("media_write", component="media")
+    @traced("media_put", component="media")
     def put(self, scope: str, content: bytes, extension: str, content_type: str) -> StoredObject:
         if extension not in {".jpg", ".png", ".webp", ".pdf"}:
             raise PrivateStorageError("Invalid private media")
@@ -156,6 +165,8 @@ class S3PrivateStorage:
         except ObjectStorageError as error:
             raise PrivateStorageError("Private S3 metadata request failed") from error
 
+    @traced("media_read", component="media")
+    @traced("media_read", component="media")
     def read(self, scope: str, storage_key: str) -> bytes:
         try:
             return self._storage.read(self._key(scope, storage_key))
@@ -175,6 +186,8 @@ class S3PrivateStorage:
     def open(self, scope: str, storage_key: str) -> BinaryIO:
         return io.BytesIO(self.read(scope, storage_key))
 
+    @traced("media_delete", component="media")
+    @traced("media_delete", component="media")
     def delete(self, scope: str, storage_key: str) -> None:
         try:
             self._storage.delete(self._key(scope, storage_key))

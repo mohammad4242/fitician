@@ -8,6 +8,7 @@ import {
   configureMobileClientDiagnostics,
   flushMobileClientDiagnostics,
   reportMobileClientDiagnostic,
+  reportMobileClientRequestSpan,
 } from "./clientDiagnostics";
 
 afterEach(() => clearMobileClientDiagnostics());
@@ -69,4 +70,56 @@ it("delivers the same bounded event after connectivity recovery and discards acc
   online = true;
   await flushMobileClientDiagnostics();
   expect(send).toHaveBeenCalledTimes(3);
+});
+
+it("queues matched dispatch and terminal request observations", async () => {
+  const batches: unknown[][] = [];
+  configureMobileClientDiagnostics(async (events) => { batches.push([...events]); });
+  reportMobileClientRequestSpan({
+    operation: "nutrition",
+    requestId: "corr-2",
+    traceId: "a".repeat(32),
+    spanId: "b".repeat(16),
+    parentSpanId: "c".repeat(16),
+    terminalStage: "response_received",
+    durationMs: 14,
+    httpStatus: 200,
+    shouldRecord: true,
+  });
+  await flushMobileClientDiagnostics();
+
+  const events = batches.flat() as Array<Record<string, unknown>>;
+  expect(events.map((event) => event.stage)).toEqual(["dispatch", "response_received"]);
+  expect(events).toMatchObject([
+    { error_code: "CLIENT_REQUEST_OBSERVED", offset_ms: 0, duration_ms: 0 },
+    { error_code: "CLIENT_REQUEST_OBSERVED", offset_ms: 0, duration_ms: 14, http_status: 200 },
+  ]);
+  expect(events[0]).toMatchObject({
+    operation_id: "a".repeat(32),
+    trace_id: "a".repeat(32),
+    span_id: "b".repeat(16),
+    parent_span_id: "c".repeat(16),
+    request_id: "corr-2",
+    version: "2.3.1",
+    build: "45",
+  });
+});
+
+it("emits the normalized transport kind only on the terminal failure span", async () => {
+  const batches: unknown[][] = [];
+  configureMobileClientDiagnostics(async (events) => { batches.push([...events]); });
+  reportMobileClientRequestSpan({
+    operation: "request",
+    requestId: "corr-offline",
+    traceId: "a".repeat(32),
+    spanId: "b".repeat(16),
+    terminalStage: "transport_failed",
+    transportKind: "offline",
+    durationMs: 12,
+    shouldRecord: true,
+  });
+  await flushMobileClientDiagnostics();
+  const events = batches.flat() as Array<Record<string, unknown>>;
+  expect(events[0]).not.toHaveProperty("transport_kind");
+  expect(events[1]).toMatchObject({ stage: "transport_failed", transport_kind: "offline" });
 });

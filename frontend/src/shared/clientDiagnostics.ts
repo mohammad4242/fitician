@@ -18,6 +18,18 @@ function clientPlatform(): "web" | "ios_pwa" {
   return extendedNavigator.standalone === true && isAppleMobile ? "ios_pwa" : "web";
 }
 
+export function webClientPlatform(): "web" | "ios_pwa" {
+  return clientPlatform();
+}
+
+export function webClientVersion(): string | null {
+  const env = import.meta.env as unknown as Readonly<Record<string, unknown>>;
+  const version = env.VITE_APP_VERSION;
+  return typeof version === "string" && /^[A-Za-z0-9_.:-]{1,64}$/u.test(version)
+    ? version
+    : null;
+}
+
 function browserOsVersion(): string {
   if (typeof navigator === "undefined") return "unknown";
   const agent = navigator.userAgent;
@@ -68,21 +80,40 @@ export function reportWebClientDiagnostic(
   } catch { /* Telemetry cannot alter the original UI or transport result. */ }
 }
 
-export function reportWebApiFailure(input: {
+export function reportWebClientRequestSpan(input: {
   readonly operation: string;
-  readonly requestId?: string | null;
+  readonly requestId: string;
+  readonly traceId: string;
+  readonly spanId: string;
+  readonly parentSpanId?: string;
+  readonly terminalStage: "response_received" | "transport_failed";
+  readonly transportKind?: "network" | "timeout" | "aborted" | "offline" | "unknown";
   readonly durationMs: number;
   readonly httpStatus?: number;
-  readonly stage: string;
+  readonly shouldRecord: boolean;
 }): void {
-  reportWebClientDiagnostic({
+  if (!input.shouldRecord) return;
+  const shared = {
     component: "WebTransport",
     operation: input.operation,
-    stage: input.stage,
-    ...(input.requestId ? { request_id: input.requestId } : {}),
-    duration_ms: Math.min(Math.max(0, Math.round(input.durationMs)), 86_400_000),
+    operation_id: input.traceId,
+    request_id: input.requestId,
+    trace_id: input.traceId,
+    span_id: input.spanId,
+    ...(input.parentSpanId ? { parent_span_id: input.parentSpanId } : {}),
+    offset_ms: 0,
+  };
+  const duration = Math.min(Math.max(0, Math.round(input.durationMs)), 86_400_000);
+  reportWebClientDiagnostic({ ...shared, stage: "dispatch", duration_ms: 0 }, "CLIENT_REQUEST_OBSERVED");
+  reportWebClientDiagnostic({
+    ...shared,
+    stage: input.terminalStage,
+    duration_ms: duration,
+    ...(input.terminalStage === "transport_failed"
+      ? { transport_kind: input.transportKind ?? "unknown" }
+      : {}),
     ...(input.httpStatus !== undefined ? { http_status: input.httpStatus } : {}),
-  }, "API_REQUEST_FAILED");
+  }, "CLIENT_REQUEST_OBSERVED");
 }
 
 export function installWebRuntimeDiagnostics(): () => void {

@@ -31,6 +31,7 @@ from app.body_photos.storage import (
 )
 from app.config import Settings
 from app.database.session import get_engine
+from app.observability.tracing import traced
 from app.workout_cycles.models import WorkoutCycle
 
 EDITABLE_STATES = {
@@ -153,6 +154,7 @@ class BodyPhotoService:
     def get_session(self, session_id: UUID, user_id: UUID) -> BodyPhotoSession:
         return self._owner_session(session_id, user_id)
 
+    @traced("upload_standardized_photo", component="media")
     def upload_standardized_photo(
         self,
         session_id: UUID,
@@ -181,6 +183,7 @@ class BodyPhotoService:
         )
         return latest_status is BodyAnalysisStatus.FAILED
 
+    @traced("media_persistence", component="media")
     def _store_photo(
         self,
         session: BodyPhotoSession,
@@ -277,6 +280,7 @@ class BodyPhotoService:
         session = self._owner_session(session_id, user_id, include_deleted=True)
         return self._drain_pending_cleanup(session)
 
+    @traced("photo_validation", component="media")
     def submit(
         self,
         session_id: UUID,

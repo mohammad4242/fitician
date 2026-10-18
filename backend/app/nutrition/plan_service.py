@@ -156,7 +156,14 @@ from app.nutrition.schemas import (
     WeeklyPlanResponse,
 )
 from app.nutrition.service import current_safety_decision
-from app.observability.diagnostics_runtime import bind_resource, bind_version, emit, set_stage
+from app.observability.diagnostics_runtime import (
+    bind_resource,
+    bind_version,
+    emit,
+    set_stage,
+    stage,
+)
+from app.observability.tracing import current_context
 from app.profile.models import UserProfile
 from app.profile.review_summary import ReviewProfileSummary
 from app.time_context import local_date_for_timezone, member_timezone_or_default
@@ -390,8 +397,6 @@ def _generate_weekly_plan(
                 AccessPackageCode.COMPLETE_CARE,
             ),
         )
-    set_stage("profile_completeness")
-    profile = db.get(NutritionProfile, user_id)
     if safety.outcome in {
         SafetyOutcome.PHYSICIAN_MANUAL_PLAN_REQUIRED,
         SafetyOutcome.UNSUPPORTED_OR_HARD_BLOCKED,
@@ -408,6 +413,8 @@ def _generate_weekly_plan(
             diagnostics={"ordinary_automatic_plan_created": False},
         )
         return _generation_response(generation, None)
+    set_stage("profile_completeness")
+    profile = db.get(NutritionProfile, user_id)
     if profile is None:
         generation = _persist_generation(
             db,
@@ -421,6 +428,7 @@ def _generate_weekly_plan(
             diagnostics={},
         )
         return _generation_response(generation, None)
+    set_stage("dietary_constraints")
     if profile.dietary_pattern in {DietaryPattern.VEGETARIAN, DietaryPattern.VEGAN}:
         generation = _persist_generation(
             db,
@@ -800,6 +808,7 @@ def _generate_weekly_plan(
                     "selection_trace": _selection_trace(candidate_selection),
                 },
             )
+            set_stage("response_serialization")
             return WeeklyPlanGenerationResponse(
                 generation_id=budget_generation.id,
                 outcome=budget_generation.outcome.value,
@@ -825,34 +834,37 @@ def _generate_weekly_plan(
             weekly_budget_irr=None,
             budget_mode=None,
         )
-        ideal_result = plan_week(
-            ideal_input,
-            foods,
-            meal_templates,
-            policy=DEFAULT_POLICY,
-            optimization_cache=optimization_cache,
-        )
+        with stage("ideal_plan_week", component="nutrition_engine"):
+            ideal_result = plan_week(
+                ideal_input,
+                foods,
+                meal_templates,
+                policy=DEFAULT_POLICY,
+                optimization_cache=optimization_cache,
+            )
     else:
-        budget_result = plan_week(
-            base_planner_input,
-            foods,
-            meal_templates,
-            policy=DEFAULT_POLICY,
-            optimization_cache=optimization_cache,
-        )
+        with stage("budget_plan_week", component="nutrition_engine"):
+            budget_result = plan_week(
+                base_planner_input,
+                foods,
+                meal_templates,
+                policy=DEFAULT_POLICY,
+                optimization_cache=optimization_cache,
+            )
         ideal_input = replace(
             base_planner_input,
             optimization_mode=NutritionOptimizationMode.IDEAL_REFERENCE,
             weekly_budget_irr=None,
             budget_mode=None,
         )
-        ideal_result = plan_week(
-            ideal_input,
-            foods,
-            meal_templates,
-            policy=DEFAULT_POLICY,
-            optimization_cache=optimization_cache,
-        )
+        with stage("ideal_plan_week", component="nutrition_engine"):
+            ideal_result = plan_week(
+                ideal_input,
+                foods,
+                meal_templates,
+                policy=DEFAULT_POLICY,
+                optimization_cache=optimization_cache,
+            )
         budget_program = None
         budget_program_code = None
         ideal_program = None
@@ -1143,14 +1155,19 @@ def _generate_weekly_plan(
         if (loaded_budget_plan is not None or loaded_ideal_plan is not None)
         else budget_generation.outcome.value
     )
-    emit(
-        category="unknown",
-        severity="info",
-        error_code="PLAN_PENDING_REVIEW" if physician_review_allowed else "PLAN_CREATED",
-        outcome="pending_review" if physician_review_allowed else "success",
+    set_stage("response_serialization")
+    _emit_generation_outcome(
+        response_outcome,
         resource_id=bundle.id,
         version=PLANNER_VERSION,
         input_fingerprint=reuse_signature,
+        failure_stage=(
+            "meal_construction"
+            if response_outcome != NutritionPlanGenerationOutcome.SUCCESS.value
+            else None
+        ),
+        pending_review=physician_review_allowed
+        and (loaded_budget_plan is not None or loaded_ideal_plan is not None),
     )
     return WeeklyPlanGenerationResponse(
         generation_id=budget_generation.id,
@@ -1284,13 +1301,14 @@ def _construct_frozen_base_blueprint(
                 weekly_budget_irr=weekly_budget,
                 budget_mode=profile.budget_style.value,
             )
-            candidate_result = plan_week(
-                candidate_input,
-                foods,
-                meal_templates,
-                policy=DEFAULT_POLICY,
-                optimization_cache=optimization_cache,
-            )
+            with stage("candidate_plan_week", component="nutrition_engine"):
+                candidate_result = plan_week(
+                    candidate_input,
+                    foods,
+                    meal_templates,
+                    policy=DEFAULT_POLICY,
+                    optimization_cache=optimization_cache,
+                )
             evaluations.append(
                 evaluate_candidate(
                     proposal,
@@ -1359,13 +1377,14 @@ def _construct_frozen_base_blueprint(
             weekly_budget_irr=None,
             budget_mode=None,
         )
-        candidate_result_ideal = plan_week(
-            candidate_input_ideal,
-            foods,
-            meal_templates,
-            policy=DEFAULT_POLICY,
-            optimization_cache=optimization_cache,
-        )
+        with stage("candidate_ideal_plan_week", component="nutrition_engine"):
+            candidate_result_ideal = plan_week(
+                candidate_input_ideal,
+                foods,
+                meal_templates,
+                policy=DEFAULT_POLICY,
+                optimization_cache=optimization_cache,
+            )
         if candidate_result_ideal.outcome is GenerationOutcome.SUCCESS:
             sig_str = (
                 f"{fallback_prop.program.code}:{profile.main_meal_count_bucket.value}:"
@@ -1908,7 +1927,11 @@ def _persist_generation(
     commit: bool = True,
     bundle_id: UUID | None = None,
     plan_role: str = NutritionPlanRole.LEGACY.value,
+    failure_stage: str | None = None,
 ) -> NutritionPlanGeneration:
+    context = current_context()
+    failure_stage = failure_stage or (context.stage_name if context is not None else None)
+    set_stage("plan_persistence")
     signature = sha256(
         json.dumps(input_snapshot, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -1929,11 +1952,61 @@ def _persist_generation(
     )
     db.add(generation)
     if commit:
+        set_stage("transaction_commit")
         db.commit()
         db.refresh(generation)
+        _emit_generation_outcome(
+            generation.outcome,
+            resource_id=generation.id,
+            version=PLANNER_VERSION,
+            failure_stage=failure_stage,
+        )
     else:
         db.flush()
     return generation
+
+
+def _emit_generation_outcome(
+    outcome: NutritionPlanGenerationOutcome | str,
+    *,
+    resource_id: UUID,
+    version: str,
+    input_fingerprint: str | None = None,
+    pending_review: bool = False,
+    failure_stage: str | None = None,
+) -> None:
+    """Record a persisted nutrition result using its domain outcome."""
+    result = NutritionPlanGenerationOutcome(outcome)
+    if pending_review and result is NutritionPlanGenerationOutcome.SUCCESS:
+        diagnostic_outcome = "pending_review"
+        category = "unknown"
+        severity = "info"
+        code = "NUTRITION_PLAN_PENDING_REVIEW"
+    elif result is NutritionPlanGenerationOutcome.SUCCESS:
+        diagnostic_outcome = "success"
+        category = "unknown"
+        severity = "info"
+        code = "NUTRITION_PLAN_SUCCESS"
+    elif result is NutritionPlanGenerationOutcome.SAFETY_BLOCKED:
+        diagnostic_outcome = "blocked"
+        category = "safety_restriction"
+        severity = "warning"
+        code = "NUTRITION_PLAN_SAFETY_BLOCKED"
+    else:
+        diagnostic_outcome = "failure"
+        category = "engine_validation"
+        severity = "error"
+        code = f"NUTRITION_PLAN_{result.value.upper()}"
+    emit(
+        category=category,
+        severity=severity,
+        error_code=code,
+        outcome=diagnostic_outcome,
+        resource_id=resource_id,
+        version=version,
+        input_fingerprint=input_fingerprint,
+        stage_name=failure_stage,
+    )
 
 
 def _safety_snapshot(safety: NutritionSafetyDecision) -> dict[str, object]:
@@ -2893,17 +2966,13 @@ def _generation_response(
     ideal_plan: NutritionWeeklyPlan | None = None,
     comparison: PlanComparisonResponse | None = None,
 ) -> WeeklyPlanGenerationResponse:
-    if plan is None:
-        blocked = generation.outcome is NutritionPlanGenerationOutcome.SAFETY_BLOCKED
-        emit(
-            category="safety_restriction" if blocked else "engine_validation",
-            severity="warning" if blocked else "error",
-            error_code=str(
-                next(iter(generation.reason_codes or []), "NUTRITION_GENERATION_FAILED")
-            ).upper()[:64],
-            outcome="blocked" if blocked else "failure",
-            resource_id=generation.id,
-        )
+    set_stage("response_serialization")
+    _emit_generation_outcome(
+        generation.outcome,
+        resource_id=generation.id,
+        version=generation.planner_version,
+        input_fingerprint=generation.input_signature,
+    )
     plan_resp = weekly_plan_response(plan, db=db) if plan else None
     budget_resp = weekly_plan_response(budget_plan, db=db) if budget_plan else plan_resp
     ideal_resp = weekly_plan_response(ideal_plan, db=db) if ideal_plan else None
