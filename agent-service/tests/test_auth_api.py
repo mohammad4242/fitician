@@ -1,4 +1,5 @@
 import asyncio
+import re
 import sys
 from collections.abc import Coroutine
 from pathlib import Path
@@ -270,9 +271,22 @@ def test_auth_telemetry_uses_only_non_sensitive_fields(
             if str(record.get("endpoint", "")).startswith("/v1/auth/")
         ]
         assert auth_records
-        allowed = {"request_id", "endpoint", "agent", "status", "duration_ms", "error_code"}
+        allowed = {
+            "request_id",
+            "trace_id",
+            "span_id",
+            "parent_span_id",
+            "endpoint",
+            "agent",
+            "status",
+            "duration_ms",
+            "error_code",
+        }
         for record in auth_records:
             assert set(record) <= allowed
+            assert re.fullmatch(r"[a-f0-9]{32}", str(record["trace_id"]))
+            assert re.fullmatch(r"[a-f0-9]{16}", str(record["span_id"]))
+            assert record["parent_span_id"] is None
         serialized = str(auth_records)
         assert "https://auth.openai.com" not in serialized
         assert "ABCD-EFGH" not in serialized

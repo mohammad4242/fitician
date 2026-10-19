@@ -72,6 +72,29 @@ class RegionalTopologyTests(unittest.TestCase):
         ):
             self.assertEqual(services[name]["healthcheck"]["start_period"], "2m0s")
 
+    def test_iran_agent_consumers_resolve_configurable_private_hostname(self):
+        self.env.update(
+            AGENT_SERVICE_HOST="agent.example.ts.net",
+            AGENT_SERVICE_PRIVATE_IP="100.100.20.30",
+        )
+        services = self.render("iran")["services"]
+        consumers = {
+            "backend", "backend-2", "food-photo-worker", "body-analysis-worker", "scheduler"
+        }
+        for name, service in services.items():
+            with self.subTest(service=name):
+                if name in consumers:
+                    self.assertEqual(
+                        service["extra_hosts"], ["agent.example.ts.net=100.100.20.30"]
+                    )
+                    self.assertEqual(service["restart"], "unless-stopped")
+                    self.assertEqual(
+                        service["environment"]["AGENT_SERVICE_BASE_URL"],
+                        "https://agent.example.ts.net",
+                    )
+                else:
+                    self.assertFalse(service.get("extra_hosts"))
+
     def test_offline_rehearsal_cannot_bind_production_volumes_or_public_ports(self):
         self.env_file.write_text("COMPOSE_PROJECT_NAME=fitician-iran\n")
         config = self.render("iran", offline=True)

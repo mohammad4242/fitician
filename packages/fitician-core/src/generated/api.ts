@@ -860,6 +860,57 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/trace-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Aggregate */
+        get: operations["aggregate_api_v1_admin_diagnostics_trace_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Traces */
+        get: operations["traces_api_v1_admin_diagnostics_traces_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/traces/{trace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_admin_diagnostics_traces__trace_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/exercises": {
         parameters: {
             query?: never;
@@ -7647,7 +7698,7 @@ export type components = {
              * Error Code
              * @enum {string}
              */
-            error_code: "CLIENT_RUNTIME_ERROR" | "API_REQUEST_FAILED" | "CLIENT_UNHANDLED_REJECTION" | "CLIENT_RENDER_ERROR";
+            error_code: "CLIENT_RUNTIME_ERROR" | "API_REQUEST_FAILED" | "CLIENT_UNHANDLED_REJECTION" | "CLIENT_RENDER_ERROR" | "CLIENT_REQUEST_OBSERVED";
             /**
              * Event Id
              * Format: uuid
@@ -7658,12 +7709,21 @@ export type components = {
             /** Http Status */
             http_status?: number | null;
             /**
+             * Offset Ms
+             * @default 0
+             */
+            offset_ms: number;
+            /**
              * Operation
              * @enum {string}
              */
             operation: "request" | "download" | "upload" | "error_event" | "promise_rejection" | "render" | "global_error" | "registration" | "login" | "authentication" | "onboarding" | "workout_generation" | "nutrition" | "body_analysis" | "notifications" | "subscriptions" | "entitlements" | "media";
+            /** Operation Id */
+            operation_id?: string | null;
             /** Os Version */
             os_version?: string | null;
+            /** Parent Span Id */
+            parent_span_id?: string | null;
             /**
              * Platform
              * @enum {string}
@@ -7673,11 +7733,17 @@ export type components = {
             request_id?: string | null;
             /** Source Location */
             source_location?: string | null;
+            /** Span Id */
+            span_id?: string | null;
             /**
              * Stage
              * @enum {string}
              */
-            stage: "failed" | "response_failed" | "transport_failed" | "unhandled" | "fatal" | "caught" | "uncaught";
+            stage: "failed" | "response_failed" | "transport_failed" | "unhandled" | "fatal" | "caught" | "uncaught" | "dispatch" | "response_received";
+            /** Trace Id */
+            trace_id?: string | null;
+            /** Transport Kind */
+            transport_kind?: ("network" | "timeout" | "aborted" | "offline" | "unknown") | null;
             /** Version */
             version?: string | null;
         };
@@ -8213,14 +8279,25 @@ export type components = {
         EstimateConfidence: "high" | "medium" | "low";
         /** EventResponse */
         EventResponse: {
+            /** App Version */
+            app_version?: string | null;
             /** Build */
             build: string | null;
             /** Category */
             category: string;
+            /** Clock Domain */
+            clock_domain?: string | null;
             /** Component */
             component: string;
+            /**
+             * Dropped Count
+             * @default 0
+             */
+            dropped_count: number;
             /** Duration Ms */
             duration_ms: number | null;
+            /** Ended At */
+            ended_at?: string | null;
             /** Error Code */
             error_code: string;
             /**
@@ -8230,22 +8307,42 @@ export type components = {
             event_id: string;
             /** Exception Type */
             exception_type: string | null;
+            /**
+             * Expected Span Count
+             * @default 0
+             */
+            expected_span_count: number;
             /** Http Status */
             http_status: number | null;
             /** Input Fingerprint */
             input_fingerprint: string | null;
             /** Issue Id */
             issue_id: string | null;
+            /**
+             * Offset Ms
+             * @default 0
+             */
+            offset_ms: number;
             /** Operation */
             operation: string;
             /** Operation Id */
             operation_id: string | null;
+            /** Origin Platform */
+            origin_platform?: ("web" | "ios_pwa" | "android" | "ios" | "backend" | "worker" | "database" | "infrastructure" | "unknown") | null;
             /** Os Version */
             os_version: string | null;
             /** Outcome */
             outcome: string;
+            /** Parent Span Id */
+            parent_span_id?: string | null;
             /** Platform */
             platform: string;
+            /**
+             * Record Type
+             * @default event
+             * @enum {string}
+             */
+            record_type: "event" | "span";
             /** Request Id */
             request_id: string | null;
             /** Resource Id */
@@ -8256,13 +8353,19 @@ export type components = {
             severity: string;
             /** Source Location */
             source_location: string | null;
+            /** Span Id */
+            span_id?: string | null;
             /** Stage */
             stage: string;
+            /** Started At */
+            started_at?: string | null;
             /**
              * Timestamp
              * Format: date-time
              */
             timestamp: string;
+            /** Trace Id */
+            trace_id?: string | null;
             /** User Id */
             user_id: string | null;
             /** Version */
@@ -16939,6 +17042,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    aggregate_api_v1_admin_diagnostics_trace_analytics_get: {
+        parameters: {
+            query?: {
+                hours?: components["schemas"]["DiagnosticHours"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    traces_api_v1_admin_diagnostics_traces_get: {
+        parameters: {
+            query?: {
+                component?: string | null;
+                error_code?: string | null;
+                limit?: number;
+                offset?: number;
+                operation?: string | null;
+                operation_id?: string | null;
+                outcome?: string | null;
+                platform?: string | null;
+                request_id?: string | null;
+                since?: string | null;
+                sort?: "newest" | "slowest" | "failed";
+                trace_id?: string | null;
+                until?: string | null;
+                user_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_v1_admin_diagnostics_traces__trace_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

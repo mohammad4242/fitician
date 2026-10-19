@@ -9677,7 +9677,8 @@
               "CLIENT_RUNTIME_ERROR",
               "API_REQUEST_FAILED",
               "CLIENT_UNHANDLED_REJECTION",
-              "CLIENT_RENDER_ERROR"
+              "CLIENT_RENDER_ERROR",
+              "CLIENT_REQUEST_OBSERVED"
             ],
             "title": "Error Code",
             "type": "string"
@@ -9722,6 +9723,13 @@
             ],
             "title": "Http Status"
           },
+          "offset_ms": {
+            "default": 0,
+            "maximum": 86400000.0,
+            "minimum": 0.0,
+            "title": "Offset Ms",
+            "type": "integer"
+          },
           "operation": {
             "enum": [
               "request",
@@ -9746,6 +9754,18 @@
             "title": "Operation",
             "type": "string"
           },
+          "operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_.:-]{1,128}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
           "os_version": {
             "anyOf": [
               {
@@ -9758,6 +9778,18 @@
               }
             ],
             "title": "Os Version"
+          },
+          "parent_span_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{16}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Span Id"
           },
           "platform": {
             "enum": [
@@ -9794,6 +9826,18 @@
             ],
             "title": "Source Location"
           },
+          "span_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{16}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span Id"
+          },
           "stage": {
             "enum": [
               "failed",
@@ -9802,10 +9846,42 @@
               "unhandled",
               "fatal",
               "caught",
-              "uncaught"
+              "uncaught",
+              "dispatch",
+              "response_received"
             ],
             "title": "Stage",
             "type": "string"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "transport_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "network",
+                  "timeout",
+                  "aborted",
+                  "offline",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport Kind"
           },
           "version": {
             "anyOf": [
@@ -11523,6 +11599,20 @@
       "EventResponse": {
         "additionalProperties": false,
         "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
           "build": {
             "anyOf": [
               {
@@ -11538,9 +11628,29 @@
             "title": "Category",
             "type": "string"
           },
+          "clock_domain": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock Domain"
+          },
           "component": {
             "title": "Component",
             "type": "string"
+          },
+          "dropped_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Dropped Count",
+            "type": "integer"
           },
           "duration_ms": {
             "anyOf": [
@@ -11552,6 +11662,18 @@
               }
             ],
             "title": "Duration Ms"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
           },
           "error_code": {
             "title": "Error Code",
@@ -11572,6 +11694,13 @@
               }
             ],
             "title": "Exception Type"
+          },
+          "expected_span_count": {
+            "default": 0,
+            "maximum": 1024.0,
+            "minimum": 0.0,
+            "title": "Expected Span Count",
+            "type": "integer"
           },
           "http_status": {
             "anyOf": [
@@ -11607,6 +11736,13 @@
             ],
             "title": "Issue Id"
           },
+          "offset_ms": {
+            "default": 0,
+            "maximum": 86400000.0,
+            "minimum": 0.0,
+            "title": "Offset Ms",
+            "type": "integer"
+          },
           "operation": {
             "title": "Operation",
             "type": "string"
@@ -11621,6 +11757,28 @@
               }
             ],
             "title": "Operation Id"
+          },
+          "origin_platform": {
+            "anyOf": [
+              {
+                "enum": [
+                  "web",
+                  "ios_pwa",
+                  "android",
+                  "ios",
+                  "backend",
+                  "worker",
+                  "database",
+                  "infrastructure",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Platform"
           },
           "os_version": {
             "anyOf": [
@@ -11637,8 +11795,29 @@
             "title": "Outcome",
             "type": "string"
           },
+          "parent_span_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{16}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Span Id"
+          },
           "platform": {
             "title": "Platform",
+            "type": "string"
+          },
+          "record_type": {
+            "default": "event",
+            "enum": [
+              "event",
+              "span"
+            ],
+            "title": "Record Type",
             "type": "string"
           },
           "request_id": {
@@ -11683,14 +11862,50 @@
             ],
             "title": "Source Location"
           },
+          "span_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{16}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span Id"
+          },
           "stage": {
             "title": "Stage",
             "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
           },
           "timestamp": {
             "format": "date-time",
             "title": "Timestamp",
             "type": "string"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
           },
           "user_id": {
             "anyOf": [
@@ -35192,6 +35407,370 @@
           }
         ],
         "summary": "Overview",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/trace-analytics": {
+      "get": {
+        "operationId": "aggregate_api_v1_admin_diagnostics_trace_analytics_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/DiagnosticHours",
+              "default": 24
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Aggregate Api V1 Admin Diagnostics Trace Analytics Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Aggregate",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/traces": {
+      "get": {
+        "operationId": "traces_api_v1_admin_diagnostics_traces_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trace_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{32}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trace Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "request_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Operation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform"
+            }
+          },
+          {
+            "in": "query",
+            "name": "component",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Component"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operation",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Operation"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Until"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "newest",
+              "enum": [
+                "newest",
+                "slowest",
+                "failed"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Traces Api V1 Admin Diagnostics Traces Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Traces",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/traces/{trace_id}": {
+      "get": {
+        "operationId": "detail_api_v1_admin_diagnostics_traces__trace_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trace_id",
+            "required": true,
+            "schema": {
+              "title": "Trace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Detail Api V1 Admin Diagnostics Traces  Trace Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Detail",
         "tags": [
           "admin-diagnostics"
         ]

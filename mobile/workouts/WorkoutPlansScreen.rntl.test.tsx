@@ -46,8 +46,11 @@ jest.mock("../ui/rtl", () => ({
 }));
 jest.mock("../platform/connectivity", () => ({
   connectivityMonitor: {
-    getSnapshot: () => ({ status: "online" }),
-    subscribe: jest.fn(() => jest.fn()),
+    getSnapshot: () => ({ status: mockConnectivityStatus }),
+    subscribe: jest.fn((listener: (snapshot: { status: string }) => void) => {
+      mockConnectivityListeners.add(listener);
+      return () => mockConnectivityListeners.delete(listener);
+    }),
   },
 }));
 jest.mock("../profile/profileApi", () => ({ createProfileApi: jest.fn() }));
@@ -95,6 +98,16 @@ const mockInvalidateQueries = jest.fn<() => Promise<undefined>>().mockResolvedVa
 const mockRemoveQueries = jest.fn();
 const mockSetQueryData = jest.fn();
 const mockDeletePlan = jest.fn<() => Promise<void>>();
+let mockConnectivityStatus = "online";
+const mockConnectivityListeners = new Set<(snapshot: { status: string }) => void>();
+
+function setConnectivity(status: string) {
+  act(() => {
+    mockConnectivityStatus = status;
+    mockConnectivityListeners.forEach((listener) => listener({ status }));
+  });
+}
+
 let mockActivePlan: WorkoutPlan | null = null;
 let mockPlanById: WorkoutPlan | null = null;
 let mockPlansById: Record<string, WorkoutPlan> = {};
@@ -192,7 +205,9 @@ function renderWorkoutPlans() {
 
 beforeEach(() => {
   mockPush.mockClear();
-  mockRequest.mockClear();
+  mockRequest.mockReset();
+  mockConnectivityStatus = "online";
+  mockConnectivityListeners.clear();
   mockDownload.mockClear();
   mockUseLocalSearchParams.mockReturnValue({} as never);
   mockUseRouter.mockReturnValue({ push: mockPush } as never);
@@ -998,11 +1013,13 @@ test("shows the generated pending replacement immediately instead of the old act
   expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["program-timeline"] });
 });
 
-test("starts the existing replacement workflow from an executable exercise action", async () => {
+test("opens the replacement inline and submits only the selected exercise", async () => {
   const original = makeExercise("exercise-1", "شنا", "Push-up");
   const alternative = makeExercise("alternative-1", "پرس سینه دمبل", "Dumbbell Bench Press");
   const item = makePlanExercise("plan-exercise-1", original, [makeAlternative(alternative)]);
-  const plan = makePlan("active", [item]);
+  const otherAlternative = makeExercise("alternative-2", "پرس پا", "Leg press");
+  const otherItem = makePlanExercise("plan-exercise-2", makeExercise("exercise-2", "اسکوات", "Squat"), [makeAlternative(otherAlternative)]);
+  const plan = makePlan("active", [item, otherItem]);
   mockActivePlan = plan;
   mockPlanById = plan;
   mockCycle = {
@@ -1016,26 +1033,109 @@ test("starts the existing replacement workflow from an executable exercise actio
 
   renderWorkoutPlans();
 
-  fireEvent.press(screen.getByRole("link", { name: "مشاهده جزئیات حرکت" }), { stopPropagation: jest.fn() });
+  const row = within(screen.getByTestId(`workout-exercise-${item.id}`));
+  fireEvent.press(row.getByRole("link", { name: "مشاهده جزئیات حرکت" }), { stopPropagation: jest.fn() });
   expect(mockPush).toHaveBeenCalledWith({ pathname: "/member/exercises/[slug]", params: { slug: original.slug } });
-  const replacementAction = screen
-    .getAllByRole("button", { name: "حرکت جایگزین" })
-    .find((action) => action.props.accessibilityLabel === "حرکت جایگزین");
-  expect(replacementAction).toBeDefined();
-  if (replacementAction === undefined) return;
+  const replacementAction = row.getByRole("button", { name: "حرکت جایگزین" });
 
+  expect(screen.queryByText("حرکتی که می‌خواهی عوض کنی")).toBeNull();
   fireEvent.press(replacementAction);
-  await waitFor(() => expect(screen.getByText("دلیل تعویض")).toBeTruthy());
+  const flow = row.getByTestId(`workout-replacement-${item.id}`);
+  expect(screen.queryByTestId(`workout-replacement-${otherItem.id}`)).toBeNull();
+  expect(within(flow).getByText("دلیل تعویض")).toBeTruthy();
+  expect(within(flow).queryByRole("button", { name: alternative.name_fa })).toBeNull();
   fireEvent.press(screen.getByRole("button", { name: "تجهیزاتش را ندارم" }));
+  expect(within(flow).queryByRole("button", { name: otherAlternative.name_fa })).toBeNull();
+  expect(within(flow).getByText("برای تمرکز سینه")).toBeTruthy();
   fireEvent.press(screen.getByRole("button", { name: alternative.name_fa }));
   fireEvent.press(screen.getByRole("button", { name: "فقط همین بار" }));
 
-  expect(mockMutate).toHaveBeenCalledWith({
-    reason: "equipment_unavailable",
-    replacement_exercise_id: alternative.id,
-    scope: "this_time",
-    workout_plan_exercise_id: item.id,
+  await waitFor(() => expect(mockRequest).toHaveBeenCalledWith({
+    method: "POST",
+    path: "/api/v1/workout-cycles/current/replacements",
+    body: {
+      reason: "equipment_unavailable",
+      replacement_exercise_id: alternative.id,
+      scope: "this_time",
+      workout_plan_exercise_id: item.id,
+    },
+  }));
+  expect(await screen.findByText(`جایگزین انتخاب‌شده: ${alternative.name_fa}`)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "فقط همین بار" })).toBeNull();
+});
+
+function openReplacementScope() {
+  const alternative = makeExercise("alternative-1", "پرس سینه دمبل", "Dumbbell Bench Press");
+  const item = makePlanExercise("plan-exercise-1", makeExercise("exercise-1", "شنا", "Push-up"), [makeAlternative(alternative)]);
+  mockActivePlan = makePlan("active", [item]);
+  mockPlanById = mockActivePlan;
+  mockCycle = makeCurrentCycle();
+  renderWorkoutPlans();
+  fireEvent.press(screen.getByRole("button", { name: "حرکت جایگزین" }));
+  fireEvent.press(screen.getByRole("button", { name: "تجهیزاتش را ندارم" }));
+  fireEvent.press(screen.getByRole("button", { name: alternative.name_fa }));
+  return item;
+}
+
+test("blocks duplicate replacement submissions while loading and after success", async () => {
+  let finish!: (value: unknown) => void;
+  mockRequest.mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+  const item = openReplacementScope();
+  const scope = screen.getByRole("button", { name: "فقط همین بار" });
+  const otherScope = screen.getByRole("button", { name: "از این به بعد" });
+  act(() => {
+    fireEvent.press(scope);
+    fireEvent.press(otherScope);
   });
+  expect(mockRequest).toHaveBeenCalledTimes(1);
+  const dayToggle = screen.getByRole("button", { name: /روز ۱:/ });
+  fireEvent.press(dayToggle);
+  fireEvent.press(dayToggle);
+  expect(screen.getByText("در حال ثبت جایگزین…")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "از این به بعد" })).toBeDisabled();
+  await act(async () => { finish({}); });
+  fireEvent.press(screen.getByRole("button", { name: "حرکت جایگزین" }));
+  expect(within(screen.getByTestId(`workout-replacement-${item.id}`)).getByText(/جایگزین انتخاب‌شده/)).toBeTruthy();
+  expect(mockRequest).toHaveBeenCalledTimes(1);
+});
+
+test("keeps replacement choices after an error and retries the selected scope", async () => {
+  mockRequest.mockRejectedValueOnce(new Error("request failed")).mockResolvedValueOnce({});
+  openReplacementScope();
+  fireEvent.press(screen.getByRole("button", { name: "از این به بعد" }));
+  await waitFor(() => expect(screen.queryByText("در حال ثبت جایگزین…")).toBeNull());
+  expect(screen.queryByText(/جایگزین انتخاب‌شده/)).toBeNull();
+  expect(within(screen.getByTestId("workout-replacement-plan-exercise-1")).getByText("انجام این عملیات با خطای غیرمنتظره روبه‌رو شد. دوباره تلاش کنید.")).toBeTruthy();
+  expect(screen.getByText("برای «پرس سینه دمبل» این تعویض تا چه زمانی باشد؟")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "از این به بعد" })).toBeEnabled();
+  fireEvent.press(screen.getByRole("button", { name: "از این به بعد" }));
+  expect(await screen.findByText("جایگزین انتخاب‌شده: پرس سینه دمبل")).toBeTruthy();
+  expect(mockRequest).toHaveBeenCalledTimes(2);
+  expect(mockRequest).toHaveBeenLastCalledWith(expect.objectContaining({ body: expect.objectContaining({ scope: "persistent" }) }));
+});
+
+test("blocks replacement offline and allows submission after reconnecting", async () => {
+  openReplacementScope();
+  setConnectivity("offline");
+  expect(screen.getByText("برای ثبت جایگزین به اینترنت وصل شو.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "فقط همین بار" })).toBeDisabled();
+  fireEvent.press(screen.getByRole("button", { name: "فقط همین بار" }));
+  expect(mockRequest).not.toHaveBeenCalled();
+  setConnectivity("online");
+  fireEvent.press(screen.getByRole("button", { name: "فقط همین بار" }));
+  expect(await screen.findByText("جایگزین انتخاب‌شده: پرس سینه دمبل")).toBeTruthy();
+  expect(mockRequest).toHaveBeenCalledTimes(1);
+});
+
+test("keeps replacement choices outside the day toggle and stops press propagation", async () => {
+  openReplacementScope();
+  const stopPropagation = jest.fn();
+  fireEvent.press(screen.getByRole("button", { name: "فقط همین بار" }), { stopPropagation });
+  await screen.findByText("جایگزین انتخاب‌شده: پرس سینه دمبل");
+  expect(stopPropagation).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId("workout-day-active-plan-day-1").props.accessibilityState.expanded).toBe(true);
+  const dayToggle = screen.getByRole("button", { name: /روز ۱:/ });
+  expect(within(dayToggle).queryByTestId("workout-replacement-plan-exercise-1")).toBeNull();
 });
 
 test("shows pending-plan alternatives read-only without exposing replacement submission", () => {
@@ -1061,6 +1161,19 @@ test("shows pending-plan alternatives read-only without exposing replacement sub
   expect(screen.queryByText("دلیل تعویض")).toBeNull();
   expect(screen.queryByRole("button", { name: "فقط همین بار" })).toBeNull();
   expect(mockMutate).not.toHaveBeenCalled();
+});
+
+test("keeps historical-plan alternatives read-only", () => {
+  const alternative = makeExercise("alternative-1", "پرس سینه دمبل", "Dumbbell Bench Press");
+  const plan = makePlan("superseded", [makePlanExercise("old-item", makeExercise("exercise-1", "شنا", "Push-up"), [makeAlternative(alternative)])]);
+  mockPlanById = plan;
+  mockHistory = [makeHistoryVersion(plan.id, "superseded")];
+  mockUseLocalSearchParams.mockReturnValue({ planId: plan.id } as never);
+  renderWorkoutPlans();
+  fireEvent.press(screen.getByRole("button", { name: "حرکت جایگزین" }));
+  expect(screen.getByRole("link", { name: alternative.name_fa })).toBeTruthy();
+  expect(screen.queryByText("دلیل تعویض")).toBeNull();
+  expect(mockRequest).not.toHaveBeenCalled();
 });
 
 test("does not invent a replacement action for an exercise without alternatives", () => {
