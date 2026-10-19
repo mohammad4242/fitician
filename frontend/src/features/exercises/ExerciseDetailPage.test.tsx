@@ -344,10 +344,12 @@ describe("exercise detail content", () => {
 
     fireEvent.pointerDown(carousel, { clientX: 240, clientY: 140 });
     fireEvent.pointerUp(carousel, { clientX: 160, clientY: 140 });
-    expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
-      "src",
-      "/media/male-second.mp4",
-    );
+    await waitFor(() => {
+      expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
+        "src", "/media/male-second.mp4",
+      );
+      expect(screen.getByText("۲ / ۲")).toBeVisible();
+    });
   });
 
   it("does not show carousel navigation for a single deduplicated media item", async () => {
