@@ -305,8 +305,8 @@ describe("exercise detail content", () => {
     const carousel = screen.getByTestId("exercise-media-surface");
     expect(screen.getByText("۱ / ۲")).toBeVisible();
 
-    fireEvent.pointerDown(carousel, { clientX: 240, clientY: 140 });
-    fireEvent.pointerUp(carousel, { clientX: 160, clientY: 140 });
+    fireEvent.pointerDown(carousel, { clientX: 240, clientY: 20 });
+    fireEvent.pointerUp(carousel, { clientX: 160, clientY: 20 });
     await waitFor(() => {
       expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
         "src", "/media/male-second.mp4",
@@ -314,8 +314,8 @@ describe("exercise detail content", () => {
       expect(screen.getByText("۲ / ۲")).toBeVisible();
     });
 
-    fireEvent.pointerDown(carousel, { clientX: 160, clientY: 140 });
-    fireEvent.pointerUp(carousel, { clientX: 240, clientY: 140 });
+    fireEvent.pointerDown(carousel, { clientX: 160, clientY: 20 });
+    fireEvent.pointerUp(carousel, { clientX: 240, clientY: 20 });
     await waitFor(() => {
       expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
         "src", "/media/male.mp4",
@@ -342,8 +342,8 @@ describe("exercise detail content", () => {
       "/media/exercises/upper-body/chest/dumbbell-bench-press.gif",
     );
 
-    fireEvent.pointerDown(carousel, { clientX: 240, clientY: 140 });
-    fireEvent.pointerUp(carousel, { clientX: 160, clientY: 140 });
+    fireEvent.pointerDown(carousel, { clientX: 240, clientY: 20 });
+    fireEvent.pointerUp(carousel, { clientX: 160, clientY: 20 });
     await waitFor(() => {
       expect(screen.getByLabelText("نمایش حرکت پرس سینه دمبل")).toHaveAttribute(
         "src", "/media/male-second.mp4",
