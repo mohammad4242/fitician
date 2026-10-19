@@ -77,9 +77,9 @@ class RegistrationError(ValueError):
 
 
 def _duration_ns(value: str) -> int:
-    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)(ns|us|µs|ms|s|m|h)", value)
-    if not match:
-        raise RegistrationError("Germany healthcheck duration is invalid")
+    parts = re.findall(r"([0-9]+(?:\.[0-9]+)?)(ns|us|µs|ms|s|m|h)", value)
+    if not parts or "".join(number + unit for number, unit in parts) != value:
+        raise RegistrationError("Healthcheck duration is invalid")
     units = {
         "ns": 1,
         "us": 1_000,
@@ -89,7 +89,7 @@ def _duration_ns(value: str) -> int:
         "m": 60_000_000_000,
         "h": 3_600_000_000_000,
     }
-    return int(float(match.group(1)) * units[match.group(2)])
+    return sum(int(float(number) * units[unit]) for number, unit in parts)
 
 
 def _memory_bytes(value: str | int) -> int:
@@ -477,7 +477,10 @@ def validate_runtime_snapshot(
         if worker_mappers != {name: True for name in WORKER_MODULES}:
             raise RegistrationError("A worker mapper configuration probe failed")
         if has_worker_override and any(
-            service_config[name].get("healthcheck", {}).get("start_period") != "120s"
+            _duration_ns(
+                str(service_config[name].get("healthcheck", {}).get("start_period", ""))
+            )
+            != 120_000_000_000
             for name in WORKER_MODULES
         ):
             raise RegistrationError(

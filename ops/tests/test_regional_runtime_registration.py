@@ -528,6 +528,17 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
 
 
 class RuntimeSnapshotTests(unittest.TestCase):
+    def test_normalizes_compound_compose_durations(self):
+        for value in ("120s", "2m0s", "1m60s", "120000ms"):
+            with self.subTest(value=value):
+                self.assertEqual(runtime._duration_ns(value), 120_000_000_000)
+        for value in ("", "2m0sfoo", "-2m", "2m 0s"):
+            with (
+                self.subTest(value=value),
+                self.assertRaises(runtime.RegistrationError),
+            ):
+                runtime._duration_ns(value)
+
     def test_iran_accepts_compatible_selective_contract_labels(self):
         with tempfile.TemporaryDirectory(
             dir=ROOT / "artifacts" if (ROOT / "artifacts").is_dir() else ROOT
@@ -703,7 +714,7 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 "  scheduler:\n    healthcheck:\n      start_period: 120s\n"
             )
             for service in runtime.WORKER_MODULES:
-                rendered["services"][service]["healthcheck"]["start_period"] = "120s"
+                rendered["services"][service]["healthcheck"]["start_period"] = "2m0s"
             notification = next(
                 item
                 for item in containers
@@ -724,6 +735,18 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 result["historical_worker_override_sha256"],
                 runtime.WORKER_OVERRIDE_SHA256,
             )
+            rendered["services"]["scheduler"]["healthcheck"]["start_period"] = "2m1s"
+            with self.assertRaises(runtime.RegistrationError):
+                runtime.validate_runtime_snapshot(
+                    alias="iran",
+                    app_dir=app_dir,
+                    containers=containers,
+                    rendered=rendered,
+                    image_details=images,
+                    volume_details=volumes,
+                    live_checks=checks,
+                )
+            rendered["services"]["scheduler"]["healthcheck"]["start_period"] = "2m0s"
             override.write_text(override.read_text() + "# unexpected\n")
             with self.assertRaises(runtime.RegistrationError):
                 runtime.validate_runtime_snapshot(
