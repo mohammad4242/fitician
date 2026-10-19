@@ -473,7 +473,6 @@ async def run_worker(
     stop_event: asyncio.Event | None = None,
 ) -> None:
     configure_structured_logging()
-    install_diagnostic_log_bridge(settings)
     worker_id = _worker_id()
     requested_stop = stop_event or asyncio.Event()
     if stop_event is None:
@@ -495,6 +494,7 @@ async def run_worker(
         httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_http_client,
     ):
         import_module("app.main")
+        install_diagnostic_log_bridge(settings)
         while not requested_stop.is_set():
             try:
                 with Session(engine) as db:
