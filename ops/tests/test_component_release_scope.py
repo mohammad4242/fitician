@@ -163,16 +163,74 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
         with (
             patch.object(guard, "role_controller", return_value=controller),
             patch.object(guard.classifier, "git_paths", return_value=paths) as delta,
-            patch.object(guard.subprocess, "run") as run,
+            patch.object(
+                guard.subprocess,
+                "run",
+                side_effect=[Mock(returncode=1), Mock(returncode=0)],
+            ) as run,
         ):
             filtered, verified = guard.backend_image_paths("a" * 40, "b" * 40, "c" * 40)
         controller.validate_role_source_compatibility.assert_called_once_with(
             "a" * 40, "b" * 40
         )
-        run.assert_called_once()
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(run.call_args_list[0].args[0][-2:], ["b" * 40, "a" * 40])
+        self.assertEqual(run.call_args_list[1].args[0][-2:], ["b" * 40, "c" * 40])
         delta.assert_called_once_with("b" * 40, "c" * 40)
         self.assertEqual(filtered, ["backend/app/workouts/service.py"])
-        self.assertEqual(verified, proof)
+        self.assertEqual(verified["source_compatibility"], proof)
+        self.assertEqual(verified["cumulative_baseline_sha"], "b" * 40)
+        self.assertEqual(verified["role_relation"], "worker-ahead-compatible")
+
+    def test_api_ahead_of_unchanged_worker_uses_api_as_cumulative_baseline(self):
+        guard = load("guard", "ops/check-component-release.py")
+        controller = Mock()
+        paths = ["backend/app/workouts/service.py"]
+        with (
+            patch.object(guard, "role_controller", return_value=controller),
+            patch.object(guard.classifier, "git_paths", return_value=paths) as delta,
+            patch.object(guard.subprocess, "run", return_value=Mock(returncode=0)) as run,
+        ):
+            filtered, proof = guard.backend_image_paths("b" * 40, "a" * 40, "c" * 40)
+        controller.validate_role_source_compatibility.assert_not_called()
+        self.assertEqual(run.call_args_list[0].args[0][-2:], ["a" * 40, "b" * 40])
+        self.assertEqual(run.call_args_list[1].args[0][-2:], ["b" * 40, "c" * 40])
+        delta.assert_called_once_with("b" * 40, "c" * 40)
+        self.assertEqual(filtered, paths)
+        self.assertEqual(proof["api_sha"], "b" * 40)
+        self.assertEqual(proof["worker_sha"], "a" * 40)
+        self.assertEqual(proof["cumulative_baseline_sha"], "b" * 40)
+        self.assertEqual(proof["role_relation"], "api-ahead")
+        self.assertIsNone(proof["source_compatibility"])
+
+    def test_api_release_after_api_has_advanced_covers_everything_since_api_base(self):
+        guard = load("guard", "ops/check-component-release.py")
+        controller = Mock()
+        changed = ["backend/app/nutrition/plan_service.py"]
+        with (
+            patch.object(guard, "role_controller", return_value=controller),
+            patch.object(guard.classifier, "git_paths", return_value=changed) as delta,
+            patch.object(guard.subprocess, "run", return_value=Mock(returncode=0)),
+        ):
+            paths, proof = guard.backend_image_paths("b" * 40, "a" * 40, "c" * 40)
+        delta.assert_called_once_with("b" * 40, "c" * 40)
+        self.assertEqual(paths, changed)
+        self.assertEqual(proof["cumulative_baseline_sha"], "b" * 40)
+
+    def test_unsafe_api_to_worker_source_advance_is_rejected(self):
+        guard = load("guard", "ops/check-component-release.py")
+        controller = Mock()
+        controller.validate_role_source_compatibility.side_effect = ValueError(
+            "Worker behavior differs outside startup initialization"
+        )
+        with (
+            patch.object(guard, "role_controller", return_value=controller),
+            patch.object(guard.subprocess, "run", return_value=Mock(returncode=1)),
+            patch.object(guard.classifier, "git_paths") as delta,
+            self.assertRaises(ValueError),
+        ):
+            guard.backend_image_paths("a" * 40, "b" * 40, "c" * 40)
+        delta.assert_not_called()
 
     def test_backend_scope_accepts_identical_api_and_worker_source_shas(self):
         guard = load("guard", "ops/check-component-release.py")
@@ -183,7 +241,7 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
             patch.object(
                 guard.classifier, "git_paths", return_value=["backend/app/main.py"]
             ),
-            patch.object(guard.subprocess, "run") as run,
+            patch.object(guard.subprocess, "run", return_value=Mock(returncode=0)) as run,
         ):
             paths, proof = guard.backend_image_paths(sha, sha, "b" * 40)
         controller.validate_role_source_compatibility.assert_not_called()
@@ -191,6 +249,8 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
         self.assertEqual(paths, ["backend/app/main.py"])
         self.assertEqual(proof["api_sha"], sha)
         self.assertEqual(proof["worker_sha"], sha)
+        self.assertEqual(proof["cumulative_baseline_sha"], sha)
+        self.assertEqual(proof["role_relation"], "same")
 
     def test_agent_full_ci_scope_accepts_only_source_tests_and_docs(self):
         classifier = load("classifier", "ops/ci-classify.py")

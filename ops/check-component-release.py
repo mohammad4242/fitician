@@ -66,28 +66,46 @@ def role_controller():
 def backend_image_paths(
     api_base: str, worker_base: str, head: str
 ) -> tuple[list[str], dict]:
-    controller = role_controller()
+    source_compatibility = None
     if api_base == worker_base:
-        proof = {
-            "version": 1,
-            "api_sha": api_base,
-            "worker_sha": worker_base,
-            "ancestor_verified": True,
-            "entrypoint_ast_equivalent": True,
-            "backend_image_inputs": [],
-        }
+        effective_base = api_base
+        role_relation = "same"
     else:
-        proof = controller.validate_role_source_compatibility(api_base, worker_base)
+        worker_is_ancestor_of_api = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", worker_base, api_base],
+            cwd=ROOT,
+            check=False,
+        ).returncode == 0
+        if worker_is_ancestor_of_api:
+            # API deployments may advance independently. Their image changes already
+            # contain the worker source; use that live API SHA as the next delta base.
+            effective_base = api_base
+            role_relation = "api-ahead"
+        else:
+            # The adoption exception is only safe while the API is the ancestor and
+            # the worker commit contains startup-only, AST-equivalent worker changes.
+            source_compatibility = role_controller().validate_role_source_compatibility(
+                api_base, worker_base
+            )
+            effective_base = worker_base
+            role_relation = "worker-ahead-compatible"
     subprocess.run(
-        ["git", "merge-base", "--is-ancestor", worker_base, head],
+        ["git", "merge-base", "--is-ancestor", effective_base, head],
         cwd=ROOT,
         check=True,
     )
     paths = [
         path
-        for path in classifier.git_paths(worker_base, head)
+        for path in classifier.git_paths(effective_base, head)
         if path.startswith("backend/")
     ]
+    proof = {
+        "api_sha": api_base,
+        "worker_sha": worker_base,
+        "cumulative_baseline_sha": effective_base,
+        "role_relation": role_relation,
+        "source_compatibility": source_compatibility,
+    }
     return paths, proof
 
 
@@ -185,7 +203,7 @@ def main():
         worker_base = args.worker_base or args.base
         paths, role_proof = backend_image_paths(args.base, worker_base, args.head)
         print(
-            "Verified runtime API/worker source roles: "
+            "Observed runtime API/worker release baselines: "
             + json.dumps(role_proof, sort_keys=True)
         )
     else:
