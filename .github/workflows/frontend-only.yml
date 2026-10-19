@@ -74,7 +74,10 @@ jobs:
 
   frontend-image:
     name: Build, verify, and push frontend image
-    if: inputs.publish_image || (github.event_name == 'workflow_dispatch' && !inputs.called_by_router)
+    if: >-
+      always() && !cancelled() &&
+      needs.frontend-verification.result == 'success' &&
+      (inputs.publish_image || (github.event_name == 'workflow_dispatch' && !inputs.called_by_router))
     needs: frontend-verification
     runs-on: ubuntu-latest
     permissions:
@@ -151,6 +154,22 @@ jobs:
         run: |
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
+
+  frontend-image-required:
+    name: Require published frontend image
+    if: >-
+      always() && !cancelled() &&
+      (inputs.publish_image || (github.event_name == 'workflow_dispatch' && !inputs.called_by_router))
+    needs: [frontend-verification, frontend-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject missing component release evidence
+        env:
+          VERIFICATION_RESULT: ${{ needs.frontend-verification.result }}
+          IMAGE_RESULT: ${{ needs.frontend-image.result }}
+        run: |
+          test "$VERIFICATION_RESULT" = success
+          test "$IMAGE_RESULT" = success
 
   deploy-frontend-production:
     # Production CD is disabled until a separately reviewed re-enablement.
