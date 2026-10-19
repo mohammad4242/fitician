@@ -1,4 +1,8 @@
 # Standalone Iran runtime. No local Agent or cross-host media mounts.
+# Keep HTTPS hostname verification; only its container-local address is pinned.
+x-agent-hosts: &agent-hosts
+  - "${AGENT_SERVICE_HOST:-fastcreate-560543.tail869ad5.ts.net}=${AGENT_SERVICE_PRIVATE_IP:-100.108.24.126}"
+
 x-logging: &bounded-logging
   driver: json-file
   options:
@@ -63,6 +67,7 @@ services:
     restart: "no"
 
   backend:
+    extra_hosts: *agent-hosts
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${BACKEND_API_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ${FITICIAN_ENV_FILE:-./.env}
@@ -119,6 +124,7 @@ services:
       service: backend
 
   food-photo-worker:
+    extra_hosts: *agent-hosts
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ${FITICIAN_ENV_FILE:-./.env}
@@ -158,6 +164,7 @@ services:
     restart: unless-stopped
 
   body-analysis-worker:
+    extra_hosts: *agent-hosts
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ${FITICIAN_ENV_FILE:-./.env}
@@ -198,6 +205,7 @@ services:
     restart: unless-stopped
 
   scheduler:
+    extra_hosts: *agent-hosts
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ${FITICIAN_ENV_FILE:-./.env}
