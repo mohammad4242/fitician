@@ -337,6 +337,16 @@ A frontend-only release touches frontend only. A backend-only component release 
 both API replicas, never workers or migrations, and requires equal Alembic heads.
 Changes to worker code/schema/infrastructure require a full Iran release.
 
+Regional dispatch remains disabled unless the repository variable
+`REGIONAL_CD_ENABLED` is explicitly set to `true`. The workflow accepts manual
+dispatch from `main` only and validates the exact immutable image SHA against
+trusted CI evidence. Full Iran and Germany Agent releases also pause at the
+`production-owner-approval` environment; configure its required owner reviewer
+and main-only deployment branch policy before enabling the variable. The legacy
+production workflows remain disabled. Backend-only releases require a read-only
+Alembic-head match and roll the two API replicas one at a time while retaining a
+healthy peer; verification failure triggers that helper's bounded rollback.
+
 `ops/deploy-regional.sh` stages candidate contracts separately, captures actual running
 immutable versions, checks volume bindings, applies the selected runtime, verifies it,
 then persists image state/active contract. Each region has its own workflow concurrency

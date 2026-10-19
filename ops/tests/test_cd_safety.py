@@ -36,6 +36,11 @@ class CDSafetyTests(unittest.TestCase):
                     body = match.group(1)
                     condition = re.search(r"(?m)^    if: (.*)$", body)
                     self.assertIsNotNone(condition)
+                    if filename == "deploy-regional.yml":
+                        self.assertIn("vars.REGIONAL_CD_ENABLED == 'true'", body)
+                        self.assertIn("github.event_name == 'workflow_dispatch'", body)
+                        self.assertNotIn("workflow_run:", text)
+                        continue
                     if condition.group(1) == ">-":
                         expression = (
                             re.search(r"(?m)^    if: >-\n((?:      [^\n]*\n)+)", body)

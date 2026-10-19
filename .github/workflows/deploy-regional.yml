@@ -81,6 +81,7 @@ jobs:
           SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
           test "$OWNER_APPROVED" = true
           printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
           printf '%s' "$CI_RUN_ID" | grep -Eq '^[0-9]+$'
@@ -105,20 +106,15 @@ jobs:
           SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
         run: |
           set -euo pipefail
-          repository="repos/${GITHUB_REPOSITORY}"
-          workflow_name=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.name')
-          conclusion=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.conclusion')
-          evidence_sha=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.head_sha')
-          created_at=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.created_at')
-          test "$workflow_name" = 'Fitician local scalability checks'
-          test "$conclusion" = success
-          test "$evidence_sha" = "$IMAGE_TAG"
-          python3 - "$created_at" <<'PY'
-          from datetime import UTC, datetime, timedelta
-          import sys
-          created = datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
-          if created < datetime.now(UTC) - timedelta(days=14):
-              raise SystemExit("Scalability evidence is older than 14 days")
+          PYTHONPATH=ops python3 - <<'PY'
+          import os
+          from register_regional_runtime import load_foundation_evidence
+
+          load_foundation_evidence(
+              os.environ["GITHUB_REPOSITORY"],
+              int(os.environ["SCALABILITY_EVIDENCE_RUN_ID"]),
+              os.environ["IMAGE_TAG"],
+          )
           PY
       - name: Require successful exact-SHA CI evidence and published images
         id: release
@@ -169,15 +165,32 @@ jobs:
           echo "backend_tests=$backend_tests" >> "$GITHUB_OUTPUT"
           echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    # Re-enable only after separate owner review; deploy diagnostics run elsewhere.
-    name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
+  owner-approval:
+    name: Owner approval for full regional release
     needs: verify-release
     if: >-
-      false && (
-        github.event_name == 'workflow_dispatch' &&
-        needs.verify-release.result == 'success'
-      )
+      github.event_name == 'workflow_dispatch' &&
+      vars.REGIONAL_CD_ENABLED == 'true' &&
+      needs.verify-release.result == 'success' &&
+      (inputs.deploy_kind == 'full' || inputs.deploy_kind == 'agent')
+    runs-on: ubuntu-latest
+    environment: production-owner-approval
+    steps:
+      - name: Record protected owner approval
+        run: echo 'Protected owner approval granted for this regional release.'
+
+  deploy:
+    name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
+    needs: [verify-release, owner-approval]
+    if: >-
+      always() &&
+      !cancelled() &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      vars.REGIONAL_CD_ENABLED == 'true' &&
+      needs.verify-release.result == 'success' &&
+      ((inputs.deploy_kind != 'full' && inputs.deploy_kind != 'agent') ||
+      needs['owner-approval'].result == 'success')
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:
@@ -272,6 +285,7 @@ jobs:
           scp -P "$VPS_SSH_PORT" ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
           scp -P "$VPS_SSH_PORT" ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
           scp -P "$VPS_SSH_PORT" ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
+          scp -P "$VPS_SSH_PORT" ops/rolling-backend.py "$VPS_USER@$VPS_HOST:$release_dir/ops/rolling-backend.py"
       - name: Authenticate regional Docker client
         if: inputs.image_source == 'registry'
         env:

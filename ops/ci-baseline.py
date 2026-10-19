@@ -45,6 +45,7 @@ OPS_PATHS = {
     "ops/split_test_probe.py",
     "ops/regional-cutover.py",
     "ops/rehearse-regional.py",
+    "ops/rolling-backend.py",
     "ops/compose.offline-rehearsal.yaml",
     "ops/Caddyfile.offline-rehearsal",
     "ops/redis/redis.conf",

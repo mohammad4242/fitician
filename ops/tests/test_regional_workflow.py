@@ -8,16 +8,26 @@ WORKFLOW = ROOT / ".github/workflows/deploy-regional.yml"
 
 
 class RegionalWorkflowTests(unittest.TestCase):
-    def test_regional_deploy_job_remains_disabled_in_source(
+    def test_regional_deploy_is_manual_and_configurable_but_default_off(
         self,
     ) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn("workflow_dispatch:", workflow)
-        self.assertIn("      false && (", workflow)
+        self.assertIn("vars.REGIONAL_CD_ENABLED == 'true'", workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
         self.assertIn("needs.verify-release.result == 'success'", workflow)
+        self.assertIn("environment: production-owner-approval", workflow)
+        self.assertIn("needs['owner-approval'].result == 'success'", workflow)
+        self.assertIn("load_foundation_evidence", workflow)
         self.assertNotIn("workflow_run:", workflow)
         self.assertNotIn("push:", workflow)
+
+    def test_legacy_regional_deploy_remains_disabled(self) -> None:
+        workflow = (ROOT / ".github/workflows/deploy-production.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("false && (", workflow)
 
     def test_ssh_port_defaults_to_9011_for_all_transfer_and_remote_commands(
         self,

@@ -86,6 +86,9 @@ def roll(runtime):
             runtime.recreate(service)
             runtime.ready(service)
             runtime.load_config(original)
+        verify = getattr(runtime, "verify", None)
+        if verify is not None:
+            verify()
     except ProxyDrift as error:
         raise RollbackFailed(
             "Proxy changed concurrently; manual reconciliation required"
@@ -244,6 +247,23 @@ class DockerRuntime:
             env=self.environment(rollback),
         )
 
+    def verify(self):
+        if not self.args.verify_script:
+            return
+        environment = dict(os.environ)
+        environment["BACKEND_API_IMAGE_TAG"] = self.args.candidate_tag
+        environment["COMPOSE_FILE"] = self.args.candidate_contract
+        result = subprocess.run(
+            ["sh", self.args.verify_script],
+            text=True,
+            capture_output=True,
+            env=environment,
+            timeout=360,
+            check=False,
+        )
+        if result.returncode:
+            raise RuntimeError("Regional release verification failed")
+
 
 def terminate(*_):
     raise KeyboardInterrupt
@@ -256,6 +276,7 @@ def main():
     parser.add_argument("--candidate-tag", required=True)
     parser.add_argument("--rollback-tag", required=True)
     parser.add_argument("--backup-dir", required=True)
+    parser.add_argument("--verify-script")
     parser.add_argument("--owner-approved", action="store_true")
     args = parser.parse_args()
     if not args.owner_approved or not all(
@@ -269,7 +290,8 @@ def main():
         return 75
     signal.signal(signal.SIGTERM, terminate)
     try:
-        roll(DockerRuntime(args))
+        runtime = DockerRuntime(args)
+        roll(runtime)
     except RolledBack as error:
         print(str(error), file=sys.stderr)
         return 73

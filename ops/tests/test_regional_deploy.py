@@ -71,6 +71,13 @@ class RegionalDeployTests(unittest.TestCase):
                 "if 'runtime-capacity' in sys.argv[0] else 0)\n"
             )
             path.chmod(0o755)
+        rolling = self.new_release / "ops" / "rolling-backend.py"
+        rolling.write_text(
+            "#!/usr/bin/env python3\nimport os, sys\n"
+            "open(os.environ['FAKE_CALLS'], 'a').write('ROLLING ' + ' '.join(sys.argv[1:]) + '\\n')\n"
+            "raise SystemExit(int(os.environ.get('FAKE_ROLLING_STATUS', '0')))\n"
+        )
+        rolling.chmod(0o755)
         self.calls = self.app / "calls"
         self.calls.touch()
         self.tags = self.app / "running-tags"
@@ -579,6 +586,29 @@ fi
         self.assertIn(
             f"HEADS_TAGSTATE|{NEW}|{NEW}", self.calls.read_text().splitlines()
         )
+
+    def test_backend_component_uses_rolling_helper_and_readonly_schema_gate(self) -> None:
+        self.env.update(DEPLOY_KIND="backend")
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        rolling = next(line for line in calls if line.startswith("ROLLING "))
+        self.assertIn("--candidate-tag " + NEW, rolling)
+        self.assertIn("--rollback-tag " + OLD, rolling)
+        self.assertIn("--verify-script", rolling)
+        self.assertTrue(any("SELECT version_num" in line for line in calls))
+        self.assertTrue(any("alembic heads" in line for line in calls))
+        self.assertFalse(any(" up -d" in line for line in calls))
+
+    def test_backend_rolling_failure_codes_do_not_fallback_to_both_replicas(self) -> None:
+        for status in (73, 74, 75):
+            with self.subTest(status=status):
+                self.calls.write_text("")
+                self.env.update(DEPLOY_KIND="backend", FAKE_ROLLING_STATUS=str(status))
+                result = self.run_deploy()
+                self.assertEqual(result.returncode, status)
+                calls = self.calls.read_text().splitlines()
+                self.assertFalse(any(" up -d" in line for line in calls))
 
     def test_iran_rejects_database_url_pointing_outside_local_database_service(
         self,

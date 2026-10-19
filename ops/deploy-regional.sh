@@ -200,12 +200,12 @@ FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
   WORKER_IMAGE_TAG="$image_tag" AGENT_IMAGE_TAG="$image_tag" \
   python3 "$release_dir/ops/check-runtime-capacity.py" --region "$region" \
     --host-memory-mib "$host_memory_mib" --host-cpus "$host_cpus" \
-    --compose-file "$compose_file" --env-file "$env_file"
+    --compose-file "$compose_file" --env-file "$env_file" >&2
 if [[ "$region" == iran ]]; then
   FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
     BACKEND_API_IMAGE_TAG="$image_tag" WORKER_IMAGE_TAG="$image_tag" \
     python3 "$release_dir/ops/check-db-connection-budget.py" \
-      --compose-file "$compose_file" --env-file "$env_file"
+      --compose-file "$compose_file" --env-file "$env_file" >&2
 fi
 
 image_services_csv=$(IFS=,; printf '%s' "${image_services[*]}")
@@ -564,14 +564,41 @@ if [[ "$kind" == full ]]; then
   fi
 else
   rollback_needed=true
-  if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
-    up -d --pull never --no-deps --wait "${services[@]}"; then
-    rollback || true
-    exit 1
+  if [[ "$kind" == backend ]]; then
+    # The rolling helper owns candidate and rollback transitions for both replicas.
+    # Never let the outer handler recreate both APIs at once.
+    rollback_needed=false
+    set +e
+    REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
+      COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
+      FRONTEND_IMAGE_TAG="$previous_frontend_tag" BACKEND_API_IMAGE_TAG="$image_tag" \
+      WORKER_IMAGE_TAG="$previous_worker_tag" AGENT_IMAGE_TAG="$previous_agent_tag" \
+      COMPOSE_FILE="$compose_file" python3 "$release_dir/ops/rolling-backend.py" \
+        --candidate-contract "$compose_file" --rollback-contract "$active_contract" \
+        --candidate-tag "$image_tag" --rollback-tag "$previous_api_tag" \
+        --backup-dir "$app_dir/backups/rolling-backend" --verify-script "$release_dir/ops/verify-regional.sh" \
+        --owner-approved
+    rolling_status=$?
+    set -e
+    if [[ "$rolling_status" -ne 0 ]]; then
+      case "$rolling_status" in
+        73) echo 'Backend candidate failed; previous replicas were restored' >&2 ;;
+        74) echo 'Backend rollback needs manual reconciliation; one replica may remain drained' >&2 ;;
+        *) echo 'Backend rolling preflight failed; no release was accepted' >&2 ;;
+      esac
+      exit "$rolling_status"
+    fi
+    backend_rolling_verified=true
+  else
+    if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
+      up -d --pull never --no-deps --wait "${services[@]}"; then
+      rollback || true
+      exit 1
+    fi
   fi
 fi
 
-if ! REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
+if [[ "${backend_rolling_verified:-false}" != true ]] && ! REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
   COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
   FRONTEND_IMAGE_TAG="$frontend_tag" BACKEND_API_IMAGE_TAG="$api_tag" \
   WORKER_IMAGE_TAG="$worker_tag" AGENT_IMAGE_TAG="$agent_tag" \
