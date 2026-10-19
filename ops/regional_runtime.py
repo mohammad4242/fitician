@@ -14,6 +14,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 REGIONS = {"iran": "iran", "alman": "germany"}
@@ -40,6 +41,9 @@ WORKER_MODULES = {
     "notification-worker": "app.notifications.worker",
 }
 MAPPER_PROBE_TIMEOUT_SECONDS = 180
+MAPPER_PROBE_MEMORY = "256m"
+MAPPER_PROBE_CPUS = "0.25"
+MAPPER_PROBE_PIDS_LIMIT = "128"
 WORKER_OVERRIDE_SHA256 = (
     "95fccb2d1868926b2c2642a6b97b6ce2d833e465a90efd8e790a41aefd86e96e"
 )
@@ -636,23 +640,116 @@ def _container_probe(region: str, item: dict, env: dict[str, str]) -> dict:
 
 
 def _probe_worker_mappers(selected: list[dict]) -> dict[str, bool]:
-    checks = {}
-    for service, module in WORKER_MODULES.items():
+    by_image: dict[str, list[str]] = {}
+    for service in WORKER_MODULES:
         worker = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
-        code = (
-            "import importlib; importlib.import_module('app.main'); "
-            f"importlib.import_module('{module}'); "
-            "from sqlalchemy.orm import configure_mappers; configure_mappers()"
-        )
+        image_id = worker.get("Image", "")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+            by_image.setdefault("", []).append(service)
+        else:
+            by_image.setdefault(image_id, []).append(service)
+
+    checks: dict[str, bool] = {}
+    modules = "; ".join(
+        f"importlib.import_module({module!r})" for module in WORKER_MODULES.values()
+    )
+    code = (
+        "import importlib; importlib.import_module('app.main'); "
+        f"{modules}; "
+        "from sqlalchemy.orm import configure_mappers; configure_mappers()"
+    )
+    for image_id, services in by_image.items():
+        if not image_id:
+            checks.update({service: False for service in services})
+            continue
+        name = f"fitician-regional-mapper-{uuid4().hex}"
+        command = [
+            "docker",
+            "run",
+            "--pull",
+            "never",
+            "--name",
+            name,
+            "--network",
+            "none",
+            "--read-only",
+            "--memory",
+            MAPPER_PROBE_MEMORY,
+            "--cpus",
+            MAPPER_PROBE_CPUS,
+            "--pids-limit",
+            MAPPER_PROBE_PIDS_LIMIT,
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--tmpfs",
+            "/app/var:rw,noexec,nosuid,size=16m,mode=1777",
+            "--env",
+            "APP_ENV=test",
+            "--env",
+            "DATABASE_URL=sqlite://",
+            "--env",
+            "TMPDIR=/app/var",
+            "--entrypoint",
+            "python",
+            image_id,
+            "-c",
+            code,
+        ]
+        success = False
         try:
-            _run(
-                ["docker", "exec", worker["Id"], "python", "-c", code],
+            result = subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
                 timeout=MAPPER_PROBE_TIMEOUT_SECONDS,
             )
-            checks[service] = True
-        except RegistrationError:
-            checks[service] = False
+            success = result.returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            success = False
+        finally:
+            try:
+                cleanup = subprocess.run(
+                    ["docker", "rm", "--force", name],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                success = success and cleanup.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                success = False
+        checks.update({service: success for service in services})
     return checks
+
+
+def _worker_probe_signature(item: dict) -> tuple:
+    state = item.get("State", {})
+    health = state.get("Health") or {}
+    return (
+        item.get("Id"),
+        item.get("Image"),
+        state.get("Status"),
+        state.get("StartedAt"),
+        health.get("Status"),
+        item.get("RestartCount", 0),
+    )
+
+
+def _verify_worker_containers_unchanged(selected: list[dict]) -> None:
+    for service in WORKER_MODULES:
+        before = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
+        inspected = _docker_json(["inspect", before["Id"]])
+        if (
+            not isinstance(inspected, list)
+            or len(inspected) != 1
+            or _worker_probe_signature(inspected[0]) != _worker_probe_signature(before)
+        ):
+            raise RegistrationError(
+                "Worker changed during isolated mapper qualification"
+            )
 
 
 def inspect_runtime(app_dir: Path, alias: str) -> dict:
@@ -770,6 +867,7 @@ def inspect_runtime(app_dir: Path, alias: str) -> dict:
                 )["api_statuses"]
         live_checks["api_statuses"] = api_statuses
         live_checks["worker_mappers"] = _probe_worker_mappers(selected)
+        _verify_worker_containers_unchanged(selected)
         db = next(item for item in selected if _labels(item)[LABEL_SERVICE] == "db")
         backend = next(
             item for item in selected if _labels(item)[LABEL_SERVICE] == "backend"

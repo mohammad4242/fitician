@@ -996,22 +996,138 @@ class RuntimeSnapshotTests(unittest.TestCase):
 
 
 class RuntimeProbeTimeoutTests(unittest.TestCase):
-    def test_mapper_probes_get_bounded_extended_timeout_sequentially(self):
+    def test_mapper_probe_uses_one_isolated_exact_image_per_shared_image_id(self):
         selected = [
             {
                 "Id": service,
+                "Image": "sha256:" + "a" * 64,
                 "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
             }
             for service in runtime.WORKER_MODULES
         ]
-        with patch.object(runtime, "_run", return_value="") as run:
+        success = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(
+            runtime.subprocess, "run", side_effect=[success, success]
+        ) as run:
             checks = runtime._probe_worker_mappers(selected)
         self.assertEqual(checks, {service: True for service in runtime.WORKER_MODULES})
-        self.assertEqual(run.call_count, len(runtime.WORKER_MODULES))
+        self.assertEqual(run.call_count, 2)
+        probe, cleanup = (call.args[0] for call in run.call_args_list)
+        self.assertEqual(probe[:2], ["docker", "run"])
+        self.assertIn("sha256:" + "a" * 64, probe)
+        self.assertIn("--network", probe)
+        self.assertEqual(probe[probe.index("--network") + 1], "none")
+        self.assertIn("--read-only", probe)
+        self.assertIn("--cap-drop", probe)
+        self.assertEqual(probe[probe.index("--cap-drop") + 1], "ALL")
+        self.assertEqual(probe[probe.index("--memory") + 1], "256m")
+        self.assertEqual(probe[probe.index("--cpus") + 1], "0.25")
+        self.assertEqual(probe[probe.index("--pids-limit") + 1], "128")
+        self.assertEqual(probe[probe.index("--env") + 1], "APP_ENV=test")
+        env_values = [
+            probe[index + 1] for index, arg in enumerate(probe[:-1]) if arg == "--env"
+        ]
         self.assertEqual(
-            [call.kwargs["timeout"] for call in run.call_args_list],
-            [runtime.MAPPER_PROBE_TIMEOUT_SECONDS] * len(runtime.WORKER_MODULES),
+            env_values,
+            ["APP_ENV=test", "DATABASE_URL=sqlite://", "TMPDIR=/app/var"],
         )
+        self.assertFalse(any("SECRET" in arg or "PASSWORD" in arg for arg in probe))
+        self.assertFalse(any(arg in {"--volume", "--mount", "-v"} for arg in probe))
+        self.assertIn("--pull", probe)
+        self.assertEqual(probe[probe.index("--pull") + 1], "never")
+        self.assertEqual(run.call_args_list[0].kwargs["timeout"], 180)
+        self.assertEqual(cleanup[:3], ["docker", "rm", "--force"])
+        self.assertEqual(cleanup[3], probe[probe.index("--name") + 1])
+        self.assertEqual(run.call_args_list[1].kwargs["timeout"], 30)
+
+    def test_mapper_probes_coalesce_by_actual_image_id_and_remain_sequential(self):
+        selected = [
+            {
+                "Id": service,
+                "Image": f"sha256:{index // 2 + 1:064x}",
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for index, service in enumerate(runtime.WORKER_MODULES)
+        ]
+        success = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(runtime.subprocess, "run", side_effect=[success] * 4) as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: True for service in runtime.WORKER_MODULES})
+        probes = [
+            call.args[0] for call in run.call_args_list if call.args[0][1] == "run"
+        ]
+        self.assertEqual(len(probes), 2)
+        self.assertEqual(
+            [probe[probe.index("--entrypoint") + 2] for probe in probes],
+            [f"sha256:{1:064x}", f"sha256:{2:064x}"],
+        )
+        for probe in probes:
+            code = probe[-1]
+            self.assertEqual(code.count("import_module('app.main')"), 1)
+            for module in runtime.WORKER_MODULES.values():
+                self.assertEqual(code.count(f"import_module({module!r})"), 1)
+            self.assertEqual(code.count("configure_mappers()"), 1)
+
+    def test_timed_out_mapper_probe_cleans_up_only_its_named_container(self):
+        selected = [
+            {
+                "Id": service,
+                "Image": "sha256:" + "b" * 64,
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for service in runtime.WORKER_MODULES
+        ]
+        timeout = subprocess.TimeoutExpired(["docker", "run"], 180)
+        removed = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(
+            runtime.subprocess, "run", side_effect=[timeout, removed]
+        ) as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: False for service in runtime.WORKER_MODULES})
+        probe = run.call_args_list[0].args[0]
+        cleanup = run.call_args_list[1].args[0]
+        self.assertEqual(
+            cleanup, ["docker", "rm", "--force", probe[probe.index("--name") + 1]]
+        )
+
+    def test_worker_identity_health_or_restart_change_during_probe_fails_closed(self):
+        before = {
+            "Id": "worker-1",
+            "Image": "sha256:" + "c" * 64,
+            "RestartCount": 0,
+            "State": {
+                "Status": "running",
+                "StartedAt": "2026-10-19T10:00:00Z",
+                "Health": {"Status": "healthy"},
+            },
+            "Config": {"Labels": {runtime.LABEL_SERVICE: "scheduler"}},
+        }
+        mutations = (
+            {**before, "Id": "replacement-worker"},
+            {**before, "Image": "sha256:" + "d" * 64},
+            {**before, "RestartCount": 1},
+            {
+                **before,
+                "State": {**before["State"], "StartedAt": "2026-10-19T10:01:00Z"},
+            },
+            {
+                **before,
+                "State": {
+                    **before["State"],
+                    "Health": {"Status": "unhealthy"},
+                },
+            },
+        )
+        for changed in mutations:
+            with (
+                self.subTest(changed=changed),
+                patch.object(runtime, "_docker_json", return_value=[changed]),
+                self.assertRaisesRegex(
+                    runtime.RegistrationError,
+                    "Worker changed during isolated mapper qualification",
+                ),
+            ):
+                runtime._verify_worker_containers_unchanged([before])
 
     def test_readonly_command_timeout_defaults_to_45_seconds_and_is_overridable(self):
         completed = subprocess.CompletedProcess([], 0, stdout="ok", stderr="")
