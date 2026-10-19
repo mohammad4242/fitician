@@ -758,3 +758,47 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:main
           cache-from: type=gha,scope=fitician-agent
           cache-to: type=gha,mode=max,scope=fitician-agent
+
+  required-ci:
+    name: Required CI
+    if: always()
+    needs:
+      - changes
+      - backend
+      - frontend
+      - backend-component
+      - frontend-browser
+      - shared
+      - mobile
+      - android
+      - dependencies
+      - secrets
+      - production-contract
+      - scalability-contract
+      - multi-replica-smoke
+      - split-region-smoke
+      - agent
+      - container-images
+    runs-on: ubuntu-latest
+    env:
+      CI_JOB_RESULTS: >-
+        {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","container-images":"${{ needs.container-images.result }}"}
+      IMAGE_REQUIRED: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.changes.outputs.full_ci_required == 'true' || (needs.changes.outputs.selective_ci_required == 'true' && needs.changes.outputs.deployable == 'true')) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        if: needs.changes.result == 'success'
+        with:
+          name: fitician-release-plan
+          path: .ci-evidence
+      - name: Evaluate selected validation jobs
+        run: |
+          plan='{}'
+          if [ -f .ci-evidence/release-plan.json ]; then
+            plan=$(cat .ci-evidence/release-plan.json)
+          fi
+          if [ "$IMAGE_REQUIRED" = true ]; then
+            python3 ops/ci-required.py --plan "$plan" --image-required
+          else
+            python3 ops/ci-required.py --plan "$plan"
+          fi

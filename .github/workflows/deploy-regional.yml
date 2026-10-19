@@ -51,14 +51,89 @@ on:
         description: Successful recent local scalability checks run for this exact SHA
         required: false
         type: string
+  workflow_run:
+    workflows: [Fitician CI]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
   actions: read
 
 jobs:
+  normalize-request:
+    name: Normalize and validate release request
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+      vars.REGIONAL_CD_ENABLED == 'true' && vars.REGIONAL_AUTO_CD_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.target || steps.automatic.outputs.target }}
+      deploy_kind: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.deploy_kind || steps.automatic.outputs.deploy_kind }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.image_tag || steps.automatic.outputs.image_tag }}
+      ci_run_id: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.ci_run_id || steps.automatic.outputs.ci_run_id }}
+      owner_approved: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.owner_approved || steps.automatic.outputs.owner_approved }}
+      allow_schema_migrations: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.allow_schema_migrations || steps.automatic.outputs.allow_schema_migrations }}
+      initial_deploy: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.initial_deploy || steps.automatic.outputs.initial_deploy }}
+      first_scalability_release_approved: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.first_scalability_release_approved || steps.automatic.outputs.first_scalability_release_approved }}
+      scalability_evidence_run_id: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.scalability_evidence_run_id || steps.automatic.outputs.scalability_evidence_run_id }}
+      image_source: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.image_source || steps.automatic.outputs.image_source }}
+      auto_release: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.auto_release || steps.automatic.outputs.auto_release }}
+      skip_release: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.skip_release || steps.automatic.outputs.skip_release }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_run'
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+      - name: Copy manual dispatch inputs
+        id: manual
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TARGET: ${{ inputs.target }}
+          DEPLOY_KIND: ${{ inputs.deploy_kind }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+          OWNER_APPROVED: ${{ inputs.owner_approved }}
+          ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations }}
+          INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
+          FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved }}
+          SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+          IMAGE_SOURCE: ${{ inputs.image_source }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET" == iran || "$TARGET" == germany ]]
+          [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent ]]
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ -z "$SCALABILITY_EVIDENCE_RUN_ID" || "$SCALABILITY_EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$IMAGE_SOURCE" == registry || "$IMAGE_SOURCE" == preloaded ]]
+          for flag in "$OWNER_APPROVED" "$ALLOW_SCHEMA_MIGRATIONS" "$INITIAL_DEPLOY" "$FIRST_SCALABILITY_RELEASE_APPROVED"; do
+            [[ "$flag" == true || "$flag" == false ]]
+          done
+          for pair in \
+            "target=$TARGET" "deploy_kind=$DEPLOY_KIND" "image_tag=$IMAGE_TAG" \
+            "ci_run_id=$CI_RUN_ID" "owner_approved=$OWNER_APPROVED" \
+            "allow_schema_migrations=$ALLOW_SCHEMA_MIGRATIONS" \
+            "initial_deploy=$INITIAL_DEPLOY" \
+            "first_scalability_release_approved=$FIRST_SCALABILITY_RELEASE_APPROVED" \
+            "scalability_evidence_run_id=$SCALABILITY_EVIDENCE_RUN_ID" \
+            "image_source=$IMAGE_SOURCE" "auto_release=false" "skip_release=false"; do
+            echo "$pair" >> "$GITHUB_OUTPUT"
+          done
+      - name: Validate canonical completed main CI and select automatic scope
+        id: automatic
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python3 ops/ci-auto-release.py --run-id "$CI_RUN_ID"
+
   verify-release:
     name: Verify exact-SHA CI evidence
+    needs: normalize-request
+    if: needs.normalize-request.outputs.skip_release != 'true'
     runs-on: ubuntu-latest
     outputs:
       backend_tests: ${{ steps.release.outputs.backend_tests }}
@@ -67,20 +142,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.image_tag }}
+          ref: ${{ needs.normalize-request.outputs.image_tag }}
           fetch-depth: 0
       - name: Validate owner choice and target combination
         env:
-          TARGET: ${{ inputs.target }}
-          DEPLOY_KIND: ${{ inputs.deploy_kind }}
-          OWNER_APPROVED: ${{ inputs.owner_approved }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
-          CI_RUN_ID: ${{ inputs.ci_run_id }}
-          INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
-          FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved }}
-          SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+          TARGET: ${{ needs.normalize-request.outputs.target }}
+          DEPLOY_KIND: ${{ needs.normalize-request.outputs.deploy_kind }}
+          OWNER_APPROVED: ${{ needs.normalize-request.outputs.owner_approved }}
+          IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+          CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+          INITIAL_DEPLOY: ${{ needs.normalize-request.outputs.initial_deploy }}
+          FIRST_SCALABILITY_RELEASE_APPROVED: ${{ needs.normalize-request.outputs.first_scalability_release_approved }}
+          SCALABILITY_EVIDENCE_RUN_ID: ${{ needs.normalize-request.outputs.scalability_evidence_run_id }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
           test "$OWNER_APPROVED" = true
           printf '%s' "$IMAGE_TAG" | grep -Eq '^[0-9a-f]{40}$'
           printf '%s' "$CI_RUN_ID" | grep -Eq '^[0-9]+$'
@@ -98,36 +174,40 @@ jobs:
           fi
           test "$(git rev-parse HEAD)" = "$IMAGE_TAG"
       - name: Verify first Iran scalability evidence
-        if: inputs.target == 'iran' && inputs.initial_deploy && inputs.first_scalability_release_approved
+        if: needs.normalize-request.outputs.target == 'iran' && needs.normalize-request.outputs.initial_deploy == 'true' && needs.normalize-request.outputs.first_scalability_release_approved == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
-          SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
+          IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+          SCALABILITY_EVIDENCE_RUN_ID: ${{ needs.normalize-request.outputs.scalability_evidence_run_id }}
         run: |
           set -euo pipefail
-          repository="repos/${GITHUB_REPOSITORY}"
-          workflow_name=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.name')
-          conclusion=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.conclusion')
-          evidence_sha=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.head_sha')
-          created_at=$(gh api "$repository/actions/runs/$SCALABILITY_EVIDENCE_RUN_ID" --jq '.created_at')
-          test "$workflow_name" = 'Fitician local scalability checks'
-          test "$conclusion" = success
-          test "$evidence_sha" = "$IMAGE_TAG"
-          python3 - "$created_at" <<'PY'
-          from datetime import UTC, datetime, timedelta
-          import sys
-          created = datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
-          if created < datetime.now(UTC) - timedelta(days=14):
-              raise SystemExit("Scalability evidence is older than 14 days")
+          PYTHONPATH=ops python3 - <<'PY'
+          import importlib.util
+          import os
+          from pathlib import Path
+
+          spec = importlib.util.spec_from_file_location(
+              "register_regional_runtime", Path("ops/register-regional-runtime.py")
+          )
+          if spec is None or spec.loader is None:
+              raise SystemExit("Unable to load regional evidence validator")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          module.load_foundation_evidence(
+              os.environ["GITHUB_REPOSITORY"],
+              int(os.environ["SCALABILITY_EVIDENCE_RUN_ID"]),
+              os.environ["IMAGE_TAG"],
+          )
           PY
       - name: Require successful exact-SHA CI evidence and published images
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
-          CI_RUN_ID: ${{ inputs.ci_run_id }}
-          TARGET: ${{ inputs.target }}
-          DEPLOY_KIND: ${{ inputs.deploy_kind }}
+          IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+          CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+          TARGET: ${{ needs.normalize-request.outputs.target }}
+          DEPLOY_KIND: ${{ needs.normalize-request.outputs.deploy_kind }}
         run: |
           set -euo pipefail
           mkdir -p .ci-evidence/regional
@@ -159,7 +239,10 @@ jobs:
           ) or (
               kind == "full" and path == "full"
           ) or (
-              target == "germany" and kind == "agent" and path == "full"
+              target == "germany"
+              and kind == "agent"
+              and plan.get("deploy_agent")
+              and path in {"full", "selective"}
           )
           if not allowed:
               raise SystemExit("Exact CI release evidence does not authorize this regional component")
@@ -169,35 +252,56 @@ jobs:
           echo "backend_tests=$backend_tests" >> "$GITHUB_OUTPUT"
           echo "shared_validated=$shared_validated" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    # Re-enable only after separate owner review; deploy diagnostics run elsewhere.
-    name: Deploy ${{ inputs.deploy_kind }} to ${{ inputs.target }}
-    needs: verify-release
+  owner-approval:
+    name: Owner approval for full regional release
     if: >-
-      false && (
-        github.event_name == 'workflow_dispatch' &&
-        needs.verify-release.result == 'success'
-      )
+      github.event_name == 'workflow_dispatch' &&
+      vars.REGIONAL_CD_ENABLED == 'true' &&
+      needs.verify-release.result == 'success' &&
+      (needs.normalize-request.outputs.deploy_kind == 'full' ||
+      needs.normalize-request.outputs.deploy_kind == 'agent')
+    needs: [normalize-request, verify-release]
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
+    environment: production-owner-approval
+    steps:
+      - name: Record protected owner approval
+        run: echo 'Protected owner approval granted for this regional release.'
+
+  deploy:
+    name: Deploy ${{ needs.normalize-request.outputs.deploy_kind }} to ${{ needs.normalize-request.outputs.target }}
+    needs: [normalize-request, verify-release, owner-approval]
+    if: >-
+      always() &&
+      !cancelled() &&
+      ((github.event_name == 'workflow_dispatch' &&
+      vars.REGIONAL_CD_ENABLED == 'true') ||
+      (github.event_name == 'workflow_run' &&
+      vars.REGIONAL_CD_ENABLED == 'true' && vars.REGIONAL_AUTO_CD_ENABLED == 'true')) &&
+      github.ref == 'refs/heads/main' &&
+      needs.verify-release.result == 'success' &&
+      (needs.normalize-request.outputs.auto_release == 'true' ||
+      (needs.normalize-request.outputs.deploy_kind != 'full' &&
+      needs.normalize-request.outputs.deploy_kind != 'agent') ||
+      needs['owner-approval'].result == 'success')
+    runs-on: ubuntu-latest
+    environment: ${{ needs.normalize-request.outputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     concurrency:
-      group: fitician-production-${{ inputs.target }}
+      group: fitician-production-${{ needs.normalize-request.outputs.target }}
       cancel-in-progress: false
     env:
-      TARGET: ${{ inputs.target }}
-      DEPLOY_KIND: ${{ inputs.deploy_kind }}
-      IMAGE_TAG: ${{ inputs.image_tag }}
-      OWNER_APPROVED: ${{ inputs.owner_approved }}
-      ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations }}
-      INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
-      FIRST_SCALABILITY_RELEASE_APPROVED: ${{ inputs.first_scalability_release_approved }}
-      SCALABILITY_EVIDENCE_RUN_ID: ${{ inputs.scalability_evidence_run_id }}
-      IMAGE_SOURCE: ${{ inputs.image_source }}
+      TARGET: ${{ needs.normalize-request.outputs.target }}
+      DEPLOY_KIND: ${{ needs.normalize-request.outputs.deploy_kind }}
+      IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+      OWNER_APPROVED: ${{ needs.normalize-request.outputs.owner_approved }}
+      ALLOW_SCHEMA_MIGRATIONS: ${{ needs.normalize-request.outputs.allow_schema_migrations }}
+      INITIAL_DEPLOY: ${{ needs.normalize-request.outputs.initial_deploy }}
+      FIRST_SCALABILITY_RELEASE_APPROVED: ${{ needs.normalize-request.outputs.first_scalability_release_approved }}
+      SCALABILITY_EVIDENCE_RUN_ID: ${{ needs.normalize-request.outputs.scalability_evidence_run_id }}
+      IMAGE_SOURCE: ${{ needs.normalize-request.outputs.image_source }}
       CI_BACKEND_TESTS: ${{ needs.verify-release.outputs.backend_tests }}
       CI_RELEASE_PATH: ${{ needs.verify-release.outputs.release_path }}
       CI_SHARED_VALIDATED: ${{ needs.verify-release.outputs.shared_validated }}
-      CI_RUN_ID: ${{ inputs.ci_run_id }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
+      CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
       COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME }}
@@ -205,9 +309,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.image_tag }}
+          ref: ${{ needs.normalize-request.outputs.image_tag }}
           fetch-depth: 0
+      - name: Revalidate automatic main SHA before exposing deployment credentials
+        if: needs.normalize-request.outputs.auto_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+          IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+        run: python3 ops/ci-auto-release.py --recheck-current-main --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG"
       - name: Validate regional deployment settings
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           test -n "$VPS_HOST"
@@ -227,6 +340,7 @@ jobs:
       - name: Pin regional VPS host key
         env:
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           test -n "$VPS_KNOWN_HOSTS"
@@ -272,9 +386,11 @@ jobs:
           scp -P "$VPS_SSH_PORT" ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
           scp -P "$VPS_SSH_PORT" ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
           scp -P "$VPS_SSH_PORT" ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
+          scp -P "$VPS_SSH_PORT" ops/rolling-backend.py "$VPS_USER@$VPS_HOST:$release_dir/ops/rolling-backend.py"
       - name: Authenticate regional Docker client
-        if: inputs.image_source == 'registry'
+        if: needs.normalize-request.outputs.image_source == 'registry'
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
@@ -285,6 +401,8 @@ jobs:
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Read running regional baseline
         id: baseline
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
@@ -294,22 +412,46 @@ jobs:
             "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED=true IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' INSPECT_ONLY=true bash '$release_dir/ops/deploy-regional.sh'")
           printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Read running worker source baseline
+        id: worker-baseline
+        if: needs.normalize-request.outputs.target == 'iran' && needs.normalize-request.outputs.deploy_kind == 'backend'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          # shellcheck disable=SC2029
+          tag=$(ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED=true IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' INSPECT_ONLY=true INSPECT_ROLE=worker bash '$release_dir/ops/deploy-regional.sh'")
+          printf '%s' "$tag" | grep -Eq '^[0-9a-f]{40}$'
+          echo "worker_tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Verify cumulative component scope
-        if: inputs.deploy_kind == 'frontend' || inputs.deploy_kind == 'backend'
+        if: needs.normalize-request.outputs.deploy_kind == 'frontend' || needs.normalize-request.outputs.deploy_kind == 'backend' || needs.normalize-request.outputs.deploy_kind == 'agent'
         env:
           BASE_TAG: ${{ steps.baseline.outputs.tag }}
+          WORKER_BASE_TAG: ${{ steps.worker-baseline.outputs.worker_tag }}
           GH_TOKEN: ${{ github.token }}
+          AUTO_RELEASE: ${{ needs.normalize-request.outputs.auto_release }}
         run: |
           set -euo pipefail
           args=(--component "$DEPLOY_KIND" --base "$BASE_TAG" --head "$IMAGE_TAG")
-          if [ "$CI_RELEASE_PATH" = frontend-full ]; then
-            test "$DEPLOY_KIND" = frontend
+          case "$DEPLOY_KIND" in
+            backend)
+              printf '%s' "$WORKER_BASE_TAG" | grep -Eq '^[0-9a-f]{40}$'
+              args+=(--worker-base "$WORKER_BASE_TAG" \
+                --validated-tests "$CI_BACKEND_TESTS" --shared-validated "$CI_SHARED_VALIDATED") ;;
+            agent)
+              args+=(--full-agent-validated)
+              if [ "$AUTO_RELEASE" = true ]; then args+=(--auto-agent); fi ;;
+            frontend)
+              if [ "$CI_RELEASE_PATH" = frontend-full ]; then
             args+=(--full-ci-run-id "$CI_RUN_ID")
-          else
-            args+=(--validated-tests "$CI_BACKEND_TESTS" --shared-validated "$CI_SHARED_VALIDATED")
-          fi
+              fi ;;
+          esac
           python3 ops/check-component-release.py "${args[@]}"
       - name: Deploy, verify, and regionally roll back on failure
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"

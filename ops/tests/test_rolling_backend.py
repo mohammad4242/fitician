@@ -88,6 +88,23 @@ class RollingBackendTests(unittest.TestCase):
         )
         self.assertFalse(any(e[0] == "rollback" for e in runtime.events))
 
+    def test_release_verifier_runs_inside_rollback_boundary(self):
+        runtime = FakeRuntime()
+        runtime.verify = Mock()
+        module.roll(runtime)
+        runtime.verify.assert_called_once_with()
+
+    def test_release_verifier_failure_rolls_back_both_replicas(self):
+        runtime = FakeRuntime()
+        runtime.verify = Mock(side_effect=RuntimeError("verification failed"))
+        with self.assertRaises(module.RolledBack):
+            module.roll(runtime)
+        self.assertEqual(runtime.config, BASE)
+        self.assertEqual(
+            [e for e in runtime.events if e[0] == "rollback"],
+            [("rollback", "backend-2"), ("rollback", "backend")],
+        )
+
     def test_failure_rolls_back_failed_replica_first_while_healthy_peer_serves(self):
         runtime = FakeRuntime(fail={("backend-2", False)})
         with self.assertRaises(module.RolledBack):

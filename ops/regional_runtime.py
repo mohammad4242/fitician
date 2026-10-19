@@ -14,6 +14,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
+from uuid import uuid4
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 REGIONS = {"iran": "iran", "alman": "germany"}
@@ -39,9 +40,20 @@ WORKER_MODULES = {
     "body-analysis-worker": "app.body_analysis.worker",
     "notification-worker": "app.notifications.worker",
 }
+MAPPER_PROBE_TIMEOUT_SECONDS = 180
+MAPPER_PROBE_MEMORY = "256m"
+MAPPER_PROBE_CPUS = "0.25"
+MAPPER_PROBE_PIDS_LIMIT = "128"
 WORKER_OVERRIDE_SHA256 = (
     "95fccb2d1868926b2c2642a6b97b6ce2d833e465a90efd8e790a41aefd86e96e"
 )
+ROLE_SOURCE_PROOF_VERSION = "iran-worker-role-source-v1"
+ROLE_SOURCE_PATHS = {
+    "backend/app/body_analysis/worker.py",
+    "backend/app/nutrition/food_photo_worker.py",
+    "backend/app/notifications/worker.py",
+    "backend/app/scheduler/worker.py",
+}
 IRAN_SHARED_ENV = (
     "DATABASE_URL",
     "AGENT_SERVICE_BASE_URL",
@@ -65,9 +77,9 @@ class RegistrationError(ValueError):
 
 
 def _duration_ns(value: str) -> int:
-    match = re.fullmatch(r"([0-9]+(?:\.[0-9]+)?)(ns|us|µs|ms|s|m|h)", value)
-    if not match:
-        raise RegistrationError("Germany healthcheck duration is invalid")
+    parts = re.findall(r"([0-9]+(?:\.[0-9]+)?)(ns|us|µs|ms|s|m|h)", value)
+    if not parts or "".join(number + unit for number, unit in parts) != value:
+        raise RegistrationError("Healthcheck duration is invalid")
     units = {
         "ns": 1,
         "us": 1_000,
@@ -77,7 +89,7 @@ def _duration_ns(value: str) -> int:
         "m": 60_000_000_000,
         "h": 3_600_000_000_000,
     }
-    return int(float(match.group(1)) * units[match.group(2)])
+    return sum(int(float(number) * units[unit]) for number, unit in parts)
 
 
 def _memory_bytes(value: str | int) -> int:
@@ -413,6 +425,15 @@ def validate_runtime_snapshot(
         for key in keys:
             actual_value = actual_env.get(key)
             contract_value = expected_env.get(key)
+            if (
+                region == "iran"
+                and service
+                in {"body-analysis-worker", "food-photo-worker", "scheduler"}
+                and key == "REDIS_HOST"
+                and key not in actual_env
+                and key not in expected_env
+            ):
+                continue
             if not actual_value or actual_value != contract_value:
                 raise RegistrationError(
                     "A critical runtime setting differs from its contract"
@@ -456,7 +477,10 @@ def validate_runtime_snapshot(
         if worker_mappers != {name: True for name in WORKER_MODULES}:
             raise RegistrationError("A worker mapper configuration probe failed")
         if has_worker_override and any(
-            service_config[name].get("healthcheck", {}).get("start_period") != "120s"
+            _duration_ns(
+                str(service_config[name].get("healthcheck", {}).get("start_period", ""))
+            )
+            != 120_000_000_000
             for name in WORKER_MODULES
         ):
             raise RegistrationError(
@@ -474,11 +498,10 @@ def validate_runtime_snapshot(
                 "notification-worker",
             )
         }
-        if worker_shas != {api_sha}:
-            raise RegistrationError(
-                "Iran APIs and workers do not share one application SHA"
-            )
-        app_sha = api_sha
+        if len(worker_shas) != 1:
+            raise RegistrationError("Iran workers use different image SHAs")
+        worker_sha = next(iter(worker_shas))
+        app_sha = worker_sha
         if live_checks.get("api_statuses") != {
             "backend": {"livez": 200, "readyz": 200},
             "backend-2": {"livez": 200, "readyz": 200},
@@ -537,6 +560,18 @@ def validate_runtime_snapshot(
         "region": region,
         "project": project,
         "app_sha": app_sha,
+        "api_sha": image_tags.get("backend", image_tags.get("agent-service")),
+        "worker_sha": next(iter({image_tags[name] for name in WORKER_MODULES}))
+        if region == "iran"
+        else None,
+        "role_versions": (
+            {
+                "api": image_tags["backend"],
+                "worker": next(iter({image_tags[name] for name in WORKER_MODULES})),
+            }
+            if region == "iran"
+            else {"agent": image_tags["agent-service"]}
+        ),
         "contract_paths": sorted(contract_paths),
         "service_image_tags": image_tags,
         "service_image_ids": image_ids,
@@ -554,7 +589,11 @@ def validate_runtime_snapshot(
 
 
 def _run(
-    args: list[str], *, input_text: str | None = None, env: dict[str, str] | None = None
+    args: list[str],
+    *,
+    input_text: str | None = None,
+    env: dict[str, str] | None = None,
+    timeout: int = 45,
 ) -> str:
     try:
         result = subprocess.run(
@@ -563,7 +602,7 @@ def _run(
             text=True,
             capture_output=True,
             check=True,
-            timeout=45,
+            timeout=timeout,
             env=env,
         )
     except (OSError, subprocess.SubprocessError) as error:
@@ -601,6 +640,119 @@ def _container_probe(region: str, item: dict, env: dict[str, str]) -> dict:
     )
     statuses = json.loads(_run(["docker", "exec", container_id, "python", "-c", code]))
     return {"api_statuses": statuses}
+
+
+def _probe_worker_mappers(selected: list[dict]) -> dict[str, bool]:
+    by_image: dict[str, list[str]] = {}
+    for service in WORKER_MODULES:
+        worker = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
+        image_id = worker.get("Image", "")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+            by_image.setdefault("", []).append(service)
+        else:
+            by_image.setdefault(image_id, []).append(service)
+
+    checks: dict[str, bool] = {}
+    modules = "; ".join(
+        f"importlib.import_module({module!r})" for module in WORKER_MODULES.values()
+    )
+    code = (
+        "import importlib; importlib.import_module('app.main'); "
+        f"{modules}; "
+        "from sqlalchemy.orm import configure_mappers; configure_mappers()"
+    )
+    for image_id, services in by_image.items():
+        if not image_id:
+            checks.update({service: False for service in services})
+            continue
+        name = f"fitician-regional-mapper-{uuid4().hex}"
+        command = [
+            "docker",
+            "run",
+            "--pull",
+            "never",
+            "--name",
+            name,
+            "--network",
+            "none",
+            "--read-only",
+            "--memory",
+            MAPPER_PROBE_MEMORY,
+            "--cpus",
+            MAPPER_PROBE_CPUS,
+            "--pids-limit",
+            MAPPER_PROBE_PIDS_LIMIT,
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--tmpfs",
+            "/app/var:rw,noexec,nosuid,size=16m,mode=1777",
+            "--env",
+            "APP_ENV=test",
+            "--env",
+            "DATABASE_URL=sqlite://",
+            "--env",
+            "TMPDIR=/app/var",
+            "--entrypoint",
+            "python",
+            image_id,
+            "-c",
+            code,
+        ]
+        success = False
+        try:
+            result = subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=MAPPER_PROBE_TIMEOUT_SECONDS,
+            )
+            success = result.returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            success = False
+        finally:
+            try:
+                cleanup = subprocess.run(
+                    ["docker", "rm", "--force", name],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                success = success and cleanup.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                success = False
+        checks.update({service: success for service in services})
+    return checks
+
+
+def _worker_probe_signature(item: dict) -> tuple:
+    state = item.get("State", {})
+    health = state.get("Health") or {}
+    return (
+        item.get("Id"),
+        item.get("Image"),
+        state.get("Status"),
+        state.get("StartedAt"),
+        health.get("Status"),
+        item.get("RestartCount", 0),
+    )
+
+
+def _verify_worker_containers_unchanged(selected: list[dict]) -> None:
+    for service in WORKER_MODULES:
+        before = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
+        inspected = _docker_json(["inspect", before["Id"]])
+        if (
+            not isinstance(inspected, list)
+            or len(inspected) != 1
+            or _worker_probe_signature(inspected[0]) != _worker_probe_signature(before)
+        ):
+            raise RegistrationError(
+                "Worker changed during isolated mapper qualification"
+            )
 
 
 def inspect_runtime(app_dir: Path, alias: str) -> dict:
@@ -717,20 +869,8 @@ def inspect_runtime(app_dir: Path, alias: str) -> dict:
                     region, item, _container_env(item)
                 )["api_statuses"]
         live_checks["api_statuses"] = api_statuses
-        mapper_checks = {}
-        for service, module in WORKER_MODULES.items():
-            worker = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
-            code = (
-                "import importlib; importlib.import_module('app.main'); "
-                f"importlib.import_module('{module}'); "
-                "from sqlalchemy.orm import configure_mappers; configure_mappers()"
-            )
-            try:
-                _run(["docker", "exec", worker["Id"], "python", "-c", code])
-                mapper_checks[service] = True
-            except RegistrationError:
-                mapper_checks[service] = False
-        live_checks["worker_mappers"] = mapper_checks
+        live_checks["worker_mappers"] = _probe_worker_mappers(selected)
+        _verify_worker_containers_unchanged(selected)
         db = next(item for item in selected if _labels(item)[LABEL_SERVICE] == "db")
         backend = next(
             item for item in selected if _labels(item)[LABEL_SERVICE] == "backend"
@@ -888,6 +1028,31 @@ def _validate_foundation_marker(path: Path, app_sha: str) -> bool:
     return True
 
 
+def _validate_role_proof(current: dict, proof: dict | None) -> None:
+    if current.get("region") != "iran" or current.get("api_sha") == current.get(
+        "worker_sha"
+    ):
+        return
+    changed_paths = (
+        proof.get("backend_image_inputs") if isinstance(proof, dict) else None
+    )
+    if (
+        not isinstance(proof, dict)
+        or proof.get("version") != ROLE_SOURCE_PROOF_VERSION
+        or proof.get("api_sha") != current.get("api_sha")
+        or proof.get("worker_sha") != current.get("worker_sha")
+        or proof.get("ancestor_verified") is not True
+        or proof.get("entrypoint_ast_equivalent") is not True
+        or not isinstance(changed_paths, list)
+        or any(not isinstance(path, str) for path in changed_paths)
+        or len(changed_paths) != len(set(changed_paths))
+        or set(changed_paths) - ROLE_SOURCE_PATHS
+    ):
+        raise RegistrationError(
+            "Mixed Iran API and worker roles require matching source proof"
+        )
+
+
 def _atomic_create(path: Path, content: str) -> bool:
     if path.is_symlink():
         raise RegistrationError("Registration target cannot be a symlink")
@@ -934,12 +1099,14 @@ def apply_registration(
     expected_invariant_sha256: str,
     evidence: dict | None,
     accepted_at: str,
+    role_proof: dict | None = None,
 ) -> dict:
     region = validate_region(alias)
     app_dir = Path(os.path.abspath(app_dir))
     current = inspect_runtime(app_dir, alias)
     if current["invariant_sha256"] != expected_invariant_sha256:
         raise RegistrationError("Runtime changed after read-only proof")
+    _validate_role_proof(current, role_proof)
     if evidence is not None and (
         region != "iran" or evidence.get("sha") != current["app_sha"]
     ):
@@ -980,6 +1147,7 @@ def apply_registration(
         "registered_at": accepted_at,
         "runtime": current,
         "foundation_evidence": evidence,
+        "role_source_compatibility": role_proof,
     }
     evidence_content = json.dumps(evidence_record, sort_keys=True, indent=2) + "\n"
     created: list[Path] = []
@@ -1018,6 +1186,7 @@ def main() -> None:
     parser.add_argument("--owner-approved", action="store_true")
     parser.add_argument("--expected-invariant-sha256")
     parser.add_argument("--evidence-b64")
+    parser.add_argument("--role-proof-b64")
     parser.add_argument("--accepted-at")
     args = parser.parse_args()
     try:
@@ -1033,12 +1202,20 @@ def main() -> None:
                 if args.evidence_b64
                 else None
             )
+            role_proof = (
+                json.loads(
+                    base64.urlsafe_b64decode(args.role_proof_b64).decode("utf-8")
+                )
+                if args.role_proof_b64
+                else None
+            )
             result = apply_registration(
                 app_dir=args.app_dir,
                 alias=args.alias,
                 expected_invariant_sha256=args.expected_invariant_sha256,
                 evidence=evidence,
                 accepted_at=args.accepted_at,
+                role_proof=role_proof,
             )
         print(json.dumps(result, sort_keys=True))
     except (RegistrationError, OSError, json.JSONDecodeError):

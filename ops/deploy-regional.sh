@@ -12,6 +12,7 @@ env_file=${FITICIAN_ENV_FILE:-"$app_dir/.env"}
 owner_approved=${OWNER_APPROVED:-false}
 allow_schema_migrations=${ALLOW_SCHEMA_MIGRATIONS:-false}
 inspect_only=${INSPECT_ONLY:-false}
+inspect_role=${INSPECT_ROLE:-}
 initial_deploy=${INITIAL_DEPLOY:-false}
 image_source=${IMAGE_SOURCE:-registry}
 first_scalability_approved=${FIRST_SCALABILITY_RELEASE_APPROVED:-false}
@@ -200,12 +201,12 @@ FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
   WORKER_IMAGE_TAG="$image_tag" AGENT_IMAGE_TAG="$image_tag" \
   python3 "$release_dir/ops/check-runtime-capacity.py" --region "$region" \
     --host-memory-mib "$host_memory_mib" --host-cpus "$host_cpus" \
-    --compose-file "$compose_file" --env-file "$env_file"
+    --compose-file "$compose_file" --env-file "$env_file" >&2
 if [[ "$region" == iran ]]; then
   FITICIAN_ENV_FILE="$env_file" IMAGE_TAG="$image_tag" \
     BACKEND_API_IMAGE_TAG="$image_tag" WORKER_IMAGE_TAG="$image_tag" \
     python3 "$release_dir/ops/check-db-connection-budget.py" \
-      --compose-file "$compose_file" --env-file "$env_file"
+      --compose-file "$compose_file" --env-file "$env_file" >&2
 fi
 
 image_services_csv=$(IFS=,; printf '%s' "${image_services[*]}")
@@ -318,7 +319,10 @@ previous_agent_tag=$agent_tag
 legacy_agent_id=''
 legacy_agent_restart=''
 auth_image=''
+auth_image_id=''
 auth_baseline_digest=''
+agent_auth_identity=''
+agent_auth_archive_dir=''
 if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
   all_auth_ids=$(docker ps -aq --filter "volume=$auth_volume") || fail 'Unable to inventory Agent authentication volume users'
   running_auth_ids=$(docker ps -q --filter "volume=$auth_volume") || fail 'Unable to inventory running Agent authentication volume users'
@@ -334,7 +338,10 @@ if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != tr
   auth_image=$(docker inspect --format '{{.Config.Image}}' "$legacy_agent_id")
   [[ "$auth_image" == "$registry_owner/fitician-agent:"* && "${auth_image##*:}" =~ ^[0-9a-f]{40}$ ]] || \
     fail 'Existing Agent image must use the configured repository and a full Git SHA'
+  previous_agent_tag=${auth_image##*:}
   docker image inspect "$auth_image" >/dev/null 2>&1 || fail 'Existing Agent image is missing locally'
+  auth_image_id=$(docker inspect --format '{{.Image}}' "$legacy_agent_id")
+  [[ "$auth_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || fail 'Existing Agent has an invalid immutable image ID'
 fi
 
 if [[ "$initial_deploy" == true && "$kind" == full ]]; then
@@ -364,6 +371,12 @@ elif [[ "$region" == iran ]]; then
     backend) api_tag=$image_tag ;;
   esac
   if [[ "$inspect_only" == true ]]; then
+    if [[ -n "$inspect_role" ]]; then
+      [[ "$region:$kind:$inspect_role" == iran:backend:worker ]] || \
+        fail 'INSPECT_ROLE is supported only for the Iran backend worker baseline'
+      printf '%s\n' "$previous_worker_tag"
+      exit 0
+    fi
     case "$kind" in
       frontend) printf '%s\n' "$previous_frontend_tag" ;;
       backend) printf '%s\n' "$previous_api_tag" ;;
@@ -376,6 +389,12 @@ else
   previous_agent_tag=$agent_tag
   if [[ "$inspect_only" == true ]]; then printf '%s\n' "$agent_tag"; exit 0; fi
   auth_image="$registry_owner/fitician-agent:$agent_tag"
+  agent_container_id=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" ps -q agent-service)
+  [[ -n "$agent_container_id" && "$agent_container_id" != *$'\n'* ]] || \
+    fail 'Unable to identify the running Agent container'
+  auth_image_id=$(docker inspect --format '{{.Image}}' "$agent_container_id")
+  [[ "$auth_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || fail 'Running Agent has an invalid immutable image ID'
   agent_tag=$image_tag
 fi
 [[ "$inspect_only" == true ]] && exit 0
@@ -385,7 +404,7 @@ auth_volume_digest() {
     --pids-limit 64 --cap-drop ALL \
     --security-opt no-new-privileges \
     --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
-    --entrypoint python3 "$auth_image" -c '
+    --entrypoint python3 "$auth_image_id" -c '
 import hashlib
 import json
 import os
@@ -416,6 +435,64 @@ records.sort(key=lambda record: record[0])
 print(hashlib.sha256(json.dumps(records, separators=(",", ":")).encode()).hexdigest())
 '
 }
+prepare_agent_auth_backup() {
+  local backup_parent="$app_dir/backups"
+  local backup_root="$backup_parent/agent-auth"
+  local identity
+  [[ ! -L "$backup_parent" ]] || fail 'Agent auth backup parent must not be a symlink'
+  mkdir -p -- "$backup_parent"
+  [[ ! -L "$backup_root" ]] || fail 'Agent auth backup directory must not be a symlink'
+  mkdir -p -- "$backup_root"
+  identity=$(docker run --pull never --rm --network none --read-only --memory 64m \
+    --cap-drop ALL --security-opt no-new-privileges \
+    --entrypoint python3 "$auth_image_id" -c \
+    'import os; print(f"{os.getuid()}:{os.getgid()}")') || \
+    fail 'Unable to read the trusted Agent image user identity'
+  [[ "$identity" =~ ^[1-9][0-9]*:[1-9][0-9]*$ ]] || \
+    fail 'Trusted Agent image must use a non-root user for auth backup'
+  agent_auth_identity=$identity
+  chmod 700 "$backup_root"
+  chown 0:0 "$backup_root"
+  agent_auth_backup_dir=$(mktemp -d "$backup_root/$previous_agent_tag.XXXXXXXX")
+  chmod 700 "$agent_auth_backup_dir"
+  chown 0:0 "$agent_auth_backup_dir"
+  agent_auth_archive_dir="$agent_auth_backup_dir/auth-volume"
+  mkdir -- "$agent_auth_archive_dir"
+  chown "$agent_auth_identity" "$agent_auth_archive_dir"
+  chmod 700 "$agent_auth_archive_dir"
+  cp -- "$env_file" "$agent_auth_backup_dir/env.before"
+  chmod 600 "$agent_auth_backup_dir/env.before"
+  if [[ -f "$active_marker" ]]; then
+    cp -- "$active_marker" "$agent_auth_backup_dir/active-contract.before"
+  else
+    printf 'active_contract_present=false\n' > "$agent_auth_backup_dir/active-contract.before"
+  fi
+  chmod 600 "$agent_auth_backup_dir/active-contract.before"
+  printf 'agent_image_tag=%s\nagent_image_id=%s\n' \
+    "$previous_agent_tag" "$auth_image_id" > "$agent_auth_backup_dir/baseline.txt"
+  chmod 600 "$agent_auth_backup_dir/baseline.txt"
+}
+archive_agent_auth_volume() {
+  docker run --pull never --rm --network none --read-only --memory 128m --cpus 0.2 \
+    --pids-limit 64 --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --user "$agent_auth_identity" \
+    --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
+    --mount "type=bind,source=$agent_auth_archive_dir,target=/backup" \
+    --entrypoint python3 "$auth_image_id" -c '
+import os
+import tarfile
+
+root = "/home/agent"
+destination = "/backup/auth-volume.tar"
+if not os.path.isdir(root):
+    raise SystemExit("Agent auth home is unavailable")
+with tarfile.open(destination, "w") as archive:
+    archive.add(root, arcname="agent", recursive=True)
+os.chmod(destination, 0o600)
+'
+  [[ -s "$agent_auth_archive_dir/auth-volume.tar" ]] || fail 'Agent auth backup archive is missing or empty'
+}
 if [[ "$region" == germany && "$kind" == agent ]]; then
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture read-only Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Agent auth inventory returned an invalid digest'
@@ -429,6 +506,28 @@ rollback() {
   local status=$?
   [[ $status -ne 0 ]] || status=1
   trap - ERR INT TERM
+  if [[ "${backend_rolling_verified:-false}" == true ]]; then
+    echo 'Regional metadata update failed; restoring the previous backend sequentially' >&2
+    set +e
+    REGION="$region" DEPLOY_KIND=backend IMAGE_TAG="$previous_api_tag" \
+      COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
+      FRONTEND_IMAGE_TAG="$previous_frontend_tag" BACKEND_API_IMAGE_TAG="$previous_api_tag" \
+      WORKER_IMAGE_TAG="$previous_worker_tag" AGENT_IMAGE_TAG="$previous_agent_tag" \
+      COMPOSE_FILE="$active_contract" python3 "$release_dir/ops/rolling-backend.py" \
+        --candidate-contract "$active_contract" --rollback-contract "$compose_file" \
+        --candidate-tag "$previous_api_tag" --rollback-tag "$image_tag" \
+        --backup-dir "$app_dir/backups/rolling-backend" --verify-script "$release_dir/ops/verify-regional.sh" \
+        --owner-approved
+    local rolling_status=$?
+    if [[ "$rolling_status" -eq 0 ]]; then
+      if [[ -n "$old_env_copy" && -f "$old_env_copy" ]]; then cp -p "$old_env_copy" "$env_file"; fi
+      if [[ -n "$old_marker_copy" && -f "$old_marker_copy" ]]; then cp -p "$old_marker_copy" "$active_marker"; fi
+      echo 'Previous backend and regional metadata restored' >&2
+    else
+      echo 'Sequential backend rollback failed; manual reconciliation is required' >&2
+    fi
+    exit "$status"
+  fi
   if [[ "$rollback_needed" != true ]]; then exit "$status"; fi
   if [[ "$schema_changed" == true ]]; then
     if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
@@ -442,7 +541,7 @@ rollback() {
   local rollback_status=0
   if [[ "$region" == germany && "$kind" == agent ]]; then
     if ! compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
-      stop agent-service >/dev/null 2>&1; then
+      stop --timeout -1 agent-service >/dev/null 2>&1; then
       echo 'Candidate Agent could not stop; no previous Agent was restarted to protect authentication state' >&2
       exit "$status"
     fi
@@ -543,18 +642,24 @@ if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
     run --pull never --rm --no-deps migrations alembic upgrade head
 fi
 
+if [[ "$region" == germany && "$kind" == agent ]]; then
+  prepare_agent_auth_backup
+fi
+
 if [[ "$initial_deploy" == true && "$region" == germany ]]; then
   rollback_needed=true
   docker update --restart=no "$legacy_agent_id" >/dev/null
-  docker stop "$legacy_agent_id" >/dev/null
+  docker stop --time -1 "$legacy_agent_id" >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
+  archive_agent_auth_volume
 elif [[ "$region" == germany && "$kind" == agent ]]; then
   rollback_needed=true
   compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
-    "$previous_worker_tag" "$previous_agent_tag" stop agent-service >/dev/null
+    "$previous_worker_tag" "$previous_agent_tag" stop --timeout -1 agent-service >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
+  archive_agent_auth_volume
 fi
 if [[ "$kind" == full ]]; then
   rollback_needed=true
@@ -564,14 +669,41 @@ if [[ "$kind" == full ]]; then
   fi
 else
   rollback_needed=true
-  if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
-    up -d --pull never --no-deps --wait "${services[@]}"; then
-    rollback || true
-    exit 1
+  if [[ "$kind" == backend ]]; then
+    # The rolling helper owns candidate and rollback transitions for both replicas.
+    # Never let the outer handler recreate both APIs at once.
+    rollback_needed=false
+    set +e
+    REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
+      COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
+      FRONTEND_IMAGE_TAG="$previous_frontend_tag" BACKEND_API_IMAGE_TAG="$image_tag" \
+      WORKER_IMAGE_TAG="$previous_worker_tag" AGENT_IMAGE_TAG="$previous_agent_tag" \
+      COMPOSE_FILE="$compose_file" python3 "$release_dir/ops/rolling-backend.py" \
+        --candidate-contract "$compose_file" --rollback-contract "$active_contract" \
+        --candidate-tag "$image_tag" --rollback-tag "$previous_api_tag" \
+        --backup-dir "$app_dir/backups/rolling-backend" --verify-script "$release_dir/ops/verify-regional.sh" \
+        --owner-approved
+    rolling_status=$?
+    set -e
+    if [[ "$rolling_status" -ne 0 ]]; then
+      case "$rolling_status" in
+        73) echo 'Backend candidate failed; previous replicas were restored' >&2 ;;
+        74) echo 'Backend rollback needs manual reconciliation; one replica may remain drained' >&2 ;;
+        *) echo 'Backend rolling preflight failed; no release was accepted' >&2 ;;
+      esac
+      exit "$rolling_status"
+    fi
+    backend_rolling_verified=true
+  else
+    if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
+      up -d --pull never --no-deps --wait "${services[@]}"; then
+      rollback || true
+      exit 1
+    fi
   fi
 fi
 
-if ! REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
+if [[ "${backend_rolling_verified:-false}" != true ]] && ! REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
   COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
   FRONTEND_IMAGE_TAG="$frontend_tag" BACKEND_API_IMAGE_TAG="$api_tag" \
   WORKER_IMAGE_TAG="$worker_tag" AGENT_IMAGE_TAG="$agent_tag" \
