@@ -366,9 +366,21 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
         for relative in files:
             destination = root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            source = subprocess.check_output(
-                ["git", "show", f"{API_SHA}:{relative}"], cwd=ROOT, text=True
-            )
+            source = (ROOT / relative).read_text()
+            if relative == "backend/app/scheduler/worker.py":
+                source = source.replace("from importlib import import_module\n", "")
+                source = source.replace('        import_module("app.main")\n', "")
+            else:
+                lines = source.splitlines(keepends=True)
+                index = next(
+                    i for i, line in enumerate(lines)
+                    if line.strip() == 'import_module("app.main")'
+                )
+                self.assertEqual(
+                    lines[index + 1].strip(), "install_diagnostic_log_bridge(settings)"
+                )
+                lines[index], lines[index + 1] = lines[index + 1], lines[index]
+                source = "".join(lines)
             destination.write_text(source)
         (root / "backend/pyproject.toml").write_text("[project]\nname='fitician'\n")
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)
@@ -377,10 +389,7 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
             ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
         ).strip()
         for relative in files:
-            source = subprocess.check_output(
-                ["git", "show", f"{WORKER_SHA}:{relative}"], cwd=ROOT, text=True
-            )
-            (root / relative).write_text(source)
+            (root / relative).write_text((ROOT / relative).read_text())
         if mutation == "worker_once":
             path = root / "backend/app/body_analysis/worker.py"
             tree = ast.parse(path.read_text())
@@ -880,24 +889,27 @@ class MarkerWriteTests(unittest.TestCase):
             )
 
     def test_mixed_role_apply_requires_and_records_matching_source_proof(self):
+        source_root, api_sha, worker_sha = (
+            RoleSourceCompatibilityTests._compatibility_repo(self)
+        )
         with tempfile.TemporaryDirectory(dir=ROOT) as folder:
             app_dir = Path(folder)
-            contract = app_dir / "releases" / WORKER_SHA / "compose.prod.iran.yaml"
+            contract = app_dir / "releases" / worker_sha / "compose.prod.iran.yaml"
             contract.parent.mkdir(parents=True)
             contract.write_text("services: {}\n")
             _, foundation = runtime.marker_paths(app_dir, "iran")
             accepted_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
             foundation.write_text(
                 "foundation_version=1\n"
-                f"image_tag={WORKER_SHA}\n"
+                f"image_tag={worker_sha}\n"
                 "evidence_run_id=12345\n"
                 f"accepted_at={accepted_at}\n"
             )
             current = {
                 "region": "iran",
-                "api_sha": API_SHA,
-                "worker_sha": WORKER_SHA,
-                "app_sha": WORKER_SHA,
+                "api_sha": api_sha,
+                "worker_sha": worker_sha,
+                "app_sha": worker_sha,
                 "invariant_sha256": "b" * 64,
                 "active_contract": None,
                 "registration_contract": str(contract),
@@ -914,7 +926,7 @@ class MarkerWriteTests(unittest.TestCase):
                     accepted_at=accepted_at,
                 )
             proof = controller.validate_role_source_compatibility(
-                API_SHA, WORKER_SHA, root=ROOT
+                api_sha, worker_sha, root=source_root
             )
             with patch.object(runtime, "inspect_runtime", return_value=current):
                 result = runtime.apply_registration(
