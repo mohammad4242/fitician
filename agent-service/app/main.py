@@ -128,8 +128,11 @@ def create_app(
         )
         incoming_trace = request.headers.get("traceparent", "")
         match = re.fullmatch(r"00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})", incoming_trace)
-        valid_trace = match is not None and int(match[1], 16) != 0 and int(match[2], 16) != 0
-        trace_id = match[1] if valid_trace else uuid4().hex
+        trace_id = uuid4().hex
+        parent_span_id = None
+        if match is not None and int(match[1], 16) != 0 and int(match[2], 16) != 0:
+            trace_id = match[1]
+            parent_span_id = match[2]
         span_id = uuid4().hex[:16]
         request.state.trace_id = trace_id
         request.state.span_id = span_id
@@ -149,7 +152,7 @@ def create_app(
                 "request_id": request.state.request_id,
                 "trace_id": trace_id,
                 "span_id": span_id,
-                "parent_span_id": match[2] if valid_trace else None,
+                "parent_span_id": parent_span_id,
                 "endpoint": request.url.path,
                 "duration_ms": round((perf_counter() - started) * 1000, 3),
                 "status": response.status_code if response is not None else "error",
