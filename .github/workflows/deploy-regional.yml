@@ -103,6 +103,15 @@ jobs:
           IMAGE_SOURCE: ${{ inputs.image_source }}
         run: |
           set -euo pipefail
+          [[ "$TARGET" == iran || "$TARGET" == germany ]]
+          [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent ]]
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ -z "$SCALABILITY_EVIDENCE_RUN_ID" || "$SCALABILITY_EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$IMAGE_SOURCE" == registry || "$IMAGE_SOURCE" == preloaded ]]
+          for flag in "$OWNER_APPROVED" "$ALLOW_SCHEMA_MIGRATIONS" "$INITIAL_DEPLOY" "$FIRST_SCALABILITY_RELEASE_APPROVED"; do
+            [[ "$flag" == true || "$flag" == false ]]
+          done
           for pair in \
             "target=$TARGET" "deploy_kind=$DEPLOY_KIND" "image_tag=$IMAGE_TAG" \
             "ci_run_id=$CI_RUN_ID" "owner_approved=$OWNER_APPROVED" \

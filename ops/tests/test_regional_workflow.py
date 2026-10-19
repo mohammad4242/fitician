@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
+import tempfile
+import textwrap
 import sys
 import unittest
 from pathlib import Path
@@ -10,6 +14,54 @@ WORKFLOW = ROOT / ".github/workflows/deploy-regional.yml"
 
 
 class RegionalWorkflowTests(unittest.TestCase):
+    def test_manual_inputs_reject_shell_and_output_injection_before_transport(self):
+        source = WORKFLOW.read_text().split("- name: Copy manual dispatch inputs", 1)[1]
+        script = textwrap.dedent(
+            source.split("        run: |\n", 1)[1].split("      - name:", 1)[0]
+        )
+        valid = dict(
+            os.environ,
+            TARGET="germany",
+            DEPLOY_KIND="agent",
+            IMAGE_TAG="a" * 40,
+            CI_RUN_ID="123",
+            OWNER_APPROVED="true",
+            ALLOW_SCHEMA_MIGRATIONS="false",
+            INITIAL_DEPLOY="false",
+            FIRST_SCALABILITY_RELEASE_APPROVED="false",
+            SCALABILITY_EVIDENCE_RUN_ID="",
+            IMAGE_SOURCE="registry",
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT) as temporary:
+            output = Path(temporary) / "outputs"
+            for key, value in [
+                ("SCALABILITY_EVIDENCE_RUN_ID", "1' invalid-command '"),
+                ("CI_RUN_ID", "123\nowner_approved=true"),
+                ("IMAGE_TAG", "a" * 40 + "\nauto_release=true"),
+            ]:
+                with self.subTest(key=key):
+                    output.unlink(missing_ok=True)
+                    result = subprocess.run(
+                        ["bash", "-c", script],
+                        env={**valid, key: value, "GITHUB_OUTPUT": str(output)},
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse(output.exists())
+            for evidence in ["", "456"]:
+                result = subprocess.run(
+                    ["bash", "-c", script],
+                    env={
+                        **valid,
+                        "SCALABILITY_EVIDENCE_RUN_ID": evidence,
+                        "GITHUB_OUTPUT": str(output),
+                    },
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_regional_deploy_is_guarded_and_default_off(
         self,
     ) -> None:
@@ -101,8 +153,12 @@ class RegionalWorkflowTests(unittest.TestCase):
         self.assertIn("contents: read", workflow)
         self.assertIn("expected_iran_host_sha256:", workflow)
         self.assertIn("expected_germany_host_sha256:", workflow)
-        self.assertIn("EXPECTED_HOST_SHA256: ${{ inputs.expected_iran_host_sha256 }}", workflow)
-        self.assertIn("EXPECTED_HOST_SHA256: ${{ inputs.expected_germany_host_sha256 }}", workflow)
+        self.assertIn(
+            "EXPECTED_HOST_SHA256: ${{ inputs.expected_iran_host_sha256 }}", workflow
+        )
+        self.assertIn(
+            "EXPECTED_HOST_SHA256: ${{ inputs.expected_germany_host_sha256 }}", workflow
+        )
 
 
 if __name__ == "__main__":
