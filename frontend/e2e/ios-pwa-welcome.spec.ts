@@ -49,9 +49,14 @@ for (const mode of ["safari", "display", "browser"] as const) {
           await page.getByRole("link", { name: "شروع کنیم" }).click();
           await expect(page).toHaveURL(/\/get-started$/);
           await expect(page.locator(".ios-pwa-welcome")).toHaveCount(0);
+          await expect(page.getByRole("heading", { name: "تو چه زمینه‌ای به کمک نیاز داری؟" })).toBeVisible();
+          await page.waitForLoadState("load");
           await page.goto("/");
+          await expect(page.getByTestId("ios-pwa-welcome")).toBeVisible();
+          await expect(page.getByRole("link", { name: "حساب داری؟ ورود" })).toBeVisible();
           await page.getByRole("link", { name: "حساب داری؟ ورود" }).click();
           await expect(page).toHaveURL(/\/login$/);
+          await expect(page.locator("#login-email")).toBeVisible();
         }
       }
       expect(errors).toEqual([]);
