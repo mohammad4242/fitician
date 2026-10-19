@@ -89,6 +89,65 @@ def _role_ast(
     ):
         raise ValueError("Worker startup initialization is invalid")
 
+    heartbeat_contexts = [
+        node
+        for node in ast.walk(function)
+        if isinstance(node, (ast.With, ast.AsyncWith))
+        and any(
+            isinstance(item.context_expr, ast.Call)
+            and isinstance(item.context_expr.func, ast.Name)
+            and item.context_expr.func.id in {"async_heartbeat", "threaded_heartbeat"}
+            for item in node.items
+        )
+    ]
+    if len(heartbeat_contexts) != 1:
+        raise ValueError("Worker heartbeat context is missing or ambiguous")
+    heartbeat_body = heartbeat_contexts[0].body
+
+    def startup_call(statement: ast.stmt, name: str) -> bool:
+        return (
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == name
+            and (
+                name != "import_module"
+                or (
+                    len(statement.value.args) == 1
+                    and isinstance(statement.value.args[0], ast.Constant)
+                    and statement.value.args[0].value == "app.main"
+                    and not statement.value.keywords
+                )
+            )
+            and (
+                name != "install_diagnostic_log_bridge"
+                or (
+                    len(statement.value.args) == 1
+                    and isinstance(statement.value.args[0], ast.Name)
+                    and statement.value.args[0].id == "settings"
+                    and not statement.value.keywords
+                )
+            )
+        )
+
+    bridge_indexes = [
+        index
+        for index, statement in enumerate(heartbeat_body)
+        if startup_call(statement, "install_diagnostic_log_bridge")
+    ]
+    main_indexes = [
+        index
+        for index, statement in enumerate(heartbeat_body)
+        if startup_call(statement, "import_module")
+    ]
+    if len(bridge_indexes) != 1 or len(main_indexes) != calls.main:
+        raise ValueError("Worker startup calls must be direct heartbeat statements")
+    if candidate:
+        if main_indexes[0] + 1 != bridge_indexes[0]:
+            raise ValueError("Worker app import must immediately precede log setup")
+    elif main_indexes and abs(main_indexes[0] - bridge_indexes[0]) != 1:
+        raise ValueError("Legacy worker startup calls must remain in heartbeat context")
+
     imports = [
         node
         for node in tree.body

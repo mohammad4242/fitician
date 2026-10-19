@@ -401,6 +401,50 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
             )
             target.body.insert(1, ast.Assert(test=ast.Constant(value=True)))
             path.write_text(ast.unparse(tree) + "\n")
+        elif mutation in {"import_outside_heartbeat", "reverse_startup_calls"}:
+            path = root / "backend/app/body_analysis/worker.py"
+            tree = ast.parse(path.read_text())
+            target = next(
+                node
+                for node in tree.body
+                if isinstance(node, ast.AsyncFunctionDef)
+                and node.name == "run_worker"
+            )
+            heartbeat = next(
+                node
+                for node in ast.walk(target)
+                if isinstance(node, (ast.With, ast.AsyncWith))
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Name)
+                    and item.context_expr.func.id == "async_heartbeat"
+                    for item in node.items
+                )
+            )
+            main_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "import_module"
+            )
+            bridge_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "install_diagnostic_log_bridge"
+            )
+            heartbeat.body.remove(main_statement)
+            heartbeat.body.remove(bridge_statement)
+            if mutation == "import_outside_heartbeat":
+                target.body.insert(target.body.index(heartbeat), main_statement)
+                heartbeat.body.insert(0, bridge_statement)
+            else:
+                heartbeat.body[:0] = [bridge_statement, main_statement]
+            path.write_text(ast.unparse(tree) + "\n")
         elif mutation == "dependency":
             (root / "backend/pyproject.toml").write_text(
                 "[project]\nname='fitician'\nversion='2'\n"
@@ -430,7 +474,14 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
             controller.validate_role_source_compatibility(worker, api, root=root)
 
     def test_rejects_run_once_dependency_schema_and_api_changes(self):
-        for mutation in ("worker_once", "dependency", "schema", "api"):
+        for mutation in (
+            "worker_once",
+            "import_outside_heartbeat",
+            "reverse_startup_calls",
+            "dependency",
+            "schema",
+            "api",
+        ):
             with self.subTest(mutation=mutation):
                 root, api, worker = self._compatibility_repo(mutation)
                 with self.assertRaises(ValueError):
