@@ -321,6 +321,8 @@ legacy_agent_restart=''
 auth_image=''
 auth_image_id=''
 auth_baseline_digest=''
+agent_auth_identity=''
+agent_auth_archive_dir=''
 if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
   all_auth_ids=$(docker ps -aq --filter "volume=$auth_volume") || fail 'Unable to inventory Agent authentication volume users'
   running_auth_ids=$(docker ps -q --filter "volume=$auth_volume") || fail 'Unable to inventory running Agent authentication volume users'
@@ -436,13 +438,28 @@ print(hashlib.sha256(json.dumps(records, separators=(",", ":")).encode()).hexdig
 prepare_agent_auth_backup() {
   local backup_parent="$app_dir/backups"
   local backup_root="$backup_parent/agent-auth"
-  mkdir -p -- "$backup_parent"
+  local identity
   [[ ! -L "$backup_parent" ]] || fail 'Agent auth backup parent must not be a symlink'
-  mkdir -p -- "$backup_root"
+  mkdir -p -- "$backup_parent"
   [[ ! -L "$backup_root" ]] || fail 'Agent auth backup directory must not be a symlink'
+  mkdir -p -- "$backup_root"
+  identity=$(docker run --pull never --rm --network none --read-only --memory 64m \
+    --cap-drop ALL --security-opt no-new-privileges \
+    --entrypoint python3 "$auth_image_id" -c \
+    'import os; print(f"{os.getuid()}:{os.getgid()}")') || \
+    fail 'Unable to read the trusted Agent image user identity'
+  [[ "$identity" =~ ^[1-9][0-9]*:[1-9][0-9]*$ ]] || \
+    fail 'Trusted Agent image must use a non-root user for auth backup'
+  agent_auth_identity=$identity
   chmod 700 "$backup_root"
+  chown 0:0 "$backup_root"
   agent_auth_backup_dir=$(mktemp -d "$backup_root/$previous_agent_tag.XXXXXXXX")
   chmod 700 "$agent_auth_backup_dir"
+  chown 0:0 "$agent_auth_backup_dir"
+  agent_auth_archive_dir="$agent_auth_backup_dir/auth-volume"
+  mkdir -- "$agent_auth_archive_dir"
+  chown "$agent_auth_identity" "$agent_auth_archive_dir"
+  chmod 700 "$agent_auth_archive_dir"
   cp -- "$env_file" "$agent_auth_backup_dir/env.before"
   chmod 600 "$agent_auth_backup_dir/env.before"
   if [[ -f "$active_marker" ]]; then
@@ -456,12 +473,12 @@ prepare_agent_auth_backup() {
   chmod 600 "$agent_auth_backup_dir/baseline.txt"
 }
 archive_agent_auth_volume() {
-  local destination_dir=$1
   docker run --pull never --rm --network none --read-only --memory 128m --cpus 0.2 \
     --pids-limit 64 --cap-drop ALL \
     --security-opt no-new-privileges \
+    --user "$agent_auth_identity" \
     --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
-    --mount "type=bind,source=$destination_dir,target=/backup" \
+    --mount "type=bind,source=$agent_auth_archive_dir,target=/backup" \
     --entrypoint python3 "$auth_image_id" -c '
 import os
 import tarfile
@@ -474,7 +491,7 @@ with tarfile.open(destination, "w") as archive:
     archive.add(root, arcname="agent", recursive=True)
 os.chmod(destination, 0o600)
 '
-  [[ -s "$destination_dir/auth-volume.tar" ]] || fail 'Agent auth backup archive is missing or empty'
+  [[ -s "$agent_auth_archive_dir/auth-volume.tar" ]] || fail 'Agent auth backup archive is missing or empty'
 }
 if [[ "$region" == germany && "$kind" == agent ]]; then
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture read-only Agent auth inventory'
@@ -635,14 +652,14 @@ if [[ "$initial_deploy" == true && "$region" == germany ]]; then
   docker stop --time -1 "$legacy_agent_id" >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
-  archive_agent_auth_volume "$agent_auth_backup_dir"
+  archive_agent_auth_volume
 elif [[ "$region" == germany && "$kind" == agent ]]; then
   rollback_needed=true
   compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
     "$previous_worker_tag" "$previous_agent_tag" stop --timeout -1 agent-service >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
-  archive_agent_auth_volume "$agent_auth_backup_dir"
+  archive_agent_auth_volume
 fi
 if [[ "$kind" == full ]]; then
   rollback_needed=true

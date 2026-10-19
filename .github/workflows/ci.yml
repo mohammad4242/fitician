@@ -783,7 +783,7 @@ jobs:
     env:
       CI_JOB_RESULTS: >-
         {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","container-images":"${{ needs.container-images.result }}"}
-      IMAGE_REQUIRED: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.deployable == 'true' }}
+      IMAGE_REQUIRED: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.changes.outputs.full_ci_required == 'true' || (needs.changes.outputs.selective_ci_required == 'true' && needs.changes.outputs.deployable == 'true')) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

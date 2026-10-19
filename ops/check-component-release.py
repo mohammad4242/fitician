@@ -28,19 +28,27 @@ def frontend_image_paths(paths: list[str]) -> list[str]:
 
 
 def agent_image_paths(paths: list[str]) -> list[str]:
-    if not paths or not any(
-        path.startswith("agent-service/app/") and path.endswith(".py") for path in paths
+    build_files = {
+        "agent-service/Dockerfile",
+        "agent-service/.dockerignore",
+        "agent-service/pyproject.toml",
+        "agent-service/uv.lock",
+    }
+    return [
+        path
+        for path in paths
+        if path.startswith("agent-service/app/") or path in build_files
+    ]
+
+
+def strict_agent_image_paths(paths: list[str]) -> list[str]:
+    image_paths = agent_image_paths(paths)
+    if not image_paths or any(
+        not path.startswith("agent-service/app/") or not path.endswith(".py")
+        for path in image_paths
     ):
-        raise SystemExit("Agent release needs at least one Agent application source change")
-    for path in paths:
-        if path.startswith("agent-service/app/") and path.endswith(".py"):
-            continue
-        if path.startswith("agent-service/tests/") and path.endswith(".py"):
-            continue
-        if path.startswith(("docs/", "reports/")) and path.endswith((".md", ".txt")):
-            continue
-        raise SystemExit("Cumulative Agent changes include non-Agent image inputs")
-    return paths
+        raise SystemExit("Automatic Agent release includes unvalidated image inputs")
+    return image_paths
 
 
 def role_controller():
@@ -96,7 +104,7 @@ def check_plan(
             and classifier.frontend_release_paths(plan["changed_paths"])
         ):
             return
-        if full_agent_validated and component == "agent" and agent_image_paths(plan["changed_paths"]):
+        if full_agent_validated and component == "agent":
             return
         raise SystemExit(
             "Cumulative changes require Full CI/release: "
@@ -126,6 +134,7 @@ def main():
     )
     parser.add_argument("--full-ci-run-id", default="")
     parser.add_argument("--full-agent-validated", action="store_true")
+    parser.add_argument("--auto-agent", action="store_true")
     parser.add_argument("--worker-base", default="")
     args = parser.parse_args()
     if args.full_ci_run_id:
@@ -171,6 +180,8 @@ def main():
         print("Verified runtime API/worker source roles: " + json.dumps(role_proof, sort_keys=True))
     else:
         paths = agent_image_paths(classifier.git_paths(args.base, args.head))
+        if args.auto_agent:
+            paths = strict_agent_image_paths(paths)
     if args.full_ci_run_id:
         # Compare every frontend image input. Unrelated native/API source was never
         # part of the independently deployed frontend image and will not be touched.

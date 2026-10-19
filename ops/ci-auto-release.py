@@ -17,7 +17,7 @@ CI_NAME = "Fitician CI"
 CI_PATH = ".github/workflows/ci.yml"
 
 
-def validate_run(run: dict, repository: str, main_sha: str, run_id: int) -> None:
+def validate_run_identity(run: dict, repository: str, run_id: int) -> None:
     if (
         run.get("id") != run_id
         or run.get("name") != CI_NAME
@@ -28,9 +28,14 @@ def validate_run(run: dict, repository: str, main_sha: str, run_id: int) -> None
         or run.get("event") != "push"
         or (run.get("head_repository") or {}).get("full_name") != repository
         or not SHA_RE.fullmatch(str(run.get("head_sha", "")))
-        or run.get("head_sha") != main_sha
     ):
-        raise ValueError("Workflow run is not successful canonical current-main CI")
+        raise ValueError("Workflow run is not successful canonical main CI")
+
+
+def validate_run(run: dict, repository: str, main_sha: str, run_id: int) -> None:
+    validate_run_identity(run, repository, run_id)
+    if run.get("head_sha") != main_sha:
+        raise ValueError("Workflow run is not current main CI")
 
 
 def agent_source_only(paths: object) -> bool:
@@ -63,8 +68,6 @@ def classify_paths(paths: list[str]) -> dict:
 
 
 def select_auto_route(plan: dict, release_path: str) -> tuple[str, str]:
-    if not plan.get("deployable"):
-        raise ValueError("CI run has no deployable release")
     paths = plan.get("changed_paths")
     if not isinstance(paths, list):
         raise TypeError("CI changed-path evidence is malformed")
@@ -77,6 +80,8 @@ def select_auto_route(plan: dict, release_path: str) -> tuple[str, str]:
     ):
         if classified.get(key) != plan.get(key):
             raise ValueError("CI release plan does not match its changed-path classification")
+    if not plan.get("deployable"):
+        raise ValueError("CI run has no deployable release")
     if (
         release_path == "full"
         and plan.get("full_ci_required") is True
@@ -106,6 +111,18 @@ def select_auto_route(plan: dict, release_path: str) -> tuple[str, str]:
     raise ValueError("CI path is ambiguous or outside automatic regional release policy")
 
 
+def automatic_route_or_skip(plan: dict, release_path: str) -> tuple[str, str] | None:
+    try:
+        return select_auto_route(plan, release_path)
+    except ValueError as error:
+        if str(error) in {
+            "CI run has no deployable release",
+            "CI path is ambiguous or outside automatic regional release policy",
+        }:
+            return None
+        raise
+
+
 def gh_json(endpoint: str) -> dict:
     try:
         result = subprocess.run(
@@ -131,6 +148,19 @@ def load_gate():
     return module
 
 
+def validate_current_main(repository: str, run_id: int, sha: str) -> None:
+    if run_id <= 0 or "/" not in repository or not SHA_RE.fullmatch(sha):
+        raise ValueError("Invalid automatic release identity")
+    base = f"repos/{repository}/actions/runs/{run_id}"
+    run = gh_json(base)
+    main_sha = (gh_json(f"repos/{repository}/branches/main").get("commit") or {}).get(
+        "sha", ""
+    )
+    validate_run(run, repository, main_sha, run_id)
+    if run.get("head_sha") != sha:
+        raise ValueError("Automatic release SHA changed before deployment")
+
+
 def validate_automatic_run(repository: str, run_id: int, output_dir: Path) -> dict:
     if run_id <= 0 or "/" not in repository:
         raise ValueError("Invalid workflow run identity")
@@ -138,7 +168,9 @@ def validate_automatic_run(repository: str, run_id: int, output_dir: Path) -> di
     run = gh_json(base)
     branch = gh_json(f"repos/{repository}/branches/main")
     main_sha = (branch.get("commit") or {}).get("sha", "")
-    validate_run(run, repository, main_sha, run_id)
+    validate_run_identity(run, repository, run_id)
+    if run.get("head_sha") != main_sha:
+        return {"skip_release": "true", "auto_release": "false"}
 
     artifacts = gh_json(f"{base}/artifacts?per_page=100").get("artifacts", [])
     matches = [item for item in artifacts if item.get("name") == "fitician-release-plan"]
@@ -174,7 +206,10 @@ def validate_automatic_run(repository: str, run_id: int, output_dir: Path) -> di
     path = gate.release_path(plan, jobs, run["head_sha"])
     if path == "selective":
         gate.require_selective_evidence(repository, plan, run["head_sha"], output_dir)
-    target, kind = select_auto_route(plan, path)
+    route = automatic_route_or_skip(plan, path)
+    if route is None:
+        return {"skip_release": "true", "auto_release": "false"}
+    target, kind = route
     return {
         "target": target,
         "deploy_kind": kind,
@@ -187,16 +222,27 @@ def validate_automatic_run(repository: str, run_id: int, output_dir: Path) -> di
         "scalability_evidence_run_id": "",
         "image_source": "registry",
         "auto_release": "true",
+        "skip_release": "false",
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-id", type=int, required=True)
+    parser.add_argument("--run-id", type=int)
+    parser.add_argument("--sha", default="")
+    parser.add_argument("--recheck-current-main", action="store_true")
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", ""))
     parser.add_argument("--directory", type=Path, default=Path(".ci-evidence/auto"))
     args = parser.parse_args()
     try:
+        if args.recheck_current_main:
+            if args.run_id is None:
+                raise ValueError("--run-id is required for current-main revalidation")
+            validate_current_main(args.repository, args.run_id, args.sha)
+            print("Automatic release remains the current canonical main CI run")
+            return
+        if args.run_id is None:
+            parser.error("--run-id is required")
         values = validate_automatic_run(args.repository, args.run_id, args.directory)
     except (ValueError, KeyError, TypeError) as error:
         print(str(error), file=sys.stderr)

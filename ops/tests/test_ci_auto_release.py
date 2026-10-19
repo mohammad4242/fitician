@@ -1,6 +1,7 @@
 import importlib.util
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
@@ -45,6 +46,27 @@ class CanonicalRunTests(unittest.TestCase):
                 module.validate_run(bad, "owner/repo", SHA, 123)
         with self.assertRaises(ValueError):
             module.validate_run(run, "owner/repo", "b" * 40, 123)
+
+    def test_deploy_time_recheck_rejects_main_advance_or_changed_run(self):
+        with patch.object(
+            module,
+            "gh_json",
+            side_effect=[valid_run(), {"commit": {"sha": SHA}}],
+        ):
+            module.validate_current_main("owner/repo", 123, SHA)
+        with patch.object(
+            module,
+            "gh_json",
+            side_effect=[valid_run(), {"commit": {"sha": "b" * 40}}],
+        ), self.assertRaisesRegex(ValueError, "current main CI"):
+            module.validate_current_main("owner/repo", 123, SHA)
+
+    def test_canonical_but_stale_runs_are_skipped_before_artifact_lookup(self):
+        stale = {**valid_run(), "head_sha": "b" * 40}
+        with patch.object(module, "gh_json", side_effect=[stale, {"commit": {"sha": SHA}}]) as api:
+            result = module.validate_automatic_run("owner/repo", 123, Path("unused"))
+        self.assertEqual(result, {"skip_release": "true", "auto_release": "false"})
+        self.assertEqual(api.call_count, 2)
 
 
 class AutomaticRouteTests(unittest.TestCase):
@@ -116,6 +138,11 @@ class AutomaticRouteTests(unittest.TestCase):
         for plan, path in ((mixed, "component"), (full, "full"), (agent, "full")):
             with self.subTest(plan=plan), self.assertRaises(ValueError):
                 module.select_auto_route(plan, path)
+
+    def test_canonical_noneligible_plans_skip_without_failing_the_workflow(self):
+        plan = module.classify_paths([])
+        plan["deployable"] = False
+        self.assertIsNone(module.automatic_route_or_skip(plan, "full"))
 
 
 if __name__ == "__main__":

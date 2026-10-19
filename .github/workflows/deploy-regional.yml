@@ -80,6 +80,7 @@ jobs:
       scalability_evidence_run_id: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.scalability_evidence_run_id || steps.automatic.outputs.scalability_evidence_run_id }}
       image_source: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.image_source || steps.automatic.outputs.image_source }}
       auto_release: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.auto_release || steps.automatic.outputs.auto_release }}
+      skip_release: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.skip_release || steps.automatic.outputs.skip_release }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name == 'workflow_run'
@@ -109,7 +110,7 @@ jobs:
             "initial_deploy=$INITIAL_DEPLOY" \
             "first_scalability_release_approved=$FIRST_SCALABILITY_RELEASE_APPROVED" \
             "scalability_evidence_run_id=$SCALABILITY_EVIDENCE_RUN_ID" \
-            "image_source=$IMAGE_SOURCE" "auto_release=false"; do
+            "image_source=$IMAGE_SOURCE" "auto_release=false" "skip_release=false"; do
             echo "$pair" >> "$GITHUB_OUTPUT"
           done
       - name: Validate canonical completed main CI and select automatic scope
@@ -123,6 +124,7 @@ jobs:
   verify-release:
     name: Verify exact-SHA CI evidence
     needs: normalize-request
+    if: needs.normalize-request.outputs.skip_release != 'true'
     runs-on: ubuntu-latest
     outputs:
       backend_tests: ${{ steps.release.outputs.backend_tests }}
@@ -291,7 +293,6 @@ jobs:
       CI_RELEASE_PATH: ${{ needs.verify-release.outputs.release_path }}
       CI_SHARED_VALIDATED: ${{ needs.verify-release.outputs.shared_validated }}
       CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
       COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME }}
@@ -301,7 +302,16 @@ jobs:
         with:
           ref: ${{ needs.normalize-request.outputs.image_tag }}
           fetch-depth: 0
+      - name: Revalidate automatic main SHA before exposing deployment credentials
+        if: needs.normalize-request.outputs.auto_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+          IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+        run: python3 ops/ci-auto-release.py --recheck-current-main --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG"
       - name: Validate regional deployment settings
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           test -n "$VPS_HOST"
@@ -321,6 +331,7 @@ jobs:
       - name: Pin regional VPS host key
         env:
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           test -n "$VPS_KNOWN_HOSTS"
@@ -370,6 +381,7 @@ jobs:
       - name: Authenticate regional Docker client
         if: needs.normalize-request.outputs.image_source == 'registry'
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
@@ -380,6 +392,8 @@ jobs:
             "docker login --username '$DOCKERHUB_USERNAME' --password-stdin"
       - name: Read running regional baseline
         id: baseline
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
@@ -392,6 +406,8 @@ jobs:
       - name: Read running worker source baseline
         id: worker-baseline
         if: needs.normalize-request.outputs.target == 'iran' && needs.normalize-request.outputs.deploy_kind == 'backend'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
@@ -406,6 +422,7 @@ jobs:
           BASE_TAG: ${{ steps.baseline.outputs.tag }}
           WORKER_BASE_TAG: ${{ steps.worker-baseline.outputs.worker_tag }}
           GH_TOKEN: ${{ github.token }}
+          AUTO_RELEASE: ${{ needs.normalize-request.outputs.auto_release }}
         run: |
           set -euo pipefail
           args=(--component "$DEPLOY_KIND" --base "$BASE_TAG" --head "$IMAGE_TAG")
@@ -414,7 +431,9 @@ jobs:
               printf '%s' "$WORKER_BASE_TAG" | grep -Eq '^[0-9a-f]{40}$'
               args+=(--worker-base "$WORKER_BASE_TAG" \
                 --validated-tests "$CI_BACKEND_TESTS" --shared-validated "$CI_SHARED_VALIDATED") ;;
-            agent) args+=(--full-agent-validated) ;;
+            agent)
+              args+=(--full-agent-validated)
+              if [ "$AUTO_RELEASE" = true ]; then args+=(--auto-agent); fi ;;
             frontend)
               if [ "$CI_RELEASE_PATH" = frontend-full ]; then
             args+=(--full-ci-run-id "$CI_RUN_ID")
@@ -422,6 +441,8 @@ jobs:
           esac
           python3 ops/check-component-release.py "${args[@]}"
       - name: Deploy, verify, and regionally roll back on failure
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           set -euo pipefail
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"

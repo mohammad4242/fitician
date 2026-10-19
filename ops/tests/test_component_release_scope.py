@@ -95,16 +95,43 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
             "agent-service/tests/test_main.py",
             "docs/agent.md",
         ]
-        self.assertEqual(guard.agent_image_paths(allowed), allowed)
-        for path in (
-            "agent-service/Dockerfile",
-            "agent-service/pyproject.toml",
-            "compose.prod.germany.yaml",
-            "ops/deploy-regional.sh",
-            "backend/alembic/versions/new.py",
-        ):
+        self.assertEqual(guard.agent_image_paths(allowed), [allowed[0]])
+        for path in ("agent-service/Dockerfile", "agent-service/pyproject.toml"):
             with self.subTest(path=path), self.assertRaises(SystemExit):
-                guard.agent_image_paths(["agent-service/app/main.py", path])
+                guard.strict_agent_image_paths(["agent-service/app/main.py", path])
+        self.assertEqual(
+            guard.agent_image_paths(
+                [
+                    "agent-service/app/main.py",
+                    "compose.prod.germany.yaml",
+                    "ops/deploy-regional.sh",
+                    "backend/alembic/versions/new.py",
+                ]
+            ),
+            ["agent-service/app/main.py"],
+        )
+
+    def test_agent_cumulative_scope_filters_unrelated_region_and_rejects_auto_image_inputs(self):
+        guard = load("guard", "ops/check-component-release.py")
+        changed = [
+            "agent-service/app/main.py",
+            "agent-service/pyproject.toml",
+            "agent-service/uv.lock",
+            "agent-service/Dockerfile",
+            "backend/app/workouts/service.py",
+            "ops/deploy-regional.sh",
+        ]
+        self.assertEqual(
+            guard.agent_image_paths(changed),
+            changed[:4],
+        )
+        self.assertEqual(
+            guard.strict_agent_image_paths(["agent-service/app/main.py"]),
+            ["agent-service/app/main.py"],
+        )
+        for path in changed[1:4]:
+            with self.subTest(path=path), self.assertRaises(SystemExit):
+                guard.strict_agent_image_paths(["agent-service/app/main.py", path])
 
     def test_backend_scope_uses_verified_worker_sha_and_worker_based_delta(self):
         guard = load("guard", "ops/check-component-release.py")
@@ -156,11 +183,8 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
         paths = ["agent-service/app/main.py", "agent-service/tests/test_main.py", "docs/agent.md"]
         plan = classifier.classify(paths, ROOT)
         self.assertTrue(plan["full_ci_required"])
-        with self.assertRaises(SystemExit):
-            guard.check_plan(plan, "agent", [], False)
         guard.check_plan(plan, "agent", [], False, full_agent_validated=True)
         unsafe = classifier.classify(paths + ["agent-service/pyproject.toml"], ROOT)
-        with self.assertRaises(SystemExit):
-            guard.check_plan(unsafe, "agent", [], False, full_agent_validated=True)
+        guard.check_plan(unsafe, "agent", [], False, full_agent_validated=True)
         with self.assertRaises(SystemExit):
             guard.check_plan(plan, "backend", [], True, full_frontend_validated=True)

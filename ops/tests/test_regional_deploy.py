@@ -47,6 +47,7 @@ class RegionalDeployTests(unittest.TestCase):
             f"IMAGE_TAG={OLD}\nFRONTEND_IMAGE_TAG={OLD}\n"
             f"BACKEND_API_IMAGE_TAG={OLD}\nWORKER_IMAGE_TAG={OLD}\n"
             f"AGENT_IMAGE_TAG={OLD}\nDOCKERHUB_USERNAME=example\n"
+            "AGENT_PRIVATE_VALUE=synthetic-no-log\n"
             "POSTGRES_VOLUME_NAME=pg-data\n"
             "REDIS_VOLUME_NAME=redis-data\nCADDY_DATA_VOLUME_NAME=caddy-data\n"
             "CADDY_CONFIG_VOLUME_NAME=caddy-config\nAGENT_HOME_VOLUME_NAME=agent-home\n"
@@ -83,6 +84,10 @@ class RegionalDeployTests(unittest.TestCase):
         self.tags = self.app / "running-tags"
         self.tags.write_text(f"FRONTEND={OLD}\nAPI={OLD}\nWORKER={OLD}\nAGENT={OLD}\n")
         self.command(
+            "chown",
+            "#!/bin/sh\nprintf 'CHOWN %s\\n' \"$*\" >> \"$FAKE_CALLS\"\n",
+        )
+        self.command(
             "docker",
             r"""#!/usr/bin/env bash
 if [[ "$1" == run && "$*" == *"--mount type=volume,source=agent-home,target=/home/agent,readonly"* ]]; then
@@ -96,10 +101,13 @@ if [[ "$1" == run && "$*" == *"--mount type=volume,source=agent-home,target=/hom
         archive_dir=${archive_dir%,target=/backup}
       fi
     done
+    if [[ "$*" != *"--user $(id -u):$(id -g)"* ]]; then exit 2; fi
     mkdir -p "$archive_dir"
+    [[ "$(stat -c %a "$archive_dir")" == 700 ]] || exit 3
+    [[ "$(stat -c %u:%g "$archive_dir")" == "$(id -u):$(id -g)" ]] || exit 4
     printf 'mock auth archive\n' > "$archive_dir/auth-volume.tar"
     chmod 600 "$archive_dir/auth-volume.tar"
-    printf 'AUTH_ARCHIVE\n' >> "$FAKE_CALLS"
+    printf 'AUTH_ARCHIVE_USER=%s\n' "$(id -u):$(id -g)" >> "$FAKE_CALLS"
     exit 0
   fi
   printf 'AUTH_DIGEST\n' >> "$FAKE_CALLS"
@@ -109,6 +117,10 @@ if [[ "$1" == run && "$*" == *"--mount type=volume,source=agent-home,target=/hom
   else
     printf '%064d\n' 1
   fi
+  exit 0
+fi
+if [[ "$1" == run && "$*" == *"--entrypoint python3"* && "$*" != *"target=/home/agent"* ]]; then
+  printf '%s:%s\n' "$(id -u)" "$(id -g)"
   exit 0
 fi
 printf '%s\n' "$*" >> "$FAKE_CALLS"
@@ -411,7 +423,7 @@ fi
             (backup_dirs[0] / "active-contract.before").read_text(),
             "active_contract_present=false\n",
         )
-        self.assertTrue((backup_dirs[0] / "auth-volume.tar").is_file())
+        self.assertTrue((backup_dirs[0] / "auth-volume" / "auth-volume.tar").is_file())
 
     def test_initial_germany_never_starts_two_auth_volume_writers(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
@@ -454,7 +466,9 @@ fi
         )
         self.assertNotIn("start legacy-agent", calls)
         self.assertEqual(calls.count("AUTH_DIGEST"), 3)
-        archive = next((self.app / "backups" / "agent-auth").glob("*/auth-volume.tar"))
+        archive = next(
+            (self.app / "backups" / "agent-auth").glob("*/auth-volume/auth-volume.tar")
+        )
         self.assertTrue(archive.is_file())
         self.assertEqual(archive.stat().st_mode & 0o777, 0o600)
 
@@ -855,10 +869,18 @@ fi
         stops = [line for line in calls if " stop " in line and "agent-service" in line]
         self.assertTrue(stops)
         self.assertTrue(all("--timeout -1" in line for line in stops))
-        archives = list((self.app / "backups" / "agent-auth").glob("*/auth-volume.tar"))
+        archives = list(
+            (self.app / "backups" / "agent-auth").glob("*/auth-volume/auth-volume.tar")
+        )
         self.assertEqual(len(archives), 1)
-        backup_dir = archives[0].parent
+        backup_dir = archives[0].parent.parent
         self.assertEqual(backup_dir.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(archives[0].parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(archives[0].parent.stat().st_uid, os.getuid())
+        self.assertEqual(archives[0].parent.stat().st_gid, os.getgid())
+        self.assertEqual(archives[0].stat().st_uid, os.getuid())
+        self.assertTrue(any(line.startswith("CHOWN 0:0 ") for line in calls))
+        self.assertNotIn("synthetic-no-log", result.stdout + result.stderr)
         self.assertEqual((backup_dir / "env.before").stat().st_mode & 0o777, 0o600)
         self.assertEqual(
             (backup_dir / "active-contract.before").stat().st_mode & 0o777, 0o600
@@ -867,14 +889,15 @@ fi
         self.assertIn(OLD, baseline)
         self.assertIn("sha256:" + "0" * 63 + "3", baseline)
         self.assertEqual(archives[0].stat().st_mode & 0o777, 0o600)
+        archive_call = next(i for i, line in enumerate(calls) if line.startswith("AUTH_ARCHIVE_USER="))
         self.assertLess(
-            calls.index("AUTH_ARCHIVE"),
+            archive_call,
             next(i for i, line in enumerate(calls) if " up -d " in line),
         )
         old_stop = next(
             i for i, line in enumerate(calls) if "stop --timeout -1 agent-service" in line
         )
-        self.assertLess(old_stop, calls.index("AUTH_ARCHIVE"))
+        self.assertLess(old_stop, archive_call)
 
     def test_germany_agent_archive_failure_blocks_candidate_and_preserves_metadata_copy(self) -> None:
         contract = self.new_release / "compose.prod.germany.yaml"
@@ -902,7 +925,7 @@ fi
         self.assertTrue((backup_dir / "env.before").is_file())
         self.assertTrue((backup_dir / "active-contract.before").is_file())
         self.assertTrue((backup_dir / "baseline.txt").is_file())
-        self.assertFalse((backup_dir / "auth-volume.tar").exists())
+        self.assertFalse((backup_dir / "auth-volume" / "auth-volume.tar").exists())
 
     def test_germany_requires_existing_external_auth_volume_before_rollout(
         self,
@@ -941,6 +964,16 @@ fi
         self.assertIn("--require-full", workflow)
         self.assertIn("ops/check-component-release.py", workflow)
         self.assertIn("frontend-full", workflow)
+        self.assertIn("--recheck-current-main", workflow)
+        self.assertIn("--auto-agent", workflow)
+        self.assertLess(
+            workflow.index("--recheck-current-main"),
+            workflow.index("uses: webfactory/ssh-agent"),
+        )
+        self.assertGreater(
+            workflow.index("VPS_HOST: ${{ secrets.VPS_HOST }}"),
+            workflow.index("--recheck-current-main"),
+        )
 
 
 if __name__ == "__main__":

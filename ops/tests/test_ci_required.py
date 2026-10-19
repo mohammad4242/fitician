@@ -41,6 +41,27 @@ class RequiredCITests(unittest.TestCase):
             "container-images", module.failures(plan, results, image_required=True)
         )
 
+    def test_main_component_pushes_do_not_require_skipped_full_image_job(self):
+        for selector, job in (
+            ("run_frontend", "frontend"),
+            ("run_backend", "backend-component"),
+        ):
+            plan = {name: False for name in module.PLAN_JOBS}
+            plan.update(
+                deployable=True,
+                full_ci_required=False,
+                selective_ci_required=False,
+                **{selector: True},
+            )
+            results = {name: "skipped" for name in module.ALL_JOBS}
+            results.update(changes="success", secrets="success", **{job: "success"})
+            self.assertEqual(
+                module.failures(plan, results, image_required=False), [], selector
+            )
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("needs.changes.outputs.full_ci_required == 'true'", workflow)
+        self.assertIn("needs.changes.outputs.selective_ci_required == 'true'", workflow)
+
     def test_any_selected_failure_fails_the_stable_gate(self):
         plan = {name: False for name in module.PLAN_JOBS}
         plan["run_android"] = True

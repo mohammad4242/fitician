@@ -26,6 +26,8 @@ class RegionalWorkflowTests(unittest.TestCase):
         self.assertIn("vars.REGIONAL_AUTO_CD_ENABLED == 'true'", workflow)
         self.assertIn("ops/ci-auto-release.py", workflow)
         self.assertIn("auto_release == 'true'", workflow)
+        self.assertIn("skip_release:", workflow)
+        self.assertIn("skip_release != 'true'", workflow)
         self.assertNotIn("push:", workflow)
 
     def test_legacy_regional_deploy_remains_disabled(self) -> None:
