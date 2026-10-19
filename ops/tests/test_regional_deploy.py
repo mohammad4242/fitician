@@ -86,6 +86,22 @@ class RegionalDeployTests(unittest.TestCase):
             "docker",
             r"""#!/usr/bin/env bash
 if [[ "$1" == run && "$*" == *"--mount type=volume,source=agent-home,target=/home/agent,readonly"* ]]; then
+  if [[ "$*" == *"target=/backup"* ]]; then
+    if [[ "${FAKE_ARCHIVE_STATUS:-0}" != 0 ]]; then
+      exit "$FAKE_ARCHIVE_STATUS"
+    fi
+    for arg in "$@"; do
+      if [[ "$arg" == type=bind,source=* ]]; then
+        archive_dir=${arg#type=bind,source=}
+        archive_dir=${archive_dir%,target=/backup}
+      fi
+    done
+    mkdir -p "$archive_dir"
+    printf 'mock auth archive\n' > "$archive_dir/auth-volume.tar"
+    chmod 600 "$archive_dir/auth-volume.tar"
+    printf 'AUTH_ARCHIVE\n' >> "$FAKE_CALLS"
+    exit 0
+  fi
   printf 'AUTH_DIGEST\n' >> "$FAKE_CALLS"
   count=$(grep -c '^AUTH_DIGEST$' "$FAKE_CALLS")
   if [[ "${FAKE_AUTH_CHANGED:-false}" == true && "$count" -gt 2 ]]; then
@@ -128,8 +144,10 @@ elif [[ "$*" == *"com.docker.compose.project"* ]]; then
   printf '%s\n' "${FAKE_LEGACY_PROJECT:-fitician-agent-source}"
 elif [[ "$*" == *"RestartPolicy.Name"* ]]; then
   printf 'unless-stopped\n'
-elif [[ "$*" == *"stop agent-service"* ]]; then
+elif [[ "$*" == *"stop "* && "$*" == *"agent-service"* ]]; then
   exit "${FAKE_STOP_CANDIDATE_STATUS:-0}"
+elif [[ "$*" == *"{{.Image}}"* ]]; then
+  printf 'sha256:%064d\n' 3
 elif [[ "$*" == *"image inspect"* ]]; then
   [ "${FAKE_IMAGE_PRESENT:-true}" = true ]
 elif [[ "$*" == *"Config.Image"* ]]; then
@@ -380,11 +398,20 @@ fi
         result = self.run_deploy()
         self.assertNotEqual(result.returncode, 0)
         calls = self.calls.read_text().splitlines()
-        stop = next(i for i, line in enumerate(calls) if " stop agent-service" in line)
+        stop = next(
+            i for i, line in enumerate(calls) if " stop --timeout -1 agent-service" in line
+        )
         start = next(i for i, line in enumerate(calls) if line == "start legacy-agent")
         self.assertLess(stop, start)
         self.assertIn("update --restart=unless-stopped legacy-agent", calls)
         self.assertFalse((self.app / ".regional-germany-active-contract").exists())
+        backup_dirs = list((self.app / "backups" / "agent-auth").glob("*"))
+        self.assertEqual(len(backup_dirs), 1)
+        self.assertEqual(
+            (backup_dirs[0] / "active-contract.before").read_text(),
+            "active_contract_present=false\n",
+        )
+        self.assertTrue((backup_dirs[0] / "auth-volume.tar").is_file())
 
     def test_initial_germany_never_starts_two_auth_volume_writers(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
@@ -427,6 +454,9 @@ fi
         )
         self.assertNotIn("start legacy-agent", calls)
         self.assertEqual(calls.count("AUTH_DIGEST"), 3)
+        archive = next((self.app / "backups" / "agent-auth").glob("*/auth-volume.tar"))
+        self.assertTrue(archive.is_file())
+        self.assertEqual(archive.stat().st_mode & 0o777, 0o600)
 
     def test_germany_auth_change_blocks_rollback_to_old_agent_image(self) -> None:
         contract = self.new_release / "compose.prod.germany.yaml"
@@ -454,7 +484,7 @@ fi
         ups = [line for line in calls if " up -d" in line]
         self.assertEqual(len(ups), 1)
         self.assertEqual(calls.count("AUTH_DIGEST"), 3)
-        self.assertTrue(any(" stop agent-service" in line for line in calls))
+        self.assertTrue(any(" stop --timeout -1 agent-service" in line for line in calls))
 
     def test_initial_germany_rejects_stopped_containers_using_auth_volume(self) -> None:
         (self.app / ".regional-germany-active-contract").unlink()
@@ -821,6 +851,58 @@ fi
         self.assertEqual(len(ups), 2)
         self.assertTrue(all(line.endswith("agent-service") for line in ups))
         self.assertNotIn("AGENT_IMAGE_TAG=" + NEW, (self.app / ".env").read_text())
+        calls = self.calls.read_text().splitlines()
+        stops = [line for line in calls if " stop " in line and "agent-service" in line]
+        self.assertTrue(stops)
+        self.assertTrue(all("--timeout -1" in line for line in stops))
+        archives = list((self.app / "backups" / "agent-auth").glob("*/auth-volume.tar"))
+        self.assertEqual(len(archives), 1)
+        backup_dir = archives[0].parent
+        self.assertEqual(backup_dir.stat().st_mode & 0o777, 0o700)
+        self.assertEqual((backup_dir / "env.before").stat().st_mode & 0o777, 0o600)
+        self.assertEqual(
+            (backup_dir / "active-contract.before").stat().st_mode & 0o777, 0o600
+        )
+        baseline = (backup_dir / "baseline.txt").read_text()
+        self.assertIn(OLD, baseline)
+        self.assertIn("sha256:" + "0" * 63 + "3", baseline)
+        self.assertEqual(archives[0].stat().st_mode & 0o777, 0o600)
+        self.assertLess(
+            calls.index("AUTH_ARCHIVE"),
+            next(i for i, line in enumerate(calls) if " up -d " in line),
+        )
+        old_stop = next(
+            i for i, line in enumerate(calls) if "stop --timeout -1 agent-service" in line
+        )
+        self.assertLess(old_stop, calls.index("AUTH_ARCHIVE"))
+
+    def test_germany_agent_archive_failure_blocks_candidate_and_preserves_metadata_copy(self) -> None:
+        contract = self.new_release / "compose.prod.germany.yaml"
+        contract.touch()
+        (self.app / ".regional-germany-active-contract").write_text(
+            str(self.old_release / "compose.prod.germany.yaml") + "\n"
+        )
+        (self.old_release / "compose.prod.germany.yaml").touch()
+        self.env.update(
+            REGION="germany",
+            DEPLOY_KIND="agent",
+            COMPOSE_FILE=str(contract),
+            COMPOSE_PROJECT_NAME="fitician_de",
+            FAKE_ARCHIVE_STATUS="1",
+        )
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        ups = [line for line in calls if " up -d " in line]
+        self.assertEqual(len(ups), 1)
+        self.assertIn(str(self.old_release), ups[0])
+        backup_dir = next((self.app / "backups" / "agent-auth").glob("*"))
+        self.assertTrue((backup_dir / "env.before").is_file())
+        self.assertTrue((backup_dir / "active-contract.before").is_file())
+        self.assertTrue((backup_dir / "baseline.txt").is_file())
+        self.assertFalse((backup_dir / "auth-volume.tar").exists())
 
     def test_germany_requires_existing_external_auth_volume_before_rollout(
         self,

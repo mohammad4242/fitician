@@ -319,6 +319,7 @@ previous_agent_tag=$agent_tag
 legacy_agent_id=''
 legacy_agent_restart=''
 auth_image=''
+auth_image_id=''
 auth_baseline_digest=''
 if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != true ]]; then
   all_auth_ids=$(docker ps -aq --filter "volume=$auth_volume") || fail 'Unable to inventory Agent authentication volume users'
@@ -335,7 +336,10 @@ if [[ "$initial_deploy" == true && "$region" == germany && "$inspect_only" != tr
   auth_image=$(docker inspect --format '{{.Config.Image}}' "$legacy_agent_id")
   [[ "$auth_image" == "$registry_owner/fitician-agent:"* && "${auth_image##*:}" =~ ^[0-9a-f]{40}$ ]] || \
     fail 'Existing Agent image must use the configured repository and a full Git SHA'
+  previous_agent_tag=${auth_image##*:}
   docker image inspect "$auth_image" >/dev/null 2>&1 || fail 'Existing Agent image is missing locally'
+  auth_image_id=$(docker inspect --format '{{.Image}}' "$legacy_agent_id")
+  [[ "$auth_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || fail 'Existing Agent has an invalid immutable image ID'
 fi
 
 if [[ "$initial_deploy" == true && "$kind" == full ]]; then
@@ -383,6 +387,12 @@ else
   previous_agent_tag=$agent_tag
   if [[ "$inspect_only" == true ]]; then printf '%s\n' "$agent_tag"; exit 0; fi
   auth_image="$registry_owner/fitician-agent:$agent_tag"
+  agent_container_id=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" ps -q agent-service)
+  [[ -n "$agent_container_id" && "$agent_container_id" != *$'\n'* ]] || \
+    fail 'Unable to identify the running Agent container'
+  auth_image_id=$(docker inspect --format '{{.Image}}' "$agent_container_id")
+  [[ "$auth_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || fail 'Running Agent has an invalid immutable image ID'
   agent_tag=$image_tag
 fi
 [[ "$inspect_only" == true ]] && exit 0
@@ -392,7 +402,7 @@ auth_volume_digest() {
     --pids-limit 64 --cap-drop ALL \
     --security-opt no-new-privileges \
     --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
-    --entrypoint python3 "$auth_image" -c '
+    --entrypoint python3 "$auth_image_id" -c '
 import hashlib
 import json
 import os
@@ -422,6 +432,49 @@ for parent, directories, files in os.walk(root, topdown=True, followlinks=False)
 records.sort(key=lambda record: record[0])
 print(hashlib.sha256(json.dumps(records, separators=(",", ":")).encode()).hexdigest())
 '
+}
+prepare_agent_auth_backup() {
+  local backup_parent="$app_dir/backups"
+  local backup_root="$backup_parent/agent-auth"
+  mkdir -p -- "$backup_parent"
+  [[ ! -L "$backup_parent" ]] || fail 'Agent auth backup parent must not be a symlink'
+  mkdir -p -- "$backup_root"
+  [[ ! -L "$backup_root" ]] || fail 'Agent auth backup directory must not be a symlink'
+  chmod 700 "$backup_root"
+  agent_auth_backup_dir=$(mktemp -d "$backup_root/$previous_agent_tag.XXXXXXXX")
+  chmod 700 "$agent_auth_backup_dir"
+  cp -- "$env_file" "$agent_auth_backup_dir/env.before"
+  chmod 600 "$agent_auth_backup_dir/env.before"
+  if [[ -f "$active_marker" ]]; then
+    cp -- "$active_marker" "$agent_auth_backup_dir/active-contract.before"
+  else
+    printf 'active_contract_present=false\n' > "$agent_auth_backup_dir/active-contract.before"
+  fi
+  chmod 600 "$agent_auth_backup_dir/active-contract.before"
+  printf 'agent_image_tag=%s\nagent_image_id=%s\n' \
+    "$previous_agent_tag" "$auth_image_id" > "$agent_auth_backup_dir/baseline.txt"
+  chmod 600 "$agent_auth_backup_dir/baseline.txt"
+}
+archive_agent_auth_volume() {
+  local destination_dir=$1
+  docker run --pull never --rm --network none --read-only --memory 128m --cpus 0.2 \
+    --pids-limit 64 --cap-drop ALL \
+    --security-opt no-new-privileges \
+    --mount "type=volume,source=$auth_volume,target=/home/agent,readonly" \
+    --mount "type=bind,source=$destination_dir,target=/backup" \
+    --entrypoint python3 "$auth_image_id" -c '
+import os
+import tarfile
+
+root = "/home/agent"
+destination = "/backup/auth-volume.tar"
+if not os.path.isdir(root):
+    raise SystemExit("Agent auth home is unavailable")
+with tarfile.open(destination, "w") as archive:
+    archive.add(root, arcname="agent", recursive=True)
+os.chmod(destination, 0o600)
+'
+  [[ -s "$destination_dir/auth-volume.tar" ]] || fail 'Agent auth backup archive is missing or empty'
 }
 if [[ "$region" == germany && "$kind" == agent ]]; then
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture read-only Agent auth inventory'
@@ -471,7 +524,7 @@ rollback() {
   local rollback_status=0
   if [[ "$region" == germany && "$kind" == agent ]]; then
     if ! compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
-      stop agent-service >/dev/null 2>&1; then
+      stop --timeout -1 agent-service >/dev/null 2>&1; then
       echo 'Candidate Agent could not stop; no previous Agent was restarted to protect authentication state' >&2
       exit "$status"
     fi
@@ -572,18 +625,24 @@ if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
     run --pull never --rm --no-deps migrations alembic upgrade head
 fi
 
+if [[ "$region" == germany && "$kind" == agent ]]; then
+  prepare_agent_auth_backup
+fi
+
 if [[ "$initial_deploy" == true && "$region" == germany ]]; then
   rollback_needed=true
   docker update --restart=no "$legacy_agent_id" >/dev/null
-  docker stop "$legacy_agent_id" >/dev/null
+  docker stop --time -1 "$legacy_agent_id" >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
+  archive_agent_auth_volume "$agent_auth_backup_dir"
 elif [[ "$region" == germany && "$kind" == agent ]]; then
   rollback_needed=true
   compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
-    "$previous_worker_tag" "$previous_agent_tag" stop agent-service >/dev/null
+    "$previous_worker_tag" "$previous_agent_tag" stop --timeout -1 agent-service >/dev/null
   auth_baseline_digest=$(auth_volume_digest) || fail 'Unable to capture stopped Agent auth inventory'
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Stopped Agent auth inventory returned an invalid digest'
+  archive_agent_auth_volume "$agent_auth_backup_dir"
 fi
 if [[ "$kind" == full ]]; then
   rollback_needed=true

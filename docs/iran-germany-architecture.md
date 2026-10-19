@@ -342,11 +342,10 @@ Regional CD remains disabled by default unless the repository variable
 validates the exact immutable image SHA against trusted CI evidence. Automatic
 deployment also requires `REGIONAL_AUTO_CD_ENABLED=true` and accepts only a
 current successful `Fitician CI` main push for one frontend/backend component,
-or a strict Agent application-only Full CI release. Full Iran and Germany Agent
-releases also pause at the
-`production-owner-approval` environment; configure its required owner reviewer
-and main-only deployment branch policy before enabling the variable. The legacy
-production workflows remain disabled. Backend-only releases require a read-only
+or a strict Agent application-only Full CI release. Manual Full Iran and Germany
+Agent releases pause at the `production-owner-approval` environment; configure its
+required owner reviewer and main-only deployment branch policy before enabling
+manual Full releases. The legacy production workflows remain disabled. Backend-only releases require a read-only
 Alembic-head match and roll the two API replicas one at a time while retaining a
 healthy peer; verification failure triggers that helper's bounded rollback.
 
@@ -355,6 +354,12 @@ immutable versions, checks volume bindings, applies the selected runtime, verifi
 then persists image state/active contract. Each region has its own workflow concurrency
 and markers. On a schema-neutral failure, restore only that region's previous contract
 and captured image versions. Keep previous images locally available until acceptance.
+Before a Germany Agent rollout, the script creates a mode-0700 directory under
+`backups/agent-auth/` with mode-0600 copies of the prior environment and contract marker,
+the running Agent image tag and ID, and a mode-0600 archive of the auth volume captured
+after the old Agent exits. Treat these archives as credentials. Rollback compares the
+auth-volume digest and never restores archived auth data automatically; preserve the
+archive for owner-led recovery if the candidate changed authentication state.
 A schema-changing Iran failure stops Caddy, frontend, APIs and workers for manual recovery
 while retaining PostgreSQL/Redis and all volumes;
 never downgrade Alembic automatically. A failed Agent release does not stop Iran APIs.
