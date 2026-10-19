@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -18,6 +20,36 @@ def job(workflow, name):
 
 
 class ComponentWorkflowTests(unittest.TestCase):
+    def test_router_image_publication_survives_skipped_manual_scope(self):
+        for component in ("backend", "frontend"):
+            with self.subTest(component=component):
+                publisher = job(f"{component}-only.yml", f"{component}-image")
+                condition = publisher.split("    needs:", 1)[0]
+                self.assertIn("always() && !cancelled()", condition)
+                self.assertIn(
+                    f"needs.{component}-verification.result == 'success'", condition
+                )
+                self.assertIn("inputs.publish_image", condition)
+                gate = job(f"{component}-only.yml", f"{component}-image-required")
+                self.assertIn("always() && !cancelled()", gate)
+                self.assertIn("inputs.publish_image", gate)
+                self.assertIn(f"needs: [{component}-verification, {component}-image]", gate)
+                self.assertIn('test "$VERIFICATION_RESULT" = success', gate)
+                self.assertIn('test "$IMAGE_RESULT" = success', gate)
+                script = textwrap.dedent(gate.split("        run: |\n", 1)[1])
+                for verification, image, expected in (
+                    ("success", "success", 0),
+                    ("success", "skipped", 1),
+                    ("success", "failure", 1),
+                    ("failure", "success", 1),
+                ):
+                    result = subprocess.run(
+                        ["bash", "-e", "-c", script],
+                        env={"VERIFICATION_RESULT": verification, "IMAGE_RESULT": image},
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, expected)
+
     def test_full_and_component_image_paths_are_exclusive(self):
         full = job("ci.yml", "container-images")
         fast = job("ci.yml", "backend-component")
