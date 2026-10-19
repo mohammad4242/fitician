@@ -421,6 +421,15 @@ def validate_runtime_snapshot(
         for key in keys:
             actual_value = actual_env.get(key)
             contract_value = expected_env.get(key)
+            if (
+                region == "iran"
+                and service
+                in {"body-analysis-worker", "food-photo-worker", "scheduler"}
+                and key == "REDIS_HOST"
+                and key not in actual_env
+                and key not in expected_env
+            ):
+                continue
             if not actual_value or actual_value != contract_value:
                 raise RegistrationError(
                     "A critical runtime setting differs from its contract"

@@ -116,18 +116,14 @@ def make_iran_snapshot(root: Path):
         image_id = image_ids_by_ref.setdefault(ref, f"sha256:image-{service}")
         ids[service] = image_id
         images[ref] = {"Id": image_id}
-        environment = (
-            dict(critical)
-            if service
-            in {
-                "backend",
-                "backend-2",
-                "scheduler",
-                "food-photo-worker",
-                "body-analysis-worker",
+        if service in {"backend", "backend-2"}:
+            environment = dict(critical)
+        elif service in {"scheduler", "food-photo-worker", "body-analysis-worker"}:
+            environment = {
+                key: value for key, value in critical.items() if key != "REDIS_HOST"
             }
-            else {}
-        )
+        else:
+            environment = {}
         if service in {"backend", "backend-2"}:
             environment["FITICIAN_DOMAIN"] = "fitician.fit"
         mounts = []
@@ -380,7 +376,8 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
                 and any(
                     isinstance(item.context_expr, ast.Call)
                     and isinstance(item.context_expr.func, ast.Name)
-                    and item.context_expr.func.id in {"async_heartbeat", "threaded_heartbeat"}
+                    and item.context_expr.func.id
+                    in {"async_heartbeat", "threaded_heartbeat"}
                     for item in node.items
                 )
             )
@@ -448,8 +445,7 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
             target = next(
                 node
                 for node in tree.body
-                if isinstance(node, ast.AsyncFunctionDef)
-                and node.name == "run_worker"
+                if isinstance(node, ast.AsyncFunctionDef) and node.name == "run_worker"
             )
             heartbeat = next(
                 node
@@ -557,7 +553,94 @@ class RuntimeSnapshotTests(unittest.TestCase):
         )
         self.assertEqual(result["service_image_tags"]["backend-2"], API_SHA)
         self.assertIn("fitician_caddy-data", result["external_volumes"])
+        self.assertNotIn("scheduler.REDIS_HOST", result["critical_env_sha256"])
         self.assertNotIn("not-printed-token", json.dumps(result))
+
+    def test_worker_redis_host_may_be_absent_from_contract_and_runtime(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                app_dir
+            )
+            result = runtime.validate_runtime_snapshot(
+                alias="iran",
+                app_dir=app_dir,
+                containers=containers,
+                rendered=rendered,
+                image_details=images,
+                volume_details=volumes,
+                live_checks=checks,
+            )
+        self.assertNotIn("food-photo-worker.REDIS_HOST", result["critical_env_sha256"])
+
+    def test_worker_redis_host_is_checked_when_contract_and_runtime_provide_it(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                app_dir
+            )
+            service = "scheduler"
+            container = next(
+                item
+                for item in containers
+                if item["Config"]["Labels"][runtime.LABEL_SERVICE] == service
+            )
+            rendered["services"][service]["environment"]["REDIS_HOST"] = "redis"
+            container["Config"]["Env"].append("REDIS_HOST=redis")
+            result = runtime.validate_runtime_snapshot(
+                alias="iran",
+                app_dir=app_dir,
+                containers=containers,
+                rendered=rendered,
+                image_details=images,
+                volume_details=volumes,
+                live_checks=checks,
+            )
+        self.assertIn("scheduler.REDIS_HOST", result["critical_env_sha256"])
+
+    def test_worker_redis_host_if_present_must_match_nonempty_contract(self):
+        cases = (
+            ("scheduler", "declared_missing"),
+            ("scheduler", "unexpected_runtime"),
+            ("scheduler", "empty"),
+            ("backend", "declared_missing"),
+        )
+        for service, case in cases:
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory(dir=ROOT) as folder,
+            ):
+                app_dir = Path(folder)
+                _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                    app_dir
+                )
+                container = next(
+                    item
+                    for item in containers
+                    if item["Config"]["Labels"][runtime.LABEL_SERVICE] == service
+                )
+                if case == "declared_missing":
+                    rendered["services"][service]["environment"]["REDIS_HOST"] = "redis"
+                    if service == "backend":
+                        container["Config"]["Env"].remove("REDIS_HOST=redis")
+                elif case == "unexpected_runtime":
+                    container["Config"]["Env"].append("REDIS_HOST=redis")
+                else:
+                    rendered["services"][service]["environment"]["REDIS_HOST"] = ""
+                    container["Config"]["Env"].append("REDIS_HOST=")
+                with self.assertRaisesRegex(
+                    runtime.RegistrationError,
+                    "critical runtime setting differs from its contract",
+                ):
+                    runtime.validate_runtime_snapshot(
+                        alias="iran",
+                        app_dir=app_dir,
+                        containers=containers,
+                        rendered=rendered,
+                        image_details=images,
+                        volume_details=volumes,
+                        live_checks=checks,
+                    )
 
     def test_iran_rejects_different_api_replicas_or_worker_shas(self):
         mutations = ("api", "worker")
