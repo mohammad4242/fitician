@@ -21,6 +21,7 @@ WORKFLOW_NAME = "Fitician local scalability checks"
 SCALABILITY_JOB = "Local multi-replica load and failure drills"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ROLE_SOURCE_PROOF_VERSION = "iran-worker-role-source-v1"
+REMOTE_PROBE_TIMEOUT_SECONDS = 900
 WORKER_ENTRYPOINTS = {
     "backend/app/body_analysis/worker.py": "run_worker",
     "backend/app/nutrition/food_photo_worker.py": "run_worker",
@@ -439,7 +440,7 @@ def _ssh(
             check=True,
             capture_output=True,
             text=True,
-            timeout=150,
+            timeout=REMOTE_PROBE_TIMEOUT_SECONDS,
         )
         return json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:

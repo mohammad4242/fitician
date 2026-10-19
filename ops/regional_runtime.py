@@ -39,6 +39,7 @@ WORKER_MODULES = {
     "body-analysis-worker": "app.body_analysis.worker",
     "notification-worker": "app.notifications.worker",
 }
+MAPPER_PROBE_TIMEOUT_SECONDS = 180
 WORKER_OVERRIDE_SHA256 = (
     "95fccb2d1868926b2c2642a6b97b6ce2d833e465a90efd8e790a41aefd86e96e"
 )
@@ -572,7 +573,11 @@ def validate_runtime_snapshot(
 
 
 def _run(
-    args: list[str], *, input_text: str | None = None, env: dict[str, str] | None = None
+    args: list[str],
+    *,
+    input_text: str | None = None,
+    env: dict[str, str] | None = None,
+    timeout: int = 45,
 ) -> str:
     try:
         result = subprocess.run(
@@ -581,7 +586,7 @@ def _run(
             text=True,
             capture_output=True,
             check=True,
-            timeout=45,
+            timeout=timeout,
             env=env,
         )
     except (OSError, subprocess.SubprocessError) as error:
@@ -619,6 +624,26 @@ def _container_probe(region: str, item: dict, env: dict[str, str]) -> dict:
     )
     statuses = json.loads(_run(["docker", "exec", container_id, "python", "-c", code]))
     return {"api_statuses": statuses}
+
+
+def _probe_worker_mappers(selected: list[dict]) -> dict[str, bool]:
+    checks = {}
+    for service, module in WORKER_MODULES.items():
+        worker = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
+        code = (
+            "import importlib; importlib.import_module('app.main'); "
+            f"importlib.import_module('{module}'); "
+            "from sqlalchemy.orm import configure_mappers; configure_mappers()"
+        )
+        try:
+            _run(
+                ["docker", "exec", worker["Id"], "python", "-c", code],
+                timeout=MAPPER_PROBE_TIMEOUT_SECONDS,
+            )
+            checks[service] = True
+        except RegistrationError:
+            checks[service] = False
+    return checks
 
 
 def inspect_runtime(app_dir: Path, alias: str) -> dict:
@@ -735,20 +760,7 @@ def inspect_runtime(app_dir: Path, alias: str) -> dict:
                     region, item, _container_env(item)
                 )["api_statuses"]
         live_checks["api_statuses"] = api_statuses
-        mapper_checks = {}
-        for service, module in WORKER_MODULES.items():
-            worker = next(i for i in selected if _labels(i)[LABEL_SERVICE] == service)
-            code = (
-                "import importlib; importlib.import_module('app.main'); "
-                f"importlib.import_module('{module}'); "
-                "from sqlalchemy.orm import configure_mappers; configure_mappers()"
-            )
-            try:
-                _run(["docker", "exec", worker["Id"], "python", "-c", code])
-                mapper_checks[service] = True
-            except RegistrationError:
-                mapper_checks[service] = False
-        live_checks["worker_mappers"] = mapper_checks
+        live_checks["worker_mappers"] = _probe_worker_mappers(selected)
         db = next(item for item in selected if _labels(item)[LABEL_SERVICE] == "db")
         backend = next(
             item for item in selected if _labels(item)[LABEL_SERVICE] == "backend"

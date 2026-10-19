@@ -912,6 +912,34 @@ class RuntimeSnapshotTests(unittest.TestCase):
             runtime.validate_region("other")
 
 
+class RuntimeProbeTimeoutTests(unittest.TestCase):
+    def test_mapper_probes_get_bounded_extended_timeout_sequentially(self):
+        selected = [
+            {
+                "Id": service,
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for service in runtime.WORKER_MODULES
+        ]
+        with patch.object(runtime, "_run", return_value="") as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: True for service in runtime.WORKER_MODULES})
+        self.assertEqual(run.call_count, len(runtime.WORKER_MODULES))
+        self.assertEqual(
+            [call.kwargs["timeout"] for call in run.call_args_list],
+            [runtime.MAPPER_PROBE_TIMEOUT_SECONDS] * len(runtime.WORKER_MODULES),
+        )
+
+    def test_readonly_command_timeout_defaults_to_45_seconds_and_is_overridable(self):
+        completed = subprocess.CompletedProcess([], 0, stdout="ok", stderr="")
+        with patch.object(runtime.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(runtime._run(["docker", "ps"]), "ok")
+            self.assertEqual(runtime._run(["docker", "exec"], timeout=180), "ok")
+        self.assertEqual(
+            [call.kwargs["timeout"] for call in run.call_args_list], [45, 180]
+        )
+
+
 class MarkerWriteTests(unittest.TestCase):
     def test_marker_creation_is_atomic_private_idempotent_and_conflict_safe(self):
         with tempfile.TemporaryDirectory(
@@ -1062,6 +1090,10 @@ class ControllerDryRunTests(unittest.TestCase):
                 accepted_at="2026-10-19T12:00:00Z",
             )
         args = remote.call_args.args[0]
+        self.assertEqual(
+            remote.call_args.kwargs["timeout"],
+            controller.REMOTE_PROBE_TIMEOUT_SECONDS,
+        )
         encoded = args[args.index("--role-proof-b64") + 1]
         self.assertEqual(
             json.loads(controller.base64.urlsafe_b64decode(encoded).decode()), proof
