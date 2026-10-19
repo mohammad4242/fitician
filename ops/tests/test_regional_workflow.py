@@ -3,9 +3,9 @@ from __future__ import annotations
 import importlib.util
 import os
 import subprocess
+import sys
 import tempfile
 import textwrap
-import sys
 import unittest
 from pathlib import Path
 
@@ -46,6 +46,7 @@ class RegionalWorkflowTests(unittest.TestCase):
                         env={**valid, key: value, "GITHUB_OUTPUT": str(output)},
                         capture_output=True,
                         text=True,
+                        check=False,
                     )
                     self.assertNotEqual(result.returncode, 0)
                     self.assertFalse(output.exists())
@@ -59,6 +60,7 @@ class RegionalWorkflowTests(unittest.TestCase):
                     },
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
