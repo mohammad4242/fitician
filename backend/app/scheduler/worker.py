@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from importlib import import_module
 
 import httpx
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,9 +28,8 @@ async def run_scheduler(
     *,
     stop_event: asyncio.Event | None = None,
 ) -> None:
-    configure_structured_logging()
-    install_diagnostic_log_bridge(settings)
     """Run all periodic loops in one independently deployable process."""
+    configure_structured_logging()
     requested_stop = stop_event or asyncio.Event()
     if stop_event is None:
         install_async_signal_handlers(requested_stop)
@@ -44,6 +44,8 @@ async def run_scheduler(
         httpx.AsyncClient(timeout=agent_timeout, trust_env=False) as agent_client,
         httpx.AsyncClient(timeout=food_price_timeout, trust_env=False) as food_price_client,
     ):
+        import_module("app.main")
+        install_diagnostic_log_bridge(settings)
         try:
             with Session(get_engine(settings)) as db:
                 await sync_agent_service_proxy(

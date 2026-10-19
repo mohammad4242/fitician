@@ -472,7 +472,6 @@ def run_worker(
     stop_event: threading.Event | None = None,
 ) -> None:
     configure_structured_logging()
-    install_diagnostic_log_bridge(settings)
     worker_id = _worker_id()
     requested_stop = stop_event or threading.Event()
     restore_signals = install_sync_signal_handlers(requested_stop) if stop_event is None else None
@@ -485,6 +484,7 @@ def run_worker(
             interval_seconds=settings.job_heartbeat_interval_seconds,
         ):
             import_module("app.main")
+            install_diagnostic_log_bridge(settings)
             try:
                 fcm_provider = build_fcm_provider(settings)
                 if fcm_provider is not None:
