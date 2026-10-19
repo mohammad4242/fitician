@@ -175,6 +175,8 @@ class ExactMainEvidenceTests(unittest.TestCase):
             head_sha=SHA,
             conclusion="success",
             name="Fitician CI",
+            path=".github/workflows/ci.yml",
+            status="completed",
             head_branch="main",
             event="push",
             head_repository={"full_name": "owner/repo"},
@@ -186,6 +188,8 @@ class ExactMainEvidenceTests(unittest.TestCase):
             ("head_branch", "feat/public-seo"),
             ("event", "pull_request"),
             ("head_repository", {"full_name": "fork/repo"}),
+            ("path", ".github/workflows/other.yml"),
+            ("status", "in_progress"),
         ]:
             self.assertFalse(
                 module.trusted_run({**run, key: value}, SHA, "owner/repo", "Fitician CI")
@@ -199,6 +203,8 @@ class ExactMainEvidenceTests(unittest.TestCase):
             head_sha=SHA,
             conclusion="success",
             name="Public SEO delivery",
+            path=".github/workflows/public-seo.yml",
+            status="completed",
             head_branch="main",
             event="push",
             head_repository={"full_name": "owner/repo"},

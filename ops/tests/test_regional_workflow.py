@@ -10,7 +10,7 @@ WORKFLOW = ROOT / ".github/workflows/deploy-regional.yml"
 
 
 class RegionalWorkflowTests(unittest.TestCase):
-    def test_regional_deploy_is_manual_and_configurable_but_default_off(
+    def test_regional_deploy_is_guarded_and_default_off(
         self,
     ) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -22,7 +22,10 @@ class RegionalWorkflowTests(unittest.TestCase):
         self.assertIn("environment: production-owner-approval", workflow)
         self.assertIn("needs['owner-approval'].result == 'success'", workflow)
         self.assertIn("load_foundation_evidence", workflow)
-        self.assertNotIn("workflow_run:", workflow)
+        self.assertIn("workflow_run:", workflow)
+        self.assertIn("vars.REGIONAL_AUTO_CD_ENABLED == 'true'", workflow)
+        self.assertIn("ops/ci-auto-release.py", workflow)
+        self.assertIn("auto_release == 'true'", workflow)
         self.assertNotIn("push:", workflow)
 
     def test_legacy_regional_deploy_remains_disabled(self) -> None:

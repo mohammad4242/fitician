@@ -39,7 +39,7 @@ class CDSafetyTests(unittest.TestCase):
                     if filename == "deploy-regional.yml":
                         self.assertIn("vars.REGIONAL_CD_ENABLED == 'true'", body)
                         self.assertIn("github.event_name == 'workflow_dispatch'", body)
-                        self.assertNotIn("workflow_run:", text)
+                        self.assertIn("vars.REGIONAL_AUTO_CD_ENABLED == 'true'", body)
                         continue
                     if condition.group(1) == ">-":
                         expression = (
@@ -57,7 +57,8 @@ class CDSafetyTests(unittest.TestCase):
         self.assertNotIn("  workflow_run:", production)
         regional = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
         self.assertIn("  workflow_dispatch:", regional)
-        self.assertNotIn("  workflow_run:", regional)
+        self.assertIn("  workflow_run:", regional)
+        self.assertIn("vars.REGIONAL_AUTO_CD_ENABLED == 'true'", regional)
         self.assertNotIn("  push:", regional)
         diagnostic = (ROOT / ".github/workflows/diagnose-regional-ssh.yml").read_text()
         self.assertIn("  workflow_dispatch:", diagnostic)

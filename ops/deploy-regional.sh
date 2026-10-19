@@ -12,6 +12,7 @@ env_file=${FITICIAN_ENV_FILE:-"$app_dir/.env"}
 owner_approved=${OWNER_APPROVED:-false}
 allow_schema_migrations=${ALLOW_SCHEMA_MIGRATIONS:-false}
 inspect_only=${INSPECT_ONLY:-false}
+inspect_role=${INSPECT_ROLE:-}
 initial_deploy=${INITIAL_DEPLOY:-false}
 image_source=${IMAGE_SOURCE:-registry}
 first_scalability_approved=${FIRST_SCALABILITY_RELEASE_APPROVED:-false}
@@ -364,6 +365,12 @@ elif [[ "$region" == iran ]]; then
     backend) api_tag=$image_tag ;;
   esac
   if [[ "$inspect_only" == true ]]; then
+    if [[ -n "$inspect_role" ]]; then
+      [[ "$region:$kind:$inspect_role" == iran:backend:worker ]] || \
+        fail 'INSPECT_ROLE is supported only for the Iran backend worker baseline'
+      printf '%s\n' "$previous_worker_tag"
+      exit 0
+    fi
     case "$kind" in
       frontend) printf '%s\n' "$previous_frontend_tag" ;;
       backend) printf '%s\n' "$previous_api_tag" ;;

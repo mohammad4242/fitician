@@ -258,6 +258,21 @@ fi
             next(i for i, line in enumerate(calls) if " pull " in line),
         )
 
+    def test_inspect_worker_role_returns_consistent_readonly_worker_sha(self) -> None:
+        self.env.update(DEPLOY_KIND="backend", INSPECT_ONLY="true", INSPECT_ROLE="worker")
+        marker_before = (self.app / ".regional-iran-active-contract").read_text()
+        env_before = (self.app / ".env").read_text()
+
+        result = self.run_deploy()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), OLD)
+        self.assertEqual((self.app / ".env").read_text(), env_before)
+        self.assertEqual(
+            (self.app / ".regional-iran-active-contract").read_text(), marker_before
+        )
+        self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+
     def test_iran_full_backs_up_before_rollout_and_persists_tags_after_verify(
         self,
     ) -> None:
@@ -835,7 +850,9 @@ fi
         workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
 
         self.assertIn("workflow_dispatch:", workflow)
-        self.assertNotIn("workflow_run:", workflow)
+        self.assertIn("workflow_run:", workflow)
+        self.assertIn("vars.REGIONAL_CD_ENABLED == 'true'", workflow)
+        self.assertIn("vars.REGIONAL_AUTO_CD_ENABLED == 'true'", workflow)
         self.assertIn("production-iran", workflow)
         self.assertIn("production-germany", workflow)
         self.assertIn("ops/ci-release-gate.py", workflow)

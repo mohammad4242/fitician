@@ -16,6 +16,70 @@ classifier = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(classifier)
 
 
+def frontend_image_paths(paths: list[str]) -> list[str]:
+    return [
+        path
+        for path in paths
+        if path.startswith(
+            ("frontend/", "packages/fitician-core/src/", "vendor/", "backend/app/exercises/")
+        )
+        or path in {"package.json", "package-lock.json", ".dockerignore"}
+    ]
+
+
+def agent_image_paths(paths: list[str]) -> list[str]:
+    if not paths or not any(
+        path.startswith("agent-service/app/") and path.endswith(".py") for path in paths
+    ):
+        raise SystemExit("Agent release needs at least one Agent application source change")
+    for path in paths:
+        if path.startswith("agent-service/app/") and path.endswith(".py"):
+            continue
+        if path.startswith("agent-service/tests/") and path.endswith(".py"):
+            continue
+        if path.startswith(("docs/", "reports/")) and path.endswith((".md", ".txt")):
+            continue
+        raise SystemExit("Cumulative Agent changes include non-Agent image inputs")
+    return paths
+
+
+def role_controller():
+    spec = importlib.util.spec_from_file_location(
+        "register_regional_runtime", ROOT / "ops/register-regional-runtime.py"
+    )
+    if spec is None or spec.loader is None:
+        raise SystemExit("Unable to load runtime role source verifier")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def backend_image_paths(api_base: str, worker_base: str, head: str) -> tuple[list[str], dict]:
+    controller = role_controller()
+    if api_base == worker_base:
+        proof = {
+            "version": 1,
+            "api_sha": api_base,
+            "worker_sha": worker_base,
+            "ancestor_verified": True,
+            "entrypoint_ast_equivalent": True,
+            "backend_image_inputs": [],
+        }
+    else:
+        proof = controller.validate_role_source_compatibility(api_base, worker_base)
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", worker_base, head],
+        cwd=ROOT,
+        check=True,
+    )
+    paths = [
+        path
+        for path in classifier.git_paths(worker_base, head)
+        if path.startswith("backend/")
+    ]
+    return paths, proof
+
+
 def check_plan(
     plan: dict,
     component: str,
@@ -23,6 +87,7 @@ def check_plan(
     shared_validated: bool,
     *,
     full_frontend_validated: bool = False,
+    full_agent_validated: bool = False,
 ):
     if plan["full_ci_required"]:
         if (
@@ -30,6 +95,8 @@ def check_plan(
             and component == "frontend"
             and classifier.frontend_release_paths(plan["changed_paths"])
         ):
+            return
+        if full_agent_validated and component == "agent" and agent_image_paths(plan["changed_paths"]):
             return
         raise SystemExit(
             "Cumulative changes require Full CI/release: "
@@ -50,7 +117,7 @@ def check_plan(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--component", choices=["frontend", "backend"], required=True)
+    parser.add_argument("--component", choices=["frontend", "backend", "agent"], required=True)
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", required=True)
     parser.add_argument("--validated-tests", default="[]")
@@ -58,10 +125,14 @@ def main():
         "--shared-validated", choices=["true", "false"], default="false"
     )
     parser.add_argument("--full-ci-run-id", default="")
+    parser.add_argument("--full-agent-validated", action="store_true")
+    parser.add_argument("--worker-base", default="")
     args = parser.parse_args()
     if args.full_ci_run_id:
-        if args.component != "frontend":
-            raise SystemExit("Full CI scoped deployment supports frontend only")
+        if args.component not in {"frontend", "agent"}:
+            raise SystemExit("Full CI scoped deployment supports frontend or Agent only")
+        if args.component == "agent":
+            raise SystemExit("Agent Full CI validation is supplied by the caller")
         subprocess.run(
             [
                 sys.executable,
@@ -91,18 +162,22 @@ def main():
     )
     if args.base == args.head:
         return
-    paths = classifier.git_paths(args.base, args.head)
+    role_proof = None
+    if args.component == "frontend":
+        paths = frontend_image_paths(classifier.git_paths(args.base, args.head))
+    elif args.component == "backend":
+        worker_base = args.worker_base or args.base
+        paths, role_proof = backend_image_paths(args.base, worker_base, args.head)
+        print("Verified runtime API/worker source roles: " + json.dumps(role_proof, sort_keys=True))
+    else:
+        paths = agent_image_paths(classifier.git_paths(args.base, args.head))
     if args.full_ci_run_id:
         # Compare every frontend image input. Unrelated native/API source was never
         # part of the independently deployed frontend image and will not be touched.
-        paths = [
-            path
-            for path in paths
-            if path.startswith(
-                ("frontend/", "packages/", "vendor/", "backend/app/exercises/")
-            )
-            or path in {"package.json", "package-lock.json", ".dockerignore"}
-        ]
+        paths = frontend_image_paths(paths)
+    if not paths and args.component in {"frontend", "backend"}:
+        print("No cumulative changes to this deployed image's inputs")
+        return
     plan = classifier.classify(paths)
     check_plan(
         plan,
@@ -110,6 +185,7 @@ def main():
         json.loads(args.validated_tests),
         args.shared_validated == "true",
         full_frontend_validated=bool(args.full_ci_run_id),
+        full_agent_validated=args.full_agent_validated,
     )
     print("Cumulative component release scope is covered by this exact validation run")
 

@@ -58,6 +58,13 @@ class BaselineTests(unittest.TestCase):
             )
         )
 
+    def test_regional_cd_gate_helpers_are_classified_as_ops_only(self):
+        self.assertTrue(
+            module.ops_only(
+                ["ops/ci-auto-release.py", "ops/ci-required.py"]
+            )
+        )
+
     def verify(self, data):
         with patch.object(module, "git_delta", return_value=["ops/deploy-regional.sh"]):
             return module.verify(data, "owner/repo", HEAD, ROOT, now=NOW)

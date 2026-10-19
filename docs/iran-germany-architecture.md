@@ -337,10 +337,13 @@ A frontend-only release touches frontend only. A backend-only component release 
 both API replicas, never workers or migrations, and requires equal Alembic heads.
 Changes to worker code/schema/infrastructure require a full Iran release.
 
-Regional dispatch remains disabled unless the repository variable
-`REGIONAL_CD_ENABLED` is explicitly set to `true`. The workflow accepts manual
-dispatch from `main` only and validates the exact immutable image SHA against
-trusted CI evidence. Full Iran and Germany Agent releases also pause at the
+Regional CD remains disabled by default unless the repository variable
+`REGIONAL_CD_ENABLED` is explicitly set to `true`. Manual dispatch from `main`
+validates the exact immutable image SHA against trusted CI evidence. Automatic
+deployment also requires `REGIONAL_AUTO_CD_ENABLED=true` and accepts only a
+current successful `Fitician CI` main push for one frontend/backend component,
+or a strict Agent application-only Full CI release. Full Iran and Germany Agent
+releases also pause at the
 `production-owner-approval` environment; configure its required owner reviewer
 and main-only deployment branch policy before enabling the variable. The legacy
 production workflows remain disabled. Backend-only releases require a read-only
