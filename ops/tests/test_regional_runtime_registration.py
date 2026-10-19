@@ -366,21 +366,62 @@ class RoleSourceCompatibilityTests(unittest.TestCase):
         for relative in files:
             destination = root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            source = (ROOT / relative).read_text()
+            tree = ast.parse((ROOT / relative).read_text())
+            function = next(
+                node
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == controller.WORKER_ENTRYPOINTS[relative]
+            )
+            heartbeat = next(
+                node
+                for node in ast.walk(function)
+                if isinstance(node, (ast.With, ast.AsyncWith))
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Name)
+                    and item.context_expr.func.id in {"async_heartbeat", "threaded_heartbeat"}
+                    for item in node.items
+                )
+            )
+            bridge_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "install_diagnostic_log_bridge"
+            )
+            heartbeat.body.remove(bridge_statement)
             if relative == "backend/app/scheduler/worker.py":
-                source = source.replace("from importlib import import_module\n", "")
-                source = source.replace('        import_module("app.main")\n', "")
-            else:
-                lines = source.splitlines(keepends=True)
-                index = next(
-                    i for i, line in enumerate(lines)
-                    if line.strip() == 'import_module("app.main")'
+                main_statement = next(
+                    statement
+                    for statement in heartbeat.body
+                    if isinstance(statement, ast.Expr)
+                    and isinstance(statement.value, ast.Call)
+                    and isinstance(statement.value.func, ast.Name)
+                    and statement.value.func.id == "import_module"
                 )
-                self.assertEqual(
-                    lines[index + 1].strip(), "install_diagnostic_log_bridge(settings)"
-                )
-                lines[index], lines[index + 1] = lines[index + 1], lines[index]
-                source = "".join(lines)
+                heartbeat.body.remove(main_statement)
+                tree.body = [
+                    node
+                    for node in tree.body
+                    if not (
+                        isinstance(node, ast.ImportFrom)
+                        and node.module == "importlib"
+                        and any(alias.name == "import_module" for alias in node.names)
+                    )
+                ]
+            configure_index = next(
+                index
+                for index, statement in enumerate(function.body)
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "configure_structured_logging"
+            )
+            function.body.insert(configure_index + 1, bridge_statement)
+            source = ast.unparse(tree) + "\n"
             destination.write_text(source)
         (root / "backend/pyproject.toml").write_text("[project]\nname='fitician'\n")
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)

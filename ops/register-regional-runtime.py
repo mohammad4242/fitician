@@ -140,13 +140,35 @@ def _role_ast(
         for index, statement in enumerate(heartbeat_body)
         if startup_call(statement, "import_module")
     ]
-    if len(bridge_indexes) != 1 or len(main_indexes) != calls.main:
-        raise ValueError("Worker startup calls must be direct heartbeat statements")
     if candidate:
+        if len(bridge_indexes) != 1 or len(main_indexes) != calls.main:
+            raise ValueError("Worker startup calls must be direct heartbeat statements")
         if main_indexes[0] + 1 != bridge_indexes[0]:
             raise ValueError("Worker app import must immediately precede log setup")
-    elif main_indexes and abs(main_indexes[0] - bridge_indexes[0]) != 1:
-        raise ValueError("Legacy worker startup calls must remain in heartbeat context")
+    else:
+        configure_indexes = [
+            index
+            for index, statement in enumerate(function.body)
+            if startup_call(statement, "configure_structured_logging")
+        ]
+        legacy_bridge_indexes = [
+            index
+            for index, statement in enumerate(function.body)
+            if startup_call(statement, "install_diagnostic_log_bridge")
+        ]
+        if (
+            len(configure_indexes) != 1
+            or len(legacy_bridge_indexes) != 1
+            or bridge_indexes
+            or len(main_indexes) != calls.main
+            or (main_indexes and main_indexes[0] != 0)
+            or (
+                len(configure_indexes) == 1
+                and len(legacy_bridge_indexes) == 1
+                and legacy_bridge_indexes[0] != configure_indexes[0] + 1
+            )
+        ):
+            raise ValueError("Legacy worker startup placement is not recognized")
 
     imports = [
         node
