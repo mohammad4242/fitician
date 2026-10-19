@@ -495,13 +495,13 @@ it("deletes an existing shared template after confirmation", async () => {
     "href",
     "/admin/training-program-templates",
   );
-  expect(screen.queryByRole("heading", { name: "کتابخانه برنامه‌ها", exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "کتابخانه برنامه‌ها" })).not.toBeInTheDocument();
 
   await act(async () => {
     resolveDeletion();
   });
 
-  expect(await screen.findByRole("heading", { name: "کتابخانه برنامه‌ها", exact: true })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "کتابخانه برنامه‌ها" })).toBeInTheDocument();
 });
 
 it.each([320, 360, 390, 430])(
