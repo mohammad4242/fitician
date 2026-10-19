@@ -52,6 +52,7 @@ def _canonical_value(value: object) -> object:
             for key, item in sorted(value.items(), key=lambda item: str(item[0]))
         }
     if isinstance(value, (set, frozenset)):
+        # Unordered inputs must hash identically on every API replica.
         items = [_canonical_value(item) for item in value]
         return sorted(items, key=lambda item: json.dumps(item, sort_keys=True))
     if isinstance(value, (list, tuple)):
