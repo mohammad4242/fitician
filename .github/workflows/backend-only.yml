@@ -179,7 +179,10 @@ jobs:
 
   backend-image:
     name: Build, verify, and push backend image
-    if: inputs.publish_image || (github.event_name == 'workflow_dispatch' && inputs.domains == '')
+    if: >-
+      always() && !cancelled() &&
+      needs.backend-verification.result == 'success' &&
+      (inputs.publish_image || (github.event_name == 'workflow_dispatch' && inputs.domains == ''))
     needs: backend-verification
     runs-on: ubuntu-latest
     steps:
@@ -209,6 +212,22 @@ jobs:
         env:
           BACKEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:${{ github.sha }}
         run: docker push "$BACKEND_IMAGE"
+
+  backend-image-required:
+    name: Require published backend image
+    if: >-
+      always() && !cancelled() &&
+      (inputs.publish_image || (github.event_name == 'workflow_dispatch' && inputs.domains == ''))
+    needs: [backend-verification, backend-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject missing component release evidence
+        env:
+          VERIFICATION_RESULT: ${{ needs.backend-verification.result }}
+          IMAGE_RESULT: ${{ needs.backend-image.result }}
+        run: |
+          test "$VERIFICATION_RESULT" = success
+          test "$IMAGE_RESULT" = success
 
   deploy-backend-production:
     # Production CD is disabled until a separately reviewed re-enablement.
