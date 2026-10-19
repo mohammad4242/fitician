@@ -21,7 +21,7 @@ def frontend_image_paths(paths: list[str]) -> list[str]:
         path
         for path in paths
         if path.startswith(
-            ("frontend/", "packages/fitician-core/src/", "vendor/", "backend/app/exercises/")
+            ("frontend/", "packages/", "vendor/", "backend/app/exercises/")
         )
         or path in {"package.json", "package-lock.json", ".dockerignore"}
     ]
@@ -37,7 +37,8 @@ def agent_image_paths(paths: list[str]) -> list[str]:
     return [
         path
         for path in paths
-        if path.startswith("agent-service/app/") or path in build_files
+        if path.startswith(("agent-service/app/", "agent-service/docker/"))
+        or path in build_files
     ]
 
 
@@ -62,7 +63,9 @@ def role_controller():
     return module
 
 
-def backend_image_paths(api_base: str, worker_base: str, head: str) -> tuple[list[str], dict]:
+def backend_image_paths(
+    api_base: str, worker_base: str, head: str
+) -> tuple[list[str], dict]:
     controller = role_controller()
     if api_base == worker_base:
         proof = {
@@ -125,7 +128,9 @@ def check_plan(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--component", choices=["frontend", "backend", "agent"], required=True)
+    parser.add_argument(
+        "--component", choices=["frontend", "backend", "agent"], required=True
+    )
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", required=True)
     parser.add_argument("--validated-tests", default="[]")
@@ -139,7 +144,9 @@ def main():
     args = parser.parse_args()
     if args.full_ci_run_id:
         if args.component not in {"frontend", "agent"}:
-            raise SystemExit("Full CI scoped deployment supports frontend or Agent only")
+            raise SystemExit(
+                "Full CI scoped deployment supports frontend or Agent only"
+            )
         if args.component == "agent":
             raise SystemExit("Agent Full CI validation is supplied by the caller")
         subprocess.run(
@@ -177,7 +184,10 @@ def main():
     elif args.component == "backend":
         worker_base = args.worker_base or args.base
         paths, role_proof = backend_image_paths(args.base, worker_base, args.head)
-        print("Verified runtime API/worker source roles: " + json.dumps(role_proof, sort_keys=True))
+        print(
+            "Verified runtime API/worker source roles: "
+            + json.dumps(role_proof, sort_keys=True)
+        )
     else:
         paths = agent_image_paths(classifier.git_paths(args.base, args.head))
         if args.auto_agent:

@@ -66,6 +66,21 @@ class FullValidatedFrontendScopeTests(unittest.TestCase):
 
 
 class RegionalCumulativeScopeTests(unittest.TestCase):
+    def test_frontend_keeps_shared_package_build_metadata_in_cumulative_scope(self):
+        guard = load("guard", "ops/check-component-release.py")
+        paths = [
+            "packages/fitician-core/package.json",
+            "packages/fitician-core/tsconfig.json",
+        ]
+        self.assertEqual(guard.frontend_image_paths(paths), paths)
+
+    def test_auto_agent_refuses_pending_bootstrap_script_changes(self):
+        guard = load("guard", "ops/check-component-release.py")
+        paths = ["agent-service/app/main.py", "agent-service/docker/entrypoint.sh"]
+        self.assertEqual(guard.agent_image_paths(paths), paths)
+        with self.assertRaises(SystemExit):
+            guard.strict_agent_image_paths(paths)
+
     def test_frontend_cumulative_scope_filters_unrelated_image_roles(self):
         guard = load("guard", "ops/check-component-release.py")
         paths = guard.frontend_image_paths(
@@ -111,7 +126,9 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
             ["agent-service/app/main.py"],
         )
 
-    def test_agent_cumulative_scope_filters_unrelated_region_and_rejects_auto_image_inputs(self):
+    def test_agent_cumulative_scope_filters_unrelated_region_and_rejects_auto_image_inputs(
+        self,
+    ):
         guard = load("guard", "ops/check-component-release.py")
         changed = [
             "agent-service/app/main.py",
@@ -148,9 +165,7 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
             patch.object(guard.classifier, "git_paths", return_value=paths) as delta,
             patch.object(guard.subprocess, "run") as run,
         ):
-            filtered, verified = guard.backend_image_paths(
-                "a" * 40, "b" * 40, "c" * 40
-            )
+            filtered, verified = guard.backend_image_paths("a" * 40, "b" * 40, "c" * 40)
         controller.validate_role_source_compatibility.assert_called_once_with(
             "a" * 40, "b" * 40
         )
@@ -180,7 +195,11 @@ class RegionalCumulativeScopeTests(unittest.TestCase):
     def test_agent_full_ci_scope_accepts_only_source_tests_and_docs(self):
         classifier = load("classifier", "ops/ci-classify.py")
         guard = load("guard", "ops/check-component-release.py")
-        paths = ["agent-service/app/main.py", "agent-service/tests/test_main.py", "docs/agent.md"]
+        paths = [
+            "agent-service/app/main.py",
+            "agent-service/tests/test_main.py",
+            "docs/agent.md",
+        ]
         plan = classifier.classify(paths, ROOT)
         self.assertTrue(plan["full_ci_required"])
         guard.check_plan(plan, "agent", [], False, full_agent_validated=True)
