@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import copy
 import importlib.util
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -25,6 +28,8 @@ CONTROLLER_SPEC.loader.exec_module(controller)
 
 SHA = "f3646e547ebecdbdabc920ca999fba5927ebfc87"
 OTHER_SHA = "d338a20a7d4a49c47ae0b5ab5bf4e462edd8fad5"
+WORKER_SHA = "2c9bf5f733b0e874c6eb2fd74761602077c8b045"
+API_SHA = SHA
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 
 
@@ -66,13 +71,14 @@ def make_iran_snapshot(root: Path):
     older_path.parent.mkdir(parents=True)
     contract_path.write_text("services: {}\n")
     older_path.write_text("services: {}\n")
-    app_ref = f"registry.example/fitician-backend:{SHA}"
+    app_ref = f"registry.example/fitician-backend:{WORKER_SHA}"
+    api_ref = f"registry.example/fitician-backend:{API_SHA}"
     frontend_ref = f"registry.example/fitician-frontend:{OTHER_SHA}"
     base_refs = {
         "db": "postgres:18-alpine@sha256:db",
         "redis": "redis:8-alpine@sha256:redis",
-        "backend": app_ref,
-        "backend-2": app_ref,
+        "backend": api_ref,
+        "backend-2": api_ref,
         "scheduler": app_ref,
         "food-photo-worker": app_ref,
         "body-analysis-worker": app_ref,
@@ -265,6 +271,28 @@ def make_germany_snapshot(root: Path):
 
 
 class FoundationEvidenceTests(unittest.TestCase):
+    def test_scalability_evidence_must_match_worker_role_sha(self):
+        run, jobs, artifacts = foundation_inputs()
+        run["head_sha"] = WORKER_SHA
+        proof = controller.validate_foundation_evidence(
+            run,
+            jobs,
+            artifacts,
+            repository="mohammad4242/fitician",
+            runtime_sha=WORKER_SHA,
+            now=NOW,
+        )
+        self.assertEqual(proof["sha"], WORKER_SHA)
+        with self.assertRaises(ValueError):
+            controller.validate_foundation_evidence(
+                run,
+                jobs,
+                artifacts,
+                repository="mohammad4242/fitician",
+                runtime_sha=API_SHA,
+                now=NOW,
+            )
+
     def test_requires_successful_same_repo_main_sha_job_and_real_artifact(self):
         run, jobs, artifacts = foundation_inputs()
         accepted = controller.validate_foundation_evidence(
@@ -322,6 +350,86 @@ class FoundationEvidenceTests(unittest.TestCase):
                 )
 
 
+class RoleSourceCompatibilityTests(unittest.TestCase):
+    def _compatibility_repo(self, mutation: str | None = None) -> tuple[Path, str, str]:
+        root = Path(tempfile.mkdtemp(dir=ROOT))
+        self.addCleanup(shutil.rmtree, root)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(
+            ["git", "-C", str(root), "config", "user.email", "test@example.invalid"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(root), "config", "user.name", "Test"], check=True
+        )
+        files = tuple(controller.WORKER_ENTRYPOINTS)
+        for relative in files:
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            source = subprocess.check_output(
+                ["git", "show", f"{API_SHA}:{relative}"], cwd=ROOT, text=True
+            )
+            destination.write_text(source)
+        (root / "backend/pyproject.toml").write_text("[project]\nname='fitician'\n")
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", "api"], check=True)
+        api = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        for relative in files:
+            source = subprocess.check_output(
+                ["git", "show", f"{WORKER_SHA}:{relative}"], cwd=ROOT, text=True
+            )
+            (root / relative).write_text(source)
+        if mutation == "worker_once":
+            path = root / "backend/app/body_analysis/worker.py"
+            tree = ast.parse(path.read_text())
+            target = next(
+                node
+                for node in tree.body
+                if isinstance(node, ast.AsyncFunctionDef)
+                and node.name == "run_body_analysis_once"
+            )
+            target.body.insert(1, ast.Assert(test=ast.Constant(value=True)))
+            path.write_text(ast.unparse(tree) + "\n")
+        elif mutation == "dependency":
+            (root / "backend/pyproject.toml").write_text(
+                "[project]\nname='fitician'\nversion='2'\n"
+            )
+        elif mutation == "schema":
+            path = root / "backend/alembic/versions/changed.py"
+            path.parent.mkdir(parents=True)
+            path.write_text("revision = 'changed'\n")
+        elif mutation == "api":
+            path = root / "backend/app/main.py"
+            path.write_text("APP_SOURCE_CHANGED = True\n")
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", "worker"], check=True)
+        worker = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        return root, api, worker
+
+    def test_accepts_current_startup_only_worker_source(self):
+        root, api, worker = self._compatibility_repo()
+        proof = controller.validate_role_source_compatibility(api, worker, root=root)
+        self.assertEqual(proof["api_sha"], api)
+        self.assertEqual(proof["worker_sha"], worker)
+        self.assertTrue(proof["ancestor_verified"])
+        self.assertTrue(proof["entrypoint_ast_equivalent"])
+        with self.assertRaises(ValueError):
+            controller.validate_role_source_compatibility(worker, api, root=root)
+
+    def test_rejects_run_once_dependency_schema_and_api_changes(self):
+        for mutation in ("worker_once", "dependency", "schema", "api"):
+            with self.subTest(mutation=mutation):
+                root, api, worker = self._compatibility_repo(mutation)
+                with self.assertRaises(ValueError):
+                    controller.validate_role_source_compatibility(
+                        api, worker, root=root
+                    )
+
+
 class RuntimeSnapshotTests(unittest.TestCase):
     def test_iran_accepts_compatible_selective_contract_labels(self):
         with tempfile.TemporaryDirectory(
@@ -340,10 +448,57 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 volume_details=volumes,
                 live_checks=checks,
             )
-        self.assertEqual(result["app_sha"], SHA)
-        self.assertEqual(result["service_image_tags"]["backend-2"], SHA)
+        self.assertEqual(result["app_sha"], WORKER_SHA)
+        self.assertEqual(result["api_sha"], API_SHA)
+        self.assertEqual(result["worker_sha"], WORKER_SHA)
+        self.assertEqual(
+            result["role_versions"], {"api": API_SHA, "worker": WORKER_SHA}
+        )
+        self.assertEqual(result["service_image_tags"]["backend-2"], API_SHA)
         self.assertIn("fitician_caddy-data", result["external_volumes"])
         self.assertNotIn("not-printed-token", json.dumps(result))
+
+    def test_iran_rejects_different_api_replicas_or_worker_shas(self):
+        mutations = ("api", "worker")
+        for role in mutations:
+            with (
+                self.subTest(role=role),
+                tempfile.TemporaryDirectory(dir=ROOT) as folder,
+            ):
+                app_dir = Path(folder)
+                _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                    app_dir
+                )
+                if role == "api":
+                    containers[3]["Config"]["Image"] = rendered["services"][
+                        "scheduler"
+                    ]["image"]
+                    containers[3]["Image"] = images[containers[3]["Config"]["Image"]][
+                        "Id"
+                    ]
+                    rendered["services"]["backend-2"]["image"] = containers[3][
+                        "Config"
+                    ]["Image"]
+                else:
+                    containers[4]["Config"]["Image"] = rendered["services"]["backend"][
+                        "image"
+                    ]
+                    containers[4]["Image"] = images[containers[4]["Config"]["Image"]][
+                        "Id"
+                    ]
+                    rendered["services"]["scheduler"]["image"] = containers[4][
+                        "Config"
+                    ]["Image"]
+                with self.assertRaises(runtime.RegistrationError):
+                    runtime.validate_runtime_snapshot(
+                        alias="iran",
+                        app_dir=app_dir,
+                        containers=containers,
+                        rendered=rendered,
+                        image_details=images,
+                        volume_details=volumes,
+                        live_checks=checks,
+                    )
 
     def test_iran_accepts_only_known_worker_health_override(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as folder:
@@ -724,8 +879,90 @@ class MarkerWriteTests(unittest.TestCase):
                 (app_dir / "backups" / "regional-runtime-registration").exists()
             )
 
+    def test_mixed_role_apply_requires_and_records_matching_source_proof(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            contract = app_dir / "releases" / WORKER_SHA / "compose.prod.iran.yaml"
+            contract.parent.mkdir(parents=True)
+            contract.write_text("services: {}\n")
+            _, foundation = runtime.marker_paths(app_dir, "iran")
+            accepted_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            foundation.write_text(
+                "foundation_version=1\n"
+                f"image_tag={WORKER_SHA}\n"
+                "evidence_run_id=12345\n"
+                f"accepted_at={accepted_at}\n"
+            )
+            current = {
+                "region": "iran",
+                "api_sha": API_SHA,
+                "worker_sha": WORKER_SHA,
+                "app_sha": WORKER_SHA,
+                "invariant_sha256": "b" * 64,
+                "active_contract": None,
+                "registration_contract": str(contract),
+            }
+            with (
+                patch.object(runtime, "inspect_runtime", return_value=current),
+                self.assertRaises(runtime.RegistrationError),
+            ):
+                runtime.apply_registration(
+                    app_dir=app_dir,
+                    alias="iran",
+                    expected_invariant_sha256="b" * 64,
+                    evidence=None,
+                    accepted_at=accepted_at,
+                )
+            proof = controller.validate_role_source_compatibility(
+                API_SHA, WORKER_SHA, root=ROOT
+            )
+            with patch.object(runtime, "inspect_runtime", return_value=current):
+                result = runtime.apply_registration(
+                    app_dir=app_dir,
+                    alias="iran",
+                    expected_invariant_sha256="b" * 64,
+                    evidence=None,
+                    accepted_at=accepted_at,
+                    role_proof=proof,
+                )
+            active, _ = runtime.marker_paths(app_dir, "iran")
+            self.assertTrue(result["active_contract_created"])
+            record = json.loads(
+                Path(result["evidence_path"]).read_text(encoding="utf-8")
+            )
+            self.assertEqual(record["role_source_compatibility"], proof)
+            self.assertTrue(active.is_file())
+
 
 class ControllerDryRunTests(unittest.TestCase):
+    def test_ssh_apply_transmits_exact_role_proof(self):
+        proof = {
+            "version": controller.ROLE_SOURCE_PROOF_VERSION,
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "ancestor_verified": True,
+            "backend_image_inputs": sorted(controller.WORKER_ENTRYPOINTS),
+            "entrypoint_ast_equivalent": True,
+        }
+        completed = subprocess.CompletedProcess([], 0, stdout="{}", stderr="")
+        with patch.object(
+            controller.subprocess, "run", return_value=completed
+        ) as remote:
+            controller._ssh(
+                "iran",
+                Path("/opt/fitician-iran"),
+                apply=True,
+                probe={"invariant_sha256": "a" * 64},
+                evidence=None,
+                role_proof=proof,
+                accepted_at="2026-10-19T12:00:00Z",
+            )
+        args = remote.call_args.args[0]
+        encoded = args[args.index("--role-proof-b64") + 1]
+        self.assertEqual(
+            json.loads(controller.base64.urlsafe_b64decode(encoded).decode()), proof
+        )
+
     def test_default_mode_never_calls_remote_apply(self):
         calls = []
         result = {
@@ -737,7 +974,9 @@ class ControllerDryRunTests(unittest.TestCase):
             },
         }
 
-        def fake_ssh(alias, app_dir, *, apply, probe, evidence, accepted_at):
+        def fake_ssh(
+            alias, app_dir, *, apply, probe, evidence, role_proof, accepted_at
+        ):
             calls.append(apply)
             return result
 
@@ -761,6 +1000,57 @@ class ControllerDryRunTests(unittest.TestCase):
         rendered = json.loads(output.call_args.args[0])
         self.assertEqual(rendered["mode"], "dry-run")
         self.assertEqual(rendered["writes"], [])
+
+    def test_controller_proves_and_forwards_mixed_roles_on_apply(self):
+        calls = []
+        runtime_probe = {
+            "region": "iran",
+            "app_sha": WORKER_SHA,
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "invariant_sha256": "c" * 64,
+            "markers": {
+                "active_contract": "present",
+                "scalability_acceptance": "present",
+            },
+        }
+        proof = {
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "entrypoint_ast_equivalent": True,
+        }
+
+        def fake_ssh(
+            alias, app_dir, *, apply, probe=None, evidence, role_proof, accepted_at
+        ):
+            calls.append((apply, role_proof))
+            return runtime_probe if not apply else {"registered": True}
+
+        with (
+            patch.object(controller, "_ssh", side_effect=fake_ssh),
+            patch.object(
+                controller, "validate_role_source_compatibility", return_value=proof
+            ) as source_check,
+            patch.object(
+                sys,
+                "argv",
+                [
+                    str(ROOT / "ops/register-regional-runtime.py"),
+                    "--region",
+                    "iran",
+                    "--app-dir",
+                    "/opt/fitician-iran",
+                    "--apply",
+                    "--owner-approved",
+                ],
+            ),
+            patch("builtins.print") as output,
+        ):
+            controller.main()
+        source_check.assert_called_once_with(API_SHA, WORKER_SHA, root=ROOT)
+        self.assertEqual(calls, [(False, None), (True, proof)])
+        rendered = json.loads(output.call_args.args[0])
+        self.assertEqual(rendered["role_source_compatibility"], proof)
 
     def test_apply_requires_both_explicit_flags(self):
         with (

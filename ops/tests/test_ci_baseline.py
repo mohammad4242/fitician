@@ -51,6 +51,13 @@ class BaselineTests(unittest.TestCase):
         self.assertFalse(module.ops_only(paths + ["backend/app/main.py"]))
         self.assertFalse(module.ops_only(paths + ["ops/unknown-command.py"]))
 
+    def test_regional_registration_helpers_are_classified_as_ops_only(self):
+        self.assertTrue(
+            module.ops_only(
+                ["ops/regional_runtime.py", "ops/register-regional-runtime.py"]
+            )
+        )
+
     def verify(self, data):
         with patch.object(module, "git_delta", return_value=["ops/deploy-regional.sh"]):
             return module.verify(data, "owner/repo", HEAD, ROOT, now=NOW)

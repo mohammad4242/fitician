@@ -37,6 +37,8 @@ OPS_PATHS = {
     "ops/ci-baseline.py",
     "ops/ci-classify.py",
     "ops/ci-release-gate.py",
+    "ops/regional_runtime.py",
+    "ops/register-regional-runtime.py",
     "ops/check-db-connection-budget.py",
     "ops/check-runtime-capacity.py",
     "ops/deploy-regional.sh",

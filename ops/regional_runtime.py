@@ -42,6 +42,13 @@ WORKER_MODULES = {
 WORKER_OVERRIDE_SHA256 = (
     "95fccb2d1868926b2c2642a6b97b6ce2d833e465a90efd8e790a41aefd86e96e"
 )
+ROLE_SOURCE_PROOF_VERSION = "iran-worker-role-source-v1"
+ROLE_SOURCE_PATHS = {
+    "backend/app/body_analysis/worker.py",
+    "backend/app/nutrition/food_photo_worker.py",
+    "backend/app/notifications/worker.py",
+    "backend/app/scheduler/worker.py",
+}
 IRAN_SHARED_ENV = (
     "DATABASE_URL",
     "AGENT_SERVICE_BASE_URL",
@@ -474,11 +481,10 @@ def validate_runtime_snapshot(
                 "notification-worker",
             )
         }
-        if worker_shas != {api_sha}:
-            raise RegistrationError(
-                "Iran APIs and workers do not share one application SHA"
-            )
-        app_sha = api_sha
+        if len(worker_shas) != 1:
+            raise RegistrationError("Iran workers use different image SHAs")
+        worker_sha = next(iter(worker_shas))
+        app_sha = worker_sha
         if live_checks.get("api_statuses") != {
             "backend": {"livez": 200, "readyz": 200},
             "backend-2": {"livez": 200, "readyz": 200},
@@ -537,6 +543,18 @@ def validate_runtime_snapshot(
         "region": region,
         "project": project,
         "app_sha": app_sha,
+        "api_sha": image_tags.get("backend", image_tags.get("agent-service")),
+        "worker_sha": next(iter({image_tags[name] for name in WORKER_MODULES}))
+        if region == "iran"
+        else None,
+        "role_versions": (
+            {
+                "api": image_tags["backend"],
+                "worker": next(iter({image_tags[name] for name in WORKER_MODULES})),
+            }
+            if region == "iran"
+            else {"agent": image_tags["agent-service"]}
+        ),
         "contract_paths": sorted(contract_paths),
         "service_image_tags": image_tags,
         "service_image_ids": image_ids,
@@ -888,6 +906,31 @@ def _validate_foundation_marker(path: Path, app_sha: str) -> bool:
     return True
 
 
+def _validate_role_proof(current: dict, proof: dict | None) -> None:
+    if current.get("region") != "iran" or current.get("api_sha") == current.get(
+        "worker_sha"
+    ):
+        return
+    changed_paths = (
+        proof.get("backend_image_inputs") if isinstance(proof, dict) else None
+    )
+    if (
+        not isinstance(proof, dict)
+        or proof.get("version") != ROLE_SOURCE_PROOF_VERSION
+        or proof.get("api_sha") != current.get("api_sha")
+        or proof.get("worker_sha") != current.get("worker_sha")
+        or proof.get("ancestor_verified") is not True
+        or proof.get("entrypoint_ast_equivalent") is not True
+        or not isinstance(changed_paths, list)
+        or any(not isinstance(path, str) for path in changed_paths)
+        or len(changed_paths) != len(set(changed_paths))
+        or set(changed_paths) - ROLE_SOURCE_PATHS
+    ):
+        raise RegistrationError(
+            "Mixed Iran API and worker roles require matching source proof"
+        )
+
+
 def _atomic_create(path: Path, content: str) -> bool:
     if path.is_symlink():
         raise RegistrationError("Registration target cannot be a symlink")
@@ -934,12 +977,14 @@ def apply_registration(
     expected_invariant_sha256: str,
     evidence: dict | None,
     accepted_at: str,
+    role_proof: dict | None = None,
 ) -> dict:
     region = validate_region(alias)
     app_dir = Path(os.path.abspath(app_dir))
     current = inspect_runtime(app_dir, alias)
     if current["invariant_sha256"] != expected_invariant_sha256:
         raise RegistrationError("Runtime changed after read-only proof")
+    _validate_role_proof(current, role_proof)
     if evidence is not None and (
         region != "iran" or evidence.get("sha") != current["app_sha"]
     ):
@@ -980,6 +1025,7 @@ def apply_registration(
         "registered_at": accepted_at,
         "runtime": current,
         "foundation_evidence": evidence,
+        "role_source_compatibility": role_proof,
     }
     evidence_content = json.dumps(evidence_record, sort_keys=True, indent=2) + "\n"
     created: list[Path] = []
@@ -1018,6 +1064,7 @@ def main() -> None:
     parser.add_argument("--owner-approved", action="store_true")
     parser.add_argument("--expected-invariant-sha256")
     parser.add_argument("--evidence-b64")
+    parser.add_argument("--role-proof-b64")
     parser.add_argument("--accepted-at")
     args = parser.parse_args()
     try:
@@ -1033,12 +1080,20 @@ def main() -> None:
                 if args.evidence_b64
                 else None
             )
+            role_proof = (
+                json.loads(
+                    base64.urlsafe_b64decode(args.role_proof_b64).decode("utf-8")
+                )
+                if args.role_proof_b64
+                else None
+            )
             result = apply_registration(
                 app_dir=args.app_dir,
                 alias=args.alias,
                 expected_invariant_sha256=args.expected_invariant_sha256,
                 evidence=evidence,
                 accepted_at=args.accepted_at,
+                role_proof=role_proof,
             )
         print(json.dumps(result, sort_keys=True))
     except (RegistrationError, OSError, json.JSONDecodeError):
