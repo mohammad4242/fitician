@@ -429,6 +429,28 @@ rollback() {
   local status=$?
   [[ $status -ne 0 ]] || status=1
   trap - ERR INT TERM
+  if [[ "${backend_rolling_verified:-false}" == true ]]; then
+    echo 'Regional metadata update failed; restoring the previous backend sequentially' >&2
+    set +e
+    REGION="$region" DEPLOY_KIND=backend IMAGE_TAG="$previous_api_tag" \
+      COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
+      FRONTEND_IMAGE_TAG="$previous_frontend_tag" BACKEND_API_IMAGE_TAG="$previous_api_tag" \
+      WORKER_IMAGE_TAG="$previous_worker_tag" AGENT_IMAGE_TAG="$previous_agent_tag" \
+      COMPOSE_FILE="$active_contract" python3 "$release_dir/ops/rolling-backend.py" \
+        --candidate-contract "$active_contract" --rollback-contract "$compose_file" \
+        --candidate-tag "$previous_api_tag" --rollback-tag "$image_tag" \
+        --backup-dir "$app_dir/backups/rolling-backend" --verify-script "$release_dir/ops/verify-regional.sh" \
+        --owner-approved
+    local rolling_status=$?
+    if [[ "$rolling_status" -eq 0 ]]; then
+      if [[ -n "$old_env_copy" && -f "$old_env_copy" ]]; then cp -p "$old_env_copy" "$env_file"; fi
+      if [[ -n "$old_marker_copy" && -f "$old_marker_copy" ]]; then cp -p "$old_marker_copy" "$active_marker"; fi
+      echo 'Previous backend and regional metadata restored' >&2
+    else
+      echo 'Sequential backend rollback failed; manual reconciliation is required' >&2
+    fi
+    exit "$status"
+  fi
   if [[ "$rollback_needed" != true ]]; then exit "$status"; fi
   if [[ "$schema_changed" == true ]]; then
     if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \

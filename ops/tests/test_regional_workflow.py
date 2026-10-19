@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
@@ -28,6 +30,23 @@ class RegionalWorkflowTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("false && (", workflow)
+
+    def test_workflow_evidence_validator_loads_from_hyphenated_filename(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("spec_from_file_location", workflow)
+        self.assertIn("ops/register-regional-runtime.py", workflow)
+        sys.path.insert(0, str(ROOT / "ops"))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "register_regional_runtime", ROOT / "ops/register-regional-runtime.py"
+            )
+            self.assertIsNotNone(spec)
+            self.assertIsNotNone(spec.loader)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.assertTrue(callable(module.load_foundation_evidence))
+        finally:
+            sys.path.remove(str(ROOT / "ops"))
 
     def test_ssh_port_defaults_to_9011_for_all_transfer_and_remote_commands(
         self,

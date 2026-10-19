@@ -610,6 +610,31 @@ fi
                 calls = self.calls.read_text().splitlines()
                 self.assertFalse(any(" up -d" in line for line in calls))
 
+    def test_backend_metadata_failure_rolls_back_sequentially_and_restores_markers(self) -> None:
+        self.env.update(DEPLOY_KIND="backend", FAKE_FAIL_MARKER_MV="true")
+        self.command(
+            "mv",
+            "#!/usr/bin/env bash\n"
+            "if [[ \"${FAKE_FAIL_MARKER_MV:-false}\" == true && \"$2\" == *regional-iran-active-contract ]]; then exit 1; fi\n"
+            "exec /usr/bin/mv \"$@\"\n",
+        )
+        original_env = (self.app / ".env").read_text()
+        original_marker = (self.app / ".regional-iran-active-contract").read_text()
+
+        result = self.run_deploy()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.app / ".env").read_text(), original_env)
+        self.assertEqual(
+            (self.app / ".regional-iran-active-contract").read_text(), original_marker
+        )
+        calls = self.calls.read_text().splitlines()
+        rolls = [line for line in calls if line.startswith("ROLLING ")]
+        self.assertEqual(len(rolls), 2)
+        self.assertIn("--candidate-tag " + OLD, rolls[1])
+        self.assertIn("--rollback-tag " + NEW, rolls[1])
+        self.assertFalse(any(" up -d" in line for line in calls))
+
     def test_iran_rejects_database_url_pointing_outside_local_database_service(
         self,
     ) -> None:

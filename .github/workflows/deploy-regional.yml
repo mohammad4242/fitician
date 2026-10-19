@@ -107,10 +107,19 @@ jobs:
         run: |
           set -euo pipefail
           PYTHONPATH=ops python3 - <<'PY'
+          import importlib.util
           import os
-          from register_regional_runtime import load_foundation_evidence
+          from pathlib import Path
 
-          load_foundation_evidence(
+          spec = importlib.util.spec_from_file_location(
+              "register_regional_runtime", Path("ops/register-regional-runtime.py")
+          )
+          if spec is None or spec.loader is None:
+              raise SystemExit("Unable to load regional evidence validator")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          module.load_foundation_evidence(
               os.environ["GITHUB_REPOSITORY"],
               int(os.environ["SCALABILITY_EVIDENCE_RUN_ID"]),
               os.environ["IMAGE_TAG"],
