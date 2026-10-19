@@ -30,7 +30,6 @@ def _string_value(value: object) -> str:
 
 
 def _canonical_hash(payload: object) -> str:
-    # Canonical serialization keeps signatures stable across independent API replicas.
     return hashlib.sha256(
         json.dumps(
             _canonical_value(payload),

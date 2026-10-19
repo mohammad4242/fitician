@@ -181,7 +181,7 @@ class DockerRuntime:
         path = directory / (
             "caddy-" + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ") + ".json"
         )
-        with path.open("x", opener=lambda p, flags: os.open(p, flags, 0o600)) as target:
+        with open(path, "x", opener=lambda p, flags: os.open(p, flags, 0o600)) as target:
             json.dump(config, target)
         self.expected_config = deepcopy(config)
         return config
