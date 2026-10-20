@@ -112,6 +112,10 @@ def select_auto_route(plan: dict, release_path: str) -> tuple[str, str]:
 
 
 def automatic_route_or_skip(plan: dict, release_path: str) -> tuple[str, str] | None:
+    # The caller verifies selective baseline evidence first. Ops releases still
+    # require the owner's manual release path, regardless of their image proofs.
+    if release_path == "selective" and plan.get("selective_ci_required") is True:
+        return None
     try:
         return select_auto_route(plan, release_path)
     except ValueError as error:

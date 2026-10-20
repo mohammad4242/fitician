@@ -71,6 +71,9 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
       vars.REGIONAL_CD_ENABLED == 'true' && vars.REGIONAL_AUTO_CD_ENABLED == 'true')
     runs-on: ubuntu-latest
     outputs:

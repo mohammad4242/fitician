@@ -144,6 +144,14 @@ class AutomaticRouteTests(unittest.TestCase):
         plan["deployable"] = False
         self.assertIsNone(module.automatic_route_or_skip(plan, "full"))
 
+    def test_verified_selective_ops_release_remains_manual_and_skips_cleanly(self):
+        plan = module.classify_paths(["ops/deploy-regional.sh"])
+        plan.update(full_ci_required=False, selective_ci_required=True)
+        self.assertIsNone(module.automatic_route_or_skip(plan, "selective"))
+        # A selective flag cannot turn an ordinary component plan into a release.
+        with self.assertRaises(ValueError):
+            module.select_auto_route(plan, "component")
+
 
 if __name__ == "__main__":
     unittest.main()
