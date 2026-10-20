@@ -42,6 +42,42 @@ class CumulativeScopeTests(unittest.TestCase):
 
 
 class FullValidatedFrontendScopeTests(unittest.TestCase):
+    def test_contract_refresh_needs_full_proof_and_only_generated_api_exception(self):
+        classifier = load("classifier", "ops/ci-classify.py")
+        guard = load("guard", "ops/check-component-release.py")
+        paths = ["frontend/src/App.tsx", "packages/fitician-core/src/generated/api.ts"]
+        plan = classifier.classify(paths, ROOT)
+        with self.assertRaises(SystemExit):
+            guard.check_plan(plan, "frontend", [], True, frontend_contract_verified=True)
+        guard.check_plan(
+            plan, "frontend", [], True,
+            full_frontend_validated=True, frontend_contract_verified=True,
+        )
+        for path in ["packages/fitician-core/package.json", "vendor/a.ts", "backend/app/main.py"]:
+            with self.subTest(path=path), self.assertRaises(SystemExit):
+                guard.check_plan(
+                    classifier.classify([*paths, path], ROOT), "frontend", [], True,
+                    full_frontend_validated=True, frontend_contract_verified=True,
+                )
+
+    def test_contract_refresh_requires_live_api_ancestor_and_identical_backend_inputs(self):
+        guard = load("guard", "ops/check-component-release.py")
+        with (
+            patch.object(guard.subprocess, "run") as ancestry,
+            patch.object(guard.classifier, "git_paths", return_value=["agent-service/app/main.py"]),
+        ):
+            guard.verify_frontend_api_source("a" * 40, "b" * 40)
+            ancestry.assert_called_once()
+            self.assertEqual(ancestry.call_args.args[0][-2:], ["a" * 40, "b" * 40])
+        for path in ["backend/app/main.py", "backend/alembic/a.py", "backend/pyproject.toml"]:
+            with (
+                self.subTest(path=path),
+                patch.object(guard.subprocess, "run"),
+                patch.object(guard.classifier, "git_paths", return_value=[path]),
+                self.assertRaises(SystemExit),
+            ):
+                guard.verify_frontend_api_source("a" * 40, "b" * 40)
+
     def test_full_proof_allows_only_frontend_build_inputs(self):
         classifier = load("classifier", "ops/ci-classify.py")
         guard = load("guard", "ops/check-component-release.py")

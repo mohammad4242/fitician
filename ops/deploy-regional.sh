@@ -372,9 +372,11 @@ elif [[ "$region" == iran ]]; then
   esac
   if [[ "$inspect_only" == true ]]; then
     if [[ -n "$inspect_role" ]]; then
-      [[ "$region:$kind:$inspect_role" == iran:backend:worker ]] || \
-        fail 'INSPECT_ROLE is supported only for the Iran backend worker baseline'
-      printf '%s\n' "$previous_worker_tag"
+      case "$region:$kind:$inspect_role" in
+        iran:backend:worker) printf '%s\n' "$previous_worker_tag" ;;
+        iran:frontend:api) printf '%s\n' "$previous_api_tag" ;;
+        *) fail 'Unsupported read-only regional role baseline' ;;
+      esac
       exit 0
     fi
     case "$kind" in

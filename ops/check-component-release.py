@@ -4,6 +4,7 @@
 import argparse
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -109,6 +110,18 @@ def backend_image_paths(
     return paths, proof
 
 
+def verify_frontend_api_source(api_base: str, head: str) -> None:
+    """The generated contract may advance only to source already running on both APIs."""
+    if not re.fullmatch(r"[0-9a-f]{40}", api_base):
+        raise SystemExit("Frontend contract refresh requires an observed immutable API SHA")
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", api_base, head], cwd=ROOT, check=True
+    )
+    paths = classifier.git_paths(api_base, head)
+    if any(path.startswith("backend/") for path in paths):
+        raise SystemExit("Candidate Backend source differs from the running API contract")
+
+
 def check_plan(
     plan: dict,
     component: str,
@@ -117,12 +130,19 @@ def check_plan(
     *,
     full_frontend_validated: bool = False,
     full_agent_validated: bool = False,
+    frontend_contract_verified: bool = False,
 ):
     if plan["full_ci_required"]:
         if (
             full_frontend_validated
             and component == "frontend"
-            and classifier.frontend_release_paths(plan["changed_paths"])
+            and classifier.frontend_release_paths([
+                path for path in plan["changed_paths"]
+                if not (
+                    frontend_contract_verified
+                    and path == "packages/fitician-core/src/generated/api.ts"
+                )
+            ])
         ):
             return
         if full_agent_validated and component == "agent":
@@ -156,10 +176,13 @@ def main():
         "--shared-validated", choices=["true", "false"], default="false"
     )
     parser.add_argument("--full-ci-run-id", default="")
+    parser.add_argument("--frontend-api-base", default="")
     parser.add_argument("--full-agent-validated", action="store_true")
     parser.add_argument("--auto-agent", action="store_true")
     parser.add_argument("--worker-base", default="")
     args = parser.parse_args()
+    if args.frontend_api_base and (args.component != "frontend" or not args.full_ci_run_id):
+        raise SystemExit("Frontend contract refresh requires exact full-image CI proof")
     if args.full_ci_run_id:
         if args.component not in {"frontend", "agent"}:
             raise SystemExit(
@@ -175,13 +198,15 @@ def main():
                 args.full_ci_run_id,
                 "--sha",
                 args.head,
-                "--require-frontend-full",
+                "--require-full" if args.frontend_api_base else "--require-frontend-full",
                 "--directory",
                 ".ci-evidence/component-full",
             ],
             cwd=ROOT,
             check=True,
         )
+    if args.frontend_api_base:
+        verify_frontend_api_source(args.frontend_api_base, args.head)
     # A prior reviewed manual frontend image can be on a divergent branch.
     # Only exact Full CI proof permits it; ordinary component ancestry stays strict.
     ancestry = (
@@ -225,6 +250,7 @@ def main():
         args.shared_validated == "true",
         full_frontend_validated=bool(args.full_ci_run_id),
         full_agent_validated=args.full_agent_validated,
+        frontend_contract_verified=bool(args.frontend_api_base),
     )
     print("Cumulative component release scope is covered by this exact validation run")
 
