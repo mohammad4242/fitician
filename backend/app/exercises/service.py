@@ -88,6 +88,7 @@ def list_exercises(
         )
 
     total = db.scalar(select(func.count()).select_from(Exercise).where(*conditions)) or 0
+    # The ID tie-breaker keeps pagination stable across API replicas.
     exercises = list(
         db.scalars(
             select(Exercise)
