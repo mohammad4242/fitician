@@ -14,6 +14,17 @@ WORKFLOW = ROOT / ".github/workflows/deploy-regional.yml"
 
 
 class RegionalWorkflowTests(unittest.TestCase):
+    def test_only_successful_same_repository_push_callbacks_start_normalization(self):
+        source = WORKFLOW.read_text().split("  normalize-request:", 1)[1]
+        predicate = source.split("    if: >-\n", 1)[1].split("    runs-on:", 1)[0]
+        self.assertIn("github.event_name == 'workflow_dispatch' ||", predicate)
+        for requirement in (
+            "github.event.workflow_run.conclusion == 'success'",
+            "github.event.workflow_run.event == 'push'",
+            "github.event.workflow_run.head_repository.full_name == github.repository",
+        ):
+            self.assertIn(requirement, predicate)
+
     def test_manual_inputs_reject_shell_and_output_injection_before_transport(self):
         source = WORKFLOW.read_text().split("- name: Copy manual dispatch inputs", 1)[1]
         script = textwrap.dedent(
