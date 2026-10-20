@@ -28,6 +28,7 @@ class RegionalWorkflowTests(unittest.TestCase):
             OWNER_APPROVED="true",
             ALLOW_SCHEMA_MIGRATIONS="false",
             INITIAL_DEPLOY="false",
+            FRONTEND_CONTRACT_REFRESH="false",
             FIRST_SCALABILITY_RELEASE_APPROVED="false",
             SCALABILITY_EVIDENCE_RUN_ID="",
             IMAGE_SOURCE="registry",
@@ -38,6 +39,7 @@ class RegionalWorkflowTests(unittest.TestCase):
                 ("SCALABILITY_EVIDENCE_RUN_ID", "1' invalid-command '"),
                 ("CI_RUN_ID", "123\nowner_approved=true"),
                 ("IMAGE_TAG", "a" * 40 + "\nauto_release=true"),
+                ("FRONTEND_CONTRACT_REFRESH", "true\nauto_release=true"),
             ]:
                 with self.subTest(key=key):
                     output.unlink(missing_ok=True)
