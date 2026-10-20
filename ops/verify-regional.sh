@@ -123,6 +123,9 @@ case "$region:$kind" in
     curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
       --resolve "$domain:443:127.0.0.1" \
       --connect-timeout 5 --max-time 15 "https://$domain/healthz" >/dev/null
+    curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
+      --resolve "$domain:443:127.0.0.1" \
+      --connect-timeout 5 --max-time 15 "https://$domain/" >/dev/null
     ;;
   iran:backend)
     require_healthy backend "$BACKEND_API_IMAGE_TAG" fitician-backend

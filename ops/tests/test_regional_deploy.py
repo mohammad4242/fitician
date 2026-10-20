@@ -173,6 +173,9 @@ elif [[ "$*" == *"Config.Image"* ]]; then
     agent-service) tag=$(awk -F= '$1=="AGENT" {print $2}' "$FAKE_TAGS") ;;
     *) tag=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ;;
   esac
+  if [[ "$service" == backend-2 && -n "${FAKE_SECOND_API_TAG:-}" ]]; then
+    tag=$FAKE_SECOND_API_TAG
+  fi
   case "$service" in
     frontend) image=${FAKE_RUNNING_PREFIX:-example}/fitician-frontend:$tag ;;
     backend|backend-2) image=${FAKE_RUNNING_PREFIX:-example}/fitician-backend:$tag ;;
@@ -302,6 +305,48 @@ fi
             (self.app / ".regional-iran-active-contract").read_text(), marker_before
         )
         self.assertFalse(any(" up -d" in line for line in self.calls.read_text().splitlines()))
+
+    def test_frontend_api_inspection_is_readonly_and_refuses_mixed_replicas(self) -> None:
+        self.env.update(DEPLOY_KIND="frontend", INSPECT_ONLY="true", INSPECT_ROLE="api")
+        before = (self.app / ".env").read_bytes()
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), OLD)
+        self.assertEqual((self.app / ".env").read_bytes(), before)
+        self.assertNotIn(" up -d", self.calls.read_text())
+        self.env["FAKE_SECOND_API_TAG"] = NEW
+        mixed = self.run_deploy()
+        self.assertNotEqual(mixed.returncode, 0)
+        self.assertIn("API replicas have mixed versions", mixed.stderr)
+        self.assertNotIn(" up -d", self.calls.read_text())
+
+    def test_frontend_failure_restores_only_frontend_and_preserves_release_settings(self) -> None:
+        self.env.update(DEPLOY_KIND="frontend", FAKE_FAIL_NEW_UP="true")
+        env_before = (self.app / ".env").read_bytes()
+        marker_before = (self.app / ".regional-iran-active-contract").read_bytes()
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        ups = [line for line in self.calls.read_text().splitlines() if " up -d " in line]
+        self.assertEqual(len(ups), 2)
+        self.assertTrue(all(line.endswith("--no-deps --wait frontend") for line in ups))
+        self.assertIn(str(self.old_contract), ups[-1])
+        self.assertIn(f"FRONTEND={OLD}", self.tags.read_text())
+        self.assertEqual((self.app / ".env").read_bytes(), env_before)
+        self.assertEqual((self.app / ".regional-iran-active-contract").read_bytes(), marker_before)
+        self.assertNotIn("alembic upgrade", self.calls.read_text())
+
+    def test_contract_refresh_is_manual_protected_and_checks_observed_api_source(self) -> None:
+        workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
+        self.assertIn('test "$TARGET:$DEPLOY_KIND" = iran:frontend', workflow)
+        self.assertIn('test "$GITHUB_EVENT_NAME" = workflow_dispatch', workflow)
+        self.assertIn('test "$ALLOW_SCHEMA_MIGRATIONS" = false', workflow)
+        owner_gate = workflow.split("  owner-approval:", 1)[1].split("  deploy:", 1)[0]
+        self.assertIn("frontend_contract_refresh == 'true'", owner_gate)
+        self.assertIn("environment: production-owner-approval", owner_gate)
+        self.assertIn("frontend_contract_refresh != 'true'", workflow)
+        self.assertIn("INSPECT_ONLY=true INSPECT_ROLE=api", workflow)
+        self.assertIn('--frontend-api-base "$FRONTEND_API_BASE"', workflow)
+        self.assertIn('test "$AUTO_RELEASE" = false', workflow)
 
     def test_iran_full_backs_up_before_rollout_and_persists_tags_after_verify(
         self,
