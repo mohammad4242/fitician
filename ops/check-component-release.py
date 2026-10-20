@@ -18,13 +18,26 @@ SPEC.loader.exec_module(classifier)
 
 
 def frontend_image_paths(paths: list[str]) -> list[str]:
+    # Keep cross-package inputs aligned with the actual COPY instructions. API
+    # runtime modules beside these export inputs are not in the frontend image.
+    copied_files = {
+        "package.json",
+        "package-lock.json",
+        ".dockerignore",
+        "mobile/assets/landing/pic_land.jpg",
+        "backend/app/exercises/seed_data.py",
+        "backend/app/exercises/enums.py",
+        "backend/app/exercises/curated_safety_notes.py",
+        "backend/app/exercises/media_metadata.py",
+        "backend/app/exercises/catalog_categories.py",
+        "backend/app/exercises/taxonomy.py",
+        "backend/app/exercises/publication_slugs.json",
+    }
     return [
         path
         for path in paths
-        if path.startswith(
-            ("frontend/", "packages/", "vendor/", "backend/app/exercises/")
-        )
-        or path in {"package.json", "package-lock.json", ".dockerignore"}
+        if path.startswith(("frontend/", "packages/", "vendor/"))
+        or path in copied_files
     ]
 
 

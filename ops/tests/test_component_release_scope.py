@@ -102,6 +102,41 @@ class FullValidatedFrontendScopeTests(unittest.TestCase):
 
 
 class RegionalCumulativeScopeTests(unittest.TestCase):
+    def test_frontend_inputs_cover_dockerfile_copies_without_unrelated_backend_runtime(self):
+        guard = load("guard", "ops/check-component-release.py")
+        inputs = []
+        for line in (ROOT / "frontend/Dockerfile").read_text().splitlines():
+            if not line.startswith("COPY ") or line.startswith("COPY --from="):
+                continue
+            for source in line.split()[1:-1]:
+                path = source + "/example.ts" if (ROOT / source).is_dir() else source
+                inputs.append(path)
+        self.assertEqual(guard.frontend_image_paths(inputs), inputs)
+        self.assertEqual(
+            guard.frontend_image_paths([
+                "backend/app/exercises/service.py",
+                "backend/app/exercises/router.py",
+                "mobile/src/App.tsx",
+            ]),
+            [],
+        )
+
+    def test_observed_frontend_refresh_delta_excludes_api_only_service_comment(self):
+        guard = load("guard", "ops/check-component-release.py")
+        classifier = load("classifier", "ops/ci-classify.py")
+        pending = [
+            "backend/app/exercises/service.py",
+            "frontend/e2e/ios-pwa-welcome.spec.ts",
+            "frontend/src/features/admin/AdminTrainingTemplateEditorPage.test.tsx",
+            "frontend/src/features/exercises/ExerciseDetailPage.test.tsx",
+            "packages/fitician-core/src/generated/api.ts",
+        ]
+        plan = classifier.classify(guard.frontend_image_paths(pending), ROOT)
+        guard.check_plan(
+            plan, "frontend", [], False,
+            full_frontend_validated=True, frontend_contract_verified=True,
+        )
+
     def test_frontend_keeps_shared_package_build_metadata_in_cumulative_scope(self):
         guard = load("guard", "ops/check-component-release.py")
         paths = [
