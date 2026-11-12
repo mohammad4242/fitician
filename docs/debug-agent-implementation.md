@@ -73,13 +73,13 @@ propagation and transport-drop health; native crash/privacy acceptance; all four
 outcome/quota regression gates; and release pipeline/production acceptance. These are engineering
 work as well as external prerequisites. Production application containers have not been replaced. Sentry secret configuration was prepared separately without restarting services.
 
-External configuration installed during continuation: Iran Sentry DSN/sync credentials in its
-existing mode-0600 server environment file, and Sentry upload/sync secrets in GitHub Environments
+External configuration installed during continuation: Iran and Germany Sentry DSN/sync
+credentials in their existing mode-0600 server environment files, and Sentry upload/sync secrets in GitHub Environments
 `production-iran` and `production-germany`. Iran web build variables identify the configured
 organization/project/DSN/environment. No existing unrelated server setting was changed.
 Services were not restarted; running old images have not adopted this configuration.
 
-Still outstanding: Germany server configuration (SSH currently times out); EAS/mobile release
+Still outstanding: live activation and regional egress verification; EAS/mobile release
 configuration and native artifacts; production debug/sync worker image/network/secret wiring;
 production connector enrollment; scoped long-term GitHub/deployment broker credentials and
 notification routing. Codex protocol/authentication were verified on the enrolled local staging
@@ -242,5 +242,32 @@ No token values appear in this document or committed files.
 Iran server configuration was atomically prepared and read back as mode 0600, preserving all
 unrelated settings and leaving running containers untouched. GitHub environment secret updates
 succeeded for both production regions. CI build/release wiring and server-origin connectivity
-are separate verification gates. Germany direct SSH and the existing Iran jump route currently
-time out; its server secret installation is not claimed complete.
+are separate verification gates. Germany direct public SSH was unavailable; its existing private Tailscale path and pinned host key
+were verified. Its existing server secret file was also atomically configured and read back as
+mode 0600 without restarting services or altering unrelated settings.
+
+## Private release pipeline wiring
+
+The active full and frontend component image paths use the existing `production-iran` GitHub
+environment with `deployment: false`: build jobs receive scoped secrets without creating false
+production deployment records. Branch policy and main-only publication guards remain enforced.
+The upload credential is a BuildKit secret, never a Docker ARG/ENV or client variable. The Vite
+upload allowlist contains only emitted JavaScript and JavaScript source maps. The public image
+removes all maps before COPY, and nginx returns 404 even if a map file is accidentally present.
+A host-side archive check scans every image layer for maps and configured privileged credentials,
+including files removed by later layers, before pushing the same verified image.
+
+Release images identify their exact source SHA. Agent Service now receives its build SHA, and
+its Germany Compose contract explicitly passes optional capture configuration. Its generation
+CLI version and read-only execution policy are unchanged. The interactive debug runtime remains
+a separate 0.167.2 laptop adapter. Disabled legacy appearance/CD paths were not enabled.
+
+The all-layer check correctly rejected a historical local image containing service-worker maps.
+A real isolated nginx test returned 404 for both an existing fixture asset map and `sw.js.map`,
+while health remained 200. A build with the new contract and live CI is still a distinct gate.
+
+Iran-origin authenticated Sentry API access currently returns an HTML `403 Forbidden`; the same
+sync credential retrieves and identifies the event with HTTP 200 from the authorized laptop.
+This establishes a regional access failure, not its underlying network/provider cause.
+Germany SSH was recovered through its existing Tailscale address and the pinned known host key;
+no host verification was disabled. Server configuration/readback and egress verification continue.

@@ -45,3 +45,6 @@ backend/var/media/meal-catalogue/*
 frontend/dist-server/
 frontend/seo-*.log
 frontend/test-results/
+
+# Private Sentry handoff, automation credentials and verification sessions.
+/.codex-tmp/sentry-setup/

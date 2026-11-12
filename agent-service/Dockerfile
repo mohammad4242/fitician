@@ -61,6 +61,10 @@ RUN set -eux; \
 COPY --chown=agent:agent docker/entrypoint.sh /usr/local/bin/fitician-agent-entrypoint
 RUN chmod 0755 /usr/local/bin/fitician-agent-entrypoint
 
+ARG APP_BUILD_SHA=
+ENV APP_BUILD_SHA=${APP_BUILD_SHA}
+LABEL org.opencontainers.image.revision=${APP_BUILD_SHA}
+
 EXPOSE 9001
 ENTRYPOINT ["/usr/local/bin/fitician-agent-entrypoint"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9001"]

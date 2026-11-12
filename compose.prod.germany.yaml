@@ -11,6 +11,11 @@ services:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-agent:${AGENT_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     environment:
       AGENT_SERVICE_TOKEN: ${AGENT_SERVICE_TOKEN:?AGENT_SERVICE_TOKEN is required}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ORG: ${SENTRY_ORG:-fitician}
+      SENTRY_PROJECT: ${SENTRY_PROJECT:-fitician-agent}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production-germany}
+      DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-production-germany}
       HOME: /home/agent
       AGENT_WORKSPACE_ROOT: /tmp/fitician-agent
       AGENT_AUTH_SESSION_TTL_SECONDS: ${AGENT_AUTH_SESSION_TTL_SECONDS:-600}

@@ -61,7 +61,7 @@ export default defineConfig({
       release: { name: sentryRelease, create: false, finalize: false },
       sourcemaps: {
         disable: sentryUpload ? false : "disable-upload",
-        assets: "./dist/**",
+        assets: ["./dist/assets/**/*.js", "./dist/assets/**/*.js.map"],
         filesToDeleteAfterUpload: sentryUpload ? ["./dist/**/*.map"] : [],
       },
     })] : []),
