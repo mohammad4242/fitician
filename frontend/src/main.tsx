@@ -1,4 +1,5 @@
-import { captureReactError } from "./shared/sentry";
+import "./shared/sentry";
+import { rootErrorHandlers } from "./shared/reactErrorHandlers";
 import "@fontsource/lalezar";
 import "@fontsource-variable/sora";
 import "@fontsource-variable/vazirmatn";
@@ -15,18 +16,6 @@ import { installWebRuntimeDiagnostics } from "./shared/clientDiagnostics";
 
 applyDesignSystem(document.documentElement, readTheme());
 installWebRuntimeDiagnostics();
-
-const rootErrorHandlers = {
-  onCaughtError(error: unknown, info: { componentStack?: string | null }) {
-    captureReactError(error, info.componentStack);
-    console.error(error, info.componentStack);
-  },
-  onUncaughtError(error: unknown) {
-    captureReactError(error, undefined, "uncaught");
-    if (typeof window.reportError === "function") window.reportError(error);
-    else console.error(error);
-  },
-};
 
 const path = window.location.pathname;
 const root = document.getElementById("root")!;
