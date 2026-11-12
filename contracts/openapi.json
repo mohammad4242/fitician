@@ -9878,6 +9878,18 @@
             ],
             "title": "Request Id"
           },
+          "sentry_event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentry Event Id"
+          },
           "source_location": {
             "anyOf": [
               {

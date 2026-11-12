@@ -53,13 +53,19 @@ def exception_evidence(error: BaseException) -> dict[str, Any]:
 
 
 def persist_evidence(
-    db: Session, event: DiagnosticEvent, evidence: dict[str, Any], sentry_event_id: str | None
+    db: Session,
+    event: DiagnosticEvent,
+    evidence: dict[str, Any],
+    sentry_event_id: str | None,
+    *,
+    project: str | None = None,
+    provenance: str = "local_exception",
 ) -> None:
     if event.issue_id is None:
         return
     payload = {
         "schema_version": 1,
-        "provenance": "local_exception",
+        "provenance": provenance,
         "event_id": str(event.id),
         "issue_id": str(event.issue_id),
         "release_commit": event.build,
@@ -73,7 +79,7 @@ def persist_evidence(
         "component": event.component,
     }
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
-    project = os.environ.get("SENTRY_PROJECT", "")
+    project = project or os.environ.get("SENTRY_PROJECT", "")
     environment = diagnostics_environment()
     if sentry_event_id and re.fullmatch(r"[a-z0-9_-]{1,100}", project):
         db.execute(
@@ -158,7 +164,10 @@ def evidence_package(
         if snapshot.sentry_event_id
         else "unknown",
         "created_at": snapshot.created_at.isoformat(),
-        "missing": [],
+        "missing": []
+        if snapshot.payload.get("exception", {}).get("values")
+        or (external and external.source_evidence)
+        else ["exception_stack"],
     }
 
 

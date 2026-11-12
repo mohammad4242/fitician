@@ -318,3 +318,16 @@ shows expandable tool output and citation identities after refresh. Outputs are 
 30 KB per tool; hidden model reasoning is not accepted. Progress retries reuse the evidence ID
 and reject conflicting content. Every write/read/stream retains issue/environment/admin scope
 and cancellation/lease validation. No new database migration is required for these run events.
+
+### Client occurrence correlation
+
+Web global handlers and React root handlers share application-owned capture identity. React
+rethrows do not create a second Sentry event or local occurrence; original errors and cause
+chains reach the SDK. The local UUID is tagged on the external event, and the generated Sentry
+ID is a pending reference, never proof of delivery. Authenticated ingestion accepts only the
+reference (not client-supplied stacks), selects an explicitly configured project by platform,
+and preserves issue counts under retries. Set `SENTRY_WEB_PROJECT=fitician-web` and
+`SENTRY_MOBILE_PROJECT=fitician-mobile` on the backend and synchronization worker. The worker
+polls only those configured projects and validates occurrence/environment identity before
+accepting remote evidence. Unauthenticated events and observations lost before persistence
+remain outside this exact-ID synchronization path; broad project discovery is not implemented.

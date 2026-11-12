@@ -11,7 +11,7 @@ import "./index.css";
 import "./pwa/pwa.css";
 import { applyDesignSystem } from "./styles/designSystem";
 import { readTheme } from "./theme/ThemeProvider";
-import { installWebRuntimeDiagnostics, reportReactRootError } from "./shared/clientDiagnostics";
+import { installWebRuntimeDiagnostics } from "./shared/clientDiagnostics";
 
 applyDesignSystem(document.documentElement, readTheme());
 installWebRuntimeDiagnostics();
@@ -19,12 +19,10 @@ installWebRuntimeDiagnostics();
 const rootErrorHandlers = {
   onCaughtError(error: unknown, info: { componentStack?: string | null }) {
     captureReactError(error, info.componentStack);
-    reportReactRootError("caught", error);
     console.error(error, info.componentStack);
   },
   onUncaughtError(error: unknown) {
-    captureReactError(error);
-    reportReactRootError("uncaught", error);
+    captureReactError(error, undefined, "uncaught");
     if (typeof window.reportError === "function") window.reportError(error);
     else console.error(error);
   },

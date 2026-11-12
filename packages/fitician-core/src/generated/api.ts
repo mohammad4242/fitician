@@ -8053,6 +8053,8 @@ export type components = {
             platform: "android" | "ios_pwa" | "web";
             /** Request Id */
             request_id?: string | null;
+            /** Sentry Event Id */
+            sentry_event_id?: string | null;
             /** Source Location */
             source_location?: string | null;
             /** Span Id */

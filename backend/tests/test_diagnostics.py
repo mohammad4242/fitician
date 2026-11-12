@@ -424,3 +424,51 @@ def test_safe_client_exception_location_is_persisted_without_confirming_cause(cl
             ).status_code
             == 422
         )
+
+
+def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
+    client, db, monkeypatch
+):
+    from app.observability.evidence_models import (
+        DiagnosticEvidenceSnapshot,
+        DiagnosticExternalEvent,
+    )
+
+    monkeypatch.setenv("SENTRY_WEB_PROJECT", "fitician-web")
+    email = f"sentry-fixture-{uuid4()}@example.com"
+    headers = {"Origin": "http://localhost:5173"}
+    assert (
+        client.post(
+            "/api/v1/auth/register",
+            headers=headers,
+            json={"email": email, "password": "long test password"},
+        ).status_code
+        == 201
+    )
+    identifier = uuid4()
+    payload = {
+        "event_id": str(identifier),
+        "platform": "web",
+        "component": "ReactRoot",
+        "operation": "render",
+        "stage": "uncaught",
+        "error_code": "CLIENT_RENDER_ERROR",
+        "build": "b" * 40,
+        "sentry_event_id": "a" * 32,
+    }
+    for _ in range(2):
+        assert (
+            client.post(
+                "/api/v1/diagnostics/client", headers=headers, json={"events": [payload]}
+            ).status_code
+            == 202
+        )
+    reference = db.scalar(select(DiagnosticExternalEvent))
+    assert reference.project_id == "fitician-web"
+    assert reference.local_event_id == identifier
+    assert reference.sync_state == "pending" and reference.observed_at is None
+    snapshot = db.scalar(select(DiagnosticEvidenceSnapshot))
+    assert snapshot.payload["provenance"] == "client_reference"
+    assert snapshot.payload["exception"] == {"values": []}
+    assert snapshot.payload["release_commit"] == "b" * 40
+    assert db.get(DiagnosticIssue, db.get(DiagnosticEvent, identifier).issue_id).count == 1

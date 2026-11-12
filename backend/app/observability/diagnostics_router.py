@@ -188,7 +188,29 @@ async def ingest_client_events(
                 if tracing
                 else "failure",
             )
-            record_event(db, recorded, user_id=user.id, trusted=False)
+            local_event = record_event(db, recorded, user_id=user.id, trusted=False)
+            if event.sentry_event_id and local_event.issue_id is not None:
+                import os
+
+                from .evidence import persist_evidence
+
+                project = os.environ.get(
+                    "SENTRY_MOBILE_PROJECT"
+                    if event.platform == "android"
+                    else "SENTRY_WEB_PROJECT",
+                    "",
+                )
+                if project:
+                    # A client reference is pending until API identity/environment verification.
+                    # It carries no trusted stack and does not increment issue counts on retry.
+                    persist_evidence(
+                        db,
+                        local_event,
+                        {"values": []},
+                        event.sentry_event_id,
+                        project=project,
+                        provenance="client_reference",
+                    )
             if (
                 tracing
                 and event.component == "WebTransport"

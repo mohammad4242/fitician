@@ -231,6 +231,17 @@ def main() -> None:
     settings = get_settings()
     organization = os.environ.get("SENTRY_ORG", "")
     project = os.environ.get("SENTRY_PROJECT", "")
+    projects = list(
+        dict.fromkeys(
+            value
+            for value in (
+                project,
+                os.environ.get("SENTRY_WEB_PROJECT", ""),
+                os.environ.get("SENTRY_MOBILE_PROJECT", ""),
+            )
+            if value
+        )
+    )
     environment = diagnostics_environment()
     api_token = os.environ.get("SENTRY_API_TOKEN", "")
     if not all((organization, project, api_token)):
@@ -250,8 +261,13 @@ def main() -> None:
         ):
             while not stop.is_set():
                 try:
-                    with Session(get_engine(settings)) as db:
-                        worked = synchronize_one(db, client, organization, project, environment)
+                    worked = False
+                    for target in projects:
+                        with Session(get_engine(settings)) as db:
+                            worked = (
+                                synchronize_one(db, client, organization, target, environment)
+                                or worked
+                            )
                 except Exception:
                     worked = False
                 stop.wait(1 if worked else 10)

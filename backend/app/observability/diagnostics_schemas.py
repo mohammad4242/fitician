@@ -153,6 +153,7 @@ class EventInput(StrictModel):
 
 
 class ClientEventInput(StrictModel):
+    sentry_event_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     transport_kind: Literal["network", "timeout", "aborted", "offline", "unknown"] | None = None
     trace_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
