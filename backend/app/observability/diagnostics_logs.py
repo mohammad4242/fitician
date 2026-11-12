@@ -5,7 +5,7 @@ from __future__ import annotations
 import atexit
 import logging
 import re
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.config import Settings
 from app.observability.diagnostics_runtime import (
@@ -44,8 +44,14 @@ class DiagnosticLogHandler(logging.Handler):
                 resource_id = UUID(str(job_id)) if job_id else None
             except ValueError:
                 resource_id = None
+            event_id = uuid4()
+            if exception is not None and context is None:
+                from .sentry import capture_operational_exception
+
+                capture_operational_exception(exception, str(event_id))
             self.runtime.submit(
                 EventInput(
+                    event_id=event_id,
                     trace_id=context.trace_id if context else None,
                     parent_span_id=context.root_span_id if context else None,
                     component=component,

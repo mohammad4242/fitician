@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { memberNavigationPattern } from "./src/seo/routePolicy.ts";
@@ -49,6 +50,11 @@ export function previewDocumentPath(path: string) {
 
 export default defineConfig({
   plugins: [
+    ...(process.env.SENTRY_AUTH_TOKEN ? [sentryVitePlugin({
+      org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN, telemetry: false,
+      sourcemaps: { assets: "./dist/**", filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+    })] : []),
     {
       name: "prerender-preview",
       configurePreviewServer(server) {
@@ -93,7 +99,7 @@ export default defineConfig({
       },
     }),
   ],
-  build: { manifest: true },
+  build: { manifest: true, sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false },
   server: {
     host: "0.0.0.0",
     proxy: apiProxy,

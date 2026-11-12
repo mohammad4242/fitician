@@ -173,6 +173,7 @@ const config: ExpoConfig = {
   icon: "./assets/branding/fitician-icon.png",
   userInterfaceStyle: "dark",
   plugins: [
+    ["@sentry/react-native/expo", { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),
     "expo-web-browser",

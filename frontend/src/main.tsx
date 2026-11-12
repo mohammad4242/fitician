@@ -1,3 +1,4 @@
+import { captureReactError } from "./shared/sentry";
 import "@fontsource/lalezar";
 import "@fontsource-variable/sora";
 import "@fontsource-variable/vazirmatn";
@@ -17,10 +18,12 @@ installWebRuntimeDiagnostics();
 
 const rootErrorHandlers = {
   onCaughtError(error: unknown, info: { componentStack?: string | null }) {
+    captureReactError(error, info.componentStack);
     reportReactRootError("caught", error);
     console.error(error, info.componentStack);
   },
   onUncaughtError(error: unknown) {
+    captureReactError(error);
     reportReactRootError("uncaught", error);
     if (typeof window.reportError === "function") window.reportError(error);
     else console.error(error);

@@ -223,7 +223,7 @@ export class MobileTelemetryLogger implements MobileLogger {
     if (adapter !== null) {
       try {
         adapter.captureException(
-          new Error("Fitician mobile telemetry exception"),
+          error instanceof Error ? error : new Error("Non-Error exception"),
           safeContext,
         );
       } catch {

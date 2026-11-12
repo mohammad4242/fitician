@@ -121,6 +121,9 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        from app.observability.sentry import flush_sentry, initialize_sentry
+
+        initialize_sentry("backend")
         zen_timeout = httpx.Timeout(active_settings.opencode_zen_timeout_seconds)
         ai_timeout = httpx.Timeout(active_settings.openrouter_timeout_seconds)
         agent_timeout = httpx.Timeout(active_settings.agent_service_connect_timeout_seconds)
@@ -161,6 +164,7 @@ def create_app(
             finally:
                 app.state.draining = True
                 diagnostics_runtime.stop()
+                flush_sentry()
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)

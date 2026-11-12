@@ -31,6 +31,10 @@ COPY packages packages
 COPY mobile/assets/landing/pic_land.jpg mobile/assets/landing/pic_land.jpg
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-data.json frontend/src/seo/exercise-data.json
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-categories.json frontend/src/seo/exercise-categories.json
+ARG VITE_SENTRY_DSN=
+ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+ARG VITE_SENTRY_ENVIRONMENT=development
+ENV VITE_SENTRY_ENVIRONMENT=${VITE_SENTRY_ENVIRONMENT}
 ARG VITE_APP_BUILD_SHA=
 ENV VITE_APP_BUILD_SHA=${VITE_APP_BUILD_SHA}
 RUN npm run build:core && npm run prepare:mediapipe --workspace frontend && npm exec --workspace frontend -- tsc -b && npm exec --workspace frontend -- vite build && SEO_SERVER=1 npm exec --workspace frontend -- vite build --ssr src/seo/render.tsx --outDir dist-server

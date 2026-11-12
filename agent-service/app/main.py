@@ -83,9 +83,13 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        from .sentry import flush_sentry, initialize_sentry
+
+        initialize_sentry("agent-service")
         try:
             yield
         finally:
+            flush_sentry()
             await effective_auth_manager.shutdown()
 
     app = FastAPI(title="Fitician Agent Service", lifespan=lifespan)

@@ -521,4 +521,7 @@ def run_worker(
 
 
 if __name__ == "__main__":
+    from app.observability.sentry import initialize_sentry
+
+    initialize_sentry("notification-worker")
     run_worker(get_settings())
