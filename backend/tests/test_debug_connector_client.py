@@ -176,3 +176,65 @@ def test_missing_codex_auth_does_not_disable_api_model_repository_tools(tmp_path
             assert connector.cli_version is None
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "base", ["feature/untrusted", "main;sh", "https://example.invalid", "debug/seed-invalid"]
+)
+def test_pr_base_is_trusted_configuration_with_a_narrow_allowlist(tmp_path, base):
+    original = tmp_path / "original"
+    commit = repository(original)
+    tools = RepositoryTools.create(
+        original, tmp_path / "worktrees", str(uuid4()), commit, allow_write=True
+    )
+    with pytest.raises(ValueError, match="pull_request_base_not_authorized"):
+        publish_tested_pr(tools, "fix(fixture): repair addition", base=base)
+
+
+def test_pr_publication_rejects_a_base_with_unrelated_newer_commits(tmp_path, monkeypatch):
+    import subprocess
+
+    from app.debugging import github
+
+    original = tmp_path / "original"
+    commit = repository(original)
+    tools = RepositoryTools.create(
+        original, tmp_path / "worktrees", str(uuid4()), commit, allow_write=True
+    )
+    # A fixture journal binds this broker check; container execution is tested separately.
+    (tools.workspace.parent / (tools.workspace.name + ".tested.json")).write_text(
+        json.dumps({"commit": commit})
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(original),
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "commit",
+            "--allow-empty",
+            "-qm",
+            "test: newer main",
+        ],
+        check=True,
+    )
+    advanced = subprocess.check_output(
+        ["git", "-C", str(original), "rev-parse", "HEAD"], text=True
+    ).strip()
+    monkeypatch.setattr(github, "_gh", lambda arguments: {"object": {"sha": advanced}})
+    original_run = subprocess.run
+    pushes = []
+
+    def guarded(command, **kwargs):
+        if "push" in command:
+            pushes.append(command)
+            raise AssertionError("A stale branch must not be pushed")
+        return original_run(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", guarded)
+    with pytest.raises(ValueError, match="repair_requires_current_base"):
+        publish_tested_pr(tools, "fix(fixture): repair addition")
+    assert pushes == []

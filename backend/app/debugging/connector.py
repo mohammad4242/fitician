@@ -210,7 +210,12 @@ class LaptopConnector:
                         await asyncio.gather(test_task, return_exceptions=True)
                         raise
                 elif name == "fitician_create_pr":
-                    value = await asyncio.to_thread(publish_tested_pr, tools, arguments["title"])
+                    value = await asyncio.to_thread(
+                        publish_tested_pr,
+                        tools,
+                        arguments["title"],
+                        base=self.config.get("pull_request_base", "main"),
+                    )
                 else:
                     value = await asyncio.to_thread(methods[name], **arguments)
                 artifact: dict[str, Any] = {"tool": name}

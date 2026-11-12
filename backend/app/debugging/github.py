@@ -26,7 +26,9 @@ def _gh(arguments: list[str], *, payload: dict[str, Any] | None = None) -> Any:
     return json.loads(result.stdout)
 
 
-def publish_tested_pr(tools: RepositoryTools, title: str) -> dict[str, str]:
+def publish_tested_pr(tools: RepositoryTools, title: str, *, base: str = "main") -> dict[str, str]:
+    if not re.fullmatch(r"main|debug/seed-[a-f0-9-]{36}", base):
+        raise ValueError("pull_request_base_not_authorized")
     if not tools.allow_write:
         raise ValueError("mutation_not_authorized")
     if not re.fullmatch(r"debug/run-[a-f0-9-]{36}", tools.branch):
@@ -41,6 +43,15 @@ def publish_tested_pr(tools: RepositoryTools, title: str) -> dict[str, str]:
         raise ValueError("matching_successful_tests_required")
     if not re.fullmatch(r"(fix|feat|test|refactor)\([A-Za-z0-9_-]+\): [^\r\n]{5,120}", title):
         raise ValueError("specific_pr_title_required")
+    base_ref = _gh([f"repos/{REPOSITORY}/git/ref/heads/{base}"])
+    base_commit = base_ref.get("object", {}).get("sha", "")
+    if not re.fullmatch(r"[a-f0-9]{40}", base_commit):
+        raise ValueError("pull_request_base_unavailable")
+    try:
+        _git(tools.workspace, "merge-base", "--is-ancestor", base_commit, commit)
+    except ValueError:
+        # Never publish an old-release branch that would revert subsequent main changes.
+        raise ValueError("repair_requires_current_base") from None
     environment = dict(
         os.environ,
         GIT_CONFIG_NOSYSTEM="1",
@@ -84,6 +95,8 @@ def publish_tested_pr(tools: RepositoryTools, title: str) -> dict[str, str]:
     )
     existing = _gh([f"repos/{REPOSITORY}/pulls?state=open&head=mohammad4242:{tools.branch}"])
     if existing:
+        if existing[0].get("base", {}).get("ref") != base:
+            raise ValueError("pull_request_base_mismatch")
         pr = _gh(
             ["--method", "PATCH", f"repos/{REPOSITORY}/pulls/{existing[0]['number']}"],
             payload={"title": title, "body": body},
@@ -93,10 +106,10 @@ def publish_tested_pr(tools: RepositoryTools, title: str) -> dict[str, str]:
             ["--method", "POST", f"repos/{REPOSITORY}/pulls"],
             payload={
                 "head": tools.branch,
-                "base": "main",
+                "base": base,
                 "title": title,
                 "body": body,
                 "draft": True,
             },
         )
-    return {"commit": commit, "branch": tools.branch, "pr_url": pr["html_url"]}
+    return {"commit": commit, "branch": tools.branch, "base": base, "pr_url": pr["html_url"]}

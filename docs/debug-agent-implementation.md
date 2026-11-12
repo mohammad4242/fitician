@@ -331,3 +331,8 @@ and preserves issue counts under retries. Set `SENTRY_WEB_PROJECT=fitician-web` 
 polls only those configured projects and validates occurrence/environment identity before
 accepting remote evidence. Unauthenticated events and observations lost before persistence
 remain outside this exact-ID synchronization path; broad project discovery is not implemented.
+
+The PR broker accepts `main` or an explicitly configured isolated `debug/seed-<UUID>` acceptance
+base. Models cannot select the base. The tested commit must descend from the current remote
+base; a stale production-release branch is rejected before push, preventing accidental reversal
+of subsequent main changes. No merge or production deployment authority is added.
