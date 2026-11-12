@@ -340,3 +340,30 @@ of subsequent main changes. No merge or production deployment authority is added
 The debug worker accepts `JOB_HEARTBEAT_PATH`, matching the existing healthcheck and sync-worker
 contract. This permits a supervised laptop/staging worker without privileged `/run` writes;
 production retains `/run/fitician/heartbeat.json` by default.
+
+### Actual isolated repair and PR acceptance
+
+A real Codex App Server 0.167.2 run (`5fffdc57-2c8f-4728-8c49-fe1beefe5b69`) used the selected
+catalog model `gpt-6.1-sol` and selected occurrence `ff2affa4-59c1-4633-b6f6-77144c6bdbf7`.
+The supervised worker and enrolled laptop connector observed a failing isolated unittest,
+changed only `backend/debug_agent_acceptance/fixture.py`, observed the same test pass, committed
+`365404e91c918c6f8c51ce17755c23e2fefae60d`, and published draft
+[repair PR 42](https://github.com/mohammad4242/fitician/pull/42). The remote head and configured
+isolated seed base were checked against tool evidence. This PR targets a synthetic acceptance
+branch; it must not be merged into production. The user's checkout was not patched by the run.
+The final Persian reply cites the persisted failure/test/diff/commit/PR evidence UUIDs.
+
+Chromium at 390 pixels rendered the real repair conversation and PR, retained them after refresh,
+and expanded the persisted tool evidence without horizontal overflow. This proves the isolated
+staging path, not deployment or production connector connectivity.
+
+### FarazSMS channel
+
+The owner selected FarazSMS for operational alerts. The destination is kept in private server
+configuration (`DIAGNOSTICS_ALERT_PHONE`, excluded from model/Sentry context), not Git or UI
+responses. The adapter reuses the configured API key and sender line via the documented
+[`/sms/simple`](https://docs.iranpayamak.com/send-simple-sms-13909967e0) endpoint, independently
+of the OTP pattern. Messages contain deterministic Persian feature/failure text, occurrence count
+and an authenticated issue deep link. HTTP acceptance is distinct from phone delivery; an
+ambiguous dispatch timeout must not trigger an automatic resend. Durable aggregation, worker
+wiring and real send/delivery acceptance are still required before claiming this channel active.

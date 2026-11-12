@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     diagnostics_enabled: bool = True
     diagnostics_success_sample_rate: float = Field(default=1.0, ge=0, le=1)
     diagnostics_slow_request_ms: int = Field(default=2000, ge=1)
+    diagnostics_alert_enabled: bool = False
+    diagnostics_alert_phone: SecretStr | None = Field(default=None, repr=False)
+    diagnostics_alert_cooldown_seconds: int = Field(default=3600, ge=300, le=86400)
+    diagnostics_alert_aggregation_seconds: int = Field(default=60, ge=10, le=300)
     app_build_sha: str = ""
 
     database_url: str = "postgresql+psycopg://fitician:fitician@localhost:5432/fitician"
