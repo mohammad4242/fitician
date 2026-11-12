@@ -12759,6 +12759,8 @@ export type components = {
         ProgressResponse: {
             /** Cancel Requested */
             cancel_requested: boolean;
+            /** Evidence Id */
+            evidence_id?: string | null;
             /** Sequence */
             sequence: number;
         };

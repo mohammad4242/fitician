@@ -15,7 +15,14 @@ from sqlalchemy.orm import Session
 from app.auth.models import User
 from app.observability.environment import diagnostics_environment
 
-from .models import DebugConnector, DebugConnectorCall, DebugMessage, DebugRun, DebugThread
+from .models import (
+    DebugConnector,
+    DebugConnectorCall,
+    DebugMessage,
+    DebugRun,
+    DebugRunEvent,
+    DebugThread,
+)
 from .privacy import sanitize_payload, sanitize_text
 from .service import ACTIVE
 
@@ -226,6 +233,28 @@ def update_call(
     _authorize_run(db, run)
     row.lease_until = datetime.now(UTC) + timedelta(seconds=180)
     connector.last_seen = datetime.now(UTC)
+    safe = {
+        key: value
+        for key, value in payload.items()
+        if key in {"tool", "status", "model", "commit", "branch", "pr_url"}
+    }
+    if kind == "tool_completed" and "output" in payload:
+        tool = payload.get("tool")
+        output = payload["output"]
+        if (
+            tool not in TOOLS - {"fitician_codex_turn"}
+            or (tool in MUTATIONS and run.action != "prepare_fix")
+            or not isinstance(output, str)
+            or len(output.encode()) > 32000
+        ):
+            raise ValueError("invalid_tool_evidence")
+        safe.update(output=output, provenance="connector_tool")
+    event_payload = {
+        **json.loads(json.dumps(sanitize_payload(safe))),
+        "call_id": str(row.id),
+        "connector_sequence": sequence,
+    }
+    evidence_id: str | None = None
     if sequence > row.progress_sequence:
         if sequence != row.progress_sequence + 1 or kind not in {
             "tool_started",
@@ -242,19 +271,31 @@ def update_call(
                 run.state = "testing"
             elif payload.get("tool") in MUTATIONS:
                 run.state = "editing"
-        # Neither arbitrary output nor model reasoning is accepted in progress events.
-        safe = {
-            key: value
-            for key, value in payload.items()
-            if key in {"tool", "status", "model", "commit", "branch", "pr_url"}
-        }
-        append_event(
-            db,
-            run,
-            kind,
-            {**json.loads(json.dumps(sanitize_payload(safe))), "call_id": str(row.id)},
+        # Only instrumented tool output is retained. Hidden model reasoning is never accepted.
+        event = append_event(db, run, kind, event_payload)
+        evidence_id = str(event.id) if "output" in safe else None
+    elif "output" in safe:
+        previous_event = next(
+            (
+                item
+                for item in db.scalars(
+                    select(DebugRunEvent).where(
+                        DebugRunEvent.run_id == run.id, DebugRunEvent.kind == kind
+                    )
+                )
+                if item.payload.get("call_id") == str(row.id)
+                and item.payload.get("connector_sequence") == sequence
+            ),
+            None,
         )
-    return {"cancel_requested": False, "sequence": row.progress_sequence}
+        if previous_event is None or previous_event.payload != event_payload:
+            raise ValueError("tool_progress_conflict")
+        evidence_id = str(previous_event.id)
+    return {
+        "cancel_requested": False,
+        "sequence": row.progress_sequence,
+        "evidence_id": evidence_id,
+    }
 
 
 def audit_connector(db: Session, actor_id: UUID, connector_id: UUID, operation: str) -> None:

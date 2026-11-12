@@ -309,3 +309,12 @@ completed, including private upload and all-layer credential/map inspection. Its
 with the matching source label and staging configuration. This image has not been deployed.
 Docker Buildx v0.39.0 was installed locally from its official checksum-verified release because
 the CLI plugin was absent; SDK installation was not repeated.
+
+### Durable tool evidence
+
+Instrumented repository/test tool results are sanitized and persisted as immutable run events,
+with server-assigned evidence UUIDs returned to both Codex and API tool loops. The conversation
+shows expandable tool output and citation identities after refresh. Outputs are bounded to
+30 KB per tool; hidden model reasoning is not accepted. Progress retries reuse the evidence ID
+and reject conflicting content. Every write/read/stream retains issue/environment/admin scope
+and cancellation/lease validation. No new database migration is required for these run events.

@@ -66,7 +66,7 @@ def test_connector_executes_once_and_recovers_the_ack_without_repeating_action(t
                 "config": {},
             }
             first = await connector.execute(job)
-            assert first["output"] == "file_written"
+            assert json.loads(first["output"])["output"] == "file_written"
             count = len(requests)
             job["lease_token"] = str(uuid4())
             assert await connector.execute(job) == first
@@ -117,7 +117,7 @@ def test_followup_runs_reuse_repair_workspace_but_other_issues_and_releases_do_n
                 "action": "prepare_fix",
                 "config": {},
             }
-            assert (await connector.execute(job))["output"] == "file_written"
+            assert json.loads((await connector.execute(job))["output"])["output"] == "file_written"
             job.update(
                 id=str(uuid4()),
                 run_id=str(uuid4()),

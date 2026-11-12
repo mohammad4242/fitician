@@ -167,6 +167,7 @@ def run_events(
         "run": run_json(run),
         "events": [
             {
+                "id": str(item.id),
                 "sequence": item.sequence,
                 "kind": item.kind,
                 "payload": item.payload,

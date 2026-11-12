@@ -155,11 +155,11 @@ class LaptopConnector:
             sequence = 0
             lock = asyncio.Lock()
 
-            async def progress(kind: str, payload: dict[str, Any]) -> None:
+            async def emit(kind: str, payload: dict[str, Any]) -> dict[str, Any]:
                 nonlocal sequence
                 async with lock:
                     next_sequence = sequence + (0 if kind == "heartbeat" else 1)
-                    await self.request(
+                    receipt = await self.request(
                         f"/calls/{identifier}/progress",
                         {
                             "lease_token": job["lease_token"],
@@ -169,6 +169,10 @@ class LaptopConnector:
                         },
                     )
                     sequence = next_sequence
+                    return receipt
+
+            async def progress(kind: str, payload: dict[str, Any]) -> None:
+                await emit(kind, payload)
 
             tool_count = 0
             catalog = {item["name"]: item for item in tool_catalog(allow_write=tools.allow_write)}
@@ -216,10 +220,15 @@ class LaptopConnector:
                     )
                 elif name == "fitician_commit":
                     artifact["commit"] = value
-                await progress("tool_completed", artifact)
-                return sanitize_text(
-                    value if isinstance(value, str) else json.dumps(sanitize_payload(value))
+                output = (
+                    sanitize_text(
+                        value if isinstance(value, str) else json.dumps(sanitize_payload(value))
+                    )
+                    .encode()[:30000]
+                    .decode("utf-8", errors="ignore")
                 )
+                receipt = await emit("tool_completed", {**artifact, "output": output})
+                return json.dumps({"evidence_id": receipt.get("evidence_id"), "output": output})
 
             async def perform() -> dict[str, Any]:
                 if job["tool"] != "fitician_codex_turn":

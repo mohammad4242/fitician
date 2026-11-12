@@ -32,3 +32,12 @@ it("submits the selected occurrence and binds the retry identity to it", async (
     body: JSON.stringify({ content: "Inspect selected occurrence", action: "analyze", occurrence_id: "occurrence-2" }),
   })));
 });
+
+it("shows recorded tool evidence with its citation identity after reload", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? {
+    events: [{ id: "evidence-42", sequence: 1, kind: "tool_completed", payload: { tool: "fitician_read_file", output: "bug.py:2: return a + b", provenance: "connector_tool" } }], next_cursor: 1,
+  } as never : { messages: [], runs: [{ id: "run-42", state: "completed", config: {}, error_code: null }], next_cursor: null } as never);
+  render(<DebugConversation issueId="issue-42" english />);
+  expect(await screen.findByText("bug.py:2: return a + b")).toBeInTheDocument();
+  expect(screen.getByText("evidence-42")).toBeInTheDocument();
+});

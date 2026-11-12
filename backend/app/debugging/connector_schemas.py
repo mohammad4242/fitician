@@ -49,6 +49,7 @@ class CompletionResponse(StrictResponse):
 class ProgressResponse(StrictResponse):
     cancel_requested: bool
     sequence: int
+    evidence_id: UUID | None = None
 
 
 class ProbeJob(StrictResponse):

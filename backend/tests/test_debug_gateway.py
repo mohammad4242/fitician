@@ -87,3 +87,44 @@ def test_authority_is_rechecked_after_enqueue_and_cancel(db):
     run.cancel_requested = True
     with pytest.raises(ValueError, match="run_no_longer_authorized"):
         enqueue_call(db, run, connector, "read-next", "fitician_read_file", {"path": "bug.py"})
+
+
+def test_tool_output_is_durable_sanitized_citable_and_retry_safe(db):
+    from uuid import UUID
+
+    from sqlalchemy import select
+
+    from app.debugging.connectors import update_call
+    from app.debugging.models import DebugRunEvent
+
+    _, run, connector, _ = setup_run(db)
+    call = enqueue_call(db, run, connector, "read", "fitician_read_file", {"path": "bug.py"})
+    claim_call(db, connector)
+    payload = {
+        "tool": "fitician_read_file",
+        "output": "bug.py:2 user@example.com token=private-fixture",
+    }
+    result = update_call(db, connector, call.id, call.lease_token, 1, "tool_completed", payload)
+    evidence_id = UUID(result["evidence_id"])
+    evidence = db.get(DebugRunEvent, evidence_id)
+    assert evidence.run_id == run.id
+    assert evidence.payload["output"] == "bug.py:2 [email redacted] token=[redacted]"
+    assert evidence.payload["provenance"] == "connector_tool"
+    assert (
+        update_call(db, connector, call.id, call.lease_token, 1, "tool_completed", payload)
+        == result
+    )
+    assert len(list(db.scalars(select(DebugRunEvent).where(DebugRunEvent.id == evidence_id)))) == 1
+    with pytest.raises(ValueError, match="tool_progress_conflict"):
+        update_call(
+            db,
+            connector,
+            call.id,
+            call.lease_token,
+            1,
+            "tool_completed",
+            {"tool": "fitician_read_file", "output": "different"},
+        )
+    run.cancel_requested = True
+    with pytest.raises(ValueError, match="run_no_longer_authorized"):
+        update_call(db, connector, call.id, call.lease_token, 2, "tool_completed", payload)

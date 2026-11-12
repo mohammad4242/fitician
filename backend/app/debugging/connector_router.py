@@ -125,7 +125,7 @@ class Progress(BaseModel):
 def progress(
     connector_id: UUID, call_id: UUID, connector: Connector, payload: Progress, db: DatabaseSession
 ) -> dict[str, Any]:
-    if len(__import__("json").dumps(payload.payload).encode()) > 4096:
+    if len(__import__("json").dumps(payload.payload).encode()) > 40000:
         raise HTTPException(413, detail={"code": "progress_too_large"})
     try:
         result = update_call(

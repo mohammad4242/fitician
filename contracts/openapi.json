@@ -23737,6 +23737,18 @@
             "title": "Cancel Requested",
             "type": "boolean"
           },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
           "sequence": {
             "title": "Sequence",
             "type": "integer"

@@ -48,14 +48,18 @@ def get_thread(db: Session, issue_id: UUID) -> DebugThread:
     return thread
 
 
-def append_event(db: Session, run: DebugRun, kind: str, payload: dict[str, object]) -> None:
+def append_event(
+    db: Session, run: DebugRun, kind: str, payload: dict[str, object]
+) -> DebugRunEvent:
     # Caller owns the run row lock, serializing event sequence allocation.
     sequence = (
         db.scalar(select(func.max(DebugRunEvent.sequence)).where(DebugRunEvent.run_id == run.id))
         or 0
     ) + 1
-    db.add(DebugRunEvent(run_id=run.id, sequence=sequence, kind=kind, payload=payload))
+    event = DebugRunEvent(run_id=run.id, sequence=sequence, kind=kind, payload=payload)
+    db.add(event)
     db.flush()
+    return event
 
 
 def submit_message(
