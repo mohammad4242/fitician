@@ -41,6 +41,7 @@ class DiagnosticExternalEvent(Base):
         ForeignKey("diagnostic_events.id", ondelete="SET NULL")
     )
     environment: Mapped[str] = mapped_column(String(64))
+    source_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     last_error_code: Mapped[str | None] = mapped_column(String(64))
     attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

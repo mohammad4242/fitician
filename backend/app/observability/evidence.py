@@ -13,6 +13,8 @@ from uuid import UUID
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.observability.environment import diagnostics_environment
+
 from .diagnostics_models import DiagnosticEvent
 from .diagnostics_schemas import EventInput
 from .evidence_models import DiagnosticEvidenceSnapshot, DiagnosticExternalEvent
@@ -72,7 +74,7 @@ def persist_evidence(
     }
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     project = os.environ.get("SENTRY_PROJECT", "")
-    environment = os.environ.get("SENTRY_ENVIRONMENT", "development")
+    environment = diagnostics_environment()
     if sentry_event_id and re.fullmatch(r"[a-z0-9_-]{1,100}", project):
         db.execute(
             insert(DiagnosticExternalEvent)
@@ -126,13 +128,19 @@ def evidence_package(
         .limit(1)
     )
     return {
+        "external_source": external.source_evidence if external else None,
         "sync_state": external.sync_state if external else "not_configured",
         "external_issue_id": external.external_issue_id if external else None,
         "last_sync_at": external.updated_at.isoformat() if external else None,
         "sync_error": external.last_error_code if external else None,
         "issue_id": str(issue_id),
         "evidence_id": str(snapshot.id),
-        "evidence_version": snapshot.evidence_version,
+        "evidence_version": hashlib.sha256(
+            (
+                snapshot.evidence_version
+                + json.dumps(external.source_evidence if external else None, sort_keys=True)
+            ).encode()
+        ).hexdigest(),
         "snapshot": snapshot.payload,
         "sentry_event_id": snapshot.sentry_event_id,
         "delivery": "observed"

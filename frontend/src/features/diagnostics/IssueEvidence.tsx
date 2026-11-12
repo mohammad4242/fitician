@@ -11,6 +11,11 @@ interface Evidence {
   sync_state?: string;
   sync_error?: string | null;
   external_issue_id?: string | null;
+  external_source?: {
+    provenance: string; release_commit: string | null; release_match: boolean | null;
+    exceptions: { type: string; frames: Frame[] }[]; mapping_state: string;
+    symbolication_errors: string[];
+  } | null;
   missing: string[];
   snapshot: {
     release_commit: string | null;
@@ -51,6 +56,12 @@ export function IssueEvidence({ issueId, events, english, occurrenceId: occurren
       <p>{english ? "Sentry delivery" : "تحویل به Sentry"}: <code dir="ltr">{evidence.delivery} · {evidence.sync_state}</code></p>
       {evidence.sync_error && <p><code dir="ltr">{evidence.sync_error}</code></p>}
       <p>{english ? "Release commit" : "commit نسخه رخداد"}: <code dir="ltr">{snapshot.release_commit ?? (english ? "unknown" : "نامعلوم")}</code></p>
+      {evidence.external_source && <details>
+        <summary>{english ? "Source evidence retrieved from Sentry" : "شواهد منبع دریافت‌شده از Sentry"}</summary>
+        <p>{english ? "Release match" : "تطبیق نسخه"}: <code>{String(evidence.external_source.release_match ?? "unknown")}</code></p>
+        <p>{english ? "Source mapping" : "نگاشت منبع"}: <code>{evidence.external_source.mapping_state}</code></p>
+        {evidence.external_source.exceptions.map((exception, index) => <div key={index}><strong dir="ltr">{exception.type}</strong><ol dir="ltr" style={{ overflowWrap: "anywhere" }}>{exception.frames.map((frame, index) => <li key={index}><code>{frame.filename ?? "unknown"}:{frame.lineno ?? "?"} · {frame.function ?? "unknown"}</code></li>)}</ol></div>)}
+      </details>}
       <details><summary>{english ? "Exception chain and frames" : "زنجیره خطا و محل اجرای کد"}</summary>
         {snapshot.exception.values.map((exception, index) => <div key={index}>
           <strong dir="ltr">{exception.type}</strong>

@@ -76,26 +76,48 @@ def test_real_sdk_serializes_original_chain_without_secrets():
             envelopes.append(envelope)
 
     client = sentry_sdk.Client(
-        dsn='https://public@example.invalid/1', default_integrations=False,
-        integrations=[DedupeIntegration()], transport=MemoryTransport(), before_send=_before_send,
+        dsn="https://public@example.invalid/1",
+        default_integrations=False,
+        integrations=[DedupeIntegration()],
+        transport=MemoryTransport(),
+        before_send=_before_send,
         include_local_variables=False,
     )
     with sentry_sdk.isolation_scope() as scope:
         scope.set_client(client)
         try:
             try:
-                raise ValueError('medical secret')
+                raise ValueError("medical secret")
             except ValueError as cause:
-                raise RuntimeError('Bearer secret') from cause
+                raise RuntimeError("Bearer secret") from cause
         except RuntimeError as error:
             sentry_sdk.capture_exception(error)
             sentry_sdk.capture_exception(error)
     assert len(envelopes) == 1
     payload = envelopes[0].items[0].payload.json
-    assert [value['type'] for value in payload['exception']['values']] == [
-        'ValueError', 'RuntimeError',
+    assert [value["type"] for value in payload["exception"]["values"]] == [
+        "ValueError",
+        "RuntimeError",
     ]
-    assert all(value['stacktrace']['frames'] for value in payload['exception']['values'])
-    assert 'medical secret' not in str(payload)
-    assert 'Bearer secret' not in str(payload)
+    assert all(value["stacktrace"]["frames"] for value in payload["exception"]["values"])
+    assert "medical secret" not in str(payload)
+    assert "Bearer secret" not in str(payload)
     client.close()
+
+
+def test_sentry_environment_matches_local_diagnostics_when_optional_variable_is_absent(monkeypatch):
+    import sentry_sdk
+
+    from app.observability import sentry
+    from app.observability.environment import diagnostics_environment
+
+    captured = {}
+    monkeypatch.setattr(sentry, "_INITIALIZED", False)
+    monkeypatch.setenv("SENTRY_DSN", "https://public@example.invalid/1")
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("SENTRY_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("DIAGNOSTICS_ENVIRONMENT", raising=False)
+    monkeypatch.setattr(sentry_sdk, "init", lambda **options: captured.update(options))
+    monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
+    assert sentry.initialize_sentry("test")
+    assert captured["environment"] == diagnostics_environment() == "production"

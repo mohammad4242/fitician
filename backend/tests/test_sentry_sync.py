@@ -82,3 +82,55 @@ def test_polling_links_external_group_without_creating_local_occurrences(db, mon
         assert external.sync_state == "observed"
         assert worker.scalar(select(DiagnosticExternalIssueLink)).external_issue_id == "123"
         assert worker.get(DiagnosticIssue, issue_id).count == 1
+
+
+def test_remote_evidence_keeps_source_coordinates_without_remote_user_content():
+    from app.observability.sentry_sync import sanitize_remote_evidence
+
+    result = sanitize_remote_evidence(
+        {
+            "release": {"version": "fitician-web@" + "b" * 40},
+            "user": {"email": "private@example.invalid"},
+            "entries": [
+                {
+                    "type": "exception",
+                    "data": {
+                        "values": [
+                            {
+                                "type": "TypeError",
+                                "value": "medical secret",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "filename": "app:///src/Profile.tsx",
+                                            "function": "render",
+                                            "lineNo": 42,
+                                            "colNo": 3,
+                                            "vars": {"token": "secret"},
+                                            "context": [[42, "secret"]],
+                                        }
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                }
+            ],
+        },
+        expected_commit="b" * 40,
+    )
+    assert result["release_commit"] == "b" * 40
+    assert result["exceptions"][0]["frames"][0] == {
+        "filename": "src/Profile.tsx",
+        "function": "render",
+        "lineno": 42,
+        "colno": 3,
+    }
+    assert "secret" not in str(result)
+    assert "private@example.invalid" not in str(result)
+    assert (
+        sanitize_remote_evidence(
+            {"release": {"version": "fitician-web@" + "c" * 40}}, expected_commit="b" * 40
+        )["release_match"]
+        is False
+    )

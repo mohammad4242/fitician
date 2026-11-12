@@ -111,7 +111,12 @@ def initialize_sentry(service: str) -> bool:
         release = f"fitician-{service}@{commit}" if re.fullmatch(r"[a-f0-9]{40}", commit) else None
         sentry_sdk.init(
             dsn=os.environ["SENTRY_DSN"],
-            environment=os.environ.get("SENTRY_ENVIRONMENT", "development"),
+            environment=(
+                os.environ.get("DIAGNOSTICS_ENVIRONMENT")
+                or os.environ.get("SENTRY_ENVIRONMENT")
+                or os.environ.get("APP_ENV")
+                or "development"
+            ),
             release=release,
             default_integrations=False,
             integrations=[

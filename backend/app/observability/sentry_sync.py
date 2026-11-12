@@ -14,6 +14,8 @@ from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.observability.environment import diagnostics_environment
+
 from .diagnostics_models import DiagnosticEvent
 from .evidence_models import DiagnosticExternalEvent, DiagnosticExternalIssueLink
 
@@ -33,7 +35,11 @@ def fetch_event(
     ) or not re.fullmatch(r"[a-f0-9]{32}", event_id):
         raise SyncFailure("invalid_target")
     # Host is fixed; neither logs nor issue content may supply a destination URL.
-    url = f"https://sentry.io/api/0/projects/{organization}/{project}/events/{event_id}/"
+    region = os.environ.get("SENTRY_API_REGION", "global")
+    hosts = {"global": "sentry.io", "us": "us.sentry.io", "de": "de.sentry.io"}
+    if region not in hosts:
+        raise SyncFailure("invalid_api_region")
+    url = f"https://{hosts[region]}/api/0/projects/{organization}/{project}/events/{event_id}/"
     with client.stream("GET", url, follow_redirects=False, timeout=10) as response:
         if response.status_code == 429:
             raw_retry = response.headers.get("Retry-After", "60")
@@ -125,6 +131,8 @@ def synchronize_one(
         row.observed_at = datetime.now(UTC)
         event = db.get(DiagnosticEvent, row.local_event_id) if row.local_event_id else None
         if event is not None and event.issue_id is not None:
+            if row.source_evidence is None:
+                row.source_evidence = sanitize_remote_evidence(remote, expected_commit=event.build)
             db.execute(
                 insert(DiagnosticExternalIssueLink)
                 .values(
@@ -143,6 +151,70 @@ def synchronize_one(
     return True
 
 
+def sanitize_remote_evidence(
+    remote: dict[str, Any], *, expected_commit: str | None
+) -> dict[str, Any]:
+    def record(value: Any) -> dict[str, Any]:
+        return value if isinstance(value, dict) else {}
+
+    def items(value: Any) -> list[Any]:
+        return value if isinstance(value, list) else []
+
+    release = remote.get("release")
+    version = record(release).get("version") if isinstance(release, dict) else release
+    match = re.search(r"@([a-f0-9]{40})$", version) if isinstance(version, str) else None
+    commit = match[1] if match else None
+    exceptions = []
+    for entry in items(remote.get("entries"))[:32]:
+        if record(entry).get("type") != "exception":
+            continue
+        for value in items(record(record(entry).get("data")).get("values"))[:16]:
+            exception = record(value)
+            frames = []
+            for raw_frame in items(record(exception.get("stacktrace")).get("frames"))[-100:]:
+                frame = record(raw_frame)
+                filename = frame.get("filename") or frame.get("absPath") or ""
+                source = re.search(
+                    r"(?:^|/)((?:app|src|mobile)/[A-Za-z0-9_./-]+)$", str(filename).split("?")[0]
+                )
+                safe: dict[str, Any] = {}
+                if source and ".." not in source[1].split("/"):
+                    safe["filename"] = source[1][:240]
+                function = frame.get("function")
+                if isinstance(function, str) and re.fullmatch(
+                    r"[A-Za-z0-9_.$<>-]{1,160}", function
+                ):
+                    safe["function"] = function
+                for original, target in (("lineNo", "lineno"), ("colNo", "colno")):
+                    number = frame.get(original)
+                    if isinstance(number, int) and 0 <= number <= 10_000_000:
+                        safe[target] = number
+                frames.append(safe)
+            kind = exception.get("type", "Error")
+            if not isinstance(kind, str) or not re.fullmatch(r"[A-Za-z0-9_.]{1,100}", kind):
+                kind = "Error"
+            exceptions.append({"type": kind, "frames": frames})
+    error_codes = []
+    known_errors = {
+        "js_no_source",
+        "js_no_source_map",
+        "js_invalid_source_map",
+        "native_missing_dsym",
+        "native_missing_debug_id",
+    }
+    for error in items(remote.get("errors"))[:20]:
+        code = record(error).get("type")
+        error_codes.append(code if code in known_errors else "external_symbolication_error")
+    return {
+        "provenance": "sentry_api",
+        "release_commit": commit,
+        "release_match": commit == expected_commit if commit and expected_commit else None,
+        "exceptions": exceptions,
+        "symbolication_errors": error_codes,
+        "mapping_state": "unavailable" if error_codes else "unknown",
+    }
+
+
 def main() -> None:
     from pathlib import Path
     from threading import Event
@@ -159,7 +231,7 @@ def main() -> None:
     settings = get_settings()
     organization = os.environ.get("SENTRY_ORG", "")
     project = os.environ.get("SENTRY_PROJECT", "")
-    environment = os.environ.get("SENTRY_ENVIRONMENT", "development")
+    environment = diagnostics_environment()
     api_token = os.environ.get("SENTRY_API_TOKEN", "")
     if not all((organization, project, api_token)):
         raise SystemExit("Sentry synchronization is not configured")

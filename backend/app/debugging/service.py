@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
@@ -14,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.body_analysis.admin_config.enums import AITaskType
 from app.body_analysis.admin_config.models import AITaskConfig
 from app.observability.diagnostics_models import DiagnosticEvent, DiagnosticIssue
+from app.observability.environment import diagnostics_environment
 from app.observability.evidence import evidence_package
 
 from .models import DebugMessage, DebugRun, DebugRunEvent, DebugThread
@@ -33,7 +33,7 @@ ACTIVE = (
 def get_thread(db: Session, issue_id: UUID) -> DebugThread:
     if db.get(DiagnosticIssue, issue_id) is None:
         raise ValueError("issue_not_found")
-    environment = os.environ.get("SENTRY_ENVIRONMENT", "development")
+    environment = diagnostics_environment()
     db.execute(
         insert(DebugThread)
         .values(issue_id=issue_id, environment=environment)

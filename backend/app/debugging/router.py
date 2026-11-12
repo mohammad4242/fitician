@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.admin.dependencies import AdminUser, require_admin
 from app.auth.dependencies import AppSettings, DatabaseSession, require_authenticated_mutation
 from app.observability.diagnostics_models import DiagnosticIssue
+from app.observability.environment import diagnostics_environment
 
 from .models import DebugMessage, DebugRun, DebugRunEvent, DebugThread
 from .service import ACTIVE, cancel_run, submit_message
@@ -57,14 +58,13 @@ def conversation(
     before: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
 ) -> dict[str, Any]:
-    import os
 
     if db.get(DiagnosticIssue, issue_id) is None:
         raise HTTPException(404, detail={"code": "issue_not_found"})
     thread = db.scalar(
         select(DebugThread).where(
             DebugThread.issue_id == issue_id,
-            DebugThread.environment == os.environ.get("SENTRY_ENVIRONMENT", "development"),
+            DebugThread.environment == diagnostics_environment(),
         )
     )
     if thread is None:
@@ -143,7 +143,6 @@ def post_message(
 def run_events(
     issue_id: UUID, run_id: UUID, db: DatabaseSession, after: Annotated[int, Query(ge=0)] = 0
 ) -> dict[str, Any]:
-    import os
 
     run = db.scalar(
         select(DebugRun)
@@ -151,7 +150,7 @@ def run_events(
         .where(
             DebugRun.id == run_id,
             DebugThread.issue_id == issue_id,
-            DebugThread.environment == os.environ.get("SENTRY_ENVIRONMENT", "development"),
+            DebugThread.environment == diagnostics_environment(),
         )
     )
     if run is None:

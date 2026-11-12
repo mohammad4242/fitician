@@ -1,6 +1,6 @@
 # Diagnostics and debug-agent implementation status
 
-Production deployment requires explicit owner authorization for a concrete tested artifact.
+Production deployment is owner-authorized after the approved verification gates pass.
 Regional CD remains disabled. No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
@@ -72,7 +72,7 @@ synchronization; full propagation and transport-drop health; native crash/privac
 and tests for all four workflow outcome/quota invariants. These are engineering work, not merely
 missing credentials. Production has not been changed.
 
-External configuration not established: Sentry organization/projects/DSNs, event-read API token,
+External configuration still not installed on production/CI: Sentry DSNs and event-read API token,
 private artifact upload token and CLI installation-script gate; EAS release builds/native artifacts;
 dedicated debug-worker secret configuration/network/image; provider key/encryption access;
 Codex runtime authentication and protocol compatibility; GitHub App permissions; deployment
@@ -90,3 +90,65 @@ releases; no deployment was performed. Main requires `Required CI` with admin en
 The owner confirmed no Sentry account exists yet. Sentry must remain **not configured** until
 an account/projects and scoped credentials are supplied through approved secret channels.
 This blocks external Sentry verification, not independent implementation.
+
+## Sentry account setup (connection not yet completed)
+
+An account has now been created. The initial handoff was rejected by Sentry because the
+redeeming network differs from the originating browser network (HTTP 403, IP pinning).
+Sentry reported that the handoff was not consumed. No token, DSN or project configuration
+was acquired. The existing SDK installation has not been repeated.
+
+Create or let the authorized handoff configure these private projects in the Fitician organization:
+
+| Project | Platform | Processes |
+| --- | --- | --- |
+| `fitician-backend` | Python / FastAPI | API, body/food workers, scheduler, notifications, debug and sync workers |
+| `fitician-agent` | Python / FastAPI | Germany Agent Service |
+| `fitician-web` | JavaScript / React | Web and PWA |
+| `fitician-mobile` | React Native / Expo | Android and iOS release builds |
+
+Use environments `production-iran`, `production-germany`, `staging`, and `development` as
+appropriate. Environment is an event attribute, not a separate project per environment.
+Disable public issue sharing, Replay, screenshots, view hierarchy, and automatic AI/content logs.
+Keep source artifacts private. Add server-side scrubbing as defense in depth.
+
+Secret configuration channels:
+
+- Iran dedicated server configuration: backend DSN, `SENTRY_ORG`, backend `SENTRY_PROJECT`,
+  `SENTRY_ENVIRONMENT=production-iran`, `DIAGNOSTICS_ENVIRONMENT=production-iran`,
+  and `SENTRY_API_TOKEN` with `project:read` restricted to these projects.
+- Germany Agent configuration: its own project DSN and `SENTRY_ENVIRONMENT=production-germany`.
+- GitHub Environment `production-iran`: private artifact upload token; organization/project
+  identifiers and public web DSN as build configuration, never a privileged client token.
+- EAS production environment: mobile DSN as `EXPO_PUBLIC_SENTRY_DSN`; private upload token
+  in EAS secrets, plus organization/project names. Rebuild native binaries before native QA.
+- Select `SENTRY_API_REGION=us` or `de` to match the Sentry organization; `global` is supported
+  for the global API entry point. Redirects to arbitrary hosts are intentionally rejected.
+
+The paused handoff must be regenerated with Advanced options → Use IP pinning disabled
+for this execution network. Put that short-lived code in the private, locally excluded file
+`.codex-tmp/sentry-setup/handoff-code` with mode 0600; never commit it. A successful connection
+must be followed by private artifact upload, a synthetic event and server-side ingestion lookup.
+Generated IDs alone remain unconfirmed delivery.
+
+
+## Sentry connection verified during continuation
+
+The second handoff exchange returned HTTP 200, but CLI setup-code redemption returned
+`invalid_grant`. No private `handoff-code` input file existed; stale file contents were not used.
+The CLI's device login also received a 403 denial. An independent standards-based device flow
+succeeded, the owner approved it in the browser, and the OAuth token was stored only in a
+mode-0600 locally excluded file. The account and `fitician` organization were independently
+verified with HTTP 200. The regional API is `https://us.sentry.io`; team slug is `fitician`.
+The global identity endpoint is used for account verification because the regional API root
+returns 404. Authenticated CLI status also succeeded using the protected environment token.
+
+All four named projects now exist and their server-side data scrubbing, IP removal, TLS
+verification, disabled JavaScript scraping and zero raw crash-report retention were read back
+and verified. Only public DSNs were extracted to private local configuration; private DSNs and
+project key secrets are never exported. No SDK/package reinstall was performed. A modern
+account CLI was installed because it was absent.
+
+Production DSNs, durable least-privilege automation tokens and CI release-upload secrets still
+need secure installation. Synthetic ingestion and source-map verification must be reported
+separately from account/project configuration. No production deployment has occurred.
