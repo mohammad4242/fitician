@@ -125,12 +125,17 @@ def submit_message(
     snapshot["config_updated_at"] = config.updated_at.isoformat() if config else None
     snapshot["effective_temperature"] = None  # No unsupported model option is claimed as effective.
     snapshot["routing_restrictions"] = list(config.routing_restrictions) if config else []
+    evidence = evidence_package(db, issue_id, occurrence_id)
+    snapshot_payload = evidence.get("snapshot") or {}
+    evidence["occurrence_id"] = (
+        str(occurrence_id) if occurrence_id else snapshot_payload.get("event_id")
+    )
     run = DebugRun(
         thread_id=thread.id,
         message_id=message.id,
         action=action,
         config_snapshot=snapshot,
-        evidence=evidence_package(db, issue_id, occurrence_id),
+        evidence=evidence,
     )
     db.add(run)
     db.flush()

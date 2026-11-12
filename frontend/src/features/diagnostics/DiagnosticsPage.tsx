@@ -427,6 +427,8 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
   const { c, english, locale } = useCopy();
   const { issue, events, status_history: history } = detail;
   const explanation = explainIssueCode(issue.error_code, english);
+  const [occurrenceId, setOccurrenceId] = useState("");
+  useEffect(() => { setOccurrenceId(""); }, [issue.id]);
   const [status, setStatus] = useState<DiagnosticStatus>(issue.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -454,7 +456,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
         <p>{english ? "Confirmed root cause: not yet established by investigation." : "علت قطعی: هنوز با شواهد بررسی اثبات نشده است."}</p>
         <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
       </section>
-      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} />
+      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={setOccurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
           <h3>{c.taxonomy}</h3>
@@ -494,7 +496,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
           {item.actor_user_id && <Link to={`/admin/billing/users/${encodeURIComponent(item.actor_user_id)}`}>{c.viewUser}: {item.actor_user_id}</Link>}
         </li>)}</ol>}
       </section>
-      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} />
+      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );
 }

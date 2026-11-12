@@ -24,8 +24,7 @@ interface Evidence {
   } | null;
 }
 
-export function IssueEvidence({ issueId, events, english }: { issueId: string; events: readonly DiagnosticEvent[]; english: boolean }) {
-  const [occurrence, setOccurrence] = useState("");
+export function IssueEvidence({ issueId, events, english, occurrenceId: occurrence, onOccurrenceChange }: { issueId: string; events: readonly DiagnosticEvent[]; english: boolean; occurrenceId: string; onOccurrenceChange: (value: string) => void }) {
   const [result, setResult] = useState<{ key: string; value: Evidence } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const key = `${issueId}:${occurrence}`;
@@ -41,7 +40,7 @@ export function IssueEvidence({ issueId, events, english }: { issueId: string; e
   const snapshot = evidence?.snapshot;
   return <section className="diagnostics-card">
     <h3>{english ? "Technical evidence" : "شواهد فنی"}</h3>
-    <label>{english ? "Occurrence" : "رخداد منتخب"}<select value={occurrence} onChange={event => setOccurrence(event.target.value)}>
+    <label>{english ? "Occurrence" : "رخداد منتخب"}<select value={occurrence} onChange={event => onOccurrenceChange(event.target.value)}>
       <option value="">{english ? "Latest available evidence" : "آخرین شواهد موجود"}</option>
       {events.map(event => <option key={event.event_id} value={event.event_id}>{event.timestamp} · {event.stage}</option>)}
     </select></label>

@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { request } from "../../shared/apiClient";
 
-interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string }; evidence_id: string | null }
+interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string }; evidence_id: string | null; occurrence_id?: string | null }
 interface Message { id: string; role: string; content: string; created_at: string }
 interface Conversation { messages: Message[]; runs: Run[]; next_cursor: string | null }
 const activeStates = new Set(["queued", "investigating", "editing", "testing", "awaiting_authorization", "deploying", "verifying"]);
 
-export function DebugConversation({ issueId, english }: { issueId: string; english: boolean }) {
+export function DebugConversation({ issueId, english, occurrenceId = "" }: { issueId: string; english: boolean; occurrenceId?: string }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [older, setOlder] = useState<Message[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export function DebugConversation({ issueId, english }: { issueId: string; engli
     if (!content.trim() || sending) return;
     setSending(true); setError(false);
     try {
-      const payload = JSON.stringify({ content, action: "analyze" });
+      const payload = JSON.stringify({ content, action: "analyze", occurrence_id: occurrenceId || null });
       const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload)))].map(value => value.toString(16).padStart(2, "0")).join("");
       const storageKey = `debug-submission:${issueId}`;
       let previous: { digest?: string; key?: string } = {};
@@ -68,13 +68,14 @@ export function DebugConversation({ issueId, english }: { issueId: string; engli
   return <section className="diagnostics-card">
     <h3>{english ? "Conversation with debug_agent" : "گفت‌وگو با debug_agent"}</h3>
     <p>{english ? "Analysis uses the configured model and selected evidence. Model statements do not establish a confirmed cause. Execution and deployment require configured capabilities." : "تحلیل با مدل تنظیم‌شده و شواهد این issue انجام می‌شود. گفته مدل به‌تنهایی علت قطعی را اثبات نمی‌کند. اجرا و استقرار به قابلیت متصل و مجوز مشخص نیاز دارند."}</p>
+    <p>{english ? "Selected occurrence" : "رخداد منتخب"}: <code dir="ltr">{occurrenceId || (english ? "Latest available evidence" : "آخرین شواهد موجود")}</code></p>
     {cursor && <button type="button" onClick={() => void loadOlder()}>{english ? "Older messages" : "پیام‌های قدیمی‌تر"}</button>}
     <div aria-live="polite">{messages.map(message => <article key={message.id} style={{ borderBlockEnd: "1px solid var(--border-color, #ddd)", paddingBlock: "1rem" }}>
       <strong>{message.role === "assistant" ? "debug_agent" : (english ? "Administrator" : "مدیر")}</strong>
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>
-    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.error_code && <> · <code>{run.error_code}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
     {error && <p role="alert">{english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود."}</p>}
     <form onSubmit={event => void submit(event)}>
       <label>{english ? "Your message" : "پیام شما"}<textarea value={content} onChange={event => setContent(event.target.value)} maxLength={8000} rows={4} /></label>

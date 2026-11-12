@@ -37,6 +37,7 @@ def run_json(run: DebugRun) -> dict[str, Any]:
         "error_code": run.error_code,
         "config": run.config_snapshot,
         "evidence_id": run.evidence.get("evidence_id"),
+        "occurrence_id": run.evidence.get("occurrence_id"),
         "action": run.action,
         "cancel_requested": run.cancel_requested,
         "created_at": run.created_at.isoformat(),

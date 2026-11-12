@@ -131,3 +131,34 @@ def test_disabled_agent_finishes_as_blocked_without_fabricating_a_reply(
     assert queued.state == "blocked"
     assert queued.error_code == "debug_agent_disabled"
     assert len(list(db.scalars(select(DebugMessage)))) == 1
+
+
+def test_run_pins_selected_occurrence_even_without_stack(db):
+    from app.auth.models import User
+
+    actor = User(
+        id=uuid4(), email="occurrence-admin@example.invalid", password_hash="unused", is_admin=True
+    )
+    db.add(actor)
+    db.flush()
+    event = record_event(
+        db,
+        EventInput(
+            component="api",
+            operation="test",
+            stage="test",
+            platform="backend",
+            category="application_bug",
+            severity="error",
+            error_code="UNHANDLED_EXCEPTION",
+            outcome="failure",
+        ),
+    )
+    run = submit_message(
+        db, event.issue_id, actor.id, "inspect this occurrence", "occurrence-request", event.id
+    )
+    assert run.evidence["occurrence_id"] == str(event.id)
+    with pytest.raises(ValueError, match="idempotency_conflict"):
+        submit_message(
+            db, event.issue_id, actor.id, "inspect this occurrence", "occurrence-request", None
+        )

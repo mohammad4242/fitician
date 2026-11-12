@@ -78,3 +78,15 @@ dedicated debug-worker secret configuration/network/image; provider key/encrypti
 Codex runtime authentication and protocol compatibility; GitHub App permissions; deployment
 broker targets/host keys/credentials; connector enrollment; notification provider credentials.
 Use server secret configuration, GitHub Environments and EAS secret channels, never chat.
+
+## Continuation: occurrence binding and external readiness
+
+The selected occurrence is now controlled by `IssueDetail` and shared by `IssueEvidence` and
+`DebugConversation`. It is included in the serialized submission, idempotency hash, immutable
+run evidence and returned run provenance, including occurrences without captured stacks.
+
+Read-only inspection on 2026-11-12 confirmed Iran SSH access and mixed existing component
+releases; no deployment was performed. Main requires `Required CI` with admin enforcement.
+The owner confirmed no Sentry account exists yet. Sentry must remain **not configured** until
+an account/projects and scoped credentials are supplied through approved secret channels.
+This blocks external Sentry verification, not independent implementation.
