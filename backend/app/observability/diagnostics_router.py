@@ -790,3 +790,18 @@ async def infrastructure(
 
 
 router.include_router(trace_router)
+
+
+@router.get("/issues/{issue_id}/evidence")
+def get_issue_evidence(
+    issue_id: UUID, db: DatabaseSession, occurrence_id: UUID | None = None
+) -> dict[str, Any]:
+    from .evidence import evidence_package
+
+    if db.get(DiagnosticIssue, issue_id) is None:
+        raise HTTPException(404, detail={"code": "DIAGNOSTIC_ISSUE_NOT_FOUND"})
+    if occurrence_id is not None:
+        occurrence = db.get(DiagnosticEvent, occurrence_id)
+        if occurrence is None or occurrence.issue_id != issue_id:
+            raise HTTPException(404, detail={"code": "DIAGNOSTIC_OCCURRENCE_NOT_FOUND"})
+    return evidence_package(db, issue_id, occurrence_id)

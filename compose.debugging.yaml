@@ -1,0 +1,47 @@
+# Optional workers. Supply a tested image and dedicated secret configuration explicitly.
+# This overlay does not enable production CD or start execution/deployment tools.
+services:
+  debug-worker:
+    image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
+    profiles: [diagnostics-debug]
+    command: [python, -m, app.debugging.worker]
+    env_file: ${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1
+    tmpfs: [/run/fitician:mode=1777]
+    networks: [application]
+    healthcheck:
+      test: [CMD, python, -m, app.jobs.heartbeat, --service, debug-worker]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+  diagnostics-sync-worker:
+    image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
+    profiles: [diagnostics-debug]
+    command: [python, -m, app.observability.sentry_sync]
+    env_file: ${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.5
+    tmpfs: [/run/fitician:mode=1777]
+    networks: [application]
+    healthcheck:
+      test: [CMD, python, -m, app.jobs.heartbeat, --service, diagnostics-sync-worker]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+networks:
+  application:
+    external: true
+    name: ${FITICIAN_DEBUG_NETWORK:?Set the existing application network}

@@ -178,7 +178,7 @@ class AgentServiceModelProfile(BaseModel):
     display_name: str = Field(min_length=1, max_length=300)
     model_id: AgentModelId
     effort: Literal["low", "medium", "high", "thinking"] | None = None
-    task_kinds: list[AITaskType] = Field(min_length=1, max_length=4)
+    task_kinds: list[AITaskType] = Field(min_length=1, max_length=len(AITaskType))
     fingerprint: str = Field(pattern=r"^[a-f0-9]{16,64}$")
     supports_text_input: bool
     supports_image_input: bool

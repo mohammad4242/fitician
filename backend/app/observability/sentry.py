@@ -102,8 +102,10 @@ def initialize_sentry(service: str) -> bool:
     try:
         import sentry_sdk
         from sentry_sdk.integrations.dedupe import DedupeIntegration
+        from sentry_sdk.integrations.excepthook import ExcepthookIntegration
         from sentry_sdk.integrations.fastapi import FastApiIntegration
         from sentry_sdk.integrations.starlette import StarletteIntegration
+        from sentry_sdk.integrations.threading import ThreadingIntegration
 
         commit = os.environ.get("APP_BUILD_SHA", "")
         release = f"fitician-{service}@{commit}" if re.fullmatch(r"[a-f0-9]{40}", commit) else None
@@ -112,7 +114,13 @@ def initialize_sentry(service: str) -> bool:
             environment=os.environ.get("SENTRY_ENVIRONMENT", "development"),
             release=release,
             default_integrations=False,
-            integrations=[StarletteIntegration(), FastApiIntegration(), DedupeIntegration()],
+            integrations=[
+                StarletteIntegration(),
+                FastApiIntegration(),
+                DedupeIntegration(),
+                ExcepthookIntegration(),
+                ThreadingIntegration(propagate_scope=False),
+            ],
             send_default_pii=False,
             include_local_variables=False,
             max_request_body_size="never",

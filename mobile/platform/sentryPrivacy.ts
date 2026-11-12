@@ -8,15 +8,26 @@ export function sanitizeSentryEvent<T extends object>(event: T): T {
   const token = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_.:@/-]{1,160}$/.test(value) ? value : undefined;
   const record = (value: unknown): Record<string, unknown> => value && typeof value === "object" ? value as Record<string, unknown> : {};
   const array = (value: unknown): unknown[] => Array.isArray(value) ? value : [];
+  const sourcePath = (value: unknown): string | undefined => {
+    if (typeof value !== "string") return undefined;
+    const path = value.replaceAll("\\", "/").split(/[?#]/)[0];
+    const match = path.match(/(?:^|\/)((?:src|app|platform|assets)\/[^?#]+)$/);
+    if (match && /^[A-Za-z0-9_./-]+$/.test(match[1]) && !match[1].split("/").includes("..")) return match[1].slice(0, 240);
+    const base = path.split("/").pop();
+    return base && /^[A-Za-z0-9_.-]{1,160}$/.test(base) ? base : undefined;
+  };
   const values = array(record(input.exception).values).slice(0, 16).map(value => {
     const exception = record(value);
     const frames = array(record(exception.stacktrace).frames).slice(-100).map(value => {
       const frame = record(value);
       const filename = String(frame.filename ?? "").replaceAll("\\", "/");
       // Keep emitted bundle URLs without origin/query for Debug-ID source mapping.
-      const match = filename.match(/(?:^|\/)((?:src|app|platform|assets)\/[^?#]+)$/);
+      const path = sourcePath(filename);
       return {
-        ...(match && !match[1].split("/").includes("..") ? { filename: match[1].slice(0, 240) } : {}),
+        ...(path ? { filename: path } : {}),
+        ...(path && filename.includes("://") ? { abs_path: path } : {}),
+        ...(sourcePath(frame.package) ? { package: sourcePath(frame.package) } : {}),
+        ...(token(frame.instruction_addr) ? { instruction_addr: token(frame.instruction_addr) } : {}),
         ...(token(frame.function) ? { function: token(frame.function) } : {}),
         ...(Number.isInteger(frame.lineno) ? { lineno: frame.lineno } : {}),
         ...(Number.isInteger(frame.colno) ? { colno: frame.colno } : {}),
@@ -44,7 +55,7 @@ export function sanitizeSentryEvent<T extends object>(event: T): T {
   if (input.type === "transaction") { output.transaction = "request"; output.spans = []; }
   const images = array(record(input.debug_meta).images).map(value => {
     const image = record(value);
-    return Object.fromEntries(["type", "debug_id", "code_id", "image_addr", "image_size", "arch"].filter(key => typeof image[key] === "number" || token(image[key])).map(key => [key, image[key]]));
+    return { ...Object.fromEntries(["type", "debug_id", "code_id", "image_addr", "image_size", "arch"].filter(key => typeof image[key] === "number" || token(image[key])).map(key => [key, image[key]])), ...(sourcePath(image.code_file) ? { code_file: sourcePath(image.code_file) } : {}) };
   });
   if (images.length) output.debug_meta = { images };
   return output as T;

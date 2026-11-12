@@ -63,7 +63,26 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ExceptionFrame(StrictModel):
+    filename: Annotated[str, StringConstraints(pattern=r"^app/[A-Za-z0-9_./-]{1,236}$")] | None = (
+        None
+    )
+    function: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.$<>-]{1,160}$")]
+    lineno: int = Field(ge=1, le=10_000_000)
+
+
+class ExceptionValue(StrictModel):
+    type: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.]{1,100}$")]
+    frames: list[ExceptionFrame] = Field(max_length=100)
+
+
+class ExceptionEvidence(StrictModel):
+    values: list[ExceptionValue] = Field(max_length=16)
+
+
 class EventInput(StrictModel):
+    exception_evidence: ExceptionEvidence | None = None
+    sentry_event_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     event_id: UUID | None = None
     request_id: str | None = Field(default=None, max_length=128)
     operation_id: str | None = Field(default=None, max_length=128)

@@ -64,6 +64,7 @@ class AgentServiceAuthError(Exception):
 
 
 _AGENT_SERVICE_TASKS = {
+    AITaskType.DEBUG_AGENT,
     AITaskType.WORKOUT_PLAN_GENERATION,
     AITaskType.BODY_PHOTO_ANALYSIS,
     AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -128,9 +129,7 @@ def _mask_proxy_url(value: str | None) -> str | None:
         host = f"[{hostname}]" if ":" in hostname and not hostname.startswith("[") else hostname
         port = f":{parsed.port}" if parsed.port is not None else ""
         credentials = (
-            "****:****@"
-            if parsed.username is not None or parsed.password is not None
-            else ""
+            "****:****@" if parsed.username is not None or parsed.password is not None else ""
         )
         return f"{parsed.scheme.lower()}://{credentials}{host}{port}"
     except (TypeError, ValueError):
@@ -265,6 +264,12 @@ def save_task_config(
         raise AIConfigError(
             "FOOD_PRICE_SEARCH must use Agent Service for production price research"
         )
+
+    if task_type is AITaskType.DEBUG_AGENT:
+        if fallback_model_ids:
+            raise AIConfigError("Automatic model fallback is not supported for debug_agent")
+        if effective("max_cost_per_request") is not None:
+            raise AIConfigError("Per-request cost limits are not supported for debug_agent")
 
     if payload.enabled and execution_backend == AIExecutionBackend.AGENT_SERVICE:
         if task_type not in _AGENT_SERVICE_TASKS:

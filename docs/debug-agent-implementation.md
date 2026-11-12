@@ -36,7 +36,45 @@ deduplication, and sensitive fixtures. This proves serialization behavior, not e
 Isolated PostgreSQL regressions exercise existing diagnostics behavior and migration startup.
 JavaScript tests/typechecks do not prove native crash capture or native redaction.
 
-Not yet implemented: external issue synchronization, durable evidence snapshots, debug-agent
-configuration, durable chat, runtime orchestration, isolated repair execution, deployment broker,
-notification routing, complete trace propagation and delivery health indicators. These remain
-part of the authorized six-phase task; this foundation must not be presented as full completion.
+## Durable evidence and analysis conversation
+
+Additive migrations `20261112_176` through `20261112_178` add immutable exception evidence,
+external event/group references, the `debug_agent` task constraint, and durable issue threads,
+messages, leased runs and sequenced events. The API validates admin authorization, CSRF,
+issue ownership of occurrences/runs, and idempotency-key payload identity. Each run snapshots
+the configured model and evidence. Configuration and secrets are separate; credentials remain
+encrypted in the existing provider store. No default model is forced.
+
+The optional `compose.debugging.yaml` overlay runs two independent backend-image workers.
+It requires a tested image digest, an explicit existing network and a dedicated secret file.
+The debug worker sends actual analysis requests to the selected OpenRouter API model. It does
+not silently use generation runners for interactive work. Models without a connected interactive
+adapter cannot execute tools. Such requests report `interactive_runtime_not_configured` or
+`repair_executor_not_configured`; these are blocked states, not successful fixes.
+Temperature, confidence thresholds and automatic model fallback are not claimed as effective
+in analysis mode. Supported routing restrictions are applied without changing the selected model.
+The UI persists conversation history, keeps retry identities across reconnects, consumes durable
+progress events through authenticated SSE, and uses authenticated polling as a fallback.
+
+Sentry correlation uses bounded exact-event polling. There is no list pagination because each
+lookup addresses one known event ID. The worker checks event, local occurrence and environment
+identity, rejects redirects, limits response bytes, and uses durable attempts/backoff/leases.
+It never changes local issue counts/status from remote grouping. Retry exhaustion and last error
+are visible in evidence responses. No Sentry webhook is exposed by this implementation.
+
+## Remaining implementation and acceptance work
+
+The full six-phase task is not complete. Still required: interactive App Server and API tool
+orchestration adapters; isolated repair worktrees, test execution, GitHub branch/PR broker;
+artifact-bound deployment authorization/broker and post-deployment verification; optional
+personal connector; external notification routing/delivery; source-mapped Sentry evidence
+synchronization; full propagation and transport-drop health; native crash/privacy acceptance;
+and tests for all four workflow outcome/quota invariants. These are engineering work, not merely
+missing credentials. Production has not been changed.
+
+External configuration not established: Sentry organization/projects/DSNs, event-read API token,
+private artifact upload token and CLI installation-script gate; EAS release builds/native artifacts;
+dedicated debug-worker secret configuration/network/image; provider key/encryption access;
+Codex runtime authentication and protocol compatibility; GitHub App permissions; deployment
+broker targets/host keys/credentials; connector enrollment; notification provider credentials.
+Use server secret configuration, GitHub Environments and EAS secret channels, never chat.

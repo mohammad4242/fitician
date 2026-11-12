@@ -268,7 +268,8 @@ export type AdminAiTaskType =
   | "body_photo_analysis"
   | "progress_comparison"
   | "food_photo_estimation"
-  | "food_price_search";
+  | "food_price_search"
+  | "debug_agent";
 
 export type AdminAiExecutionBackend = "api" | "agent_service";
 export type AdminAiAgentName = "antigravity" | "codex" | "claude";

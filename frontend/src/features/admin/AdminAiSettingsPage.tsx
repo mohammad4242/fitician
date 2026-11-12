@@ -39,6 +39,7 @@ const agentTasks: AdminAiTaskType[] = [
   "body_photo_analysis",
   "food_photo_estimation",
   "food_price_search",
+  "debug_agent",
 ];
 
 export function AdminAiSettingsPage() {
@@ -405,6 +406,7 @@ export function AdminAiSettingsPage() {
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
+          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "Analysis uses the selected API model. Repair tools and deployment require a configured execution runtime. Temperature, confidence threshold, cost limits and automatic model fallback are not applied to analysis runs." : "تحلیل با مدل API انتخاب‌شده انجام می‌شود. ابزارهای اصلاح و استقرار به runtime اجرایی متصل نیاز دارند. دما، آستانه اطمینان، سقف هزینه و تعویض خودکار مدل در اجرای تحلیل اعمال نمی‌شوند."}</p>}
           <fieldset className="admin-ai-backend-switch">
             <legend>{t("admin.aiSettings.executionBackend")}</legend>
             <label className={foodPriceAgentOnly ? "is-disabled" : undefined}>
@@ -506,7 +508,7 @@ export function AdminAiSettingsPage() {
               status: t(`admin.aiSettings.agentService.status.${selectedProfile.verification_status}`),
             })}
           </p>}
-          {!agentMode && <AiModelSelector id="fallback-models" label={t("admin.aiSettings.fallbackModels")} models={models.filter((model) => model.model_id !== config.primary_model_id)} value="" onChange={() => undefined} multiple values={config.fallback_model_ids} onMultipleChange={(values) => patchConfig({ fallback_model_ids: values })} />}
+          {!agentMode && selectedTask !== "debug_agent" && <AiModelSelector id="fallback-models" label={t("admin.aiSettings.fallbackModels")} models={models.filter((model) => model.model_id !== config.primary_model_id)} value="" onChange={() => undefined} multiple values={config.fallback_model_ids} onMultipleChange={(values) => patchConfig({ fallback_model_ids: values })} />}
           <div className="admin-ai-capabilities" aria-label={t("admin.aiSettings.selectedCapabilities")}>
             {selectableModels.filter((model) => model.model_id === (agentMode ? (config.agent_profile_id ?? config.agent_model_id) : config.primary_model_id)).map((model) => <div key={model.model_id}><span>{t("admin.aiSettings.imageInput")}: {model.supports_image_input ? t("admin.aiSettings.yes") : t("admin.aiSettings.no")}</span><span>{t("admin.aiSettings.structuredOutput")}: {model.supports_structured_output ? t("admin.aiSettings.yes") : t("admin.aiSettings.warningUnavailable")}</span><span>{t("admin.aiSettings.context")}: {model.context_length ?? t("admin.aiSettings.unknown")}</span><span>{t("admin.aiSettings.pricing")}: {model.input_price_per_token ?? "—"} / {model.output_price_per_token ?? "—"}</span></div>)}
           </div>
@@ -517,13 +519,13 @@ export function AdminAiSettingsPage() {
             <label htmlFor="ai-task-enabled"><input id="ai-task-enabled" type="checkbox" checked={config.enabled} disabled={(foodPriceAgentOnly && !agentMode) || (agentMode && !config.enabled && selectedProfile?.verification_status !== "passed")} onChange={(event) => patchConfig({ enabled: event.target.checked })} /> {t("admin.aiSettings.enabled")}</label>
             <SettingHelp label={t("admin.aiSettings.enabled")} guide={t("admin.aiSettings.guides.enabled")} />
           </div>
-          <NumberField id="ai-temperature" label={t("admin.aiSettings.temperature")} guide={t("admin.aiSettings.guides.temperature")} value={config.temperature} step="0.1" disabled={agentMode} onChange={(value) => patchConfig({ temperature: value })} />
+          <NumberField id="ai-temperature" label={t("admin.aiSettings.temperature")} guide={t("admin.aiSettings.guides.temperature")} value={config.temperature} step="0.1" disabled={agentMode || selectedTask === "debug_agent"} onChange={(value) => patchConfig({ temperature: value })} />
           <NumberField id="ai-max-tokens" label={t("admin.aiSettings.maxTokens")} guide={t("admin.aiSettings.guides.maxTokens")} value={config.max_output_tokens} disabled={agentMode} onChange={(value) => patchConfig({ max_output_tokens: value })} />
           {agentMode && <p className="admin-ai-inline-note" role="note">{t("admin.aiSettings.agentTuningUnsupported")}</p>}
           <NumberField id="ai-timeout" label={t("admin.aiSettings.timeout")} guide={t("admin.aiSettings.guides.timeout")} value={config.timeout_seconds} onChange={(value) => patchConfig({ timeout_seconds: value })} />
-          <NumberField id="ai-confidence" label={t("admin.aiSettings.confidence")} guide={t("admin.aiSettings.guides.confidence")} value={config.minimum_confidence} step="0.01" onChange={(value) => patchConfig({ minimum_confidence: value })} />
+          <NumberField id="ai-confidence" label={t("admin.aiSettings.confidence")} guide={t("admin.aiSettings.guides.confidence")} value={config.minimum_confidence} step="0.01" disabled={selectedTask === "debug_agent"} onChange={(value) => patchConfig({ minimum_confidence: value })} />
           {!agentMode && <>
-            <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-cost" label={t("admin.aiSettings.cost")} guide={t("admin.aiSettings.guides.cost")} /><input id="ai-cost" type="number" min="0" step="0.01" value={config.max_cost_per_request ?? ""} onChange={(event) => patchConfig({ max_cost_per_request: event.target.value || null })} /></div>
+            <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-cost" label={t("admin.aiSettings.cost")} guide={t("admin.aiSettings.guides.cost")} /><input id="ai-cost" disabled={selectedTask === "debug_agent"} type="number" min="0" step="0.01" value={config.max_cost_per_request ?? ""} onChange={(event) => patchConfig({ max_cost_per_request: event.target.value || null })} /></div>
             <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-restrictions" label={t("admin.aiSettings.restrictions")} guide={t("admin.aiSettings.guides.restrictions")} /><input id="ai-restrictions" value={config.routing_restrictions.join(", ")} onChange={(event) => patchConfig({ routing_restrictions: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></div>
           </>}
         </section>

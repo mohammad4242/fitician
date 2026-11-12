@@ -121,7 +121,8 @@ def _profile(
     kinds = tuple(
         kind
         for kind in requested_kinds
-        if supports_live_web or kind is not AgentTaskKind.FOOD_PRICE_SEARCH
+        if kind is not AgentTaskKind.DEBUG_AGENT
+        and (supports_live_web or kind is not AgentTaskKind.FOOD_PRICE_SEARCH)
     )
     if not kinds:
         raise ValueError("a profile must support at least one task")

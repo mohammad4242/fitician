@@ -32,6 +32,7 @@ def test_ai_task_type_matches_persisted_task_catalog() -> None:
         "progress_comparison",
         "food_photo_estimation",
         "food_price_search",
+        "debug_agent",
     }
 
 
@@ -154,10 +155,9 @@ def test_admin_lists_food_price_search_as_disabled_agent_task(
         "progress_comparison",
         "food_photo_estimation",
         "food_price_search",
+        "debug_agent",
     }
-    food_price = next(
-        item for item in response.json() if item["task_type"] == "food_price_search"
-    )
+    food_price = next(item for item in response.json() if item["task_type"] == "food_price_search")
     assert food_price["execution_backend"] == "agent_service"
     assert food_price["enabled"] is False
     assert food_price["agent_name"] is None
@@ -508,9 +508,7 @@ def test_agent_service_does_not_require_api_credential_or_catalog(
     assert response.status_code == 200, response.text
 
 
-def test_admin_rejects_enabled_food_price_search_api_mode(
-    client: TestClient, db: Session
-) -> None:
+def test_admin_rejects_enabled_food_price_search_api_mode(client: TestClient, db: Session) -> None:
     _admin(client, db)
     response = client.put(
         "/api/v1/admin/ai/task-configs/food_price_search",
@@ -905,3 +903,12 @@ def test_agent_service_test_returns_safe_failure_without_internal_details(
     assert "token should never be shown" not in response.text
     assert "private-request-id" not in response.text
     assert "agent-service-test-token" not in response.text
+
+
+def test_debug_agent_is_disabled_without_a_forced_default_model(client, db):
+    _admin(client, db)
+    response = client.get("/api/v1/admin/ai/task-configs")
+    assert response.status_code == 200
+    item = next(item for item in response.json() if item["task_type"] == "debug_agent")
+    assert item["enabled"] is False
+    assert item["primary_model_id"] is None

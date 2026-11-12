@@ -168,6 +168,9 @@ def create_app(
                 await redis_service.close()
 
     app = FastAPI(title="Fitician API", lifespan=lifespan)
+    from app.debugging.router import router as debug_router
+
+    app.include_router(debug_router)
     app.state.draining = False
     app.state.diagnostics_runtime = None
     app.state.metrics = metrics

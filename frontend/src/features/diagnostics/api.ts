@@ -66,6 +66,7 @@ export interface DiagnosticStatusHistory {
 }
 
 export interface DiagnosticIssueDetail {
+  readonly affected_user_count?: number;
   readonly issue: DiagnosticIssue;
   readonly events: readonly DiagnosticEvent[];
   readonly status_history: readonly DiagnosticStatusHistory[];

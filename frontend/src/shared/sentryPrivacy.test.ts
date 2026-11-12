@@ -22,3 +22,10 @@ it("retains sanitized React component context", () => {
   const result = sanitizeSentryEvent({ contexts: { react: { componentStack: "\n at MemberPage (/srv/src/MemberPage.tsx:4)\n at Layout (/srv/src/Layout.tsx:8)" } } });
   expect(result.contexts.react).toEqual({ components: ["MemberPage", "Layout"] });
 });
+
+it("keeps bundle Debug-ID lookup coordinates without exporting origin or query values", () => {
+  const result = sanitizeSentryEvent({ exception: { values: [{ type: "Error", stacktrace: { frames: [{ filename: "https://app.example/assets/main.js?token=secret", lineno: 3, colno: 8 }] } }] }, debug_meta: { images: [{ type: "sourcemap", code_file: "https://app.example/assets/main.js?token=secret", debug_id: "abc-123" }] } });
+  expect(result.debug_meta.images[0].code_file).toBe("assets/main.js");
+  expect((result.exception.values[0].stacktrace.frames[0] as Record<string, unknown>).abs_path).toBe("assets/main.js");
+  expect(JSON.stringify(result)).not.toContain("secret");
+});

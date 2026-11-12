@@ -843,6 +843,108 @@ export type paths = {
         patch: operations["update_issue_api_v1_admin_diagnostics_issues__issue_id__patch"];
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/conversation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversation */
+        get: operations["conversation_api_v1_admin_diagnostics_issues__issue_id__conversation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Issue Evidence */
+        get: operations["get_issue_evidence_api_v1_admin_diagnostics_issues__issue_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Message */
+        post: operations["post_message_api_v1_admin_diagnostics_issues__issue_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run Events */
+        get: operations["run_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Events */
+        get: operations["stream_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/overview": {
         parameters: {
             query?: never;
@@ -5881,7 +5983,7 @@ export type components = {
          * AITaskType
          * @enum {string}
          */
-        AITaskType: "workout_plan_generation" | "body_photo_analysis" | "progress_comparison" | "food_photo_estimation" | "food_price_search";
+        AITaskType: "debug_agent" | "workout_plan_generation" | "body_photo_analysis" | "progress_comparison" | "food_photo_estimation" | "food_price_search";
         /** AlertResponse */
         AlertResponse: {
             /**
@@ -5936,6 +6038,29 @@ export type components = {
             latest_session_id?: string | null;
             /** Latest Status */
             latest_status?: string | null;
+        };
+        /** MessageInput */
+        app__debugging__router__MessageInput: {
+            /**
+             * Action
+             * @default analyze
+             * @enum {string}
+             */
+            action: "analyze" | "prepare_fix";
+            /** Content */
+            content: string;
+            /** Occurrence Id */
+            occurrence_id?: string | null;
+        };
+        /** MessageInput */
+        app__program_conversations__router__MessageInput: {
+            /** Body */
+            body: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** AppleAuthRequest */
         AppleAuthRequest: {
@@ -9345,16 +9470,6 @@ export type components = {
              * Format: uuid
              */
             user_id: string;
-        };
-        /** MessageInput */
-        MessageInput: {
-            /** Body */
-            body: string;
-            /**
-             * Request Id
-             * Format: uuid
-             */
-            request_id: string;
         };
         /** MessageResponse */
         MessageResponse: {
@@ -17024,6 +17139,222 @@ export interface operations {
             };
         };
     };
+    conversation_api_v1_admin_diagnostics_issues__issue_id__conversation_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_issue_evidence_api_v1_admin_diagnostics_issues__issue_id__evidence_get: {
+        parameters: {
+            query?: {
+                occurrence_id?: string | null;
+            };
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_message_api_v1_admin_diagnostics_issues__issue_id__messages_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["app__debugging__router__MessageInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__events_get: {
+        parameters: {
+            query?: {
+                after?: number;
+            };
+            header?: never;
+            path: {
+                issue_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__stream_get: {
+        parameters: {
+            query?: {
+                after?: number;
+            };
+            header?: {
+                "last-event-id"?: string | null;
+            };
+            path: {
+                issue_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     overview_api_v1_admin_diagnostics_overview_get: {
         parameters: {
             query?: {
@@ -23495,7 +23826,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MessageInput"];
+                "application/json": components["schemas"]["app__program_conversations__router__MessageInput"];
             };
         };
         responses: {

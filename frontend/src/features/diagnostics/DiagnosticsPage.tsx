@@ -1,3 +1,6 @@
+import { DebugConversation } from "./DebugConversation";
+import { IssueEvidence } from "./IssueEvidence";
+import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -423,6 +426,7 @@ function IssueTable({ issues, onOpen }: { issues: readonly DiagnosticIssue[]; on
 function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSaved: () => void }) {
   const { c, english, locale } = useCopy();
   const { issue, events, status_history: history } = detail;
+  const explanation = explainIssueCode(issue.error_code, english);
   const [status, setStatus] = useState<DiagnosticStatus>(issue.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -443,6 +447,14 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
         <div><p className="diagnostics-label">{issue.component} / {issue.operation} / {issue.stage}</p><h2>{categoryLabel(c, issue.category)}</h2><p>{categoryNote(c, issue.category)}</p></div>
         <div className="diagnostics-badge-pair"><StatusBadge value={issue.severity} /><StatusBadge value={issue.status} /></div>
       </section>
+      <section className="diagnostics-card">
+        <h3>{explanation.what}</h3>
+        <p>{english ? "Observed location" : "محل مشاهده خطا"}: <code dir="ltr">{issue.component} / {issue.operation} / {issue.stage}</code></p>
+        <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Affected users" : "کاربران متأثر"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
+        <p>{english ? "Confirmed root cause: not yet established by investigation." : "علت قطعی: هنوز با شواهد بررسی اثبات نشده است."}</p>
+        <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
+      </section>
+      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
           <h3>{c.taxonomy}</h3>
@@ -482,6 +494,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
           {item.actor_user_id && <Link to={`/admin/billing/users/${encodeURIComponent(item.actor_user_id)}`}>{c.viewUser}: {item.actor_user_id}</Link>}
         </li>)}</ol>}
       </section>
+      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} />
     </div>
   );
 }
