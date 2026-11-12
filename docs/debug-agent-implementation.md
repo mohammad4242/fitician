@@ -271,3 +271,33 @@ sync credential retrieves and identifies the event with HTTP 200 from the author
 This establishes a regional access failure, not its underlying network/provider cause.
 Germany SSH was recovered through its existing Tailscale address and the pinned known host key;
 no host verification was disabled. Server configuration/readback and egress verification continue.
+
+## Restricted regional egress (owner-selected architecture)
+
+The owner selected a restricted Germany HTTPS proxy after authenticated reads returned
+403 HTML from Iran and 200 with matching event identity from Germany. The versioned
+`compose.sentry-egress.yaml` service is separate from Agent Service and all application volumes.
+`ops/sentry-egress.py` generates an exact Sentry-host allowlist; only authenticated CONNECT to
+port 443 is permitted. TLS remains end-to-end; there is no TLS interception or request logging.
+The service binds only its explicitly configured private Tailscale address, runs as UID 13 with
+a read-only filesystem, no capabilities, disabled core dumps and bounded CPU/memory/processes.
+Authentication uses a separately mounted password hash; no credential is baked into the image.
+
+The image was built from the existing verified Ubuntu 24.04 digest with security-updated
+Squid `6.14-0ubuntu0.24.04.5`; the tested local immutable image ID is
+`sha256:f95103c40d0c56506738e7e2db5302213e81792f6c333349e60d2152e4e9a515`.
+Local real-proxy checks returned 407 without authentication, 403 for an unrelated destination,
+and 403 for a non-443 port. An authenticated allowed destination completed normal verified TLS;
+its Iran-origin upstream response remained 403. Germany activation and Iran-through-Germany
+event retrieval are separate acceptance checks, not inferred from local startup.
+
+Only Sentry SDK transport and the synchronization worker read `SENTRY_HTTPS_PROXY`. Global
+HTTP/provider routing is unchanged. SDK internal errors are excluded from the diagnostics log
+bridge to prevent recursive issue/alert creation during a Sentry/proxy outage.
+
+The actual private web BuildKit test at commit `f5ff7092c74784b0cc3f9b9c0123b3f9be085c7d`
+completed, including private upload and all-layer credential/map inspection. Its local image is
+`sha256:413d98dbd61169b9d1d9264162511843cd65ef63b77f0b07697ed1cc643734f2`
+with the matching source label and staging configuration. This image has not been deployed.
+Docker Buildx v0.39.0 was installed locally from its official checksum-verified release because
+the CLI plugin was absent; SDK installation was not repeated.

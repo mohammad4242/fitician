@@ -121,3 +121,21 @@ def test_sentry_environment_matches_local_diagnostics_when_optional_variable_is_
     monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
     assert sentry.initialize_sentry("test")
     assert captured["environment"] == diagnostics_environment() == "production"
+
+
+def test_sentry_egress_uses_its_own_proxy_without_changing_provider_routing(monkeypatch):
+    import sentry_sdk
+
+    from app.observability import sentry
+
+    captured = {}
+    proxy = "http://fixture-user:fixture-password@100.108.24.126:3188"
+    monkeypatch.setattr(sentry, "_INITIALIZED", False)
+    monkeypatch.setenv("SENTRY_DSN", "https://public@example.invalid/1")
+    monkeypatch.setenv("SENTRY_HTTPS_PROXY", proxy)
+    monkeypatch.setenv("HTTPS_PROXY", "http://other-provider.invalid:8080")
+    monkeypatch.setattr(sentry_sdk, "init", lambda **options: captured.update(options))
+    monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
+    assert sentry.initialize_sentry("test")
+    assert captured["https_proxy"] == proxy
+    assert "fixture-password" not in str(sentry.sanitize_event({"extra": {"proxy": proxy}}, {}))

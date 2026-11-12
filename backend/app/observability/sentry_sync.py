@@ -243,7 +243,9 @@ def main() -> None:
                 interval_seconds=5,
             ),
             httpx.Client(
-                headers={"Authorization": f"Bearer {api_token}"}, trust_env=False
+                headers={"Authorization": f"Bearer {api_token}"},
+                proxy=os.environ.get("SENTRY_HTTPS_PROXY") or None,
+                trust_env=False,
             ) as client,
         ):
             while not stop.is_set():

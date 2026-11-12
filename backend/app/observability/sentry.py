@@ -137,6 +137,7 @@ def initialize_sentry(service: str) -> bool:
             before_breadcrumb=lambda breadcrumb, hint: None,
             transport_queue_size=256,
             shutdown_timeout=2,
+            https_proxy=os.environ.get("SENTRY_HTTPS_PROXY") or None,
             enable_logs=False,
         )
         sentry_sdk.set_tag("service", service)

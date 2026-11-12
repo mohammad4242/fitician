@@ -23,7 +23,7 @@ class DiagnosticLogHandler(logging.Handler):
         self.runtime = runtime
 
     def emit(self, record: logging.LogRecord) -> None:
-        if record.name.startswith(("app.observability", "sqlalchemy")):
+        if record.name.startswith(("app.observability", "sqlalchemy", "sentry_sdk")):
             return
         try:
             context = _REQUEST_CONTEXT.get()
