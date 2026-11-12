@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import copy
 import importlib.util
 import json
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -25,6 +28,8 @@ CONTROLLER_SPEC.loader.exec_module(controller)
 
 SHA = "f3646e547ebecdbdabc920ca999fba5927ebfc87"
 OTHER_SHA = "d338a20a7d4a49c47ae0b5ab5bf4e462edd8fad5"
+WORKER_SHA = "2c9bf5f733b0e874c6eb2fd74761602077c8b045"
+API_SHA = SHA
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 
 
@@ -66,13 +71,14 @@ def make_iran_snapshot(root: Path):
     older_path.parent.mkdir(parents=True)
     contract_path.write_text("services: {}\n")
     older_path.write_text("services: {}\n")
-    app_ref = f"registry.example/fitician-backend:{SHA}"
+    app_ref = f"registry.example/fitician-backend:{WORKER_SHA}"
+    api_ref = f"registry.example/fitician-backend:{API_SHA}"
     frontend_ref = f"registry.example/fitician-frontend:{OTHER_SHA}"
     base_refs = {
         "db": "postgres:18-alpine@sha256:db",
         "redis": "redis:8-alpine@sha256:redis",
-        "backend": app_ref,
-        "backend-2": app_ref,
+        "backend": api_ref,
+        "backend-2": api_ref,
         "scheduler": app_ref,
         "food-photo-worker": app_ref,
         "body-analysis-worker": app_ref,
@@ -110,18 +116,14 @@ def make_iran_snapshot(root: Path):
         image_id = image_ids_by_ref.setdefault(ref, f"sha256:image-{service}")
         ids[service] = image_id
         images[ref] = {"Id": image_id}
-        environment = (
-            dict(critical)
-            if service
-            in {
-                "backend",
-                "backend-2",
-                "scheduler",
-                "food-photo-worker",
-                "body-analysis-worker",
+        if service in {"backend", "backend-2"}:
+            environment = dict(critical)
+        elif service in {"scheduler", "food-photo-worker", "body-analysis-worker"}:
+            environment = {
+                key: value for key, value in critical.items() if key != "REDIS_HOST"
             }
-            else {}
-        )
+        else:
+            environment = {}
         if service in {"backend", "backend-2"}:
             environment["FITICIAN_DOMAIN"] = "fitician.fit"
         mounts = []
@@ -265,6 +267,28 @@ def make_germany_snapshot(root: Path):
 
 
 class FoundationEvidenceTests(unittest.TestCase):
+    def test_scalability_evidence_must_match_worker_role_sha(self):
+        run, jobs, artifacts = foundation_inputs()
+        run["head_sha"] = WORKER_SHA
+        proof = controller.validate_foundation_evidence(
+            run,
+            jobs,
+            artifacts,
+            repository="mohammad4242/fitician",
+            runtime_sha=WORKER_SHA,
+            now=NOW,
+        )
+        self.assertEqual(proof["sha"], WORKER_SHA)
+        with self.assertRaises(ValueError):
+            controller.validate_foundation_evidence(
+                run,
+                jobs,
+                artifacts,
+                repository="mohammad4242/fitician",
+                runtime_sha=API_SHA,
+                now=NOW,
+            )
+
     def test_requires_successful_same_repo_main_sha_job_and_real_artifact(self):
         run, jobs, artifacts = foundation_inputs()
         accepted = controller.validate_foundation_evidence(
@@ -322,7 +346,199 @@ class FoundationEvidenceTests(unittest.TestCase):
                 )
 
 
+class RoleSourceCompatibilityTests(unittest.TestCase):
+    def _compatibility_repo(self, mutation: str | None = None) -> tuple[Path, str, str]:
+        root = Path(tempfile.mkdtemp(dir=ROOT))
+        self.addCleanup(shutil.rmtree, root)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(
+            ["git", "-C", str(root), "config", "user.email", "test@example.invalid"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(root), "config", "user.name", "Test"], check=True
+        )
+        files = tuple(controller.WORKER_ENTRYPOINTS)
+        for relative in files:
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            tree = ast.parse((ROOT / relative).read_text())
+            function = next(
+                node
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == controller.WORKER_ENTRYPOINTS[relative]
+            )
+            heartbeat = next(
+                node
+                for node in ast.walk(function)
+                if isinstance(node, (ast.With, ast.AsyncWith))
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Name)
+                    and item.context_expr.func.id
+                    in {"async_heartbeat", "threaded_heartbeat"}
+                    for item in node.items
+                )
+            )
+            bridge_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "install_diagnostic_log_bridge"
+            )
+            heartbeat.body.remove(bridge_statement)
+            if relative == "backend/app/scheduler/worker.py":
+                main_statement = next(
+                    statement
+                    for statement in heartbeat.body
+                    if isinstance(statement, ast.Expr)
+                    and isinstance(statement.value, ast.Call)
+                    and isinstance(statement.value.func, ast.Name)
+                    and statement.value.func.id == "import_module"
+                )
+                heartbeat.body.remove(main_statement)
+                tree.body = [
+                    node
+                    for node in tree.body
+                    if not (
+                        isinstance(node, ast.ImportFrom)
+                        and node.module == "importlib"
+                        and any(alias.name == "import_module" for alias in node.names)
+                    )
+                ]
+            configure_index = next(
+                index
+                for index, statement in enumerate(function.body)
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "configure_structured_logging"
+            )
+            function.body.insert(configure_index + 1, bridge_statement)
+            source = ast.unparse(tree) + "\n"
+            destination.write_text(source)
+        (root / "backend/pyproject.toml").write_text("[project]\nname='fitician'\n")
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", "api"], check=True)
+        api = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        for relative in files:
+            (root / relative).write_text((ROOT / relative).read_text())
+        if mutation == "worker_once":
+            path = root / "backend/app/body_analysis/worker.py"
+            tree = ast.parse(path.read_text())
+            target = next(
+                node
+                for node in tree.body
+                if isinstance(node, ast.AsyncFunctionDef)
+                and node.name == "run_body_analysis_once"
+            )
+            target.body.insert(1, ast.Assert(test=ast.Constant(value=True)))
+            path.write_text(ast.unparse(tree) + "\n")
+        elif mutation in {"import_outside_heartbeat", "reverse_startup_calls"}:
+            path = root / "backend/app/body_analysis/worker.py"
+            tree = ast.parse(path.read_text())
+            target = next(
+                node
+                for node in tree.body
+                if isinstance(node, ast.AsyncFunctionDef) and node.name == "run_worker"
+            )
+            heartbeat = next(
+                node
+                for node in ast.walk(target)
+                if isinstance(node, (ast.With, ast.AsyncWith))
+                and any(
+                    isinstance(item.context_expr, ast.Call)
+                    and isinstance(item.context_expr.func, ast.Name)
+                    and item.context_expr.func.id == "async_heartbeat"
+                    for item in node.items
+                )
+            )
+            main_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "import_module"
+            )
+            bridge_statement = next(
+                statement
+                for statement in heartbeat.body
+                if isinstance(statement, ast.Expr)
+                and isinstance(statement.value, ast.Call)
+                and isinstance(statement.value.func, ast.Name)
+                and statement.value.func.id == "install_diagnostic_log_bridge"
+            )
+            heartbeat.body.remove(main_statement)
+            heartbeat.body.remove(bridge_statement)
+            if mutation == "import_outside_heartbeat":
+                target.body.insert(target.body.index(heartbeat), main_statement)
+                heartbeat.body.insert(0, bridge_statement)
+            else:
+                heartbeat.body[:0] = [bridge_statement, main_statement]
+            path.write_text(ast.unparse(tree) + "\n")
+        elif mutation == "dependency":
+            (root / "backend/pyproject.toml").write_text(
+                "[project]\nname='fitician'\nversion='2'\n"
+            )
+        elif mutation == "schema":
+            path = root / "backend/alembic/versions/changed.py"
+            path.parent.mkdir(parents=True)
+            path.write_text("revision = 'changed'\n")
+        elif mutation == "api":
+            path = root / "backend/app/main.py"
+            path.write_text("APP_SOURCE_CHANGED = True\n")
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "-C", str(root), "commit", "-qm", "worker"], check=True)
+        worker = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip()
+        return root, api, worker
+
+    def test_accepts_current_startup_only_worker_source(self):
+        root, api, worker = self._compatibility_repo()
+        proof = controller.validate_role_source_compatibility(api, worker, root=root)
+        self.assertEqual(proof["api_sha"], api)
+        self.assertEqual(proof["worker_sha"], worker)
+        self.assertTrue(proof["ancestor_verified"])
+        self.assertTrue(proof["entrypoint_ast_equivalent"])
+        with self.assertRaises(ValueError):
+            controller.validate_role_source_compatibility(worker, api, root=root)
+
+    def test_rejects_run_once_dependency_schema_and_api_changes(self):
+        for mutation in (
+            "worker_once",
+            "import_outside_heartbeat",
+            "reverse_startup_calls",
+            "dependency",
+            "schema",
+            "api",
+        ):
+            with self.subTest(mutation=mutation):
+                root, api, worker = self._compatibility_repo(mutation)
+                with self.assertRaises(ValueError):
+                    controller.validate_role_source_compatibility(
+                        api, worker, root=root
+                    )
+
+
 class RuntimeSnapshotTests(unittest.TestCase):
+    def test_normalizes_compound_compose_durations(self):
+        for value in ("120s", "2m0s", "1m60s", "120000ms"):
+            with self.subTest(value=value):
+                self.assertEqual(runtime._duration_ns(value), 120_000_000_000)
+        for value in ("", "2m0sfoo", "-2m", "2m 0s"):
+            with (
+                self.subTest(value=value),
+                self.assertRaises(runtime.RegistrationError),
+            ):
+                runtime._duration_ns(value)
+
     def test_iran_accepts_compatible_selective_contract_labels(self):
         with tempfile.TemporaryDirectory(
             dir=ROOT / "artifacts" if (ROOT / "artifacts").is_dir() else ROOT
@@ -340,10 +556,144 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 volume_details=volumes,
                 live_checks=checks,
             )
-        self.assertEqual(result["app_sha"], SHA)
-        self.assertEqual(result["service_image_tags"]["backend-2"], SHA)
+        self.assertEqual(result["app_sha"], WORKER_SHA)
+        self.assertEqual(result["api_sha"], API_SHA)
+        self.assertEqual(result["worker_sha"], WORKER_SHA)
+        self.assertEqual(
+            result["role_versions"], {"api": API_SHA, "worker": WORKER_SHA}
+        )
+        self.assertEqual(result["service_image_tags"]["backend-2"], API_SHA)
         self.assertIn("fitician_caddy-data", result["external_volumes"])
+        self.assertNotIn("scheduler.REDIS_HOST", result["critical_env_sha256"])
         self.assertNotIn("not-printed-token", json.dumps(result))
+
+    def test_worker_redis_host_may_be_absent_from_contract_and_runtime(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                app_dir
+            )
+            result = runtime.validate_runtime_snapshot(
+                alias="iran",
+                app_dir=app_dir,
+                containers=containers,
+                rendered=rendered,
+                image_details=images,
+                volume_details=volumes,
+                live_checks=checks,
+            )
+        self.assertNotIn("food-photo-worker.REDIS_HOST", result["critical_env_sha256"])
+
+    def test_worker_redis_host_is_checked_when_contract_and_runtime_provide_it(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                app_dir
+            )
+            service = "scheduler"
+            container = next(
+                item
+                for item in containers
+                if item["Config"]["Labels"][runtime.LABEL_SERVICE] == service
+            )
+            rendered["services"][service]["environment"]["REDIS_HOST"] = "redis"
+            container["Config"]["Env"].append("REDIS_HOST=redis")
+            result = runtime.validate_runtime_snapshot(
+                alias="iran",
+                app_dir=app_dir,
+                containers=containers,
+                rendered=rendered,
+                image_details=images,
+                volume_details=volumes,
+                live_checks=checks,
+            )
+        self.assertIn("scheduler.REDIS_HOST", result["critical_env_sha256"])
+
+    def test_worker_redis_host_if_present_must_match_nonempty_contract(self):
+        cases = (
+            ("scheduler", "declared_missing"),
+            ("scheduler", "unexpected_runtime"),
+            ("scheduler", "empty"),
+            ("backend", "declared_missing"),
+        )
+        for service, case in cases:
+            with (
+                self.subTest(case=case),
+                tempfile.TemporaryDirectory(dir=ROOT) as folder,
+            ):
+                app_dir = Path(folder)
+                _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                    app_dir
+                )
+                container = next(
+                    item
+                    for item in containers
+                    if item["Config"]["Labels"][runtime.LABEL_SERVICE] == service
+                )
+                if case == "declared_missing":
+                    rendered["services"][service]["environment"]["REDIS_HOST"] = "redis"
+                    if service == "backend":
+                        container["Config"]["Env"].remove("REDIS_HOST=redis")
+                elif case == "unexpected_runtime":
+                    container["Config"]["Env"].append("REDIS_HOST=redis")
+                else:
+                    rendered["services"][service]["environment"]["REDIS_HOST"] = ""
+                    container["Config"]["Env"].append("REDIS_HOST=")
+                with self.assertRaisesRegex(
+                    runtime.RegistrationError,
+                    "critical runtime setting differs from its contract",
+                ):
+                    runtime.validate_runtime_snapshot(
+                        alias="iran",
+                        app_dir=app_dir,
+                        containers=containers,
+                        rendered=rendered,
+                        image_details=images,
+                        volume_details=volumes,
+                        live_checks=checks,
+                    )
+
+    def test_iran_rejects_different_api_replicas_or_worker_shas(self):
+        mutations = ("api", "worker")
+        for role in mutations:
+            with (
+                self.subTest(role=role),
+                tempfile.TemporaryDirectory(dir=ROOT) as folder,
+            ):
+                app_dir = Path(folder)
+                _, containers, rendered, images, volumes, checks = make_iran_snapshot(
+                    app_dir
+                )
+                if role == "api":
+                    containers[3]["Config"]["Image"] = rendered["services"][
+                        "scheduler"
+                    ]["image"]
+                    containers[3]["Image"] = images[containers[3]["Config"]["Image"]][
+                        "Id"
+                    ]
+                    rendered["services"]["backend-2"]["image"] = containers[3][
+                        "Config"
+                    ]["Image"]
+                else:
+                    containers[4]["Config"]["Image"] = rendered["services"]["backend"][
+                        "image"
+                    ]
+                    containers[4]["Image"] = images[containers[4]["Config"]["Image"]][
+                        "Id"
+                    ]
+                    rendered["services"]["scheduler"]["image"] = containers[4][
+                        "Config"
+                    ]["Image"]
+                with self.assertRaises(runtime.RegistrationError):
+                    runtime.validate_runtime_snapshot(
+                        alias="iran",
+                        app_dir=app_dir,
+                        containers=containers,
+                        rendered=rendered,
+                        image_details=images,
+                        volume_details=volumes,
+                        live_checks=checks,
+                    )
 
     def test_iran_accepts_only_known_worker_health_override(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as folder:
@@ -364,7 +714,7 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 "  scheduler:\n    healthcheck:\n      start_period: 120s\n"
             )
             for service in runtime.WORKER_MODULES:
-                rendered["services"][service]["healthcheck"]["start_period"] = "120s"
+                rendered["services"][service]["healthcheck"]["start_period"] = "2m0s"
             notification = next(
                 item
                 for item in containers
@@ -385,6 +735,18 @@ class RuntimeSnapshotTests(unittest.TestCase):
                 result["historical_worker_override_sha256"],
                 runtime.WORKER_OVERRIDE_SHA256,
             )
+            rendered["services"]["scheduler"]["healthcheck"]["start_period"] = "2m1s"
+            with self.assertRaises(runtime.RegistrationError):
+                runtime.validate_runtime_snapshot(
+                    alias="iran",
+                    app_dir=app_dir,
+                    containers=containers,
+                    rendered=rendered,
+                    image_details=images,
+                    volume_details=volumes,
+                    live_checks=checks,
+                )
+            rendered["services"]["scheduler"]["healthcheck"]["start_period"] = "2m0s"
             override.write_text(override.read_text() + "# unexpected\n")
             with self.assertRaises(runtime.RegistrationError):
                 runtime.validate_runtime_snapshot(
@@ -656,6 +1018,150 @@ class RuntimeSnapshotTests(unittest.TestCase):
             runtime.validate_region("other")
 
 
+class RuntimeProbeTimeoutTests(unittest.TestCase):
+    def test_mapper_probe_uses_one_isolated_exact_image_per_shared_image_id(self):
+        selected = [
+            {
+                "Id": service,
+                "Image": "sha256:" + "a" * 64,
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for service in runtime.WORKER_MODULES
+        ]
+        success = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(
+            runtime.subprocess, "run", side_effect=[success, success]
+        ) as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: True for service in runtime.WORKER_MODULES})
+        self.assertEqual(run.call_count, 2)
+        probe, cleanup = (call.args[0] for call in run.call_args_list)
+        self.assertEqual(probe[:2], ["docker", "run"])
+        self.assertIn("sha256:" + "a" * 64, probe)
+        self.assertIn("--network", probe)
+        self.assertEqual(probe[probe.index("--network") + 1], "none")
+        self.assertIn("--read-only", probe)
+        self.assertIn("--cap-drop", probe)
+        self.assertEqual(probe[probe.index("--cap-drop") + 1], "ALL")
+        self.assertEqual(probe[probe.index("--memory") + 1], "256m")
+        self.assertEqual(probe[probe.index("--cpus") + 1], "0.25")
+        self.assertEqual(probe[probe.index("--pids-limit") + 1], "128")
+        self.assertEqual(probe[probe.index("--env") + 1], "APP_ENV=test")
+        env_values = [
+            probe[index + 1] for index, arg in enumerate(probe[:-1]) if arg == "--env"
+        ]
+        self.assertEqual(
+            env_values,
+            ["APP_ENV=test", "DATABASE_URL=sqlite://", "TMPDIR=/app/var"],
+        )
+        self.assertFalse(any("SECRET" in arg or "PASSWORD" in arg for arg in probe))
+        self.assertFalse(any(arg in {"--volume", "--mount", "-v"} for arg in probe))
+        self.assertIn("--pull", probe)
+        self.assertEqual(probe[probe.index("--pull") + 1], "never")
+        self.assertEqual(run.call_args_list[0].kwargs["timeout"], 180)
+        self.assertEqual(cleanup[:3], ["docker", "rm", "--force"])
+        self.assertEqual(cleanup[3], probe[probe.index("--name") + 1])
+        self.assertEqual(run.call_args_list[1].kwargs["timeout"], 30)
+
+    def test_mapper_probes_coalesce_by_actual_image_id_and_remain_sequential(self):
+        selected = [
+            {
+                "Id": service,
+                "Image": f"sha256:{index // 2 + 1:064x}",
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for index, service in enumerate(runtime.WORKER_MODULES)
+        ]
+        success = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(runtime.subprocess, "run", side_effect=[success] * 4) as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: True for service in runtime.WORKER_MODULES})
+        probes = [
+            call.args[0] for call in run.call_args_list if call.args[0][1] == "run"
+        ]
+        self.assertEqual(len(probes), 2)
+        self.assertEqual(
+            [probe[probe.index("--entrypoint") + 2] for probe in probes],
+            [f"sha256:{1:064x}", f"sha256:{2:064x}"],
+        )
+        for probe in probes:
+            code = probe[-1]
+            self.assertEqual(code.count("import_module('app.main')"), 1)
+            for module in runtime.WORKER_MODULES.values():
+                self.assertEqual(code.count(f"import_module({module!r})"), 1)
+            self.assertEqual(code.count("configure_mappers()"), 1)
+
+    def test_timed_out_mapper_probe_cleans_up_only_its_named_container(self):
+        selected = [
+            {
+                "Id": service,
+                "Image": "sha256:" + "b" * 64,
+                "Config": {"Labels": {runtime.LABEL_SERVICE: service}},
+            }
+            for service in runtime.WORKER_MODULES
+        ]
+        timeout = subprocess.TimeoutExpired(["docker", "run"], 180)
+        removed = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+        with patch.object(
+            runtime.subprocess, "run", side_effect=[timeout, removed]
+        ) as run:
+            checks = runtime._probe_worker_mappers(selected)
+        self.assertEqual(checks, {service: False for service in runtime.WORKER_MODULES})
+        probe = run.call_args_list[0].args[0]
+        cleanup = run.call_args_list[1].args[0]
+        self.assertEqual(
+            cleanup, ["docker", "rm", "--force", probe[probe.index("--name") + 1]]
+        )
+
+    def test_worker_identity_health_or_restart_change_during_probe_fails_closed(self):
+        before = {
+            "Id": "worker-1",
+            "Image": "sha256:" + "c" * 64,
+            "RestartCount": 0,
+            "State": {
+                "Status": "running",
+                "StartedAt": "2026-10-19T10:00:00Z",
+                "Health": {"Status": "healthy"},
+            },
+            "Config": {"Labels": {runtime.LABEL_SERVICE: "scheduler"}},
+        }
+        mutations = (
+            {**before, "Id": "replacement-worker"},
+            {**before, "Image": "sha256:" + "d" * 64},
+            {**before, "RestartCount": 1},
+            {
+                **before,
+                "State": {**before["State"], "StartedAt": "2026-10-19T10:01:00Z"},
+            },
+            {
+                **before,
+                "State": {
+                    **before["State"],
+                    "Health": {"Status": "unhealthy"},
+                },
+            },
+        )
+        for changed in mutations:
+            with (
+                self.subTest(changed=changed),
+                patch.object(runtime, "_docker_json", return_value=[changed]),
+                self.assertRaisesRegex(
+                    runtime.RegistrationError,
+                    "Worker changed during isolated mapper qualification",
+                ),
+            ):
+                runtime._verify_worker_containers_unchanged([before])
+
+    def test_readonly_command_timeout_defaults_to_45_seconds_and_is_overridable(self):
+        completed = subprocess.CompletedProcess([], 0, stdout="ok", stderr="")
+        with patch.object(runtime.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(runtime._run(["docker", "ps"]), "ok")
+            self.assertEqual(runtime._run(["docker", "exec"], timeout=180), "ok")
+        self.assertEqual(
+            [call.kwargs["timeout"] for call in run.call_args_list], [45, 180]
+        )
+
+
 class MarkerWriteTests(unittest.TestCase):
     def test_marker_creation_is_atomic_private_idempotent_and_conflict_safe(self):
         with tempfile.TemporaryDirectory(
@@ -724,8 +1230,97 @@ class MarkerWriteTests(unittest.TestCase):
                 (app_dir / "backups" / "regional-runtime-registration").exists()
             )
 
+    def test_mixed_role_apply_requires_and_records_matching_source_proof(self):
+        source_root, api_sha, worker_sha = (
+            RoleSourceCompatibilityTests._compatibility_repo(self)
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            app_dir = Path(folder)
+            contract = app_dir / "releases" / worker_sha / "compose.prod.iran.yaml"
+            contract.parent.mkdir(parents=True)
+            contract.write_text("services: {}\n")
+            _, foundation = runtime.marker_paths(app_dir, "iran")
+            accepted_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            foundation.write_text(
+                "foundation_version=1\n"
+                f"image_tag={worker_sha}\n"
+                "evidence_run_id=12345\n"
+                f"accepted_at={accepted_at}\n"
+            )
+            current = {
+                "region": "iran",
+                "api_sha": api_sha,
+                "worker_sha": worker_sha,
+                "app_sha": worker_sha,
+                "invariant_sha256": "b" * 64,
+                "active_contract": None,
+                "registration_contract": str(contract),
+            }
+            with (
+                patch.object(runtime, "inspect_runtime", return_value=current),
+                self.assertRaises(runtime.RegistrationError),
+            ):
+                runtime.apply_registration(
+                    app_dir=app_dir,
+                    alias="iran",
+                    expected_invariant_sha256="b" * 64,
+                    evidence=None,
+                    accepted_at=accepted_at,
+                )
+            proof = controller.validate_role_source_compatibility(
+                api_sha, worker_sha, root=source_root
+            )
+            with patch.object(runtime, "inspect_runtime", return_value=current):
+                result = runtime.apply_registration(
+                    app_dir=app_dir,
+                    alias="iran",
+                    expected_invariant_sha256="b" * 64,
+                    evidence=None,
+                    accepted_at=accepted_at,
+                    role_proof=proof,
+                )
+            active, _ = runtime.marker_paths(app_dir, "iran")
+            self.assertTrue(result["active_contract_created"])
+            record = json.loads(
+                Path(result["evidence_path"]).read_text(encoding="utf-8")
+            )
+            self.assertEqual(record["role_source_compatibility"], proof)
+            self.assertTrue(active.is_file())
+
 
 class ControllerDryRunTests(unittest.TestCase):
+    def test_ssh_apply_transmits_exact_role_proof(self):
+        proof = {
+            "version": controller.ROLE_SOURCE_PROOF_VERSION,
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "ancestor_verified": True,
+            "backend_image_inputs": sorted(controller.WORKER_ENTRYPOINTS),
+            "entrypoint_ast_equivalent": True,
+        }
+        completed = subprocess.CompletedProcess([], 0, stdout="{}", stderr="")
+        with patch.object(
+            controller.subprocess, "run", return_value=completed
+        ) as remote:
+            controller._ssh(
+                "iran",
+                Path("/opt/fitician-iran"),
+                apply=True,
+                probe={"invariant_sha256": "a" * 64},
+                evidence=None,
+                role_proof=proof,
+                accepted_at="2026-10-19T12:00:00Z",
+            )
+        args = remote.call_args.args[0]
+        self.assertEqual(
+            remote.call_args.kwargs["timeout"],
+            controller.REMOTE_PROBE_TIMEOUT_SECONDS,
+        )
+        encoded = args[args.index("--role-proof-b64") + 1]
+        self.assertEqual(
+            json.loads(controller.base64.urlsafe_b64decode(encoded).decode()), proof
+        )
+
     def test_default_mode_never_calls_remote_apply(self):
         calls = []
         result = {
@@ -737,7 +1332,9 @@ class ControllerDryRunTests(unittest.TestCase):
             },
         }
 
-        def fake_ssh(alias, app_dir, *, apply, probe, evidence, accepted_at):
+        def fake_ssh(
+            alias, app_dir, *, apply, probe, evidence, role_proof, accepted_at
+        ):
             calls.append(apply)
             return result
 
@@ -761,6 +1358,57 @@ class ControllerDryRunTests(unittest.TestCase):
         rendered = json.loads(output.call_args.args[0])
         self.assertEqual(rendered["mode"], "dry-run")
         self.assertEqual(rendered["writes"], [])
+
+    def test_controller_proves_and_forwards_mixed_roles_on_apply(self):
+        calls = []
+        runtime_probe = {
+            "region": "iran",
+            "app_sha": WORKER_SHA,
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "invariant_sha256": "c" * 64,
+            "markers": {
+                "active_contract": "present",
+                "scalability_acceptance": "present",
+            },
+        }
+        proof = {
+            "api_sha": API_SHA,
+            "worker_sha": WORKER_SHA,
+            "entrypoint_ast_equivalent": True,
+        }
+
+        def fake_ssh(
+            alias, app_dir, *, apply, probe=None, evidence, role_proof, accepted_at
+        ):
+            calls.append((apply, role_proof))
+            return runtime_probe if not apply else {"registered": True}
+
+        with (
+            patch.object(controller, "_ssh", side_effect=fake_ssh),
+            patch.object(
+                controller, "validate_role_source_compatibility", return_value=proof
+            ) as source_check,
+            patch.object(
+                sys,
+                "argv",
+                [
+                    str(ROOT / "ops/register-regional-runtime.py"),
+                    "--region",
+                    "iran",
+                    "--app-dir",
+                    "/opt/fitician-iran",
+                    "--apply",
+                    "--owner-approved",
+                ],
+            ),
+            patch("builtins.print") as output,
+        ):
+            controller.main()
+        source_check.assert_called_once_with(API_SHA, WORKER_SHA, root=ROOT)
+        self.assertEqual(calls, [(False, None), (True, proof)])
+        rendered = json.loads(output.call_args.args[0])
+        self.assertEqual(rendered["role_source_compatibility"], proof)
 
     def test_apply_requires_both_explicit_flags(self):
         with (

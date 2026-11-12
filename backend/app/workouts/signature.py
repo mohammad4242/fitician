@@ -30,6 +30,7 @@ def _string_value(value: object) -> str:
 
 
 def _canonical_hash(payload: object) -> str:
+    # Canonical serialization keeps signatures stable across independent API replicas.
     return hashlib.sha256(
         json.dumps(
             _canonical_value(payload),
@@ -51,6 +52,7 @@ def _canonical_value(value: object) -> object:
             for key, item in sorted(value.items(), key=lambda item: str(item[0]))
         }
     if isinstance(value, (set, frozenset)):
+        # Unordered inputs must hash identically on every API replica.
         items = [_canonical_value(item) for item in value]
         return sorted(items, key=lambda item: json.dumps(item, sort_keys=True))
     if isinstance(value, (list, tuple)):

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 import json
+import os
 import re
 import subprocess
 import sys
@@ -18,6 +20,262 @@ REMOTE_PROBE = ROOT / "ops" / "regional_runtime.py"
 WORKFLOW_NAME = "Fitician local scalability checks"
 SCALABILITY_JOB = "Local multi-replica load and failure drills"
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+ROLE_SOURCE_PROOF_VERSION = "iran-worker-role-source-v1"
+REMOTE_PROBE_TIMEOUT_SECONDS = 900
+WORKER_ENTRYPOINTS = {
+    "backend/app/body_analysis/worker.py": "run_worker",
+    "backend/app/nutrition/food_photo_worker.py": "run_worker",
+    "backend/app/notifications/worker.py": "run_worker",
+    "backend/app/scheduler/worker.py": "run_scheduler",
+}
+BACKEND_IMAGE_INPUTS = (
+    "backend/Dockerfile",
+    "backend/pyproject.toml",
+    "backend/uv.lock",
+    "backend/alembic.ini",
+    "backend/.dockerignore",
+    "backend/alembic",
+    "backend/app",
+)
+
+
+def _role_ast(
+    source: str, relative_path: str, expected_function: str, *, candidate: bool
+) -> str:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as error:
+        raise ValueError("Worker entrypoint source is invalid") from error
+    functions = [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == expected_function
+    ]
+    if len(functions) != 1:
+        raise ValueError("Worker entrypoint function is missing or duplicated")
+    function = functions[0]
+
+    class Calls(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.main = 0
+            self.bridge = 0
+
+        def visit_Call(self, node: ast.Call) -> None:
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "import_module"
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Constant)
+                and node.args[0].value == "app.main"
+                and not node.keywords
+            ):
+                self.main += 1
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "install_diagnostic_log_bridge"
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "settings"
+                and not node.keywords
+            ):
+                self.bridge += 1
+            self.generic_visit(node)
+
+    calls = Calls()
+    for statement in function.body:
+        calls.visit(statement)
+    if calls.bridge != 1 or (
+        calls.main != 1 if candidate else calls.main not in {0, 1}
+    ):
+        raise ValueError("Worker startup initialization is invalid")
+
+    heartbeat_contexts = [
+        node
+        for node in ast.walk(function)
+        if isinstance(node, (ast.With, ast.AsyncWith))
+        and any(
+            isinstance(item.context_expr, ast.Call)
+            and isinstance(item.context_expr.func, ast.Name)
+            and item.context_expr.func.id in {"async_heartbeat", "threaded_heartbeat"}
+            for item in node.items
+        )
+    ]
+    if len(heartbeat_contexts) != 1:
+        raise ValueError("Worker heartbeat context is missing or ambiguous")
+    heartbeat_body = heartbeat_contexts[0].body
+
+    def startup_call(statement: ast.stmt, name: str) -> bool:
+        return (
+            isinstance(statement, ast.Expr)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == name
+            and (
+                name != "import_module"
+                or (
+                    len(statement.value.args) == 1
+                    and isinstance(statement.value.args[0], ast.Constant)
+                    and statement.value.args[0].value == "app.main"
+                    and not statement.value.keywords
+                )
+            )
+            and (
+                name != "install_diagnostic_log_bridge"
+                or (
+                    len(statement.value.args) == 1
+                    and isinstance(statement.value.args[0], ast.Name)
+                    and statement.value.args[0].id == "settings"
+                    and not statement.value.keywords
+                )
+            )
+        )
+
+    bridge_indexes = [
+        index
+        for index, statement in enumerate(heartbeat_body)
+        if startup_call(statement, "install_diagnostic_log_bridge")
+    ]
+    main_indexes = [
+        index
+        for index, statement in enumerate(heartbeat_body)
+        if startup_call(statement, "import_module")
+    ]
+    if candidate:
+        if len(bridge_indexes) != 1 or len(main_indexes) != calls.main:
+            raise ValueError("Worker startup calls must be direct heartbeat statements")
+        if main_indexes[0] + 1 != bridge_indexes[0]:
+            raise ValueError("Worker app import must immediately precede log setup")
+    else:
+        configure_indexes = [
+            index
+            for index, statement in enumerate(function.body)
+            if startup_call(statement, "configure_structured_logging")
+        ]
+        legacy_bridge_indexes = [
+            index
+            for index, statement in enumerate(function.body)
+            if startup_call(statement, "install_diagnostic_log_bridge")
+        ]
+        if (
+            len(configure_indexes) != 1
+            or len(legacy_bridge_indexes) != 1
+            or bridge_indexes
+            or len(main_indexes) != calls.main
+            or (main_indexes and main_indexes[0] != 0)
+            or (
+                len(configure_indexes) == 1
+                and len(legacy_bridge_indexes) == 1
+                and legacy_bridge_indexes[0] != configure_indexes[0] + 1
+            )
+        ):
+            raise ValueError("Legacy worker startup placement is not recognized")
+
+    imports = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "importlib"
+        and len(node.names) == 1
+        and node.names[0].name == "import_module"
+        and node.names[0].asname is None
+    ]
+    if len(imports) != (1 if candidate or calls.main else 0):
+        raise ValueError("Worker import_module dependency is invalid")
+    tree.body = [node for node in tree.body if node not in imports]
+
+    class RemoveStartupCalls(ast.NodeTransformer):
+        def visit_Expr(self, node: ast.Expr):
+            value = node.value
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+                if (
+                    value.func.id == "import_module"
+                    and len(value.args) == 1
+                    and isinstance(value.args[0], ast.Constant)
+                    and value.args[0].value == "app.main"
+                    and not value.keywords
+                ):
+                    return None
+                if (
+                    value.func.id == "install_diagnostic_log_bridge"
+                    and len(value.args) == 1
+                    and isinstance(value.args[0], ast.Name)
+                    and value.args[0].id == "settings"
+                    and not value.keywords
+                ):
+                    return None
+            if (
+                isinstance(value, ast.Constant)
+                and value.value
+                == "Run all periodic loops in one independently deployable process."
+            ):
+                return None
+            return self.generic_visit(node)
+
+    remover = RemoveStartupCalls()
+    function.body = [
+        transformed
+        for statement in function.body
+        if (transformed := remover.visit(statement)) is not None
+    ]
+    return ast.dump(tree, include_attributes=False)
+
+
+def validate_role_source_compatibility(
+    api_sha: str, worker_sha: str, *, root: Path = ROOT
+) -> dict:
+    """Prove that a newer worker image changes only safe worker startup imports."""
+    if not SHA_RE.fullmatch(api_sha) or not SHA_RE.fullmatch(worker_sha):
+        raise ValueError("Runtime role SHA is invalid")
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", api_sha, worker_sha],
+        cwd=root,
+        capture_output=True,
+        check=False,
+    )
+    if ancestor.returncode:
+        raise ValueError("API source SHA is not an ancestor of worker source SHA")
+    raw = subprocess.check_output(
+        [
+            "git",
+            "diff",
+            "--no-renames",
+            "--name-only",
+            "-z",
+            api_sha,
+            worker_sha,
+            "--",
+            *BACKEND_IMAGE_INPUTS,
+        ],
+        cwd=root,
+    )
+    changed = sorted(os.fsdecode(path) for path in raw.split(b"\0") if path)
+    if set(changed) - set(WORKER_ENTRYPOINTS):
+        raise ValueError("Backend image inputs differ outside worker entrypoints")
+    for relative, function in WORKER_ENTRYPOINTS.items():
+        try:
+            old = subprocess.check_output(
+                ["git", "show", f"{api_sha}:{relative}"], cwd=root, text=True
+            )
+            new = subprocess.check_output(
+                ["git", "show", f"{worker_sha}:{relative}"], cwd=root, text=True
+            )
+        except subprocess.SubprocessError as error:
+            raise ValueError(
+                "Worker source is unavailable for compatibility proof"
+            ) from error
+        if _role_ast(old, relative, function, candidate=False) != _role_ast(
+            new, relative, function, candidate=True
+        ):
+            raise ValueError("Worker behavior differs outside startup initialization")
+    return {
+        "version": ROLE_SOURCE_PROOF_VERSION,
+        "api_sha": api_sha,
+        "worker_sha": worker_sha,
+        "ancestor_verified": True,
+        "backend_image_inputs": changed,
+        "entrypoint_ast_equivalent": True,
+    }
 
 
 def validate_foundation_evidence(
@@ -138,6 +396,7 @@ def _ssh(
     apply: bool,
     probe: dict,
     evidence: dict | None,
+    role_proof: dict | None,
     accepted_at: str,
 ) -> dict:
     args = [
@@ -169,6 +428,11 @@ def _ssh(
                 json.dumps(evidence, separators=(",", ":")).encode("utf-8")
             ).decode("ascii")
             args.extend(["--evidence-b64", encoded])
+        if role_proof is not None:
+            encoded = base64.urlsafe_b64encode(
+                json.dumps(role_proof, separators=(",", ":")).encode("utf-8")
+            ).decode("ascii")
+            args.extend(["--role-proof-b64", encoded])
     try:
         result = subprocess.run(
             args,
@@ -176,7 +440,7 @@ def _ssh(
             check=True,
             capture_output=True,
             text=True,
-            timeout=150,
+            timeout=REMOTE_PROBE_TIMEOUT_SECONDS,
         )
         return json.loads(result.stdout)
     except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as error:
@@ -209,8 +473,14 @@ def main() -> None:
             apply=False,
             probe={},
             evidence=None,
+            role_proof=None,
             accepted_at="",
         )
+        role_proof = None
+        if region == "iran" and probe["api_sha"] != probe["worker_sha"]:
+            role_proof = validate_role_source_compatibility(
+                probe["api_sha"], probe["worker_sha"], root=ROOT
+            )
         evidence = None
         if region == "iran" and probe["markers"]["scalability_acceptance"] == "missing":
             if args.evidence_run_id is None:
@@ -224,6 +494,7 @@ def main() -> None:
             "mode": "apply" if args.apply else "dry-run",
             "runtime": probe,
             "foundation_evidence": evidence,
+            "role_source_compatibility": role_proof,
             "writes": [],
         }
         if args.apply:
@@ -234,6 +505,7 @@ def main() -> None:
                 apply=True,
                 probe=probe,
                 evidence=evidence,
+                role_proof=role_proof,
                 accepted_at=accepted_at,
             )
             result["registration"] = registration

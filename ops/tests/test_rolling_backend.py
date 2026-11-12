@@ -2,9 +2,11 @@
 
 import importlib.util
 import json
+import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 SPEC = importlib.util.spec_from_file_location(
@@ -88,6 +90,23 @@ class RollingBackendTests(unittest.TestCase):
         )
         self.assertFalse(any(e[0] == "rollback" for e in runtime.events))
 
+    def test_release_verifier_runs_inside_rollback_boundary(self):
+        runtime = FakeRuntime()
+        runtime.verify = Mock()
+        module.roll(runtime)
+        runtime.verify.assert_called_once_with()
+
+    def test_release_verifier_failure_rolls_back_both_replicas(self):
+        runtime = FakeRuntime()
+        runtime.verify = Mock(side_effect=RuntimeError("verification failed"))
+        with self.assertRaises(module.RolledBack):
+            module.roll(runtime)
+        self.assertEqual(runtime.config, BASE)
+        self.assertEqual(
+            [e for e in runtime.events if e[0] == "rollback"],
+            [("rollback", "backend-2"), ("rollback", "backend")],
+        )
+
     def test_failure_rolls_back_failed_replica_first_while_healthy_peer_serves(self):
         runtime = FakeRuntime(fail={("backend-2", False)})
         with self.assertRaises(module.RolledBack):
@@ -138,6 +157,32 @@ class RollingBackendTests(unittest.TestCase):
 
 
 class DockerRuntimeSafetyTests(unittest.TestCase):
+    def test_proxy_snapshot_is_exclusive_and_private(self):
+        class FixedDateTime(module.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return cls(2026, 10, 19, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(
+            dir=Path(__file__).resolve().parents[2]
+        ) as workspace_temp:
+            backup_dir = Path(workspace_temp) / "proxy-backups"
+            runtime = object.__new__(module.DockerRuntime)
+            runtime.args = SimpleNamespace(backup_dir=str(backup_dir))
+            runtime.caddy = "caddy-container"
+            runtime.command = Mock(return_value=json.dumps(BASE))
+
+            with patch.object(module, "datetime", FixedDateTime):
+                self.assertEqual(runtime.read_config(), BASE)
+                snapshots = list(backup_dir.glob("caddy-*.json"))
+                self.assertEqual(len(snapshots), 1)
+                snapshot = snapshots[0]
+                self.assertEqual(snapshot.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(json.loads(snapshot.read_text()), BASE)
+                self.assertEqual(backup_dir.stat().st_mode & 0o077, 0)
+                with self.assertRaises(FileExistsError):
+                    runtime.read_config()
+
     def test_proxy_edit_from_another_operator_is_not_overwritten(self):
         runtime = object.__new__(module.DockerRuntime)
         runtime.caddy = "caddy-container"

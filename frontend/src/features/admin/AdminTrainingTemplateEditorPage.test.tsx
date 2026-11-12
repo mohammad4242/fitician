@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -471,13 +471,18 @@ it("deletes an existing shared template after confirmation", async () => {
     source_url: "https://fitician.local/admin-library",
     days: [],
   });
-  adminApi.deleteAdminTrainingProgramTemplate.mockResolvedValue(undefined);
+  let resolveDeletion!: () => void;
+  adminApi.deleteAdminTrainingProgramTemplate.mockReturnValue(
+    new Promise<void>((resolve) => {
+      resolveDeletion = resolve;
+    }),
+  );
 
   render(
     <MemoryRouter initialEntries={["/admin/training-program-templates/template-17/edit"]}>
       <Routes>
         <Route path="/admin/training-program-templates/:templateId/edit" element={<AdminTrainingTemplateEditorPage />} />
-        <Route path="/admin/training-program-templates" element={<p>کتابخانه برنامه‌ها</p>} />
+        <Route path="/admin/training-program-templates" element={<h1>کتابخانه برنامه‌ها</h1>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -486,7 +491,17 @@ it("deletes an existing shared template after confirmation", async () => {
 
   expect(confirm).toHaveBeenCalledWith("این برنامه و همه روزها و حرکت‌های آن حذف شود؟");
   expect(adminApi.deleteAdminTrainingProgramTemplate).toHaveBeenCalledWith("template-17");
-  expect(await screen.findByText("کتابخانه برنامه‌ها")).toBeInTheDocument();
+  expect(await screen.findByText("کتابخانه برنامه‌ها")).toHaveAttribute(
+    "href",
+    "/admin/training-program-templates",
+  );
+  expect(screen.queryByRole("heading", { name: "کتابخانه برنامه‌ها" })).not.toBeInTheDocument();
+
+  await act(async () => {
+    resolveDeletion();
+  });
+
+  expect(await screen.findByRole("heading", { name: "کتابخانه برنامه‌ها" })).toBeInTheDocument();
 });
 
 it.each([320, 360, 390, 430])(

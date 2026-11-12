@@ -19,13 +19,20 @@ SPEC.loader.exec_module(classifier)
 
 
 def trusted_run(run: dict, sha: str, repository: str, name: str) -> bool:
+    workflow_path = (
+        ".github/workflows/ci.yml"
+        if name == "Fitician CI"
+        else ".github/workflows/public-seo.yml"
+    )
     return (
-        run["head_sha"] == sha
-        and run["conclusion"] == "success"
-        and run["name"] == name
-        and run["head_branch"] == "main"
-        and run["event"] in {"push", "workflow_dispatch"}
-        and run["head_repository"]["full_name"] == repository
+        run.get("head_sha") == sha
+        and run.get("conclusion") == "success"
+        and run.get("status") == "completed"
+        and run.get("name") == name
+        and run.get("path") == workflow_path
+        and run.get("head_branch") == "main"
+        and run.get("event") in {"push", "workflow_dispatch"}
+        and (run.get("head_repository") or {}).get("full_name") == repository
     )
 
 

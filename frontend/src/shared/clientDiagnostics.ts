@@ -73,6 +73,7 @@ export function reportWebClientDiagnostic(
 ): void {
   if (!authenticated) return;
   try {
+    // Identify the deployed regional image by its exact build SHA in diagnostics.
     const build = import.meta.env.VITE_APP_BUILD_SHA as unknown;
     const buildFields = typeof build === "string" && /^[a-f0-9]{7,40}$/u.test(build) ? { build } : {};
     const event = createClientDiagnosticEvent({ ...input, ...buildFields, platform: clientPlatform(), os_version: browserOsVersion(), error_code: errorCode });
