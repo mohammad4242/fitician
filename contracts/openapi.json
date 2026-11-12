@@ -8598,6 +8598,25 @@
         "title": "BudgetStyle",
         "type": "string"
       },
+      "CallStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cancel_requested",
+          "state"
+        ],
+        "title": "CallStatusResponse",
+        "type": "object"
+      },
       "CaloriePoint": {
         "properties": {
           "actual_kcal": {
@@ -10441,6 +10460,20 @@
         "title": "CompletionFeedbackInput",
         "type": "object"
       },
+      "CompletionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "stored": {
+            "title": "Stored",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored"
+        ],
+        "title": "CompletionResponse",
+        "type": "object"
+      },
       "ConnectorEnrollment": {
         "additionalProperties": false,
         "properties": {
@@ -10455,6 +10488,94 @@
           "name"
         ],
         "title": "ConnectorEnrollment",
+        "type": "object"
+      },
+      "ConnectorJob": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "analyze",
+              "prepare_fix"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "release_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Commit"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "thread_id": {
+            "format": "uuid",
+            "title": "Thread Id",
+            "type": "string"
+          },
+          "tool": {
+            "pattern": "^fitician_[a-z_]+$",
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "thread_id",
+          "lease_token",
+          "tool",
+          "arguments",
+          "action",
+          "repository",
+          "environment",
+          "release_commit",
+          "config",
+          "evidence"
+        ],
+        "title": "ConnectorJob",
         "type": "object"
       },
       "ConsumptionEntryEditInput": {
@@ -13632,6 +13753,30 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HeartbeatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "environment",
+          "repository"
+        ],
+        "title": "HeartbeatResponse",
         "type": "object"
       },
       "HomeTrainingSetup": {
@@ -21132,6 +21277,26 @@
         "title": "PlatformCount",
         "type": "object"
       },
+      "PollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectorJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "PollResponse",
+        "type": "object"
+      },
       "PreferredVariety": {
         "enum": [
           "low",
@@ -21691,6 +21856,72 @@
           "expires_in_seconds"
         ],
         "title": "PrivateAccessGrantResponse",
+        "type": "object"
+      },
+      "ProbeJob": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "release_commit": {
+            "pattern": "^[a-f0-9]{40}$",
+            "title": "Release Commit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "release_commit",
+          "lease_token"
+        ],
+        "title": "ProbeJob",
+        "type": "object"
+      },
+      "ProbePollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbeJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "ProbePollResponse",
+        "type": "object"
+      },
+      "ProbeStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized": {
+            "title": "Authorized",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "authorized"
+        ],
+        "title": "ProbeStatusResponse",
         "type": "object"
       },
       "ProductCatalogItemResponse": {
@@ -23497,6 +23728,25 @@
           "context"
         ],
         "title": "ProgressOverview",
+        "type": "object"
+      },
+      "ProgressResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cancel_requested",
+          "sequence"
+        ],
+        "title": "ProgressResponse",
         "type": "object"
       },
       "ProgressTraining": {
@@ -40172,11 +40422,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "boolean"
-                  },
-                  "title": "Response Complete Api V1 Debug Connectors  Connector Id  Calls  Call Id  Complete Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CompletionResponse"
                 }
               }
             },
@@ -40244,9 +40490,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Progress Api V1 Debug Connectors  Connector Id  Calls  Call Id  Progress Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProgressResponse"
                 }
               }
             },
@@ -40304,9 +40548,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Status Api V1 Debug Connectors  Connector Id  Calls  Call Id  Status Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CallStatusResponse"
                 }
               }
             },
@@ -40364,9 +40606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Heartbeat Api V1 Debug Connectors  Connector Id  Heartbeat Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/HeartbeatResponse"
                 }
               }
             },
@@ -40414,9 +40654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Poll Api V1 Debug Connectors  Connector Id  Poll Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/PollResponse"
                 }
               }
             },
@@ -40464,9 +40702,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Poll Probe Api V1 Debug Connectors  Connector Id  Probes Poll Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProbePollResponse"
                 }
               }
             },
@@ -40534,11 +40770,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "boolean"
-                  },
-                  "title": "Response Complete Probe Api V1 Debug Connectors  Connector Id  Probes  Probe Id  Complete Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/CompletionResponse"
                 }
               }
             },
@@ -40606,11 +40838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "boolean"
-                  },
-                  "title": "Response Probe Status Api V1 Debug Connectors  Connector Id  Probes  Probe Id  Status Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProbeStatusResponse"
                 }
               }
             },

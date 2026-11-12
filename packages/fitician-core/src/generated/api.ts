@@ -7606,6 +7606,13 @@ export type components = {
          * @enum {string}
          */
         BudgetStyle: "strict" | "flexible";
+        /** CallStatusResponse */
+        CallStatusResponse: {
+            /** Cancel Requested */
+            cancel_requested: boolean;
+            /** State */
+            state: string;
+        };
         /** CaloriePoint */
         CaloriePoint: {
             /** Actual Kcal */
@@ -8172,10 +8179,63 @@ export type components = {
             schedule_changed?: boolean | null;
             strength_progress?: components["schemas"]["WorkoutCycleFeedbackProgress"] | null;
         };
+        /** CompletionResponse */
+        CompletionResponse: {
+            /** Stored */
+            stored: boolean;
+        };
         /** ConnectorEnrollment */
         ConnectorEnrollment: {
             /** Name */
             name: string;
+        };
+        /** ConnectorJob */
+        ConnectorJob: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "analyze" | "prepare_fix";
+            /** Arguments */
+            arguments: {
+                [key: string]: unknown;
+            };
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+            /** Environment */
+            environment: string;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
+            /** Release Commit */
+            release_commit: string | null;
+            /** Repository */
+            repository: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Thread Id
+             * Format: uuid
+             */
+            thread_id: string;
+            /** Tool */
+            tool: string;
         };
         /** ConsumptionEntryEditInput */
         ConsumptionEntryEditInput: {
@@ -9228,6 +9288,15 @@ export type components = {
          * @enum {string}
          */
         GrantSource: "launch_trial" | "manual" | "promotion" | "subscription" | "admin";
+        /** HeartbeatResponse */
+        HeartbeatResponse: {
+            /** Connected */
+            connected: boolean;
+            /** Environment */
+            environment: string;
+            /** Repository */
+            repository: string;
+        };
         /**
          * HomeTrainingSetup
          * @enum {string}
@@ -11959,6 +12028,10 @@ export type components = {
             /** Platform */
             platform: string;
         };
+        /** PollResponse */
+        PollResponse: {
+            job: components["schemas"]["ConnectorJob"] | null;
+        };
         /**
          * PreferredVariety
          * @enum {string}
@@ -12157,6 +12230,32 @@ export type components = {
             access_url: string;
             /** Expires In Seconds */
             expires_in_seconds: number;
+        };
+        /** ProbeJob */
+        ProbeJob: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
+            /** Model */
+            model: string;
+            /** Release Commit */
+            release_commit: string;
+        };
+        /** ProbePollResponse */
+        ProbePollResponse: {
+            job: components["schemas"]["ProbeJob"] | null;
+        };
+        /** ProbeStatusResponse */
+        ProbeStatusResponse: {
+            /** Authorized */
+            authorized: boolean;
         };
         /** ProductCatalogItemResponse */
         ProductCatalogItemResponse: {
@@ -12655,6 +12754,13 @@ export type components = {
             /** Recovery */
             recovery?: components["schemas"]["RecoveryPoint"][];
             training?: components["schemas"]["ProgressTraining"] | null;
+        };
+        /** ProgressResponse */
+        ProgressResponse: {
+            /** Cancel Requested */
+            cancel_requested: boolean;
+            /** Sequence */
+            sequence: number;
         };
         /** ProgressTraining */
         ProgressTraining: {
@@ -20053,9 +20159,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: boolean;
-                    };
+                    "application/json": components["schemas"]["CompletionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20091,9 +20195,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProgressResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20125,9 +20227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CallStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20162,9 +20262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["HeartbeatResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20195,9 +20293,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["PollResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20233,9 +20329,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: boolean;
-                    };
+                    "application/json": components["schemas"]["CompletionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20271,9 +20365,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: boolean;
-                    };
+                    "application/json": components["schemas"]["ProbeStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -20304,9 +20396,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProbePollResponse"];
                 };
             };
             /** @description Validation Error */

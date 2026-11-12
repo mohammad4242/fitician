@@ -12,6 +12,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.auth.dependencies import DatabaseSession
 
+from .connector_schemas import (
+    CallStatusResponse,
+    CompletionResponse,
+    HeartbeatResponse,
+    PollResponse,
+    ProbePollResponse,
+    ProbeStatusResponse,
+    ProgressResponse,
+)
 from .connectors import authenticate_connector, claim_call, finish_call, update_call
 from .models import DebugConnector, DebugConnectorCall, DebugRun
 
@@ -50,7 +59,7 @@ class Completion(BaseModel):
     result: dict[str, Any]
 
 
-@router.post("/{connector_id}/heartbeat")
+@router.post("/{connector_id}/heartbeat", response_model=HeartbeatResponse)
 def heartbeat(
     connector_id: UUID, connector: Connector, payload: Capabilities, db: DatabaseSession
 ) -> dict[str, object]:
@@ -64,7 +73,7 @@ def heartbeat(
     }
 
 
-@router.post("/{connector_id}/poll")
+@router.post("/{connector_id}/poll", response_model=PollResponse)
 def poll(connector_id: UUID, connector: Connector, db: DatabaseSession) -> dict[str, Any]:
     connector.last_seen = datetime.now(UTC)
     try:
@@ -76,7 +85,7 @@ def poll(connector_id: UUID, connector: Connector, db: DatabaseSession) -> dict[
     return {"job": job}
 
 
-@router.get("/{connector_id}/calls/{call_id}/status")
+@router.get("/{connector_id}/calls/{call_id}/status", response_model=CallStatusResponse)
 def status(
     connector_id: UUID, call_id: UUID, connector: Connector, db: DatabaseSession
 ) -> dict[str, Any]:
@@ -87,7 +96,7 @@ def status(
     return {"cancel_requested": run is None or run.cancel_requested, "state": call.state}
 
 
-@router.post("/{connector_id}/calls/{call_id}/complete")
+@router.post("/{connector_id}/calls/{call_id}/complete", response_model=CompletionResponse)
 def complete(
     connector_id: UUID,
     call_id: UUID,
@@ -112,7 +121,7 @@ class Progress(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.post("/{connector_id}/calls/{call_id}/progress")
+@router.post("/{connector_id}/calls/{call_id}/progress", response_model=ProgressResponse)
 def progress(
     connector_id: UUID, call_id: UUID, connector: Connector, payload: Progress, db: DatabaseSession
 ) -> dict[str, Any]:
@@ -135,7 +144,7 @@ def progress(
         raise HTTPException(409, detail={"code": str(error)}) from None
 
 
-@router.post("/{connector_id}/probes/poll")
+@router.post("/{connector_id}/probes/poll", response_model=ProbePollResponse)
 def poll_probe(connector_id: UUID, connector: Connector, db: DatabaseSession) -> dict[str, Any]:
     from .probes import claim_probe
 
@@ -144,7 +153,7 @@ def poll_probe(connector_id: UUID, connector: Connector, db: DatabaseSession) ->
     return {"job": result}
 
 
-@router.post("/{connector_id}/probes/{probe_id}/status")
+@router.post("/{connector_id}/probes/{probe_id}/status", response_model=ProbeStatusResponse)
 def probe_status(
     connector_id: UUID,
     probe_id: UUID,
@@ -163,7 +172,7 @@ def probe_status(
     return {"authorized": True}
 
 
-@router.post("/{connector_id}/probes/{probe_id}/complete")
+@router.post("/{connector_id}/probes/{probe_id}/complete", response_model=CompletionResponse)
 def complete_probe(
     connector_id: UUID,
     probe_id: UUID,
