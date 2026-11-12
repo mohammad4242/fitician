@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from typing import Any
 from uuid import UUID
 
@@ -329,7 +330,9 @@ async def main() -> None:
     stop = asyncio.Event()
     install_async_signal_handlers(stop)
     async with async_heartbeat(
-        Path("/run/fitician/heartbeat.json"), service="debug-worker", interval_seconds=5
+        Path(os.environ.get("JOB_HEARTBEAT_PATH", "/run/fitician/heartbeat.json")),
+        service="debug-worker",
+        interval_seconds=5,
     ):
         while not stop.is_set():
             with Session(get_engine(settings)) as db:

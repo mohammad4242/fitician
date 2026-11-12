@@ -336,3 +336,7 @@ The PR broker accepts `main` or an explicitly configured isolated `debug/seed-<U
 base. Models cannot select the base. The tested commit must descend from the current remote
 base; a stale production-release branch is rejected before push, preventing accidental reversal
 of subsequent main changes. No merge or production deployment authority is added.
+
+The debug worker accepts `JOB_HEARTBEAT_PATH`, matching the existing healthcheck and sync-worker
+contract. This permits a supervised laptop/staging worker without privileged `/run` writes;
+production retains `/run/fitician/heartbeat.json` by default.
