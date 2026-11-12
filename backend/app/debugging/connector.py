@@ -8,11 +8,12 @@ import fcntl
 import json
 import os
 import re
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
-from uuid import UUID
+from uuid import UUID, uuid5
 
 import httpx
 from jsonschema import validate
@@ -86,13 +87,21 @@ class LaptopConnector:
 
     async def discover(self) -> None:
         home = self.config.get("codex_home")
+        self.models = []
+        self.cli_version = None
         if home:
-            async with AppServer(codex_home=Path(home)) as server:
-                response = await server.call("model/list", {"limit": 100})
-                self.models = [
-                    item["model"] for item in response["data"] if not item.get("hidden", False)
-                ][:100]
-                self.cli_version = server.version
+            try:
+                async with AppServer(codex_home=Path(home)) as server:
+                    response = await server.call("model/list", {"limit": 100})
+                    self.models = [
+                        item["model"] for item in response["data"] if not item.get("hidden", False)
+                    ][:100]
+                    self.cli_version = server.version
+            except (ValueError, OSError, TimeoutError, RuntimeError):
+                # Repository tools for API models do not require Codex authentication.
+                # Advertise no Codex capability rather than substituting another runtime.
+                self.models = []
+                self.cli_version = None
 
     async def heartbeat(self) -> None:
         await self.request(
@@ -126,11 +135,20 @@ class LaptopConnector:
         result: dict[str, Any]
         try:
             commit = job.get("release_commit")
+            workspace_id = str(
+                uuid5(
+                    UUID(job["thread_id"]),
+                    json.dumps(
+                        [job["repository"], job["environment"], commit, job["action"]],
+                        separators=(",", ":"),
+                    ),
+                )
+            )
             tools = await asyncio.to_thread(
                 RepositoryTools.create,
                 self.repository,
                 self.root / "worktrees",
-                job["run_id"],
+                workspace_id,
                 commit or "",
                 allow_write=job["action"] == "prepare_fix",
             )
@@ -172,9 +190,21 @@ class LaptopConnector:
                     "fitician_commit": tools.commit_tested_patch,
                 }
                 if name == "fitician_run_tests":
-                    value = await asyncio.to_thread(
-                        tools.run_python_tests, arguments["path"], self.config.get("test_image", "")
+                    cancelled = threading.Event()
+                    test_task = asyncio.create_task(
+                        asyncio.to_thread(
+                            tools.run_python_tests,
+                            arguments["path"],
+                            self.config.get("test_image", ""),
+                            cancelled=cancelled,
+                        )
                     )
+                    try:
+                        value = await asyncio.shield(test_task)
+                    except asyncio.CancelledError:
+                        cancelled.set()
+                        await asyncio.gather(test_task, return_exceptions=True)
+                        raise
                 elif name == "fitician_create_pr":
                     value = await asyncio.to_thread(publish_tested_pr, tools, arguments["title"])
                 else:
@@ -198,8 +228,7 @@ class LaptopConnector:
                 model = config.get("agent_model_id")
                 if model not in self.models or not self.config.get("codex_home"):
                     raise ValueError("selected_model_not_available")
-                thread_key = str(UUID(job["thread_id"]))
-                session_file = self.root / ("thread-" + thread_key + ".json")
+                session_file = self.root / ("thread-" + workspace_id + ".json")
                 previous_thread = (
                     json.loads(session_file.read_text()).get("thread_id")
                     if session_file.is_file()

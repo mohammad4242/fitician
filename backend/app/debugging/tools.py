@@ -8,6 +8,9 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
+import threading
+import time
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -210,7 +213,14 @@ class RepositoryTools:
                 digest.update(path.read_bytes())
         return digest.hexdigest()
 
-    def run_python_tests(self, path: str, image: str, *, timeout: int = 120) -> dict[str, Any]:
+    def run_python_tests(
+        self,
+        path: str,
+        image: str,
+        *,
+        timeout: int = 120,
+        cancelled: threading.Event | None = None,
+    ) -> dict[str, Any]:
         candidate = self.safe_path(path)
         if (
             not candidate.is_file()
@@ -265,23 +275,43 @@ class RepositoryTools:
             "-p",
             candidate.name,
         ]
-        try:
-            result = subprocess.run(
-                command, capture_output=True, text=True, timeout=min(timeout, 300)
-            )
-        except subprocess.TimeoutExpired:
-            subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=10)
-            raise ValueError("test_timeout") from None
-        output = sanitize_text((result.stdout + result.stderr)[-32000:])
+        self.test_evidence = None
+        for suffix in (".tests.json", ".tested.json"):
+            (self.workspace.parent / (self.workspace.name + suffix)).unlink(missing_ok=True)
+        if cancelled is not None and cancelled.is_set():
+            raise ValueError("test_cancelled")
+        with tempfile.TemporaryFile(dir=self.workspace.parent) as log:
+            process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
+            deadline = time.monotonic() + min(max(timeout, 1), 300)
+            try:
+                while True:
+                    if cancelled is not None and cancelled.is_set():
+                        raise ValueError("test_cancelled")
+                    if time.monotonic() >= deadline:
+                        raise ValueError("test_timeout")
+                    if os.fstat(log.fileno()).st_size > 1_048_576:
+                        raise ValueError("test_output_limit_exceeded")
+                    try:
+                        exit_code = process.wait(timeout=0.2)
+                        break
+                    except subprocess.TimeoutExpired:
+                        continue
+            finally:
+                if process.poll() is None:
+                    subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=10)
+                    process.terminate()
+                    process.wait(timeout=10)
+            log.seek(max(0, os.fstat(log.fileno()).st_size - 32000))
+            output = sanitize_text(log.read().decode("utf-8", errors="replace"))
         exercised = bool(re.search(r"Ran [1-9][0-9]* tests?", output))
-        success = result.returncode == 0 and exercised and before == self.tree_digest()
+        success = exit_code == 0 and exercised and before == self.tree_digest()
         self.test_evidence = {
             "passed": success,
             "tree_digest": before,
             "image": image,
             "command": command[-9:],
             "output": output,
-            "exit_code": result.returncode,
+            "exit_code": exit_code,
         }
         journal = self.workspace.parent / (self.workspace.name + ".tests.json")
         with journal.open("w") as stream:

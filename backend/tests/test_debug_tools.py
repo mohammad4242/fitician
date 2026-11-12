@@ -98,3 +98,48 @@ def test_seeded_bug_is_repaired_tested_and_committed_in_an_isolated_container(tm
     fixed = tools.commit_tested_patch("fix(fixture): correct isolated addition")
     assert fixed != commit
     assert "return a - b" in (original / "bug.py").read_text()
+
+
+def test_cancellation_stops_own_test_container_without_successful_test_evidence(tmp_path):
+    import os
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    image = os.environ.get("FITICIAN_DEBUG_TEST_IMAGE")
+    if not image:
+        pytest.skip("An explicitly pinned local test image is required")
+    original = tmp_path / "original"
+    commit = repository(original)
+    tools = RepositoryTools.create(
+        original, tmp_path / "worktrees", str(uuid4()), commit, allow_write=True
+    )
+    tools.write_file(
+        "tests/test_slow.py",
+        "import unittest, time\nclass Slow(unittest.TestCase):\n"
+        "    def test_wait(self):\n        time.sleep(60)\n",
+    )
+    cancelled = threading.Event()
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(
+            tools.run_python_tests, "tests/test_slow.py", image, cancelled=cancelled
+        )
+        name = "fitician-debug-test-" + tools.workspace.name
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and not future.done():
+            running = subprocess.run(
+                ["docker", "ps", "-q", "--filter", "name=^/" + name + "$"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            if running.stdout.strip():
+                break
+            time.sleep(0.1)
+        cancelled.set()
+        with pytest.raises(ValueError, match="test_cancelled"):
+            future.result(timeout=10)
+    assert not subprocess.check_output(
+        ["docker", "ps", "-aq", "--filter", "name=^/" + name + "$"], text=True
+    ).strip()
+    assert tools.test_evidence is None

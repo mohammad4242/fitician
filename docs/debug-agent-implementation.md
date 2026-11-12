@@ -209,6 +209,14 @@ require a new run if replayed arguments differ. Queues, tool counts, input/outpu
 workspace capacity are bounded. Offline clients fail closed and show stale heartbeat state.
 Deployment is not exposed as a model tool; its artifact-bound broker remains outstanding.
 
+Follow-up repair runs reuse a connector-owned worktree keyed by issue thread, exact release,
+environment and authorized action. Other issues/releases and read-only investigations receive
+separate workspaces and runtime histories. Missing Codex authentication advertises no Codex
+models without disabling API-model repository tools. Cancelling an active test stops its own
+networkless container, invalidates previous test authorization and waits for cleanup. Test output
+is bounded on disk; no test body becomes a host shell command. Real-container regression tests
+cover cancellation and confirm no test container survives it.
+
 ### Actual isolated acceptance evidence
 
 - Real Codex smoke: selected catalog model `gpt-6.1-sol`, CLI 0.167.2, actual read tool, 16.55s.
