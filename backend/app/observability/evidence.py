@@ -127,7 +127,16 @@ def evidence_package(
         )
         .limit(1)
     )
+    org = os.environ.get("SENTRY_ORG", "")
+    issue_url = (
+        f"https://{org}.sentry.io/issues/{external.external_issue_id}/"
+        if external
+        and re.fullmatch(r"[a-z0-9][a-z0-9-]{0,99}", org)
+        and re.fullmatch(r"[0-9]{1,30}", external.external_issue_id or "")
+        else None
+    )
     return {
+        "external_issue_url": issue_url,
         "external_source": external.source_evidence if external else None,
         "sync_state": external.sync_state if external else "not_configured",
         "external_issue_id": external.external_issue_id if external else None,

@@ -31,6 +31,8 @@ COPY packages packages
 COPY mobile/assets/landing/pic_land.jpg mobile/assets/landing/pic_land.jpg
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-data.json frontend/src/seo/exercise-data.json
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-categories.json frontend/src/seo/exercise-categories.json
+ARG SENTRY_BUILD_ARTIFACTS=0
+ENV SENTRY_BUILD_ARTIFACTS=${SENTRY_BUILD_ARTIFACTS}
 ARG VITE_SENTRY_DSN=
 ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
 ARG VITE_SENTRY_ENVIRONMENT=development
@@ -41,10 +43,16 @@ RUN npm run build:core && npm run prepare:mediapipe --workspace frontend && npm 
 WORKDIR /workspace/frontend
 RUN node scripts/prerender.mjs
 
+FROM scratch AS sentry-artifacts
+COPY --from=build /workspace/frontend/dist/assets /assets
+
+FROM build AS public-build
+RUN find /workspace/frontend/dist -type f -name '*.map' -delete
+
 FROM nginx:1.27-alpine
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /workspace/frontend/dist /usr/share/nginx/html
+COPY --from=public-build /workspace/frontend/dist /usr/share/nginx/html
 
 COPY --from=build /workspace/frontend/dist/nginx-member-routes.conf /etc/nginx/conf.d/member-routes.inc
 

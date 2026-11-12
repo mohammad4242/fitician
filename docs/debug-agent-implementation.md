@@ -25,8 +25,10 @@ Configuration channels (never supply credentials in a conversation):
 Web source maps are generated only for configured private uploads, and deleted after upload.
 The upload plugin does not receive a privileged token in client code. The mobile Expo plugin
 and Metro integration prepare release artifact support; a native rebuild is required.
-Sentry CLI installation scripts currently require review under the repository's npm script policy;
-private upload and native release verification remain outstanding until that gate is satisfied.
+The existing artifact CLI 3.8.2 is executable. Native release verification remains outstanding.
+`SENTRY_BUILD_ARTIFACTS=1` injects Debug IDs without build credentials or upload. The Docker
+`sentry-artifacts` target exports private bundles/maps; the public stage removes maps before
+copying to the final image. Local upload mode still deletes maps after a successful upload.
 DSNs are public ingestion identifiers, not privileged API tokens.
 
 ## Verification boundaries
@@ -87,18 +89,11 @@ run evidence and returned run provenance, including occurrences without captured
 
 Read-only inspection on 2026-11-12 confirmed Iran SSH access and mixed existing component
 releases; no deployment was performed. Main requires `Required CI` with admin enforcement.
-The owner confirmed no Sentry account exists yet. Sentry must remain **not configured** until
-an account/projects and scoped credentials are supplied through approved secret channels.
-This blocks external Sentry verification, not independent implementation.
+The initial account prerequisite was resolved during continuation; see verified connection below.
 
-## Sentry account setup (connection not yet completed)
+## Sentry account configuration channels
 
-An account has now been created. The initial handoff was rejected by Sentry because the
-redeeming network differs from the originating browser network (HTTP 403, IP pinning).
-Sentry reported that the handoff was not consumed. No token, DSN or project configuration
-was acquired. The existing SDK installation has not been repeated.
-
-Create or let the authorized handoff configure these private projects in the Fitician organization:
+The following private projects are configured in the Fitician organization:
 
 | Project | Platform | Processes |
 | --- | --- | --- |
@@ -125,13 +120,6 @@ Secret configuration channels:
 - Select `SENTRY_API_REGION=us` or `de` to match the Sentry organization; `global` is supported
   for the global API entry point. Redirects to arbitrary hosts are intentionally rejected.
 
-The paused handoff must be regenerated with Advanced options → Use IP pinning disabled
-for this execution network. Put that short-lived code in the private, locally excluded file
-`.codex-tmp/sentry-setup/handoff-code` with mode 0600; never commit it. A successful connection
-must be followed by private artifact upload, a synthetic event and server-side ingestion lookup.
-Generated IDs alone remain unconfirmed delivery.
-
-
 ## Sentry connection verified during continuation
 
 The second handoff exchange returned HTTP 200, but CLI setup-code redemption returned
@@ -152,3 +140,18 @@ account CLI was installed because it was absent.
 Production DSNs, durable least-privilege automation tokens and CI release-upload secrets still
 need secure installation. Synthetic ingestion and source-map verification must be reported
 separately from account/project configuration. No production deployment has occurred.
+
+## Live isolated evidence (not production deployment)
+
+On 2026-11-12 the tracked backend synthetic probe ran against a separate
+`fitician_sentry_verification` PostgreSQL database with synthetic identity only. Sentry API
+retrieval confirmed event `a974a9a05f434d21b7a77533910dbbed`, staging environment, local
+occurrence `eea0346c-fe67-4449-a051-49702949a12e`, and release
+`fitician-backend@ec236693a56b00d10570c666242dfc8953fbd401`. The real synchronization worker
+linked local issue `33b7edd3-b47c-4e14-9877-ce15a9dd0df2` to Sentry issue
+[7844463309](https://fitician.sentry.io/issues/7844463309/). Authenticated admin issue and
+evidence endpoints returned observed delivery, exact commit and sanitized remote source.
+These prove backend ingestion and admin API linkage in isolation; production, rendered browser
+chat, native crashes and web symbolication are separate gates. The UI now exposes the observed
+Sentry issue link. Permanent sync/upload automation credentials have been requested through
+a mode-0600 excluded local file, never chat.

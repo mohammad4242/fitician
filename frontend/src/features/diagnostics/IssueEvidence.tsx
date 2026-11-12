@@ -11,6 +11,7 @@ interface Evidence {
   sync_state?: string;
   sync_error?: string | null;
   external_issue_id?: string | null;
+  external_issue_url?: string | null;
   external_source?: {
     provenance: string; release_commit: string | null; release_match: boolean | null;
     exceptions: { type: string; frames: Frame[] }[]; mapping_state: string;
@@ -52,6 +53,7 @@ export function IssueEvidence({ issueId, events, english, occurrenceId: occurren
     {failure && <p role="alert">{failure}</p>}
     {!evidence && !failure && <p role="status">{english ? "Loading evidence…" : "در حال دریافت شواهد…"}</p>}
     {evidence && !snapshot && <p>{english ? "No exception stack was recorded for this occurrence. Historical stacks cannot be recovered automatically." : "برای این رخداد stack ثبت نشده است. stack رخداد قدیمی خودکار قابل بازیابی نیست."}</p>}
+    {evidence?.external_issue_url && /^https:\/\/[a-z0-9-]+\.sentry\.io\/issues\/[0-9]+\/$/.test(evidence.external_issue_url) && <p><a href={evidence.external_issue_url} target="_blank" rel="noreferrer">{english ? "Open Sentry issue" : "مشاهده رخداد در Sentry"}</a></p>}
     {snapshot && <>
       <p>{english ? "Sentry delivery" : "تحویل به Sentry"}: <code dir="ltr">{evidence.delivery} · {evidence.sync_state}</code></p>
       {evidence.sync_error && <p><code dir="ltr">{evidence.sync_error}</code></p>}

@@ -10,6 +10,11 @@ export function resolveApiProxyTarget(value: string | undefined): string {
   return value?.trim() || "http://localhost:8001";
 }
 
+const sentryArtifacts = process.env.SENTRY_BUILD_ARTIFACTS === "1";
+const sentryUpload = Boolean(process.env.SENTRY_AUTH_TOKEN);
+const sentryRelease = /^[a-f0-9]{40}$/.test(process.env.VITE_APP_BUILD_SHA ?? "")
+  ? `fitician-web@${process.env.VITE_APP_BUILD_SHA}` : undefined;
+
 const apiProxyTarget = resolveApiProxyTarget(process.env.VITE_API_PROXY_TARGET);
 const apiProxy = {
   "/api": {
@@ -50,10 +55,15 @@ export function previewDocumentPath(path: string) {
 
 export default defineConfig({
   plugins: [
-    ...(process.env.SENTRY_AUTH_TOKEN ? [sentryVitePlugin({
+    ...((sentryArtifacts || sentryUpload) ? [sentryVitePlugin({
       org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN, telemetry: false,
-      sourcemaps: { assets: "./dist/**", filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+      release: { name: sentryRelease, create: false, finalize: false },
+      sourcemaps: {
+        disable: sentryUpload ? false : "disable-upload",
+        assets: "./dist/**",
+        filesToDeleteAfterUpload: sentryUpload ? ["./dist/**/*.map"] : [],
+      },
     })] : []),
     {
       name: "prerender-preview",
@@ -99,7 +109,7 @@ export default defineConfig({
       },
     }),
   ],
-  build: { manifest: true, sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false },
+  build: { manifest: true, sourcemap: (sentryArtifacts || sentryUpload) ? "hidden" : false },
   server: {
     host: "0.0.0.0",
     proxy: apiProxy,
