@@ -137,6 +137,21 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --frozen --extra dev
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install pinned debug protocol verifier
+        run: |
+          npm install --prefix .ci-tools --no-save --ignore-scripts @openai/codex@0.167.2 \
+            @openai/codex-linux-x64@npm:@openai/codex@0.167.2-linux-x64
+          .ci-tools/node_modules/.bin/codex --version
+          echo "$PWD/.ci-tools/node_modules/.bin" >> "$GITHUB_PATH"
+          mkdir -p .ci-tools/codex-home
+          chmod 700 .ci-tools/codex-home
+          echo "CODEX_HOME=$PWD/.ci-tools/codex-home" >> "$GITHUB_ENV"
+          echo "FITICIAN_TEST_CODEX_APP_SERVER=1" >> "$GITHUB_ENV"
+      - name: Prepare isolated debug test image
+        run: |
+          docker pull python:3.12-slim
+          image=$(docker image inspect python:3.12-slim --format '{{.Id}}')
+          echo "FITICIAN_DEBUG_TEST_IMAGE=$image" >> "$GITHUB_ENV"
       - name: Create dedicated benchmark databases
         run: |
           uv run python - <<'PY'

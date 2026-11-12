@@ -49,10 +49,10 @@ encrypted in the existing provider store. No default model is forced.
 
 The optional `compose.debugging.yaml` overlay runs two independent backend-image workers.
 It requires a tested image digest, an explicit existing network and a dedicated secret file.
-The debug worker sends actual analysis requests to the selected OpenRouter API model. It does
-not silently use generation runners for interactive work. Models without a connected interactive
-adapter cannot execute tools. Such requests report `interactive_runtime_not_configured` or
-`repair_executor_not_configured`; these are blocked states, not successful fixes.
+The debug worker now supports selected OpenRouter API models through bounded function-tool
+orchestration, and a version-pinned Codex App Server through an explicitly enrolled laptop
+connector. Models without tool capability remain analysis-only. Missing connector/runtime
+requests are blocked honestly. Existing generation runners retain their original sandbox.
 Temperature, confidence thresholds and automatic model fallback are not claimed as effective
 in analysis mode. Supported routing restrictions are applied without changing the selected model.
 The UI persists conversation history, keeps retry identities across reconnects, consumes durable
@@ -66,20 +66,24 @@ are visible in evidence responses. No Sentry webhook is exposed by this implemen
 
 ## Remaining implementation and acceptance work
 
-The full six-phase task is not complete. Still required: interactive App Server and API tool
-orchestration adapters; isolated repair worktrees, test execution, GitHub branch/PR broker;
-artifact-bound deployment authorization/broker and post-deployment verification; optional
-personal connector; external notification routing/delivery; source-mapped Sentry evidence
-synchronization; full propagation and transport-drop health; native crash/privacy acceptance;
-and tests for all four workflow outcome/quota invariants. These are engineering work, not merely
-missing credentials. Production has not been changed.
+The full six-phase task is not complete. Implemented adapters and repair gateways need the
+remaining acceptance coverage and production configuration. Still required: artifact-bound
+deployment broker and post-deployment verification; configured external notifications; complete
+propagation and transport-drop health; native crash/privacy acceptance; all four workflow
+outcome/quota regression gates; and release pipeline/production acceptance. These are engineering
+work as well as external prerequisites. Production application containers have not been replaced. Sentry secret configuration was prepared separately without restarting services.
 
-External configuration still not installed on production/CI: Sentry DSNs and event-read API token,
-private artifact upload token and CLI installation-script gate; EAS release builds/native artifacts;
-dedicated debug-worker secret configuration/network/image; provider key/encryption access;
-Codex runtime authentication and protocol compatibility; GitHub App permissions; deployment
-broker targets/host keys/credentials; connector enrollment; notification provider credentials.
-Use server secret configuration, GitHub Environments and EAS secret channels, never chat.
+External configuration installed during continuation: Iran Sentry DSN/sync credentials in its
+existing mode-0600 server environment file, and Sentry upload/sync secrets in GitHub Environments
+`production-iran` and `production-germany`. Iran web build variables identify the configured
+organization/project/DSN/environment. No existing unrelated server setting was changed.
+Services were not restarted; running old images have not adopted this configuration.
+
+Still outstanding: Germany server configuration (SSH currently times out); EAS/mobile release
+configuration and native artifacts; production debug/sync worker image/network/secret wiring;
+production connector enrollment; scoped long-term GitHub/deployment broker credentials and
+notification routing. Codex protocol/authentication were verified on the enrolled local staging
+connector, not the production panel. Use secret files, GitHub Environments and EAS channels.
 
 ## Continuation: occurrence binding and external readiness
 
@@ -137,9 +141,9 @@ and verified. Only public DSNs were extracted to private local configuration; pr
 project key secrets are never exported. No SDK/package reinstall was performed. A modern
 account CLI was installed because it was absent.
 
-Production DSNs, durable least-privilege automation tokens and CI release-upload secrets still
-need secure installation. Synthetic ingestion and source-map verification must be reported
-separately from account/project configuration. No production deployment has occurred.
+Least-privilege automation tokens were subsequently validated and securely configured as
+described below. Synthetic ingestion, private artifact upload and source mapping were verified
+separately. No production application deployment has occurred.
 
 ## Live isolated evidence (not production deployment)
 
@@ -153,5 +157,90 @@ linked local issue `33b7edd3-b47c-4e14-9877-ce15a9dd0df2` to Sentry issue
 evidence endpoints returned observed delivery, exact commit and sanitized remote source.
 These prove backend ingestion and admin API linkage in isolation; production, rendered browser
 chat, native crashes and web symbolication are separate gates. The UI now exposes the observed
-Sentry issue link. Permanent sync/upload automation credentials have been requested through
-a mode-0600 excluded local file, never chat.
+Sentry issue link. Permanent sync/upload automation credentials are held in the mode-0600 excluded local
+configuration file. They are never emitted by setup commands, logs or reports.
+
+## Enrolled runtime and tool execution
+
+Additive migration `20261112_180` stores revocable connector credentials as SHA-256 hashes,
+leased/idempotent tool calls, and separate read-only runtime probes. Each connector is scoped to
+one environment and `mohammad4242/fitician`. Every claim/progress/completion rechecks authority;
+admins can revoke enrollment. Enrollment/revocation is recorded in the existing AI audit log.
+Only outbound HTTPS is accepted, with a localhost HTTP exception for isolated tests.
+
+The laptop client is `python -m app.debugging.connector --config /private/configuration.json`.
+The file must have mode 0600. The existing Admin AI Settings page can enroll/revoke connectors
+and download the once-returned credential without displaying/storing it in browser storage.
+Set repository/workspace paths, a dedicated private Codex home with authentication, and a
+trusted SHA-256-pinned test image. No daemon inherits this interactive development session.
+The isolated verification connector was enrolled explicitly and uses a separate private runtime
+home populated from the owner's already-authorized local CLI account.
+
+Codex CLI 0.167.2 is the currently supported protocol, checked before startup. The adapter uses
+persistent App Server threads and turns, and interrupts cancelled turns. Native shell, unified
+execution, apps, web search and external MCP are disabled. Only schema-validated gateway tools
+are supplied. Dedicated runtime configuration and project Codex overrides are rejected. Unknown
+approval requests are denied. Model IDs are discovered, never substituted or defaulted to SOL.
+Profiles require a real model/tool smoke before enablement; the usual generation profile
+verification remains intact. Current local profiles do not claim image, structured generation,
+web, temperature or output-token controls.
+
+The API adapter queries model tool capability, uses the selected model with fallback disabled,
+and runs at most eight bounded rounds. Without reliable tool support it explicitly uses analysis
+mode. Tool execution requires an unambiguous online enrolled connector, snapshotted per run.
+API protocol tests use HTTP mock transport; a live OpenRouter tool run is not yet established.
+
+Source reads/searches are bounded and sanitized. Writes affect only `debug/run-<UUID>` worktrees
+at the selected exact release commit. Secrets, traversal, symlinks and privileged release files
+are rejected. Tests execute a meaningful Python unittest file in a pinned, networkless, read-only,
+non-root container with resource limits. Test evidence is bound to the tree digest; commits and
+the GitHub draft-PR broker require matching evidence. Other test profiles (including database
+integration and frontend suites) are not yet executable through this gateway. Gateway tests
+proved a seeded subtraction bug can be patched, tested and committed without changing the
+original checkout. Publication uses the owner's authorized local GitHub credential through a
+fixed repository/branch broker, not model-selected destinations. An agent-created repair PR is
+still an acceptance gate; feature PR 41 is not proof of that repair flow.
+
+Tool activity, model selection and occurrence identity persist beneath the issue. Per-call local
+journals replay completed acknowledgments without re-executing actions. An interrupted uncertain
+call returns a blocked/error result requiring a new run; it never silently repeats mutations.
+Codex completed calls can be recovered after a worker restart. API tool-loop interruption may
+require a new run if replayed arguments differ. Queues, tool counts, input/output sizes and local
+workspace capacity are bounded. Offline clients fail closed and show stale heartbeat state.
+Deployment is not exposed as a model tool; its artifact-bound broker remains outstanding.
+
+### Actual isolated acceptance evidence
+
+- Real Codex smoke: selected catalog model `gpt-6.1-sol`, CLI 0.167.2, actual read tool, 16.55s.
+  This is a verification choice, not a configured product default.
+- Issue run `c6f5ae6d-65ce-46f5-bb98-ca2b23d3c4b6` completed through the authenticated admin
+  route, durable worker and laptop connector. It analyzed occurrence
+  `eea0346c-fe67-4449-a051-49702949a12e`, executed `fitician_read_file`, and cited the persisted
+  evidence ID in its Persian reply.
+- Chromium at width 390 rendered that issue, Sentry link and conversation; refresh preserved
+  messages, with no horizontal document overflow. This was the local isolated staging path.
+- Actual web event `d8a41b2cef2e4ca99dda7a8381b4f675` was ingested at
+  [Sentry issue 7844485882](https://fitician.sentry.io/issues/7844485882/) with release
+  `fitician-web@59f7d3c9c566a791cd38760ffbadc21fa5f5e2f2`. Private artifact upload succeeded;
+  Sentry returned the original tracked `sentrySyntheticProbe.ts:3` with no symbolication errors.
+  The isolated probe was bundled with real web initialization/privacy code; no public production
+  trigger was installed. Native release/crash acceptance remains unperformed.
+
+Production has neither this connector enrollment nor its runtime yet. Permanent automation
+credentials, production worker installation, pipeline release gates and a verified deploy are
+separate states and are not claimed by the above evidence.
+
+## Automation credential verification and configuration
+
+`automation-tokens.json` is excluded by local Git rules and has mode 0600. Roles were assigned
+explicitly: `fitician-upload` to `upload`, `fitician-sync` to `sync`. Authenticated API readback
+confirmed upload scope `project:releases`, and sync scopes `event:read`, `project:read`.
+The sync token fetched the real synthetic event and matched its event ID. Artifact CLI 3.8.2
+completed an actual source-map upload/assembly check with the upload token (exit 0).
+No token values appear in this document or committed files.
+
+Iran server configuration was atomically prepared and read back as mode 0600, preserving all
+unrelated settings and leaving running containers untouched. GitHub environment secret updates
+succeeded for both production regions. CI build/release wiring and server-origin connectivity
+are separate verification gates. Germany direct SSH and the existing Iran jump route currently
+time out; its server secret installation is not claimed complete.

@@ -287,6 +287,27 @@ def save_task_config(
         )
         if verification is None:
             raise AIConfigError("The selected Agent Service profile must pass its task test first")
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.runtime_profiles import capabilities, connector_for_profile
+
+            connector = connector_for_profile(db, agent_profile_id, agent_model_id)
+            profile = next(
+                (
+                    profile
+                    for runner in capabilities(db).runners
+                    for profile in runner.profiles or []
+                    if profile.profile_id == agent_profile_id
+                ),
+                None,
+            )
+            if (
+                connector is None
+                or profile is None
+                or verification.profile_fingerprint != profile.fingerprint
+            ):
+                raise AIConfigError(
+                    "The selected debug connector must be online with current verified capabilities"
+                )
     elif payload.enabled:
         if credential is None:
             raise AIConfigError("A provider credential is required before enabling this task")
@@ -757,13 +778,18 @@ async def get_agent_service_capabilities(
     db: Session | None = None,
     task_type: AITaskType | None = None,
 ) -> AgentServiceCapabilitiesResponse:
-    payload = await _agent_service_json(
-        client,
-        settings=settings,
-        method="GET",
-        path="/v1/capabilities",
-        timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
-    )
+    if task_type is AITaskType.DEBUG_AGENT and db is not None:
+        from app.debugging.runtime_profiles import capabilities as debug_capabilities
+
+        payload = debug_capabilities(db).model_dump()
+    else:
+        payload = await _agent_service_json(
+            client,
+            settings=settings,
+            method="GET",
+            path="/v1/capabilities",
+            timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
+        )
     try:
         capabilities = AgentServiceCapabilitiesResponse.model_validate(payload)
         if db is None or task_type is None:

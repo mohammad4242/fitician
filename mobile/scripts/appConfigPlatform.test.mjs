@@ -164,6 +164,7 @@ test("Android production resolves only the approved public runtime", () => {
     version: "0.1.3",
     package: "com.fitician.app",
     plugins: [
+      "@sentry/react-native/expo",
       "expo-router",
       "expo-web-browser",
       "expo-apple-authentication",

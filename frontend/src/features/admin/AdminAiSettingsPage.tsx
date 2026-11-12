@@ -1,3 +1,4 @@
+import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -403,10 +404,11 @@ export function AdminAiSettingsPage() {
         ))}
       </nav>
 
+      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} />}
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
-          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "Analysis uses the selected API model. Repair tools and deployment require a configured execution runtime. Temperature, confidence threshold, cost limits and automatic model fallback are not applied to analysis runs." : "تحلیل با مدل API انتخاب‌شده انجام می‌شود. ابزارهای اصلاح و استقرار به runtime اجرایی متصل نیاز دارند. دما، آستانه اطمینان، سقف هزینه و تعویض خودکار مدل در اجرای تحلیل اعمال نمی‌شوند."}</p>}
+          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "Uses the selected API model or verified Codex connector profile. API models without tool support stay analysis-only. Tools require an online connector. Deployment needs separate artifact-bound authorization. Temperature, confidence threshold, cost limits and automatic model fallback are not applied to analysis runs." : "مدل API یا پروفایل تأییدشده Codex انتخاب می‌شود. مدل بدون پشتیبانی ابزار فقط تحلیل می‌کند. ابزارها به اتصال آنلاین نیاز دارند؛ استقرار مجوز مستقل برای نسخهٔ آزموده‌شده می‌خواهد. دما، آستانه اطمینان، سقف هزینه و تعویض خودکار مدل در اجرای تحلیل اعمال نمی‌شوند."}</p>}
           <fieldset className="admin-ai-backend-switch">
             <legend>{t("admin.aiSettings.executionBackend")}</legend>
             <label className={foodPriceAgentOnly ? "is-disabled" : undefined}>
@@ -432,10 +434,10 @@ export function AdminAiSettingsPage() {
                 disabled={!agentTaskSupported}
                 onChange={() => {
                   setAuthAgent(null);
-                  patchConfig({ execution_backend: "agent_service" });
+                  patchConfig({ execution_backend: "agent_service", ...(selectedTask === "debug_agent" ? { agent_name: "codex" } : {}) });
                 }}
               />
-              {t("admin.aiSettings.agentServiceBackend")}
+              {selectedTask === "debug_agent" ? (i18n.resolvedLanguage === "en" ? "Enrolled interactive runtime" : "runtime تعاملی متصل") : t("admin.aiSettings.agentServiceBackend")}
             </label>
             {!agentTaskSupported && <p className="admin-ai-inline-note">{t("admin.aiSettings.agentUnsupported")}</p>}
             {foodPriceAgentOnly && <p className="admin-ai-inline-note">{t("admin.aiSettings.foodPriceAgentOnly")}</p>}
@@ -454,7 +456,7 @@ export function AdminAiSettingsPage() {
               />
             </label>
           </>}
-          {agentMode && <AgentServicePanel
+          {agentMode && selectedTask !== "debug_agent" && <AgentServicePanel
             runners={agentCapabilities}
             loading={agentCapabilitiesLoading}
             unavailable={agentCapabilitiesLoadError !== null}
@@ -468,6 +470,7 @@ export function AdminAiSettingsPage() {
             onTest={handleConnectionTest}
             testDisabled={busy !== null || !targetAgentIsReady(config)}
           />}
+          {agentMode && selectedTask === "debug_agent" && <div className="admin-ai-settings-actions"><button type="button" disabled={busy !== null || !targetAgentIsReady(config)} onClick={handleConnectionTest}>{i18n.resolvedLanguage === "en" ? "Test selected model with a read-only tool" : "تست مدل منتخب با ابزار فقط‌خواندنی"}</button><button type="button" onClick={loadAgentCapabilities}>{i18n.resolvedLanguage === "en" ? "Refresh runtime profiles" : "تازه‌سازی پروفایل‌های runtime"}</button></div>}
           {agentCapabilitiesLoadError !== null && <AppErrorNotice audience="admin" context="generic" error={agentCapabilitiesLoadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
           <dl className="admin-ai-observability">
             <div><dt>{t("admin.aiSettings.lastConnection")}</dt><dd>{config.last_successful_connection_test_at ?? "—"}</dd></div>
@@ -585,7 +588,7 @@ function toAgentCatalogModels(
         if (!runner.installed || !profile.task_kinds.includes(task)) return false;
         const needsImage = task === "body_photo_analysis" || task === "food_photo_estimation";
         const needsLiveWeb = task === "food_price_search";
-        return profile.supports_structured_output
+        return (task === "debug_agent" || profile.supports_structured_output)
           && profile.supports_text_input
           && (!needsImage || profile.supports_image_input)
           && (!needsLiveWeb || profile.supports_live_web);

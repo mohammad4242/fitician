@@ -171,6 +171,9 @@ def create_app(
     from app.debugging.router import router as debug_router
 
     app.include_router(debug_router)
+    from app.debugging.connector_router import router as connector_router
+
+    app.include_router(connector_router)
     app.state.draining = False
     app.state.diagnostics_runtime = None
     app.state.metrics = metrics

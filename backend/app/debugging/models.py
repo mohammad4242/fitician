@@ -100,3 +100,63 @@ class DebugRunEvent(Base):
     kind: Mapped[str] = mapped_column(String(32))
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DebugConnector(Base):
+    __tablename__ = "debug_connectors"
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    name: Mapped[str] = mapped_column(String(80))
+    environment: Mapped[str] = mapped_column(String(64), index=True)
+    repository: Mapped[str] = mapped_column(String(200))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    capabilities: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DebugConnectorCall(Base):
+    __tablename__ = "debug_connector_calls"
+    __table_args__ = (UniqueConstraint("run_id", "call_key", name="uq_debug_connector_run_call"),)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    connector_id: Mapped[UUID] = mapped_column(
+        ForeignKey("debug_connectors.id", ondelete="RESTRICT"), index=True
+    )
+    run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("debug_runs.id", ondelete="RESTRICT"), index=True
+    )
+    progress_sequence: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    call_key: Mapped[str] = mapped_column(String(128))
+    tool: Mapped[str] = mapped_column(String(80))
+    arguments: Mapped[dict[str, Any]] = mapped_column(JSON)
+    state: Mapped[str] = mapped_column(String(32), default="queued")
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    lease_token: Mapped[UUID | None] = mapped_column()
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DebugConnectorProbe(Base):
+    __tablename__ = "debug_connector_probes"
+    __table_args__ = (
+        Index(
+            "uq_debug_probe_active_connector",
+            "connector_id",
+            unique=True,
+            postgresql_where=text("state IN ('queued','running')"),
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    connector_id: Mapped[UUID] = mapped_column(
+        ForeignKey("debug_connectors.id", ondelete="RESTRICT"), index=True
+    )
+    actor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    model: Mapped[str] = mapped_column(String(300))
+    release_commit: Mapped[str] = mapped_column(String(40))
+    state: Mapped[str] = mapped_column(String(32), default="queued")
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    lease_token: Mapped[UUID | None] = mapped_column()
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

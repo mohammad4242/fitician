@@ -244,3 +244,61 @@ def stream_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
     )
+
+
+class ConnectorEnrollment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=80)
+
+
+@router.post("/connectors", dependencies=[Depends(require_authenticated_mutation)])
+def enroll_laptop(
+    payload: ConnectorEnrollment, actor: AdminUser, db: DatabaseSession
+) -> dict[str, Any]:
+    from .connectors import enroll_connector
+
+    connector, token = enroll_connector(db, actor.id, payload.name)
+    db.commit()
+    return {
+        "id": str(connector.id),
+        "token": token,
+        "environment": connector.environment,
+        "repository": connector.repository,
+    }
+
+
+@router.get("/connectors")
+def list_laptops(db: DatabaseSession) -> list[dict[str, Any]]:
+    from .models import DebugConnector
+
+    return [
+        {
+            "id": str(row.id),
+            "name": row.name,
+            "environment": row.environment,
+            "repository": row.repository,
+            "revoked": row.revoked,
+            "last_seen": row.last_seen.isoformat() if row.last_seen else None,
+            "capabilities": row.capabilities,
+        }
+        for row in db.scalars(
+            select(DebugConnector).where(DebugConnector.environment == diagnostics_environment())
+        )
+    ]
+
+
+@router.post(
+    "/connectors/{connector_id}/revoke", dependencies=[Depends(require_authenticated_mutation)]
+)
+def revoke_laptop(connector_id: UUID, actor: AdminUser, db: DatabaseSession) -> dict[str, bool]:
+    from .models import DebugConnector
+
+    row = db.get(DebugConnector, connector_id)
+    if row is None or row.environment != diagnostics_environment():
+        raise HTTPException(404, detail={"code": "connector_not_found"})
+    row.revoked = True
+    from .connectors import audit_connector
+
+    audit_connector(db, actor.id, row.id, "revoked")
+    db.commit()
+    return {"revoked": True}

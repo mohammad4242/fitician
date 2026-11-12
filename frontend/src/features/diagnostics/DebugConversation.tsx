@@ -12,6 +12,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
   const [older, setOlder] = useState<Message[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [content, setContent] = useState("");
+  const [action, setAction] = useState("analyze");
   const [error, setError] = useState(false);
   const [sending, setSending] = useState(false);
   const base = `/api/v1/admin/diagnostics/issues/${encodeURIComponent(issueId)}`;
@@ -40,7 +41,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
     if (!content.trim() || sending) return;
     setSending(true); setError(false);
     try {
-      const payload = JSON.stringify({ content, action: "analyze", occurrence_id: occurrenceId || null });
+      const payload = JSON.stringify({ content, action, occurrence_id: occurrenceId || null });
       const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload)))].map(value => value.toString(16).padStart(2, "0")).join("");
       const storageKey = `debug-submission:${issueId}`;
       let previous: { digest?: string; key?: string } = {};
@@ -76,11 +77,35 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>
     {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {conversation?.runs.slice(0, 5).map(run => <RunProgress key={run.id} base={base} run={run} english={english} />)}
     {error && <p role="alert">{english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود."}</p>}
     <form onSubmit={event => void submit(event)}>
+      <label>{english ? "Requested action" : "درخواست مجاز"}<select value={action} onChange={event => setAction(event.target.value)}><option value="analyze">{english ? "Investigate, read only" : "بررسی فقط‌خواندنی"}</option><option value="prepare_fix">{english ? "Prepare and test a fix in an isolated branch" : "آماده‌سازی و آزمون اصلاح در شاخهٔ جدا"}</option></select></label>
       <label>{english ? "Your message" : "پیام شما"}<textarea value={content} onChange={event => setContent(event.target.value)} maxLength={8000} rows={4} /></label>
       <button type="submit" disabled={sending || Boolean(active) || !content.trim()}>{english ? "Send for analysis" : "ارسال برای بررسی"}</button>
       {active && <button type="button" onClick={() => void cancel()}>{english ? "Cancel run" : "لغو اجرا"}</button>}
     </form>
   </section>;
+}
+
+
+interface ProgressEvent { sequence: number; kind: string; payload: { tool?: string; mode?: string; model?: string; status?: string; pr_url?: string; commit?: string } }
+function RunProgress({ base, run, english }: { base: string; run: Run; english: boolean }) {
+  const [events, setEvents] = useState<ProgressEvent[]>([]);
+  useEffect(() => {
+    let current = true;
+    let cursor = 0;
+    async function refresh() {
+      try {
+        const page = await request<{ events: ProgressEvent[]; next_cursor: number }>(`${base}/runs/${run.id}/events?after=${cursor}`);
+        if (!current) return;
+        cursor = page.next_cursor;
+        setEvents(previous => [...previous, ...page.events].filter((item, index, all) => all.findIndex(other => other.sequence === item.sequence) === index).slice(-200));
+      } catch { /* Conversation polling retains the actual durable run state. */ }
+    }
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => { current = false; window.clearInterval(timer); };
+  }, [base, run.id]);
+  return <details><summary>{english ? "Recorded execution activity" : "فعالیت اجرایی ثبت‌شده"} · <code>{run.id.slice(0, 8)}</code></summary><ol dir="ltr" style={{ overflowWrap: "anywhere" }}>{events.map(event => <li key={event.sequence}><code>{event.kind} {event.payload.tool ?? event.payload.mode ?? event.payload.model ?? ""} {event.payload.status ?? ""} {event.payload.commit ?? ""}</code>{event.payload.pr_url && /^https:\/\/github\.com\/mohammad4242\/fitician\/pull\/[0-9]+$/.test(event.payload.pr_url) && <a href={event.payload.pr_url} target="_blank" rel="noreferrer"> PR</a>}</li>)}</ol></details>;
 }

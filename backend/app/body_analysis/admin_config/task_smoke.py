@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 import httpx
 from PIL import Image, ImageDraw
@@ -86,6 +87,7 @@ async def run_task_smoke(
     settings: Settings,
     client: httpx.AsyncClient,
     provider: AIProvider | None = None,
+    actor_id: UUID | None = None,
 ) -> tuple[TaskSmokeResult, AgentServiceModelProfile | None]:
     started = time.perf_counter()
     profile: AgentServiceModelProfile | None = None
@@ -131,6 +133,28 @@ async def run_task_smoke(
                 "invalid_request",
                 "The profile does not support live web research.",
             )
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.probes import run_profile_probe
+            from app.debugging.runtime_profiles import connector_for_profile
+
+            connector = connector_for_profile(db, profile_id, profile.model_id)
+            if actor_id is None or connector is None:
+                raise TaskSmokeFailure(
+                    "backend_request",
+                    "debug_connector_offline",
+                    "The enrolled debug connector must be online.",
+                )
+            passed = await run_profile_probe(db, connector, actor_id, profile.model_id)
+            return TaskSmokeResult(
+                passed=passed,
+                stage="passed" if passed else "failed",
+                request_id=None,
+                duration_seconds=time.perf_counter() - started,
+                error_code=None if passed else "debug_runtime_probe_failed",
+                safe_error_message=None
+                if passed
+                else "The selected model did not complete the read-only runtime probe.",
+            ), profile
         if provider is None:
             provider = AgentServiceProvider(
                 client,

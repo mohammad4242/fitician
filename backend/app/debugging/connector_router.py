@@ -1,0 +1,184 @@
+"""Authenticated laptop pull channel; token scope is one environment and repository."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Annotated, Any
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.auth.dependencies import DatabaseSession
+
+from .connectors import authenticate_connector, claim_call, finish_call, update_call
+from .models import DebugConnector, DebugConnectorCall, DebugRun
+
+router = APIRouter(prefix="/api/v1/debug-connectors", tags=["debug-connectors"])
+security = HTTPBearer(auto_error=False)
+
+
+def principal(
+    connector_id: UUID,
+    db: DatabaseSession,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
+) -> DebugConnector:
+    try:
+        if credentials is None:
+            raise ValueError("connector_not_authorized")
+        return authenticate_connector(db, connector_id, credentials.credentials)
+    except ValueError:
+        raise HTTPException(401, detail={"code": "connector_not_authorized"}) from None
+
+
+Connector = Annotated[DebugConnector, Depends(principal)]
+
+
+class Capabilities(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cli_version: str | None = Field(default=None, max_length=40)
+    models: list[str] = Field(default_factory=list, max_length=100)
+    supports_codex: bool = False
+    supports_tests: bool = False
+    repository_head: str = Field(pattern=r"^[a-f0-9]{40}$")
+
+
+class Completion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    result: dict[str, Any]
+
+
+@router.post("/{connector_id}/heartbeat")
+def heartbeat(
+    connector_id: UUID, connector: Connector, payload: Capabilities, db: DatabaseSession
+) -> dict[str, object]:
+    connector.capabilities = payload.model_dump()
+    connector.last_seen = datetime.now(UTC)
+    db.commit()
+    return {
+        "connected": True,
+        "environment": connector.environment,
+        "repository": connector.repository,
+    }
+
+
+@router.post("/{connector_id}/poll")
+def poll(connector_id: UUID, connector: Connector, db: DatabaseSession) -> dict[str, Any]:
+    connector.last_seen = datetime.now(UTC)
+    try:
+        job = claim_call(db, connector)
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(409, detail={"code": str(error)}) from None
+    db.commit()
+    return {"job": job}
+
+
+@router.get("/{connector_id}/calls/{call_id}/status")
+def status(
+    connector_id: UUID, call_id: UUID, connector: Connector, db: DatabaseSession
+) -> dict[str, Any]:
+    call = db.get(DebugConnectorCall, call_id)
+    if call is None or call.connector_id != connector.id:
+        raise HTTPException(404, detail={"code": "call_not_found"})
+    run = db.get(DebugRun, call.run_id)
+    return {"cancel_requested": run is None or run.cancel_requested, "state": call.state}
+
+
+@router.post("/{connector_id}/calls/{call_id}/complete")
+def complete(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: Completion,
+    db: DatabaseSession,
+) -> dict[str, bool]:
+    try:
+        finish_call(db, connector, call_id, payload.lease_token, payload.result)
+        db.commit()
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(409, detail={"code": str(error)}) from None
+    return {"stored": True}
+
+
+class Progress(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    sequence: int = Field(ge=0)
+    kind: str = Field(default="tool_progress", max_length=32)
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/{connector_id}/calls/{call_id}/progress")
+def progress(
+    connector_id: UUID, call_id: UUID, connector: Connector, payload: Progress, db: DatabaseSession
+) -> dict[str, Any]:
+    if len(__import__("json").dumps(payload.payload).encode()) > 4096:
+        raise HTTPException(413, detail={"code": "progress_too_large"})
+    try:
+        result = update_call(
+            db,
+            connector,
+            call_id,
+            payload.lease_token,
+            payload.sequence,
+            payload.kind,
+            payload.payload,
+        )
+        db.commit()
+        return result
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(409, detail={"code": str(error)}) from None
+
+
+@router.post("/{connector_id}/probes/poll")
+def poll_probe(connector_id: UUID, connector: Connector, db: DatabaseSession) -> dict[str, Any]:
+    from .probes import claim_probe
+
+    result = claim_probe(db, connector)
+    db.commit()
+    return {"job": result}
+
+
+@router.post("/{connector_id}/probes/{probe_id}/status")
+def probe_status(
+    connector_id: UUID,
+    probe_id: UUID,
+    connector: Connector,
+    payload: Completion,
+    db: DatabaseSession,
+) -> dict[str, bool]:
+    from .probes import authorize_probe
+
+    try:
+        authorize_probe(db, connector, probe_id, payload.lease_token)
+    except ValueError:
+        raise HTTPException(409, detail={"code": "probe_not_authorized"}) from None
+    connector.last_seen = datetime.now(UTC)
+    db.commit()
+    return {"authorized": True}
+
+
+@router.post("/{connector_id}/probes/{probe_id}/complete")
+def complete_probe(
+    connector_id: UUID,
+    probe_id: UUID,
+    connector: Connector,
+    payload: Completion,
+    db: DatabaseSession,
+) -> dict[str, bool]:
+    from .probes import finish_probe
+
+    if len(__import__("json").dumps(payload.result).encode()) > 32000:
+        raise HTTPException(413, detail={"code": "probe_result_too_large"})
+    try:
+        finish_probe(db, connector, probe_id, payload.lease_token, payload.result)
+        db.commit()
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(409, detail={"code": str(error)}) from None
+    return {"stored": True}

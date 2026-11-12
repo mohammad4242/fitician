@@ -1,0 +1,70 @@
+"""The same explicit, schema-validated gateway tools are shared by both runtimes."""
+
+from __future__ import annotations
+
+from typing import Any
+
+
+def tool_catalog(*, allow_write: bool) -> list[dict[str, Any]]:
+    def tool(
+        name: str, description: str, properties: dict[str, Any], required: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "name": "fitician_" + name,
+            "description": description,
+            "inputSchema": {
+                "type": "object",
+                "properties": properties,
+                "required": required,
+                "additionalProperties": False,
+            },
+        }
+
+    path = {"type": "string", "minLength": 1, "maxLength": 240}
+    tools = [
+        tool(
+            "read_file",
+            "Read a bounded sanitized source excerpt from the exact release worktree.",
+            {
+                "path": path,
+                "start": {"type": "integer", "minimum": 1, "maximum": 100000},
+                "count": {"type": "integer", "minimum": 1, "maximum": 200},
+            },
+            ["path"],
+        ),
+        tool(
+            "search_code",
+            "Search tracked source literally, within the selected prefix.",
+            {"query": {"type": "string", "minLength": 1, "maxLength": 100}, "prefix": path},
+            ["query", "prefix"],
+        ),
+        tool("diff", "Inspect the sanitized patch in this isolated worktree.", {}, []),
+        tool(
+            "run_tests",
+            "Run a Python unittest file in the preconfigured networkless container.",
+            {"path": path},
+            ["path"],
+        ),
+    ]
+    if allow_write:
+        tools += [
+            tool(
+                "write_file",
+                "Write isolated source. Release files and secrets are forbidden.",
+                {"path": path, "content": {"type": "string", "maxLength": 131072}},
+                ["path", "content"],
+            ),
+            tool(
+                "commit",
+                "Commit only a focused patch matching successful sandbox test evidence.",
+                {"title": {"type": "string", "maxLength": 140}},
+                ["title"],
+            ),
+            tool(
+                "create_pr",
+                "Publish the tested debug branch and its draft GitHub PR. Cannot merge or deploy.",
+                {"title": {"type": "string", "maxLength": 140}},
+                ["title"],
+            ),
+        ]
+    return tools

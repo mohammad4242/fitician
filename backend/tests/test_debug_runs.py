@@ -162,3 +162,22 @@ def test_run_pins_selected_occurrence_even_without_stack(db):
         submit_message(
             db, event.issue_id, actor.id, "inspect this occurrence", "occurrence-request", None
         )
+
+
+def test_standalone_debug_worker_registers_its_orm_relationships():
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import app.debugging.worker; from sqlalchemy.orm import configure_mappers; "
+            "configure_mappers()",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        cwd=__import__("pathlib").Path(__file__).resolve().parents[1],
+    )
+    assert result.returncode == 0, result.stderr

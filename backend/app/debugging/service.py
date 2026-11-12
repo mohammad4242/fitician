@@ -93,6 +93,15 @@ def submit_message(
         select(DebugRun.id).where(DebugRun.thread_id == thread.id, DebugRun.state.in_(ACTIVE))
     ):
         raise ValueError("run_already_active")
+    if (
+        db.scalar(
+            select(func.count(DebugRun.id))
+            .join(DebugThread)
+            .where(DebugRun.state.in_(ACTIVE), DebugThread.environment == thread.environment)
+        )
+        or 0
+    ) >= 50:
+        raise ValueError("debug_queue_capacity_reached")
     message = DebugMessage(
         thread_id=thread.id,
         actor_id=actor_id,
@@ -122,6 +131,9 @@ def submit_message(
         if config
         else {"enabled": False}
     )
+    from .runtime_profiles import snapshot_connector
+
+    snapshot["connector_id"] = snapshot_connector(db, snapshot)
     snapshot["config_updated_at"] = config.updated_at.isoformat() if config else None
     snapshot["effective_temperature"] = None  # No unsupported model option is claimed as effective.
     snapshot["routing_restrictions"] = list(config.routing_restrictions) if config else []
@@ -150,7 +162,8 @@ def claim_run(db: Session) -> DebugRun | None:
         .where(
             or_(
                 DebugRun.state == "queued",
-                (DebugRun.state == "investigating") & (DebugRun.lease_until < now),
+                DebugRun.state.in_(("investigating", "editing", "testing"))
+                & (DebugRun.lease_until < now),
             )
         )
         .order_by(DebugRun.created_at)
