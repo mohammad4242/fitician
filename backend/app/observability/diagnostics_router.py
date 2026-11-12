@@ -30,11 +30,15 @@ from app.rate_limits.service import DistributedRateLimitExceeded
 
 from .diagnostics_models import (
     DiagnosticAlert,
+    DiagnosticAlertAttempt,
+    DiagnosticAlertDelivery,
     DiagnosticEvent,
     DiagnosticIssue,
     DiagnosticStatusHistory,
 )
 from .diagnostics_schemas import (
+    AlertAttemptResponse,
+    AlertDeliveryPage,
     AlertResponse,
     ClientBatch,
     DiagnosticHours,
@@ -514,6 +518,92 @@ def list_alerts(
             .offset(offset)
         )
     )
+
+
+@router.get("/notification-deliveries", response_model=AlertDeliveryPage)
+def notification_deliveries(
+    db: DatabaseSession,
+    settings: AppSettings,
+    issue_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> dict[str, Any]:
+    from .environment import diagnostics_environment
+
+    statement = select(DiagnosticAlertDelivery).where(
+        DiagnosticAlertDelivery.environment == diagnostics_environment()
+    )
+    if issue_id is not None:
+        if db.get(DiagnosticIssue, issue_id) is None:
+            raise HTTPException(404, detail={"code": "DIAGNOSTIC_ISSUE_NOT_FOUND"})
+        statement = statement.where(DiagnosticAlertDelivery.issue_id == issue_id)
+    rows = list(
+        db.scalars(
+            statement.order_by(
+                DiagnosticAlertDelivery.updated_at.desc(), DiagnosticAlertDelivery.id.desc()
+            )
+            .limit(limit + 1)
+            .offset(offset)
+        )
+    )
+    more = len(rows) > limit
+    rows = rows[:limit]
+    attempts = (
+        list(
+            db.scalars(
+                select(DiagnosticAlertAttempt)
+                .where(DiagnosticAlertAttempt.delivery_id.in_([row.id for row in rows]))
+                .order_by(DiagnosticAlertAttempt.started_at.desc())
+                .limit(250)
+            )
+        )
+        if rows
+        else []
+    )
+    return {
+        "items": [
+            {
+                **{
+                    key: getattr(row, key)
+                    for key in (
+                        "id",
+                        "issue_id",
+                        "environment",
+                        "state",
+                        "occurrence_total",
+                        "covered_count",
+                        "provider_message_id",
+                        "error_code",
+                        "available_at",
+                        "last_dispatch_at",
+                    )
+                },
+                "attempts": [
+                    AlertAttemptResponse.model_validate(attempt)
+                    for attempt in attempts
+                    if attempt.delivery_id == row.id
+                ][:5],
+            }
+            for row in rows
+        ],
+        "configuration": {
+            "enabled": settings.diagnostics_alert_enabled,
+            "recipient_configured": bool(
+                settings.diagnostics_alert_phone
+                and settings.diagnostics_alert_phone.get_secret_value().strip()
+            ),
+            "provider_configured": bool(
+                settings.farazsms_api_key
+                and settings.farazsms_api_key.get_secret_value().strip()
+                and settings.farazsms_from_number
+                and settings.farazsms_from_number.strip()
+            ),
+            "cooldown_seconds": settings.diagnostics_alert_cooldown_seconds,
+            "min_interval_seconds": settings.diagnostics_alert_min_interval_seconds,
+            "max_per_hour": settings.diagnostics_alert_max_per_hour,
+        },
+        "next_offset": offset + limit if more else None,
+    }
 
 
 @router.get("/generations", response_model=GenerationMetricsResponse)

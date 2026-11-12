@@ -22,7 +22,13 @@ class SmsReceipt:
 
 
 def compose_alert_message(
-    issue_id: UUID, category: str, operation: str, count: int, origin: str
+    issue_id: UUID,
+    category: str,
+    operation: str,
+    count: int,
+    origin: str,
+    *,
+    notice_id: UUID | None = None,
 ) -> str:
     parsed = urlsplit(origin)
     if (
@@ -51,6 +57,7 @@ def compose_alert_message(
     return (
         f"هشدار فیتیشن\n{feature}: {fact}.\nتکرار: {min(max(count, 1), 999999999)}\n"
         f"{origin.rstrip('/')}/admin/diagnostics?tab=issues&issue={UUID(str(issue_id))}"
+        + (f"&notice={notice_id}" if notice_id else "")
     )
 
 
@@ -120,3 +127,65 @@ class FarazAlertSms:
         except (httpx.HTTPError, ValueError):
             # A timeout after dispatch may follow a successful enqueue; never send it again.
             return SmsReceipt("uncertain", error_code="delivery_acknowledgment_unknown")
+
+    def reconcile(self, notice_id: UUID) -> SmsReceipt:
+        """Read only the bounded matching dispatch. No resend and no untrusted pagination URL."""
+        matches: dict[str, dict[str, object]] = {}
+        try:
+            for page in range(1, 4):
+                with self.client.stream(
+                    "GET",
+                    self.base + "/send_request",
+                    params={"search": str(notice_id), "page": page, "limit": 5},
+                    headers={"Api-Key": self.key, "Accept": "application/json"},
+                    timeout=10,
+                    follow_redirects=False,
+                ) as response:
+                    if response.status_code != 200:
+                        return SmsReceipt("uncertain", error_code="receipt_lookup_unavailable")
+                    raw = bytearray()
+                    for chunk in response.iter_bytes():
+                        raw.extend(chunk)
+                        if len(raw) > 131072:
+                            return SmsReceipt("uncertain", error_code="receipt_response_too_large")
+                    body = json.loads(raw)
+                data = body.get("data", {})
+                records = data.get("data", [])
+                if body.get("status") != "success" or not isinstance(records, list):
+                    return SmsReceipt("uncertain", error_code="receipt_lookup_unavailable")
+                for record in records[:5]:
+                    if not isinstance(record, dict):
+                        continue
+                    metadata = record.get("metadata") or {}
+                    identifier = str(record.get("id", ""))
+                    recipients = metadata.get("recipients")
+                    if (
+                        f"notice={notice_id}" not in str(metadata.get("text", ""))
+                        or not re.fullmatch(r"[1-9][0-9]{0,29}", identifier)
+                        or recipients
+                        not in (
+                            [self.recipient],
+                            ["+98" + self.recipient[1:]],
+                            ["98" + self.recipient[1:]],
+                        )
+                    ):
+                        continue
+                    matches[identifier] = record.get("snapshot") or {}
+                if not data.get("next_page_url"):
+                    break
+            else:
+                return SmsReceipt("uncertain", error_code="receipt_scope_ambiguous")
+            if len(matches) != 1:
+                return SmsReceipt("uncertain", error_code="receipt_not_observed")
+            identifier, snapshot = next(iter(matches.items()))
+            if snapshot.get("total_count") != 1:
+                return SmsReceipt("uncertain", error_code="receipt_scope_ambiguous")
+            if snapshot.get("delivered_count") == 1:
+                return SmsReceipt("provider_delivered", provider_id=identifier)
+            if snapshot.get("delivery_failure_count") == 1 or snapshot.get("blacklist_count") == 1:
+                return SmsReceipt(
+                    "delivery_failed", provider_id=identifier, error_code="provider_delivery_failed"
+                )
+            return SmsReceipt("accepted", provider_id=identifier)
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+            return SmsReceipt("uncertain", error_code="receipt_lookup_unavailable")

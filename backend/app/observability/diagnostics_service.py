@@ -14,6 +14,8 @@ from app.database.session import isolated_session
 
 from .diagnostics_models import (
     DiagnosticAlert,
+    DiagnosticAlertAttempt,
+    DiagnosticAlertDelivery,
     DiagnosticEvent,
     DiagnosticIssue,
     DiagnosticStatusHistory,
@@ -272,12 +274,38 @@ def cleanup_retention(
         select(DiagnosticEvidenceSnapshot.issue_id)
     ) & ~DiagnosticIssue.id.in_(select(DiagnosticExternalIssueLink.issue_id))
     unpinned_issues = unpinned_issues & ~DiagnosticIssue.id.in_(select(DebugThread.issue_id))
+    unpinned_issues = unpinned_issues & ~DiagnosticIssue.id.in_(
+        select(DiagnosticAlertDelivery.issue_id)
+    )
     moment = now or datetime.now(UTC)
     batch = min(max(limit, 1), 1000)
     closed_old_issues = select(DiagnosticIssue.id).where(
         DiagnosticIssue.status.in_(["resolved", "ignored"]),
         DiagnosticIssue.last_seen < moment - timedelta(days=90),
         ~DiagnosticIssue.id.in_(select(DebugThread.issue_id)),
+    )
+    expired_deliveries = (
+        select(DiagnosticAlertDelivery.id)
+        .where(
+            DiagnosticAlertDelivery.issue_id.in_(closed_old_issues),
+            DiagnosticAlertDelivery.updated_at < moment - timedelta(days=90),
+            DiagnosticAlertDelivery.state.not_in(["queued", "retrying", "sending"]),
+        )
+        .limit(batch)
+    )
+    expired_attempts = (
+        select(DiagnosticAlertAttempt.id)
+        .where(DiagnosticAlertAttempt.delivery_id.in_(expired_deliveries))
+        .limit(batch)
+    )
+    db.execute(
+        delete(DiagnosticAlertAttempt).where(DiagnosticAlertAttempt.id.in_(expired_attempts))
+    )
+    db.execute(
+        delete(DiagnosticAlertDelivery).where(
+            DiagnosticAlertDelivery.id.in_(expired_deliveries),
+            ~DiagnosticAlertDelivery.id.in_(select(DiagnosticAlertAttempt.delivery_id)),
+        )
     )
     expired_evidence = (
         select(DiagnosticEvidenceSnapshot.id)

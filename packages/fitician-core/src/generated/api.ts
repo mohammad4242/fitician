@@ -980,6 +980,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/notification-deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notification Deliveries */
+        get: operations["notification_deliveries_api_v1_admin_diagnostics_notification_deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/overview": {
         parameters: {
             query?: never;
@@ -6155,6 +6172,84 @@ export type components = {
          * @enum {string}
          */
         AITaskType: "debug_agent" | "workout_plan_generation" | "body_photo_analysis" | "progress_comparison" | "food_photo_estimation" | "food_price_search";
+        /** AlertAttemptResponse */
+        AlertAttemptResponse: {
+            /** Error Code */
+            error_code: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Provider Message Id */
+            provider_message_id: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** State */
+            state: string;
+        };
+        /** AlertChannelResponse */
+        AlertChannelResponse: {
+            /** Cooldown Seconds */
+            cooldown_seconds: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Max Per Hour */
+            max_per_hour: number;
+            /** Min Interval Seconds */
+            min_interval_seconds: number;
+            /** Provider Configured */
+            provider_configured: boolean;
+            /** Recipient Configured */
+            recipient_configured: boolean;
+        };
+        /** AlertDeliveryPage */
+        AlertDeliveryPage: {
+            configuration: components["schemas"]["AlertChannelResponse"];
+            /** Items */
+            items: components["schemas"]["AlertDeliveryResponse"][];
+            /** Next Offset */
+            next_offset: number | null;
+        };
+        /** AlertDeliveryResponse */
+        AlertDeliveryResponse: {
+            /** Attempts */
+            attempts: components["schemas"]["AlertAttemptResponse"][];
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Covered Count */
+            covered_count: number;
+            /** Environment */
+            environment: string;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issue Id
+             * Format: uuid
+             */
+            issue_id: string;
+            /** Last Dispatch At */
+            last_dispatch_at: string | null;
+            /** Occurrence Total */
+            occurrence_total: number;
+            /** Provider Message Id */
+            provider_message_id: string | null;
+            /** State */
+            state: string;
+        };
         /** AlertResponse */
         AlertResponse: {
             /**
@@ -17768,6 +17863,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notification_deliveries_api_v1_admin_diagnostics_notification_deliveries_get: {
+        parameters: {
+            query?: {
+                issue_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertDeliveryPage"];
                 };
             };
             /** @description Validation Error */

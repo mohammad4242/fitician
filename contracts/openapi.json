@@ -4847,6 +4847,233 @@
         "title": "AgentServiceTestResponse",
         "type": "object"
       },
+      "AlertAttemptResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "provider_message_id",
+          "error_code",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "AlertAttemptResponse",
+        "type": "object"
+      },
+      "AlertChannelResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cooldown_seconds": {
+            "title": "Cooldown Seconds",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "max_per_hour": {
+            "title": "Max Per Hour",
+            "type": "integer"
+          },
+          "min_interval_seconds": {
+            "title": "Min Interval Seconds",
+            "type": "integer"
+          },
+          "provider_configured": {
+            "title": "Provider Configured",
+            "type": "boolean"
+          },
+          "recipient_configured": {
+            "title": "Recipient Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "recipient_configured",
+          "provider_configured",
+          "cooldown_seconds",
+          "min_interval_seconds",
+          "max_per_hour"
+        ],
+        "title": "AlertChannelResponse",
+        "type": "object"
+      },
+      "AlertDeliveryPage": {
+        "additionalProperties": false,
+        "properties": {
+          "configuration": {
+            "$ref": "#/components/schemas/AlertChannelResponse"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertDeliveryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "configuration",
+          "next_offset"
+        ],
+        "title": "AlertDeliveryPage",
+        "type": "object"
+      },
+      "AlertDeliveryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AlertAttemptResponse"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "covered_count": {
+            "title": "Covered Count",
+            "type": "integer"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "last_dispatch_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Dispatch At"
+          },
+          "occurrence_total": {
+            "title": "Occurrence Total",
+            "type": "integer"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_id",
+          "environment",
+          "state",
+          "occurrence_total",
+          "covered_count",
+          "provider_message_id",
+          "error_code",
+          "available_at",
+          "last_dispatch_at",
+          "attempts"
+        ],
+        "title": "AlertDeliveryResponse",
+        "type": "object"
+      },
       "AlertResponse": {
         "additionalProperties": false,
         "properties": {
@@ -36350,6 +36577,84 @@
         "summary": "Stream Events",
         "tags": [
           "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/notification-deliveries": {
+      "get": {
+        "operationId": "notification_deliveries_api_v1_admin_diagnostics_notification_deliveries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "issue_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDeliveryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Notification Deliveries",
+        "tags": [
+          "admin-diagnostics"
         ]
       }
     },

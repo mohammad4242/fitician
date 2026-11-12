@@ -1,4 +1,5 @@
 import { DebugConversation } from "./DebugConversation";
+import { NotificationDeliveries } from "./NotificationDeliveries";
 import { IssueEvidence } from "./IssueEvidence";
 import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
@@ -496,6 +497,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
           {item.actor_user_id && <Link to={`/admin/billing/users/${encodeURIComponent(item.actor_user_id)}`}>{c.viewUser}: {item.actor_user_id}</Link>}
         </li>)}</ol>}
       </section>
+      <NotificationDeliveries key={`sms-${issue.id}`} issueId={issue.id} english={english} />
       <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );
@@ -650,6 +652,7 @@ function AlertsPanel({ search, setSearch }: { search: URLSearchParams; setSearch
   const move = (nextOffset: number) => { const next = setParam(search, "offset", String(nextOffset)); next.set("tab", "alerts"); setSearch(next); };
   return <div className="diagnostics-stack">
     <div className="diagnostics-card__heading"><div><p className="diagnostics-label">08 / ALERTING</p><h2>{c.alerts}</h2></div></div>
+    <NotificationDeliveries english={english} />
     <StatusMessage loading={result.loading} error={result.error} retry={result.retry} />
     {result.data && result.data.length === 0 && <p className="diagnostics-empty">{c.emptyAlerts}</p>}
     {result.data && result.data.length > 0 && <div className="diagnostics-alert-list">{result.data.map((alert) => (

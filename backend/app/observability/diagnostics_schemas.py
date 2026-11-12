@@ -337,6 +337,45 @@ class AlertResponse(StrictModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AlertAttemptResponse(StrictModel):
+    id: UUID
+    state: str
+    provider_message_id: str | None
+    error_code: str | None
+    started_at: datetime
+    finished_at: datetime | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlertDeliveryResponse(StrictModel):
+    id: UUID
+    issue_id: UUID
+    environment: str
+    state: str
+    occurrence_total: int
+    covered_count: int
+    provider_message_id: str | None
+    error_code: str | None
+    available_at: datetime
+    last_dispatch_at: datetime | None
+    attempts: list[AlertAttemptResponse]
+
+
+class AlertChannelResponse(StrictModel):
+    enabled: bool
+    recipient_configured: bool
+    provider_configured: bool
+    cooldown_seconds: int
+    min_interval_seconds: int
+    max_per_hour: int
+
+
+class AlertDeliveryPage(StrictModel):
+    items: list[AlertDeliveryResponse]
+    configuration: AlertChannelResponse
+    next_offset: int | None
+
+
 class TrendPoint(StrictModel):
     timestamp: datetime
     count: int

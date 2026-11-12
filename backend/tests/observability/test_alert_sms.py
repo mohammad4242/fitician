@@ -90,3 +90,79 @@ def test_generated_provider_id_is_not_phone_delivery_confirmation():
         receipt = FarazAlertSms(configured(), client).send("خلاصه")
     assert receipt.state == "uncertain"
     assert receipt.provider_id is None
+
+
+@pytest.mark.parametrize(
+    "delivered,failed,state",
+    [(1, 0, "provider_delivered"), (0, 1, "delivery_failed"), (0, 0, "accepted")],
+)
+def test_receipt_lookup_matches_one_opaque_notice_and_private_recipient(delivered, failed, state):
+    notice = uuid4()
+    calls = []
+
+    def handle(request):
+        calls.append(request)
+        assert request.method == "GET"
+        return httpx.Response(
+            200,
+            json={
+                "status": "success",
+                "data": {
+                    "data": [
+                        {
+                            "id": 12345,
+                            "metadata": {
+                                "text": f"https://fitician.example/admin/diagnostics?notice={notice}",
+                                "recipients": ["09123456789"],
+                            },
+                            "snapshot": {
+                                "total_count": 1,
+                                "delivered_count": delivered,
+                                "delivery_failure_count": failed,
+                            },
+                        }
+                    ],
+                    "next_page_url": None,
+                },
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(handle)) as client:
+        receipt = FarazAlertSms(configured(), client).reconcile(notice)
+    assert receipt.state == state and receipt.provider_id == "12345"
+    assert calls[0].url.params["search"] == str(notice)
+    assert "09123456789" not in str(calls[0].url)
+
+
+def test_other_recipient_or_notice_cannot_establish_delivery():
+    notice = uuid4()
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={
+                    "status": "success",
+                    "data": {
+                        "data": [
+                            {
+                                "id": 12345,
+                                "metadata": {
+                                    "text": f"notice={notice}",
+                                    "recipients": ["09999999999"],
+                                },
+                                "snapshot": {"total_count": 1, "delivered_count": 1},
+                            }
+                        ]
+                    },
+                },
+            )
+        )
+    ) as client:
+        receipt = FarazAlertSms(configured(), client).reconcile(notice)
+    assert receipt.state == "uncertain" and receipt.provider_id is None
+
+
+def test_blank_optional_alert_configuration_does_not_break_default_environment():
+    value = Settings(diagnostics_alert_phone="", diagnostics_alert_enabled_at="")
+    assert value.diagnostics_alert_phone is None
+    assert value.diagnostics_alert_enabled_at is None

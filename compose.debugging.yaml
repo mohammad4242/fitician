@@ -41,6 +41,28 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+  diagnostics-alert-worker:
+    image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
+    profiles: [diagnostics-alerts]
+    stop_grace_period: 25s
+    command: [python, -m, app.observability.alert_worker]
+    # An absent file cannot enable sending; the worker requires explicit enablement/time.
+    env_file: ${FITICIAN_ALERT_ENV_FILE:-/dev/null}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 0.25
+    tmpfs: [/run/fitician:mode=1777]
+    networks: [application]
+    healthcheck:
+      test: [CMD, python, -m, app.jobs.heartbeat, --service, diagnostics-alert-worker]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 networks:
   application:
     external: true

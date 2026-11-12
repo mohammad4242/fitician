@@ -1,7 +1,9 @@
 # Diagnostics and debug-agent implementation status
 
 Production deployment is owner-authorized after the approved verification gates pass.
-Regional CD remains disabled. No external delivery, symbolication, native crash acceptance,
+The current regional CD flags are enabled; manual full/Agent releases retain their owner
+environment gate and automatic delivery is limited to eligible main CI/component paths.
+No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
 ## Sentry capture foundation
@@ -365,5 +367,33 @@ responses. The adapter reuses the configured API key and sender line via the doc
 [`/sms/simple`](https://docs.iranpayamak.com/send-simple-sms-13909967e0) endpoint, independently
 of the OTP pattern. Messages contain deterministic Persian feature/failure text, occurrence count
 and an authenticated issue deep link. HTTP acceptance is distinct from phone delivery; an
-ambiguous dispatch timeout must not trigger an automatic resend. Durable aggregation, worker
-wiring and real send/delivery acceptance are still required before claiming this channel active.
+ambiguous dispatch timeout must not trigger an automatic resend. Automatic production activation remains separate from the operator-only delivery check below.
+
+Migration `20261112_181` adds environment-scoped SMS aggregation and immutable dispatch attempts.
+The independent `diagnostics-alert-worker` profile in `compose.debugging.yaml` uses a dedicated
+`FITICIAN_ALERT_ENV_FILE`; missing configuration cannot enable sending. Explicit activation time
+prevents historical issue floods. Default policy: a 60-second aggregation window (critical issues
+immediate), one-hour issue cooldown, at least 30 seconds between any dispatches, and 20 dispatches
+per hour. Regressions can bypass the issue cooldown while retaining the global limits. Existing
+internal alert thresholds remain unchanged. Resolved/ignored queued issues are suppressed.
+
+Dispatch is leased and committed before provider I/O. Uncertain dispatches and expired worker
+leases are never automatically resent. Only explicit rate-limit/connect-before-send failures are
+retried, at most five times. An opaque notice UUID in the authenticated deep link permits narrow,
+read-only receipt recovery after lost acknowledgments; recipient identity and matching notice
+must both match. Provider receipt polling is bounded and never follows response pagination URLs.
+The admin panel shows queued, rejected, accepted/unconfirmed, unknown and provider-reported
+receipts separately, without exporting the configured phone. Closed settled delivery audit expires
+after 90 days; pending dispatches and repair conversations remain pinned.
+
+On 2026-11-12 one operator-only test used the committed adapter on the existing Iran server,
+without changing/restarting application containers or applying migrations. The request returned
+an unexpected reference shape, so no resend was attempted. A subsequent narrowly matched
+provider report returned HTTP 200, reference `30536259`, `total_count=1`, `delivered_count=1`,
+and no delivery failure. The owner independently confirmed receipt on the phone. The test links
+to synthetic issue `2652f0a0-1ac4-406f-8af0-ed88be41ac75` at the authenticated production panel.
+The destination is stored only in mode-0600 local/server configuration. Automatic production
+sending remains disabled until the migrated worker release passes the release gates.
+
+Isolated PostgreSQL rehearsal passed upgrade to 181, downgrade to 180, and re-upgrade to 181.
+No production database migration or application release was performed for this check.
