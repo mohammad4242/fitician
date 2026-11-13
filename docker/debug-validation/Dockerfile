@@ -11,6 +11,7 @@ COPY backend/app/__init__.py /policy/app/__init__.py
 COPY backend/app/debugging/__init__.py backend/app/debugging/ci_contract.py \
      backend/app/debugging/tools.py backend/app/debugging/privacy.py /policy/app/debugging/
 COPY docker/debug-validation/entrypoint.py /policy/entrypoint.py
+COPY docker/debug-validation/node-tool.cjs /policy/node-tool.cjs
 ARG POLICY_SHA
 LABEL io.fitician.validation-policy=${POLICY_SHA}
 USER 10001:10001
@@ -35,6 +36,7 @@ COPY backend/app/__init__.py /policy/app/__init__.py
 COPY backend/app/debugging/__init__.py backend/app/debugging/ci_contract.py \
      backend/app/debugging/tools.py backend/app/debugging/privacy.py /policy/app/debugging/
 COPY docker/debug-validation/entrypoint.py /policy/entrypoint.py
+COPY docker/debug-validation/node-tool.cjs /policy/node-tool.cjs
 ARG POLICY_SHA
 LABEL io.fitician.validation-policy=${POLICY_SHA}
 USER 10001:10001

@@ -134,14 +134,16 @@ def validation_spec(profile: str, tests: list[str]) -> dict[str, Any]:
         commands = [
             [
                 "node",
-                "/workspace/frontend/node_modules/typescript/bin/tsc",
+                "/policy/node-tool.cjs",
+                "typescript",
                 "-b",
                 "--pretty",
                 "false",
             ],
             [
                 "node",
-                "/workspace/node_modules/vitest/vitest.mjs",
+                "/policy/node-tool.cjs",
+                "vitest",
                 "run",
                 *selected,
                 "--reporter=junit",

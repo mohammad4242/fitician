@@ -31,7 +31,8 @@ if spec["cwd"] == "frontend":
             workspace,
             [
                 "node",
-                "/deps/node_modules/typescript/bin/tsc",
+                "/policy/node-tool.cjs",
+                "typescript",
                 "-p",
                 "packages/fitician-core/tsconfig.json",
             ],

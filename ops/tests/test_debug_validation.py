@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import subprocess
 import tarfile
 import unittest
 from pathlib import Path
@@ -16,6 +17,30 @@ ci_contract = __import__("app.debugging.ci_contract", fromlist=["test_result"])
 
 
 class DebugValidationTests(unittest.TestCase):
+    def test_compiler_resolution_uses_the_frontend_workspace_dependencies(self):
+        with TemporaryDirectory(dir=Path(__file__).parents[2] / ".codex-tmp") as temp:
+            workspace = Path(temp)
+            package = workspace / "frontend/node_modules/typescript"
+            (package / "bin").mkdir(parents=True)
+            (package / "package.json").write_text(
+                '{"name":"typescript","version":"fixture"}'
+            )
+            (package / "bin/tsc").write_text(
+                'console.log(JSON.stringify({source:"nested",args:process.argv.slice(2)}))'
+            )
+            script = Path(__file__).parents[2] / "docker/debug-validation/node-tool.cjs"
+            response = subprocess.run(
+                ["node", str(script), "typescript", "--version"],
+                cwd=workspace / "frontend",
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(response.returncode, 0, response.stderr)
+            self.assertEqual(
+                json.loads(response.stdout), {"source": "nested", "args": ["--version"]}
+            )
+
     def test_container_has_no_host_authority_credentials_or_external_network(self):
         name = "fitician-validation-" + str(uuid4())
         args = runner.container_command(

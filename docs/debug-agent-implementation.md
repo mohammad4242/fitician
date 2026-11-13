@@ -55,6 +55,14 @@ Execution order and gates:
 
 ### Controlled GitHub Actions validation — in progress
 
+Follow-up [CI 43443756523](https://github.com/mohammad4242/fitician/actions/runs/43443756523)
+confirmed backend, migration and Agent profiles successful. Frontend still failed at compiler
+stage 2 with zero exercised tests. A new resolver test failed before implementation and now
+passes: the fixed Node adapter resolves the CLI through the current workspace's installed
+package, covering both nested and hoisted dependency layouts. Actual local readback selected
+TypeScript 5.9.3 at root and 6.0.3 in frontend, plus Vitest 4.1.10. No package was upgraded.
+The next hosted run must establish whether this clears frontend's remaining setup failure.
+
 Live CI [43441455318](https://github.com/mohammad4242/fitician/actions/runs/43441455318)
 executed the new images/profiles: Agent and isolated migration profiles succeeded; backend
 reported one failing test and frontend stopped before exercising tests. Neither failed profile

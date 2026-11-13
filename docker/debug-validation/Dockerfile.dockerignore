@@ -21,3 +21,4 @@
 !docker/
 !docker/debug-validation/
 !docker/debug-validation/entrypoint.py
+!docker/debug-validation/node-tool.cjs
