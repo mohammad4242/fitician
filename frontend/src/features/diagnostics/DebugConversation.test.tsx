@@ -85,3 +85,19 @@ it("explains rejected private payloads without displaying their contents", async
   fireEvent.click(screen.getByText("Send for analysis"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Remove private payloads and reference evidence IDs");
 });
+
+it("keeps historical run evidence available after loading an older page", async () => {
+  vi.mocked(request).mockImplementation(async (path) => {
+    if (path.includes('/events?')) return { events: [], next_cursor: 0 } as never;
+    if (path.includes('before=')) return {
+      messages: [{ id: 'old-message', role: 'user', content: 'Earlier investigation', created_at: '2026-11-01' }],
+      runs: [{ id: 'historical-run', state: 'completed', config: { primary_model_id: 'historical-selected-model' }, occurrence_id: 'historical-occurrence' }], next_cursor: null,
+    } as never;
+    return { messages: [], runs: [], next_cursor: 'older-cursor' } as never;
+  });
+  render(<DebugConversation issueId="history-issue" english />);
+  fireEvent.click(await screen.findByText('Older messages'));
+  expect(await screen.findByText('Earlier investigation')).toBeInTheDocument();
+  expect(await screen.findByText('historical-selected-model')).toBeInTheDocument();
+  expect(screen.getByText('historical-occurrence')).toBeInTheDocument();
+});

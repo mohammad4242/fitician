@@ -44,6 +44,7 @@ class MessageInput(BaseModel):
 def run_json(run: DebugRun) -> dict[str, Any]:
     return {
         "id": str(run.id),
+        "message_id": str(run.message_id),
         "state": run.state,
         "error_code": run.error_code,
         "config": run.config_snapshot,
@@ -227,9 +228,12 @@ def conversation(
     runs = list(
         db.scalars(
             select(DebugRun)
-            .where(DebugRun.thread_id == thread.id)
-            .order_by(DebugRun.created_at.desc())
-            .limit(20)
+            .where(
+                DebugRun.thread_id == thread.id,
+                (DebugRun.message_id.in_([message.id for message in messages]))
+                | DebugRun.state.in_(ACTIVE),
+            )
+            .order_by(DebugRun.created_at.desc(), DebugRun.id.desc())
         )
     )
     return {

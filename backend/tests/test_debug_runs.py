@@ -301,3 +301,62 @@ def test_quoted_credentials_in_model_and_tool_text_are_removed():
     )
     assert "private credential fixture" not in safe
     assert "backend/app/main.py" in safe
+
+
+def test_history_pages_retain_the_runs_for_their_messages_and_current_active_run(client, db):
+    from datetime import UTC, datetime, timedelta
+
+    from app.debugging.models import DebugMessage, DebugRun, DebugThread
+    from tests.admin.test_ai_task_settings_api import _admin
+
+    _admin(client, db)
+    issue = record_event(
+        db,
+        EventInput(
+            component="api",
+            operation="history-proof",
+            stage="test",
+            platform="backend",
+            category="application_bug",
+            severity="error",
+            error_code="UNHANDLED_EXCEPTION",
+            outcome="failure",
+        ),
+    )
+    thread = DebugThread(issue_id=issue.issue_id, environment="test")
+    # Use the configured diagnostics environment rather than inventing a cross-environment thread.
+    from app.observability.environment import diagnostics_environment
+
+    thread.environment = diagnostics_environment()
+    db.add(thread)
+    db.flush()
+    runs = []
+    for index in range(25):
+        message = DebugMessage(
+            thread_id=thread.id,
+            role="user",
+            content="Synthetic history " + str(index),
+            created_at=datetime(2026, 11, 1, tzinfo=UTC) + timedelta(minutes=index),
+        )
+        db.add(message)
+        db.flush()
+        run = DebugRun(
+            thread_id=thread.id,
+            message_id=message.id,
+            state="completed",
+            action="analyze",
+            config_snapshot={},
+            evidence={"occurrence_id": str(issue.id)},
+        )
+        db.add(run)
+        db.flush()
+        runs.append(run)
+    runs[-1].state = "queued"
+    db.flush()
+    base = f"/api/v1/admin/diagnostics/issues/{issue.issue_id}/conversation"
+    first = client.get(base + "?limit=5").json()
+    second = client.get(base + "?limit=5&before=" + first["next_cursor"]).json()
+    assert {item["id"] for item in second["runs"]} == {str(run.id) for run in runs[15:20]} | {
+        str(runs[-1].id)
+    }
+    assert all(item["message_id"] for item in second["runs"])

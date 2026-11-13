@@ -33,6 +33,10 @@ function executionBlocker(code: string | null, english: boolean): string | null 
 export function DebugConversation({ issueId, english, occurrenceId = "" }: { issueId: string; english: boolean; occurrenceId?: string }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [older, setOlder] = useState<Message[]>([]);
+  const [olderRuns, setOlderRuns] = useState<Run[]>([]);
+  const updateHistoricalRun = useCallback((updated: Run) => {
+    setOlderRuns(current => current.map(run => run.id === updated.id ? updated : run));
+  }, []);
   const [cursor, setCursor] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [action, setAction] = useState("analyze");
@@ -90,9 +94,11 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
     try {
       const result = await request<Conversation>(`${base}/conversation?before=${encodeURIComponent(cursor)}`);
       setOlder(current => [...result.messages, ...current]); setCursor(result.next_cursor);
+      setOlderRuns(current => [...result.runs, ...current].filter((run, index, all) => all.findIndex(other => other.id === run.id) === index));
     } catch { setError(true); }
   }
   const messages = [...older, ...(conversation?.messages ?? [])].filter((message, index, all) => all.findIndex(other => other.id === message.id) === index);
+  const runs = [...(conversation?.runs ?? []), ...olderRuns].filter((run, index, all) => all.findIndex(other => other.id === run.id) === index);
   return <section className="diagnostics-card">
     <h3>{english ? "Conversation with debug_agent" : "گفت‌وگو با debug_agent"}</h3>
     <p>{english ? "Analysis uses the configured model and selected evidence. Model statements do not establish a confirmed cause. Execution and deployment require configured capabilities." : "تحلیل با مدل تنظیم‌شده و شواهد این issue انجام می‌شود. گفته مدل به‌تنهایی علت قطعی را اثبات نمی‌کند. اجرا و استقرار به قابلیت متصل و مجوز مشخص نیاز دارند."}</p>
@@ -103,8 +109,8 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>
-    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{executionBlocker(run.error_code, english) && <> · {executionBlocker(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
-    {conversation?.runs.slice(0, 5).map(run => <RunProgress key={run.id} base={base} run={run} english={english} />)}
+    {runs.map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{executionBlocker(run.error_code, english) && <> · {executionBlocker(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {runs.map((run, index) => <RunProgress key={run.id} base={base} run={run} english={english} autoLoad={index < 5} onRunUpdate={updateHistoricalRun} />)}
     {error && <p role="alert">{privatePayloadRejected ? (english ? "Remove private payloads and reference evidence IDs. This message was not stored or sent to the model." : "اطلاعات خصوصی را حذف کنید و شناسهٔ شواهد را بنویسید. این پیام ذخیره یا برای مدل ارسال نشد.") : (english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود.")}</p>}
     <form onSubmit={event => void submit(event)}>
       <label>{english ? "Requested action" : "درخواست مجاز"}<select value={action} onChange={event => setAction(event.target.value)}><option value="analyze">{english ? "Investigate, read only" : "بررسی فقط‌خواندنی"}</option><option value="prepare_fix">{english ? "Prepare and test a fix in an isolated branch" : "آماده‌سازی و آزمون اصلاح در شاخهٔ جدا"}</option></select></label>
@@ -118,22 +124,26 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
 
 
 interface ProgressEvent { id?: string; sequence: number; kind: string; payload: { tool?: string; mode?: string; model?: string; status?: string; pr_url?: string; commit?: string; output?: string; provenance?: string } }
-function RunProgress({ base, run, english }: { base: string; run: Run; english: boolean }) {
+function RunProgress({ base, run, english, autoLoad = true, onRunUpdate }: { base: string; run: Run; english: boolean; autoLoad?: boolean; onRunUpdate: (run: Run) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const enabled = expanded || autoLoad || activeStates.has(run.state);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   useEffect(() => {
+    if (!enabled) return;
     let current = true;
     let cursor = 0;
     async function refresh() {
       try {
-        const page = await request<{ events: ProgressEvent[]; next_cursor: number }>(`${base}/runs/${run.id}/events?after=${cursor}`);
+        const page = await request<{ run?: Run; events: ProgressEvent[]; next_cursor: number }>(`${base}/runs/${run.id}/events?after=${cursor}`);
         if (!current) return;
         cursor = page.next_cursor;
+        if (page.run) onRunUpdate(page.run);
         setEvents(previous => [...previous, ...page.events].filter((item, index, all) => all.findIndex(other => other.sequence === item.sequence) === index).slice(-200));
       } catch { /* Conversation polling retains the actual durable run state. */ }
     }
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 2000);
-    return () => { current = false; window.clearInterval(timer); };
-  }, [base, run.id]);
-  return <details><summary>{english ? "Recorded execution activity" : "فعالیت اجرایی ثبت‌شده"} · <code>{run.id.slice(0, 8)}</code></summary><ol dir="ltr" style={{ overflowWrap: "anywhere" }}>{events.map(event => <li key={event.sequence}><code>{event.kind} {event.payload.tool ?? event.payload.mode ?? event.payload.model ?? ""} {event.payload.status ?? ""} {event.payload.commit ?? ""}</code>{event.payload.pr_url && /^https:\/\/github\.com\/mohammad4242\/fitician\/pull\/[0-9]+$/.test(event.payload.pr_url) && <a href={event.payload.pr_url} target="_blank" rel="noreferrer"> PR</a>}{event.payload.output && <details><summary>{event.payload.provenance === "server_observation" ? (english ? "Recorded server observations; current health is unverified" : "مشاهدات ثبت‌شدهٔ سرور؛ سلامت فعلی تأیید نشده است") : (english ? "Tool evidence" : "مدرک ابزار")} · <code>{event.id}</code></summary><pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{event.payload.output}</pre></details>}</li>)}</ol></details>;
+    const timer = activeStates.has(run.state) ? window.setInterval(() => void refresh(), 2000) : null;
+    return () => { current = false; if (timer !== null) window.clearInterval(timer); };
+  }, [base, run.id, run.state, enabled, onRunUpdate]);
+  return <details onToggle={event => setExpanded(event.currentTarget.open)}><summary>{english ? "Recorded execution activity" : "فعالیت اجرایی ثبت‌شده"} · <code>{run.id.slice(0, 8)}</code></summary><ol dir="ltr" style={{ overflowWrap: "anywhere" }}>{events.map(event => <li key={event.sequence}><code>{event.kind} {event.payload.tool ?? event.payload.mode ?? event.payload.model ?? ""} {event.payload.status ?? ""} {event.payload.commit ?? ""}</code>{event.payload.pr_url && /^https:\/\/github\.com\/mohammad4242\/fitician\/pull\/[0-9]+$/.test(event.payload.pr_url) && <a href={event.payload.pr_url} target="_blank" rel="noreferrer"> PR</a>}{event.payload.output && <details><summary>{event.payload.provenance === "server_observation" ? (english ? "Recorded server observations; current health is unverified" : "مشاهدات ثبت‌شدهٔ سرور؛ سلامت فعلی تأیید نشده است") : (english ? "Tool evidence" : "مدرک ابزار")} · <code>{event.id}</code></summary><pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{event.payload.output}</pre></details>}</li>)}</ol></details>;
 }

@@ -55,6 +55,22 @@ Execution order and gates:
 
 ### Immutable full-release artifacts — implementation gates
 
+The dedicated Iran backup service/timer is now installed from hash-checked committed helpers.
+Its first real supervised `pg_dump → age → private S3 → downloaded hash` run completed; the
+journal contains its verified encrypted-backup receipt and successful unit completion. The
+new dedicated timer is enabled/active for 02:00 UTC daily, with CPU/memory/time bounds and
+shared backup locking. Existing application/generation containers, volumes and secrets were
+preserved. A future scheduled firing is still a distinct observation, and the local recovery
+identity must be retained securely outside disposable build cleanup.
+
+Conversation pagination now returns the runs associated with each message page plus the
+current active run, instead of an unrelated latest-20 slice. The panel retains historical run
+model/occurrence/evidence when loading older messages and fetches old tool journals on demand;
+completed journals are no longer polled continuously. Current issue/environment authorization
+continues to scope every page and event request. Fourteen backend history/run regressions and
+nine conversation UI cases passed; these remain local/integration checks, not live panel proof.
+
+
 Operator submissions now reject recognizable structured medical forms, raw request/response
 payloads, AI prompt/completion payloads, embedded image data and credential fields **before**
 creating a conversation, message or run. Nested JSON keys (including Unicode escapes) are
