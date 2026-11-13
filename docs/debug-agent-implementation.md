@@ -55,6 +55,22 @@ Execution order and gates:
 
 ### Controlled GitHub Actions validation — in progress
 
+Live CI [43441455318](https://github.com/mohammad4242/fitician/actions/runs/43441455318)
+executed the new images/profiles: Agent and isolated migration profiles succeeded; backend
+reported one failing test and frontend stopped before exercising tests. Neither failed profile
+is accepted as operational. The setup exposed concrete gaps: a 256-MiB scratch filesystem
+cannot satisfy repository workspace admission's 2-GiB free-space policy; frontend's locked
+nested dependencies and generated public exercise projection were not prepared. The correction
+retains a 2-GiB actual RAM limit, explicitly forbids swap and enlarges only scratch's logical
+ceiling. It links the committed nested frontend dependencies, uses its TypeScript compiler,
+prepares the public projection and runs the frontend build helpers with Python 3.12.
+
+Failure evidence now carries only safe test function/class/type, compiler code/file/line,
+missing-module identity and failed command stage. Test parameters, assertion values, error
+messages, raw stdout/stderr and private fixture strings remain excluded. Schema validation
+rejects unexpected report fields. The next CI run must verify these corrections; passing
+local contract checks alone does not clear the previously failing profiles.
+
 [CI 43407136137](https://github.com/mohammad4242/fitician/actions/runs/43407136137)
 completed successfully for source commit `71533606465c0bd8b145bdf63c70e8502968960a`.
 This confirms the previous candidate's checks, not a production release or the new profiles.

@@ -106,3 +106,50 @@ def test_profiles_use_fixed_commands_and_relative_test_paths(profile, tests, cwd
 def test_model_cannot_select_an_arbitrary_command_or_test_scope(profile, tests):
     with pytest.raises(ValueError, match="validation_profile_not_authorized"):
         ci_contract.validation_spec(profile, tests)
+
+
+def test_failure_evidence_contains_codes_and_test_names_without_private_values(tmp_path):
+    xml = tmp_path / "result.xml"
+    xml.write_text(
+        '<testsuites><testsuite tests="1" failures="1">'
+        '<testcase classname="tests.test_bug" name="test_example[private-health-fixture]">'
+        '<failure type="AssertionError" message="private-secret-fixture">'
+        "private-medical-value</failure></testcase></testsuite></testsuites>"
+    )
+    result = ci_contract.test_result(xml)
+    assert result["failed_tests"] == [
+        {"class_name": "tests.test_bug", "name": "test_example", "type": "AssertionError"}
+    ]
+    assert "private-" not in str(result)
+    facts = ci_contract.command_facts(
+        "src/issue.tsx(13,2): error TS2307: private-fixture\n"
+        "ModuleNotFoundError: No module named 'safe_module'\nprivate-token"
+    )
+    assert facts == [
+        {"code": "TS2307", "file": "src/issue.tsx", "line": 13},
+        {"code": "ModuleNotFoundError", "module": "safe_module"},
+    ]
+    assert "private-" not in str(facts)
+
+
+def test_ci_report_cannot_add_raw_output_or_fabricate_boolean_test_counts():
+    report = {
+        "exercised": 3,
+        "skipped": 0,
+        "failures": 0,
+        "failed_tests": [],
+        "failed_stage": None,
+        "diagnostics": [],
+    }
+    assert ci_contract.validate_report(report) == report
+    for invalid in [
+        {**report, "output": "private-fixture"},
+        {**report, "exercised": True},
+        {**report, "diagnostics": [{"code": "TS2307", "file": "../escape.ts", "line": 1}]},
+        {
+            **report,
+            "diagnostics": [{"code": "ModuleNotFoundError", "module": "private@example.invalid"}],
+        },
+    ]:
+        with pytest.raises(ValueError, match="invalid_validation_report"):
+            ci_contract.validate_report(invalid)

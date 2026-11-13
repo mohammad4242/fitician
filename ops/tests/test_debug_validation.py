@@ -31,6 +31,8 @@ class DebugValidationTests(unittest.TestCase):
         self.assertIn("--security-opt=no-new-privileges", args)
         self.assertIn("--user=10001:10001", args)
         self.assertIn("--memory=2g", args)
+        self.assertIn("--memory-swap=2g", args)
+        self.assertIn("--tmpfs=/scratch:uid=10001,gid=10001,mode=0700,size=3g", args)
         self.assertIn("--pids-limit=128", args)
         self.assertIn("--network=" + name, args)
         self.assertIn("type=bind,src=/source,dst=/source,readonly", args)

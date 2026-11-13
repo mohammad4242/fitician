@@ -17,7 +17,7 @@ from pathlib import Path
 from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-from app.debugging.ci_contract import validation_spec
+from app.debugging.ci_contract import validate_report, validation_spec
 
 POSTGRES = "postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15"
 
@@ -78,11 +78,12 @@ def container_command(
         "--security-opt=no-new-privileges",
         "--pids-limit=128",
         "--memory=2g",
+        "--memory-swap=2g",
         "--cpus=2",
         "--user=10001:10001",
         "--network=" + network,
         "--tmpfs=/workspace:uid=10001,gid=10001,mode=0700,size=768m",
-        "--tmpfs=/scratch:uid=10001,gid=10001,mode=0700,size=256m",
+        "--tmpfs=/scratch:uid=10001,gid=10001,mode=0700,size=3g",
         "--mount",
         f"type=bind,src={source},dst=/source,readonly",
         "--tmpfs=/output:uid=10001,gid=10001,mode=0700,size=8m",
@@ -220,11 +221,9 @@ def run(
                         process.terminate()
                         process.wait(timeout=10)
             try:
-                report = json.loads((root / "run.log").read_text().splitlines()[-1])
-                if set(report) != {"exercised", "skipped", "failures"} or any(
-                    type(v) is not int or v < 0 for v in report.values()
-                ):
-                    raise ValueError("invalid_test_report")
+                report = validate_report(
+                    json.loads((root / "run.log").read_text().splitlines()[-1])
+                )
             except (ValueError, IndexError):
                 report = {"exercised": 0, "skipped": 0, "failures": 1}
             result.update(report)

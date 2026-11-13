@@ -132,7 +132,13 @@ def validation_spec(profile: str, tests: list[str]) -> dict[str, Any]:
     selected = [path.removeprefix(root + "/") for path in dict.fromkeys(tests)]
     if root == "frontend":
         commands = [
-            ["node", "/workspace/node_modules/typescript/bin/tsc", "-b", "--pretty", "false"],
+            [
+                "node",
+                "/workspace/frontend/node_modules/typescript/bin/tsc",
+                "-b",
+                "--pretty",
+                "false",
+            ],
             [
                 "node",
                 "/workspace/node_modules/vitest/vitest.mjs",
@@ -181,7 +187,7 @@ def validation_spec(profile: str, tests: list[str]) -> dict[str, Any]:
     }
 
 
-def test_result(path: Path) -> dict[str, int]:
+def test_result(path: Path) -> dict[str, Any]:
     try:
         if path.stat().st_size > 1048576:
             raise ValueError("result_too_large")
@@ -192,6 +198,101 @@ def test_result(path: Path) -> dict[str, int]:
         failures = sum(int(s.get("failures", "0")) + int(s.get("errors", "0")) for s in suites)
         if min(tests, skipped, failures) < 0 or skipped > tests:
             raise ValueError("invalid_test_counts")
-        return {"exercised": tests - skipped, "skipped": skipped, "failures": failures}
+        failed_tests = []
+        for case in root.findall(".//testcase"):
+            failure = case.find("failure")
+            if failure is None:
+                failure = case.find("error")
+            if failure is None:
+                continue
+            fields = {
+                "class_name": case.get("classname", "unknown"),
+                "name": case.get("name", "unknown").split("[")[0],
+                "type": failure.get("type", "TestFailure"),
+            }
+            failed_tests.append(
+                {
+                    k: v
+                    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]{0,239}", v) and sanitize_text(v) == v
+                    else "unknown"
+                    for k, v in fields.items()
+                }
+            )
+            if len(failed_tests) >= 20:
+                break
+        return {
+            "exercised": tests - skipped,
+            "skipped": skipped,
+            "failures": failures,
+            "failed_tests": failed_tests,
+        }
     except (OSError, ValueError, ET.ParseError):
-        return {"exercised": 0, "skipped": 0, "failures": 1}
+        return {"exercised": 0, "skipped": 0, "failures": 1, "failed_tests": []}
+
+
+def command_facts(log: str) -> list[dict[str, Any]]:
+    facts: list[dict[str, Any]] = []
+    for line in log[:1048576].splitlines():
+        match = re.match(r"([A-Za-z0-9_./-]{1,240})\(([0-9]{1,7}),[0-9]+\): error (TS[0-9]+)", line)
+        if match and not match[1].startswith("/") and ".." not in PurePosixPath(match[1]).parts:
+            facts.append({"code": match[3], "file": match[1], "line": int(match[2])})
+        module = re.search(
+            r"ModuleNotFoundError: No module named '([A-Za-z_][A-Za-z0-9_.]{0,100})'", line
+        )
+        if module:
+            facts.append({"code": "ModuleNotFoundError", "module": module[1]})
+        if len(facts) >= 20:
+            break
+    return facts
+
+
+def validate_report(value: Any) -> dict[str, Any]:
+    keys = {"exercised", "skipped", "failures", "failed_tests", "failed_stage", "diagnostics"}
+    if not isinstance(value, dict) or set(value) != keys:
+        raise ValueError("invalid_validation_report")
+    if any(
+        type(value[k]) is not int or not 0 <= value[k] <= 100000
+        for k in ("exercised", "skipped", "failures")
+    ):
+        raise ValueError("invalid_validation_report")
+    if value["failed_stage"] is not None and (
+        type(value["failed_stage"]) is not int or not 0 <= value["failed_stage"] <= 10
+    ):
+        raise ValueError("invalid_validation_report")
+    for key in ("failed_tests", "diagnostics"):
+        if not isinstance(value[key], list) or len(value[key]) > 20:
+            raise ValueError("invalid_validation_report")
+    for case in value["failed_tests"]:
+        if (
+            not isinstance(case, dict)
+            or set(case) != {"class_name", "name", "type"}
+            or any(
+                not isinstance(v, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]{0,239}", v)
+                for v in case.values()
+            )
+        ):
+            raise ValueError("invalid_validation_report")
+    for item in value["diagnostics"]:
+        if not isinstance(item, dict):
+            raise ValueError("invalid_validation_report")
+        if item.get("code") == "ModuleNotFoundError":
+            valid = (
+                set(item) == {"code", "module"}
+                and isinstance(item["module"], str)
+                and bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]{0,100}", item["module"]))
+            )
+        else:
+            valid = (
+                set(item) == {"code", "file", "line"}
+                and isinstance(item["code"], str)
+                and bool(re.fullmatch(r"TS[0-9]{1,5}", item["code"]))
+                and isinstance(item["file"], str)
+                and bool(re.fullmatch(r"[A-Za-z0-9_./-]{1,240}", item["file"]))
+                and not item["file"].startswith("/")
+                and ".." not in PurePosixPath(item["file"]).parts
+                and type(item["line"]) is int
+                and 0 < item["line"] <= 10000000
+            )
+        if not valid:
+            raise ValueError("invalid_validation_report")
+    return value

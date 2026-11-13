@@ -16,8 +16,13 @@ LABEL io.fitician.validation-policy=${POLICY_SHA}
 USER 10001:10001
 ENTRYPOINT ["python", "/policy/entrypoint.py"]
 
-FROM node:20.19.4-bookworm-slim AS frontend
-RUN apt-get update && apt-get install --no-install-recommends -y python3 && rm -rf /var/lib/apt/lists/*
+FROM node:20.19.4-bookworm-slim AS node
+FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS frontend
+RUN apt-get update && apt-get install --no-install-recommends -y libstdc++6 && rm -rf /var/lib/apt/lists/*
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 WORKDIR /deps
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/package.json
