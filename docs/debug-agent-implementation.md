@@ -53,6 +53,21 @@ Execution order and gates:
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
 
+### Independent login lifecycle
+
+The headless device-login helper now records `pending`, `expired`, `failed`,
+`runtime_unavailable` or `authenticated` in its private result file. A 900-second timeout
+terminates the login subprocess and persists `expired`; it no longer leaves a missing result
+that could be mistaken for a running challenge. Challenge output is forced to mode 0600,
+symlinks are rejected, existing authentication is preserved and CLI exit zero without its
+own authentication file is a failure. These are login-state checks, not proof of model access.
+Two regressions failed before implementation. The focused runtime/client/protocol suite passed
+26 tests with one explicitly disabled external protocol check skipped; Ruff/mypy passed.
+
+Public and private SSH were rechecked against the same pinned hostname/boot identity. The
+production generation container identity and start timestamp are unchanged. The commissioning
+runtime remains unauthenticated/unenrolled; requesting a new code does not complete either gate.
+
 ### Passive server evidence and occurrence binding
 
 `fitician_server_evidence` is available to the explicit Codex/API tool adapters. It reads

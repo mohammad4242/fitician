@@ -142,3 +142,47 @@ def test_server_catalog_hides_unconfigured_docker_and_github_authority():
     }
     assert {"fitician_read_file", "fitician_write_file", "fitician_record_finding"} <= names
     assert not names & {"fitician_run_tests", "fitician_commit", "fitician_create_pr"}
+
+
+def test_device_login_timeout_is_recorded_without_exposing_the_challenge(tmp_path, monkeypatch):
+    import subprocess
+
+    state = tmp_path / "private-state"
+    state.mkdir(mode=0o700)
+    calls = []
+
+    def expired(command, **options):
+        calls.append((command, options))
+        assert json.loads((state / "login-result.json").read_text())["state"] == "pending"
+        options["stdout"].write("private-device-challenge-fixture")
+        raise subprocess.TimeoutExpired(command, options["timeout"], output="private-challenge")
+
+    monkeypatch.setattr(server_runtime.subprocess, "run", expired)
+    assert server_runtime.device_login(state) == 124
+    result = json.loads((state / "login-result.json").read_text())
+    assert result == {"state": "expired", "succeeded": False}
+    assert "challenge" not in json.dumps(result)
+    assert (state / "device-login.txt").stat().st_mode & 0o777 == 0o600
+    assert (state / "login-result.json").stat().st_mode & 0o777 == 0o600
+    assert calls[0][1]["env"]["CODEX_HOME"] == str(state / "codex")
+
+
+def test_device_login_requires_auth_file_and_preserves_existing_authentication(
+    tmp_path, monkeypatch
+):
+    import subprocess
+
+    state = tmp_path / "private-state"
+    state.mkdir(mode=0o700)
+    monkeypatch.setattr(
+        server_runtime.subprocess,
+        "run",
+        lambda command, **options: subprocess.CompletedProcess(command, 0),
+    )
+    assert server_runtime.device_login(state) != 0
+    assert json.loads((state / "login-result.json").read_text())["state"] == "failed"
+    auth = state / "codex" / "auth.json"
+    auth.write_text("private-existing-auth")
+    with pytest.raises(ValueError, match="independent_authentication_already_exists"):
+        server_runtime.device_login(state)
+    assert auth.read_text() == "private-existing-auth"

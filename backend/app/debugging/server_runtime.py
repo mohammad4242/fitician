@@ -141,6 +141,49 @@ class Supervisor:
             await asyncio.gather(pulse, return_exceptions=True)
 
 
+def device_login(state: Path = STATE) -> int:
+    home = state / "codex"
+    home.mkdir(mode=0o700, exist_ok=True)
+    with (state / "login.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (home / "auth.json").exists():
+            raise ValueError("independent_authentication_already_exists")
+        result_file = state / "login-result.json"
+        save_private(result_file, {"state": "pending", "succeeded": False})
+        path = state / "device-login.txt"
+        # Device challenge and errors stay private, never in container logs.
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "w") as output:
+            os.fchmod(output.fileno(), 0o600)
+            try:
+                result = subprocess.run(
+                    [EXECUTABLE, "login", "--device-auth"],
+                    stdout=output,
+                    stderr=output,
+                    timeout=900,
+                    env={
+                        "PATH": "/usr/local/bin:/usr/bin:/bin",
+                        "HOME": str(state),
+                        "CODEX_HOME": str(home),
+                    },
+                )
+            except subprocess.TimeoutExpired:
+                save_private(result_file, {"state": "expired", "succeeded": False})
+                return 124
+            except OSError:
+                save_private(result_file, {"state": "runtime_unavailable", "succeeded": False})
+                return 1
+        succeeded = result.returncode == 0 and (home / "auth.json").is_file()
+        save_private(
+            result_file,
+            {
+                "state": "authenticated" if succeeded else "failed",
+                "succeeded": succeeded,
+            },
+        )
+        return 0 if succeeded else result.returncode or 1
+
+
 def main() -> None:
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
@@ -152,27 +195,7 @@ def main() -> None:
         print((STATE / "status.json").read_text())
         return
     if arguments.action == "login":
-        home = STATE / "codex"
-        home.mkdir(mode=0o700, exist_ok=True)
-        with (STATE / "login.lock").open("w") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            if (home / "auth.json").exists():
-                raise SystemExit("Independent authentication already exists; not replaced")
-            # Device code and authentication logs stay private, never in container logs.
-            with (STATE / "device-login.txt").open("w") as output:
-                result = subprocess.run(
-                    [EXECUTABLE, "login", "--device-auth"],
-                    stdout=output,
-                    stderr=output,
-                    timeout=900,
-                    env={
-                        "PATH": "/usr/local/bin:/usr/bin:/bin",
-                        "HOME": str(STATE),
-                        "CODEX_HOME": str(home),
-                    },
-                )
-            save_private(STATE / "login-result.json", {"succeeded": result.returncode == 0})
-            raise SystemExit(result.returncode)
+        raise SystemExit(device_login())
     with (STATE / "supervisor.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         asyncio.run(Supervisor().run())
