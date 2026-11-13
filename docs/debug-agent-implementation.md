@@ -53,6 +53,40 @@ Execution order and gates:
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
 
+### Controlled GitHub Actions validation — in progress
+
+[CI 43407136137](https://github.com/mohammad4242/fitician/actions/runs/43407136137)
+completed successfully for source commit `71533606465c0bd8b145bdf63c70e8502968960a`.
+This confirms the previous candidate's checks, not a production release or the new profiles.
+A new independent Germany device challenge was generated and saved only to the ignored
+0600 local instructions file; no authentication file existed at subsequent readback.
+
+The repair snapshot contract now binds exact base commit, bounded canonical file contents,
+workspace tree digest and snapshot digest. Privileged release files, dependency manifests,
+path escapes, duplicates and credential-bearing source are rejected. Source checkout/state
+remain untouched. Sanitization can validate the complete bounded 128-KiB source instead of
+silently truncating validation at 32,000 characters; ordinary output limits are unchanged.
+
+`ops/debug-validation.py` and the trusted dependency/policy images define fixed backend,
+isolated PostgreSQL/migration, Agent, frontend/type and frontend-build profiles. Candidate
+code runs as a non-root user with CPU/RAM/PID/tmpfs bounds, no host Docker socket/secrets,
+and no external network. Only backend profiles reach a separately created ephemeral internal
+PostgreSQL network. Test output stays in bounded temporary storage; only counts and exact
+candidate/policy/image/profile identities are exported. Missing/all-skipped/failing test
+results cannot count as success. Candidate source is exported from exact Git history without
+Git credentials; archive symlinks/path escapes are rejected and dotenv templates omitted.
+
+The reusable/manual `debug-validation.yml` workflow checks out its own policy revision
+separately from the candidate, disables persisted checkout credentials and passes no production
+Environment secrets. Required CI now exercises backend, migrations, frontend and Agent
+profiles; full image publication requires this gate. The selected source/policy identity follows
+[GitHub's workflow context](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts),
+not a model-provided workflow/script. Contract/unit checks are passing; actual image/profile
+execution in GitHub Actions remains the next verification. The Germany runtime still reports
+`github_actions_not_connected`; the durable broker, scoped GitHub credential, runtime tool
+wiring, PR publication and production enrollment are unfinished. These contracts do not make
+those capabilities available or satisfy the production repair/deployment acceptance gate.
+
 ### Independent login lifecycle
 
 The headless device-login helper now records `pending`, `expired`, `failed`,

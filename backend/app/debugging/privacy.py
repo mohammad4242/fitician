@@ -3,8 +3,8 @@
 import re
 
 
-def sanitize_text(value: str) -> str:
-    value = value[:32000]
+def sanitize_text(value: str, *, limit: int = 32000) -> str:
+    value = value[:limit]
     value = re.sub(r'(?i)\b(?:Bearer|Basic)\s+[^\s"\']+', "Bearer [redacted]", value)
     value = re.sub(
         r"(?i)((?:api[_-]?key|token|password|secret|cookie|authorization)\s*[=:]\s*)[^\s,;]+",

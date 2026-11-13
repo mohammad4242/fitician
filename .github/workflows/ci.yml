@@ -634,6 +634,29 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  debug-validation:
+    name: Controlled debug validation
+    if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
+    needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: backend
+            tests: '["backend/tests/test_debug_ci_contract.py"]'
+          - profile: migrations
+            tests: '[]'
+          - profile: frontend
+            tests: '["frontend/src/features/diagnostics/DebugConversation.test.tsx"]'
+          - profile: agent
+            tests: '["agent-service/tests/test_health.py"]'
+    uses: ./.github/workflows/debug-validation.yml
+    with:
+      candidate_sha: ${{ github.sha }}
+      request_id: 00000000-0000-4000-8000-000000000001
+      profile: ${{ matrix.profile }}
+      tests_json: ${{ matrix.tests }}
+
   agent:
     name: Agent complete suite
     if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
@@ -668,7 +691,7 @@ jobs:
       needs.dependencies.result == 'success' && needs.production-contract.result == 'success' &&
       needs.scalability-contract.result == 'success' && needs.multi-replica-smoke.result == 'success' &&
       needs.split-region-smoke.result == 'success' &&
-      needs.agent.result == 'success') ||
+      needs.agent.result == 'success' && needs.debug-validation.result == 'success') ||
       (needs.changes.outputs.selective_ci_required == 'true' &&
       needs.production-contract.result == 'success' && needs.dependencies.result == 'success' &&
       needs.split-region-smoke.result == 'success')) &&
@@ -689,6 +712,7 @@ jobs:
       - multi-replica-smoke
       - split-region-smoke
       - agent
+      - debug-validation
     runs-on: ubuntu-latest
     environment:
       name: production-iran
@@ -853,11 +877,12 @@ jobs:
       - multi-replica-smoke
       - split-region-smoke
       - agent
+      - debug-validation
       - container-images
     runs-on: ubuntu-latest
     env:
       CI_JOB_RESULTS: >-
-        {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","container-images":"${{ needs.container-images.result }}"}
+        {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","debug-validation":"${{ needs.debug-validation.result }}","container-images":"${{ needs.container-images.result }}"}
       IMAGE_REQUIRED: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.changes.outputs.full_ci_required == 'true' || (needs.changes.outputs.selective_ci_required == 'true' && needs.changes.outputs.deployable == 'true')) }}
     steps:
       - uses: actions/checkout@v4
