@@ -55,6 +55,15 @@ Execution order and gates:
 
 ### Immutable full-release artifacts — implementation gates
 
+Restore preparation exposed a pre-existing bug in the retained snapshot metadata generator:
+building one `json_build_object` argument list per schema table exceeds PostgreSQL's 100-argument
+limit once there are more than 50 tables. The isolated PostgreSQL 18 integration test reproduced
+SQLSTATE `54023` on the complete migrated schema. Inventory/fingerprint objects now aggregate
+rows instead, preserving the existing output and all historical freeze/source authorization
+guards. Two real database cases (selected and empty fingerprints) and ten existing snapshot/
+final-sync tests passed after correction. This is developer-side repair evidence, not proof that
+the panel agent performed a repair or that production has migrated.
+
 Full CI now records a strict release manifest containing exact registry digest references,
 locally read-back image configuration IDs, CI run/attempt and source commit. The already tested
 independent runtime archive is included by checksum/image identity; its automation smoke must
