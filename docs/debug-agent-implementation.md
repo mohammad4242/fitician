@@ -499,3 +499,21 @@ upload credentials. Unconfigured builds remain independent. Generated OpenAPI/ty
 regenerated and checked. Focused verification: 34 backend tests on isolated PostgreSQL, 14 core
 tests, 7 mobile tests, 80 mobile foundation tests, mobile TypeScript, focused Ruff/mypy/Oxlint.
 Native release/crash acceptance and EAS secret configuration are still outstanding.
+
+### CI account-deletion regression and safe probe retention
+
+Retrieved complete backend job logs for CI 43279620964. Three shards passed (1134, 1134,
+1133 tests); the last shard reported 1131 passed, one intentional skip and exactly one failure:
+`test_all_user_references_are_safe_for_account_deletion`. `debug_connector_probes.actor_id`
+used `ON DELETE RESTRICT`, conflicting with existing account deletion. This is an implementation
+regression, not an infrastructure timeout. Migration `20261113_182` changes that reference to
+nullable `SET NULL`; the audit remains, and queued/running probes lose execution authority when
+the administrator is deleted. Existing connector tokens also remain unusable without their actor.
+The 181→182→181→182 cycle passed on isolated PostgreSQL. If retained actorless probes exist,
+downgrade explicitly refuses to erase audit or invent identities; keep schema 182 and roll forward.
+Production schema was not changed.
+
+Private artifact upload was also reverified through the restricted Germany proxy: the existing
+exact-release web bundles/maps for `fitician-web@16a7b637d480e20571822db17c9bde0b2780a35d`
+uploaded successfully (CLI exit 0, TLS verification enabled). This is artifact-upload evidence,
+not proof that a new application image is deployed.

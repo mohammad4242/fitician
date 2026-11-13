@@ -63,7 +63,7 @@ def claim_probe(db: Session, connector: DebugConnector) -> dict[str, Any] | None
     )
     if row is None:
         return None
-    actor = db.get(User, row.actor_id)
+    actor = db.get(User, row.actor_id) if row.actor_id else None
     if actor is None or not actor.is_admin:
         row.state = "failed"
         return None
@@ -86,7 +86,7 @@ def authorize_probe(
         .where(DebugConnectorProbe.id == probe_id, DebugConnectorProbe.connector_id == connector.id)
         .with_for_update()
     )
-    actor = db.get(User, row.actor_id) if row else None
+    actor = db.get(User, row.actor_id) if row and row.actor_id else None
     if (
         row is None
         or row.lease_token != lease

@@ -152,7 +152,7 @@ class DebugConnectorProbe(Base):
     connector_id: Mapped[UUID] = mapped_column(
         ForeignKey("debug_connectors.id", ondelete="RESTRICT"), index=True
     )
-    actor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     model: Mapped[str] = mapped_column(String(300))
     release_commit: Mapped[str] = mapped_column(String(40))
     state: Mapped[str] = mapped_column(String(32), default="queued")
