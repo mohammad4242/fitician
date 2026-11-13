@@ -100,6 +100,28 @@ server runtime deployment/authentication is claimed yet. Existing Required CI no
 and exercises the exact runtime image in its split-region job, then exports that same
 tested image with checksum and restart/isolation/protocol evidence for offline delivery.
 
+### Reboot recovery and runtime artifact evidence
+
+The proxy's post-boot failure had two observable layers: private-IP bind failure and an
+orphaned running container with empty `NetworkSettings.Networks/Ports`. A process-only
+health check was insufficient. `ops/recover-sentry-egress.py` now validates the exact owned
+container, private binding and existing Compose bridge, starts it if necessary, restores
+only its missing endpoint, and requires a real unauthenticated `407` listener response.
+The dedicated systemd unit runs after Docker/Tailscale and retries failures. It is enabled
+on Germany; no Docker daemon/generation restart or application volume change occurred.
+Three focused tests and remote systemd validation passed. An actual host reboot was not
+performed. Fresh Iran-to-Germany verification returned `407` without credentials, `403`
+for an untrusted destination/port, `200` for the allowed tunnel, and authenticated Sentry
+event retrieval `200` with exact event identity. TLS verification remained enabled.
+
+CI run [43388391816](https://github.com/mohammad4242/fitician/actions/runs/43388391816)
+passed its runtime build, networkless isolation/protocol/restart smoke and archive export.
+Its exact tested PR merge candidate is `4a70812f00d45d266178d08d4792aeb2f1442b0b`,
+source branch commit `c3c2f50d`; this is not a merged main release. Artifact `14019662048`
+was staged on Germany, with GitHub archive digest and exported image checksum verified.
+Image archive SHA-256: `158bec6a541df35dbbe5feffe1657245d925f24e1d60952cc26d7a6327707e40`.
+The complete CI/release gate and panel enrollment remain separate from this image proof.
+
 Fresh infrastructure evidence: private pinned Germany SSH on 9011 works after reboot;
 `ssh`, Docker and Tailscale are active. Agent container remains healthy on its prior image,
 with no restart by this session. Existing proxy is still `Created`, release
