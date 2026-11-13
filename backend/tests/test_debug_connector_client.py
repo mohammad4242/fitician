@@ -30,6 +30,71 @@ def test_connector_requires_private_explicit_https_configuration(tmp_path):
         load_configuration(path)
 
 
+def test_codex_configuration_requires_an_explicit_executable_instead_of_mutable_path(tmp_path):
+    config = {
+        "server": "https://fitician.example",
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "repository_name": "mohammad4242/fitician",
+        "codex_home": str(tmp_path / "auth"),
+    }
+    path = tmp_path / "connector.json"
+    path.write_text(json.dumps(config))
+    path.chmod(0o600)
+    with pytest.raises(ValueError, match="pinned_codex_executable_required"):
+        load_configuration(path)
+    binary = tmp_path / "codex-pinned"
+    binary.write_text("fixture")
+    binary.chmod(0o700)
+    config["codex_executable"] = str(binary)
+    path.write_text(json.dumps(config))
+    assert load_configuration(path)["codex_executable"] == str(binary)
+    config["codex_executable"] = "codex"
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="pinned_codex_executable_required"):
+        load_configuration(path)
+
+
+def test_codex_discovery_uses_the_explicit_binary(tmp_path, monkeypatch):
+    opened = []
+
+    class Runtime:
+        version = "0.167.2"
+
+        def __init__(self, **options):
+            opened.append(options)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def call(self, *args):
+            return {"data": [{"model": "selected-model"}]}
+
+    monkeypatch.setattr("app.debugging.connector.AppServer", Runtime)
+    config = {
+        "server": "https://fitician.example",
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(tmp_path),
+        "workspace_root": str(tmp_path / "runtime"),
+        "codex_home": str(tmp_path / "auth"),
+        "codex_executable": "/operator-owned/codex-0.167.2",
+    }
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            connector = LaptopConnector(config, client)
+            await connector.discover()
+            assert connector.models == ["selected-model"]
+
+    asyncio.run(run())
+    assert opened[0]["executable"] == config["codex_executable"]
+
+
 def test_connector_executes_once_and_recovers_the_ack_without_repeating_action(tmp_path):
     original = tmp_path / "original"
     commit = repository(original)

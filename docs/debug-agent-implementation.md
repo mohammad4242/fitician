@@ -544,3 +544,28 @@ cause. Typed OpenAPI/shared contracts were regenerated. Verification: 61 backend
 isolated PostgreSQL, 21 diagnostics UI tests, focused Ruff/mypy/Oxlint and frontend TypeScript
 passed. Real updated-runtime/panel acceptance remains the next gate; no production release
 was performed by this step.
+
+### Independent Codex executable pin
+
+The laptop's general Codex command changed to 0.168.0 between sessions. The debug adapter
+correctly rejected that unverified protocol, so no Codex tools ran; the panel recorded blocked
+runs with `interactive_runtime_not_configured` instead of silently using another runtime.
+The previously verified standalone 0.167.2 executable still exists. Connector configuration
+now requires an explicit absolute, executable, non-group/world-writable `codex_executable`
+when `codex_home` is supplied; discovery, probes and turns use it consistently. The global CLI
+and generation runner were not changed. The private staging configuration now selects the
+existing 0.167.2 binary. Fifteen tests passed, including an actual protocol handshake/model
+catalog against that explicitly selected executable. Model-list output is a catalog, not proof
+of model entitlement; inference acceptance remains separate.
+
+[Official App Server documentation](https://developers.openai.com/codex/app-server) was
+rechecked; the installed 0.168.0 schema was inspected but that version was not added to the
+accepted protocol list. Two blocked panel submissions executed no tools or inference and
+were retained as offline/unsupported-runtime evidence; a deliberate new investigation after
+restoring the connector remains the live acceptance gate.
+
+Hosted SSH readback from [main run 43380399467](https://github.com/mohammad4242/fitician/actions/runs/43380399467)
+failed at network connection, before host-key verification or authentication. The prior feature
+run was rejected by environment branch policy and is not SSH evidence. Private SSH works;
+sshd listens on 0.0.0.0/[::]:9011, and the host firewall has explicit 9011 allow rules. No firewall
+or environment protection was changed. Public/hosted deployment connectivity remains a gate.

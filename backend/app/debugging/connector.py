@@ -47,6 +47,15 @@ def load_configuration(path: Path) -> dict[str, Any]:
         raise ValueError("repository_scope_mismatch")
     if not re.fullmatch(r"[A-Za-z0-9_-]{32,100}", config["token"]):
         raise ValueError("invalid_connector_credential")
+    if config.get("codex_home"):
+        binary = Path(config.get("codex_executable", ""))
+        if (
+            not binary.is_absolute()
+            or not binary.is_file()
+            or not os.access(binary, os.X_OK)
+            or binary.stat().st_mode & 0o022
+        ):
+            raise ValueError("pinned_codex_executable_required")
     return cast(dict[str, Any], config)
 
 
@@ -68,6 +77,12 @@ class LaptopConnector:
         self.prefix = config["server"].rstrip("/") + "/api/v1/debug-connectors/" + config["id"]
         self.models: list[str] = []
         self.cli_version: str | None = None
+
+    def codex_server(self) -> AppServer:
+        executable = self.config.get("codex_executable")
+        if not executable:
+            raise ValueError("pinned_codex_executable_required")
+        return AppServer(executable=executable, codex_home=Path(self.config["codex_home"]))
 
     async def request(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         async with self.client.stream(
@@ -91,7 +106,7 @@ class LaptopConnector:
         self.cli_version = None
         if home:
             try:
-                async with AppServer(codex_home=Path(home)) as server:
+                async with self.codex_server() as server:
                     response = await server.call("model/list", {"limit": 100})
                     self.models = [
                         item["model"] for item in response["data"] if not item.get("hidden", False)
@@ -252,7 +267,7 @@ class LaptopConnector:
                     if session_file.is_file()
                     else None
                 )
-                async with AppServer(codex_home=Path(self.config["codex_home"])) as server:
+                async with self.codex_server() as server:
                     thread_id = await server.start_thread(
                         model, tools.workspace, list(catalog.values()), thread_id=previous_thread
                     )
@@ -329,7 +344,7 @@ class LaptopConnector:
             async def progress(kind: str, payload: dict[str, Any]) -> None:
                 pass
 
-            async with AppServer(codex_home=Path(self.config["codex_home"])) as server:
+            async with self.codex_server() as server:
                 await server.start_thread(model, tools.workspace, [read_tool])
                 task = asyncio.create_task(
                     server.run_turn(

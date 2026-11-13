@@ -26,7 +26,9 @@ def test_selected_model_and_profile_options_are_not_substituted():
 )
 def test_installed_protocol_handshake_and_model_catalog_without_generation():
     async def run():
-        async with AppServer() as server:
+        async with AppServer(
+            executable=os.environ.get("FITICIAN_TEST_CODEX_EXECUTABLE", "codex")
+        ) as server:
             models = await server.call("model/list", {"limit": 2})
             assert isinstance(models["data"], list)
             assert server.version == "0.167.2"
