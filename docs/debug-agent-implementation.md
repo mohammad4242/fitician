@@ -55,6 +55,15 @@ Execution order and gates:
 
 ### Controlled GitHub Actions validation — in progress
 
+[CI 43448535517](https://github.com/mohammad4242/fitician/actions/runs/43448535517)
+again passed backend/migrations/Agent and reported frontend failure at stage 2. Its dependency
+CLI resolution is now tested locally, but frontend config also writes TypeScript build info
+under `node_modules/.tmp`. Linking the entire dependency directory made that cache read-only.
+The sandbox now links individual read-only package entries while allowing cache directories
+inside the bounded workspace tmpfs. A regression proves caches do not write into the dependency
+image. Global TypeScript codes and `EROFS` are now retained without raw messages. Hosted
+frontend acceptance remains pending; the component is not declared operational from these tests.
+
 Follow-up [CI 43443756523](https://github.com/mohammad4242/fitician/actions/runs/43443756523)
 confirmed backend, migration and Agent profiles successful. Frontend still failed at compiler
 stage 2 with zero exercised tests. A new resolver test failed before implementation and now

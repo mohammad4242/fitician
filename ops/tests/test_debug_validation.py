@@ -17,6 +17,27 @@ ci_contract = __import__("app.debugging.ci_contract", fromlist=["test_result"])
 
 
 class DebugValidationTests(unittest.TestCase):
+    def test_dependency_packages_stay_linked_while_build_caches_are_writable(self):
+        script = (
+            Path(__file__).parents[2] / "docker/debug-validation/dependency_links.py"
+        )
+        spec = importlib.util.spec_from_file_location("dependency_links", script)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with TemporaryDirectory(dir=Path(__file__).parents[2] / ".codex-tmp") as temp:
+            root = Path(temp)
+            source = root / "deps"
+            (source / "@scope/package").mkdir(parents=True)
+            (source / ".tmp").mkdir()
+            (source / "typescript").mkdir()
+            target = root / "workspace/node_modules"
+            module.link_dependencies(source, target)
+            self.assertTrue((target / "typescript").is_symlink())
+            self.assertTrue((target / "@scope/package").is_symlink())
+            (target / ".tmp").mkdir()
+            (target / ".tmp/cache").write_text("ephemeral")
+            self.assertFalse((source / ".tmp/cache").exists())
+
     def test_compiler_resolution_uses_the_frontend_workspace_dependencies(self):
         with TemporaryDirectory(dir=Path(__file__).parents[2] / ".codex-tmp") as temp:
             workspace = Path(temp)

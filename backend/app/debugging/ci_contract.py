@@ -235,6 +235,11 @@ def test_result(path: Path) -> dict[str, Any]:
 def command_facts(log: str) -> list[dict[str, Any]]:
     facts: list[dict[str, Any]] = []
     for line in log[:1048576].splitlines():
+        global_error = re.match(r"error (TS[0-9]{1,5}):", line)
+        if global_error:
+            facts.append({"code": global_error[1]})
+        if "EROFS" in line:
+            facts.append({"code": "EROFS"})
         match = re.match(r"([A-Za-z0-9_./-]{1,240})\(([0-9]{1,7}),[0-9]+\): error (TS[0-9]+)", line)
         if match and not match[1].startswith("/") and ".." not in PurePosixPath(match[1]).parts:
             facts.append({"code": match[3], "file": match[1], "line": int(match[2])})
@@ -282,6 +287,10 @@ def validate_report(value: Any) -> dict[str, Any]:
                 set(item) == {"code", "module"}
                 and isinstance(item["module"], str)
                 and bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]{0,100}", item["module"]))
+            )
+        elif set(item) == {"code"}:
+            valid = isinstance(item["code"], str) and (
+                bool(re.fullmatch(r"TS[0-9]{1,5}", item["code"])) or item["code"] == "EROFS"
             )
         else:
             valid = (

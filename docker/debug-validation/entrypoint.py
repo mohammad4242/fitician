@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, "/policy")
 from app.debugging.ci_contract import command_facts, test_result, validation_spec
+from dependency_links import link_dependencies
 
 profile, tests = sys.argv[1:]
 spec = validation_spec(profile, json.loads(tests))
@@ -16,15 +17,11 @@ workspace = Path("/workspace")
 shutil.copytree("/source", workspace, dirs_exist_ok=True, symlinks=False)
 commands = []
 if spec["cwd"] == "frontend":
-    (workspace / "node_modules").symlink_to(
-        "/deps/node_modules", target_is_directory=True
-    )
+    link_dependencies(Path("/deps/node_modules"), workspace / "node_modules")
     for relative in ("frontend", "packages/fitician-core"):
         dependencies = Path("/deps") / relative / "node_modules"
         if dependencies.is_dir():
-            (workspace / relative / "node_modules").symlink_to(
-                dependencies, target_is_directory=True
-            )
+            link_dependencies(dependencies, workspace / relative / "node_modules")
     commands.append((workspace, ["python3", "frontend/scripts/export-exercises.py"]))
     commands.append(
         (
