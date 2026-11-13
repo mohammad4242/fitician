@@ -17,6 +17,7 @@ from .connector_schemas import (
     CallStatusResponse,
     CompletionResponse,
     HeartbeatResponse,
+    OperationResponse,
     PollResponse,
     ProbePollResponse,
     ProbeStatusResponse,
@@ -67,6 +68,51 @@ class EvidenceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     lease_token: UUID
     key: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
+class ValidationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    key: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    profile: str = Field(max_length=32)
+    tests: list[str] = Field(max_length=16)
+    snapshot: dict[str, Any]
+
+
+@router.post("/{connector_id}/calls/{call_id}/validations", response_model=OperationResponse)
+def queue_validation(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: ValidationRequest,
+    db: DatabaseSession,
+) -> dict[str, Any]:
+    from .automation import operation_json
+    from .automation import queue_validation as queue
+
+    call = db.scalar(
+        select(DebugConnectorCall)
+        .where(
+            DebugConnectorCall.id == call_id,
+            DebugConnectorCall.connector_id == connector.id,
+        )
+        .with_for_update()
+    )
+    if call is None or call.lease_token != payload.lease_token or call.state != "running":
+        raise HTTPException(409, detail={"code": "connector_lease_lost"})
+    try:
+        request = payload.model_dump(exclude={"lease_token", "key"})
+        row = queue(db, call.run_id, f"ci:{call.id}:{payload.key}", request)
+        db.commit()
+        return operation_json(row)
+    except ValueError as error:
+        db.rollback()
+        import re
+
+        code = str(error)
+        if not re.fullmatch(r"[a-z_]{3,64}", code):
+            code = "invalid_validation_request"
+        raise HTTPException(409, detail={"code": code}) from None
 
 
 @router.post(

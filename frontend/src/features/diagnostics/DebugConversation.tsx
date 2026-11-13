@@ -95,7 +95,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
     <p>{english ? "Selected occurrence" : "رخداد منتخب"}: <code dir="ltr">{occurrenceId || (english ? "Latest available evidence" : "آخرین شواهد موجود")}</code></p>
     {cursor && <button type="button" onClick={() => void loadOlder()}>{english ? "Older messages" : "پیام‌های قدیمی‌تر"}</button>}
     <div aria-live="polite">{messages.map(message => <article key={message.id} style={{ borderBlockEnd: "1px solid var(--border-color, #ddd)", paddingBlock: "1rem" }}>
-      <strong>{message.role === "assistant" ? "debug_agent" : (english ? "Administrator" : "مدیر")}</strong>
+      <strong>{message.role === "assistant" ? "debug_agent" : message.role === "system" ? (english ? "System" : "سیستم") : (english ? "Administrator" : "مدیر")}</strong>
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>

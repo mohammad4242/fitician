@@ -1,3 +1,4 @@
+import { DebugOperations } from "./DebugAutomation";
 import { DebugConversation } from "./DebugConversation";
 import { NotificationDeliveries } from "./NotificationDeliveries";
 import { IssueEvidence } from "./IssueEvidence";
@@ -498,6 +499,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
         </li>)}</ol>}
       </section>
       <NotificationDeliveries key={`sms-${issue.id}`} issueId={issue.id} english={english} />
+      <DebugOperations key={`ci-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );

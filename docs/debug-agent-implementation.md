@@ -53,7 +53,43 @@ Execution order and gates:
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
 
+### Durable Germany automation channel — code verification
+
+Migration `20261113_184` adds immutable issue/run/occurrence-bound operations and explicitly
+separates runtime and automation connector identities. One active automation worker per
+environment is enforced by PostgreSQL. Lease recovery never blindly repeats a workflow
+dispatch: intent is persisted before the external mutation, ambiguous results remain uncertain,
+and retries reconcile the existing UUID-named workflow. Cancellation is separately recorded
+and cannot claim success before GitHub confirms it. Actor, environment and lease authority
+are checked again at each privileged step.
+
+The outbound broker uses a dedicated private GitHub credential, never the model runtime's
+or developer session's credentials. Candidate code and trusted policy are separate exact
+commits; immutable policy tags pin workflow execution. Validation artifact download checks
+the archive digest, bounded content, candidate/policy/profile/test identities and exercised
+test counts; authorization is not forwarded to the signed artifact host. Preflight is cached
+for one minute and invalidated on credential rotation. Only sanitized structured results are
+stored or shown. The optional supervised automation container has its own state/private
+mounts and 192-MiB/0.1-CPU limits, no Docker socket, inbound port or application credentials.
+
+Existing AI Settings now exposes explicit automation enrollment; the issue panel shows
+durable jobs, selected occurrence, exact CI evidence and cancellation. An explicit connection
+check submits a fixed isolated test through this channel without a paid model request; it is
+labeled separately from repair validation. Viewing or refreshing the panel never submits a job.
+
+Local verification: 34 focused backend tests, 43 settings/diagnostics/conversation UI tests,
+TypeScript, Oxlint and debugging mypy passed. Isolated PostgreSQL migration rehearsal passed
+183→184, audited downgrade refusals and 184→183→184 without production changes. Broker
+credentials, actual GitHub dispatch from Germany, model tool wiring, PR publication and
+production enrollment are still pending. Deployment operation kinds in the schema are
+reserved, not an implemented deployment capability. No production release is claimed.
+
 ### Controlled GitHub Actions validation — in progress
+
+[CI 43454623527](https://github.com/mohammad4242/fitician/actions/runs/43454623527)
+passed backend, migration and Agent sandbox profiles. Frontend now passes the compiler stages
+but fails at Vitest stage 3 with one suite error and no accepted test result. The fixed cache
+layout cleared the prior compiler failure; hosted frontend execution remains unverified.
 
 [CI 43448535517](https://github.com/mohammad4242/fitician/actions/runs/43448535517)
 again passed backend/migrations/Agent and reported frontend failure at stage 2. Its dependency

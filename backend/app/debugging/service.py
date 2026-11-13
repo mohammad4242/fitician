@@ -150,6 +150,17 @@ def submit_message(
         snapshot["connector_name"] = connector.name if connector else None
         snapshot["connector_capabilities"] = execution_capabilities(connector) if connector else {}
     snapshot["config_updated_at"] = config.updated_at.isoformat() if config else None
+    from .models import DebugConnector
+
+    broker = db.scalar(
+        select(DebugConnector).where(
+            DebugConnector.kind == "automation",
+            DebugConnector.revoked.is_(False),
+            DebugConnector.environment == thread.environment,
+        )
+    )
+    snapshot["automation_worker_id"] = str(broker.id) if broker else None
+    snapshot["automation_worker_name"] = broker.name if broker else None
     snapshot["effective_temperature"] = None  # No unsupported model option is claimed as effective.
     snapshot["routing_restrictions"] = list(config.routing_restrictions) if config else []
     selected_id = occurrence_id or db.scalar(

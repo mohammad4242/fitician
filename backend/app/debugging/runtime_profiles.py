@@ -31,6 +31,7 @@ def connected_connectors(db: Session) -> list[DebugConnector]:
             .join(User, User.id == DebugConnector.actor_id)
             .where(
                 DebugConnector.environment == diagnostics_environment(),
+                DebugConnector.kind == "runtime",
                 DebugConnector.revoked.is_(False),
                 DebugConnector.last_seen >= datetime.now(UTC) - timedelta(seconds=30),
                 User.is_admin.is_(True),
@@ -125,6 +126,7 @@ def authorized_target(db: Session, identifier: UUID | str) -> DebugConnector:
         .join(User, User.id == DebugConnector.actor_id)
         .where(
             DebugConnector.id == UUID(str(identifier)),
+            DebugConnector.kind == "runtime",
             DebugConnector.environment == diagnostics_environment(),
             DebugConnector.repository == "mohammad4242/fitician",
             DebugConnector.revoked.is_(False),

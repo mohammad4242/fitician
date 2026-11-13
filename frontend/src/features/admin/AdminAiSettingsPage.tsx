@@ -1,3 +1,4 @@
+import { DebugAutomationSetup } from "../diagnostics/DebugAutomation";
 import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -406,6 +407,7 @@ export function AdminAiSettingsPage() {
       </nav>
 
       {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget={!agentMode} selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
+      {selectedTask === "debug_agent" && <DebugAutomationSetup english={i18n.resolvedLanguage === "en"} />}
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>

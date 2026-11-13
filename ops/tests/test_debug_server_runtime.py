@@ -10,12 +10,57 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DebugServerRuntimeTests(unittest.TestCase):
+    def test_automation_service_has_separate_private_configuration_and_bounded_resources(
+        self,
+    ):
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "compose.debug-runtime.yaml",
+                "--profile",
+                "automation",
+                "config",
+                "--format",
+                "json",
+            ],
+            cwd=ROOT,
+            env=dict(
+                os.environ,
+                FITICIAN_DEBUG_RUNTIME_IMAGE="sha256:" + "a" * 64,
+                FITICIAN_DEBUG_RUNTIME_ROOT="/opt/fitician-debug-runtime",
+            ),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        service = json.loads(result.stdout)["services"]["automation"]
+        self.assertEqual(
+            service["entrypoint"], ["python", "-m", "app.debugging.automation_client"]
+        )
+        self.assertEqual(service["user"], "10001:10001")
+        self.assertEqual(int(service["mem_limit"]), 192 * 1024**2)
+        self.assertEqual(float(service["cpus"]), 0.1)
+        self.assertTrue(service["read_only"])
+        mounts = {m["target"]: m["source"] for m in service["volumes"]}
+        self.assertEqual(
+            mounts,
+            {
+                "/state": "/opt/fitician-debug-runtime/automation-state",
+                "/run/fitician-automation": "/opt/fitician-debug-runtime/automation-private",
+            },
+        )
+        self.assertFalse(service.get("ports"))
+
     def test_existing_required_ci_builds_and_exercises_the_exact_runtime_artifact(self):
         import re
 
         text = (ROOT / ".github/workflows/ci.yml").read_text()
         section = re.search(
-            r"^  split-region-smoke:\n(.*?)(?=^  agent:)", text, re.MULTILINE | re.DOTALL
+            r"^  split-region-smoke:\n(.*?)(?=^  agent:)",
+            text,
+            re.MULTILINE | re.DOTALL,
         )[1]
         self.assertIn("docker/debug-runtime/Dockerfile", section)
         self.assertIn("APP_BUILD_SHA=${{ github.sha }}", section)

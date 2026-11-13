@@ -44,14 +44,27 @@ TOOLS = frozenset(
 MUTATIONS = frozenset({"fitician_write_file", "fitician_commit", "fitician_create_pr"})
 
 
-def enroll_connector(db: Session, actor_id: UUID, name: str) -> tuple[DebugConnector, str]:
+def enroll_connector(
+    db: Session, actor_id: UUID, name: str, *, kind: str = "runtime"
+) -> tuple[DebugConnector, str]:
     actor = db.get(User, actor_id)
     if actor is None or not actor.is_admin:
         raise ValueError("connector_not_authorized")
+    if kind not in {"runtime", "automation"}:
+        raise ValueError("connector_kind_not_authorized")
+    if kind == "automation" and db.scalar(
+        select(DebugConnector.id).where(
+            DebugConnector.kind == "automation",
+            DebugConnector.revoked.is_(False),
+            DebugConnector.environment == diagnostics_environment(),
+        )
+    ):
+        raise ValueError("automation_worker_already_enrolled")
     token = secrets.token_urlsafe(48)
     row = DebugConnector(
         actor_id=actor_id,
         name=sanitize_text(name)[:80],
+        kind=kind,
         environment=diagnostics_environment(),
         repository=REPOSITORY,
         token_hash=hashlib.sha256(token.encode()).hexdigest(),
@@ -62,7 +75,9 @@ def enroll_connector(db: Session, actor_id: UUID, name: str) -> tuple[DebugConne
     return row, token
 
 
-def authenticate_connector(db: Session, connector_id: UUID, token: str) -> DebugConnector:
+def authenticate_connector(
+    db: Session, connector_id: UUID, token: str, *, kind: str = "runtime"
+) -> DebugConnector:
     row = db.get(DebugConnector, connector_id)
     actor = db.get(User, row.actor_id) if row and row.actor_id else None
     if (
@@ -70,6 +85,7 @@ def authenticate_connector(db: Session, connector_id: UUID, token: str) -> Debug
         or not actor.is_admin
         or row is None
         or row.revoked
+        or row.kind != kind
         or row.environment != diagnostics_environment()
         or not secrets.compare_digest(row.token_hash, hashlib.sha256(token.encode()).hexdigest())
     ):

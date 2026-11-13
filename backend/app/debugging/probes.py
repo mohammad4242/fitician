@@ -25,6 +25,7 @@ def queue_probe(
     if (
         actor is None
         or not actor.is_admin
+        or connector.kind != "runtime"
         or connector.revoked
         or model not in connector.capabilities.get("models", [])
     ):

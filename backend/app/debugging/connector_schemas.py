@@ -76,3 +76,34 @@ class StoredServerEvidenceResponse(StrictResponse):
     state: Literal["recorded", "not_collected"]
     evidence_id: UUID | None = None
     output: str | None = Field(default=None, max_length=28000)
+
+
+class OperationResponse(StrictResponse):
+    id: UUID
+    run_id: UUID
+    occurrence_id: UUID | None
+    environment: str
+    kind: Literal["validate", "publish_pr", "deploy"]
+    state: str
+    error_code: str | None
+    cancel_requested: bool
+    profile: str | None
+    purpose: Literal["connection_check", "repair_validation"]
+    snapshot_digest: str | None
+    result: dict[str, Any]
+    created_at: str
+    updated_at: str
+
+
+class OperationPage(StrictResponse):
+    operations: list[OperationResponse]
+
+
+class AutomationAvailability(StrictResponse):
+    worker_id: UUID | None
+    worker_name: str | None
+    connected: bool
+    configured: bool
+    live_validation_verified: bool
+    policy_commit: str | None
+    error_code: str | None

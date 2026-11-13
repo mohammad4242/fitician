@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -102,11 +103,74 @@ class DebugRunEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class DebugOperation(Base):
+    __tablename__ = "debug_operations"
+    __table_args__ = (
+        UniqueConstraint("run_id", "submission_key", name="uq_debug_operation_submission"),
+        CheckConstraint(
+            "kind IN ('validate','publish_pr','deploy')", name="ck_debug_operation_kind"
+        ),
+        CheckConstraint(
+            "kind <> 'deploy' OR (target_environment IS NOT NULL AND "
+            "target_environment IN ('production-iran','production-germany'))",
+            name="ck_debug_operation_deployment_target",
+        ),
+        CheckConstraint(
+            "state IN ('queued','preparing','dispatching','uncertain','running',"
+            "'awaiting_authorization','deploying','verifying','succeeded','failed','cancelled','blocked')",
+            name="ck_debug_operation_state",
+        ),
+        Index("ix_debug_operation_claim", "environment", "state", "lease_until"),
+        Index(
+            "uq_debug_operation_deployment_target",
+            "environment",
+            "target_environment",
+            unique=True,
+            postgresql_where=text(
+                "kind = 'deploy' AND state IN ('queued','preparing','dispatching','uncertain',"
+                "'running','awaiting_authorization','deploying','verifying')"
+            ),
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    run_id: Mapped[UUID] = mapped_column(
+        ForeignKey("debug_runs.id", ondelete="RESTRICT"), index=True
+    )
+    occurrence_id: Mapped[UUID | None] = mapped_column()
+    worker_id: Mapped[UUID] = mapped_column(ForeignKey("debug_connectors.id", ondelete="RESTRICT"))
+    environment: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32))
+    state: Mapped[str] = mapped_column(String(32), default="queued")
+    submission_key: Mapped[str] = mapped_column(String(128))
+    request_hash: Mapped[str] = mapped_column(String(64))
+    request: Mapped[dict[str, Any]] = mapped_column(JSON)
+    result: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    target_environment: Mapped[str | None] = mapped_column(String(64))
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    lease_token: Mapped[UUID | None] = mapped_column()
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class DebugConnector(Base):
     __tablename__ = "debug_connectors"
+    __table_args__ = (
+        CheckConstraint("kind IN ('runtime','automation')", name="ck_debug_connector_kind"),
+        Index(
+            "uq_debug_automation_worker_env",
+            "environment",
+            unique=True,
+            postgresql_where=text("kind = 'automation' AND revoked = false"),
+        ),
+    )
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     name: Mapped[str] = mapped_column(String(80))
+    kind: Mapped[str] = mapped_column(String(16), default="runtime", server_default="runtime")
     environment: Mapped[str] = mapped_column(String(64), index=True)
     repository: Mapped[str] = mapped_column(String(200))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
