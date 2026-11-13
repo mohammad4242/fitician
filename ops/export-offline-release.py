@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+from app.debugging.image_identity import config_digest_for_image
 from app.debugging.release_contract import validate_release
 
 
@@ -28,13 +29,7 @@ def export(manifest: Path, directory: Path) -> None:
     aliases = []
     for role in ("backend", "frontend"):
         image = value["images"][role]
-        observed = subprocess.run(
-            ["docker", "image", "inspect", image["reference"], "--format", "{{.Id}}"],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-        ).stdout.strip()
+        observed = config_digest_for_image(image["reference"])
         if observed != image["image_id"]:
             raise ValueError("offline_export_image_mismatch")
         alias = "mohammad4242/fitician-" + role + ":" + value["commit"]

@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+from app.debugging.image_identity import config_digest_for_image
 from app.debugging.release_contract import validate_release
 
 
@@ -43,7 +44,7 @@ def image_identity(role: str, digest: str, commit: str) -> dict[str, str]:
         != commit
     ):
         raise ValueError("release_image_readback_mismatch")
-    return {"reference": reference, "image_id": metadata["Id"]}
+    return {"reference": reference, "image_id": config_digest_for_image(reference)}
 
 
 def runtime_identity(root: Path, commit: str) -> dict:

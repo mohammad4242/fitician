@@ -12,9 +12,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 try:
+    from app.debugging.image_identity import config_digest_for_image
     from app.debugging.release_contract import validate_release
 except ModuleNotFoundError:
     # The release workflow ships this exact source beside the standalone helper.
+    from image_identity import config_digest_for_image
     from release_contract import validate_release
 
 
@@ -48,11 +50,11 @@ def selected_services(target: str, kind: str) -> dict[str, str]:
     raise ValueError("release_image_target_not_authorized")
 
 
-def verify_alias(role: str, image: dict, commit: str) -> None:
+def verify_alias(role: str, image: dict, commit: str) -> str:
     alias = "mohammad4242/fitician-" + role + ":" + commit
     metadata = json.loads(docker("image", "inspect", alias))[0]
     if (
-        metadata.get("Id") != image["image_id"]
+        config_digest_for_image(alias) != image["image_id"]
         or metadata.get("Config", {})
         .get("Labels", {})
         .get("org.opencontainers.image.revision")
@@ -61,6 +63,12 @@ def verify_alias(role: str, image: dict, commit: str) -> None:
         or metadata.get("Os") != "linux"
     ):
         raise ValueError("release_image_identity_mismatch")
+    identifier = metadata.get("Id")
+    if not isinstance(identifier, str) or not re.fullmatch(
+        r"sha256:[a-f0-9]{64}", identifier
+    ):
+        raise ValueError("release_image_identity_mismatch")
+    return identifier
 
 
 def verify_service(project: str, service: str, image_id: str) -> None:
@@ -103,22 +111,22 @@ def main() -> None:
         ci_run_id=args.ci_run_id,
     )
     services = selected_services(args.target, args.kind)
+    local_identifiers = {}
     for role in sorted(set(services.values())):
         image = manifest["images"][role]
         if args.mode == "prepare-registry":
             docker("pull", image["reference"])
-            observed = json.loads(docker("image", "inspect", image["reference"]))[0]
-            if observed.get("Id") != image["image_id"]:
+            if config_digest_for_image(image["reference"]) != image["image_id"]:
                 raise ValueError("release_image_identity_mismatch")
             docker(
                 "tag",
                 image["reference"],
                 "mohammad4242/fitician-" + role + ":" + args.commit,
             )
-        verify_alias(role, image, args.commit)
+        local_identifiers[role] = verify_alias(role, image, args.commit)
     if args.mode == "verify-running":
         for service, role in services.items():
-            verify_service(args.project, service, manifest["images"][role]["image_id"])
+            verify_service(args.project, service, local_identifiers[role])
     print("Release image identity verified: " + args.mode)
 
 

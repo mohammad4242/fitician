@@ -7,9 +7,13 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
 from uuid import uuid4
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+from app.debugging.image_identity import config_digest_for_image
 
 
 def command(*args: str) -> str:
@@ -234,7 +238,7 @@ def run(image: str, commit: str) -> dict:
         assert retained == "1"
         return {
             "commit": commit,
-            "image_id": metadata["Id"],
+            "image_id": config_digest_for_image(metadata["Id"]),
             "cli_version": "0.167.2",
             "isolated": True,
             "liveness": True,

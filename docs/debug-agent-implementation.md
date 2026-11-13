@@ -55,6 +55,25 @@ Execution order and gates:
 
 ### Immutable full-release artifacts — implementation gates
 
+Docker 29 containerd and classic image stores exposed different `.Id` values for the same
+pinned PostgreSQL artifact. Release manifest production, offline export and deployment guards
+now compare the canonical OCI config digest: hashed config bytes, or an authenticated OCI
+index/platform-manifest descriptor chain when containerd omits the config blob from `save`.
+Running containers are checked against the verified alias ID on that same host. A real read-only
+probe on both laptop and Iran resolved the same config digest without changing Docker storage,
+pulling replacement production images or restarting services. Six backend contract tests and
+50 release/workflow tests passed. Both failed CI infrastructure jobs in run 43478297131 shared
+one stale test fixture missing the new optional manifest-hash input; the fixture now includes
+that input and checks its injection rejection. The complete current CI must still pass.
+
+The dedicated private S3 backup now contains a transaction-matched encrypted production dump
+and encrypted metadata. Server-side object readback matched both ciphertext hashes; both were
+also downloaded and verified off-server. Snapshot evidence records 155 tables at revision
+`20261018_175`. The private recovery identity remains on the laptop only. This is confirmed
+backup transport evidence, not yet a restored/migration-tested release gate. Nightly activation,
+production migrations and application replacement have not occurred.
+
+
 Restore preparation exposed a pre-existing bug in the retained snapshot metadata generator:
 building one `json_build_object` argument list per schema table exceeds PostgreSQL's 100-argument
 limit once there are more than 50 tables. The isolated PostgreSQL 18 integration test reproduced

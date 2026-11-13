@@ -29,14 +29,45 @@ class ReleaseImageGuardTests(unittest.TestCase):
             "Os": "linux",
             "Config": {"Labels": {"org.opencontainers.image.revision": "c" * 40}},
         }
-        with patch.object(guard, "docker", return_value=json.dumps([metadata])):
-            guard.verify_alias("backend", image, "c" * 40)
-        metadata["Id"] = "sha256:" + "d" * 64
         with (
             patch.object(guard, "docker", return_value=json.dumps([metadata])),
+            patch.object(
+                guard, "config_digest_for_image", return_value=image["image_id"]
+            ),
+        ):
+            guard.verify_alias("backend", image, "c" * 40)
+        metadata["Config"]["Labels"]["org.opencontainers.image.revision"] = "d" * 40
+        with (
+            patch.object(guard, "docker", return_value=json.dumps([metadata])),
+            patch.object(guard, "config_digest_for_image", return_value=image["image_id"]),
             self.assertRaisesRegex(ValueError, "release_image_identity_mismatch"),
         ):
             guard.verify_alias("backend", image, "c" * 40)
+
+    def test_containerd_store_id_can_differ_from_the_canonical_config_identity(self):
+        guard = module()
+        image = {
+            "reference": "mohammad4242/fitician-backend@sha256:" + "a" * 64,
+            "image_id": "sha256:" + "b" * 64,
+        }
+        metadata = {
+            "Id": "sha256:" + "a" * 64,
+            "Architecture": "amd64",
+            "Os": "linux",
+            "Config": {"Labels": {"org.opencontainers.image.revision": "c" * 40}},
+        }
+        with (
+            patch.object(guard, "docker", return_value=json.dumps([metadata])),
+            patch.object(
+                guard,
+                "config_digest_for_image",
+                return_value=image["image_id"],
+                create=True,
+            ),
+        ):
+            self.assertEqual(
+                guard.verify_alias("backend", image, "c" * 40), metadata["Id"]
+            )
 
     def test_running_container_is_checked_by_actual_image_id_not_its_tag(self):
         guard = module()

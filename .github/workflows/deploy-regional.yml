@@ -457,6 +457,7 @@ jobs:
             scp -P "$VPS_SSH_PORT" .ci-evidence/regional-release/manifest.json "$VPS_USER@$VPS_HOST:$release_dir/manifest.json"
             scp -P "$VPS_SSH_PORT" ops/release-image-guard.py "$VPS_USER@$VPS_HOST:$release_dir/ops/release-image-guard.py"
             scp -P "$VPS_SSH_PORT" backend/app/debugging/release_contract.py "$VPS_USER@$VPS_HOST:$release_dir/ops/release_contract.py"
+            scp -P "$VPS_SSH_PORT" backend/app/debugging/image_identity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/image_identity.py"
           fi
       - name: Verify, transfer and load the exact Iran offline archive
         if: env.TARGET == 'iran' && env.DEPLOY_KIND == 'full' && env.IMAGE_SOURCE == 'preloaded'
