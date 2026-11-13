@@ -42,6 +42,15 @@ def tool_catalog(
         ),
         tool("diff", "Inspect the sanitized patch in this isolated worktree.", {}, []),
         tool(
+            "server_evidence",
+            "Read passive server observations scoped to the selected occurrence. "
+            "Includes reported release, related diagnostic records, job attempts and recorded "
+            "infrastructure signals. No shell, raw logs or credentials. Current observations "
+            "do not prove the historical cause or business completion.",
+            {},
+            [],
+        ),
+        tool(
             "record_finding",
             "Persist a Persian observation, hypothesis or next check with evidence IDs. "
             "Cannot confirm a cause, resolve an issue or authorize deployment.",

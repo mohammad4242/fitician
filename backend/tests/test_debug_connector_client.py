@@ -197,6 +197,63 @@ def test_github_publication_requires_matching_tests_before_any_network(tmp_path)
         publish_tested_pr(tools, "fix(fixture): repair addition")
 
 
+def test_connector_fetches_server_evidence_through_its_own_call_without_shell(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    call_id, lease, evidence_id = str(uuid4()), str(uuid4()), str(uuid4())
+    paths = []
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(original),
+        "workspace_root": str(tmp_path / "runtime"),
+        "environment": "test",
+    }
+
+    def handle(request):
+        paths.append(request.url.path)
+        payload = json.loads(request.content)
+        assert payload["lease_token"] == lease
+        if request.url.path.endswith("/server-evidence"):
+            assert payload["key"] == "tool-1"
+            return httpx.Response(
+                200,
+                json={
+                    "evidence_id": evidence_id,
+                    "output": '{"business_outcome_verified":false}',
+                },
+            )
+        return httpx.Response(
+            200, json={"sequence": payload["sequence"], "evidence_id": evidence_id}
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            connector = LaptopConnector(config, client)
+            job = {
+                "id": call_id,
+                "run_id": str(uuid4()),
+                "thread_id": str(uuid4()),
+                "lease_token": lease,
+                "tool": "fitician_server_evidence",
+                "arguments": {},
+                "repository": config["repository_name"],
+                "environment": "test",
+                "release_commit": commit,
+                "action": "analyze",
+                "config": {},
+            }
+            result = await connector.execute(job)
+            assert evidence_id in result["output"]
+            assert "business_outcome_verified" in result["output"]
+            assert await connector.execute(job) == result
+
+    asyncio.run(run())
+    assert sum(path.endswith("/server-evidence") for path in paths) == 1
+
+
 def test_missing_release_is_a_specific_blocker_and_never_becomes_a_paid_turn(tmp_path):
     original = tmp_path / "original"
     repository(original)

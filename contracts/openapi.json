@@ -12445,6 +12445,27 @@
         "title": "EventResponse",
         "type": "object"
       },
+      "EvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key"
+        ],
+        "title": "EvidenceRequest",
+        "type": "object"
+      },
       "ExerciseCategories": {
         "properties": {
           "body_regions": {
@@ -26634,6 +26655,27 @@
         "title": "SafetyProfileInput",
         "type": "object"
       },
+      "ServerEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "format": "uuid",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "output": {
+            "maxLength": 28000,
+            "title": "Output",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "output"
+        ],
+        "title": "ServerEvidenceResponse",
+        "type": "object"
+      },
       "Sex": {
         "enum": [
           "female",
@@ -27383,6 +27425,48 @@
           "request_id"
         ],
         "title": "StatusInput",
+        "type": "object"
+      },
+      "StoredServerEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "maxLength": 28000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "state": {
+            "enum": [
+              "recorded",
+              "not_collected"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "StoredServerEvidenceResponse",
         "type": "object"
       },
       "StructureFamily": {
@@ -36986,6 +37070,64 @@
         ]
       }
     },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/server-evidence": {
+      "get": {
+        "operationId": "recorded_server_evidence_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__server_evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredServerEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Recorded Server Evidence",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
     "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/stream": {
       "get": {
         "operationId": "stream_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__stream_get",
@@ -41332,6 +41474,74 @@
           }
         ],
         "summary": "Progress",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/server-evidence": {
+      "post": {
+        "operationId": "server_evidence_api_v1_debug_connectors__connector_id__calls__call_id__server_evidence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Server Evidence",
         "tags": [
           "debug-connectors"
         ]

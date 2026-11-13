@@ -14,6 +14,7 @@ from app.auth.dependencies import AppSettings, DatabaseSession, require_authenti
 from app.observability.diagnostics_models import DiagnosticIssue
 from app.observability.environment import diagnostics_environment
 
+from .connector_schemas import StoredServerEvidenceResponse
 from .findings_router import router as findings_router
 from .models import DebugMessage, DebugRun, DebugRunEvent, DebugThread
 from .service import ACTIVE, cancel_run, submit_message
@@ -52,6 +53,41 @@ def run_json(run: DebugRun) -> dict[str, Any]:
 def translate_error(error: ValueError) -> HTTPException:
     code = str(error)
     return HTTPException(404 if code.endswith("not_found") else 409, detail={"code": code})
+
+
+@router.get(
+    "/issues/{issue_id}/runs/{run_id}/server-evidence", response_model=StoredServerEvidenceResponse
+)
+def recorded_server_evidence(issue_id: UUID, run_id: UUID, db: DatabaseSession) -> dict[str, Any]:
+    from .server_evidence import PROVENANCE, TOOL
+
+    run = db.scalar(
+        select(DebugRun)
+        .join(DebugThread)
+        .where(
+            DebugRun.id == run_id,
+            DebugThread.issue_id == issue_id,
+            DebugThread.environment == diagnostics_environment(),
+        )
+    )
+    if run is None:
+        raise HTTPException(404, detail={"code": "run_not_found"})
+    event = db.scalar(
+        select(DebugRunEvent)
+        .where(
+            DebugRunEvent.run_id == run.id,
+            DebugRunEvent.kind == "tool_completed",
+            DebugRunEvent.payload["tool"].as_string() == TOOL,
+            DebugRunEvent.payload["provenance"].as_string() == PROVENANCE,
+        )
+        .order_by(DebugRunEvent.sequence.desc())
+        .limit(1)
+    )
+    return (
+        {"state": "recorded", "evidence_id": str(event.id), "output": event.payload["output"]}
+        if event
+        else {"state": "not_collected"}
+    )
 
 
 @router.get("/issues/{issue_id}/conversation")

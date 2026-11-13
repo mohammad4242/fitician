@@ -53,6 +53,40 @@ Execution order and gates:
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
 
+### Passive server evidence and occurrence binding
+
+`fitician_server_evidence` is available to the explicit Codex/API tool adapters. It reads
+selected-occurrence diagnostic records, allowlisted current body/food job columns, aggregate
+impact, process-reported commit/configuration presence and previously recorded infrastructure
+probes. It never loads medical forms/results, user identifiers, error free text, raw logs,
+secrets or a production shell. Observations are bounded and sanitized before immutable storage
+in the existing run-event journal. Historical probes carry timestamps/staleness and explicitly
+unverified current health; environment-reported commits are not container image proof.
+
+The native connector uses a call/lease-scoped authenticated endpoint. The API worker collects
+inside its own authorized run lease. Cancellation, admin revocation and environment changes
+reject collection. Retry keys return the same snapshot/evidence ID. Admin readback is scoped
+by issue/environment and only returns recorded observations; refresh never initiates probes
+or paid analysis. Facts/hypotheses can cite these IDs, but server status cannot replace real
+regression proof or self-confirm a cause. The conversation labels this distinction explicitly.
+
+A failing regression exposed default submissions borrowing an older occurrence's stack when
+the newest occurrence had no stack. Submission now pins the latest occurrence before building
+its evidence package. Retries retain that original choice even when another failure arrives.
+Focused PostgreSQL verification passed 39 tests, including privacy, passive collection without
+count inflation, wrong lease, cancellation, cross-issue access, admin revocation, citation
+rules and actual connector HTTP dispatch/idempotent replay. Backend Ruff/mypy passed.
+Seven conversation UI tests, TypeScript build checking, Oxlint and regenerated OpenAPI/core
+contracts passed. Physical host/container
+inspection and live sanitized service-log collection remain unavailable; this tool does not
+claim to implement them. This code is not yet in the production application.
+
+Fresh commissioning readback: one CPU, 1399 MiB available RAM, 2562 MiB free disk; independent
+runtime and generation service healthy with zero restarts. Runtime still reports
+`awaiting_enrollment`, unauthenticated and no verified models. The previous device challenge
+expired without an authentication file. A fresh owner login is required; no laptop credentials
+were copied. New code is not claimed deployed from this liveness check.
+
 ### Germany execution target — owner selection, 2026-11-13
 
 The owner selected a separate supervised Germany runtime; the laptop remains optional.

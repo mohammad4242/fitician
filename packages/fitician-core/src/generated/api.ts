@@ -997,6 +997,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/server-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recorded Server Evidence */
+        get: operations["recorded_server_evidence_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__server_evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/stream": {
         parameters: {
             query?: never;
@@ -2110,6 +2127,23 @@ export type paths = {
         put?: never;
         /** Progress */
         post: operations["progress_api_v1_debug_connectors__connector_id__calls__call_id__progress_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/server-evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Server Evidence */
+        post: operations["server_evidence_api_v1_debug_connectors__connector_id__calls__call_id__server_evidence_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8905,6 +8939,16 @@ export type components = {
             /** Version */
             version: string | null;
         };
+        /** EvidenceRequest */
+        EvidenceRequest: {
+            /** Key */
+            key: string;
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
+        };
         /** ExerciseCategories */
         ExerciseCategories: {
             /** Body Regions */
@@ -13731,6 +13775,16 @@ export type components = {
             /** Title Fa */
             title_fa: string;
         };
+        /** ServerEvidenceResponse */
+        ServerEvidenceResponse: {
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /** Output */
+            output: string;
+        };
         /**
          * Sex
          * @enum {string}
@@ -14009,6 +14063,18 @@ export type components = {
              */
             request_id: string;
             status: components["schemas"]["SupportStatus"];
+        };
+        /** StoredServerEvidenceResponse */
+        StoredServerEvidenceResponse: {
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /** Output */
+            output?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "recorded" | "not_collected";
         };
         /** StructuredExerciseInput */
         StructuredExerciseInput: {
@@ -18084,6 +18150,38 @@ export interface operations {
             };
         };
     };
+    recorded_server_evidence_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__server_evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredServerEvidenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     stream_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__stream_get: {
         parameters: {
             query?: {
@@ -20572,6 +20670,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProgressResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    server_evidence_api_v1_debug_connectors__connector_id__calls__call_id__server_evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+                connector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerEvidenceResponse"];
                 };
             };
             /** @description Validation Error */

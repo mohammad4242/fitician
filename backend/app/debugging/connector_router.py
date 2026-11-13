@@ -9,6 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 
 from app.auth.dependencies import DatabaseSession
 
@@ -20,8 +21,9 @@ from .connector_schemas import (
     ProbePollResponse,
     ProbeStatusResponse,
     ProgressResponse,
+    ServerEvidenceResponse,
 )
-from .connectors import authenticate_connector, claim_call, finish_call, update_call
+from .connectors import _authorize_run, authenticate_connector, claim_call, finish_call, update_call
 from .models import DebugConnector, DebugConnectorCall, DebugRun
 
 router = APIRouter(prefix="/api/v1/debug-connectors", tags=["debug-connectors"])
@@ -59,6 +61,47 @@ class Completion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     lease_token: UUID
     result: dict[str, Any]
+
+
+class EvidenceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    key: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
+@router.post(
+    "/{connector_id}/calls/{call_id}/server-evidence", response_model=ServerEvidenceResponse
+)
+def server_evidence(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: EvidenceRequest,
+    db: DatabaseSession,
+) -> dict[str, str]:
+    from .server_evidence import collect
+
+    call = db.scalar(
+        select(DebugConnectorCall)
+        .where(
+            DebugConnectorCall.id == call_id,
+            DebugConnectorCall.connector_id == connector.id,
+        )
+        .with_for_update()
+    )
+    if call is None or call.lease_token != payload.lease_token or call.state != "running":
+        raise HTTPException(409, detail={"code": "connector_lease_lost"})
+    try:
+        run = db.get(DebugRun, call.run_id)
+        if run is None:
+            raise ValueError("run_not_found")
+        _authorize_run(db, run)
+        result = collect(db, run.id, payload.key, process_role="api", call_id=call.id)
+        db.commit()
+        return result
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(409, detail={"code": str(error)}) from None
 
 
 @router.post("/{connector_id}/heartbeat", response_model=HeartbeatResponse)

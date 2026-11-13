@@ -42,6 +42,15 @@ it("shows recorded tool evidence with its citation identity after reload", async
   expect(screen.getByText("evidence-42")).toBeInTheDocument();
 });
 
+it("labels passive server observations honestly after refresh", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? {
+    events: [{ id: "server-evidence-1", sequence: 1, kind: "tool_completed", payload: { tool: "fitician_server_evidence", output: '{"current_status":"not_verified"}', provenance: "server_observation" } }], next_cursor: 1,
+  } as never : { messages: [], runs: [{ id: "server-run", state: "completed", config: {}, error_code: null }], next_cursor: null } as never);
+  render(<DebugConversation issueId="server-issue" english={false} />);
+  expect(await screen.findByText(/مشاهدات ثبت‌شدهٔ سرور؛ سلامت فعلی تأیید نشده است/)).toBeInTheDocument();
+  expect(screen.getByText("server-evidence-1")).toBeInTheDocument();
+});
+
 it("shows the retained execution target and an honest Persian offline state", async () => {
   vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
     messages: [], next_cursor: null,

@@ -193,6 +193,19 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             async def tool_handler(name: str, arguments: dict[str, Any]) -> str:
                 nonlocal tool_number
                 tool_number += 1
+                if name == "fitician_server_evidence":
+                    from .server_evidence import collect
+
+                    with Session(engine) as db:
+                        result = collect(
+                            db,
+                            run_id,
+                            f"api-tool-{tool_number}",
+                            process_role="debug_worker",
+                            required_lease=lease_token,
+                        )
+                        db.commit()
+                    return json.dumps(result, ensure_ascii=False)
                 result = await call_connector(
                     engine, run_id, lease_token, f"api-tool-{tool_number}", name, arguments
                 )

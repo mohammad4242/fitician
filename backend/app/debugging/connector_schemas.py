@@ -65,3 +65,14 @@ class ProbePollResponse(StrictResponse):
 
 class ProbeStatusResponse(StrictResponse):
     authorized: bool
+
+
+class ServerEvidenceResponse(StrictResponse):
+    evidence_id: UUID
+    output: str = Field(max_length=28000)
+
+
+class StoredServerEvidenceResponse(StrictResponse):
+    state: Literal["recorded", "not_collected"]
+    evidence_id: UUID | None = None
+    output: str | None = Field(default=None, max_length=28000)

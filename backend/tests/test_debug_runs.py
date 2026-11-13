@@ -164,6 +164,41 @@ def test_run_pins_selected_occurrence_even_without_stack(db):
         )
 
 
+def test_default_occurrence_is_latest_and_retry_does_not_rebind(db):
+    from app.auth.models import User
+
+    actor = User(email="latest-admin@example.invalid", password_hash="unused", is_admin=True)
+    db.add(actor)
+    db.flush()
+    payload = EventInput(
+        component="api",
+        operation="latest",
+        stage="test",
+        platform="backend",
+        category="application_bug",
+        severity="error",
+        error_code="UNHANDLED_EXCEPTION",
+        outcome="failure",
+    )
+    old = record_event(
+        db,
+        EventInput.model_validate(
+            {
+                **payload.model_dump(),
+                "exception_evidence": {"values": [{"type": "ValueError", "frames": []}]},
+            }
+        ),
+    )
+    latest = record_event(db, payload)
+    assert old.issue_id == latest.issue_id
+    run = submit_message(db, latest.issue_id, actor.id, "inspect", "latest-request")
+    assert run.evidence["occurrence_id"] == str(latest.id)
+    assert run.evidence["snapshot"] is None
+    record_event(db, payload)
+    assert submit_message(db, latest.issue_id, actor.id, "inspect", "latest-request").id == run.id
+    assert run.evidence["occurrence_id"] == str(latest.id)
+
+
 def test_standalone_debug_worker_registers_its_orm_relationships():
     import subprocess
     import sys

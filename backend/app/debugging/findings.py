@@ -56,7 +56,7 @@ def proposal_payload(db: Session, run: DebugRun, payload: dict[str, Any]) -> dic
             event is None
             or event.run_id != run.id
             or event.kind != "tool_completed"
-            or event.payload.get("provenance") != "connector_tool"
+            or event.payload.get("provenance") not in {"connector_tool", "server_observation"}
             or not event.payload.get("output")
         ):
             raise ValueError("finding_evidence_not_found")

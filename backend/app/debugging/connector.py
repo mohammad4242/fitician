@@ -264,7 +264,19 @@ class LaptopConnector:
                     "fitician_commit": tools.commit_tested_patch,
                 }
                 value: Any
-                if name == "fitician_record_finding":
+                if name == "fitician_server_evidence":
+                    snapshot = await self.request(
+                        f"/calls/{identifier}/server-evidence",
+                        {"lease_token": job["lease_token"], "key": f"tool-{tool_count}"},
+                    )
+                    value = json.dumps(
+                        {
+                            "evidence_id": snapshot["evidence_id"],
+                            "observations": json.loads(snapshot["output"]),
+                        },
+                        ensure_ascii=False,
+                    )
+                elif name == "fitician_record_finding":
                     receipt = await emit("finding_proposed", arguments)
                     value = {"finding_id": receipt.get("evidence_id"), "state": "proposed"}
                 elif name == "fitician_run_tests":
