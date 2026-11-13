@@ -31,6 +31,7 @@ def thread_parameters(model: str, workspace: Path, tools: list[dict[str, Any]]) 
             "features.unified_exec": False,
             "web_search": "disabled",
             "features.enable_mcp_apps": False,
+            "features.plugins": False,
         },
         "dynamicTools": [dict(tool, type="function") for tool in tools],
         "developerInstructions": (
@@ -113,6 +114,8 @@ class AppServer:
             'web_search="disabled"',
             "-c",
             "mcp_servers={}",
+            "-c",
+            "features.plugins=false",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,

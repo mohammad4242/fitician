@@ -569,3 +569,33 @@ failed at network connection, before host-key verification or authentication. Th
 run was rejected by environment branch policy and is not SSH evidence. Private SSH works;
 sshd listens on 0.0.0.0/[::]:9011, and the host firewall has explicit 9011 allow rules. No firewall
 or environment protection was changed. Public/hosted deployment connectivity remains a gate.
+
+### Public Germany endpoint repaired; current runtime acceptance is still failing
+
+The verified host reports public IPv4 `141.11.175.231`; the former public endpoint
+`141.11.175.252` is stale. Public SSH to the current address passed the existing pinned host
+key and matched hostname and the original Agent container identity. Only the Germany GitHub
+Environment endpoint and known-host aliases were updated; the existing private key, host
+authorization and branch protections were preserved. Exact-target-hash readback from
+[main run 43381682486](https://github.com/mohammad4242/fitician/actions/runs/43381682486)
+succeeded. This clears hosted SSH access, not application release readiness.
+
+The updated real panel accepted the selected occurrence and selected Codex model. Pinned
+runtime startup worked, but authenticated model-catalog retrieval timed out and the inference
+stream failed before any repository tool ran. These failed/blocked runs remain in history;
+updated findings are not claimed live-verified from those attempts. A direct authenticated
+catalog probe also timed out, while an unauthenticated request returned 401. Dedicated auth
+metadata reports a non-expired access token, which alone does not prove provider acceptance.
+No model substitution or successful analysis was fabricated.
+
+Codex plugins are now explicitly disabled at process and thread configuration, alongside
+the existing native shell/apps/MCP restrictions. Actual config/read verifies the setting.
+A provider transport experiment was not retained as an effective fix: configuration readback
+alone did not establish the observed transport or solve the failed inference.
+
+Fresh Iran readback: API image `93413ad3`, workers/scheduler `2bde2fa9`, frontend `7c03e50d`,
+PostgreSQL pinned digest `9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15`,
+Alembic `20261018_175`; checked services healthy. Database size was about 291 MB and disk
+free about 10.7 GB. Compose lives in the release directory reported by Docker labels, not
+at the application root. No migration or application replacement occurred. Backup configuration
+and restore availability remain under investigation; no backup gate was claimed passed.
