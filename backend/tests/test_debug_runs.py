@@ -251,3 +251,53 @@ def test_offline_execution_target_blocks_before_any_provider_or_tool_action(
     assert run.state == "blocked"
     assert run.error_code == "execution_target_offline"
     assert not calls
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        '{"medical_form": "sensitive-fixture-never-persist"}',
+        '{"nested": {"request_body": {"photo": "sensitive-fixture-never-persist"}}}',
+        "medical_form: sensitive-fixture-never-persist",
+        "data:image/jpeg;base64,c2Vuc2l0aXZlLWZpeHR1cmU=",
+    ],
+)
+def test_sensitive_operator_pastes_are_rejected_before_conversation_persistence(db, content):
+    from sqlalchemy import func, select
+
+    from app.debugging.models import DebugMessage, DebugRun, DebugThread
+
+    before = [
+        db.scalar(select(func.count()).select_from(model))
+        for model in (DebugMessage, DebugRun, DebugThread)
+    ]
+    with pytest.raises(ValueError, match="sensitive_message_rejected"):
+        # Rejection happens before issue lookup or creation, never retaining the raw input.
+        submit_message(db, uuid4(), uuid4(), content, "private-paste-test")
+    assert before == [
+        db.scalar(select(func.count()).select_from(model))
+        for model in (DebugMessage, DebugRun, DebugThread)
+    ]
+
+
+def test_operator_text_preserves_source_references_and_scrubs_contact_values():
+    from app.debugging.privacy import validate_operator_message
+
+    safe = validate_operator_message(
+        "Inspect backend/app/main.py:42; contact debug@example.invalid"
+    )
+    assert "backend/app/main.py:42" in safe and "debug@example.invalid" not in safe
+    # Discussing the code identifier is permitted; pasting its payload is not.
+    assert validate_operator_message("Check why medical_form validation failed")
+    with pytest.raises(ValueError, match="sensitive_message_rejected"):
+        validate_operator_message(r'{"\u0074oken": "private-fixture"}')
+
+
+def test_quoted_credentials_in_model_and_tool_text_are_removed():
+    from app.debugging.privacy import sanitize_text
+
+    safe = sanitize_text(
+        'Evidence: {"api_key": "private credential fixture", "file": "backend/app/main.py"}'
+    )
+    assert "private credential fixture" not in safe
+    assert "backend/app/main.py" in safe

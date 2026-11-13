@@ -73,3 +73,15 @@ it.each([
   render(<DebugConversation issueId="issue-blocked" english={false} />);
   expect(await screen.findByText(new RegExp(explanation))).toBeInTheDocument();
 });
+
+it("explains rejected private payloads without displaying their contents", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(request).mockImplementation(async (_path, options) => {
+    if (options?.method === "POST") throw { code: "sensitive_message_rejected" };
+    return { messages: [], runs: [], next_cursor: null } as never;
+  });
+  render(<DebugConversation issueId="privacy-issue" english />);
+  fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect selected evidence" } });
+  fireEvent.click(screen.getByText("Send for analysis"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Remove private payloads and reference evidence IDs");
+});

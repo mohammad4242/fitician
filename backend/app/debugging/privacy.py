@@ -1,13 +1,71 @@
 """Defense-in-depth filtering for operator text and model/tool output."""
 
+import json
 import re
+
+_PRIVATE_FIELDS = {
+    "medicalform",
+    "healthform",
+    "requestbody",
+    "responsebody",
+    "rawrequest",
+    "rawresponse",
+    "prompt",
+    "completion",
+    "aiprompt",
+    "aicompletion",
+    "imagebase64",
+    "imageurl",
+    "photobase64",
+    "token",
+    "password",
+    "secret",
+    "cookie",
+    "authorization",
+    "apikey",
+    "credentials",
+}
+
+
+def validate_operator_message(value: str) -> str:
+    """Reject identifiable private payloads before creating any conversation records.
+
+    This is a bounded syntax guard, not a claim to detect all personal free text.
+    Operators must reference sanitized evidence instead of pasting original payloads.
+    """
+    if not value.strip() or len(value) > 8000:
+        raise ValueError("invalid_message")
+    keys = re.findall(r"""(?:^|[\s{,])['"]?([A-Za-z_][A-Za-z_-]*)['"]?\s*[:=]""", value)
+    if any(re.sub(r"[_-]", "", key).lower() in _PRIVATE_FIELDS for key in keys) or re.search(
+        r"(?i)data:(?:image|application)/[^\s;,]+(?:;[^,]*)?,", value
+    ):
+        raise ValueError("sensitive_message_rejected")
+    try:
+        structured = json.loads(value)
+    except (ValueError, RecursionError):
+        structured = None
+
+    def check(item: object, depth: int = 0) -> None:
+        if depth > 16:
+            raise ValueError("sensitive_message_rejected")
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if re.sub(r"[_-]", "", str(key)).lower() in _PRIVATE_FIELDS:
+                    raise ValueError("sensitive_message_rejected")
+                check(child, depth + 1)
+        elif isinstance(item, list):
+            for child in item:
+                check(child, depth + 1)
+
+    check(structured)
+    return sanitize_text(value).strip()
 
 
 def sanitize_text(value: str, *, limit: int = 32000) -> str:
     value = value[:limit]
     value = re.sub(r'(?i)\b(?:Bearer|Basic)\s+[^\s"\']+', "Bearer [redacted]", value)
     value = re.sub(
-        r"(?i)((?:api[_-]?key|token|password|secret|cookie|authorization)\s*[=:]\s*)[^\s,;]+",
+        r"""(?i)(["']?(?:api[_-]?key|token|password|secret|cookie|authorization)["']?\s*[=:]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)""",
         r"\1[redacted]",
         value,
     )

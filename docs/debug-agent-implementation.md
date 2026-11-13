@@ -55,6 +55,26 @@ Execution order and gates:
 
 ### Immutable full-release artifacts — implementation gates
 
+Operator submissions now reject recognizable structured medical forms, raw request/response
+payloads, AI prompt/completion payloads, embedded image data and credential fields **before**
+creating a conversation, message or run. Nested JSON keys (including Unicode escapes) are
+checked; code identifiers and evidence references remain usable. The panel explains rejection
+without echoing payloads, and quoted credentials in sanitized model/tool text are masked.
+This is a bounded syntax guard and operator collection policy, not a guarantee of semantic
+personal-data detection in arbitrary prose. Twenty-five run/gateway/API/runtime tests, eight
+conversation UI tests, Ruff/mypy, TypeScript and targeted Oxlint passed. No provider request
+or production application deployment was used to prove these local checks.
+
+The verified S3 ciphertext was restored off-server into PostgreSQL 18 with network disabled,
+no published ports and database files only in bounded tmpfs. All 155 source table counts,
+11 protected-table fingerprints, revision and FK validation state matched the same source
+snapshot. Migration rehearsal from `20261018_175` to `20261113_184` passed on this isolated
+copy (168 target tables); existing counts and protected fingerprints remained unchanged.
+Only migration code ran against the copy; no application workers or providers were started.
+The owned database container/tmpfs was removed afterward. Initial harness startup/socket-path
+failures are retained privately; they did not modify production. Production remains at 175.
+
+
 Docker 29 containerd and classic image stores exposed different `.Id` values for the same
 pinned PostgreSQL artifact. Release manifest production, offline export and deployment guards
 now compare the canonical OCI config digest: hashed config bytes, or an authenticated OCI

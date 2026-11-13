@@ -17,7 +17,7 @@ from app.observability.environment import diagnostics_environment
 from app.observability.evidence import evidence_package
 
 from .models import DebugMessage, DebugRun, DebugRunEvent, DebugThread
-from .privacy import sanitize_text
+from .privacy import validate_operator_message
 
 ACTIVE = (
     "queued",
@@ -71,10 +71,8 @@ def submit_message(
     occurrence_id: UUID | None = None,
     action: str = "analyze",
 ) -> DebugRun:
+    safe = validate_operator_message(content)
     thread = get_thread(db, issue_id)
-    safe = sanitize_text(content).strip()
-    if not safe or len(content) > 8000:
-        raise ValueError("invalid_message")
     if action not in ("analyze", "prepare_fix"):
         raise ValueError("unsupported_action")
     if occurrence_id is not None:

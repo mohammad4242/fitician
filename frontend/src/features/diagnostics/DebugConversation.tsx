@@ -37,6 +37,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
   const [content, setContent] = useState("");
   const [action, setAction] = useState("analyze");
   const [error, setError] = useState(false);
+  const [privatePayloadRejected, setPrivatePayloadRejected] = useState(false);
   const [sending, setSending] = useState(false);
   const base = `/api/v1/admin/diagnostics/issues/${encodeURIComponent(issueId)}`;
   const load = useCallback(async () => {
@@ -62,7 +63,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!content.trim() || sending) return;
-    setSending(true); setError(false);
+    setSending(true); setError(false); setPrivatePayloadRejected(false);
     try {
       const payload = JSON.stringify({ content, action, occurrence_id: occurrenceId || null });
       const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload)))].map(value => value.toString(16).padStart(2, "0")).join("");
@@ -74,7 +75,10 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       await request<Run>(`${base}/messages`, { method: "POST", headers: { "Idempotency-Key": key }, body: payload });
       sessionStorage.removeItem(storageKey);
       setContent(""); await load();
-    } catch { setError(true); } finally { setSending(false); }
+    } catch (cause) {
+      setPrivatePayloadRejected(typeof cause === "object" && cause !== null && "code" in cause && cause.code === "sensitive_message_rejected");
+      setError(true);
+    } finally { setSending(false); }
   }
   async function cancel() {
     if (!active) return;
@@ -101,10 +105,11 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
     </article>)}</div>
     {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{executionBlocker(run.error_code, english) && <> · {executionBlocker(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
     {conversation?.runs.slice(0, 5).map(run => <RunProgress key={run.id} base={base} run={run} english={english} />)}
-    {error && <p role="alert">{english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود."}</p>}
+    {error && <p role="alert">{privatePayloadRejected ? (english ? "Remove private payloads and reference evidence IDs. This message was not stored or sent to the model." : "اطلاعات خصوصی را حذف کنید و شناسهٔ شواهد را بنویسید. این پیام ذخیره یا برای مدل ارسال نشد.") : (english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود.")}</p>}
     <form onSubmit={event => void submit(event)}>
       <label>{english ? "Requested action" : "درخواست مجاز"}<select value={action} onChange={event => setAction(event.target.value)}><option value="analyze">{english ? "Investigate, read only" : "بررسی فقط‌خواندنی"}</option><option value="prepare_fix">{english ? "Prepare and test a fix in an isolated branch" : "آماده‌سازی و آزمون اصلاح در شاخهٔ جدا"}</option></select></label>
       <label>{english ? "Your message" : "پیام شما"}<textarea value={content} onChange={event => setContent(event.target.value)} maxLength={8000} rows={4} /></label>
+      <p>{english ? "Use evidence IDs. Do not paste medical forms, photos, credentials, raw requests or AI prompts." : "شناسهٔ شواهد را بنویسید؛ فرم پزشکی، عکس، رمز، درخواست خام یا متن ورودی هوش مصنوعی را اینجا نگذارید."}</p>
       <button type="submit" disabled={sending || Boolean(active) || !content.trim()}>{english ? "Send for analysis" : "ارسال برای بررسی"}</button>
       {active && <button type="button" onClick={() => void cancel()}>{english ? "Cancel run" : "لغو اجرا"}</button>}
     </form>
