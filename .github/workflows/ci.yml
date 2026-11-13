@@ -769,6 +769,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push backend image
+        id: backend_image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -844,6 +845,7 @@ jobs:
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
       - name: Build and push Agent Service image
+        id: agent_image
         uses: docker/build-push-action@v6
         with:
           context: ./agent-service
@@ -857,6 +859,46 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:main
           cache-from: type=gha,scope=fitician-agent
           cache-to: type=gha,mode=max,scope=fitician-agent
+
+      - name: Download the exact independently tested debug runtime
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-debug-runtime-${{ github.sha }}
+          path: .ci-evidence/debug-runtime-release
+      - name: Bind published image digests and tested runtime to this release
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        env:
+          BACKEND_DIGEST: ${{ steps.backend_image.outputs.digest }}
+          AGENT_DIGEST: ${{ steps.agent_image.outputs.digest }}
+          WEB_SENTRY_ENABLED: ${{ vars.VITE_SENTRY_DSN != '' }}
+        run: >-
+          python3 ops/release-manifest.py
+          --runtime-directory .ci-evidence/debug-runtime-release
+          --output .ci-evidence/release/manifest.json
+      - name: Retain the immutable release manifest
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-release-manifest-${{ github.sha }}
+          path: .ci-evidence/release/manifest.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Export the same tested Iran images for regional offline transfer
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        run: >-
+          python3 ops/export-offline-release.py
+          --manifest .ci-evidence/release/manifest.json
+          --directory .ci-evidence/offline-iran
+      - name: Retain the exact offline Iran release
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-offline-iran-${{ github.sha }}
+          path: .ci-evidence/offline-iran/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
   required-ci:
     name: Required CI

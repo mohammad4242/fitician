@@ -265,14 +265,35 @@ print("\n".join(dict.fromkeys(images)))
   fail 'Candidate Compose images could not be verified'
 fi
 if [[ "$inspect_only" != true ]]; then
+  manifest_guard=false
+  if [[ "${REQUIRE_RELEASE_MANIFEST:-false}" == true && ( "$kind" == full || "$kind" == agent ) ]]; then
+    [[ "${CI_RUN_ID:-}" =~ ^[0-9]+$ ]] || fail 'Exact manifest CI run is required'
+    [[ -f "$release_dir/manifest.json" ]] || fail 'Reviewed release manifest is missing'
+    manifest_guard=true
+  fi
   if [[ "$image_source" == registry ]]; then
-    compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
-      pull "${image_services[@]}" || fail 'Unable to pull regional immutable images'
+    if [[ "$manifest_guard" == true ]]; then
+      python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+        --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+        --mode prepare-registry --project "$project" || fail 'Release image identity check failed'
+      if [[ "$region" == iran ]]; then
+        compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
+          pull db redis caddy || fail 'Unable to pull pinned infrastructure images'
+      fi
+    else
+      compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
+        pull "${image_services[@]}" || fail 'Unable to pull regional immutable images'
+    fi
   else
     while IFS= read -r image; do
       [[ -n "$image" ]] || continue
       docker image inspect "$image" >/dev/null 2>&1 || fail 'A required preloaded immutable image is missing'
     done <<< "$image_refs"
+  fi
+  if [[ "$manifest_guard" == true ]]; then
+    python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+      --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+      --mode verify-local --project "$project" || fail 'Preloaded release differs from reviewed artifact'
   fi
 fi
 
@@ -712,6 +733,15 @@ if [[ "${backend_rolling_verified:-false}" != true ]] && ! REGION="$region" DEPL
   COMPOSE_FILE="$compose_file" sh "$release_dir/ops/verify-regional.sh"; then
   rollback || true
   exit 1
+fi
+
+if [[ "${manifest_guard:-false}" == true ]]; then
+  if ! python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+    --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+    --mode verify-running --project "$project"; then
+    rollback || true
+    exit 1
+  fi
 fi
 
 umask 077

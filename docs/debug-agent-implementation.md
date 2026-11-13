@@ -20,7 +20,7 @@ and this document are preserved. PR 42 remains a synthetic acceptance PR, never 
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
 | Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | own login and production enrollment pending | commissioning service on Germany | health/limits/image yes; inference/panel no |
 | API model tool loop | committed | mocked provider protocol | production selection/probe pending | no | actual API tool call pending |
-| Isolated repair/test/PR | committed, limited unittest profile | real seeded failure/fix/test/PR 42 | local GitHub broker | no | synthetic staging only |
+| Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated Germany GitHub credential absent | no | no Germany PR publication proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
 | Native exact release identity/iOS ingestion | implemented | 34 backend, 14 core, 7 mobile tests; native crash pending | EAS Sentry variables absent at last inspection | no | no native release crash proof |
 | Artifact-bound deployment and verification | incomplete | pending | existing regional owner gates retained | no | pending |
@@ -52,6 +52,44 @@ Execution order and gates:
 - [ ] Phase 9: EAS configuration/private symbols and actual supported release-crash acceptance;
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
+
+### Immutable full-release artifacts — implementation gates
+
+Full CI now records a strict release manifest containing exact registry digest references,
+locally read-back image configuration IDs, CI run/attempt and source commit. The already tested
+independent runtime archive is included by checksum/image identity; its automation smoke must
+also prove isolation, graceful stop and restart persistence. Source-map upload state and the
+completed public-layer privacy gate are explicit. Backend image dependencies now use the
+existing pinned uv tool and frozen lockfile, instead of resolving broad pyproject ranges again.
+
+The regional full/Agent release gate downloads the manifest from the exact successful CI run;
+optional `expected_manifest_sha256` binds panel authorization to its original bytes. Protected
+owner approval and branch policy remain. The deployment job rechecks the hash before SSH and
+refuses overwriting an existing SHA release directory with a different manifest. Registry mode
+pulls exact digest references, validates their image IDs and assigns the existing local SHA
+aliases. Application startup still uses `--pull never`; immutable identity is checked before
+migrations/startup and again against each actual running container's `.Image`. Infrastructure
+images retain their existing pinned references and volumes.
+
+The same already built Iran backend/frontend images are exported once into a CI offline
+artifact. Preloaded full deployment downloads it from the same verified run, validates manifest
+and archive hashes, checks transfer/load headroom, then loads images without restarting services.
+Loaded IDs must match the reviewed manifest before deployment proceeds. Archives and previous
+images are preserved; no global Docker cleanup or volume recreation was added. Existing component
+fast paths retain their separate contracts; the repair deployment broker is not yet implemented.
+
+Local checks passed two strict manifest tests, five image/archive/authorization guard tests,
+the existing 52 release/regional regressions, Bash syntax, YAML parsing and focused Ruff/mypy.
+Actual image publication/offline transfer/new full release has not run: those paths require a
+reviewed main release, current CI artifacts, production backup/isolated restore and existing
+owner gates. Iran's configured backup service/timer and dedicated backup.env were absent at
+readback; the backup destination remains a genuine external prerequisite. No production DB
+migration or deployment was performed.
+
+All four controlled validation profiles passed in
+[CI 43462627498](https://github.com/mohammad4242/fitician/actions/runs/43462627498)
+for `d9ba8c78` before its remaining long-running jobs were superseded. That run was cancelled
+by the next scoped commit; it is profile evidence, not a green required-CI or release gate.
 
 ### Durable Germany automation channel — code verification
 

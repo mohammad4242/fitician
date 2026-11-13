@@ -4,12 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+from app.debugging.release_contract import validate_release
 
 SPEC = importlib.util.spec_from_file_location(
     "classifier", Path(__file__).with_name("ci-classify.py")
@@ -72,8 +77,10 @@ def release_path(plan: dict, jobs: list[dict], sha: str) -> str:
         ):
             raise ValueError("Invalid selective baseline proof")
         for name in (
-            "Dependency audit", "Production Compose and deployment checks",
-            "Isolated Iran and Germany HTTP smoke", "Build and publish immutable production images",
+            "Dependency audit",
+            "Production Compose and deployment checks",
+            "Isolated Iran and Germany HTTP smoke",
+            "Build and publish immutable production images",
         ):
             if not passed(name):
                 raise ValueError(f"Missing successful selective check: {name}")
@@ -105,7 +112,9 @@ def release_path(plan: dict, jobs: list[dict], sha: str) -> str:
     return "component"
 
 
-def require_selective_evidence(repository: str, plan: dict, sha: str, directory: Path) -> None:
+def require_selective_evidence(
+    repository: str, plan: dict, sha: str, directory: Path
+) -> None:
     if plan.get("sha") != sha or not plan.get("selective_ci_required"):
         raise SystemExit("Invalid exact-SHA selective release plan")
     proof = plan.get("baseline", {})
@@ -115,7 +124,42 @@ def require_selective_evidence(repository: str, plan: dict, sha: str, directory:
     evidence = classifier.baseline.load_run(repository, run_id, directory)
     verified = classifier.baseline.verify(evidence, repository, sha)
     if proof != verified or plan.get("changed_paths") != verified["changed_paths"]:
-        raise SystemExit("Selective release proof does not match the actual candidate tree")
+        raise SystemExit(
+            "Selective release proof does not match the actual candidate tree"
+        )
+
+
+def require_release_manifest(
+    repository: str, run_id: int, sha: str, directory: Path
+) -> str:
+    result = subprocess.run(
+        [
+            "gh",
+            "run",
+            "download",
+            str(run_id),
+            "--repo",
+            repository,
+            "--name",
+            "fitician-release-manifest-" + sha,
+            "--dir",
+            str(directory),
+        ],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ValueError("Exact CI release manifest is unavailable")
+    path = directory / "manifest.json"
+    if path.stat().st_size > 16384:
+        raise ValueError("Release manifest exceeds limit")
+    content = path.read_bytes()
+    validate_release(json.loads(content), commit=sha, ci_run_id=run_id)
+    digest = hashlib.sha256(content).hexdigest()
+    expected = os.environ.get("EXPECTED_MANIFEST_SHA256", "")
+    if expected and (not re.fullmatch(r"[a-f0-9]{64}", expected) or expected != digest):
+        raise ValueError("Release manifest no longer matches deployment authorization")
+    return digest
 
 
 def main() -> None:
@@ -167,6 +211,13 @@ def main() -> None:
         raise SystemExit(
             "Full image release requires complete or verified selective CI and published images"
         )
+    if args.require_full:
+        digest = require_release_manifest(
+            repository, int(args.run_id), args.sha, args.directory
+        )
+        if os.environ.get("GITHUB_OUTPUT"):
+            with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
+                print(f"manifest_sha256={digest}", file=stream)
     print(f"Verified release path={path}; sha={args.sha}; CI run={args.run_id}")
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
