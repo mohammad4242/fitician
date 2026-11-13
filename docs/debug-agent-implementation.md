@@ -86,12 +86,29 @@ owner gates. Iran's configured backup service/timer and dedicated backup.env wer
 readback; the backup destination remains a genuine external prerequisite. No production DB
 migration or deployment was performed.
 
+Follow-up: the owner selected creating a dedicated private backup bucket in the existing S3
+account. That bucket was created successfully, its owner-only ACL and 30-day lifecycle were
+read back, an authenticated synthetic object read succeeded, and anonymous object/list reads
+both returned 403. The synthetic probe was removed. Bucket/configuration evidence remains in
+ignored private setup files; no keys or destination credentials entered Git. Encryption identity,
+backup transport installation and actual backup/isolated restore are still pending; bucket
+creation alone does not pass the migration gate. Existing media buckets/policies were untouched.
+
 All four controlled validation profiles passed in
 [CI 43462627498](https://github.com/mohammad4242/fitician/actions/runs/43462627498)
 for `d9ba8c78` before its remaining long-running jobs were superseded. That run was cancelled
 by the next scoped commit; it is profile evidence, not a green required-CI or release gate.
 
 ### Durable Germany automation channel — code verification
+
+[CI 43464283837](https://github.com/mohammad4242/fitician/actions/runs/43464283837)
+passed the independent runtime image smoke, including the new automation process lifecycle.
+Its backend job passed 1161 tests and failed the existing OpenAPI contract gate: five automation
+responses still exposed unstructured top-level dictionaries. Those responses now use strict
+named schemas for heartbeat, leased job polling, authorization and progress; generated shared
+contracts were refreshed without weakening the existing test. Fifteen focused contract/API/
+publication tests passed after correction. A complete green CI for the current commit remains
+required; none of these profile/image results authorizes a production deployment by itself.
 
 Draft PR publication now uses that same separate broker. `fitician_ci_publish_pr` is offered
 only for an explicitly authorized repair run; it requires an actual successful validation

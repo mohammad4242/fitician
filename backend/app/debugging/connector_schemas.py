@@ -108,3 +108,31 @@ class AutomationAvailability(StrictResponse):
     live_validation_verified: bool
     policy_commit: str | None
     error_code: str | None
+
+
+class AutomationHeartbeatResponse(StrictResponse):
+    connected: bool
+    environment: str
+
+
+class AutomationJob(OperationResponse):
+    lease_token: UUID
+    request: dict[str, Any]
+    repository: str
+
+
+class AutomationPollResponse(StrictResponse):
+    job: AutomationJob | None
+
+
+class AutomationAuthorizationResponse(StrictResponse):
+    authorized: bool
+    cancel_requested: bool
+    state: str
+
+
+class AutomationProgressResponse(StrictResponse):
+    operation: OperationResponse
+    disposition: Literal[
+        "recorded", "reconcile_only", "dispatch_once", "cancel_once", "publish_once"
+    ]

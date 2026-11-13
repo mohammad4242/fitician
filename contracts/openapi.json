@@ -6070,6 +6070,30 @@
         "title": "AthleteStateTrendDirection",
         "type": "string"
       },
+      "AutomationAuthorizationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized": {
+            "title": "Authorized",
+            "type": "boolean"
+          },
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorized",
+          "cancel_requested",
+          "state"
+        ],
+        "title": "AutomationAuthorizationResponse",
+        "type": "object"
+      },
       "AutomationAvailability": {
         "additionalProperties": false,
         "properties": {
@@ -6143,6 +6167,183 @@
         "title": "AutomationAvailability",
         "type": "object"
       },
+      "AutomationHeartbeatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "environment"
+        ],
+        "title": "AutomationHeartbeatResponse",
+        "type": "object"
+      },
+      "AutomationJob": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "validate",
+              "publish_pr",
+              "deploy"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile"
+          },
+          "purpose": {
+            "enum": [
+              "connection_check",
+              "repair_validation",
+              "repair_publication"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Digest"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "occurrence_id",
+          "environment",
+          "kind",
+          "state",
+          "error_code",
+          "cancel_requested",
+          "profile",
+          "purpose",
+          "snapshot_digest",
+          "result",
+          "created_at",
+          "updated_at",
+          "lease_token",
+          "request",
+          "repository"
+        ],
+        "title": "AutomationJob",
+        "type": "object"
+      },
+      "AutomationPollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutomationJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "AutomationPollResponse",
+        "type": "object"
+      },
       "AutomationProbeInput": {
         "additionalProperties": false,
         "properties": {
@@ -6156,6 +6357,31 @@
           "occurrence_id"
         ],
         "title": "AutomationProbeInput",
+        "type": "object"
+      },
+      "AutomationProgressResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "enum": [
+              "recorded",
+              "reconcile_only",
+              "dispatch_once",
+              "cancel_once",
+              "publish_once"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/OperationResponse"
+          }
+        },
+        "required": [
+          "operation",
+          "disposition"
+        ],
+        "title": "AutomationProgressResponse",
         "type": "object"
       },
       "BalanceAbility": {
@@ -42150,9 +42376,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Heartbeat Api V1 Debug Automation  Worker Id  Heartbeat Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AutomationHeartbeatResponse"
                 }
               }
             },
@@ -42210,9 +42434,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Status Api V1 Debug Automation  Worker Id  Operations  Operation Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/OperationResponse"
                 }
               }
             },
@@ -42280,9 +42502,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Authorize Api V1 Debug Automation  Worker Id  Operations  Operation Id  Authorize Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AutomationAuthorizationResponse"
                 }
               }
             },
@@ -42350,9 +42570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Progress Api V1 Debug Automation  Worker Id  Operations  Operation Id  Progress Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AutomationProgressResponse"
                 }
               }
             },
@@ -42400,9 +42618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Poll Api V1 Debug Automation  Worker Id  Poll Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/AutomationPollResponse"
                 }
               }
             },

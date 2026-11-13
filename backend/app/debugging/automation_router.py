@@ -14,6 +14,13 @@ from sqlalchemy import select
 from app.auth.dependencies import DatabaseSession
 
 from .automation import authorize_operation, claim_operation, operation_json
+from .connector_schemas import (
+    AutomationAuthorizationResponse,
+    AutomationHeartbeatResponse,
+    AutomationPollResponse,
+    AutomationProgressResponse,
+    OperationResponse,
+)
 from .connectors import authenticate_connector
 from .models import DebugConnector, DebugOperation
 
@@ -70,7 +77,7 @@ class Heartbeat(BaseModel):
     error_code: str | None = Field(default=None, pattern=r"^[a-z_]{3,64}$")
 
 
-@router.post("/{worker_id}/heartbeat")
+@router.post("/{worker_id}/heartbeat", response_model=AutomationHeartbeatResponse)
 def heartbeat(
     worker_id: UUID, worker: Worker, payload: Heartbeat, db: DatabaseSession
 ) -> dict[str, Any]:
@@ -80,7 +87,7 @@ def heartbeat(
     return {"connected": True, "environment": worker.environment}
 
 
-@router.post("/{worker_id}/poll")
+@router.post("/{worker_id}/poll", response_model=AutomationPollResponse)
 def poll(worker_id: UUID, worker: Worker, db: DatabaseSession) -> dict[str, Any]:
     worker.last_seen = datetime.now(UTC)
     row = claim_operation(db, worker)
@@ -98,7 +105,7 @@ def poll(worker_id: UUID, worker: Worker, db: DatabaseSession) -> dict[str, Any]
     return {"job": value}
 
 
-@router.get("/{worker_id}/operations/{operation_id}")
+@router.get("/{worker_id}/operations/{operation_id}", response_model=OperationResponse)
 def status(
     worker_id: UUID, operation_id: UUID, worker: Worker, db: DatabaseSession
 ) -> dict[str, Any]:
@@ -114,7 +121,10 @@ def status(
     return operation_json(row)
 
 
-@router.post("/{worker_id}/operations/{operation_id}/authorize")
+@router.post(
+    "/{worker_id}/operations/{operation_id}/authorize",
+    response_model=AutomationAuthorizationResponse,
+)
 def authorize(
     worker_id: UUID, operation_id: UUID, worker: Worker, payload: Intent, db: DatabaseSession
 ) -> dict[str, Any]:
@@ -147,7 +157,9 @@ def authorize(
         raise HTTPException(409, detail={"code": "automation_lease_or_authority_lost"}) from None
 
 
-@router.post("/{worker_id}/operations/{operation_id}/progress")
+@router.post(
+    "/{worker_id}/operations/{operation_id}/progress", response_model=AutomationProgressResponse
+)
 def progress(
     worker_id: UUID, operation_id: UUID, worker: Worker, payload: Receipt, db: DatabaseSession
 ) -> dict[str, Any]:

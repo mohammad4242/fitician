@@ -7005,6 +7005,15 @@ export type components = {
          * @enum {string}
          */
         AthleteStateTrendDirection: "increasing" | "decreasing" | "stable" | "unknown";
+        /** AutomationAuthorizationResponse */
+        AutomationAuthorizationResponse: {
+            /** Authorized */
+            authorized: boolean;
+            /** Cancel Requested */
+            cancel_requested: boolean;
+            /** State */
+            state: string;
+        };
         /** AutomationAvailability */
         AutomationAvailability: {
             /** Configured */
@@ -7022,6 +7031,73 @@ export type components = {
             /** Worker Name */
             worker_name: string | null;
         };
+        /** AutomationHeartbeatResponse */
+        AutomationHeartbeatResponse: {
+            /** Connected */
+            connected: boolean;
+            /** Environment */
+            environment: string;
+        };
+        /** AutomationJob */
+        AutomationJob: {
+            /** Cancel Requested */
+            cancel_requested: boolean;
+            /** Created At */
+            created_at: string;
+            /** Environment */
+            environment: string;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "validate" | "publish_pr" | "deploy";
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
+            /** Occurrence Id */
+            occurrence_id: string | null;
+            /** Profile */
+            profile: string | null;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "connection_check" | "repair_validation" | "repair_publication";
+            /** Repository */
+            repository: string;
+            /** Request */
+            request: {
+                [key: string]: unknown;
+            };
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Snapshot Digest */
+            snapshot_digest: string | null;
+            /** State */
+            state: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** AutomationPollResponse */
+        AutomationPollResponse: {
+            job: components["schemas"]["AutomationJob"] | null;
+        };
         /** AutomationProbeInput */
         AutomationProbeInput: {
             /**
@@ -7029,6 +7105,15 @@ export type components = {
              * Format: uuid
              */
             occurrence_id: string;
+        };
+        /** AutomationProgressResponse */
+        AutomationProgressResponse: {
+            /**
+             * Disposition
+             * @enum {string}
+             */
+            disposition: "recorded" | "reconcile_only" | "dispatch_once" | "cancel_once" | "publish_once";
+            operation: components["schemas"]["OperationResponse"];
         };
         /**
          * BalanceAbility
@@ -21254,9 +21339,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AutomationHeartbeatResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21288,9 +21371,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21326,9 +21407,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AutomationAuthorizationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21364,9 +21443,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AutomationProgressResponse"];
                 };
             };
             /** @description Validation Error */
@@ -21397,9 +21474,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AutomationPollResponse"];
                 };
             };
             /** @description Validation Error */
