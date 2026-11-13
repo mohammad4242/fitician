@@ -181,3 +181,38 @@ def test_standalone_debug_worker_registers_its_orm_relationships():
         cwd=__import__("pathlib").Path(__file__).resolve().parents[1],
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_offline_execution_target_blocks_before_any_provider_or_tool_action(
+    db, test_settings, monkeypatch
+):
+    import asyncio
+
+    from app.debugging import worker
+    from tests.test_debug_gateway import setup_run
+
+    _, run, connector, _ = setup_run(db)
+    run.config_snapshot = {
+        "enabled": True,
+        "execution_backend": "agent_service",
+        "agent_name": "codex",
+        "agent_model_id": "selected-model",
+        "connector_id": str(connector.id),
+    }
+    connector.last_seen = None
+    db.flush()
+    calls = []
+
+    async def forbidden(*args, **kwargs):
+        calls.append(args)
+        raise ValueError("unexpected_runtime_call")
+
+    monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
+    monkeypatch.setattr(worker, "call_connector", forbidden)
+    import uuid
+
+    asyncio.run(worker.execute_run(test_settings, run.id, uuid.UUID(str(run.lease_token))))
+    db.expire_all()
+    assert run.state == "blocked"
+    assert run.error_code == "execution_target_offline"
+    assert not calls

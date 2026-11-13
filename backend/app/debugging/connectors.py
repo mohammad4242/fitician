@@ -91,6 +91,10 @@ def enqueue_call(
         or thread is None
         or connector.environment != thread.environment
         or connector.repository != REPOSITORY
+        or (
+            run.config_snapshot.get("connector_id") is not None
+            and run.config_snapshot["connector_id"] != str(connector.id)
+        )
     ):
         raise ValueError("connector_scope_mismatch")
     if run.state not in ACTIVE or run.cancel_requested or tool not in TOOLS:
@@ -205,6 +209,13 @@ def _authorize_run(db: Session, run: DebugRun) -> None:
         or thread.environment != diagnostics_environment()
     ):
         raise ValueError("run_no_longer_authorized")
+    expected = run.config_snapshot.get("connector_capabilities")
+    if expected is not None and run.config_snapshot.get("connector_id"):
+        from .runtime_profiles import authorized_target, execution_capabilities
+
+        target = authorized_target(db, run.config_snapshot["connector_id"])
+        if execution_capabilities(target) != expected:
+            raise ValueError("execution_target_changed")
 
 
 def update_call(

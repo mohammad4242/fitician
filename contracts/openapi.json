@@ -79,6 +79,18 @@
           "credential": {
             "$ref": "#/components/schemas/CredentialStatus"
           },
+          "debug_connector_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Connector Id"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
@@ -268,6 +280,18 @@
               }
             ],
             "title": "Api Key"
+          },
+          "debug_connector_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Connector Id"
           },
           "enabled": {
             "default": false,
@@ -8987,9 +9011,26 @@
             "title": "Repository Head",
             "type": "string"
           },
+          "runtime_revision": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Revision"
+          },
           "supports_codex": {
             "default": false,
             "title": "Supports Codex",
+            "type": "boolean"
+          },
+          "supports_github": {
+            "default": false,
+            "title": "Supports Github",
             "type": "boolean"
           },
           "supports_tests": {

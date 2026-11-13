@@ -79,6 +79,21 @@ def test_health_rejects_stale_missing_and_future_heartbeat(tmp_path):
     assert server_runtime.healthy(path)
 
 
+def test_revoked_connector_is_not_reported_connected_from_a_recent_success(tmp_path):
+    from types import SimpleNamespace
+
+    runtime = server_runtime.Supervisor(tmp_path / "config.json", tmp_path / "state")
+    runtime.connector = SimpleNamespace(
+        last_contact=time.monotonic(),
+        connection_error="connector_authorization_rejected",
+        authenticated=False,
+        cli_version=None,
+        models=[],
+    )
+    assert runtime.status()["connected"] is False
+    assert runtime.status()["state"] == "connector_authorization_rejected"
+
+
 def test_exact_release_fetch_is_fixed_origin_and_refuses_model_remote_or_ref(tmp_path, monkeypatch):
     from app.debugging.runtime_storage import ensure_release
 

@@ -6119,6 +6119,8 @@ export type components = {
             /** Agent Profile Id */
             agent_profile_id: string | null;
             credential: components["schemas"]["CredentialStatus"];
+            /** Debug Connector Id */
+            debug_connector_id?: string | null;
             /** Enabled */
             enabled: boolean;
             execution_backend: components["schemas"]["AIExecutionBackend"];
@@ -6158,6 +6160,8 @@ export type components = {
             agent_profile_id?: string | null;
             /** Api Key */
             api_key?: string | null;
+            /** Debug Connector Id */
+            debug_connector_id?: string | null;
             /**
              * Enabled
              * @default false
@@ -7787,11 +7791,18 @@ export type components = {
             models?: string[];
             /** Repository Head */
             repository_head: string;
+            /** Runtime Revision */
+            runtime_revision?: string | null;
             /**
              * Supports Codex
              * @default false
              */
             supports_codex: boolean;
+            /**
+             * Supports Github
+             * @default false
+             */
+            supports_github: boolean;
             /**
              * Supports Tests
              * @default false

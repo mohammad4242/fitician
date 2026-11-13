@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { request } from "../../shared/apiClient";
 
-interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string }; evidence_id: string | null; occurrence_id?: string | null }
+interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string; connector_name?: string | null }; evidence_id: string | null; occurrence_id?: string | null }
 interface Message { id: string; role: string; content: string; created_at: string }
 interface Conversation { messages: Message[]; runs: Run[]; next_cursor: string | null }
 const activeStates = new Set(["queued", "investigating", "editing", "testing", "awaiting_authorization", "deploying", "verifying"]);
@@ -76,7 +76,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>
-    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{run.error_code === "execution_target_offline" && <> · {english ? "The selected execution target is offline. Check its connection." : "اتصال اجرای منتخب آفلاین است. اتصال آن را بررسی کنید."}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
     {conversation?.runs.slice(0, 5).map(run => <RunProgress key={run.id} base={base} run={run} english={english} />)}
     {error && <p role="alert">{english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود."}</p>}
     <form onSubmit={event => void submit(event)}>

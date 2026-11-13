@@ -89,6 +89,22 @@ def test_authority_is_rechecked_after_enqueue_and_cancel(db):
         enqueue_call(db, run, connector, "read-next", "fitician_read_file", {"path": "bug.py"})
 
 
+def test_pending_tool_is_not_claimed_after_execution_capabilities_change(db):
+    from app.debugging.runtime_profiles import execution_capabilities
+
+    _, run, connector, _ = setup_run(db)
+    run.config_snapshot = {
+        "connector_id": str(connector.id),
+        "connector_capabilities": execution_capabilities(connector),
+    }
+    row = enqueue_call(db, run, connector, "read", "fitician_read_file", {"path": "bug.py"})
+    connector.capabilities = {**connector.capabilities, "supports_tests": True}
+    db.flush()
+    with pytest.raises(ValueError, match="execution_target_changed"):
+        claim_call(db, connector)
+    assert row.state == "queued" and row.lease_token is None
+
+
 def test_tool_output_is_durable_sanitized_citable_and_retry_safe(db):
     from uuid import UUID
 

@@ -50,6 +50,8 @@ class Capabilities(BaseModel):
     models: list[str] = Field(default_factory=list, max_length=100)
     supports_codex: bool = False
     supports_tests: bool = False
+    supports_github: bool = False
+    runtime_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
     repository_head: str = Field(pattern=r"^[a-f0-9]{40}$")
 
 

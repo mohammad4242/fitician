@@ -24,3 +24,35 @@ it("downloads the once-returned credential without displaying it or using browse
   expect(JSON.stringify(sessionStorage)).not.toContain(secret);
   click.mockRestore();
 });
+
+it("retains the explicitly selected offline server while a laptop is online", async () => {
+  const change = vi.fn();
+  vi.mocked(request).mockResolvedValue([
+    { id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: null, capabilities: {} },
+    { id: "laptop", name: "Laptop", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: {} },
+  ]);
+  render(<DebugConnectors english showExecutionTarget selectedTarget="germany" onSelectTarget={change} />);
+  await screen.findByRole("option", { name: /Germany/ });
+  expect(screen.getByRole("combobox", { name: "Tool execution target" })).toHaveValue("germany");
+  expect(change).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByRole("combobox", { name: "Tool execution target" }), { target: { value: "laptop" } });
+  expect(change).toHaveBeenCalledWith("laptop");
+});
+
+it("keeps an unavailable saved target visible instead of clearing it", async () => {
+  vi.mocked(request).mockResolvedValue([]);
+  render(<DebugConnectors english showExecutionTarget selectedTarget="missing-target" onSelectTarget={vi.fn()} />);
+  expect(await screen.findByRole("option", { name: "Selected target unavailable" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Tool execution target" })).toHaveValue("missing-target");
+});
+
+it("enrolls the Germany runtime separately from the optional laptop", async () => {
+  vi.mocked(request).mockResolvedValueOnce([]).mockResolvedValueOnce({ id: "connector-1", token: "private-fixture", environment: "production", repository: "mohammad4242/fitician" }).mockResolvedValue([]);
+  URL.createObjectURL = vi.fn(() => "blob:private-config");
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  render(<DebugConnectors english />);
+  expect(screen.getByRole("combobox", { name: "New connector location" })).toHaveValue("server");
+  fireEvent.click(screen.getByRole("button", { name: "Enroll and download private configuration" }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith("/api/v1/admin/diagnostics/connectors", { method: "POST", body: JSON.stringify({ name: "Germany debug runtime" }) }));
+  click.mockRestore();
+});

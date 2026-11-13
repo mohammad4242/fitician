@@ -41,3 +41,14 @@ it("shows recorded tool evidence with its citation identity after reload", async
   expect(await screen.findByText("bug.py:2: return a + b")).toBeInTheDocument();
   expect(screen.getByText("evidence-42")).toBeInTheDocument();
 });
+
+it("shows the retained execution target and an honest Persian offline state", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], next_cursor: null,
+    runs: [{ id: "run-offline", state: "blocked", error_code: "execution_target_offline", config: { agent_model_id: "chosen-model", connector_name: "Germany server" }, evidence_id: null, occurrence_id: "occurrence-server" }],
+  } as never);
+  render(<DebugConversation issueId="issue-offline" english={false} occurrenceId="occurrence-server" />);
+  expect(await screen.findByText(/اتصال اجرای منتخب آفلاین است/)).toBeInTheDocument();
+  expect(screen.getByText("Germany server")).toBeInTheDocument();
+  expect(screen.getByText("chosen-model")).toBeInTheDocument();
+});

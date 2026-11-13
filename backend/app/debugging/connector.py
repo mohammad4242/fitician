@@ -8,6 +8,7 @@ import fcntl
 import json
 import os
 import re
+import shutil
 import threading
 import time
 from collections.abc import Callable
@@ -95,6 +96,7 @@ class LaptopConnector:
         self.authenticated: bool | None = None
         self.last_contact = 0.0
         self.connection_error: str | None = None
+        self.github_available = bool(self.config.get("github_enabled", True) and shutil.which("gh"))
 
     def codex_server(self) -> AppServer:
         executable = self.config.get("codex_executable")
@@ -160,6 +162,12 @@ class LaptopConnector:
                 "models": self.models,
                 "supports_codex": bool(self.models),
                 "supports_tests": bool(self.config.get("test_image")),
+                "supports_github": self.github_available,
+                "runtime_revision": (
+                    os.environ["FITICIAN_RUNTIME_COMMIT"]
+                    if re.fullmatch(r"[a-f0-9]{40}", os.environ.get("FITICIAN_RUNTIME_COMMIT", ""))
+                    else None
+                ),
                 "repository_head": (
                     await asyncio.to_thread(_git, self.repository, "rev-parse", "HEAD")
                 ).strip(),
@@ -234,7 +242,7 @@ class LaptopConnector:
                 for item in tool_catalog(
                     allow_write=tools.allow_write,
                     supports_tests=bool(self.config.get("test_image")),
-                    supports_github=self.config.get("github_enabled", True),
+                    supports_github=self.github_available,
                 )
             }
 

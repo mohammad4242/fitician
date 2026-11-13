@@ -197,6 +197,7 @@ def config_detail(
         agent_name=config.agent_name,
         agent_model_id=config.agent_model_id,
         agent_profile_id=config.agent_profile_id,
+        debug_connector_id=config.debug_connector_id,
         enabled=config.enabled,
         primary_model_id=config.primary_model_id,
         fallback_model_ids=list(config.fallback_model_ids),
@@ -253,6 +254,7 @@ def save_task_config(
     agent_name = effective("agent_name")
     agent_model_id = effective("agent_model_id")
     agent_profile_id = effective("agent_profile_id")
+    debug_connector_id = effective("debug_connector_id")
     primary_model_id = effective("primary_model_id")
     fallback_model_ids = effective("fallback_model_ids", [])
 
@@ -264,6 +266,16 @@ def save_task_config(
         raise AIConfigError(
             "FOOD_PRICE_SEARCH must use Agent Service for production price research"
         )
+
+    if debug_connector_id is not None:
+        if task_type is not AITaskType.DEBUG_AGENT:
+            raise AIConfigError("Execution targets are only supported for debug_agent")
+        from app.debugging.runtime_profiles import authorized_target
+
+        try:
+            authorized_target(db, debug_connector_id)
+        except ValueError:
+            raise AIConfigError("The selected execution target is not authorized") from None
 
     if task_type is AITaskType.DEBUG_AGENT:
         from app.debugging.limits import validate_runtime_config
@@ -349,6 +361,7 @@ def save_task_config(
         "agent_name": agent_name,
         "agent_model_id": agent_model_id,
         "agent_profile_id": agent_profile_id,
+        "debug_connector_id": debug_connector_id,
         "enabled": payload.enabled,
         "primary_model_id": primary_model_id,
         "fallback_model_ids": list(fallback_model_ids),

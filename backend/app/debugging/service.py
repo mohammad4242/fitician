@@ -126,6 +126,7 @@ def submit_message(
                 "agent_name",
                 "agent_model_id",
                 "agent_profile_id",
+                "debug_connector_id",
                 "primary_model_id",
                 "max_output_tokens",
                 "timeout_seconds",
@@ -135,9 +136,19 @@ def submit_message(
         if config
         else {"enabled": False}
     )
-    from .runtime_profiles import snapshot_connector
+    from .runtime_profiles import execution_capabilities, snapshot_connector
 
     snapshot["connector_id"] = snapshot_connector(db, snapshot)
+    # JSON provenance cannot contain a native UUID or credentials.
+    snapshot["debug_connector_id"] = (
+        str(snapshot["debug_connector_id"]) if snapshot.get("debug_connector_id") else None
+    )
+    if snapshot["connector_id"]:
+        from .models import DebugConnector
+
+        connector = db.get(DebugConnector, UUID(snapshot["connector_id"]))
+        snapshot["connector_name"] = connector.name if connector else None
+        snapshot["connector_capabilities"] = execution_capabilities(connector) if connector else {}
     snapshot["config_updated_at"] = config.updated_at.isoformat() if config else None
     snapshot["effective_temperature"] = None  # No unsupported model option is claimed as effective.
     snapshot["routing_restrictions"] = list(config.routing_restrictions) if config else []

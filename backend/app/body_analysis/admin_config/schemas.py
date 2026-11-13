@@ -42,6 +42,7 @@ class AITaskConfigUpdate(BaseModel):
     agent_name: AIAgentName | None = None
     agent_model_id: AgentModelId | None = None
     agent_profile_id: AgentModelId | None = None
+    debug_connector_id: UUID | None = None
     enabled: bool = False
     api_key: SecretStr | None = Field(default=None, repr=False)
     replace_credential: bool = False
@@ -79,6 +80,7 @@ class AITaskConfigDetail(BaseModel):
     agent_name: AIAgentName | None
     agent_model_id: str | None
     agent_profile_id: str | None
+    debug_connector_id: UUID | None = None
     enabled: bool
     primary_model_id: str | None
     fallback_model_ids: list[str]

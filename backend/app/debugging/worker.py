@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -26,6 +27,7 @@ from .gateway import call_connector
 from .limits import validate_runtime_config
 from .models import DebugMessage, DebugRun
 from .privacy import sanitize_text
+from .runtime_profiles import authorized_target, execution_capabilities
 from .service import append_event, claim_run
 
 
@@ -98,6 +100,20 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             config.get("agent_name") != "codex" or not config.get("connector_id")
         ):
             failure = "interactive_runtime_not_configured"
+        if failure is None and config.get("connector_id"):
+            try:
+                target = authorized_target(db, config["connector_id"])
+                if target.last_seen is None or target.last_seen < datetime.now(UTC) - timedelta(
+                    seconds=30
+                ):
+                    failure = "execution_target_offline"
+                elif (
+                    config.get("connector_capabilities") is not None
+                    and execution_capabilities(target) != config["connector_capabilities"]
+                ):
+                    failure = "execution_target_changed"
+            except ValueError:
+                failure = "execution_target_not_authorized"
         if failure is None:
             try:
                 validate_runtime_config(config)
@@ -218,7 +234,15 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                             api_key=api_key or "",
                             config=config,
                             messages=messages,
-                            tools=tool_catalog(allow_write=run_action == "prepare_fix"),
+                            tools=tool_catalog(
+                                allow_write=run_action == "prepare_fix",
+                                supports_tests=bool(
+                                    config.get("connector_capabilities", {}).get("supports_tests")
+                                ),
+                                supports_github=bool(
+                                    config.get("connector_capabilities", {}).get("supports_github")
+                                ),
+                            ),
                             handler=tool_handler,
                             progress=progress,
                         )
@@ -295,6 +319,8 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                 "selected_model_not_available",
                 "model_capability_discovery_failed",
                 "tool_run_budget_exhausted",
+                "execution_target_changed",
+                "execution_target_not_authorized",
             }
             failure = str(error) if str(error) in safe_codes else "provider_failed"
     with Session(engine) as db:
@@ -313,6 +339,9 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                     "interactive_runtime_not_configured",
                     "credential_unavailable",
                     "debug_runtime_options_unsupported",
+                    "execution_target_offline",
+                    "execution_target_not_authorized",
+                    "execution_target_changed",
                 }
                 else "failed"
             )

@@ -18,6 +18,7 @@ and this document are preserved. PR 42 remains a synthetic acceptance PR, never 
 | --- | --- | --- | --- | --- | --- |
 | SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
+| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | own login and production enrollment pending | commissioning service on Germany | health/limits/image yes; inference/panel no |
 | API model tool loop | committed | mocked provider protocol | production selection/probe pending | no | actual API tool call pending |
 | Isolated repair/test/PR | committed, limited unittest profile | real seeded failure/fix/test/PR 42 | local GitHub broker | no | synthetic staging only |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
@@ -122,14 +123,68 @@ was staged on Germany, with GitHub archive digest and exported image checksum ve
 Image archive SHA-256: `158bec6a541df35dbbe5feffe1657245d925f24e1d60952cc26d7a6327707e40`.
 The complete CI/release gate and panel enrollment remain separate from this image proof.
 
-Fresh infrastructure evidence: private pinned Germany SSH on 9011 works after reboot;
-`ssh`, Docker and Tailscale are active. Agent container remains healthy on its prior image,
-with no restart by this session. Existing proxy is still `Created`, release
-`83d56ca78ae0`, checksums verified, current symlink absent. Public SSH still times out.
-Latest feature CI [43279620964](https://github.com/mohammad4242/fitician/actions/runs/43279620964)
-failed in the complete backend-suite step; Android, mobile, frontend/browser, Agent,
-Compose, regional smoke, dependency and secret checks passed. Publication was skipped.
-A green release gate is still required; these observations do not authorize bypassing it.
+Current evidence supersedes the original Created/public-SSH-timeout notes: Germany's
+public `141.11.175.231:9011` and private `100.108.24.126:9011` reach the same pinned host.
+The generation Agent remains healthy without restart by this session. The Sentry proxy
+is reachable again after restoring its owned network endpoint; authenticated retrieval
+from Iran returned 200. Its separate boot-recovery unit is enabled. The independent runtime
+commissioning service is healthy, with no production enrollment or verified inference yet.
+The old complete-suite failure in CI 43279620964 concerned retained probe actor deletion;
+migration 182 and account-deletion regressions corrected that failure. A green complete
+release gate for the final candidate is still required before application rollout.
+
+### Germany commissioning and explicit execution targets
+
+The exact tested CI archive was imported without rebuilding. OCI index
+`sha256:bfaa3e952feefe77dd50e269bf9c173f78840dec0f0cd536dfc999068f45cbff`
+references configuration `sha256:92299b162c8b9357f4a969582bc794612180130cb4ba1cbff22f3357abc9df5d`.
+The running independent service uses that same index and PR candidate
+`4a70812f00d45d266178d08d4792aeb2f1442b0b`; GitHub comparison confirmed its source tree
+matches branch commit `c3c2f50d`. This is not a production application release.
+Service `fitician-debug-runtime-connector-1` uses `/opt/fitician-debug-runtime`, user 10001,
+a read-only image, no inbound ports/Docker socket/application network, 512 MiB RAM,
+768 MiB memory+swap, 0.25 CPU, 96 PIDs, bounded temporary/log storage and persistent
+dedicated state. Disk remaining after import/start: 2562 MiB. Generation identity, start
+timestamp and mounts were unchanged; no application migration or restart occurred.
+
+The actual CLI reports 0.167.2. Independent authentication was absent; a dedicated
+device-code login was started without copying laptop or generation auth. Instructions
+went only into an ignored 0600 local file. Authentication/inference/model entitlement,
+production API enrollment and the laptop-offline panel path remain unverified. A login
+cache or model catalog alone will not complete those gates. Later source changes below
+are not yet part of that commissioning image.
+
+Migration `20261113_183` adds `AITaskConfig.debug_connector_id`, a nullable UUID with a
+named RESTRICT FK and a check limiting it to `debug_agent`. API models use the explicit
+saved target; an empty selection means analysis only. Unique-online auto-selection was
+removed: tests reproduced silent laptop substitution when Germany was offline. Codex
+profiles retain their explicit offline target in provenance. Runs snapshot target name
+and capabilities. Offline/revoked/wrong-environment targets block before provider/tool
+execution; changed capabilities invalidate verification and queued-call authority.
+Unsupported tools are excluded from API orchestration. AI Settings selects API execution
+targets and enrolls Germany or an optional laptop with distinct private paths and an
+explicit pinned Codex executable. Conversations show the actual execution target and
+a simple Persian offline explanation.
+
+Final focused validation: 117 backend debugging/admin/account tests passed, including
+real pinned Codex protocol/catalog checks and isolated Docker test/cancellation checks.
+All 54 diagnostics/AI-settings UI tests passed. Strict mypy passed 26 relevant source files;
+focused Ruff/Oxlint, TypeScript project build, core build and regenerated OpenAPI checks
+passed. Isolated PostgreSQL rehearsed `183 -> 182 -> 183`; a separate test confirmed
+downgrade refuses to erase a selected target. No production schema change was applied.
+
+Commissioning rollback: stop only the separate connector through
+`/opt/fitician-debug-runtime/current/compose.debug-runtime.yaml` and adjacent `runtime.env`
+(`docker compose -p fitician-debug-runtime --env-file ... -f ... stop connector`). Keep
+the dedicated state and private configuration; never remove volumes. Generation, the
+application stacks and their database are outside this operation. Full feature rollout
+and rollback still require the independent backup, compatibility and release gates.
+
+Authentication readback: the dedicated server CLI returned exit 1 and `Not logged in`;
+no dedicated `auth.json` exists. Its device-code attempt ended without approval and the
+challenge expired. This is an outstanding user sign-in step, not an inherited laptop
+session, a verified model call or evidence of provider entitlement. A fresh challenge
+must be generated when the owner is ready; no code/token belongs in chat or Git.
 
 ## Sentry capture foundation
 

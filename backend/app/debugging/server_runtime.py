@@ -67,7 +67,11 @@ class Supervisor:
 
     def status(self) -> dict[str, Any]:
         client = self.connector
-        connected = bool(client and time.monotonic() - client.last_contact < 30)
+        connected = bool(
+            client
+            and client.connection_error is None
+            and time.monotonic() - client.last_contact < 30
+        )
         phase = self.phase
         if client:
             phase = "connected" if connected else "connecting"

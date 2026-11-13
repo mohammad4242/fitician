@@ -317,6 +317,7 @@ export type AdminAiTaskConfig = {
   agent_name: AdminAiAgentName | null;
   agent_model_id: string | null;
   agent_profile_id: string | null;
+  debug_connector_id?: string | null;
   enabled: boolean;
   primary_model_id: string | null;
   fallback_model_ids: string[];

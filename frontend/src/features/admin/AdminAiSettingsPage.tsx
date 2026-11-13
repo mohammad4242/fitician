@@ -218,6 +218,7 @@ export function AdminAiSettingsPage() {
       agent_name: target.agent_name,
       agent_model_id: target.agent_model_id,
       agent_profile_id: target.agent_profile_id,
+      debug_connector_id: target.debug_connector_id ?? null,
       enabled: target.enabled,
       primary_model_id: target.primary_model_id,
       fallback_model_ids: target.fallback_model_ids,
@@ -404,7 +405,7 @@ export function AdminAiSettingsPage() {
         ))}
       </nav>
 
-      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} />}
+      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget={!agentMode} selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
@@ -434,7 +435,7 @@ export function AdminAiSettingsPage() {
                 disabled={!agentTaskSupported}
                 onChange={() => {
                   setAuthAgent(null);
-                  patchConfig({ execution_backend: "agent_service", ...(selectedTask === "debug_agent" ? { agent_name: "codex" } : {}) });
+                  patchConfig({ execution_backend: "agent_service", ...(selectedTask === "debug_agent" ? { agent_name: "codex", debug_connector_id: null } : {}) });
                 }}
               />
               {selectedTask === "debug_agent" ? (i18n.resolvedLanguage === "en" ? "Enrolled interactive runtime" : "runtime تعاملی متصل") : t("admin.aiSettings.agentServiceBackend")}
