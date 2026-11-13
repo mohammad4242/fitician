@@ -108,7 +108,7 @@ class DebugOperation(Base):
     __table_args__ = (
         UniqueConstraint("run_id", "submission_key", name="uq_debug_operation_submission"),
         CheckConstraint(
-            "kind IN ('validate','publish_pr','deploy')", name="ck_debug_operation_kind"
+            "kind IN ('validate','publish_pr','deploy','observe')", name="ck_debug_operation_kind"
         ),
         CheckConstraint(
             "kind <> 'deploy' OR (target_environment IS NOT NULL AND "

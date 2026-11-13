@@ -55,6 +55,8 @@ class Receipt(BaseModel):
     lease_token: UUID
     stage: Literal[
         "prepared",
+        "observation_prepared",
+        "observation_completed",
         "dispatch_intent",
         "dispatched",
         "uncertain",

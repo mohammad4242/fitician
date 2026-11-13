@@ -41,6 +41,7 @@ TOOLS = frozenset(
         "fitician_server_evidence",
         "fitician_ci_validate",
         "fitician_ci_status",
+        "fitician_observe_server",
         "fitician_ci_publish_pr",
     }
 )

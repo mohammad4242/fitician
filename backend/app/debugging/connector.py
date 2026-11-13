@@ -285,6 +285,15 @@ class LaptopConnector:
                 elif name == "fitician_record_finding":
                     receipt = await emit("finding_proposed", arguments)
                     value = {"finding_id": receipt.get("evidence_id"), "state": "proposed"}
+                elif name == "fitician_observe_server":
+                    value = await self.request(
+                        f"/calls/{identifier}/host-observations",
+                        {
+                            "lease_token": job["lease_token"],
+                            "key": f"tool-{tool_count}",
+                            **arguments,
+                        },
+                    )
                 elif name == "fitician_ci_validate":
                     from .ci_contract import capture_snapshot, validation_spec
 

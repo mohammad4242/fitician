@@ -49,3 +49,12 @@ it("shows persisted draft PR evidence separately from deployed or resolved state
   expect(screen.getByRole("link", { name: "مشاهدهٔ PR" })).toHaveAttribute("href", "https://github.com/mohammad4242/fitician/pull/43");
   expect(screen.getByText("این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست.")).toBeInTheDocument();
 });
+
+it("shows server observations without labeling them as repair or resolution", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.endsWith('/automation-status') ? { connected: false, configured: false } as never : {
+    operations: [{ id: 'host-op', kind: 'observe', state: 'succeeded', profile: null, purpose: 'server_observation', environment: 'production', occurrence_id: 'selected-host', result: { observation: { target_environment: 'production-germany', business_outcome_verified: false } } }],
+  } as never);
+  render(<DebugOperations issueId="host-issue" occurrenceId="selected-host" english />);
+  expect(await screen.findByText('Read-only server observations')).toBeInTheDocument();
+  expect(screen.getByText('Verified workflow evidence; business outcome unverified')).toBeInTheDocument();
+});

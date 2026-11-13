@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -79,6 +79,53 @@ class ValidationRequest(BaseModel):
     profile: str = Field(max_length=32)
     tests: list[str] = Field(max_length=16)
     snapshot: dict[str, Any]
+
+
+class HostObservationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    key: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    target_environment: Literal["production-iran", "production-germany"]
+
+
+@router.post("/{connector_id}/calls/{call_id}/host-observations", response_model=OperationResponse)
+def queue_host_observation(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: HostObservationRequest,
+    db: DatabaseSession,
+) -> dict[str, Any]:
+    from .automation import operation_json
+    from .host_operations import queue_observation
+
+    call = db.scalar(
+        select(DebugConnectorCall)
+        .where(DebugConnectorCall.id == call_id, DebugConnectorCall.connector_id == connector.id)
+        .with_for_update()
+    )
+    if (
+        call is None
+        or call.lease_token != payload.lease_token
+        or call.state != "running"
+        or call.lease_until is None
+        or call.lease_until < datetime.now(UTC)
+    ):
+        raise HTTPException(409, detail={"code": "connector_lease_lost"})
+    try:
+        row = queue_observation(
+            db, call.run_id, f"host:{call.id}:{payload.key}", payload.target_environment
+        )
+        db.commit()
+        return operation_json(row)
+    except ValueError as error:
+        db.rollback()
+        code = str(error)
+        import re
+
+        if not re.fullmatch("[a-z_]{3,64}", code):
+            code = "invalid_observation_request"
+        raise HTTPException(409, detail={"code": code}) from None
 
 
 class CIStatusRequest(BaseModel):

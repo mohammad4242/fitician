@@ -84,12 +84,14 @@ class OperationResponse(StrictResponse):
     run_id: UUID
     occurrence_id: UUID | None
     environment: str
-    kind: Literal["validate", "publish_pr", "deploy"]
+    kind: Literal["validate", "publish_pr", "deploy", "observe"]
     state: str
     error_code: str | None
     cancel_requested: bool
     profile: str | None
-    purpose: Literal["connection_check", "repair_validation", "repair_publication"]
+    purpose: Literal[
+        "connection_check", "repair_validation", "repair_publication", "server_observation"
+    ]
     snapshot_digest: str | None
     result: dict[str, Any]
     created_at: str

@@ -367,6 +367,10 @@ def record_progress(
     result: dict[str, Any],
 ) -> dict[str, Any]:
     row = leased_operation(db, worker, operation_id, lease, terminal=True)
+    if row.kind == "observe":
+        from .host_operations import record_observation
+
+        return record_observation(db, worker, operation_id, lease, stage, result)
     if row.kind == "publish_pr":
         from .publication import record_publication
 

@@ -104,6 +104,20 @@ def tool_catalog(
     if supports_ci:
         tools += [
             tool(
+                "observe_server",
+                "Queue fixed read-only observations for the explicitly selected production region. "
+                "The selected occurrence trace scopes logs. "
+                "No raw logs, arbitrary shell or deployment. "
+                "Returns a durable job; use ci_status in a later turn for actual evidence.",
+                {
+                    "target_environment": {
+                        "type": "string",
+                        "enum": ["production-iran", "production-germany"],
+                    }
+                },
+                ["target_environment"],
+            ),
+            tool(
                 "ci_validate",
                 "Queue exact workspace snapshot validation in isolated GitHub Actions. "
                 "Returns a durable operation, not a passed test. No local Docker or credentials. "

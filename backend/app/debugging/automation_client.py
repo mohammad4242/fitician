@@ -80,6 +80,10 @@ async def advance(job: dict[str, Any], github: GitHubAutomation, rpc: Rpc) -> di
         )
         return {**job, **response["operation"]}, response["disposition"]
 
+    if job["kind"] == "observe":
+        from .host_broker import advance_observation
+
+        return await advance_observation(job, github, rpc)
     if job["kind"] == "publish_pr":
         state = job["state"]
         if state == "preparing":

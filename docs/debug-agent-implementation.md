@@ -64,8 +64,30 @@ messages are omitted. A baseline hash binds container/image identity and DB revi
 stale-deployment checks. Seven injection/privacy/contract tests passed. Real pinned-SSH reads
 observed all ten Iran services and Germany Agent Service; Iran remains at revision 175.
 Germany readback showed one CPU, about 1393 MiB available RAM and 2457 MiB disk free.
-These are direct operator acceptance observations. The new workflow is not installed on main
-and this collector is not yet a live model tool or deployment broker; those gates remain open.
+These are direct operator acceptance observations. The workflow is not yet installed on main;
+live execution through a production model and the deployment broker remain separate gates.
+
+The selected runtime now exposes `fitician_observe_server` through the same controlled CI
+broker, with an explicit Iran/Germany target. Durable `observe` operations bind the issue,
+selected occurrence/trace, environment, administrator and snapshotted worker. An expired or
+foreign runtime lease cannot enqueue an observation. A persisted single-use dispatch intent
+precedes GitHub dispatch; uncertain acknowledgements are reconciled without resending.
+Cancellation targets only the recorded, identity-checked workflow. The broker verifies the
+private artifact hash and rebuilds an allowlisted packet before database/model access.
+Incomplete identities cannot be reported as complete. Capacity is numeric only; unrelated
+logs/free text/unknown fields are discarded. A completed observation has an immutable evidence
+ID usable in same-run findings; it cannot establish a confirmed cause or business resolution.
+Migration `20261114_185` extends the operation-kind check; downgrade refuses to delete an
+existing observation audit. The panel displays occurrence, workflow and bounded evidence.
+
+Verification of this integration: 62 backend tests on isolated PostgreSQL, 14 conversation/
+automation UI tests, five-file mypy, focused Ruff/Oxlint and frontend TypeScript passed.
+Tests cover expired/foreign credentials, idempotency, restart reconciliation, dispatch order,
+cancellation, target/policy identity, artifact tampering and cross-run evidence rejection.
+Production is still revision 175; the verified full backup rehearsal currently ends at 184,
+so rehearsal through 185 remains required before deployment. Read-only Germany inspection
+found no independent runtime auth file or active device-login process. The dedicated broker
+credential file remains empty. These are external blockers, not reasons to stop code work.
 
 
 The dedicated Iran backup service/timer is now installed from hash-checked committed helpers.

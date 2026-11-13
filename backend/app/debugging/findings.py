@@ -17,7 +17,7 @@ from app.observability.diagnostics_models import DiagnosticEvent, DiagnosticIssu
 from app.observability.environment import diagnostics_environment
 from app.observability.evidence import evidence_package
 
-from .models import DebugRun, DebugRunEvent, DebugThread
+from .models import DebugOperation, DebugRun, DebugRunEvent, DebugThread
 from .privacy import sanitize_text
 from .service import append_event
 
@@ -52,6 +52,21 @@ def proposal_payload(db: Session, run: DebugRun, payload: dict[str, Any]) -> dic
         if identifier in known:
             continue
         event = db.get(DebugRunEvent, UUID(identifier))
+        if event is not None and event.run_id == run.id and event.kind == "host_completed":
+            operation = db.scalar(
+                select(DebugOperation).where(
+                    DebugOperation.run_id == run.id,
+                    DebugOperation.kind == "observe",
+                    DebugOperation.state == "succeeded",
+                    DebugOperation.result["evidence_id"].as_string() == identifier,
+                )
+            )
+            if (
+                operation is not None
+                and str(operation.id) == event.payload.get("operation_id")
+                and operation.result.get("artifact_verified") is True
+            ):
+                continue
         if (
             event is None
             or event.run_id != run.id

@@ -10,6 +10,113 @@ from app.debugging.github_automation import GitHubAutomation
 from tests.test_debug_automation import request as validation_request
 
 
+def test_host_dispatch_only_uses_current_protected_main_and_fixed_inputs():
+    identifier = uuid4()
+    posted = []
+
+    def handle(request):
+        if request.url.path.endswith("/git/ref/heads/main"):
+            return httpx.Response(200, json={"object": {"sha": "a" * 40}})
+        if request.url.path.endswith("/dispatches"):
+            payload = json.loads(request.content)
+            assert payload == {
+                "ref": "main",
+                "inputs": {
+                    "operation_id": str(identifier),
+                    "policy_commit": "a" * 40,
+                    "target": "germany",
+                    "trace_id": "b" * 32,
+                },
+            }
+            posted.append(payload)
+            return httpx.Response(204)
+        if request.url.path.endswith("/runs"):
+            return httpx.Response(
+                200,
+                json={
+                    "workflow_runs": [
+                        {
+                            "id": 123,
+                            "display_title": "Debug observation " + str(identifier),
+                            "head_sha": "a" * 40,
+                            "path": ".github/workflows/debug-server-observation.yml",
+                            "event": "workflow_dispatch",
+                            "head_repository": {"full_name": "mohammad4242/fitician"},
+                        }
+                    ]
+                },
+            )
+        raise AssertionError(request.url.path)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            github = GitHubAutomation(client, "private-test-credential")
+            assert (
+                await github.dispatch_observation(
+                    identifier, "a" * 40, "production-germany", "b" * 32
+                )
+                == 123
+            )
+            with pytest.raises(ValueError, match="github_invalid_identity"):
+                await github.dispatch_observation(identifier, "c" * 40, "production-germany", None)
+            with pytest.raises(ValueError, match="github_invalid_identity"):
+                await github.dispatch_observation(identifier, "a" * 40, "ssh other-host", None)
+
+    asyncio.run(run())
+    assert len(posted) == 1
+
+
+def test_host_artifact_is_private_hash_verified_and_rejects_tampering():
+    import hashlib
+    import io
+    import zipfile
+
+    identifier = uuid4()
+    data = {"schema_version": 1, "target_environment": "production-germany"}
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as output:
+        output.writestr("observation.json", json.dumps(data))
+    payload = archive.getvalue()
+    tampered = False
+
+    def handle(request):
+        if request.url.host == "artifacts.example.blob.core.windows.net":
+            assert "Authorization" not in request.headers
+            return httpx.Response(200, content=payload + b"changed" if tampered else payload)
+        if request.url.path.endswith("/artifacts/100/zip"):
+            return httpx.Response(
+                302,
+                headers={
+                    "location": "https://artifacts.example.blob.core.windows.net/observation?private-fixture"
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "artifacts": [
+                    {
+                        "id": 100,
+                        "name": "fitician-server-observation-" + str(identifier),
+                        "expired": False,
+                        "size_in_bytes": len(payload),
+                        "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        nonlocal tampered
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            github = GitHubAutomation(client, "private-test-credential")
+            assert (await github.observation_artifact(123, identifier))["observation"] == data
+            tampered = True
+            with pytest.raises(ValueError, match="github_artifact_invalid"):
+                await github.observation_artifact(123, identifier)
+
+    asyncio.run(run())
+
+
 def test_candidate_and_policy_are_pinned_without_force_updates_or_model_commands():
     operation_id = uuid4()
     snapshot = validation_request()["snapshot"]

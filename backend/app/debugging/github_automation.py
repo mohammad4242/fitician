@@ -413,6 +413,21 @@ class GitHubAutomation:
         ):
             raise ValueError("github_invalid_identity")
         name = f"debug-validation-{UUID(str(operation_id))}-{profile}"
+        return await self._json_artifact(run_id, name, "validation.json", "validation")
+
+    async def observation_artifact(self, run_id: int, operation_id: UUID) -> dict[str, Any]:
+        return await self._json_artifact(
+            run_id,
+            "fitician-server-observation-" + str(operation_id),
+            "observation.json",
+            "observation",
+        )
+
+    async def _json_artifact(
+        self, run_id: int, name: str, filename: str, field: str
+    ) -> dict[str, Any]:
+        if type(run_id) is not int or run_id < 1:
+            raise ValueError("github_invalid_identity")
         matches: list[dict[str, Any]] = []
         for page in range(1, 6):
             result = await self._api(
@@ -477,18 +492,75 @@ class GitHubAutomation:
             ):
                 raise ValueError("github_artifact_invalid")
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                if (
-                    archive.namelist() != ["validation.json"]
-                    or archive.getinfo("validation.json").file_size > 32000
-                ):
+                if archive.namelist() != [filename] or archive.getinfo(filename).file_size > 32000:
                     raise ValueError("github_artifact_invalid")
-                validation = json.loads(archive.read("validation.json"))
+                validation = json.loads(archive.read(filename))
                 if not isinstance(validation, dict):
                     raise ValueError("github_artifact_invalid")
             return {
                 "artifact_id": artifact["id"],
                 "artifact_digest": artifact["digest"],
-                "validation": validation,
+                field: validation,
             }
         except (httpx.HTTPError, zipfile.BadZipFile, KeyError, json.JSONDecodeError):
             raise ValueError("github_artifact_invalid") from None
+
+    async def observation_policy(self) -> str:
+        workflow = await self._api(
+            "GET", "/actions/workflows/debug-server-observation.yml", missing=True
+        )
+        if (
+            not workflow
+            or workflow.get("state") != "active"
+            or workflow.get("path") != ".github/workflows/debug-server-observation.yml"
+        ):
+            raise ValueError("github_observation_workflow_not_installed")
+        return await self.main_commit()
+
+    async def find_observation(self, identifier: UUID, policy: str) -> dict[str, Any] | None:
+        matches = []
+        for page in range(1, 6):
+            value = await self._api(
+                "GET",
+                f"/actions/workflows/debug-server-observation.yml/runs?event=workflow_dispatch&per_page=100&page={page}",
+            )
+            runs = value.get("workflow_runs", [])
+            for run in runs:
+                if (
+                    run.get("display_title") == "Debug observation " + str(identifier)
+                    and run.get("head_sha") == sha(policy)
+                    and run.get("event") == "workflow_dispatch"
+                    and run.get("path") == ".github/workflows/debug-server-observation.yml"
+                    and run.get("head_repository", {}).get("full_name") == REPOSITORY
+                ):
+                    matches.append(run)
+            if len(runs) < 100:
+                break
+        if len(matches) > 1:
+            raise ValueError("github_duplicate_dispatch")
+        return matches[0] if matches else None
+
+    async def dispatch_observation(
+        self, identifier: UUID, policy: str, target: str, trace: str | None
+    ) -> int | None:
+        if target not in {"production-iran", "production-germany"} or (
+            trace is not None and not re.fullmatch("[a-f0-9]{32}", trace)
+        ):
+            raise ValueError("github_invalid_identity")
+        if await self.main_commit() != sha(policy):
+            raise ValueError("github_invalid_identity")
+        await self._api(
+            "POST",
+            "/actions/workflows/debug-server-observation.yml/dispatches",
+            {
+                "ref": "main",
+                "inputs": {
+                    "operation_id": str(identifier),
+                    "policy_commit": policy,
+                    "target": target.removeprefix("production-"),
+                    "trace_id": trace or "",
+                },
+            },
+        )
+        run = await self.find_observation(identifier, policy)
+        return run["id"] if run else None

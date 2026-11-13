@@ -2321,6 +2321,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/host-observations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue Host Observation */
+        post: operations["queue_host_observation_api_v1_debug_connectors__connector_id__calls__call_id__host_observations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/progress": {
         parameters: {
             query?: never;
@@ -7057,7 +7074,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "validate" | "publish_pr" | "deploy";
+            kind: "validate" | "publish_pr" | "deploy" | "observe";
             /**
              * Lease Token
              * Format: uuid
@@ -7071,7 +7088,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation";
             /** Repository */
             repository: string;
             /** Request */
@@ -9934,6 +9951,21 @@ export type components = {
          * @enum {string}
          */
         HomeTrainingSetup: "bodyweight_only" | "dumbbells_available" | "resistance_bands_available" | "dumbbells_and_resistance_bands_available";
+        /** HostObservationRequest */
+        HostObservationRequest: {
+            /** Key */
+            key: string;
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
+            /**
+             * Target Environment
+             * @enum {string}
+             */
+            target_environment: "production-iran" | "production-germany";
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -12216,7 +12248,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "validate" | "publish_pr" | "deploy";
+            kind: "validate" | "publish_pr" | "deploy" | "observe";
             /** Occurrence Id */
             occurrence_id: string | null;
             /** Profile */
@@ -12225,7 +12257,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation";
             /** Result */
             result: {
                 [key: string]: unknown;
@@ -13706,7 +13738,7 @@ export type components = {
              * Stage
              * @enum {string}
              */
-            stage: "prepared" | "dispatch_intent" | "dispatched" | "uncertain" | "completed" | "failed" | "waiting" | "cancel_intent" | "publication_intent" | "publication_completed";
+            stage: "prepared" | "observation_prepared" | "observation_completed" | "dispatch_intent" | "dispatched" | "uncertain" | "completed" | "failed" | "waiting" | "cancel_intent" | "publication_intent" | "publication_completed";
         };
         /** RecentTrainingHistory */
         RecentTrainingHistory: {
@@ -21547,6 +21579,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompletionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    queue_host_observation_api_v1_debug_connectors__connector_id__calls__call_id__host_observations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+                connector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostObservationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             /** @description Validation Error */
