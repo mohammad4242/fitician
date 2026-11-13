@@ -602,6 +602,29 @@ jobs:
           python-version: "3.12"
       - name: Start isolated networks and test Agent outage recovery
         run: bash ops/split-test.sh
+      - name: Build independent debug runtime
+        run: >-
+          docker build -f docker/debug-runtime/Dockerfile
+          --build-arg APP_BUILD_SHA=${{ github.sha }}
+          -t fitician-debug-runtime:${{ github.sha }} .
+      - name: Verify runtime isolation, protocol and restart persistence
+        run: >-
+          python3 ops/smoke-debug-runtime.py
+          --image fitician-debug-runtime:${{ github.sha }} --commit ${{ github.sha }}
+          --output .ci-evidence/debug-runtime/smoke.json
+      - name: Export the exact tested runtime for offline delivery
+        run: |
+          set -euo pipefail
+          docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
+          cd .ci-evidence/debug-runtime
+          sha256sum image.tar.gz > image.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-debug-runtime-${{ github.sha }}
+          path: .ci-evidence/debug-runtime/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
 
   agent:
     name: Agent complete suite

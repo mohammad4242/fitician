@@ -9,6 +9,7 @@ import json
 import os
 import re
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
@@ -23,13 +24,22 @@ from .catalog import tool_catalog
 from .github import publish_tested_pr
 from .limits import validate_runtime_config
 from .privacy import sanitize_payload, sanitize_text
+from .runtime_storage import ensure_release
 from .tools import RepositoryTools, _git
 
 
-def load_configuration(path: Path) -> dict[str, Any]:
+def read_private_configuration(path: Path) -> dict[str, Any]:
     if path.stat().st_mode & 0o077 or path.is_symlink():
         raise ValueError("connector_configuration_must_be_private")
+    if path.stat().st_size > 16384:
+        raise ValueError("connector_configuration_too_large")
     config = json.loads(path.read_text())
+    if not isinstance(config, dict):
+        raise ValueError("invalid_connector_configuration")
+    return config
+
+
+def validate_configuration(config: dict[str, Any]) -> dict[str, Any]:
     target = urlsplit(config["server"])
     if (
         (
@@ -57,7 +67,11 @@ def load_configuration(path: Path) -> dict[str, Any]:
             or binary.stat().st_mode & 0o022
         ):
             raise ValueError("pinned_codex_executable_required")
-    return cast(dict[str, Any], config)
+    return config
+
+
+def load_configuration(path: Path) -> dict[str, Any]:
+    return validate_configuration(read_private_configuration(path))
 
 
 def save_private(path: Path, value: Any) -> None:
@@ -78,6 +92,9 @@ class LaptopConnector:
         self.prefix = config["server"].rstrip("/") + "/api/v1/debug-connectors/" + config["id"]
         self.models: list[str] = []
         self.cli_version: str | None = None
+        self.authenticated: bool | None = None
+        self.last_contact = 0.0
+        self.connection_error: str | None = None
 
     def codex_server(self) -> AppServer:
         executable = self.config.get("codex_executable")
@@ -93,21 +110,37 @@ class LaptopConnector:
             json=payload,
         ) as response:
             if response.status_code != 200:
+                self.connection_error = {
+                    401: "connector_authorization_rejected",
+                    403: "connector_authorization_rejected",
+                    404: "connector_api_not_deployed",
+                    429: "connector_api_rate_limited",
+                }.get(response.status_code, "connector_server_rejected")
                 raise ValueError("connector_server_rejected")
             data = bytearray()
             async for chunk in response.aiter_bytes():
                 data.extend(chunk)
                 if len(data) > 262144:
                     raise ValueError("connector_response_too_large")
-            return cast(dict[str, Any], json.loads(data))
+            value = json.loads(data)
+            if not isinstance(value, dict):
+                raise ValueError("invalid_connector_response")
+            self.last_contact = time.monotonic()
+            self.connection_error = None
+            return value
 
     async def discover(self) -> None:
         home = self.config.get("codex_home")
         self.models = []
         self.cli_version = None
+        self.authenticated = None
         if home:
             try:
                 async with self.codex_server() as server:
+                    account = await server.call("account/read", {"refreshToken": False})
+                    self.authenticated = account.get("account") is not None
+                    if not self.authenticated:
+                        return
                     response = await server.call("model/list", {"limit": 100})
                     self.models = [
                         item["model"] for item in response["data"] if not item.get("hidden", False)
@@ -152,6 +185,8 @@ class LaptopConnector:
         try:
             validate_runtime_config(job["config"])
             commit = job.get("release_commit")
+            if self.config.get("fetch_missing_releases"):
+                await asyncio.to_thread(ensure_release, self.repository, commit or "")
             workspace_id = str(
                 uuid5(
                     UUID(job["thread_id"]),
@@ -168,6 +203,8 @@ class LaptopConnector:
                 workspace_id,
                 commit or "",
                 allow_write=job["action"] == "prepare_fix",
+                max_workspaces=self.config.get("max_workspaces", 40),
+                min_free_bytes=self.config.get("workspace_min_free_bytes", 2_147_483_648),
             )
             sequence = 0
             lock = asyncio.Lock()
@@ -192,7 +229,14 @@ class LaptopConnector:
                 await emit(kind, payload)
 
             tool_count = 0
-            catalog = {item["name"]: item for item in tool_catalog(allow_write=tools.allow_write)}
+            catalog = {
+                item["name"]: item
+                for item in tool_catalog(
+                    allow_write=tools.allow_write,
+                    supports_tests=bool(self.config.get("test_image")),
+                    supports_github=self.config.get("github_enabled", True),
+                )
+            }
 
             async def invoke(name: str, arguments: dict[str, Any]) -> str:
                 nonlocal tool_count
@@ -321,6 +365,8 @@ class LaptopConnector:
             )
         save_private(journal, {"state": "started"})
         try:
+            if self.config.get("fetch_missing_releases"):
+                await asyncio.to_thread(ensure_release, self.repository, job["release_commit"])
             tools = await asyncio.to_thread(
                 RepositoryTools.create,
                 self.repository,
@@ -328,6 +374,8 @@ class LaptopConnector:
                 job["id"],
                 job["release_commit"],
                 allow_write=False,
+                max_workspaces=self.config.get("max_workspaces", 40),
+                min_free_bytes=self.config.get("workspace_min_free_bytes", 2_147_483_648),
             )
             read_tool = tool_catalog(allow_write=False)[0]
 
@@ -380,8 +428,12 @@ class LaptopConnector:
 
     async def run(self) -> None:
         await self.discover()
+        discovered_at = time.monotonic()
         while True:
             try:
+                if time.monotonic() - discovered_at > 60:
+                    await self.discover()
+                    discovered_at = time.monotonic()
                 await self.heartbeat()
                 probe_response = await self.request("/probes/poll", {})
                 if probe := probe_response.get("job"):
@@ -402,6 +454,8 @@ class LaptopConnector:
                     await asyncio.sleep(2)
             except (httpx.HTTPError, ValueError):
                 # Fail closed while offline. The durable server lease exposes disconnection.
+                if self.connection_error is None:
+                    self.connection_error = "connector_connection_failed"
                 await asyncio.sleep(5)
 
 

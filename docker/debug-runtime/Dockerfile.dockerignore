@@ -1,0 +1,9 @@
+**
+!backend/
+!backend/app/
+!backend/app/__init__.py
+!backend/app/debugging/
+!backend/app/debugging/*.py
+!docker/
+!docker/debug-runtime/
+!docker/debug-runtime/requirements.lock

@@ -5,7 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 
-def tool_catalog(*, allow_write: bool) -> list[dict[str, Any]]:
+def tool_catalog(
+    *, allow_write: bool, supports_tests: bool = True, supports_github: bool = True
+) -> list[dict[str, Any]]:
     def tool(
         name: str, description: str, properties: dict[str, Any], required: list[str]
     ) -> dict[str, Any]:
@@ -86,4 +88,9 @@ def tool_catalog(*, allow_write: bool) -> list[dict[str, Any]]:
                 ["title"],
             ),
         ]
-    return tools
+    unavailable = set()
+    if not supports_tests:
+        unavailable.update({"fitician_run_tests", "fitician_commit", "fitician_create_pr"})
+    if not supports_github:
+        unavailable.add("fitician_create_pr")
+    return [item for item in tools if item["name"] not in unavailable]

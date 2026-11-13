@@ -70,7 +70,9 @@ def test_codex_discovery_uses_the_explicit_binary(tmp_path, monkeypatch):
         async def __aexit__(self, *args):
             return None
 
-        async def call(self, *args):
+        async def call(self, method, params):
+            if method == "account/read":
+                return {"account": {"type": "chatgpt"}, "requiresOpenaiAuth": True}
             return {"data": [{"model": "selected-model"}]}
 
     monkeypatch.setattr("app.debugging.connector.AppServer", Runtime)
@@ -93,6 +95,50 @@ def test_codex_discovery_uses_the_explicit_binary(tmp_path, monkeypatch):
 
     asyncio.run(run())
     assert opened[0]["executable"] == config["codex_executable"]
+
+
+def test_unauthenticated_cached_catalog_does_not_advertise_codex(tmp_path, monkeypatch):
+    calls = []
+
+    class Runtime:
+        version = "0.167.2"
+
+        def __init__(self, **options):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def call(self, method, params):
+            calls.append(method)
+            if method == "account/read":
+                return {"account": None, "requiresOpenaiAuth": True}
+            return {"data": [{"model": "cached-only-model"}]}
+
+    monkeypatch.setattr("app.debugging.connector.AppServer", Runtime)
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            connector = LaptopConnector(
+                {
+                    "id": str(uuid4()),
+                    "server": "https://fitician.example",
+                    "repository": str(tmp_path),
+                    "workspace_root": str(tmp_path / "runtime"),
+                    "codex_home": str(tmp_path / "auth"),
+                    "codex_executable": "/pinned/codex",
+                },
+                client,
+            )
+            await connector.discover()
+            assert connector.models == []
+            assert connector.authenticated is False
+
+    asyncio.run(run())
+    assert calls == ["account/read"]
 
 
 def test_connector_executes_once_and_recovers_the_ack_without_repeating_action(tmp_path):

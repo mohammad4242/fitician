@@ -74,6 +74,32 @@ failure. Starting that same owned container restored healthy status. Generation 
 identity, start timestamp and mounts were unchanged. Boot ordering still needs correction;
 prior notes describing public SSH timeout/proxy Created state are historical observations.
 
+Independent runtime implementation now uses `compose.debug-runtime.yaml` and
+`docker/debug-runtime/Dockerfile`, a separate non-root/read-only image with no application
+database credentials, generation mounts, host shell endpoint or Docker socket. Its only
+mounts are dedicated persistent state and read-only connector configuration; no inbound
+port is published. State includes private Codex authentication, App Server thread/SQLite
+state and retry-safe call journals. Admission allows two workspaces and requires 1.5 GiB
+free before new checkouts/fetches. Generation isolation is unchanged.
+
+`server_runtime` remains alive while unenrolled and reports connection/authentication
+separately from liveness. Missing credentials cannot advertise a cached Codex model catalog
+as authenticated. Discovery is refreshed periodically; actual inference/tool entitlement
+still requires its independent smoke probe. The server does not inherit laptop paths,
+GitHub credentials, Docker test execution or generation authentication. Unsupported test,
+commit and PR tools are hidden until the GitHub Actions validation/publication path exists.
+Codex 0.167.2 is fetched from the official release with its published archive SHA-256;
+minimal Python dependencies use the existing backend lock versions and wheel hashes.
+Dedicated login uses the documented device-code flow; its output stays in a private file.
+
+Validation: 39 backend tests passed, including real isolated test-container failure/fix,
+cancellation and persistent gateway behavior; 21 operations/CI contract tests passed.
+Focused Ruff/mypy passed. Local image construction timed out downloading external assets;
+Germany reached GitHub, Debian and PyPI successfully. Neither a completed image build nor
+server runtime deployment/authentication is claimed yet. Existing Required CI now builds
+and exercises the exact runtime image in its split-region job, then exports that same
+tested image with checksum and restart/isolation/protocol evidence for offline delivery.
+
 Fresh infrastructure evidence: private pinned Germany SSH on 9011 works after reboot;
 `ssh`, Docker and Tailscale are active. Agent container remains healthy on its prior image,
 with no restart by this session. Existing proxy is still `Created`, release
