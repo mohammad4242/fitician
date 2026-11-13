@@ -13021,6 +13021,190 @@
         "title": "ExperienceLevel",
         "type": "string"
       },
+      "FindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "can_verify": {
+            "title": "Can Verify",
+            "type": "boolean"
+          },
+          "classification": {
+            "enum": [
+              "observed_fact",
+              "hypothesis",
+              "next_check"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "evidence_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Version"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          },
+          "provenance": {
+            "title": "Provenance",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "test_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/TestProofSummary"
+            },
+            "title": "Test Evidence",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "classification",
+          "text",
+          "evidence_ids",
+          "occurrence_id",
+          "evidence_version",
+          "provenance",
+          "stale",
+          "model",
+          "created_at",
+          "verification",
+          "can_verify",
+          "test_evidence"
+        ],
+        "title": "FindingResponse",
+        "type": "object"
+      },
+      "FindingReview": {
+        "additionalProperties": false,
+        "properties": {
+          "after_test_id": {
+            "format": "uuid",
+            "title": "After Test Id",
+            "type": "string"
+          },
+          "before_test_id": {
+            "format": "uuid",
+            "title": "Before Test Id",
+            "type": "string"
+          },
+          "evidence_version": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Version",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 8,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "before_test_id",
+          "after_test_id",
+          "evidence_version",
+          "note"
+        ],
+        "title": "FindingReview",
+        "type": "object"
+      },
+      "FindingsPage": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "findings",
+          "next_offset"
+        ],
+        "title": "FindingsPage",
+        "type": "object"
+      },
       "FitnessGoal": {
         "enum": [
           "lose_weight",
@@ -26005,6 +26189,26 @@
         "title": "ReviewProfileSummary",
         "type": "object"
       },
+      "ReviewResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "const": "reviewed_finding",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "ReviewResponse",
+        "type": "object"
+      },
       "RevokeGrantRequest": {
         "additionalProperties": false,
         "properties": {
@@ -27595,6 +27799,31 @@
         "title": "TemplateFocusTag",
         "type": "string"
       },
+      "TestProofSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "passed",
+          "command"
+        ],
+        "title": "TestProofSummary",
+        "type": "object"
+      },
       "TicketDetail": {
         "properties": {
           "messages": {
@@ -28543,6 +28772,56 @@
         ],
         "title": "ValidationStatus",
         "type": "string"
+      },
+      "VerificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "after_test_id": {
+            "format": "uuid",
+            "title": "After Test Id",
+            "type": "string"
+          },
+          "before_test_id": {
+            "format": "uuid",
+            "title": "Before Test Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "const": "reviewed_regression_comparison",
+            "title": "Method",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_id",
+          "method",
+          "note",
+          "before_test_id",
+          "after_test_id",
+          "created_at"
+        ],
+        "title": "VerificationResponse",
+        "type": "object"
       },
       "VerifyPaymentRequest": {
         "additionalProperties": false,
@@ -36291,6 +36570,175 @@
         "summary": "Get Issue Evidence",
         "tags": [
           "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings": {
+      "get": {
+        "operationId": "findings_api_v1_admin_diagnostics_issues__issue_id__findings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "occurrence_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurrence Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingsPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Findings",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings/{finding_id}/verify": {
+      "post": {
+        "operationId": "verify_api_v1_admin_diagnostics_issues__issue_id__findings__finding_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify",
+        "tags": [
+          "admin-debugging"
         ]
       }
     },

@@ -14,6 +14,7 @@ from app.auth.dependencies import AppSettings, DatabaseSession, require_authenti
 from app.observability.diagnostics_models import DiagnosticIssue
 from app.observability.environment import diagnostics_environment
 
+from .findings_router import router as findings_router
 from .models import DebugMessage, DebugRun, DebugRunEvent, DebugThread
 from .service import ACTIVE, cancel_run, submit_message
 
@@ -22,6 +23,8 @@ router = APIRouter(
     tags=["admin-debugging"],
     dependencies=[Depends(require_admin)],
 )
+
+router.include_router(findings_router)
 
 
 class MessageInput(BaseModel):

@@ -155,11 +155,8 @@ def record_event(
             error_code=event.error_code,
             exception_type=event.exception_type,
             source_location=event.source_location,
-            confidence=(
-                "confirmed"
-                if trusted and event.exception_type == "ZeroDivisionError" and event.source_location
-                else "unknown"
-            ),
+            # A stack confirms the failure location, not the underlying cause.
+            confidence="unknown",
             title=_TITLES[event.category],
             first_seen=now,
             last_seen=now,

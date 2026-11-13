@@ -319,12 +319,12 @@ def test_telemetry_rejects_oversized_body_before_json_validation(client):
     )
 
 
-def test_confirmed_cause_requires_trusted_deterministic_exception_and_location(db):
+def test_exception_type_and_location_do_not_confirm_underlying_cause(db):
     evidence = _event().model_copy(
         update={"exception_type": "ZeroDivisionError", "source_location": "engine.py:42"}
     )
     known = record_event(db, evidence)
-    assert db.get(DiagnosticIssue, known.issue_id).confidence == "confirmed"
+    assert db.get(DiagnosticIssue, known.issue_id).confidence == "unknown"
     unknown = record_event(
         db, evidence.model_copy(update={"source_location": "engine.py:43"}), trusted=False
     )

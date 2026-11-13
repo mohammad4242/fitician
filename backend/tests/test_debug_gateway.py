@@ -128,3 +128,35 @@ def test_tool_output_is_durable_sanitized_citable_and_retry_safe(db):
     run.cancel_requested = True
     with pytest.raises(ValueError, match="run_no_longer_authorized"):
         update_call(db, connector, call.id, call.lease_token, 2, "tool_completed", payload)
+
+
+def test_finding_proposal_progress_is_durable_scoped_and_retry_safe(db):
+    from app.debugging.connectors import update_call
+    from app.debugging.models import DebugRunEvent
+
+    _, run, connector, _ = setup_run(db)
+    call = enqueue_call(db, run, connector, "finding", "fitician_record_finding", {})
+    claim_call(db, connector)
+    payload = {
+        "classification": "hypothesis",
+        "text": "Check the selected failure",
+        "evidence_ids": [run.evidence["occurrence_id"]],
+    }
+    first = update_call(db, connector, call.id, call.lease_token, 1, "finding_proposed", payload)
+    assert first["evidence_id"]
+    assert (
+        update_call(db, connector, call.id, call.lease_token, 1, "finding_proposed", payload)
+        == first
+    )
+    event = db.get(DebugRunEvent, __import__("uuid").UUID(first["evidence_id"]))
+    assert event.payload["classification"] == "hypothesis"
+    with pytest.raises(ValueError, match="finding_not_supported"):
+        update_call(
+            db,
+            connector,
+            call.id,
+            call.lease_token,
+            2,
+            "finding_proposed",
+            {**payload, "classification": "confirmed"},
+        )

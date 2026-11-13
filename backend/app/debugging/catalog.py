@@ -40,6 +40,25 @@ def tool_catalog(*, allow_write: bool) -> list[dict[str, Any]]:
         ),
         tool("diff", "Inspect the sanitized patch in this isolated worktree.", {}, []),
         tool(
+            "record_finding",
+            "Persist a Persian observation, hypothesis or next check with evidence IDs. "
+            "Cannot confirm a cause, resolve an issue or authorize deployment.",
+            {
+                "classification": {
+                    "type": "string",
+                    "enum": ["observed_fact", "hypothesis", "next_check"],
+                },
+                "text": {"type": "string", "minLength": 1, "maxLength": 2000},
+                "evidence_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {"type": "string", "format": "uuid"},
+                },
+            },
+            ["classification", "text", "evidence_ids"],
+        ),
+        tool(
             "run_tests",
             "Run a Python unittest file in the preconfigured networkless container.",
             {"path": path},

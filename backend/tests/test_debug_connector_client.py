@@ -86,6 +86,60 @@ def test_github_publication_requires_matching_tests_before_any_network(tmp_path)
         publish_tested_pr(tools, "fix(fixture): repair addition")
 
 
+def test_connector_records_a_finding_through_authenticated_progress_without_a_shell(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    identifier = str(uuid4())
+    requests = []
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(original),
+        "workspace_root": str(tmp_path / "runtime"),
+        "environment": "test",
+    }
+
+    def handle(request):
+        payload = json.loads(request.content)
+        requests.append(payload)
+        return httpx.Response(
+            200, json={"sequence": payload["sequence"], "evidence_id": identifier}
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            connector = LaptopConnector(config, client)
+            return await connector.execute(
+                {
+                    "id": str(uuid4()),
+                    "run_id": str(uuid4()),
+                    "thread_id": str(uuid4()),
+                    "lease_token": str(uuid4()),
+                    "tool": "fitician_record_finding",
+                    "arguments": {
+                        "classification": "hypothesis",
+                        "text": "Check input validation",
+                        "evidence_ids": [str(uuid4())],
+                    },
+                    "repository": config["repository_name"],
+                    "environment": "test",
+                    "release_commit": commit,
+                    "action": "analyze",
+                    "config": {},
+                }
+            )
+
+    result = asyncio.run(run())
+    assert identifier in result["output"]
+    assert [item["kind"] for item in requests] == [
+        "tool_started",
+        "finding_proposed",
+        "tool_completed",
+    ]
+
+
 def test_followup_runs_reuse_repair_workspace_but_other_issues_and_releases_do_not(tmp_path):
     original = tmp_path / "original"
     commit = repository(original)

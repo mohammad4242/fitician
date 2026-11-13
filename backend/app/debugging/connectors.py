@@ -37,6 +37,7 @@ TOOLS = frozenset(
         "fitician_commit",
         "fitician_create_pr",
         "fitician_codex_turn",
+        "fitician_record_finding",
     }
 )
 MUTATIONS = frozenset({"fitician_write_file", "fitician_commit", "fitician_create_pr"})
@@ -238,6 +239,10 @@ def update_call(
         for key, value in payload.items()
         if key in {"tool", "status", "model", "commit", "branch", "pr_url"}
     }
+    if kind == "finding_proposed":
+        from .findings import proposal_payload
+
+        safe = proposal_payload(db, run, payload)
     if kind == "tool_completed" and "output" in payload:
         tool = payload.get("tool")
         output = payload["output"]
@@ -263,6 +268,7 @@ def update_call(
             "runtime_started",
             "runtime_completed",
             "tool_progress",
+            "finding_proposed",
         }:
             raise ValueError("invalid_progress_sequence")
         row.progress_sequence = sequence
@@ -273,8 +279,8 @@ def update_call(
                 run.state = "editing"
         # Only instrumented tool output is retained. Hidden model reasoning is never accepted.
         event = append_event(db, run, kind, event_payload)
-        evidence_id = str(event.id) if "output" in safe else None
-    elif "output" in safe:
+        evidence_id = str(event.id) if "output" in safe or kind == "finding_proposed" else None
+    elif "output" in safe or kind == "finding_proposed":
         previous_event = next(
             (
                 item

@@ -912,6 +912,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Findings */
+        get: operations["findings_api_v1_admin_diagnostics_issues__issue_id__findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings/{finding_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify */
+        post: operations["verify_api_v1_admin_diagnostics_issues__issue_id__findings__finding_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/issues/{issue_id}/messages": {
         parameters: {
             query?: never;
@@ -9025,6 +9059,72 @@ export type components = {
          * @enum {string}
          */
         ExperienceLevel: "first_month" | "beginner" | "intermediate" | "advanced";
+        /** FindingResponse */
+        FindingResponse: {
+            /** Can Verify */
+            can_verify: boolean;
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "observed_fact" | "hypothesis" | "next_check";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Evidence Version */
+            evidence_version: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Model */
+            model: string | null;
+            /** Occurrence Id */
+            occurrence_id: string | null;
+            /** Provenance */
+            provenance: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Stale */
+            stale: boolean;
+            /** Test Evidence */
+            test_evidence: components["schemas"]["TestProofSummary"][];
+            /** Text */
+            text: string;
+            verification: components["schemas"]["VerificationResponse"] | null;
+        };
+        /** FindingReview */
+        FindingReview: {
+            /**
+             * After Test Id
+             * Format: uuid
+             */
+            after_test_id: string;
+            /**
+             * Before Test Id
+             * Format: uuid
+             */
+            before_test_id: string;
+            /** Evidence Version */
+            evidence_version: string;
+            /** Note */
+            note: string;
+        };
+        /** FindingsPage */
+        FindingsPage: {
+            /** Findings */
+            findings: components["schemas"]["FindingResponse"][];
+            /** Next Offset */
+            next_offset: number | null;
+        };
         /**
          * FitnessGoal
          * @enum {string}
@@ -13471,6 +13571,19 @@ export type components = {
             /** Workout Generation Method */
             workout_generation_method: string | null;
         };
+        /** ReviewResponse */
+        ReviewResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * State
+             * @constant
+             */
+            state: "reviewed_finding";
+        };
         /** RevokeGrantRequest */
         RevokeGrantRequest: {
             /** Reason */
@@ -14030,6 +14143,18 @@ export type components = {
          * @enum {string}
          */
         TemplateFocusTag: "full_body" | "upper_lower" | "push_pull_legs" | "body_part_rotation" | "balanced" | "lower_priority" | "chest_priority" | "back_priority" | "shoulders_priority" | "arms_priority" | "glute_priority" | "quad_priority" | "hamstrings_priority" | "strength_bias" | "compound_focus" | "specialization";
+        /** TestProofSummary */
+        TestProofSummary: {
+            /** Command */
+            command: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Passed */
+            passed: boolean;
+        };
         /** TicketDetail */
         TicketDetail: {
             /** Messages */
@@ -14363,6 +14488,41 @@ export type components = {
          * @enum {string}
          */
         ValidationStatus: "VALID" | "VALID_WITH_CONSTRAINTS" | "INVALID";
+        /** VerificationResponse */
+        VerificationResponse: {
+            /**
+             * Actor Id
+             * Format: uuid
+             */
+            actor_id: string;
+            /**
+             * After Test Id
+             * Format: uuid
+             */
+            after_test_id: string;
+            /**
+             * Before Test Id
+             * Format: uuid
+             */
+            before_test_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Method
+             * @constant
+             */
+            method: "reviewed_regression_comparison";
+            /** Note */
+            note: string;
+        };
         /** VerifyPaymentRequest */
         VerifyPaymentRequest: {
             /** Provider Reference */
@@ -17718,6 +17878,79 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    findings_api_v1_admin_diagnostics_issues__issue_id__findings_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                occurrence_id?: string | null;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingsPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_api_v1_admin_diagnostics_issues__issue_id__findings__finding_id__verify_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                finding_id: string;
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingReview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewResponse"];
                 };
             };
             /** @description Validation Error */

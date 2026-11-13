@@ -136,6 +136,9 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                     "Require tool evidence for execution claims. Never claim deployment. "
                     "Separate observed facts, suspected causes, missing evidence and next checks. "
                     "Cite evidence_id for every finding. "
+                    "Use fitician_record_finding when available to persist concise Persian facts, "
+                    "hypotheses and next checks with actual evidence UUIDs; "
+                    "it never confirms a cause. "
                     "No model assertion confirms a root cause. Do not request or repeat secrets, "
                     "identifying information, medical data or raw prompts. "
                     "Do not reveal private reasoning. Evidence package: " + evidence

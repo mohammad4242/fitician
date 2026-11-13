@@ -193,7 +193,11 @@ class LaptopConnector:
                     "fitician_diff": tools.diff,
                     "fitician_commit": tools.commit_tested_patch,
                 }
-                if name == "fitician_run_tests":
+                value: Any
+                if name == "fitician_record_finding":
+                    receipt = await emit("finding_proposed", arguments)
+                    value = {"finding_id": receipt.get("evidence_id"), "state": "proposed"}
+                elif name == "fitician_run_tests":
                     cancelled = threading.Event()
                     test_task = asyncio.create_task(
                         asyncio.to_thread(

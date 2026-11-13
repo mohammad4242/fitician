@@ -517,3 +517,30 @@ Private artifact upload was also reverified through the restricted Germany proxy
 exact-release web bundles/maps for `fitician-web@16a7b637d480e20571822db17c9bde0b2780a35d`
 uploaded successfully (CLI exit 0, TLS verification enabled). This is artifact-upload evidence,
 not proof that a new application image is deployed.
+
+### Persistent investigation findings and explicit review
+
+Findings reuse the existing issue/run event journal; no parallel conversation store or new
+findings migration is introduced. Both tool-capable runtime paths expose
+`fitician_record_finding` for observed facts, hypotheses and next checks. The backend validates
+every citation against the selected run's occurrence/snapshot or actual scoped tool evidence.
+Unknown IDs, cross-run evidence, unsupported classifications and model self-confirmation are
+rejected. Proposal retries preserve the original evidence ID and reject conflicting content.
+
+`GET /api/v1/admin/diagnostics/issues/{issue_id}/findings` provides occurrence/environment-scoped
+pagination, model/run provenance, stale-evidence state and available regression proof IDs.
+`POST .../findings/{finding_id}/verify` requires an authenticated administrator, CSRF, idempotency
+and the exact evidence version. A completed repair must contain a failing then passing
+instrumented regression test with the same command/image, exercised tests and different tree
+digests. Explicit review records its note/actor/proof IDs in a separate immutable event. It does
+not resolve an issue or claim deployment. New source evidence marks old conclusions stale.
+A test proves a downgrade with actorless probe audit refuses data loss.
+
+The Persian/English issue page separates observations, hypotheses/previous reviews, reviewed
+findings and next checks. Review controls select actual test evidence, rather than accepting
+model-provided success assertions. Legacy capture confidence is no longer interpreted by the
+UI as cause verification; a trusted ZeroDivisionError and source line no longer self-confirm a
+cause. Typed OpenAPI/shared contracts were regenerated. Verification: 61 backend tests on
+isolated PostgreSQL, 21 diagnostics UI tests, focused Ruff/mypy/Oxlint and frontend TypeScript
+passed. Real updated-runtime/panel acceptance remains the next gate; no production release
+was performed by this step.

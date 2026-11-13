@@ -1,6 +1,7 @@
 import { DebugConversation } from "./DebugConversation";
 import { NotificationDeliveries } from "./NotificationDeliveries";
 import { IssueEvidence } from "./IssueEvidence";
+import { IssueFindings } from "./IssueFindings";
 import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
@@ -443,7 +444,6 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
     }).catch((error: unknown) => setSaveError(error)).finally(() => setSaving(false));
   };
   const versions = [...new Set(events.flatMap((event) => [event.version, event.build].filter((value): value is string => Boolean(value))))];
-  const confidenceDescription = issue.confidence === "unknown" ? c.confidenceUnknown : issue.confidence === "likely" ? c.confidenceLikely : c.confidenceConfirmed;
   return (
     <div className="diagnostics-stack">
       <section className="diagnostics-card diagnostics-issue-hero">
@@ -454,15 +454,15 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
         <h3>{explanation.what}</h3>
         <p>{english ? "Observed location" : "محل مشاهده خطا"}: <code dir="ltr">{issue.component} / {issue.operation} / {issue.stage}</code></p>
         <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Affected users" : "کاربران متأثر"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
-        <p>{english ? "Confirmed root cause: not yet established by investigation." : "علت قطعی: هنوز با شواهد بررسی اثبات نشده است."}</p>
+        <p>{english ? "Cause assessments and their verification appear in the selected occurrence's investigation findings." : "فرضیه‌ها و نتیجهٔ بررسی علت، همراه با مدرک در یافته‌های رخداد منتخب نمایش داده می‌شوند."}</p>
         <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
       </section>
       <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={setOccurrenceId} />
+      <IssueFindings key={`findings-${issue.id}-${occurrenceId}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
           <h3>{c.taxonomy}</h3>
-          <p>{c.confidence}: <StatusBadge value={issue.confidence} /></p>
-          <p>{confidenceDescription}</p><small>{c.confidenceCaution}</small>
+          <small>{c.confidenceCaution}</small>
           <dl className="diagnostics-definition-list">
             <div><dt>{c.code}</dt><dd dir="ltr">{issue.error_code}</dd></div>
             <div><dt>{c.errorType}</dt><dd dir="ltr">{issue.exception_type ?? "—"}</dd></div>
