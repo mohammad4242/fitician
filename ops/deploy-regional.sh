@@ -634,6 +634,7 @@ if [[ "$region" == iran && "$kind" == full ]]; then
   fi
   COMPOSE_FILE="$backup_contract" COMPOSE_PROJECT_NAME="$project" \
     COMPOSE_ENV_FILES="$env_file" FITICIAN_ENV_FILE="$env_file" \
+    DB_BACKUP_LOCK_FILE="$app_dir/.database-backup.lock" \
     BACKUP_ENV_FILE="$app_dir/backup.env" bash "$release_dir/backup-production.sh"
   if [[ "$initial_deploy" == true ]]; then active_contract=$compose_file; fi
   current_revision=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \

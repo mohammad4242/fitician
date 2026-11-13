@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily encrypted Fitician Iran database backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+Unit=fitician-iran-db-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -94,6 +94,18 @@ ignored private setup files; no keys or destination credentials entered Git. Enc
 backup transport installation and actual backup/isolated restore are still pending; bucket
 creation alone does not pass the migration gate. Existing media buckets/policies were untouched.
 
+Regional backup supervision now has its own Iran service/timer and a wrapper that resolves only
+the currently running database's retained regional Compose contract. It supplies the existing
+application env file explicitly; deployment and scheduled backup share a bounded flock lock.
+The original legacy backup units remain unchanged. Forty-five backup/regional regressions and
+systemd unit verification passed. Secure backup configuration was created separately with mode
+0600; the application env was not edited. A new X25519 recovery identity remains only in the
+ignored local setup directory, while the VPS receives its public recipient. Encryption using
+the VPS's existing age 1.1.1 and decryption using verified local age 1.3.2 passed with synthetic
+data; the private recovery identity never left the laptop. This is compatibility evidence,
+not a database restore. No backup timer is activated
+and no restore gate is claimed complete yet.
+
 All four controlled validation profiles passed in
 [CI 43462627498](https://github.com/mohammad4242/fitician/actions/runs/43462627498)
 for `d9ba8c78` before its remaining long-running jobs were superseded. That run was cancelled
