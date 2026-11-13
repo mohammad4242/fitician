@@ -6,14 +6,12 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import tempfile
 import threading
 import time
 from pathlib import Path
 from typing import Any
-from uuid import UUID
 
 from .privacy import sanitize_text
 
@@ -88,51 +86,20 @@ class RepositoryTools:
         allow_write: bool,
         max_workspaces: int = 40,
         min_free_bytes: int = 2_147_483_648,
+        evict_readonly: bool = False,
     ) -> RepositoryTools:
-        if (
-            type(max_workspaces) is not int
-            or not 1 <= max_workspaces <= 40
-            or type(min_free_bytes) is not int
-            or min_free_bytes < 1_073_741_824
-        ):
-            raise ValueError("invalid_workspace_capacity_policy")
-        identifier = str(UUID(run_id))
-        if not re.fullmatch(r"[a-f0-9]{40}", commit):
-            raise ValueError("exact_release_commit_required")
-        repository = repository.resolve(strict=True)
-        if _git(repository, "rev-parse", "--show-toplevel").strip() != str(repository):
-            raise ValueError("repository_root_required")
-        if _git(repository, "rev-parse", "--verify", commit + "^{commit}").strip() != commit:
-            raise ValueError("release_commit_not_available")
-        workspace_root.mkdir(parents=True, exist_ok=True, mode=0o700)
-        workspace = workspace_root.resolve() / identifier
-        manifest = workspace_root / (identifier + ".json")
-        branch = "debug/run-" + identifier
-        identity = {
-            "repository": str(repository),
-            "commit": commit,
-            "allow_write": allow_write,
-            "branch": branch,
-        }
-        if workspace.exists():
-            if not manifest.is_file() or json.loads(manifest.read_text()) != identity:
-                raise ValueError("workspace_identity_mismatch")
-            if _git(workspace, "branch", "--show-current").strip() != branch:
-                raise ValueError("workspace_branch_mismatch")
-        else:
-            if (
-                sum(
-                    bool(re.fullmatch(r"[a-f0-9-]{36}", item.stem))
-                    for item in workspace_root.glob("*.json")
-                )
-                >= max_workspaces
-                or shutil.disk_usage(workspace_root).free < min_free_bytes
-            ):
-                raise ValueError("workspace_capacity_reached")
-            with manifest.open("x") as stream:
-                os.chmod(manifest, 0o600)
-                json.dump(identity, stream)
-            _git(repository, "worktree", "add", "-b", branch, str(workspace), commit)
+        from .workspaces import prepare_workspace
+
+        workspace, branch = prepare_workspace(
+            repository,
+            workspace_root,
+            run_id,
+            commit,
+            allow_write=allow_write,
+            max_workspaces=max_workspaces,
+            min_free_bytes=min_free_bytes,
+            evict_readonly=evict_readonly,
+        )
         return cls(workspace, allow_write=allow_write, branch=branch)
 
     def safe_path(self, relative: str) -> Path:

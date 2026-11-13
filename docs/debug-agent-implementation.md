@@ -186,6 +186,20 @@ challenge expired. This is an outstanding user sign-in step, not an inherited la
 session, a verified model call or evidence of provider entitlement. A fresh challenge
 must be generated when the owner is ready; no code/token belongs in chat or Git.
 
+Germany's two-checkout policy now recycles only clean, owned read-only caches, keeping
+their Git branch, identity manifest, test evidence and native conversation state so the
+same exact source can be restored. Repair workspaces, manual modifications, unknown
+directories and malformed/unowned metadata are never discarded. Laptop cache recycling
+stays opt-in. Source identity and cleanliness are checked before reusing a read-only
+checkout. Capacity/missing-source/interrupted-call failures are persisted as bounded
+blocker codes with Persian explanations; a missing source cannot trigger a paid turn.
+Runtime packaging imports the new workspace module in its real image smoke test. CI now
+caches runtime layers and normalizes the pinned binary timestamp to avoid duplicating
+the large CLI layer on every release. New-image cache reuse is still a CI verification gate.
+Focused validation: 47 backend tests (including real isolated Docker tests/cancellation),
+six conversation UI tests, 21 CI/operations contracts, Ruff, strict mypy and TypeScript
+project checks passed. These latest lifecycle changes are not deployed on the server yet.
+
 ## Sentry capture foundation
 
 Pinned dependencies: Python 2.74.0, React/Vite plugin 11.12.0, React Native 8.34.0.

@@ -44,6 +44,7 @@ def test_server_configuration_pins_private_storage_and_never_inherits_laptop_acc
     assert value["max_workspaces"] == 2
     assert value["workspace_min_free_bytes"] >= 2**30
     assert value["fetch_missing_releases"] is True
+    assert value["evict_readonly"] is True
     assert not value["test_image"] and not value["github_enabled"]
 
 

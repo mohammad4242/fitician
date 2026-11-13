@@ -23,7 +23,7 @@ from jsonschema import validate
 from .appserver import AppServer
 from .catalog import tool_catalog
 from .github import publish_tested_pr
-from .limits import validate_runtime_config
+from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
 from .privacy import sanitize_payload, sanitize_text
 from .runtime_storage import ensure_release
 from .tools import RepositoryTools, _git
@@ -213,6 +213,7 @@ class LaptopConnector:
                 allow_write=job["action"] == "prepare_fix",
                 max_workspaces=self.config.get("max_workspaces", 40),
                 min_free_bytes=self.config.get("workspace_min_free_bytes", 2_147_483_648),
+                evict_readonly=self.config.get("evict_readonly", False),
             )
             sequence = 0
             lock = asyncio.Lock()
@@ -351,7 +352,13 @@ class LaptopConnector:
                 if not task.done():
                     task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
-        except (ValueError, OSError, TimeoutError, httpx.HTTPError, RuntimeError):
+        except ValueError as error:
+            result = {
+                "error_code": str(error)
+                if str(error) in CONNECTOR_BLOCKERS
+                else "connector_execution_failed_or_authorization_lost"
+            }
+        except (OSError, TimeoutError, httpx.HTTPError, RuntimeError):
             result = {"error_code": "connector_execution_failed_or_authorization_lost"}
         save_private(
             journal,
@@ -384,6 +391,7 @@ class LaptopConnector:
                 allow_write=False,
                 max_workspaces=self.config.get("max_workspaces", 40),
                 min_free_bytes=self.config.get("workspace_min_free_bytes", 2_147_483_648),
+                evict_readonly=self.config.get("evict_readonly", False),
             )
             read_tool = tool_catalog(allow_write=False)[0]
 

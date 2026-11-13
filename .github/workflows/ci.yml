@@ -602,11 +602,19 @@ jobs:
           python-version: "3.12"
       - name: Start isolated networks and test Agent outage recovery
         run: bash ops/split-test.sh
+      - uses: docker/setup-buildx-action@v3
       - name: Build independent debug runtime
-        run: >-
-          docker build -f docker/debug-runtime/Dockerfile
-          --build-arg APP_BUILD_SHA=${{ github.sha }}
-          -t fitician-debug-runtime:${{ github.sha }} .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/debug-runtime/Dockerfile
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+          load: true
+          push: false
+          tags: fitician-debug-runtime:${{ github.sha }}
+          cache-from: type=gha,scope=fitician-debug-runtime
+          cache-to: type=gha,mode=max,scope=fitician-debug-runtime
       - name: Verify runtime isolation, protocol and restart persistence
         run: >-
           python3 ops/smoke-debug-runtime.py

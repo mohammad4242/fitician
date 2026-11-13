@@ -6,6 +6,20 @@ MIN_TIMEOUT = 10
 MAX_TIMEOUT = 600
 MIN_API_TOKENS = 128
 MAX_API_TOKENS = 16384
+CONNECTOR_BLOCKERS = frozenset(
+    {
+        "workspace_capacity_reached",
+        "repository_capacity_reached",
+        "exact_release_commit_required",
+        "release_commit_not_available",
+        "workspace_identity_mismatch",
+        "workspace_branch_mismatch",
+        "workspace_release_mismatch",
+        "workspace_not_clean",
+        "workspace_branch_not_owned",
+        "interrupted_call_requires_new_run",
+    }
+)
 
 
 def validate_runtime_config(config: dict[str, Any]) -> None:

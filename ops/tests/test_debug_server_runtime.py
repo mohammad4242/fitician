@@ -22,6 +22,7 @@ class DebugServerRuntimeTests(unittest.TestCase):
         self.assertIn("ops/smoke-debug-runtime.py", section)
         self.assertIn("fitician-debug-runtime-${{ github.sha }}", section)
         self.assertIn("sha256sum", section)
+        self.assertIn("scope=fitician-debug-runtime", section)
         self.assertNotIn("production-germany", section)
 
     def test_runtime_compose_has_only_dedicated_state_and_no_generation_authority(self):

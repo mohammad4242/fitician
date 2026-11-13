@@ -82,7 +82,7 @@ def test_workspace_disk_admission_is_checked_before_git_mutation(tmp_path, monke
     root = tmp_path / "worktrees"
     usage = namedtuple("usage", "total used free")
     monkeypatch.setattr(
-        "app.debugging.tools.shutil.disk_usage", lambda _: usage(10**10, 0, 2**30 - 1)
+        "app.debugging.workspaces.shutil.disk_usage", lambda _: usage(10**10, 0, 2**30 - 1)
     )
     identifier = str(uuid4())
     with pytest.raises(ValueError, match="workspace_capacity_reached"):
@@ -91,6 +91,85 @@ def test_workspace_disk_admission_is_checked_before_git_mutation(tmp_path, monke
         )
     assert not (root / (identifier + ".json")).exists()
     assert not (root / identifier).exists()
+
+
+def test_server_recycles_clean_readonly_cache_and_retains_branches_and_repair_work(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    root = tmp_path / "worktrees"
+    first_id, repair_id, third_id = (str(uuid4()) for _ in range(3))
+    policy = {"max_workspaces": 2, "evict_readonly": True}
+    first = RepositoryTools.create(original, root, first_id, commit, allow_write=False, **policy)
+    repair = RepositoryTools.create(original, root, repair_id, commit, allow_write=True, **policy)
+    repair.write_file("bug.py", "def add(a, b):\n    return a + b\n")
+    third = RepositoryTools.create(original, root, third_id, commit, allow_write=False, **policy)
+    assert not first.workspace.exists() and third.workspace.exists()
+    assert (root / (first_id + ".json")).is_file()
+    assert (
+        subprocess.check_output(
+            ["git", "-C", str(original), "rev-parse", first.branch], text=True
+        ).strip()
+        == commit
+    )
+    assert "return a + b" in repair.read_file("bug.py")
+    restored = RepositoryTools.create(original, root, first_id, commit, allow_write=False, **policy)
+    assert restored.branch == first.branch and "return a - b" in restored.read_file("bug.py")
+    assert not third.workspace.exists()
+    assert "return a + b" in repair.read_file("bug.py")
+
+
+def test_cache_eviction_never_discards_dirty_readonly_work_or_an_unowned_directory(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    root = tmp_path / "worktrees"
+    first_id = str(uuid4())
+    policy = {"max_workspaces": 2, "evict_readonly": True}
+    first = RepositoryTools.create(original, root, first_id, commit, allow_write=False, **policy)
+    (first.workspace / "bug.py").write_text("preserve manual work\n")
+    repair = RepositoryTools.create(
+        original, root, str(uuid4()), commit, allow_write=True, **policy
+    )
+    unknown = root / "unrelated-work"
+    unknown.mkdir()
+    (unknown / "notes.txt").write_text("keep\n")
+    with pytest.raises(ValueError, match="workspace_capacity_reached"):
+        RepositoryTools.create(original, root, str(uuid4()), commit, allow_write=False, **policy)
+    assert (first.workspace / "bug.py").read_text() == "preserve manual work\n"
+    assert repair.workspace.exists() and (unknown / "notes.txt").read_text() == "keep\n"
+    with pytest.raises(ValueError, match="workspace_not_clean"):
+        RepositoryTools.create(original, root, first_id, commit, allow_write=False, **policy)
+
+
+def test_recycling_ignores_malformed_unowned_manifests(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    root = tmp_path / "worktrees"
+    root.mkdir()
+    unknown_id = str(uuid4())
+    unknown = root / unknown_id
+    unknown.mkdir()
+    (unknown / "notes.txt").write_text("keep")
+    manifest = root / (unknown_id + ".json")
+    manifest.write_text("[]")
+    manifest.chmod(0o600)
+    policy = {"max_workspaces": 2, "evict_readonly": True}
+    first = RepositoryTools.create(
+        original, root, str(uuid4()), commit, allow_write=False, **policy
+    )
+    second = RepositoryTools.create(
+        original, root, str(uuid4()), commit, allow_write=False, **policy
+    )
+    assert not first.workspace.exists() and second.workspace.exists()
+    assert (unknown / "notes.txt").read_text() == "keep"
+
+
+def test_unavailable_source_is_identified_before_creating_a_workspace(tmp_path):
+    original = tmp_path / "original"
+    repository(original)
+    root = tmp_path / "worktrees"
+    with pytest.raises(ValueError, match="release_commit_not_available"):
+        RepositoryTools.create(original, root, str(uuid4()), "a" * 40, allow_write=False)
+    assert not root.exists()
 
 
 @pytest.mark.parametrize(

@@ -38,6 +38,7 @@ def configuration(path: Path, state: Path) -> dict[str, Any]:
         max_workspaces=2,
         workspace_min_free_bytes=1_610_612_736,
         fetch_missing_releases=True,
+        evict_readonly=True,
         test_image="",
         github_enabled=False,
     )

@@ -52,3 +52,15 @@ it("shows the retained execution target and an honest Persian offline state", as
   expect(screen.getByText("Germany server")).toBeInTheDocument();
   expect(screen.getByText("chosen-model")).toBeInTheDocument();
 });
+
+it.each([
+  ["workspace_capacity_reached", "ظرفیت فضای اجرای ایجنت پر است"],
+  ["exact_release_commit_required", "نسخهٔ دقیق خطادار برای بررسی آماده نیست"],
+])("explains the %s blocker in Persian without claiming an investigation completed", async (code, explanation) => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], next_cursor: null,
+    runs: [{ id: "run-blocked", state: "blocked", error_code: code, config: {}, evidence_id: null }],
+  } as never);
+  render(<DebugConversation issueId="issue-blocked" english={false} />);
+  expect(await screen.findByText(new RegExp(explanation))).toBeInTheDocument();
+});

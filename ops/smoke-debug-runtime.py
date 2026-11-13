@@ -13,7 +13,9 @@ from uuid import uuid4
 
 
 def command(*args: str) -> str:
-    result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
+    result = subprocess.run(
+        args, capture_output=True, text=True, timeout=60, check=False
+    )
     if result.returncode:
         raise RuntimeError("isolated_runtime_smoke_command_failed")
     return result.stdout.strip()
@@ -105,6 +107,7 @@ def run(image: str, commit: str) -> dict:
         assert status["state"] == "awaiting_enrollment" and not status["connected"]
         assert not status["auth_cache_present"] and status["authenticated"] is False
         protocol = (
+            "from app.debugging.workspaces import prepare_workspace\n"
             "import asyncio; from app.debugging.appserver import AppServer\n"
             "async def run():\n"
             " async with AppServer() as server:\n"
@@ -146,7 +149,9 @@ def run(image: str, commit: str) -> dict:
             "inference_verified": False,
         }
     finally:
-        subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False)
+        subprocess.run(
+            ["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False
+        )
         command("docker", "volume", "rm", name)
 
 

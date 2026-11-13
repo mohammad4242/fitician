@@ -11,6 +11,7 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
 
 from .connectors import _authorize_run, enqueue_call
+from .limits import CONNECTOR_BLOCKERS
 from .models import DebugConnector, DebugConnectorCall, DebugRun
 from .service import append_event
 
@@ -51,6 +52,8 @@ async def call_connector(
             latest_call = db.get(DebugConnectorCall, identifier)
             if latest_call and latest_call.state == "completed":
                 result = latest_call.result or {}
-                if result.get("error_code"):
+                if error_code := result.get("error_code"):
+                    if isinstance(error_code, str) and error_code in CONNECTOR_BLOCKERS:
+                        raise ValueError(error_code)
                     raise ValueError("connector_execution_failed")
                 return result

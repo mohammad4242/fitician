@@ -13,7 +13,7 @@ with urllib.request.urlopen(url, timeout=60) as response, pathlib.Path('/build/c
         output.write(chunk)
 assert digest.hexdigest() == '8246e846c550ea21197fcc4067bc270dca895e94ea42ed6a282e6f4e0125b15f', 'Codex artifact checksum mismatch'
 PY
-RUN python -c "import pathlib,tarfile; t=tarfile.open('/build/codex.tar.gz'); p=pathlib.Path('/usr/local/bin/codex'); p.write_bytes(t.extractfile('codex-x86_64-unknown-linux-musl').read()); p.chmod(0o755)" \
+RUN python -c "import os,pathlib,tarfile; t=tarfile.open('/build/codex.tar.gz'); p=pathlib.Path('/usr/local/bin/codex'); p.write_bytes(t.extractfile('codex-x86_64-unknown-linux-musl').read()); p.chmod(0o755); os.utime(p,(0,0))" \
     && python -c "import subprocess; assert subprocess.check_output(['/usr/local/bin/codex','--version'],text=True).strip() == 'codex-cli 0.167.2'"
 
 FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
@@ -36,7 +36,8 @@ COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
      backend/app/debugging/catalog.py backend/app/debugging/connector.py \
      backend/app/debugging/github.py backend/app/debugging/limits.py \
      backend/app/debugging/privacy.py backend/app/debugging/runtime_storage.py \
-     backend/app/debugging/server_runtime.py backend/app/debugging/tools.py /app/app/debugging/
+     backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \
+     backend/app/debugging/workspaces.py /app/app/debugging/
 ARG APP_BUILD_SHA
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOME=/state CODEX_HOME=/state/codex \
     FITICIAN_RUNTIME_COMMIT=${APP_BUILD_SHA}

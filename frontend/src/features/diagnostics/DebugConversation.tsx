@@ -7,6 +7,29 @@ interface Message { id: string; role: string; content: string; created_at: strin
 interface Conversation { messages: Message[]; runs: Run[]; next_cursor: string | null }
 const activeStates = new Set(["queued", "investigating", "editing", "testing", "awaiting_authorization", "deploying", "verifying"]);
 
+function executionBlocker(code: string | null, english: boolean): string | null {
+  switch (code) {
+    case "execution_target_offline":
+      return english ? "The selected execution target is offline. Check its connection." : "اتصال اجرای منتخب آفلاین است. اتصال آن را بررسی کنید.";
+    case "workspace_capacity_reached":
+    case "repository_capacity_reached":
+      return english ? "Execution capacity is full. Check free disk and retained repair workspaces." : "ظرفیت فضای اجرای ایجنت پر است. دیسک آزاد و فضای تعمیرهای نگه‌داری‌شده را بررسی کنید.";
+    case "exact_release_commit_required":
+    case "release_commit_not_available":
+      return english ? "The exact failing source is unavailable. Check its release and commit access." : "نسخهٔ دقیق خطادار برای بررسی آماده نیست. شناسهٔ انتشار و دسترسی به commit را بررسی کنید.";
+    case "workspace_not_clean":
+    case "workspace_identity_mismatch":
+    case "workspace_release_mismatch":
+    case "workspace_branch_mismatch":
+    case "workspace_branch_not_owned":
+      return english ? "Workspace identity or changes need review. Existing work was preserved." : "نسخه یا تغییرات فضای کار به بررسی نیاز دارد. کار موجود حفظ شده است.";
+    case "interrupted_call_requires_new_run":
+      return english ? "The previous execution was interrupted. Review its recorded actions before a new run." : "اجرای قبلی قطع شده است. پیش از شروع دوباره، فعالیت‌های ثبت‌شدهٔ آن را بررسی کنید.";
+    default:
+      return null;
+  }
+}
+
 export function DebugConversation({ issueId, english, occurrenceId = "" }: { issueId: string; english: boolean; occurrenceId?: string }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [older, setOlder] = useState<Message[]>([]);
@@ -76,7 +99,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>)}</div>
-    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir="auto"><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{run.error_code === "execution_target_offline" && <> · {english ? "The selected execution target is offline. Check its connection." : "اتصال اجرای منتخب آفلاین است. اتصال آن را بررسی کنید."}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {conversation?.runs.slice(0, 5).map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{executionBlocker(run.error_code, english) && <> · {executionBlocker(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
     {conversation?.runs.slice(0, 5).map(run => <RunProgress key={run.id} base={base} run={run} english={english} />)}
     {error && <p role="alert">{english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود."}</p>}
     <form onSubmit={event => void submit(event)}>

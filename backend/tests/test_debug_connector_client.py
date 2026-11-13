@@ -197,6 +197,44 @@ def test_github_publication_requires_matching_tests_before_any_network(tmp_path)
         publish_tested_pr(tools, "fix(fixture): repair addition")
 
 
+def test_missing_release_is_a_specific_blocker_and_never_becomes_a_paid_turn(tmp_path):
+    original = tmp_path / "original"
+    repository(original)
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(original),
+        "workspace_root": str(tmp_path / "runtime"),
+        "environment": "test",
+    }
+
+    def forbidden(request):
+        raise AssertionError("No source means no runtime or progress dispatch")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(forbidden)) as client:
+            job = {
+                "id": str(uuid4()),
+                "run_id": str(uuid4()),
+                "thread_id": str(uuid4()),
+                "tool": "fitician_codex_turn",
+                "arguments": {},
+                "config": {},
+                "repository": config["repository_name"],
+                "environment": "test",
+                "release_commit": None,
+                "action": "analyze",
+            }
+            connector = LaptopConnector(config, client)
+            result = await connector.execute(job)
+            assert result == {"error_code": "exact_release_commit_required"}
+            assert await connector.execute(job) == result
+
+    asyncio.run(run())
+
+
 def test_connector_records_a_finding_through_authenticated_progress_without_a_shell(tmp_path):
     original = tmp_path / "original"
     commit = repository(original)

@@ -24,7 +24,7 @@ from app.profile import models as profile_models  # noqa: F401
 from .api_runtime import model_supports_tools, run_api_tools
 from .catalog import tool_catalog
 from .gateway import call_connector
-from .limits import validate_runtime_config
+from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
 from .models import DebugMessage, DebugRun
 from .privacy import sanitize_text
 from .runtime_profiles import authorized_target, execution_capabilities
@@ -307,6 +307,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             failure = "provider_unreachable"
         except (ValueError, RuntimeError, KeyError, IndexError, TypeError) as error:
             safe_codes = {
+                *CONNECTOR_BLOCKERS,
                 "provider_rate_limited",
                 "provider_rejected",
                 "provider_invalid_response",
@@ -334,6 +335,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                 "blocked"
                 if failure
                 in {
+                    *CONNECTOR_BLOCKERS,
                     "debug_agent_disabled",
                     "repair_executor_not_configured",
                     "interactive_runtime_not_configured",
