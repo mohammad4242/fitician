@@ -599,3 +599,20 @@ Alembic `20261018_175`; checked services healthy. Database size was about 291 MB
 free about 10.7 GB. Compose lives in the release directory reported by Docker labels, not
 at the application root. No migration or application replacement occurred. Backup configuration
 and restore availability remain under investigation; no backup gate was claimed passed.
+
+### Effective API budget and declared limits
+
+The API tool loop previously subtracted the requested maximum allocation before each response,
+so a 4096-token configuration could stop after two short tool rounds. It now subtracts validated
+provider-reported completion usage; missing/invalid usage conservatively reserves the entire
+requested allocation. Usage source and remaining budget are durable progress events. A response
+reporting consumption above its allocation is rejected. The independent eight-round, tool-count
+and payload bounds remain. Provider usage is reported evidence, not a billing guarantee.
+
+Debug settings now reject unsupported limits instead of silently clamping them: timeout 10–600
+seconds, API output budget 128–16384 tokens. The existing AI Settings page shows these ranges.
+Historic unsupported configurations are blocked before runtime execution. Codex output-token
+controls remain unsupported/disabled; no model is substituted. Focused verification passed
+57 backend tests and 30 settings/conversation UI tests, mypy/Ruff, TypeScript and Oxlint.
+Actual selected OpenRouter model inference/tool acceptance remains unverified: the public model
+catalog also timed out from the laptop during the connectivity check.

@@ -266,6 +266,18 @@ def save_task_config(
         )
 
     if task_type is AITaskType.DEBUG_AGENT:
+        from app.debugging.limits import validate_runtime_config
+
+        try:
+            validate_runtime_config(
+                {
+                    "execution_backend": execution_backend,
+                    "timeout_seconds": payload.timeout_seconds,
+                    "max_output_tokens": payload.max_output_tokens,
+                }
+            )
+        except ValueError:
+            raise AIConfigError("Unsupported debug_agent runtime limits") from None
         if fallback_model_ids:
             raise AIConfigError("Automatic model fallback is not supported for debug_agent")
         if effective("max_cost_per_request") is not None:

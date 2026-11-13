@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from jsonschema import ValidationError, validate
 
 from .appserver import ProgressHandler, ToolHandler
+from .limits import validate_runtime_config
 from .privacy import sanitize_text
 
 
@@ -49,7 +50,8 @@ async def run_api_tools(
         raise ValueError("model_not_configured")
     catalog = {tool["name"]: tool for tool in tools}
     history = list(messages)
-    remaining = min(int(config.get("max_output_tokens", 4096)), 16384)
+    validate_runtime_config(config)
+    remaining = int(config.get("max_output_tokens", 4096))
     provider: dict[str, Any] = {"data_collection": "deny", "allow_fallbacks": False}
     if "zero_data_retention" in config.get("routing_restrictions", []):
         provider["zdr"] = True
@@ -59,7 +61,6 @@ async def run_api_tools(
         if remaining < 128 or len(json.dumps(history).encode()) > 262144:
             raise ValueError("tool_run_budget_exhausted")
         allocation = min(remaining, 2048)
-        remaining -= allocation
         await progress("model_request", {"step": step + 1, "model": model})
         async with client.stream(
             "POST",
@@ -93,6 +94,21 @@ async def run_api_tools(
                     raise ValueError("provider_response_too_large")
             body = json.loads(payload)
         message = body["choices"][0]["message"]
+        usage = body.get("usage")
+        used = usage.get("completion_tokens") if isinstance(usage, dict) else None
+        reported = type(used) is int and 0 < used <= allocation
+        if type(used) is int and used > allocation:
+            raise ValueError("provider_usage_invalid")
+        consumed = cast(int, used) if reported else allocation
+        remaining -= consumed
+        await progress(
+            "model_usage",
+            {
+                "completion_tokens": consumed,
+                "budget_remaining": remaining,
+                "usage_source": "provider_reported" if reported else "reserved_unreported",
+            },
+        )
         calls = message.get("tool_calls") or []
         if not calls:
             content = message.get("content")

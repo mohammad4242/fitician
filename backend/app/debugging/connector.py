@@ -21,6 +21,7 @@ from jsonschema import validate
 from .appserver import AppServer
 from .catalog import tool_catalog
 from .github import publish_tested_pr
+from .limits import validate_runtime_config
 from .privacy import sanitize_payload, sanitize_text
 from .tools import RepositoryTools, _git
 
@@ -149,6 +150,7 @@ class LaptopConnector:
         save_private(journal, {"state": "started", "run_id": job["run_id"]})
         result: dict[str, Any]
         try:
+            validate_runtime_config(job["config"])
             commit = job.get("release_commit")
             workspace_id = str(
                 uuid5(
@@ -286,9 +288,7 @@ class LaptopConnector:
 
             task = asyncio.create_task(perform())
             try:
-                async with asyncio.timeout(
-                    min(max(int(job["config"].get("timeout_seconds", 420)), 10), 600)
-                ):
+                async with asyncio.timeout(int(job["config"].get("timeout_seconds", 420))):
                     while not task.done():
                         await asyncio.wait({task}, timeout=2)
                         if not task.done():

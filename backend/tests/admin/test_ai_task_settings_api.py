@@ -912,3 +912,17 @@ def test_debug_agent_is_disabled_without_a_forced_default_model(client, db):
     item = next(item for item in response.json() if item["task_type"] == "debug_agent")
     assert item["enabled"] is False
     assert item["primary_model_id"] is None
+
+
+@pytest.mark.parametrize(
+    "options", [{"timeout_seconds": 1}, {"timeout_seconds": 9}, {"max_output_tokens": 16385}]
+)
+def test_debug_settings_reject_limits_the_runtime_would_silently_clamp(client, db, options):
+    _admin(client, db)
+    response = client.put(
+        "/api/v1/admin/ai/task-configs/debug_agent",
+        headers=ORIGIN,
+        json={"enabled": False, **options},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "AI_CONFIGURATION_INVALID"

@@ -23,6 +23,7 @@ from app.profile import models as profile_models  # noqa: F401
 from .api_runtime import model_supports_tools, run_api_tools
 from .catalog import tool_catalog
 from .gateway import call_connector
+from .limits import validate_runtime_config
 from .models import DebugMessage, DebugRun
 from .privacy import sanitize_text
 from .service import append_event, claim_run
@@ -41,6 +42,7 @@ async def request_analysis(
         raise ValueError("model_not_configured")
     # A provider selection is not tool execution authority. No tools are sent in analysis mode.
     restrictions = config.get("routing_restrictions", [])
+    validate_runtime_config(config)
     provider: dict[str, Any] = {"data_collection": "deny", "allow_fallbacks": False}
     if "zero_data_retention" in restrictions:
         provider["zdr"] = True
@@ -53,7 +55,7 @@ async def request_analysis(
         json={
             "model": model,
             "messages": messages,
-            "max_tokens": min(int(config.get("max_output_tokens", 4096)), 16384),
+            "max_tokens": int(config.get("max_output_tokens", 4096)),
             "provider": provider,
         },
     ) as response:
@@ -96,6 +98,11 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             config.get("agent_name") != "codex" or not config.get("connector_id")
         ):
             failure = "interactive_runtime_not_configured"
+        if failure is None:
+            try:
+                validate_runtime_config(config)
+            except ValueError:
+                failure = "debug_runtime_options_unsupported"
         credential = db.scalar(
             select(AIProviderCredential).where(
                 AIProviderCredential.provider == AIProviderName.OPENROUTER
@@ -150,7 +157,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
         ]
     if failure is None:
         try:
-            timeout = min(max(int(config.get("timeout_seconds", 420)), 10), 600)
+            timeout = int(config.get("timeout_seconds", 420))
             tool_number = 0
 
             async def progress(kind: str, payload: dict[str, Any]) -> None:
@@ -279,6 +286,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                 "provider_rate_limited",
                 "provider_rejected",
                 "provider_invalid_response",
+                "provider_usage_invalid",
                 "provider_response_too_large",
                 "model_not_configured",
                 "repair_executor_not_configured",
@@ -304,6 +312,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                     "repair_executor_not_configured",
                     "interactive_runtime_not_configured",
                     "credential_unavailable",
+                    "debug_runtime_options_unsupported",
                 }
                 else "failed"
             )

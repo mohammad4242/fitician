@@ -2,6 +2,7 @@ import asyncio
 import json
 
 import httpx
+import pytest
 
 from app.debugging.api_runtime import run_api_tools
 
@@ -69,3 +70,104 @@ def test_selected_api_model_executes_a_real_tool_loop_without_model_fallback():
     assert calls == [("fitician_read_file", {"path": "bug.py"})]
     assert all(request["model"] == "selected/model" for request in requests)
     assert all(request["provider"]["allow_fallbacks"] is False for request in requests)
+
+
+def test_budget_tracks_reported_usage_across_tool_rounds_instead_of_reserved_maximums():
+    requests, usage_events = [], []
+
+    def handle(request):
+        payload = json.loads(request.content)
+        requests.append(payload)
+        number = len(requests)
+        message = (
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": f"read-{number}",
+                        "type": "function",
+                        "function": {
+                            "name": "fitician_read_file",
+                            "arguments": '{"path":"bug.py"}',
+                        },
+                    }
+                ],
+            }
+            if number < 4
+            else {"role": "assistant", "content": "Completed bounded investigation"}
+        )
+        return httpx.Response(
+            200, json={"choices": [{"message": message}], "usage": {"completion_tokens": 100}}
+        )
+
+    async def tool(name, arguments):
+        return "Citable sanitized source"
+
+    async def progress(kind, payload):
+        if kind == "model_usage":
+            usage_events.append(payload)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await run_api_tools(
+                client,
+                base_url="https://openrouter.ai/api/v1",
+                api_key="test-key",
+                config={"primary_model_id": "selected/model", "max_output_tokens": 4096},
+                messages=[{"role": "user", "content": "inspect"}],
+                tools=[
+                    {
+                        "name": "fitician_read_file",
+                        "description": "read",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {"path": {"type": "string"}},
+                            "required": ["path"],
+                            "additionalProperties": False,
+                        },
+                    }
+                ],
+                handler=tool,
+                progress=progress,
+            )
+
+    assert asyncio.run(run()) == "Completed bounded investigation"
+    assert len(requests) == 4
+    assert usage_events[-1]["budget_remaining"] == 3696
+    assert all(v["usage_source"] == "provider_reported" for v in usage_events)
+
+
+@pytest.mark.parametrize("usage", [None, {"completion_tokens": -1}, {"completion_tokens": True}])
+def test_missing_or_invalid_usage_reserves_the_full_allocation_without_expanding_budget(usage):
+    records = []
+
+    def handle(request):
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": "Analysis complete"}}], "usage": usage}
+        )
+
+    async def progress(kind, payload):
+        if kind == "model_usage":
+            records.append(payload)
+
+    async def tool(name, arguments):
+        raise AssertionError("No tool requested")
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            return await run_api_tools(
+                client,
+                base_url="https://openrouter.ai/api/v1",
+                api_key="test-key",
+                config={"primary_model_id": "selected/model", "max_output_tokens": 512},
+                messages=[{"role": "user", "content": "inspect"}],
+                tools=[],
+                handler=tool,
+                progress=progress,
+            )
+
+    assert asyncio.run(run()) == "Analysis complete"
+    assert records == [
+        {"completion_tokens": 512, "budget_remaining": 0, "usage_source": "reserved_unreported"}
+    ]
