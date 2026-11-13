@@ -426,8 +426,17 @@ def test_safe_client_exception_location_is_persisted_without_confirming_cause(cl
         )
 
 
+@pytest.mark.parametrize(
+    ("platform", "project"),
+    [
+        ("web", "fitician-web"),
+        ("ios_pwa", "fitician-web"),
+        ("android", "fitician-mobile"),
+        ("ios", "fitician-mobile"),
+    ],
+)
 def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
-    client, db, monkeypatch
+    client, db, monkeypatch, platform, project
 ):
     from app.observability.evidence_models import (
         DiagnosticEvidenceSnapshot,
@@ -435,6 +444,7 @@ def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
     )
 
     monkeypatch.setenv("SENTRY_WEB_PROJECT", "fitician-web")
+    monkeypatch.setenv("SENTRY_MOBILE_PROJECT", "fitician-mobile")
     email = f"sentry-fixture-{uuid4()}@example.com"
     headers = {"Origin": "http://localhost:5173"}
     assert (
@@ -448,7 +458,7 @@ def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
     identifier = uuid4()
     payload = {
         "event_id": str(identifier),
-        "platform": "web",
+        "platform": platform,
         "component": "ReactRoot",
         "operation": "render",
         "stage": "uncaught",
@@ -464,7 +474,7 @@ def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
             == 202
         )
     reference = db.scalar(select(DiagnosticExternalEvent))
-    assert reference.project_id == "fitician-web"
+    assert reference.project_id == project
     assert reference.local_event_id == identifier
     assert reference.sync_state == "pending" and reference.observed_at is None
     snapshot = db.scalar(select(DiagnosticEvidenceSnapshot))

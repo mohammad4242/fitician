@@ -6,6 +6,61 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Revalidated completion checklist — 2026-11-13
+
+The existing design and execution authorization remain in effect. Work continues on
+`feat/regional-cicd`; no replacement stack or competing admin application is planned.
+At baseline HEAD `16a7b637`, remote branch and draft PR 41 match. `origin/main` remains
+`7c03e50d`; feature work is not merged or deployed. Local mobile release-identity changes
+and this document are preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
+
+| Capability | Code | Tested | External configuration | Deployed | Live verified |
+| --- | --- | --- | --- | --- | --- |
+| SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
+| Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
+| API model tool loop | committed | mocked provider protocol | production selection/probe pending | no | actual API tool call pending |
+| Isolated repair/test/PR | committed, limited unittest profile | real seeded failure/fix/test/PR 42 | local GitHub broker | no | synthetic staging only |
+| FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
+| Native exact release identity/iOS ingestion | implemented | 34 backend, 14 core, 7 mobile tests; native crash pending | EAS Sentry variables absent at last inspection | no | no native release crash proof |
+| Artifact-bound deployment and verification | incomplete | pending | existing regional owner gates retained | no | pending |
+
+Execution order and gates:
+
+- [x] Phase 0: reconcile Git/PR/runtime evidence, preserve local changes, identify latest CI failure.
+- [ ] Phase 1: resume the existing owned Germany proxy; verify authenticated Iran retrieval,
+  allowlist/auth failures, existing Agent identity unchanged. Rehearse fresh backup restoration
+  before any production migration. Public SSH and hosted deployment access are separate gates.
+- [ ] Phase 2: finish release/platform identity and telemetry health/coverage; preserve local
+  lifecycle and exact occurrence counts; execute sensitive-fixture and outage checks.
+- [ ] Phase 3: persistent facts/hypotheses/findings with evidence references and stale-evidence
+  handling; remove error-type-only confirmed-cause inference; verify RTL/mobile/refresh.
+- [ ] Phase 4: real selected Codex and OpenRouter tool runs through the panel, explicit execution
+  target, supervised independent runtime, bounded audited server-evidence tools. Keep laptop
+  enrollment explicit and never substitute a runtime silently.
+- [ ] Phase 5: current-branch repair with failing-release comparison; add controlled backend,
+  isolated PostgreSQL/migration, frontend/type/build and Agent test profiles; bind successful
+  tests, patch, commit and draft PR. Verify cancellation/restarts/uncertain results.
+- [ ] Phase 6: additive durable deployment records/authorization, admin preview/authorize/status
+  endpoints and issue UI; fixed CI workflow broker only, exact commit/artifact/environment,
+  stale-authorization rejection, existing owner gates, idempotency and target locking. Verify
+  rollback/migration compatibility and scenario evidence before verified-resolution status.
+- [ ] Phase 7: activate existing Faraz worker only after migrated release readiness; one controlled
+  automatic error/aggregation/SMS/receipt acceptance, preserving existing dispatch limits.
+- [ ] Phase 8: immutable digest release manifest, worker startup/readiness/rollback integration,
+  exact-candidate CI, safe migration/restore gates, gated regional deployment and live panel probe.
+- [ ] Phase 9: EAS configuration/private symbols and actual supported release-crash acceptance;
+  four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
+  explicitly unverified. Final complete path must use the intended deployed panel.
+
+Fresh infrastructure evidence: private pinned Germany SSH on 9011 works after reboot;
+`ssh`, Docker and Tailscale are active. Agent container remains healthy on its prior image,
+with no restart by this session. Existing proxy is still `Created`, release
+`83d56ca78ae0`, checksums verified, current symlink absent. Public SSH still times out.
+Latest feature CI [43279620964](https://github.com/mohammad4242/fitician/actions/runs/43279620964)
+failed in the complete backend-suite step; Android, mobile, frontend/browser, Agent,
+Compose, regional smoke, dependency and secret checks passed. Publication was skipped.
+A green release gate is still required; these observations do not authorize bypassing it.
+
 ## Sentry capture foundation
 
 Pinned dependencies: Python 2.74.0, React/Vite plugin 11.12.0, React Native 8.34.0.
@@ -70,7 +125,7 @@ are visible in evidence responses. No Sentry webhook is exposed by this implemen
 
 The full six-phase task is not complete. Implemented adapters and repair gateways need the
 remaining acceptance coverage and production configuration. Still required: artifact-bound
-deployment broker and post-deployment verification; configured external notifications; complete
+deployment broker and post-deployment verification; automatic production notification activation; complete
 propagation and transport-drop health; native crash/privacy acceptance; all four workflow
 outcome/quota regression gates; and release pipeline/production acceptance. These are engineering
 work as well as external prerequisites. Production application containers have not been replaced. Sentry secret configuration was prepared separately without restarting services.
@@ -84,7 +139,7 @@ Services were not restarted; running old images have not adopted this configurat
 Still outstanding: live activation and regional egress verification; EAS/mobile release
 configuration and native artifacts; production debug/sync worker image/network/secret wiring;
 production connector enrollment; scoped long-term GitHub/deployment broker credentials and
-notification routing. Codex protocol/authentication were verified on the enrolled local staging
+automatic notification activation. Codex protocol/authentication were verified on the enrolled local staging
 connector, not the production panel. Use secret files, GitHub Environments and EAS channels.
 
 ## Continuation: occurrence binding and external readiness
@@ -200,8 +255,8 @@ the GitHub draft-PR broker require matching evidence. Other test profiles (inclu
 integration and frontend suites) are not yet executable through this gateway. Gateway tests
 proved a seeded subtraction bug can be patched, tested and committed without changing the
 original checkout. Publication uses the owner's authorized local GitHub credential through a
-fixed repository/branch broker, not model-selected destinations. An agent-created repair PR is
-still an acceptance gate; feature PR 41 is not proof of that repair flow.
+fixed repository/branch broker, not model-selected destinations. A real seeded repair PR 42 was subsequently verified (see acceptance evidence below);
+feature PR 41 alone is not proof of the repair flow. Broader test profiles remain outstanding.
 
 Tool activity, model selection and occurrence identity persist beneath the issue. Per-call local
 journals replay completed acknowledgments without re-executing actions. An interrupted uncertain
@@ -397,3 +452,50 @@ sending remains disabled until the migrated worker release passes the release ga
 
 Isolated PostgreSQL rehearsal passed upgrade to 181, downgrade to 180, and re-upgrade to 181.
 No production database migration or application release was performed for this check.
+
+### Coupled React occurrence and original-source verification
+
+A compiled Chromium fixture using the committed React root handlers at
+`16a7b637d480e20571822db17c9bde0b2780a35d` produced exactly one client ingestion request
+(HTTP 202) despite rethrowing the same original error through the window handler. The two-link
+exception chain reached Sentry event `9320b37fb8884fbba8b66df1474a9f8e`. Exact UUID/environment/
+release checks linked Fitician issue `6393ac5b-b0e8-41a0-83b0-be9deb0cd34c`, occurrence
+`43f1f853-5e30-407f-ab64-ed471c770b78`, to
+[Sentry issue 7845084554](https://fitician.sentry.io/issues/7845084554/). Local issue count remained
+one. The observed source release matched `fitician-web@16a7b637d480e20571822db17c9bde0b2780a35d`;
+private artifacts resolved the original tracked `sentrySyntheticProbe.ts:3` with no symbolication
+errors. This proves coupled web capture/correlation/source mapping in isolated staging, not a
+production web deployment or native crash acceptance.
+
+### Germany reboot and suspended activation — historical outage
+
+After the owner restarted Germany, the initial Iran health probe returned 200, then the peer
+became offline (Tailscale last-seen `2026-11-12T18:30:00.1Z`). Subsequent SSH/TCP checks on 9011
+from the laptop, Iran and [CI](https://github.com/mohammad4242/fitician/actions/runs/43280568630)
+failed at the network stage; fresh health/capability probes timed out. No new server deployment
+was attempted. The last successful pre-reboot readback showed the transferred proxy image and
+its container in `Created`, without passing readiness or activating the current symlink. Its
+post-reboot state and existing Agent image/volume state require readback after host connectivity
+returns. Do not claim the restricted regional egress operational from a completed transfer.
+
+### Germany recovery and release-identity correction — 2026-11-13
+
+Pinned private SSH on 9011 recovered. Existing proxy container was started after immutable
+image/config checksum and private-binding checks; it is healthy on manifest
+`sha256:e1cef74666dfd59712e949c97777713740601d6ce6edd43bfa852e3f3903541f`.
+No second proxy was created. Existing Agent container identity/start time/mounts were unchanged.
+Iran authenticated Sentry event retrieval through that proxy returned HTTP 200 with the exact
+known event identity. Negative checks returned 407 without authentication and 403 for an
+unrelated host or non-443 port; TLS verification stayed enabled. `SENTRY_HTTPS_PROXY` was
+atomically installed in the existing mode-0600 Iran environment file. Running application
+containers were not restarted and have not adopted the new release/configuration.
+Public Germany SSH still times out; hosted release access must be verified separately.
+
+Native iOS now remains `ios`, distinct from `ios_pwa`, throughout shared contracts, authenticated
+ingestion and mobile Sentry project selection. Mobile diagnostics and SDK release metadata use
+only a known 40-character commit; the native build number is a separate distribution identifier.
+The EAS post-install guard rejects unknown/conflicting configured releases and missing private
+upload credentials. Unconfigured builds remain independent. Generated OpenAPI/types were
+regenerated and checked. Focused verification: 34 backend tests on isolated PostgreSQL, 14 core
+tests, 7 mobile tests, 80 mobile foundation tests, mobile TypeScript, focused Ruff/mypy/Oxlint.
+Native release/crash acceptance and EAS secret configuration are still outstanding.

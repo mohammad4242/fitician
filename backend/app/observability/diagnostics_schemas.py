@@ -163,7 +163,7 @@ class ClientEventInput(StrictModel):
     )
     offset_ms: int = Field(default=0, ge=0, le=86_400_000)
     event_id: UUID
-    platform: Literal["android", "ios_pwa", "web"]
+    platform: Literal["android", "ios", "ios_pwa", "web"]
     component: Literal[
         "WebTransport", "Window", "ReactRoot", "NativeTransport", "ReactNativeRuntime"
     ]

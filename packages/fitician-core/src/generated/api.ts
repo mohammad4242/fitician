@@ -8145,7 +8145,7 @@ export type components = {
              * Platform
              * @enum {string}
              */
-            platform: "android" | "ios_pwa" | "web";
+            platform: "android" | "ios" | "ios_pwa" | "web";
             /** Request Id */
             request_id?: string | null;
             /** Sentry Event Id */

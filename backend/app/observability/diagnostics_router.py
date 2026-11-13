@@ -200,7 +200,7 @@ async def ingest_client_events(
 
                 project = os.environ.get(
                     "SENTRY_MOBILE_PROJECT"
-                    if event.platform == "android"
+                    if event.platform in {"android", "ios"}
                     else "SENTRY_WEB_PROJECT",
                     "",
                 )

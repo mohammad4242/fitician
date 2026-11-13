@@ -10086,6 +10086,7 @@
           "platform": {
             "enum": [
               "android",
+              "ios",
               "ios_pwa",
               "web"
             ],

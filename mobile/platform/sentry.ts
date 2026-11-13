@@ -1,13 +1,21 @@
 import * as Sentry from "@sentry/react-native";
+import Constants from "expo-constants";
+import { diagnosticsRelease } from "../config/diagnosticsRelease";
 import { configureMobileTelemetry } from "./logging";
 import { createSentryCompatibleAdapter } from "./sentryAdapter";
 import { sanitizeSentryEvent } from "./sentryPrivacy";
 
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+const release = diagnosticsRelease(
+  Constants.expoConfig?.extra?.diagnosticBuildCommit,
+  Constants.nativeBuildVersion,
+);
 if (dsn) {
   try {
   Sentry.init({
     dsn,
+    ...(release.release ? { release: release.release } : {}),
+    ...(release.dist ? { dist: release.dist } : {}),
     environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT || "development",
     sendDefaultPii: false,
     maxBreadcrumbs: 0,
