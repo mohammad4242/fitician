@@ -56,6 +56,55 @@ def test_repair_changes_only_its_own_worktree(tmp_path):
     assert "return a - b" in (original / "bug.py").read_text()
 
 
+def test_server_workspace_limit_counts_workspaces_not_test_journals(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    root = tmp_path / "worktrees"
+    first_id = str(uuid4())
+    options = {"allow_write": False, "max_workspaces": 2}
+    first = RepositoryTools.create(original, root, first_id, commit, **options)
+    # Test evidence is not a workspace, and reuse must not consume another slot.
+    (root / (first_id + ".tests.json")).write_text("{}")
+    assert (
+        RepositoryTools.create(original, root, first_id, commit, **options).workspace
+        == first.workspace
+    )
+    RepositoryTools.create(original, root, str(uuid4()), commit, **options)
+    with pytest.raises(ValueError, match="workspace_capacity_reached"):
+        RepositoryTools.create(original, root, str(uuid4()), commit, **options)
+
+
+def test_workspace_disk_admission_is_checked_before_git_mutation(tmp_path, monkeypatch):
+    from collections import namedtuple
+
+    original = tmp_path / "original"
+    commit = repository(original)
+    root = tmp_path / "worktrees"
+    usage = namedtuple("usage", "total used free")
+    monkeypatch.setattr(
+        "app.debugging.tools.shutil.disk_usage", lambda _: usage(10**10, 0, 2**30 - 1)
+    )
+    identifier = str(uuid4())
+    with pytest.raises(ValueError, match="workspace_capacity_reached"):
+        RepositoryTools.create(
+            original, root, identifier, commit, allow_write=False, min_free_bytes=2**30
+        )
+    assert not (root / (identifier + ".json")).exists()
+    assert not (root / identifier).exists()
+
+
+@pytest.mark.parametrize(
+    "options", [{"max_workspaces": 0}, {"max_workspaces": 41}, {"min_free_bytes": 1}]
+)
+def test_workspace_policy_cannot_disable_capacity_limits(tmp_path, options):
+    original = tmp_path / "original"
+    commit = repository(original)
+    with pytest.raises(ValueError, match="invalid_workspace_capacity_policy"):
+        RepositoryTools.create(
+            original, tmp_path / "worktrees", str(uuid4()), commit, allow_write=False, **options
+        )
+
+
 def test_seeded_bug_is_repaired_tested_and_committed_in_an_isolated_container(tmp_path):
     import os
 

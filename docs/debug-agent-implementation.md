@@ -52,6 +52,28 @@ Execution order and gates:
   four-workflow outcome/quota/recovery regression matrix; unavailable native platforms remain
   explicitly unverified. Final complete path must use the intended deployed panel.
 
+### Germany execution target — owner selection, 2026-11-13
+
+The owner selected a separate supervised Germany runtime; the laptop remains optional.
+Fresh pinned SSH checks reached the same host/boot through public `141.11.175.231:9011`
+and private `100.108.24.126:9011`. Capacity: one CPU, 1967 MiB RAM, 1464 MiB available,
+2047 MiB unused swap, 3730 MiB free disk. Existing generation and install services remain
+separate. Planned runtime limits: 512 MiB RAM, 0.25 CPU, two isolated workspaces;
+heavy validation belongs in GitHub Actions. Its authentication must be provisioned separately.
+
+Workspace admission now accepts a bounded operator policy (1–40 workspaces, minimum
+1 GiB free disk), preserves the existing laptop defaults, and counts workspace manifests
+without charging test journals as extra workspaces. Reuse consumes no additional slot.
+Five tests failed before implementation; the focused gateway/client suite then passed
+20 tests with two explicitly unconfigured container tests skipped. Ruff and mypy passed.
+This is code/test evidence, not enrollment or runtime availability.
+
+The existing Sentry proxy failed during host boot with `cannot assign requested address`
+for its private Tailscale bind; restart policy alone did not recover this Docker networking
+failure. Starting that same owned container restored healthy status. Generation container
+identity, start timestamp and mounts were unchanged. Boot ordering still needs correction;
+prior notes describing public SSH timeout/proxy Created state are historical observations.
+
 Fresh infrastructure evidence: private pinned Germany SSH on 9011 works after reboot;
 `ssh`, Docker and Tailscale are active. Agent container remains healthy on its prior image,
 with no restart by this session. Existing proxy is still `Created`, release

@@ -79,8 +79,23 @@ class RepositoryTools:
 
     @classmethod
     def create(
-        cls, repository: Path, workspace_root: Path, run_id: str, commit: str, *, allow_write: bool
+        cls,
+        repository: Path,
+        workspace_root: Path,
+        run_id: str,
+        commit: str,
+        *,
+        allow_write: bool,
+        max_workspaces: int = 40,
+        min_free_bytes: int = 2_147_483_648,
     ) -> RepositoryTools:
+        if (
+            type(max_workspaces) is not int
+            or not 1 <= max_workspaces <= 40
+            or type(min_free_bytes) is not int
+            or min_free_bytes < 1_073_741_824
+        ):
+            raise ValueError("invalid_workspace_capacity_policy")
         identifier = str(UUID(run_id))
         if not re.fullmatch(r"[a-f0-9]{40}", commit):
             raise ValueError("exact_release_commit_required")
@@ -106,8 +121,12 @@ class RepositoryTools:
                 raise ValueError("workspace_branch_mismatch")
         else:
             if (
-                len(list(workspace_root.glob("*.json"))) >= 40
-                or shutil.disk_usage(workspace_root).free < 2_147_483_648
+                sum(
+                    bool(re.fullmatch(r"[a-f0-9-]{36}", item.stem))
+                    for item in workspace_root.glob("*.json")
+                )
+                >= max_workspaces
+                or shutil.disk_usage(workspace_root).free < min_free_bytes
             ):
                 raise ValueError("workspace_capacity_reached")
             with manifest.open("x") as stream:
