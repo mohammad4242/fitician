@@ -125,6 +125,20 @@ def tool_catalog(
                 [],
             ),
         ]
+        if allow_write:
+            tools.append(
+                tool(
+                    "ci_publish_pr",
+                    "Request a draft PR for the exact successfully CI-tested workspace snapshot. "
+                    "Requires an actual validation ID and unchanged patch. Cannot merge or deploy; "
+                    "a changed main requires a fresh current-base repair and new tests.",
+                    {
+                        "validation_id": {"type": "string", "format": "uuid"},
+                        "title": {"type": "string", "maxLength": 140},
+                    },
+                    ["validation_id", "title"],
+                )
+            )
     unavailable = set()
     if not supports_tests:
         unavailable.update({"fitician_run_tests", "fitician_commit", "fitician_create_pr"})

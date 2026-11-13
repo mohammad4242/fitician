@@ -14524,7 +14524,8 @@
               "prepare",
               "dispatch",
               "cancel",
-              "observe"
+              "observe",
+              "publish"
             ],
             "title": "Intent",
             "type": "string"
@@ -20568,7 +20569,8 @@
           "purpose": {
             "enum": [
               "connection_check",
-              "repair_validation"
+              "repair_validation",
+              "repair_publication"
             ],
             "title": "Purpose",
             "type": "string"
@@ -25245,6 +25247,45 @@
         "title": "PublicSignupCampaignResponse",
         "type": "object"
       },
+      "PublicationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 140,
+            "title": "Title",
+            "type": "string"
+          },
+          "validation_id": {
+            "format": "uuid",
+            "title": "Validation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key",
+          "validation_id",
+          "snapshot_digest",
+          "title"
+        ],
+        "title": "PublicationRequest",
+        "type": "object"
+      },
       "QuickApproximationInput": {
         "properties": {
           "calories": {
@@ -25362,7 +25403,9 @@
               "completed",
               "failed",
               "waiting",
-              "cancel_intent"
+              "cancel_intent",
+              "publication_intent",
+              "publication_completed"
             ],
             "title": "Stage",
             "type": "string"
@@ -42586,6 +42629,74 @@
           }
         ],
         "summary": "Progress",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/publications": {
+      "post": {
+        "operationId": "queue_publication_api_v1_debug_connectors__connector_id__calls__call_id__publications_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Queue Publication",
         "tags": [
           "debug-connectors"
         ]

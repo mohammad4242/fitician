@@ -367,6 +367,10 @@ def record_progress(
     result: dict[str, Any],
 ) -> dict[str, Any]:
     row = leased_operation(db, worker, operation_id, lease, terminal=True)
+    if row.kind == "publish_pr":
+        from .publication import record_publication
+
+        return record_publication(db, worker, operation_id, lease, stage, result)
     if row.kind != "validate" or len(json.dumps(result).encode()) > 32000:
         raise ValueError("invalid_automation_receipt")
     if stage == "waiting":

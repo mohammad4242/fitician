@@ -89,7 +89,7 @@ class OperationResponse(StrictResponse):
     error_code: str | None
     cancel_requested: bool
     profile: str | None
-    purpose: Literal["connection_check", "repair_validation"]
+    purpose: Literal["connection_check", "repair_validation", "repair_publication"]
     snapshot_digest: str | None
     result: dict[str, Any]
     created_at: str

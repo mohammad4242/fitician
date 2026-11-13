@@ -41,9 +41,12 @@ TOOLS = frozenset(
         "fitician_server_evidence",
         "fitician_ci_validate",
         "fitician_ci_status",
+        "fitician_ci_publish_pr",
     }
 )
-MUTATIONS = frozenset({"fitician_write_file", "fitician_commit", "fitician_create_pr"})
+MUTATIONS = frozenset(
+    {"fitician_write_file", "fitician_commit", "fitician_create_pr", "fitician_ci_publish_pr"}
+)
 
 
 def enroll_connector(

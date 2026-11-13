@@ -163,3 +163,101 @@ def test_artifact_bytes_are_verified_and_api_authorization_is_not_forwarded():
             assert result == {"artifact_id": 100, "artifact_digest": digest, "validation": metadata}
 
     asyncio.run(run())
+
+
+def test_pr_publication_is_exact_tested_candidate_and_reuses_an_existing_draft():
+    validation_id = uuid4()
+    proof = {
+        "candidate_commit": "c" * 40,
+        "base_commit": "a" * 40,
+        "branch": "debug/ci-" + str(validation_id),
+        "policy_commit": "d" * 40,
+        "workflow_run_id": 123,
+        "artifact_id": 456,
+        "artifact_digest": "sha256:" + "e" * 64,
+        "validation": {
+            "passed": True,
+            "exercised": 3,
+            "profile": "backend",
+            "tests": ["backend/tests/test_debug_runs.py"],
+            "image": "sha256:" + "f" * 64,
+        },
+    }
+    request_value = {
+        "validation_id": str(validation_id),
+        "proof": proof,
+        "title": "fix(debug-agent): repair tested behavior",
+        "profile": "backend",
+        "tests": proof["validation"]["tests"],
+        "snapshot": validation_request()["snapshot"],
+    }
+    created = []
+    existing = []
+
+    def handle(request):
+        path = request.url.path
+        if path.endswith("/git/ref/heads/main"):
+            return httpx.Response(200, json={"object": {"sha": "a" * 40}})
+        if "/git/ref/heads/debug/ci-" in path:
+            return httpx.Response(200, json={"object": {"sha": "c" * 40}})
+        if "/compare/" in path:
+            return httpx.Response(
+                200,
+                json={
+                    "status": "ahead",
+                    "merge_base_commit": {"sha": "a" * 40},
+                    "files": [{"filename": "bug.py"}],
+                },
+            )
+        if path.endswith("/pulls"):
+            if request.method == "GET":
+                return httpx.Response(200, json=existing)
+            payload = json.loads(request.content)
+            assert payload["draft"] is True and payload["base"] == "main"
+            assert payload["head"] == proof["branch"]
+            assert "c" * 40 in payload["body"] and "exercised: 3" in payload["body"]
+            created.append(payload)
+            existing.append(
+                {
+                    "number": 43,
+                    "html_url": "https://github.com/mohammad4242/fitician/pull/43",
+                    "state": "open",
+                    "draft": True,
+                    "head": {"sha": "c" * 40, "ref": proof["branch"]},
+                    "base": {"ref": "main"},
+                }
+            )
+            return httpx.Response(201, json=existing[0])
+        raise AssertionError(path)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            github = GitHubAutomation(client, "private-test-credential")
+
+            async def validation_run(run_id):
+                return {
+                    "id": run_id,
+                    "head_sha": "d" * 40,
+                    "event": "workflow_dispatch",
+                    "path": ".github/workflows/debug-validation.yml",
+                    "display_title": "Debug validation " + str(validation_id),
+                    "status": "completed",
+                    "conclusion": "success",
+                    "head_repository": {"full_name": "mohammad4242/fitician"},
+                }
+
+            async def artifact(*args):
+                return {
+                    "artifact_id": 456,
+                    "artifact_digest": proof["artifact_digest"],
+                    "validation": proof["validation"],
+                }
+
+            github.validation_run = validation_run
+            github.validation_artifact = artifact
+            first = await github.publish_validated_pr(request_value, create=True)
+            assert first["pr_number"] == 43
+            assert await github.publish_validated_pr(request_value, create=False) == first
+
+    asyncio.run(run())
+    assert len(created) == 1

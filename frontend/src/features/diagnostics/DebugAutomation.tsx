@@ -119,12 +119,16 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
       const validation = row.result.validation;
       const count = validation && typeof validation === "object" && "exercised" in validation && typeof validation.exercised === "number" ? validation.exercised : null;
       return <article key={row.id} style={{ paddingBlock: "1rem", borderBlockEnd: "1px solid var(--border-color, #ddd)", minWidth: 0 }}>
-        <strong>{row.purpose === "connection_check" ? (english ? "CI connection check" : "آزمایش اتصال CI") : (english ? "Repair validation" : "آزمون اصلاح")}</strong>
+        <strong>{row.kind === "publish_pr" ? (english ? "GitHub repair proposal" : "پیشنهاد اصلاح در GitHub") : row.purpose === "connection_check" ? (english ? "CI connection check" : "آزمایش اتصال CI") : (english ? "Repair validation" : "آزمون اصلاح")}</strong>
         <p>{stateText(row, english)} · <bdi>{row.profile}</bdi> · <bdi>{row.environment}</bdi></p>
         <p>{english ? "Occurrence" : "رخداد"}: <code dir="ltr" style={codeStyle}>{row.occurrence_id ?? "unknown"}</code>{row.occurrence_id === occurrenceId && <> · {english ? "Selected" : "منتخب"}</>}</p>
         {typeof commit === "string" && /^[a-f0-9]{40}$/.test(commit) && <p>{english ? "Tested candidate" : "نسخهٔ آزمون"}: <a href={`https://github.com/mohammad4242/fitician/commit/${commit}`} target="_blank" rel="noreferrer"><code dir="ltr" style={codeStyle}>{commit}</code></a></p>}
         {typeof workflow === "number" && Number.isSafeInteger(workflow) && workflow > 0 && <p><a href={`https://github.com/mohammad4242/fitician/actions/runs/${workflow}`} target="_blank" rel="noreferrer">GitHub Actions</a></p>}
         {count !== null && <p>{english ? "Tests exercised" : "تست‌های اجراشده"}: {count}</p>}
+        {row.kind === "publish_pr" && typeof row.result.pr_url === "string" && /^https:\/\/github\.com\/mohammad4242\/fitician\/pull\/[1-9][0-9]*$/.test(row.result.pr_url) && <>
+          <p><a href={row.result.pr_url} target="_blank" rel="noreferrer">{english ? "View PR" : "مشاهدهٔ PR"}</a></p>
+          <p>{english ? "This PR does not mean deployed or verified resolved." : "این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست."}</p>
+        </>}
         {row.error_code && <p><code dir="ltr" style={codeStyle}>{row.error_code}</code></p>}
         {row.cancel_requested && <p>{english ? "Cancellation requested; waiting for confirmation" : "لغو درخواست شده؛ منتظر تأیید نتیجه"}</p>}
         {active.has(row.state) && <button type="button" disabled={busy || row.cancel_requested} onClick={() => void cancel(row.id)}>{english ? "Cancel operation" : "لغو عملیات"}</button>}

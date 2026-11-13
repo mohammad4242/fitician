@@ -151,3 +151,27 @@ def test_preflight_is_cached_for_one_minute_and_invalidated_on_credential_rotati
         assert "private-token" not in repr(vars(cache))
 
     asyncio.run(exercise())
+
+
+def test_publication_restart_reconciles_without_repeating_an_unknown_post():
+    job = {
+        "id": str(uuid4()),
+        "kind": "publish_pr",
+        "state": "uncertain",
+        "lease_token": str(uuid4()),
+        "request": {"validation_id": str(uuid4())},
+        "result": {},
+    }
+    checks = []
+
+    class Github:
+        async def publish_validated_pr(self, request, *, create):
+            checks.append(create)
+            assert create is False
+            return None
+
+    async def rpc(path, payload):
+        raise AssertionError("No receipt may fabricate a PR")
+
+    assert asyncio.run(advance(job, Github(), rpc))["state"] == "uncertain"
+    assert checks == [False]

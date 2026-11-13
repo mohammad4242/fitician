@@ -40,7 +40,7 @@ Worker = Annotated[DebugConnector, Depends(principal)]
 class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     lease_token: UUID
-    intent: Literal["prepare", "dispatch", "cancel", "observe"]
+    intent: Literal["prepare", "dispatch", "cancel", "observe", "publish"]
 
 
 class Receipt(BaseModel):
@@ -55,6 +55,8 @@ class Receipt(BaseModel):
         "failed",
         "waiting",
         "cancel_intent",
+        "publication_intent",
+        "publication_completed",
     ]
     result: dict[str, Any]
 
@@ -133,6 +135,10 @@ def authorize(
             and bool(row.result.get("workflow_run_id"))
             and cancelled
             or payload.intent == "observe"
+            or payload.intent == "publish"
+            and row.kind == "publish_pr"
+            and row.state == "dispatching"
+            and not cancelled
         )
         db.commit()
         return {"authorized": bool(allowed), "cancel_requested": cancelled, "state": row.state}

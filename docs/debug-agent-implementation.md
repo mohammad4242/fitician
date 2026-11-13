@@ -55,6 +55,20 @@ Execution order and gates:
 
 ### Durable Germany automation channel — code verification
 
+Draft PR publication now uses that same separate broker. `fitician_ci_publish_pr` is offered
+only for an explicitly authorized repair run; it requires an actual successful validation
+operation for the same thread/occurrence/worker and an unchanged snapshot. Connection probes
+and failed CI cannot authorize publication. The broker reads the original GitHub run and
+artifact again, compares their exact identities, checks the immutable branch and current main,
+and rejects a stale base or unrelated diff. It cannot merge, update main or deploy.
+
+Publication intent is durable before POST. Lost acknowledgements reconcile the existing draft;
+unknown outcomes never trigger another create request. Closed PRs are not reopened. The panel
+retains its PR link and explicitly distinguishes a proposal from deployment or verified
+resolution. Forty-two focused backend tests and 15 diagnostics/conversation UI tests passed,
+with TypeScript/Ruff/mypy. Live Germany publication remains unverified: its dedicated GitHub
+credential is still absent. The developer's laptop GitHub session was not copied to the service.
+
 Migration `20261113_184` adds immutable issue/run/occurrence-bound operations and explicitly
 separates runtime and automation connector identities. One active automation worker per
 environment is enforced by PostgreSQL. Lease recovery never blindly repeats a workflow

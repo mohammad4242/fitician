@@ -79,6 +79,32 @@ async def advance(job: dict[str, Any], github: GitHubAutomation, rpc: Rpc) -> di
         )
         return {**job, **response["operation"]}, response["disposition"]
 
+    if job["kind"] == "publish_pr":
+        state = job["state"]
+        if state == "preparing":
+            if job.get("cancel_requested"):
+                job, _ = await receipt("failed", {"code": "automation_cancelled_before_dispatch"})
+                return job
+            job, disposition = await receipt("publication_intent", {})
+            if disposition != "publish_once":
+                return job
+            try:
+                result = await github.publish_validated_pr(job["request"], create=True)
+            except ValueError as error:
+                if str(error) != "github_mutation_uncertain":
+                    raise
+                result = None
+            job, _ = (
+                await receipt("publication_completed", result)
+                if result
+                else await receipt("uncertain", {})
+            )
+        elif state in {"dispatching", "uncertain"}:
+            # A lost acknowledgement may already have created the draft. Never POST twice.
+            result = await github.publish_validated_pr(job["request"], create=False)
+            if result:
+                job, _ = await receipt("publication_completed", result)
+        return job
     if job["kind"] != "validate":
         raise ValueError("automation_execution_failed")
     state = job["state"]

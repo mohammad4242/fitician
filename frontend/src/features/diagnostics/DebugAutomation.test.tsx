@@ -41,3 +41,11 @@ it("downloads enrollment credentials without displaying or storing them", async 
   expect(JSON.stringify(sessionStorage)).not.toContain("private-test-enrollment");
   click.mockRestore();
 });
+
+it("shows persisted draft PR evidence separately from deployed or resolved states", async () => {
+  vi.mocked(request).mockImplementation(async path => path.endsWith("/operations") ? { operations: [{ id: "pr-operation", run_id: "run", occurrence_id: "occurrence", kind: "publish_pr", purpose: "repair_publication", state: "succeeded", environment: "production", profile: "backend", result: { pr_url: "https://github.com/mohammad4242/fitician/pull/43", candidate_commit: "b".repeat(40) } }] } as never : { connected: false, configured: false } as never);
+  render(<DebugOperations issueId="issue" occurrenceId="occurrence" english={false} />);
+  expect(await screen.findByText("پیشنهاد اصلاح در GitHub")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "مشاهدهٔ PR" })).toHaveAttribute("href", "https://github.com/mohammad4242/fitician/pull/43");
+  expect(screen.getByText("این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست.")).toBeInTheDocument();
+});

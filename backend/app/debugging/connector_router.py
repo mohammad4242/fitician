@@ -86,6 +86,54 @@ class CIStatusRequest(BaseModel):
     lease_token: UUID
 
 
+class PublicationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+    key: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    validation_id: UUID
+    snapshot_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    title: str = Field(max_length=140)
+
+
+@router.post("/{connector_id}/calls/{call_id}/publications", response_model=OperationResponse)
+def queue_publication(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: PublicationRequest,
+    db: DatabaseSession,
+) -> dict[str, Any]:
+    from .automation import operation_json
+    from .publication import queue_publication as queue
+
+    call = db.scalar(
+        select(DebugConnectorCall)
+        .where(DebugConnectorCall.id == call_id, DebugConnectorCall.connector_id == connector.id)
+        .with_for_update()
+    )
+    if call is None or call.lease_token != payload.lease_token or call.state != "running":
+        raise HTTPException(409, detail={"code": "connector_lease_lost"})
+    try:
+        row = queue(
+            db,
+            call.run_id,
+            f"pr:{call.id}:{payload.key}",
+            payload.validation_id,
+            payload.title,
+            payload.snapshot_digest,
+        )
+        db.commit()
+        return operation_json(row)
+    except ValueError as error:
+        db.rollback()
+        import re
+
+        code = str(error)
+        if not re.fullmatch(r"[a-z_]{3,64}", code):
+            code = "invalid_publication_request"
+        raise HTTPException(409, detail={"code": code}) from None
+
+
 @router.post("/{connector_id}/calls/{call_id}/ci-status", response_model=OperationPage)
 def ci_status(
     connector_id: UUID,

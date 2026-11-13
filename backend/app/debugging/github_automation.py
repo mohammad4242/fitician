@@ -74,7 +74,9 @@ class GitHubAutomation:
         # Paths originate only in the fixed methods below, never model-supplied URLs.
         if method != "GET" and self.guard:
             intent = (
-                "dispatch"
+                "publish"
+                if path == "/pulls"
+                else "dispatch"
                 if path.endswith("/dispatches")
                 else "cancel"
                 if path.endswith("/cancel")
@@ -127,6 +129,111 @@ class GitHubAutomation:
     async def main_commit(self) -> str:
         result = await self._api("GET", "/git/ref/heads/main")
         return sha(result["object"]["sha"])
+
+    async def publish_validated_pr(
+        self, request: dict[str, Any], *, create: bool
+    ) -> dict[str, Any] | None:
+        """One immutable draft; a timed-out POST is reconciled, never retried here."""
+        proof = request["proof"]
+        identifier = str(UUID(request["validation_id"]))
+        candidate, policy = sha(proof["candidate_commit"]), sha(proof["policy_commit"])
+        branch = "debug/ci-" + identifier
+        if proof["branch"] != branch or not re.fullmatch(
+            r"(fix|feat|test|refactor)\([A-Za-z0-9_-]+\): [^\r\n]{5,120}", request["title"]
+        ):
+            raise ValueError("github_publication_proof_mismatch")
+        workflow = await self.validation_run(proof["workflow_run_id"])
+        if (
+            workflow.get("head_sha") != policy
+            or workflow.get("event") != "workflow_dispatch"
+            or workflow.get("path") != ".github/workflows/" + WORKFLOW
+            or workflow.get("display_title") != "Debug validation " + identifier
+            or workflow.get("head_repository", {}).get("full_name") != REPOSITORY
+            or workflow.get("status") != "completed"
+            or workflow.get("conclusion") != "success"
+        ):
+            raise ValueError("github_publication_proof_mismatch")
+        artifact = await self.validation_artifact(
+            proof["workflow_run_id"], UUID(identifier), request["profile"]
+        )
+        if any(
+            artifact.get(k) != proof.get(k)
+            for k in ("artifact_id", "artifact_digest", "validation")
+        ):
+            raise ValueError("github_publication_proof_mismatch")
+        current = await self._api("GET", "/git/ref/heads/" + branch)
+        if current.get("object", {}).get("sha") != candidate:
+            raise ValueError("github_publication_branch_changed")
+        existing = await self._api(
+            "GET", f"/pulls?state=all&head=mohammad4242:{branch}&base=main&per_page=100"
+        )
+        if not isinstance(existing, list) or len(existing) > 1:
+            raise ValueError("github_duplicate_publication")
+        if existing:
+            pr = existing[0]
+            if pr.get("state") != "open":
+                raise ValueError("github_publication_already_closed")
+        elif not create:
+            return None
+        else:
+            main = await self.main_commit()
+            # A changed main requires a new worktree/test; never revert newer unrelated work.
+            if main != proof["base_commit"]:
+                raise ValueError("github_repair_requires_current_base")
+            comparison = await self._api("GET", "/compare/" + main + "..." + candidate)
+            paths = {f["path"] for f in request["snapshot"]["files"]}
+            if (
+                not paths
+                or comparison.get("status") != "ahead"
+                or comparison.get("merge_base_commit", {}).get("sha") != main
+                or {f["filename"] for f in comparison.get("files", [])} != paths
+            ):
+                raise ValueError("github_publication_proof_mismatch")
+            validation = proof["validation"]
+            body = (
+                "A focused repair prepared through Fitician's issue-scoped debug agent.\n\n"
+                f"Exact tested commit: `{candidate}`.\n"
+                f"Validation operation: `{identifier}`.\n"
+                f"Profile: `{request['profile']}`; exercised: {validation['exercised']}.\n"
+                f"Tests: `{json.dumps(request['tests'])}`.\n"
+                f"Sandbox image: `{validation['image']}`.\n"
+                f"Artifact digest: `{proof['artifact_digest']}`.\n\n"
+                f"[CI evidence](https://github.com/{REPOSITORY}/actions/runs/{proof['workflow_run_id']}).\n\n"
+                "Tests cover the selected scope only. "
+                "Review the diff and required CI before merge. "
+                "Deployment and verified resolution require separate artifact-bound authorization "
+                "and scenario verification. This operation cannot merge or deploy."
+            )
+            if await self.main_commit() != main:
+                raise ValueError("github_repair_requires_current_base")
+            pr = await self._api(
+                "POST",
+                "/pulls",
+                {
+                    "head": branch,
+                    "base": "main",
+                    "draft": True,
+                    "title": request["title"],
+                    "body": body,
+                },
+            )
+        number = pr.get("number")
+        if (
+            type(number) is not int
+            or number < 1
+            or pr.get("html_url") != f"https://github.com/{REPOSITORY}/pull/{number}"
+            or pr.get("head", {}).get("sha") != candidate
+            or pr.get("head", {}).get("ref") != branch
+            or pr.get("base", {}).get("ref") != "main"
+        ):
+            raise ValueError("github_publication_proof_mismatch")
+        return {
+            "pr_number": number,
+            "pr_url": pr["html_url"],
+            "candidate_commit": candidate,
+            "branch": branch,
+            "base": "main",
+        }
 
     async def preflight(self) -> dict[str, Any]:
         policy = await self.main_commit()

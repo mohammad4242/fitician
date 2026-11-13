@@ -303,6 +303,19 @@ class LaptopConnector:
                     value = await self.request(
                         f"/calls/{identifier}/ci-status", {"lease_token": job["lease_token"]}
                     )
+                elif name == "fitician_ci_publish_pr":
+                    from .ci_contract import capture_snapshot
+
+                    snapshot = await asyncio.to_thread(capture_snapshot, tools)
+                    value = await self.request(
+                        f"/calls/{identifier}/publications",
+                        {
+                            "lease_token": job["lease_token"],
+                            "key": f"tool-{tool_count}",
+                            **arguments,
+                            "snapshot_digest": snapshot["snapshot_digest"],
+                        },
+                    )
                 elif name == "fitician_run_tests":
                     cancelled = threading.Event()
                     test_task = asyncio.create_task(
