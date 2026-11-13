@@ -20,6 +20,7 @@ from .connector import (
     save_private,
     validate_configuration,
 )
+from .process_lifecycle import initialize_telemetry, serve_until_stopped
 from .runtime_storage import initialize_repository
 
 EXECUTABLE = "/usr/local/bin/codex"
@@ -66,6 +67,7 @@ class Supervisor:
         self.status_file = self.root / "status.json"
         self.phase = "starting"
         self.connector: LaptopConnector | None = None
+        self.telemetry_state = "disabled"
 
     def status(self) -> dict[str, Any]:
         client = self.connector
@@ -94,6 +96,7 @@ class Supervisor:
             if connected and client and client.ci_available
             else "github_actions_connection_unverified",
             "release_commit": os.environ.get("FITICIAN_RUNTIME_COMMIT", "unknown"),
+            "telemetry": self.telemetry_state,
         }
 
     async def pulse(self) -> None:
@@ -201,7 +204,11 @@ def main() -> None:
         raise SystemExit(device_login())
     with (STATE / "supervisor.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        asyncio.run(Supervisor().run())
+        supervisor = Supervisor()
+        supervisor.telemetry_state = initialize_telemetry(
+            CONFIG.parent / "telemetry.json", "debug-runtime"
+        )
+        asyncio.run(serve_until_stopped(supervisor.run()))
 
 
 if __name__ == "__main__":

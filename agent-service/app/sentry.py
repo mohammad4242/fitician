@@ -95,7 +95,7 @@ def _before_send(event: Event, hint: dict[str, Any]) -> Event:
     return cast(Event, sanitize_event(cast(dict[str, Any], event), hint))
 
 
-def initialize_sentry(service: str) -> bool:
+def initialize_sentry(service: str, *, http_server: bool = True) -> bool:
     global _INITIALIZED
     if _INITIALIZED or not os.environ.get("SENTRY_DSN"):
         return _INITIALIZED
@@ -103,10 +103,18 @@ def initialize_sentry(service: str) -> bool:
         import sentry_sdk
         from sentry_sdk.integrations.dedupe import DedupeIntegration
         from sentry_sdk.integrations.excepthook import ExcepthookIntegration
-        from sentry_sdk.integrations.fastapi import FastApiIntegration
-        from sentry_sdk.integrations.starlette import StarletteIntegration
         from sentry_sdk.integrations.threading import ThreadingIntegration
 
+        integrations: list[Any] = [
+            DedupeIntegration(),
+            ExcepthookIntegration(),
+            ThreadingIntegration(propagate_scope=False),
+        ]
+        if http_server:
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+            from sentry_sdk.integrations.starlette import StarletteIntegration
+
+            integrations += [StarletteIntegration(), FastApiIntegration()]
         commit = os.environ.get("APP_BUILD_SHA", "")
         release = f"fitician-{service}@{commit}" if re.fullmatch(r"[a-f0-9]{40}", commit) else None
         sentry_sdk.init(
@@ -119,13 +127,7 @@ def initialize_sentry(service: str) -> bool:
             ),
             release=release,
             default_integrations=False,
-            integrations=[
-                StarletteIntegration(),
-                FastApiIntegration(),
-                DedupeIntegration(),
-                ExcepthookIntegration(),
-                ThreadingIntegration(propagate_scope=False),
-            ],
+            integrations=integrations,
             send_default_pii=False,
             include_local_variables=False,
             max_request_body_size="never",

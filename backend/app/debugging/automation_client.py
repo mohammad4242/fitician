@@ -17,6 +17,7 @@ import httpx
 
 from .connector import read_private_configuration, save_private, validate_configuration
 from .github_automation import REPOSITORY, WORKFLOW, GitHubAutomation, private_credential
+from .process_lifecycle import initialize_telemetry, serve_until_stopped
 
 CONFIG = Path("/run/fitician-automation/worker.json")
 CREDENTIAL = Path("/run/fitician-automation/github.json")
@@ -237,6 +238,7 @@ class Broker:
         self.connected = False
         self.revision = os.environ.get("FITICIAN_RUNTIME_COMMIT", "")
         self.preflight = PreflightCache()
+        self.telemetry_state = "disabled"
 
     async def pulse(self) -> None:
         while True:
@@ -247,6 +249,7 @@ class Broker:
                     "state": self.phase,
                     "connected": self.connected,
                     "runtime_revision": self.revision,
+                    "telemetry": self.telemetry_state,
                 },
             )
             await asyncio.sleep(5)
@@ -373,7 +376,11 @@ def main() -> None:
     if args.action == "status":
         print((STATE / "status.json").read_text())
         return
-    asyncio.run(Broker().serve())
+    broker = Broker()
+    broker.telemetry_state = initialize_telemetry(
+        CONFIG.parent / "telemetry.json", "debug-automation"
+    )
+    asyncio.run(serve_until_stopped(broker.serve()))
 
 
 if __name__ == "__main__":

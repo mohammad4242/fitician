@@ -139,3 +139,30 @@ def test_sentry_egress_uses_its_own_proxy_without_changing_provider_routing(monk
     assert sentry.initialize_sentry("test")
     assert captured["https_proxy"] == proxy
     assert "fixture-password" not in str(sentry.sanitize_event({"extra": {"proxy": proxy}}, {}))
+
+
+def test_headless_runtime_initializes_without_importing_web_frameworks(monkeypatch):
+    import builtins
+
+    import sentry_sdk
+
+    from app.observability import sentry
+
+    captured = []
+    original_import = builtins.__import__
+
+    def guard(name, *args, **kwargs):
+        if name in {"sentry_sdk.integrations.fastapi", "sentry_sdk.integrations.starlette"}:
+            raise AssertionError("The isolated runtime has no web framework")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guard)
+    monkeypatch.setattr(sentry, "_INITIALIZED", False)
+    monkeypatch.setenv("SENTRY_DSN", "https://public@example.invalid/1")
+    monkeypatch.setenv("APP_BUILD_SHA", "a" * 40)
+    monkeypatch.setattr(sentry_sdk, "init", lambda **options: captured.append(options))
+    monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
+    assert sentry.initialize_sentry("debug-runtime", http_server=False)
+    assert captured[0]["release"] == "fitician-debug-runtime@" + "a" * 40
+    assert captured[0]["default_integrations"] is False
+    assert not captured[0]["include_local_variables"]

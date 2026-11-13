@@ -188,6 +188,26 @@ those capabilities available or satisfy the production repair/deployment accepta
 
 ### Independent login lifecycle
 
+The independent runtime image now includes the same pinned Sentry 2.74.0 privacy policy and
+locked urllib3 dependency. Headless initialization does not import FastAPI/Starlette or enable
+unsafe automatic integrations. Each dedicated service optionally reads its own private
+`telemetry.json` containing only `dsn` and `environment`; for this SaaS setup DSNs must use
+HTTPS Sentry ingestion hosts. No privileged sync/upload token belongs in either file. Service
+tags/releases distinguish `debug-runtime` and `debug-automation`; initialization state is
+reported separately from delivery. Missing/invalid telemetry configuration does not stop service.
+
+SIGTERM/SIGINT cancel the supervised task and invoke the existing two-second bounded flush.
+Twenty-five focused privacy/lifecycle/runtime tests and five Compose/package checks passed.
+The CI image smoke now also starts the separate networkless automation process, checks its
+limits, graceful shutdown and persistent state across restart. That additional image acceptance
+is not yet claimed passed: local image construction failed while downloading Debian package
+metadata; hosted CI remains the image verification gate.
+
+Fresh Germany private and public SSH readback matched the trusted host and showed one CPU,
+about 1392 MiB available RAM, 2550 MiB free disk and low current load. Broker limits add only
+192 MiB/0.1 CPU. Worktree admission and image/archive headroom remain enforced; these samples
+are not load-test evidence. The existing generation service was not replaced or reconfigured.
+
 The headless device-login helper now records `pending`, `expired`, `failed`,
 `runtime_unavailable` or `authenticated` in its private result file. A 900-second timeout
 terminates the login subprocess and persists `expired`; it no longer leaves a missing result

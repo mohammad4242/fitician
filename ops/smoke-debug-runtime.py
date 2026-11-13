@@ -37,6 +37,101 @@ def wait_healthy(name: str) -> None:
     raise RuntimeError("isolated_runtime_liveness_failed")
 
 
+def run_automation(image: str, commit: str) -> dict:
+    """Exercise the separate broker process, not just the model connector entrypoint."""
+    name = "fitician-debug-automation-test-" + str(uuid4())
+    command("docker", "volume", "create", name)
+    try:
+        command(
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            name,
+            "--network=none",
+            "--init",
+            "--read-only",
+            "--user=10001:10001",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges",
+            "--pids-limit=32",
+            "--memory=192m",
+            "--memory-swap=192m",
+            "--cpus=0.1",
+            "--mount",
+            f"type=volume,src={name},dst=/state",
+            "--tmpfs=/tmp:uid=10001,gid=10001,mode=0700,size=16m",
+            "--health-cmd",
+            "python -m app.debugging.automation_client health",
+            "--health-interval=1s",
+            "--health-timeout=3s",
+            "--entrypoint=python",
+            image,
+            "-m",
+            "app.debugging.automation_client",
+            "serve",
+        )
+        wait_healthy(name)
+        config = inspect(name)
+        assert config["Config"]["User"] == "10001:10001"
+        assert config["HostConfig"]["ReadonlyRootfs"]
+        assert config["HostConfig"]["Memory"] == 192 * 1024**2
+        assert not config["HostConfig"].get("PortBindings")
+        assert {m["Destination"] for m in config["Mounts"]} <= {"/state", "/tmp"}
+        status = json.loads(
+            command(
+                "docker",
+                "exec",
+                name,
+                "python",
+                "-m",
+                "app.debugging.automation_client",
+                "status",
+            )
+        )
+        assert status["state"] == "awaiting_enrollment" and not status["connected"]
+        assert (
+            status["runtime_revision"] == commit and status["telemetry"] == "disabled"
+        )
+        command(
+            "docker",
+            "exec",
+            name,
+            "python",
+            "-c",
+            "from pathlib import Path; Path('/state/restart-proof').write_text('retained')",
+        )
+        command("docker", "stop", "-t", "10", name)
+        assert inspect(name)["State"]["ExitCode"] == 0, (
+            "Broker must stop without SIGKILL"
+        )
+        command("docker", "start", name)
+        wait_healthy(name)
+        assert (
+            command(
+                "docker",
+                "exec",
+                name,
+                "python",
+                "-c",
+                "from pathlib import Path; print(Path('/state/restart-proof').read_text())",
+            )
+            == "retained"
+        )
+        return {
+            "liveness": True,
+            "isolated": True,
+            "graceful_shutdown": True,
+            "persistent_state_after_restart": True,
+            "github_connected": False,
+        }
+    finally:
+        subprocess.run(
+            ["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False
+        )
+        command("docker", "volume", "rm", name)
+
+
 def run(image: str, commit: str) -> dict:
     if not re.fullmatch(r"[a-f0-9]{40}", commit):
         raise ValueError("exact_commit_required")
@@ -147,6 +242,7 @@ def run(image: str, commit: str) -> dict:
             "authenticated": False,
             "panel_connected": False,
             "inference_verified": False,
+            "automation": run_automation(metadata["Id"], commit),
         }
     finally:
         subprocess.run(
