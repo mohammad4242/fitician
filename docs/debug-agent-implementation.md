@@ -55,6 +55,19 @@ Execution order and gates:
 
 ### Immutable full-release artifacts — implementation gates
 
+A fixed read-only host collector and protected-main Actions workflow now capture scoped
+regional metadata without exporting Docker environment values or executing model commands.
+The collector reports actual container/image IDs, image-label commit only when available,
+health/restarts, resource capacity and a read-only Alembic revision. Logs require the selected
+trace ID and export only bounded allowlisted JSON identifiers/error codes; raw and unrelated
+messages are omitted. A baseline hash binds container/image identity and DB revision for later
+stale-deployment checks. Seven injection/privacy/contract tests passed. Real pinned-SSH reads
+observed all ten Iran services and Germany Agent Service; Iran remains at revision 175.
+Germany readback showed one CPU, about 1393 MiB available RAM and 2457 MiB disk free.
+These are direct operator acceptance observations. The new workflow is not installed on main
+and this collector is not yet a live model tool or deployment broker; those gates remain open.
+
+
 The dedicated Iran backup service/timer is now installed from hash-checked committed helpers.
 Its first real supervised `pg_dump → age → private S3 → downloaded hash` run completed; the
 journal contains its verified encrypted-backup receipt and successful unit completion. The
