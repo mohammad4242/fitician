@@ -16,6 +16,7 @@ class HeartbeatResponse(StrictResponse):
     connected: bool
     environment: str
     repository: str
+    ci_available: bool = False
 
 
 class ConnectorJob(StrictResponse):

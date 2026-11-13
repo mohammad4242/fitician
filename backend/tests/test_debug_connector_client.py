@@ -498,3 +498,65 @@ def test_pr_publication_rejects_a_base_with_unrelated_newer_commits(tmp_path, mo
     with pytest.raises(ValueError, match="repair_requires_current_base"):
         publish_tested_pr(tools, "fix(fixture): repair addition")
     assert pushes == []
+
+
+def test_delegated_ci_submits_exact_snapshot_and_selected_profile_without_local_execution(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    worker = str(uuid4())
+    operation = str(uuid4())
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(original),
+        "workspace_root": str(tmp_path / "runtime"),
+        "environment": "test",
+        "ci_enabled": True,
+        "github_enabled": False,
+    }
+    captured = []
+
+    def handle(request):
+        payload = json.loads(request.content)
+        if request.url.path.endswith("/validations"):
+            captured.append(payload)
+            return httpx.Response(
+                200,
+                json={"id": operation, "state": "queued", "occurrence_id": "selected-occurrence"},
+            )
+        return httpx.Response(
+            200, json={"sequence": payload["sequence"], "evidence_id": str(uuid4())}
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            connector = LaptopConnector(config, client)
+            result = await connector.execute(
+                {
+                    "id": str(uuid4()),
+                    "run_id": str(uuid4()),
+                    "thread_id": str(uuid4()),
+                    "lease_token": str(uuid4()),
+                    "tool": "fitician_ci_validate",
+                    "arguments": {
+                        "profile": "backend",
+                        "tests": ["backend/tests/test_debug_runs.py"],
+                    },
+                    "repository": config["repository_name"],
+                    "environment": "test",
+                    "release_commit": commit,
+                    "action": "analyze",
+                    "config": {"automation_worker_id": worker},
+                }
+            )
+            output = json.loads(json.loads(result["output"])["output"])
+            assert output["id"] == operation and output["state"] == "queued"
+
+    asyncio.run(run())
+    assert captured[0]["profile"] == "backend"
+    assert captured[0]["snapshot"]["base_commit"] == commit
+    assert captured[0]["snapshot"]["files"] == []
+    assert captured[0]["key"] == "tool-1"
+    assert "return a - b" in (original / "bug.py").read_text()

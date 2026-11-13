@@ -17,6 +17,7 @@ from .connector_schemas import (
     CallStatusResponse,
     CompletionResponse,
     HeartbeatResponse,
+    OperationPage,
     OperationResponse,
     PollResponse,
     ProbePollResponse,
@@ -54,6 +55,7 @@ class Capabilities(BaseModel):
     supports_codex: bool = False
     supports_tests: bool = False
     supports_github: bool = False
+    supports_ci: bool = False
     runtime_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
     repository_head: str = Field(pattern=r"^[a-f0-9]{40}$")
 
@@ -77,6 +79,52 @@ class ValidationRequest(BaseModel):
     profile: str = Field(max_length=32)
     tests: list[str] = Field(max_length=16)
     snapshot: dict[str, Any]
+
+
+class CIStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    lease_token: UUID
+
+
+@router.post("/{connector_id}/calls/{call_id}/ci-status", response_model=OperationPage)
+def ci_status(
+    connector_id: UUID,
+    call_id: UUID,
+    connector: Connector,
+    payload: CIStatusRequest,
+    db: DatabaseSession,
+) -> dict[str, Any]:
+    from .automation import operation_json
+    from .models import DebugOperation
+
+    call = db.get(DebugConnectorCall, call_id)
+    if (
+        call is None
+        or call.connector_id != connector.id
+        or call.lease_token != payload.lease_token
+        or call.state != "running"
+    ):
+        raise HTTPException(409, detail={"code": "connector_lease_lost"})
+    run = db.get(DebugRun, call.run_id)
+    if run is None:
+        raise HTTPException(404, detail={"code": "run_not_found"})
+    try:
+        _authorize_run(db, run)
+    except ValueError:
+        raise HTTPException(409, detail={"code": "run_no_longer_authorized"}) from None
+    occurrence = UUID(run.evidence["occurrence_id"]) if run.evidence.get("occurrence_id") else None
+    rows = db.scalars(
+        select(DebugOperation)
+        .join(DebugRun, DebugRun.id == DebugOperation.run_id)
+        .where(
+            DebugRun.thread_id == run.thread_id,
+            DebugOperation.environment == connector.environment,
+            DebugOperation.occurrence_id == occurrence,
+        )
+        .order_by(DebugOperation.created_at.desc(), DebugOperation.id.desc())
+        .limit(20)
+    )
+    return {"operations": [operation_json(row) for row in rows]}
 
 
 @router.post("/{connector_id}/calls/{call_id}/validations", response_model=OperationResponse)
@@ -154,6 +202,8 @@ def server_evidence(
 def heartbeat(
     connector_id: UUID, connector: Connector, payload: Capabilities, db: DatabaseSession
 ) -> dict[str, object]:
+    from .automation import availability
+
     connector.capabilities = payload.model_dump()
     connector.last_seen = datetime.now(UTC)
     db.commit()
@@ -161,6 +211,7 @@ def heartbeat(
         "connected": True,
         "environment": connector.environment,
         "repository": connector.repository,
+        "ci_available": bool(payload.supports_ci and availability(db)["configured"]),
     }
 
 

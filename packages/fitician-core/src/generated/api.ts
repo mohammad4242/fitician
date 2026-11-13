@@ -2287,6 +2287,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/ci-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ci Status */
+        post: operations["ci_status_api_v1_debug_connectors__connector_id__calls__call_id__ci_status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/complete": {
         parameters: {
             query?: never;
@@ -8058,6 +8075,11 @@ export type components = {
             /** Runtime Revision */
             runtime_revision?: string | null;
             /**
+             * Supports Ci
+             * @default false
+             */
+            supports_ci: boolean;
+            /**
              * Supports Codex
              * @default false
              */
@@ -8403,6 +8425,14 @@ export type components = {
             unit_form: string;
             /** Value Per 100G */
             value_per_100g: number;
+        };
+        /** CIStatusRequest */
+        CIStatusRequest: {
+            /**
+             * Lease Token
+             * Format: uuid
+             */
+            lease_token: string;
         };
         /** ClientBatch */
         ClientBatch: {
@@ -9785,6 +9815,11 @@ export type components = {
         };
         /** HeartbeatResponse */
         HeartbeatResponse: {
+            /**
+             * Ci Available
+             * @default false
+             */
+            ci_available: boolean;
             /** Connected */
             connected: boolean;
             /** Environment */
@@ -21329,6 +21364,42 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ci_status_api_v1_debug_connectors__connector_id__calls__call_id__ci_status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                call_id: string;
+                connector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CIStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationPage"];
                 };
             };
             /** @description Validation Error */

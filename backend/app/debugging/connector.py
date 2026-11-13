@@ -97,6 +97,7 @@ class LaptopConnector:
         self.last_contact = 0.0
         self.connection_error: str | None = None
         self.github_available = bool(self.config.get("github_enabled", True) and shutil.which("gh"))
+        self.ci_available = False
 
     def codex_server(self) -> AppServer:
         executable = self.config.get("codex_executable")
@@ -155,7 +156,7 @@ class LaptopConnector:
                 self.cli_version = None
 
     async def heartbeat(self) -> None:
-        await self.request(
+        response = await self.request(
             "/heartbeat",
             {
                 "cli_version": self.cli_version,
@@ -163,6 +164,7 @@ class LaptopConnector:
                 "supports_codex": bool(self.models),
                 "supports_tests": bool(self.config.get("test_image")),
                 "supports_github": self.github_available,
+                "supports_ci": bool(self.config.get("ci_enabled")),
                 "runtime_revision": (
                     os.environ["FITICIAN_RUNTIME_COMMIT"]
                     if re.fullmatch(r"[a-f0-9]{40}", os.environ.get("FITICIAN_RUNTIME_COMMIT", ""))
@@ -173,6 +175,7 @@ class LaptopConnector:
                 ).strip(),
             },
         )
+        self.ci_available = bool(response.get("ci_available"))
 
     async def execute(self, job: dict[str, Any]) -> dict[str, Any]:
         if (
@@ -244,6 +247,9 @@ class LaptopConnector:
                     allow_write=tools.allow_write,
                     supports_tests=bool(self.config.get("test_image")),
                     supports_github=self.github_available,
+                    supports_ci=bool(
+                        self.config.get("ci_enabled") and job["config"].get("automation_worker_id")
+                    ),
                 )
             }
 
@@ -279,6 +285,24 @@ class LaptopConnector:
                 elif name == "fitician_record_finding":
                     receipt = await emit("finding_proposed", arguments)
                     value = {"finding_id": receipt.get("evidence_id"), "state": "proposed"}
+                elif name == "fitician_ci_validate":
+                    from .ci_contract import capture_snapshot, validation_spec
+
+                    validation_spec(arguments["profile"], arguments["tests"])
+                    snapshot = await asyncio.to_thread(capture_snapshot, tools)
+                    value = await self.request(
+                        f"/calls/{identifier}/validations",
+                        {
+                            "lease_token": job["lease_token"],
+                            "key": f"tool-{tool_count}",
+                            **arguments,
+                            "snapshot": snapshot,
+                        },
+                    )
+                elif name == "fitician_ci_status":
+                    value = await self.request(
+                        f"/calls/{identifier}/ci-status", {"lease_token": job["lease_token"]}
+                    )
                 elif name == "fitician_run_tests":
                     cancelled = threading.Event()
                     test_task = asyncio.create_task(

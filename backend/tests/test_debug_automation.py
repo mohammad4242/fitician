@@ -299,3 +299,37 @@ def test_ci_connection_probe_is_idempotent_and_never_queues_a_paid_model_turn(cl
             DebugMessage.thread_id == run.thread_id, DebugMessage.role == "system"
         )
     )
+
+
+def test_ci_tool_status_is_scoped_to_the_selected_occurrence_and_live_call_lease(client, db):
+    from app.debugging.connectors import claim_call, enqueue_call, enroll_connector
+
+    actor, occurrence, run, _ = setup_case(db)
+    run.action = "prepare_fix"
+    operation = automation.queue_validation(db, run.id, "test-status", request())
+    connector, token = enroll_connector(db, actor.id, "Germany runtime")
+    enqueue_call(db, run, connector, "status", "fitician_ci_status", {})
+    leased = claim_call(db, connector)
+    db.commit()
+    path = f"/api/v1/debug-connectors/{connector.id}/calls/{leased['id']}/ci-status"
+    headers = {"Authorization": "Bearer " + token}
+    response = client.post(path, headers=headers, json={"lease_token": leased["lease_token"]})
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()["operations"]] == [str(operation.id)]
+    assert response.json()["operations"][0]["occurrence_id"] == str(occurrence.id)
+    assert "request" not in response.json()["operations"][0]
+    assert client.post(path, headers=headers, json={"lease_token": str(uuid4())}).status_code == 409
+    operation.occurrence_id = uuid4()
+    db.commit()
+    assert (
+        client.post(path, headers=headers, json={"lease_token": leased["lease_token"]}).json()[
+            "operations"
+        ]
+        == []
+    )
+    actor.is_admin = False
+    db.commit()
+    assert (
+        client.post(path, headers=headers, json={"lease_token": leased["lease_token"]}).status_code
+        == 401
+    )

@@ -41,6 +41,7 @@ def configuration(path: Path, state: Path) -> dict[str, Any]:
         evict_readonly=True,
         test_image="",
         github_enabled=False,
+        ci_enabled=True,
     )
     return validate_configuration(value)
 
@@ -89,7 +90,9 @@ class Supervisor:
             "cli_version": client.cli_version if client else None,
             "models": client.models if client else [],
             "max_workspaces": 2,
-            "test_execution": "github_actions_not_connected",
+            "test_execution": "github_actions_delegated"
+            if connected and client and client.ci_available
+            else "github_actions_connection_unverified",
             "release_commit": os.environ.get("FITICIAN_RUNTIME_COMMIT", "unknown"),
         }
 

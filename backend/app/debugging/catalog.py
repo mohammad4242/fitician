@@ -6,7 +6,11 @@ from typing import Any
 
 
 def tool_catalog(
-    *, allow_write: bool, supports_tests: bool = True, supports_github: bool = True
+    *,
+    allow_write: bool,
+    supports_tests: bool = True,
+    supports_github: bool = True,
+    supports_ci: bool = False,
 ) -> list[dict[str, Any]]:
     def tool(
         name: str, description: str, properties: dict[str, Any], required: list[str]
@@ -95,6 +99,30 @@ def tool_catalog(
                 "Publish the tested debug branch and its draft GitHub PR. Cannot merge or deploy.",
                 {"title": {"type": "string", "maxLength": 140}},
                 ["title"],
+            ),
+        ]
+    if supports_ci:
+        tools += [
+            tool(
+                "ci_validate",
+                "Queue exact workspace snapshot validation in isolated GitHub Actions. "
+                "Returns a durable operation, not a passed test. No local Docker or credentials. "
+                "Use ci_status later; queued work survives this model turn and disconnects.",
+                {
+                    "profile": {
+                        "type": "string",
+                        "enum": ["backend", "migrations", "frontend", "frontend_build", "agent"],
+                    },
+                    "tests": {"type": "array", "maxItems": 16, "items": path},
+                },
+                ["profile", "tests"],
+            ),
+            tool(
+                "ci_status",
+                "Read durable CI operations for this exact issue and selected occurrence. "
+                "Results identify the tested candidate, policy, artifact and actual test counts.",
+                {},
+                [],
             ),
         ]
     unavailable = set()

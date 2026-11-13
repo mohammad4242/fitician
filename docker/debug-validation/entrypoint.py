@@ -43,6 +43,7 @@ commands.extend((workspace / spec["cwd"], command) for command in spec["commands
 environment = {
     "PATH": executable_path,
     "HOME": "/scratch",
+    "TMPDIR": "/scratch",
     "APP_ENV": "test",
     "PYTHONDONTWRITEBYTECODE": "1",
     "SENTRY_DSN": "",

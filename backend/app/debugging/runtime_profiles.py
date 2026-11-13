@@ -145,4 +145,5 @@ def execution_capabilities(connector: DebugConnector) -> dict[str, Any]:
         "runtime_revision": connector.capabilities.get("runtime_revision"),
         "supports_tests": bool(connector.capabilities.get("supports_tests")),
         "supports_github": bool(connector.capabilities.get("supports_github")),
+        "supports_ci": bool(connector.capabilities.get("supports_ci")),
     }

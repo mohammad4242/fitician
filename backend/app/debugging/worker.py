@@ -255,6 +255,10 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                                 supports_github=bool(
                                     config.get("connector_capabilities", {}).get("supports_github")
                                 ),
+                                supports_ci=bool(
+                                    config.get("automation_worker_id")
+                                    and config.get("connector_capabilities", {}).get("supports_ci")
+                                ),
                             ),
                             handler=tool_handler,
                             progress=progress,

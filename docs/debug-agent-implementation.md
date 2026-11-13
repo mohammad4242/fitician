@@ -86,6 +86,22 @@ reserved, not an implemented deployment capability. No production release is cla
 
 ### Controlled GitHub Actions validation — in progress
 
+The Germany connector and API-model catalog now expose `fitician_ci_validate` and
+`fitician_ci_status` only when explicitly enabled and a broker is bound in the run snapshot.
+Submission captures the exact isolated worktree and selected profile/tests; the model receives
+a durable queued operation, never a fabricated test success. Status reads are restricted to
+the authorized live call, same issue/environment and selected occurrence. Local Docker/GitHub
+authority remains disabled on Germany. Heartbeat reports actual broker availability separately
+from connector health. Fifty-five focused connector/gateway/API-loop/automation tests passed,
+including an actual snapshot submission through the outbound client and occurrence isolation;
+these are not proof of selected provider inference or production execution.
+
+Frontend failure was reproduced in the real local networkless image: Vitest could not create
+its `/tmp/.../client` communication endpoint on the read-only root. The bounded writable
+scratch directory is now its explicit `TMPDIR`. The unchanged candidate then exercised all
+seven conversation tests successfully, versus one suite error before the correction. Hosted
+CI must still confirm the corrected image. Root filesystem and dependency isolation remain.
+
 [CI 43454623527](https://github.com/mohammad4242/fitician/actions/runs/43454623527)
 passed backend, migration and Agent sandbox profiles. Frontend now passes the compiler stages
 but fails at Vitest stage 3 with one suite error and no accepted test result. The fixed cache

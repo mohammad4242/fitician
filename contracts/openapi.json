@@ -8937,6 +8937,21 @@
         "title": "BudgetStyle",
         "type": "string"
       },
+      "CIStatusRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token"
+        ],
+        "title": "CIStatusRequest",
+        "type": "object"
+      },
       "CallStatusResponse": {
         "additionalProperties": false,
         "properties": {
@@ -9110,6 +9125,11 @@
               }
             ],
             "title": "Runtime Revision"
+          },
+          "supports_ci": {
+            "default": false,
+            "title": "Supports Ci",
+            "type": "boolean"
           },
           "supports_codex": {
             "default": false,
@@ -14381,6 +14401,11 @@
       "HeartbeatResponse": {
         "additionalProperties": false,
         "properties": {
+          "ci_available": {
+            "default": false,
+            "title": "Ci Available",
+            "type": "boolean"
+          },
           "connected": {
             "title": "Connected",
             "type": "boolean"
@@ -42359,6 +42384,74 @@
         "summary": "Poll",
         "tags": [
           "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/ci-status": {
+      "post": {
+        "operationId": "ci_status_api_v1_debug_connectors__connector_id__calls__call_id__ci_status_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CIStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ci Status",
+        "tags": [
+          "debug-connectors"
         ]
       }
     },

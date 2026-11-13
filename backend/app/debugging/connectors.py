@@ -39,6 +39,8 @@ TOOLS = frozenset(
         "fitician_codex_turn",
         "fitician_record_finding",
         "fitician_server_evidence",
+        "fitician_ci_validate",
+        "fitician_ci_status",
     }
 )
 MUTATIONS = frozenset({"fitician_write_file", "fitician_commit", "fitician_create_pr"})
