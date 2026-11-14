@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, "/policy")
 from app.debugging.ci_contract import command_facts, test_result, validation_spec
 from dependency_links import link_dependencies
+from sandbox_environment import child_environment
 
 profile, tests = sys.argv[1:]
 spec = validation_spec(profile, json.loads(tests))
@@ -40,21 +41,7 @@ else:
     executable_path = "/deps/" + spec["cwd"] + "/.venv/bin:/usr/local/bin:/usr/bin:/bin"
 commands.extend((workspace / spec["cwd"], command) for command in spec["commands"])
 # No host environment, provider credentials, auth session, GitHub token or Sentry token.
-environment = {
-    "PATH": executable_path,
-    "HOME": "/scratch",
-    "TMPDIR": "/scratch",
-    "APP_ENV": "test",
-    "PYTHONDONTWRITEBYTECODE": "1",
-    "SENTRY_DSN": "",
-    "SENTRY_TRACES_SAMPLE_RATE": "0",
-    "PYTHONPATH": str(workspace / spec["cwd"]),
-    "XDG_CACHE_HOME": "/scratch/cache",
-    "MPLCONFIGDIR": "/scratch/matplotlib",
-}
-for key in ("DATABASE_URL", "TEST_DATABASE_URL"):
-    if key in os.environ:
-        environment[key] = os.environ[key]
+environment = child_environment(workspace / spec["cwd"], executable_path, os.environ)
 exit_code = 0
 for stage, (cwd, command) in enumerate(commands):
     with Path("/output/test.log").open("wb") as log:

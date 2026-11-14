@@ -17,6 +17,39 @@ ci_contract = __import__("app.debugging.ci_contract", fromlist=["test_result"])
 
 
 class DebugValidationTests(unittest.TestCase):
+    def test_nutrition_audit_uses_the_same_isolated_postgres_without_host_configuration(self):
+        name = "fitician-validation-" + str(uuid4())
+        args = runner.container_command(
+            name, "sha256:" + "a" * 64, Path("/source"), "backend",
+            ["backend/tests/nutrition/test_food_photo_estimation.py"], network=name,
+        )
+        self.assertIn(
+            "--env=NUTRITION_AUDIT_DATABASE_URL="
+            "postgresql+psycopg://fitician:fitician_ci@db:5432/fitician_nutrition_audit",
+            args,
+        )
+
+    def test_child_environment_preserves_only_isolated_synthetic_database_urls(self):
+        script = Path(__file__).parents[2] / "docker/debug-validation/sandbox_environment.py"
+        spec = importlib.util.spec_from_file_location("sandbox_environment", script)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        main = "postgresql+psycopg://fitician:fitician_ci@db:5432/fitician_test"
+        audit = main.removesuffix("fitician_test") + "fitician_nutrition_audit"
+        result = module.child_environment(Path("/workspace/backend"), "/deps/bin", {
+            "DATABASE_URL": main, "TEST_DATABASE_URL": main,
+            "NUTRITION_AUDIT_DATABASE_URL": audit,
+            "GITHUB_TOKEN": "must-not-leak", "SENTRY_DSN": "must-not-leak",
+        })
+        self.assertEqual(result["NUTRITION_AUDIT_DATABASE_URL"], audit)
+        self.assertEqual(result["SENTRY_DSN"], "")
+        self.assertNotIn("GITHUB_TOKEN", result)
+        self.assertEqual(result["TMPDIR"], "/scratch")
+        with self.assertRaisesRegex(ValueError, "isolated_database_required"):
+            module.child_environment(Path("/workspace/backend"), "/deps/bin", {
+                "DATABASE_URL": "postgresql://production.invalid/private",
+            })
+
     def test_dependency_packages_stay_linked_while_build_caches_are_writable(self):
         script = (
             Path(__file__).parents[2] / "docker/debug-validation/dependency_links.py"

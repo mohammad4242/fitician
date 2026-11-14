@@ -1288,3 +1288,23 @@ remain independent and unchanged. All 359 ops tests and focused Ruff checks pass
 real Compose rendering and rejection when the combined connection budget is insufficient.
 These changes are not deployed; Iran memory capacity and independent Germany authentication/
 broker enrollment remain external gates. No production schema or worker activation changed.
+
+### Isolated nutrition validation and broader regression acceptance
+
+The repair test gateway now provides the separate `fitician_nutrition_audit` URL on its own
+internal ephemeral PostgreSQL network. Previously the nutrition autouse fixture fell back to
+localhost:5432, so backend nutrition profiles could not initialize despite main test database
+configuration. The trusted child environment preserves only the three exact synthetic database
+URLs and rejects other database destinations; host/provider credentials remain excluded.
+Both validation image targets include the same environment policy. Regression tests first
+demonstrated the missing audit URL and now verify propagation and rejection of host secrets.
+
+The existing 221-test business selection (body execution/reviews/correlation, food queue and
+estimation, nutrition/clinical review, workout API, jobs, alert/SMS) passed on isolated local
+PostgreSQL, after an earlier food-photo request returned a transient 503. That failure did not
+reproduce alone or in the complete repeat; its cause remains unconfirmed. Its assertion now
+reports only the safe domain error code if it recurs. Existing 534 deprecation warnings remain.
+The full Agent Service suite passed 283 tests using the installed backend development Python
+environment; this does not replace its dedicated frozen-environment CI gate. Diagnostics UI
+tests passed 66 tests across 11 files. These results do not establish live provider, deployed
+panel, automatic SMS, native crash or complete production business-scenario acceptance.

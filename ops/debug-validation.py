@@ -95,7 +95,12 @@ def container_command(
     ]
     if network != "none":
         url = "postgresql+psycopg://fitician:fitician_ci@db:5432/fitician_test"
-        args += ["--env=DATABASE_URL=" + url, "--env=TEST_DATABASE_URL=" + url]
+        args += [
+            "--env=DATABASE_URL=" + url,
+            "--env=TEST_DATABASE_URL=" + url,
+            "--env=NUTRITION_AUDIT_DATABASE_URL="
+            + url.removesuffix("fitician_test") + "fitician_nutrition_audit",
+        ]
     return [*args, image, profile, json.dumps(tests)]
 
 
