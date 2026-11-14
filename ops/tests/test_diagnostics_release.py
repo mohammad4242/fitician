@@ -88,6 +88,17 @@ class DiagnosticsReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "diagnostics_configuration_incomplete"):
             helper.config_fingerprints(self.app, ["diagnostics-alert-worker"])
 
+    def test_database_budget_check_fails_before_any_capacity_or_container_inspection(self):
+        helper = module()
+        with (
+            patch.object(helper, "command", side_effect=ValueError("unavailable")) as run,
+            self.assertRaisesRegex(ValueError, "diagnostics_database_budget_check_failed"),
+        ):
+            helper.capacity(self.app, self.app, "fitician-iran", ["debug-worker"])
+        self.assertEqual(run.call_count, 1)
+        self.assertIn("--additional-worker-connections", run.call_args.args[0])
+        self.assertEqual(run.call_args.args[0][-1], "1")
+
     def test_capacity_accounts_for_full_worker_limits_and_existing_runtime(self):
         helper = module()
         with self.assertRaisesRegex(ValueError, "diagnostics_capacity_exceeded"):
@@ -260,6 +271,8 @@ class DiagnosticsReleaseTests(unittest.TestCase):
             self.assertFalse(service.get("ports"))
             self.assertFalse(service.get("volumes"))
             self.assertTrue(service["read_only"])
+            self.assertEqual(service["environment"].get("DB_POOL_SIZE"), "1")
+            self.assertEqual(service["environment"].get("DB_MAX_OVERFLOW"), "0")
             self.assertEqual(service["healthcheck"]["start_period"], "2m0s")
             self.assertEqual(
                 service["environment"]["DIAGNOSTICS_ENVIRONMENT"], "production-iran"

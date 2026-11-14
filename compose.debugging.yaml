@@ -10,6 +10,8 @@ services:
         format: raw
     environment:
       DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
+      DB_POOL_SIZE: '1'
+      DB_MAX_OVERFLOW: '0'
     init: true
     restart: unless-stopped
     read_only: true
@@ -39,6 +41,8 @@ services:
         format: raw
     environment:
       DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
+      DB_POOL_SIZE: '1'
+      DB_MAX_OVERFLOW: '0'
     init: true
     restart: unless-stopped
     read_only: true
@@ -70,6 +74,8 @@ services:
         format: raw
     environment:
       DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
+      DB_POOL_SIZE: '1'
+      DB_MAX_OVERFLOW: '0'
     init: true
     restart: unless-stopped
     read_only: true

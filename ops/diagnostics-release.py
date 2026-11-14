@@ -219,6 +219,24 @@ def capacity(app: Path, release: Path, project: str, services: list[str]) -> Non
         "IMAGE_TAG": release.name,
         "FITICIAN_ENV_FILE": str(app / ".env"),
     }
+    # The overlay fixes each dedicated worker to one DB connection with no overflow.
+    # Reuse the regional connection-budget contract instead of silently adding pools.
+    try:
+        command(
+            [
+                "python3",
+                str(release / "ops/check-db-connection-budget.py"),
+                "--compose-file",
+                str(release / "compose.prod.iran.yaml"),
+                "--env-file",
+                str(app / ".env"),
+                "--additional-worker-connections",
+                str(len(services)),
+            ],
+            env=env,
+        )
+    except ValueError:
+        raise ValueError("diagnostics_database_budget_check_failed") from None
     rendered = json.loads(
         command(
             [

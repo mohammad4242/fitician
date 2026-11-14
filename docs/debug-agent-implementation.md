@@ -1275,3 +1275,16 @@ An existing local Python image was resolved to its immutable Docker ID, enabling
 repair-container tests (previously skipped). The remaining local App Server test requires the
 explicit supported CLI: the laptop default is 0.169.0 whereas this runtime contract pins
 0.167.2. Focused Ruff passed. The existing FastAPI/Starlette deprecation warning remains.
+
+### Diagnostics database connection budget
+
+Each dedicated diagnostics worker now has a fixed pool of one connection and zero overflow.
+The existing regional connection-budget check includes the explicitly selected workers before
+resource/container inspection, backup or release mutation. Failure to render/check the budget
+blocks activation without misreporting a configuration failure as proven database saturation.
+At default application settings, three workers raise the possible connection count from 32
+to 35; four reserved connections still fit strictly below the budget of 40. RAM/CPU/disk gates
+remain independent and unchanged. All 359 ops tests and focused Ruff checks passed, including
+real Compose rendering and rejection when the combined connection budget is insufficient.
+These changes are not deployed; Iran memory capacity and independent Germany authentication/
+broker enrollment remain external gates. No production schema or worker activation changed.
