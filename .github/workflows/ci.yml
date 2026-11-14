@@ -643,7 +643,7 @@ jobs:
       matrix:
         include:
           - profile: backend
-            tests: '["backend/tests/test_debug_ci_contract.py"]'
+            tests: '["backend/tests/test_debug_ci_contract.py","backend/tests/nutrition/test_food_photo_queue.py","backend/tests/nutrition/test_food_photo_estimation.py"]'
           - profile: migrations
             tests: '[]'
           - profile: frontend

@@ -49,6 +49,12 @@ def extract_source(archive: Path, destination: Path) -> None:
                 with target.open("xb") as output:
                     shutil.copyfileobj(source, output)
                 target.chmod(0o644)
+    # The host may use umask 077. The read-only bind is consumed by UID 10001,
+    # so directory traversal must not depend on the host operator's UID/umask.
+    destination.chmod(0o755)
+    for directory in destination.rglob("*"):
+        if directory.is_dir():
+            directory.chmod(0o755)
 
 
 def container_command(

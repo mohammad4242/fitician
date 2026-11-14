@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import tarfile
 import unittest
@@ -17,6 +18,33 @@ ci_contract = __import__("app.debugging.ci_contract", fromlist=["test_result"])
 
 
 class DebugValidationTests(unittest.TestCase):
+    def test_extracted_source_is_readable_by_the_sandbox_under_private_host_umask(self):
+        with TemporaryDirectory(dir=Path(__file__).parents[2] / ".codex-tmp") as temp:
+            root = Path(temp)
+            archive = root / "source.tar"
+            with tarfile.open(archive, "w") as output:
+                item = tarfile.TarInfo("backend/tests/test_fixture.py")
+                item.size = 1
+                output.addfile(item, io.BytesIO(b"x"))
+            previous = os.umask(0o077)
+            try:
+                runner.extract_source(archive, root / "checkout")
+            finally:
+                os.umask(previous)
+            for directory in ("checkout", "checkout/backend", "checkout/backend/tests"):
+                self.assertEqual((root / directory).stat().st_mode & 0o777, 0o755)
+            self.assertEqual(
+                (root / "checkout/backend/tests/test_fixture.py").stat().st_mode & 0o777,
+                0o644,
+            )
+
+    def test_validation_context_includes_the_child_environment_policy(self):
+        policy = Path(__file__).parents[2] / "docker/debug-validation"
+        self.assertIn(
+            "!docker/debug-validation/sandbox_environment.py",
+            (policy / "Dockerfile.dockerignore").read_text().splitlines(),
+        )
+
     def test_nutrition_audit_uses_the_same_isolated_postgres_without_host_configuration(self):
         name = "fitician-validation-" + str(uuid4())
         args = runner.container_command(

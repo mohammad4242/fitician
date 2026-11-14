@@ -1308,3 +1308,20 @@ The full Agent Service suite passed 283 tests using the installed backend develo
 environment; this does not replace its dedicated frozen-environment CI gate. Diagnostics UI
 tests passed 66 tests across 11 files. These results do not establish live provider, deployed
 panel, automatic SMS, native crash or complete production business-scenario acceptance.
+
+### Validation filesystem and CI regression coverage
+
+A restrictive operator umask could leave extracted source directories unreadable to sandbox
+UID 10001. The regression reproduced mode 0700; extraction now explicitly gives source-only
+directories mode 0755 and files 0644 inside the existing bounded read-only bind. No credentials,
+Docker socket or host authority were added. All 363 ops tests passed, including traversal/
+symlink rejection and the private-umask regression. The image context explicitly includes its
+child-environment helper. Required controlled backend CI now also exercises the actual food
+photo queue and estimation suites, covering the separate nutrition audit database path.
+
+Local full Python validation-image construction remains blocked by public dependency DNS
+failures (`files.pythonhosted.org`), after a registry mirror 502; neither is a test pass. An
+initial local cached image was the frontend target and lacked pytest, so its failed Python
+invocation is not application-test failure evidence. The new hosted matrix must pass on the
+exact candidate. Frontend TypeScript/Oxlint checks and nine mobile adapter/logging tests plus
+three release-identity script tests passed. No actual native binary/crash was tested.
