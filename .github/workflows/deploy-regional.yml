@@ -478,6 +478,8 @@ jobs:
           ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
           scp -P "$VPS_SSH_PORT" ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
           scp -P "$VPS_SSH_PORT" ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
+          scp -P "$VPS_SSH_PORT" compose.debugging.yaml "$VPS_USER@$VPS_HOST:$release_dir/compose.debugging.yaml"
+          scp -P "$VPS_SSH_PORT" ops/diagnostics-release.py "$VPS_USER@$VPS_HOST:$release_dir/ops/diagnostics-release.py"
           scp -P "$VPS_SSH_PORT" ops/panel-deployment-guard.py ops/debug-server-observation.py "$VPS_USER@$VPS_HOST:$release_dir/ops/"
           scp -P "$VPS_SSH_PORT" ops/verify-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/verify-regional.sh"
           scp -P "$VPS_SSH_PORT" ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"

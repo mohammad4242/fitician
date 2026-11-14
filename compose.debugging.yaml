@@ -5,7 +5,11 @@ services:
     image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
     profiles: [diagnostics-debug]
     command: [python, -m, app.debugging.worker]
-    env_file: ${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}
+    env_file:
+      - path: ${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}
+        format: raw
+    environment:
+      DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
     init: true
     restart: unless-stopped
     read_only: true
@@ -14,6 +18,10 @@ services:
     pids_limit: 128
     mem_limit: 512m
     cpus: 1
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: 1m, max-file: '2'}
     tmpfs: [/run/fitician:mode=1777]
     networks: [application]
     healthcheck:
@@ -21,11 +29,16 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 120s
   diagnostics-sync-worker:
     image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
     profiles: [diagnostics-debug]
     command: [python, -m, app.observability.sentry_sync]
-    env_file: ${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}
+    env_file:
+      - path: ${FITICIAN_SYNC_ENV_FILE:-${FITICIAN_DEBUG_ENV_FILE:?Set a dedicated worker configuration file}}
+        format: raw
+    environment:
+      DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
     init: true
     restart: unless-stopped
     read_only: true
@@ -34,6 +47,10 @@ services:
     pids_limit: 64
     mem_limit: 256m
     cpus: 0.5
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: 1m, max-file: '2'}
     tmpfs: [/run/fitician:mode=1777]
     networks: [application]
     healthcheck:
@@ -41,13 +58,18 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 120s
   diagnostics-alert-worker:
     image: ${FITICIAN_DEBUG_IMAGE:?Set the tested backend image digest}
     profiles: [diagnostics-alerts]
     stop_grace_period: 25s
     command: [python, -m, app.observability.alert_worker]
     # An absent file cannot enable sending; the worker requires explicit enablement/time.
-    env_file: ${FITICIAN_ALERT_ENV_FILE:-/dev/null}
+    env_file:
+      - path: ${FITICIAN_ALERT_ENV_FILE:-/dev/null}
+        format: raw
+    environment:
+      DIAGNOSTICS_ENVIRONMENT: ${DIAGNOSTICS_ENVIRONMENT:-}
     init: true
     restart: unless-stopped
     read_only: true
@@ -56,6 +78,9 @@ services:
     pids_limit: 64
     mem_limit: 256m
     cpus: 0.25
+    logging:
+      driver: json-file
+      options: {max-size: 1m, max-file: '2'}
     tmpfs: [/run/fitician:mode=1777]
     networks: [application]
     healthcheck:
@@ -63,6 +88,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+      start_period: 120s
 networks:
   application:
     external: true

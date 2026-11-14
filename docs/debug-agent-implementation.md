@@ -1166,3 +1166,58 @@ controls remain unsupported/disabled; no model is substituted. Focused verificat
 57 backend tests and 30 settings/conversation UI tests, mypy/Ruff, TypeScript and Oxlint.
 Actual selected OpenRouter model inference/tool acceptance remains unverified: the public model
 catalog also timed out from the laptop during the connectivity check.
+
+### Regional diagnostics worker lifecycle — implemented, not activated
+
+Full Iran releases now ship the existing `compose.debugging.yaml` and a fixed
+`ops/diagnostics-release.py` lifecycle helper. The existing regional host lock and owner gates
+remain authoritative. A private host-owned `diagnostics-workers.json` (0600) explicitly selects
+services; absent policy cannot activate workers, and removing policy from an active installation
+fails closed. Example policy structure (no credentials):
+
+```json
+{"version":1,"services":["debug-worker","diagnostics-sync-worker","diagnostics-alert-worker"]}
+```
+
+Each selected service uses its own 0600 file in the regional application directory:
+`debug-worker.env`, `diagnostics-sync-worker.env`, or `diagnostics-alert-worker.env`.
+Do not copy the application's whole env file. All need `DATABASE_URL`; debugging needs the
+existing `AI_CREDENTIAL_ENCRYPTION_KEY`; sync needs `SENTRY_ORG`, `SENTRY_PROJECT`, and the
+scoped `SENTRY_API_TOKEN` (plus the existing restricted `SENTRY_HTTPS_PROXY` where required).
+Alerts need the configured Faraz key/sender/recipient and explicit
+`DIAGNOSTICS_ALERT_ENABLED=true` / `DIAGNOSTICS_ALERT_ENABLED_AT`; preserve the activation-time
+and receipt safeguards. Optional DSN/project/environment settings follow the existing capture
+policy. Privileged upload/GitHub/S3 credentials are rejected, and sync/SMS/AI credentials cannot
+be shared across these worker files. Compose raw env format preserves literal credential
+characters; it requires Compose 2.30+, verified as 2.40.3 on the laptop and Iran server.
+
+Before pulling images, backup, migration or application mutation, preflight checks private
+configuration and the full candidate resource envelope, including other bounded running
+projects, 750 MiB memory headroom and CPU oversubscription limits. After backup and the final
+authorization check, previous workers stop before migration. The candidate uses the exact
+locally manifest-verified backend image, existing application network, and a separate supervised
+diagnostics Compose project. No new network, host ports, production volume or image pull is
+created by the worker helper. Read-only filesystems, dropped capabilities, CPU/RAM/PID limits,
+bounded logs, heartbeat health checks and startup grace remain explicit. Successful startup
+also requires running-image and health readback. State and previous configuration fingerprints
+are retained privately for rollback; changed secrets or incomplete transactions require explicit
+operator reconciliation. Schema failure quiesces workers and requires database recovery instead
+of attempting an incompatible image-only rollback. Emergency quiescence needs no secret file.
+
+Verification: all 355 ops tests passed, including actual Compose rendering with synthetic
+credentials, resource rejection, pre-mutation ordering, worker failure rollback, schema failure
+quiescence and manual-input injection. Focused Ruff and shell syntax checks passed. Standalone
+debug/sync worker ORM mapper initialization also passed without the API lifespan.
+CI run 43531645428 exposed an unset-new-input fixture in regional workflow tests; the fixture
+now supplies the three optional panel fields and tests injection into each. Its failed run is
+not reported as successful; the next exact-commit CI result remains a separate gate.
+
+Live read-only Iran inspection: 3916 MiB total RAM, about 1633 MiB available, 9974 MiB root disk
+free, and 2880 MiB aggregate existing service memory limits. All three default diagnostic
+workers need another 1024 MiB plus 750 MiB headroom: the existing 4 GiB host cannot meet this
+envelope (even before any larger candidate application limits). No limits were lowered, no
+worker was activated, and production schema remains unchanged by this step. Capacity must be
+resolved before activating the complete worker set. Independent Germany login instructions
+were freshly saved locally with mode 0600; browser authorization and dedicated broker GitHub
+credential remain external gates. Neither login instructions nor a healthy container prove
+model execution, automatic SMS, production enrollment or end-to-end acceptance.

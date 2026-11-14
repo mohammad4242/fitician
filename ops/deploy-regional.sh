@@ -139,6 +139,16 @@ compose() {
     docker compose -p "$project" --env-file "$env_file" -f "$contract" "$@"
 }
 
+diagnostics() {
+  python3 "$release_dir/ops/diagnostics-release.py" "$1" \
+    --app-dir "$app_dir" --commit "$image_tag" --project "$project"
+}
+# Worker activation is a host-owned private policy, never a model/workflow input.
+# Check before image pulls, backup or any database/application mutation.
+if [[ "$region" == iran && "$kind" == full && "$inspect_only" != true ]]; then
+  diagnostics preflight || fail 'Diagnostics worker configuration or capacity preflight failed'
+fi
+
 volume_keys=(POSTGRES_VOLUME_NAME REDIS_VOLUME_NAME CADDY_DATA_VOLUME_NAME CADDY_CONFIG_VOLUME_NAME)
 if [[ "$region" == germany ]]; then volume_keys=(AGENT_HOME_VOLUME_NAME); fi
 volume_names=()
@@ -570,8 +580,16 @@ rollback() {
     fi
     exit "$status"
   fi
-  if [[ "$rollback_needed" != true ]]; then exit "$status"; fi
+  if [[ "$rollback_needed" != true ]]; then
+    if [[ "${diagnostics_transaction:-false}" == true ]]; then
+      diagnostics rollback || echo 'Previous diagnostics workers need manual reconciliation' >&2
+    fi
+    exit "$status"
+  fi
   if [[ "$schema_changed" == true ]]; then
+    if [[ "${diagnostics_transaction:-false}" == true ]]; then
+      diagnostics quiesce || echo 'Diagnostics worker quiescence needs manual reconciliation' >&2
+    fi
     if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
       stop caddy frontend backend backend-2 scheduler food-photo-worker body-analysis-worker notification-worker; then
       echo 'Application quiescence failed; block Iran ingress manually before recovery' >&2
@@ -613,6 +631,9 @@ rollback() {
     compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
       "$previous_worker_tag" "$previous_agent_tag" \
       up -d --pull never --no-deps --wait "${services[@]}" || rollback_status=$?
+  fi
+  if [[ "$rollback_status" -eq 0 && "${diagnostics_transaction:-false}" == true ]]; then
+    diagnostics rollback || rollback_status=$?
   fi
   if [[ "$rollback_status" -eq 0 && "$initial_deploy" != true ]]; then
     REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
@@ -681,6 +702,10 @@ fi
 
 # Backup and image preparation may outlast a grant. Recheck immediately before mutation.
 check_panel_authorization
+if [[ "$region" == iran && "$kind" == full ]]; then
+  diagnostics_transaction=true
+  diagnostics pause
+fi
 if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
   rollback_needed=true
   compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$previous_agent_tag" \
@@ -712,6 +737,7 @@ if [[ "$kind" == full ]]; then
     rollback || true
     exit 1
   fi
+  if [[ "$region" == iran ]]; then diagnostics start; fi
 else
   rollback_needed=true
   if [[ "$kind" == backend ]]; then

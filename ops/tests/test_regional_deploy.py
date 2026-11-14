@@ -59,6 +59,9 @@ class RegionalDeployTests(unittest.TestCase):
         )
         (self.new_release / "backup-production.sh").chmod(0o755)
         (self.new_release / "ops").mkdir()
+        (self.new_release / "ops" / "diagnostics-release.py").write_text(
+            (ROOT / "ops/diagnostics-release.py").read_text()
+        )
         (self.new_release / "ops" / "verify-regional.sh").write_text(
             (ROOT / "ops/verify-regional.sh").read_text()
         )
@@ -243,6 +246,58 @@ fi
             text=True,
             check=False,
         )
+
+    def record_diagnostics(self):
+        (self.new_release / "ops/diagnostics-release.py").write_text(
+            "import os, sys\n"
+            "with open(os.environ['FAKE_CALLS'], 'a') as log:\n"
+            "    log.write('DIAGNOSTICS ' + sys.argv[1] + '\\n')\n"
+            "raise SystemExit(1 if os.environ.get('FAIL_DIAGNOSTICS_MODE') == sys.argv[1] else 0)\n"
+        )
+
+    def test_worker_capacity_failure_precedes_backup_pull_and_application_mutation(
+        self,
+    ):
+        self.record_diagnostics()
+        self.env["FAIL_DIAGNOSTICS_MODE"] = "preflight"
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls.read_text().splitlines(), ["DIAGNOSTICS preflight"])
+
+    def test_workers_pause_after_backup_and_resume_only_after_application_start(self):
+        self.record_diagnostics()
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        backup = calls.index("backup-production.sh")
+        paused = calls.index("DIAGNOSTICS pause")
+        started = calls.index("DIAGNOSTICS start")
+        application = next(i for i, line in enumerate(calls) if " up -d" in line)
+        self.assertLess(backup, paused)
+        self.assertLess(paused, application)
+        self.assertLess(application, started)
+
+    def test_failed_worker_start_rolls_back_application_and_previous_workers(self):
+        self.record_diagnostics()
+        self.env["FAIL_DIAGNOSTICS_MODE"] = "start"
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("DIAGNOSTICS rollback", calls)
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+
+    def test_failed_migration_quiesces_workers_without_image_only_worker_rollback(self):
+        self.record_diagnostics()
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_FAIL_MIGRATION="true",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("DIAGNOSTICS quiesce", calls)
+        self.assertNotIn("DIAGNOSTICS rollback", calls)
 
     def test_capacity_failure_blocks_iran_before_pull_or_runtime_mutation(self) -> None:
         self.env["FAKE_CAPACITY_STATUS"] = "1"
