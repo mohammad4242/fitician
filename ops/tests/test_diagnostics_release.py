@@ -54,12 +54,8 @@ class DiagnosticsReleaseTests(unittest.TestCase):
 
     def test_configuration_must_be_private_regular_files_and_never_leaks_values(self):
         helper = module()
-        path = self.secret(
-            "debug-worker", "AI_CREDENTIAL_ENCRYPTION_KEY=synthetic-private\n"
-        )
-        self.assertIn(
-            "debug-worker", helper.config_fingerprints(self.app, ["debug-worker"])
-        )
+        path = self.secret("debug-worker", "AI_CREDENTIAL_ENCRYPTION_KEY=synthetic-private\n")
+        self.assertIn("debug-worker", helper.config_fingerprints(self.app, ["debug-worker"]))
         path.chmod(0o644)
         with self.assertRaisesRegex(ValueError, "diagnostics_private_file_required"):
             helper.config_fingerprints(self.app, ["debug-worker"])
@@ -87,6 +83,45 @@ class DiagnosticsReleaseTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "diagnostics_configuration_incomplete"):
             helper.config_fingerprints(self.app, ["diagnostics-alert-worker"])
+
+    def test_sms_activation_requires_usable_https_panel_origin_and_timezone(self):
+        helper = module()
+        common = (
+            "FARAZSMS_API_KEY=synthetic\nFARAZSMS_FROM_NUMBER=123456\n"
+            "DIAGNOSTICS_ALERT_PHONE=synthetic\nDIAGNOSTICS_ALERT_ENABLED=true\n"
+        )
+        for origin, activation in (
+            ("", "2026-11-14T00:00:00+00:00"),
+            ("http://localhost:5173", "2026-11-14T00:00:00+00:00"),
+            ("https://user:secret@fitician.ir", "2026-11-14T00:00:00+00:00"),
+            ("https://fitician.ir/private?token=synthetic", "2026-11-14T00:00:00+00:00"),
+            ("https://fitician.ir/#fragment", "2026-11-14T00:00:00+00:00"),
+            ("https://fitician.ir", "not-a-time"),
+            ("https://fitician.ir", "2026-11-14T00:00:00"),
+        ):
+            self.secret(
+                "diagnostics-alert-worker",
+                common
+                + "FRONTEND_ORIGIN="
+                + origin
+                + "\nDIAGNOSTICS_ALERT_ENABLED_AT="
+                + activation
+                + "\n",
+            )
+            with (
+                self.subTest(origin=origin, activation=activation),
+                self.assertRaisesRegex(ValueError, "diagnostics_configuration_incomplete"),
+            ):
+                helper.config_fingerprints(self.app, ["diagnostics-alert-worker"])
+        self.secret(
+            "diagnostics-alert-worker",
+            common
+            + "FRONTEND_ORIGIN=https://fitician.ir\nDIAGNOSTICS_ALERT_ENABLED_AT=2026-11-14T00:00:00Z\n",
+        )
+        self.assertIn(
+            "diagnostics-alert-worker",
+            helper.config_fingerprints(self.app, ["diagnostics-alert-worker"]),
+        )
 
     def test_database_budget_check_fails_before_any_capacity_or_container_inspection(self):
         helper = module()
@@ -143,9 +178,7 @@ class DiagnosticsReleaseTests(unittest.TestCase):
         args, kwargs = commands[0]
         self.assertEqual(args[-1], "debug-worker")
         self.assertEqual(args[args.index("-p") + 1], "fitician-iran-diagnostics")
-        self.assertEqual(
-            kwargs["env"]["FITICIAN_DEBUG_NETWORK"], "fitician-iran_default"
-        )
+        self.assertEqual(kwargs["env"]["FITICIAN_DEBUG_NETWORK"], "fitician-iran_default")
         self.assertNotIn("DATABASE_URL", kwargs["env"])
         self.assertIn("never", args)
 
@@ -173,16 +206,12 @@ class DiagnosticsReleaseTests(unittest.TestCase):
         ):
             helper.rollback(self.app, "fitician-iran", "c" * 40)
         self.assertEqual(calls, [previous])
-        self.assertEqual(
-            json.loads((self.app / ".diagnostics-active.json").read_text()), previous
-        )
+        self.assertEqual(json.loads((self.app / ".diagnostics-active.json").read_text()), previous)
 
     def test_existing_workers_without_policy_fail_closed(self):
         helper = module()
         helper.write_private(self.app / ".diagnostics-active.json", {"version": 1})
-        with self.assertRaisesRegex(
-            ValueError, "diagnostics_policy_missing_for_active_workers"
-        ):
+        with self.assertRaisesRegex(ValueError, "diagnostics_policy_missing_for_active_workers"):
             helper.load_policy(self.app)
 
     def test_emergency_quiescence_does_not_depend_on_current_secret_files_or_policy(
@@ -222,12 +251,8 @@ class DiagnosticsReleaseTests(unittest.TestCase):
             "debug-worker",
             "AI_CREDENTIAL_ENCRYPTION_KEY=literal$SYNTHETIC_UNSET#value\n",
         )
-        sync = self.secret(
-            "diagnostics-sync-worker", "SENTRY_API_TOKEN=synthetic-sync-only\n"
-        )
-        alert = self.secret(
-            "diagnostics-alert-worker", "FARAZSMS_API_KEY=synthetic-alert-only\n"
-        )
+        sync = self.secret("diagnostics-sync-worker", "SENTRY_API_TOKEN=synthetic-sync-only\n")
+        alert = self.secret("diagnostics-alert-worker", "FARAZSMS_API_KEY=synthetic-alert-only\n")
         result = subprocess.run(
             [
                 "docker",
@@ -274,9 +299,7 @@ class DiagnosticsReleaseTests(unittest.TestCase):
             self.assertEqual(service["environment"].get("DB_POOL_SIZE"), "1")
             self.assertEqual(service["environment"].get("DB_MAX_OVERFLOW"), "0")
             self.assertEqual(service["healthcheck"]["start_period"], "2m0s")
-            self.assertEqual(
-                service["environment"]["DIAGNOSTICS_ENVIRONMENT"], "production-iran"
-            )
+            self.assertEqual(service["environment"]["DIAGNOSTICS_ENVIRONMENT"], "production-iran")
             if name != "diagnostics-sync-worker":
                 self.assertNotIn("SENTRY_API_TOKEN", service["environment"])
             if name != "diagnostics-alert-worker":

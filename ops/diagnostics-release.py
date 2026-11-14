@@ -14,7 +14,9 @@ import re
 import shutil
 import stat
 import subprocess
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 SERVICES = {
     "debug-worker": (512, 1.0, {"DATABASE_URL", "AI_CREDENTIAL_ENCRYPTION_KEY"}),
@@ -33,6 +35,7 @@ SERVICES = {
             "DIAGNOSTICS_ALERT_PHONE",
             "DIAGNOSTICS_ALERT_ENABLED",
             "DIAGNOSTICS_ALERT_ENABLED_AT",
+            "FRONTEND_ORIGIN",
         },
     ),
 }
@@ -60,9 +63,7 @@ def private_bytes(path: Path, limit: int = 65536) -> bytes:
 
 def write_private(path: Path, value: dict) -> None:
     pending = path.with_name(path.name + ".pending")
-    descriptor = os.open(
-        pending, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600
-    )
+    descriptor = os.open(pending, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
     with os.fdopen(descriptor, "w") as output:
         os.fchmod(output.fileno(), 0o600)
         json.dump(value, output, sort_keys=True)
@@ -86,10 +87,7 @@ def load_policy(app: Path) -> list[str]:
         or type(value["version"]) is not int
         or value["version"] != 1
         or not isinstance(value["services"], list)
-        or any(
-            not isinstance(name, str) or name not in SERVICES
-            for name in value["services"]
-        )
+        or any(not isinstance(name, str) or name not in SERVICES for name in value["services"])
         or len(set(value["services"])) != len(value["services"])
     ):
         raise ValueError("diagnostics_policy_invalid")
@@ -105,20 +103,30 @@ def config_fingerprints(app: Path, services: list[str]) -> dict[str, str]:
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
             key, separator, value = line.partition("=")
-            if (
-                not separator
-                or not re.fullmatch("[A-Z][A-Z0-9_]*", key)
-                or key in values
-            ):
+            if not separator or not re.fullmatch("[A-Z][A-Z0-9_]*", key) or key in values:
                 raise ValueError("diagnostics_configuration_invalid")
             values[key] = value
         if any(not values.get(key, "").strip() for key in SERVICES[service][2]):
             raise ValueError("diagnostics_configuration_incomplete")
-        if (
-            service == "diagnostics-alert-worker"
-            and values["DIAGNOSTICS_ALERT_ENABLED"].lower() != "true"
-        ):
-            raise ValueError("diagnostics_configuration_incomplete")
+        if service == "diagnostics-alert-worker":
+            try:
+                origin = urlsplit(values["FRONTEND_ORIGIN"])
+                activation = datetime.fromisoformat(values["DIAGNOSTICS_ALERT_ENABLED_AT"])
+                valid = (
+                    values["DIAGNOSTICS_ALERT_ENABLED"].lower() == "true"
+                    and origin.scheme == "https"
+                    and bool(origin.hostname)
+                    and not origin.username
+                    and not origin.password
+                    and not origin.query
+                    and not origin.fragment
+                    and origin.path in {"", "/"}
+                    and activation.tzinfo is not None
+                )
+            except ValueError:
+                valid = False
+            if not valid:
+                raise ValueError("diagnostics_configuration_incomplete")
         # Each file carries only its own privileged provider credentials.
         forbidden = {
             "SENTRY_AUTH_TOKEN",
@@ -156,11 +164,7 @@ def compose(
     services: list[str],
     args: list[str],
 ) -> str:
-    env = {
-        key: os.environ[key]
-        for key in ("PATH", "HOME", "DOCKER_CONFIG")
-        if key in os.environ
-    }
+    env = {key: os.environ[key] for key in ("PATH", "HOME", "DOCKER_CONFIG") if key in os.environ}
     env.update(
         FITICIAN_DEBUG_IMAGE="mohammad4242/fitician-backend:" + commit,
         FITICIAN_DEBUG_ENV_FILE=str(app / "debug-worker.env")
@@ -204,10 +208,8 @@ def check_capacity(
     disk_free: int,
 ) -> None:
     if (
-        core_memory + other_memory + sum(SERVICES[name][0] for name in services) + 750
-        > host_memory
-        or core_cpu + other_cpu + sum(SERVICES[name][1] for name in services)
-        > host_cpus * 1.5
+        core_memory + other_memory + sum(SERVICES[name][0] for name in services) + 750 > host_memory
+        or core_cpu + other_cpu + sum(SERVICES[name][1] for name in services) > host_cpus * 1.5
         or disk_free < 2 * 1024**3
     ):
         raise ValueError("diagnostics_capacity_exceeded")
@@ -253,9 +255,7 @@ def capacity(app: Path, release: Path, project: str, services: list[str]) -> Non
             env=env,
         )
     )
-    core = [
-        value for name, value in rendered["services"].items() if name != "migrations"
-    ]
+    core = [value for name, value in rendered["services"].items() if name != "migrations"]
     ids = command(["docker", "ps", "-q"]).splitlines()
     others = []
     if ids:
@@ -275,9 +275,7 @@ def capacity(app: Path, release: Path, project: str, services: list[str]) -> Non
                 if int(memory) <= 0 or int(cpu) <= 0:
                     raise ValueError("diagnostics_unbounded_existing_service")
                 others.append((int(memory) / 1024**2, int(cpu) / 10**9))
-    mem = dict(
-        line.split(":", 1) for line in Path("/proc/meminfo").read_text().splitlines()
-    )
+    mem = dict(line.split(":", 1) for line in Path("/proc/meminfo").read_text().splitlines())
     check_capacity(
         services,
         core_memory=sum(int(value["mem_limit"]) / 1024**2 for value in core),
@@ -331,9 +329,7 @@ def pause(app: Path, project: str, state: dict | None) -> None:
                     "label=com.docker.compose.service=" + name,
                 ]
             ).splitlines()
-            if any(
-                not re.fullmatch("[a-f0-9]{12,64}", identifier) for identifier in ids
-            ):
+            if any(not re.fullmatch("[a-f0-9]{12,64}", identifier) for identifier in ids):
                 raise ValueError("diagnostics_service_identity_invalid")
             if ids:
                 command(["docker", "stop", "--time", "30", *ids])

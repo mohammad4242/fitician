@@ -1386,3 +1386,24 @@ settings and the host configuration). No replacement key was generated and no en
 data was modified. Recover the previous key securely or explicitly reconfigure those
 credentials before enabling API-model/debug workers. The existing Sentry proxy destination
 uses the verified private Germany address, independently of public-IP routing.
+
+### Dedicated worker secret preparation and alert activation preflight
+
+The release preflight now rejects missing/non-HTTPS panel origins, credentials/path/query/
+fragment in an origin, and invalid or timezone-naive SMS activation timestamps. Seven
+regression cases reproduced the prior acceptance; all 366 ops tests and focused Ruff
+checks passed. Runtime alert formatting already rejects these origins; the release now
+fails before worker startup instead of discovering the problem in its sending loop.
+
+On Iran, existing provider values were copied by exact service-specific allowlists into
+`/opt/fitician-iran/diagnostics-sync-worker.env` and
+`/opt/fitician-iran/diagnostics-alert-worker.env`, with mode 0600 and matching private
+readback. Files were created without replacing existing secret files; the application
+environment and activation policy were unchanged. Sync includes the backend, web and
+mobile project names. Alert configuration includes the real HTTPS frontend origin and
+explicitly keeps automatic sending disabled, without an activation timestamp. Debug worker
+configuration awaits the existing encryption key. No worker was started and no SMS sent.
+
+A fresh authenticated project-events read from Iran through the existing restricted
+Germany proxy returned HTTP 200 with an available event. This verifies current retrieval
+connectivity, not capture or original-source evidence from a newly deployed release.
