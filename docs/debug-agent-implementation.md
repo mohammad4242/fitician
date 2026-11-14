@@ -22,7 +22,7 @@ and this document are preserved. PR 42 remains a synthetic acceptance PR, never 
 | API model tool loop | committed | mocked provider protocol | production selection/probe pending | no | actual API tool call pending |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated Germany GitHub credential absent | no | no Germany PR publication proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
-| Native exact release identity/iOS ingestion | implemented | 34 backend, 14 core, 7 mobile tests; native crash pending | EAS Sentry variables absent at last inspection | no | no native release crash proof |
+| Native exact release identity/iOS ingestion | implemented | adapter/release/privacy tests; native crash pending | EAS preview/production Sentry settings installed; upload credential is SECRET | no | no native release crash proof |
 | Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated broker credential absent | no | pending |
 
 Execution order and gates:
@@ -1407,3 +1407,27 @@ configuration awaits the existing encryption key. No worker was started and no S
 A fresh authenticated project-events read from Iran through the existing restricted
 Germany proxy returned HTTP 200 with an available event. This verifies current retrieval
 connectivity, not capture or original-source evidence from a newly deployed release.
+
+### EAS Sentry configuration and source archive privacy
+
+The existing authenticated EAS project was verified before configuration. Its preview and
+production environments previously had none of the five required Sentry variables. Both
+now contain the existing mobile DSN, organization/project, explicit SDK environment and
+upload token. The token has SECRET visibility; public settings matched authenticated
+readback, while secret values remain unreadable. Existing unrelated variables were retained.
+Configuration used the installed EAS 24.3.0 client query/mutation contracts with private
+in-process credentials, not shell arguments or committed files. No build was started.
+
+The existing Expo/Sentry integration was retained. Official references checked:
+https://docs.expo.dev/guides/using-sentry/ and
+https://docs.expo.dev/eas/environment-variables/usage/ . Build-only secrets are available
+on EAS builders; the upload token is not exposed through an EXPO_PUBLIC variable.
+Actual native source-map/symbol upload and crash symbolication still require release builds
+and appropriate devices; environment-variable existence does not establish either result.
+
+The EAS archive privacy regression demonstrated that `.env.local` could enter the source
+archive under the previous explicit ignore rules. Local environment variants, credential
+files and signing-key formats are now excluded at every depth while app assets and shared
+source remain included. Twelve focused release/privacy tests passed. No signing key was
+read, moved, uploaded or replaced by this change.
+The complete `npm run test:mobile:foundation` invocation passed all 81 tests with no skips.
