@@ -1266,3 +1266,12 @@ The broader combined debug/diagnostics/Sentry regression invocation exposed thre
 identity expectations. Investigation identified `test_debug_process` directly changing process
 environment after `monkeypatch.delenv` on previously absent keys. These failures must be corrected
 and the combined invocation rerun; it is not reported as a passing complete regression gate.
+
+The isolation regression reproduced the exact leak for previously absent environment keys.
+The test now registers restoration before `initialize_telemetry` writes its private values;
+no application queue-priority or sync behavior was changed to hide the failures. The combined
+33-file debug/diagnostics/Sentry invocation then passed **277 tests with one explicit skip**.
+An existing local Python image was resolved to its immutable Docker ID, enabling both isolated
+repair-container tests (previously skipped). The remaining local App Server test requires the
+explicit supported CLI: the laptop default is 0.169.0 whereas this runtime contract pins
+0.167.2. Focused Ruff passed. The existing FastAPI/Starlette deprecation warning remains.

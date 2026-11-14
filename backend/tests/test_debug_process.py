@@ -15,7 +15,9 @@ def test_process_telemetry_accepts_only_its_private_sentry_configuration(tmp_pat
     )
     monkeypatch.setenv("FITICIAN_RUNTIME_COMMIT", "a" * 40)
     for key in ("SENTRY_DSN", "DIAGNOSTICS_ENVIRONMENT", "APP_BUILD_SHA"):
-        monkeypatch.delenv(key, raising=False)
+        # Register restoration even when the key did not exist before this test.
+        # initialize_telemetry writes directly to os.environ after validation.
+        monkeypatch.setenv(key, "")
     path = tmp_path / "telemetry.json"
     assert process_lifecycle.initialize_telemetry(path, "debug-runtime") == "disabled"
     path.write_text(
@@ -62,3 +64,19 @@ def test_termination_cancels_the_service_and_flushes_with_the_existing_bounded_b
 
     asyncio.run(run())
     assert events == ["cancelled", "flushed"]
+
+
+def test_private_telemetry_test_restores_previously_absent_environment(tmp_path):
+    import os
+    from unittest.mock import patch
+
+    import pytest
+
+    keys = ("SENTRY_DSN", "DIAGNOSTICS_ENVIRONMENT", "APP_BUILD_SHA")
+    # Keep this regression itself isolated even when the nested test leaks environment.
+    with patch.dict(os.environ):
+        for key in keys:
+            os.environ.pop(key, None)
+        with pytest.MonkeyPatch.context() as scoped:
+            test_process_telemetry_accepts_only_its_private_sentry_configuration(tmp_path, scoped)
+        assert not any(key in os.environ for key in keys)
