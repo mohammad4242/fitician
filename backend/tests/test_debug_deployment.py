@@ -55,6 +55,69 @@ def preview():
     }
 
 
+def test_deployment_binds_diagnostics_workers_and_rejects_missing_or_extra_readback(db):
+    from app.debugging.deployment import queue_deployment, validate_readback
+
+    actor, occurrence, _, publication, observation = prepared_case(db)
+    workers = ["debug-worker", "diagnostics-sync-worker"]
+    observation.request = {**observation.request, "target_environment": "production-iran"}
+    packet_value = {**observation.result["observation"], "target_environment": "production-iran"}
+    packet_value["services"] = [{"service": name} for name in workers]
+    observation.result = {**observation.result, "observation": packet_value}
+    row = queue_deployment(
+        db, occurrence.issue_id, publication.id, observation.id, actor.id, "deploy-workers", 123
+    )
+    assert row.request["diagnostics_services"] == workers
+    row.result = {
+        "grant": {
+            "commit": "a" * 40,
+            "ci_run_id": 123,
+            "manifest_sha256": "f" * 64,
+            "authorized_at": int(datetime.now(UTC).timestamp()),
+        },
+        "preview": preview(),
+    }
+    names = [
+        "backend",
+        "backend-2",
+        "body-analysis-worker",
+        "food-photo-worker",
+        "notification-worker",
+        "scheduler",
+        *workers,
+        "frontend",
+    ]
+    proof = {
+        "schema_version": 1,
+        "operation_id": str(row.id),
+        "target_environment": "production-iran",
+        "commit": "a" * 40,
+        "ci_run_id": 123,
+        "manifest_sha256": "f" * 64,
+        "captured_at": datetime.now(UTC).isoformat(),
+        "images": {key: manifest()["images"][key] for key in ("backend", "frontend")},
+        "services": {
+            name: {
+                "container_id": "b" * 64,
+                "image_role": "frontend" if name == "frontend" else "backend",
+                "healthy": True,
+            }
+            for name in names
+        },
+        "provenance": "fixed_running_image_guard",
+        "business_outcome_verified": False,
+    }
+    value = {"artifact_id": 100, "artifact_digest": "sha256:" + "d" * 64, "readback": proof}
+    assert validate_readback(row, value) == value
+    for name in workers:
+        incomplete = {key: item for key, item in proof["services"].items() if key != name}
+        with pytest.raises(ValueError, match="deployment_readback_invalid"):
+            validate_readback(row, {**value, "readback": {**proof, "services": incomplete}})
+    extra = {**proof["services"], "diagnostics-alert-worker": proof["services"][workers[0]]}
+    with pytest.raises(ValueError, match="deployment_readback_invalid"):
+        validate_readback(row, {**value, "readback": {**proof, "services": extra}})
+
+
 def test_deployment_preview_is_not_authority_and_grant_binds_artifact_actor_and_target(db):
     from app.debugging.automation import claim_operation
     from app.debugging.deployment import authorize_deployment, queue_deployment, record_deployment

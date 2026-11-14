@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -33,7 +34,21 @@ def docker(*args: str) -> str:
     return result.stdout.strip()
 
 
-def selected_services(target: str, kind: str) -> dict[str, str]:
+DIAGNOSTICS = {"debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"}
+
+
+def selected_services(
+    target: str, kind: str, diagnostics: list[str] | None = None
+) -> dict[str, str]:
+    diagnostics = [] if diagnostics is None else diagnostics
+    if (
+        not isinstance(diagnostics, list)
+        or any(not isinstance(name, str) or name not in DIAGNOSTICS for name in diagnostics)
+        or len(set(diagnostics)) != len(diagnostics)
+        or diagnostics
+        and target != "iran"
+    ):
+        raise ValueError("release_image_target_not_authorized")
     if target == "germany" and kind == "agent":
         return {"agent-service": "agent"}
     if target == "iran" and kind == "full":
@@ -50,8 +65,35 @@ def selected_services(target: str, kind: str) -> dict[str, str]:
                 )
             },
             "frontend": "frontend",
+            **{name: "backend" for name in diagnostics},
         }
     raise ValueError("release_image_target_not_authorized")
+
+
+def service_project(project: str, service: str) -> str:
+    return project + "-diagnostics" if service in DIAGNOSTICS else project
+
+
+def diagnostics_workers(app: Path, commit: str) -> list[str]:
+    spec = importlib.util.spec_from_file_location(
+        "fixed_diagnostics_lifecycle",
+        Path(__file__).with_name("diagnostics-release.py"),
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    names = module.load_policy(app)
+    active = module.load_state(app)
+    if not names and active is None:
+        return []
+    expected = {
+        "version": 1,
+        "commit": commit,
+        "services": names,
+        "config_sha256": module.config_fingerprints(app, names),
+    }
+    if active != expected:
+        raise ValueError("release_diagnostics_state_mismatch")
+    return names
 
 
 def verify_alias(role: str, image: dict, commit: str) -> str:
@@ -97,8 +139,9 @@ def running_proof(
     operation_id: str,
     observed: dict[str, str],
     manifest_sha256: str,
+    diagnostics: list[str] | None = None,
 ) -> dict:
-    services = selected_services(target, kind)
+    services = selected_services(target, kind, diagnostics)
     if (
         str(UUID(operation_id)) != operation_id
         or set(observed) != set(services)
@@ -137,6 +180,7 @@ def main() -> None:
         required=True,
     )
     parser.add_argument("--project", required=True)
+    parser.add_argument("--app-dir", type=Path)
     parser.add_argument("--operation-id")
     parser.add_argument("--evidence-output", type=Path)
     args = parser.parse_args()
@@ -147,7 +191,12 @@ def main() -> None:
         commit=args.commit,
         ci_run_id=args.ci_run_id,
     )
-    services = selected_services(args.target, args.kind)
+    diagnostics = []
+    if args.mode == "verify-running" and args.target == "iran":
+        if args.app_dir is None or not args.app_dir.is_absolute():
+            raise ValueError("release_application_directory_required")
+        diagnostics = diagnostics_workers(args.app_dir, args.commit)
+    services = selected_services(args.target, args.kind, diagnostics)
     local_identifiers = {}
     for role in sorted(set(services.values())):
         image = manifest["images"][role]
@@ -164,7 +213,9 @@ def main() -> None:
     if args.mode == "verify-running":
         observed = {}
         for service, role in services.items():
-            identifier = verify_service(args.project, service, local_identifiers[role])
+            identifier = verify_service(
+                service_project(args.project, service), service, local_identifiers[role]
+            )
             if args.evidence_output:
                 health = docker(
                     "inspect",
@@ -183,9 +234,12 @@ def main() -> None:
                 args.operation_id,
                 observed,
                 hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
+                diagnostics,
             )
             fd = os.open(
-                args.evidence_output, os.O_CREAT | os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW, 0o600
+                args.evidence_output,
+                os.O_CREAT | os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW,
+                0o600,
             )
             with os.fdopen(fd, "w") as output:
                 os.fchmod(output.fileno(), 0o600)

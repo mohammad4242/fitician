@@ -618,7 +618,7 @@ jobs:
           release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
           mkdir -p .ci-evidence/debug-deployment
           ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            "python3 '$release_dir/ops/release-image-guard.py' --manifest '$release_dir/manifest.json' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --target '$TARGET' --kind '$DEPLOY_KIND' --mode verify-running --project '$COMPOSE_PROJECT_NAME' --operation-id '$PANEL_OPERATION_ID' --evidence-output '$release_dir/panel-$PANEL_OPERATION_ID.json'"
+            "python3 '$release_dir/ops/release-image-guard.py' --manifest '$release_dir/manifest.json' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --target '$TARGET' --kind '$DEPLOY_KIND' --mode verify-running --project '$COMPOSE_PROJECT_NAME' --app-dir '$VPS_APP_DIR' --operation-id '$PANEL_OPERATION_ID' --evidence-output '$release_dir/panel-$PANEL_OPERATION_ID.json'"
           scp -P "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST:$release_dir/panel-$PANEL_OPERATION_ID.json" .ci-evidence/debug-deployment/deployment.json
       - uses: actions/upload-artifact@v4
         if: needs.normalize-request.outputs.operation_id != ''

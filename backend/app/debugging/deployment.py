@@ -20,6 +20,8 @@ from .models import DebugConnector, DebugOperation, DebugRun, DebugThread
 from .release_contract import validate_release
 from .service import append_event
 
+DIAGNOSTICS_SERVICES = {"debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"}
+
 
 def _hash(value: Any) -> str:
     return hashlib.sha256(
@@ -121,6 +123,11 @@ def queue_deployment(
         "requested_by": str(actor_id),
         # Schema-changing releases still require the separate reviewed migration path.
         "allow_schema_migrations": False,
+        "diagnostics_services": sorted(
+            item["service"]
+            for item in packet["services"]
+            if item.get("service") in DIAGNOSTICS_SERVICES
+        ),
     }
     digest = _hash(request)
     submission = "deployment:" + str(actor_id) + ":" + key
@@ -271,6 +278,18 @@ def validate_readback(row: DebugOperation, value: dict[str, Any]) -> dict[str, A
                 "frontend": "frontend",
             }
         )
+        workers = row.request.get("diagnostics_services", [])
+        if (
+            not isinstance(workers, list)
+            or any(
+                not isinstance(name, str) or name not in DIAGNOSTICS_SERVICES for name in workers
+            )
+            or len(set(workers)) != len(workers)
+            or workers
+            and row.target_environment != "production-iran"
+        ):
+            raise ValueError
+        roles.update({name: "backend" for name in workers})
         if (
             type(value["artifact_id"]) is not int
             or value["artifact_id"] < 1

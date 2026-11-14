@@ -1364,3 +1364,25 @@ queue and estimation suites. The candidate/policy commit `10aea44f9e8e3610a8289b
 is GitHub's PR merge candidate, whose tree matches branch commit `41cf61877b2c182a19b304f52720bb90c814e6ea`.
 The overall CI run was still in progress at inspection; this is not deployment or panel
 runtime acceptance. Production remains unchanged.
+
+### Diagnostics workers in artifact-bound deployment readback
+
+Deployment requests snapshot the diagnostics worker names from the selected occurrence's
+verified host observation. Post-deployment readback must include precisely those workers,
+with the tested backend image and healthy containers in the separate diagnostics project.
+The fixed host guard validates private activation state, configuration fingerprints and
+release commit before inspecting containers. Missing, unexpected or stale worker evidence
+fails the release gate; the original service-only receipt remains valid for installations
+without activated diagnostics workers. This does not assert business resolution.
+
+Regression tests demonstrated the previous missing selection/binding. Eight deployment
+backend tests, all 365 ops tests, focused Ruff/mypy and shell syntax checks passed. The
+workflow and host release script both pass the explicit application directory. This wiring
+is implemented and locally tested, not deployed or live verified.
+
+Read-only Iran inspection also found one encrypted provider credential and one encrypted
+proxy setting while the effective application encryption key is absent (both runtime
+settings and the host configuration). No replacement key was generated and no encrypted
+data was modified. Recover the previous key securely or explicitly reconfigure those
+credentials before enabling API-model/debug workers. The existing Sentry proxy destination
+uses the verified private Germany address, independently of public-IP routing.

@@ -786,7 +786,7 @@ fi
 if [[ "${manifest_guard:-false}" == true ]]; then
   if ! python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
     --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
-    --mode verify-running --project "$project"; then
+    --mode verify-running --project "$project" --app-dir "$app_dir"; then
     rollback || true
     exit 1
   fi

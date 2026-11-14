@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -17,19 +18,102 @@ def module():
 
 
 class ReleaseImageGuardTests(unittest.TestCase):
-    def test_readback_receipt_requires_checked_running_services_and_preserves_exact_images(self):
+    def test_diagnostics_readback_requires_current_private_activation_state_and_configuration(self):
+        guard = module()
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as folder:
+            app = Path(folder)
+            self.assertEqual(guard.diagnostics_workers(app, "c" * 40), [])
+            policy = app / "diagnostics-workers.json"
+            policy.write_text(json.dumps({"version": 1, "services": ["debug-worker"]}))
+            policy.chmod(0o600)
+            secret = app / "debug-worker.env"
+            secret.write_text("DATABASE_URL=synthetic\nAI_CREDENTIAL_ENCRYPTION_KEY=synthetic\n")
+            secret.chmod(0o600)
+            with self.assertRaisesRegex(ValueError, "release_diagnostics_state_mismatch"):
+                guard.diagnostics_workers(app, "c" * 40)
+            state = {
+                "version": 1,
+                "commit": "c" * 40,
+                "services": ["debug-worker"],
+                "config_sha256": {
+                    "debug-worker": __import__("hashlib").sha256(secret.read_bytes()).hexdigest()
+                },
+            }
+            active = app / ".diagnostics-active.json"
+            active.write_text(json.dumps(state))
+            active.chmod(0o600)
+            self.assertEqual(guard.diagnostics_workers(app, "c" * 40), ["debug-worker"])
+            with self.assertRaisesRegex(ValueError, "release_diagnostics_state_mismatch"):
+                guard.diagnostics_workers(app, "d" * 40)
+            secret.write_text(secret.read_text() + "SENTRY_DSN=synthetic\n")
+            with self.assertRaisesRegex(ValueError, "release_diagnostics_state_mismatch"):
+                guard.diagnostics_workers(app, "c" * 40)
+            policy.chmod(0o644)
+            with self.assertRaisesRegex(ValueError, "diagnostics_private_file_required"):
+                guard.diagnostics_workers(app, "c" * 40)
+
+    def test_readback_includes_only_explicit_diagnostics_workers_in_their_own_project(
+        self,
+    ):
+        guard = module()
+        workers = [
+            "debug-worker",
+            "diagnostics-sync-worker",
+            "diagnostics-alert-worker",
+        ]
+        try:
+            roles = guard.selected_services("iran", "full", workers)
+        except TypeError:
+            self.fail("Explicit diagnostics worker selection is unsupported")
+        for name in workers:
+            self.assertEqual(roles[name], "backend")
+            self.assertEqual(
+                guard.service_project("fitician-iran", name),
+                "fitician-iran-diagnostics",
+            )
+        self.assertEqual(guard.service_project("fitician-iran", "backend"), "fitician-iran")
+        proof = guard.running_proof(
+            release_manifest(),
+            "iran",
+            "full",
+            "9f91ff9f-6a91-40ac-b57e-66099b5c354e",
+            {name: "f" * 64 for name in roles},
+            "a" * 64,
+            workers,
+        )
+        self.assertEqual(set(proof["services"]), set(roles))
+        self.assertFalse(proof["business_outcome_verified"])
+        for invalid in (["db"], ["debug-worker", "debug-worker"], "debug-worker"):
+            with self.assertRaises(ValueError):
+                guard.selected_services("iran", "full", invalid)
+        with self.assertRaises(ValueError):
+            guard.selected_services("germany", "agent", workers)
+
+    def test_readback_receipt_requires_checked_running_services_and_preserves_exact_images(
+        self,
+    ):
         guard = module()
         packet = release_manifest()
         observed = {name: "f" * 64 for name in guard.selected_services("germany", "agent")}
         proof = guard.running_proof(
-            packet, "germany", "agent", "9f91ff9f-6a91-40ac-b57e-66099b5c354e", observed, "a" * 64
+            packet,
+            "germany",
+            "agent",
+            "9f91ff9f-6a91-40ac-b57e-66099b5c354e",
+            observed,
+            "a" * 64,
         )
         self.assertEqual(proof["images"], {"agent": packet["images"]["agent"]})
         self.assertFalse(proof["business_outcome_verified"])
         self.assertEqual(proof["services"]["agent-service"]["container_id"], "f" * 64)
         with self.assertRaises(ValueError):
             guard.running_proof(
-                packet, "germany", "agent", "9f91ff9f-6a91-40ac-b57e-66099b5c354e", {}, "a" * 64
+                packet,
+                "germany",
+                "agent",
+                "9f91ff9f-6a91-40ac-b57e-66099b5c354e",
+                {},
+                "a" * 64,
             )
 
     def test_mutable_alias_must_match_the_manifest_image_id_and_commit(self):
