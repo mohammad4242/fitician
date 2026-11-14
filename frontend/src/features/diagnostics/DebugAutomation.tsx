@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { components } from "@fitician/core";
 import { request } from "../../shared/apiClient";
 import { DeploymentRequest, DeploymentReview } from "./DebugDeployment";
+import { explainDebugFailure } from "./debugFailure";
 
 type Operation = components["schemas"]["OperationResponse"];
 type Availability = components["schemas"]["AutomationAvailability"];
@@ -51,7 +52,7 @@ export function DebugAutomationSetup({ english }: { english: boolean }) {
       <p>{row.revoked ? (english ? "Revoked" : "دسترسی لغو شده") : row.connected ? (english ? "Panel connection active" : "اتصال پنل برقرار است") : (english ? "Offline" : "آفلاین")}</p>
       <p>{row.capabilities.github_authenticated ? (english ? "GitHub authentication checked" : "ورود GitHub بررسی شده") : (english ? "GitHub authentication unverified" : "ورود GitHub تأیید نشده")}</p>
       <p>{row.capabilities.workflow_installed ? (english ? "Validation workflow available" : "workflow آزمون در دسترس است") : (english ? "Validation workflow unavailable" : "workflow آزمون در دسترس نیست")}</p>
-      {row.capabilities.error_code && <code dir="ltr" style={codeStyle}>{row.capabilities.error_code}</code>}
+      {row.capabilities.error_code && <p>{explainDebugFailure(row.capabilities.error_code, english)} <code dir="ltr" style={codeStyle}>{row.capabilities.error_code}</code></p>}
       {!row.revoked && <p><button type="button" disabled={busy} onClick={() => void revoke(row.id)}>{english ? "Revoke CI broker" : "لغو دسترسی broker"}</button></p>}
     </article>)}
     {error && <p role="status">{english ? "The CI connection could not be updated." : "خواندن یا تغییر اتصال CI انجام نشد."}</p>}
@@ -135,7 +136,7 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
           <p><a href={row.result.pr_url} target="_blank" rel="noreferrer">{english ? "View PR" : "مشاهدهٔ PR"}</a></p>
           <p>{english ? "This PR does not mean deployed or verified resolved." : "این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست."}</p>
         </>}
-        {row.error_code && <p><code dir="ltr" style={codeStyle}>{row.error_code}</code></p>}
+        {row.error_code && <p>{explainDebugFailure(row.error_code, english)} <code dir="ltr" style={codeStyle}>{row.error_code}</code></p>}
         {row.kind === "publish_pr" && row.state === "succeeded" && row.occurrence_id === occurrenceId && <DeploymentRequest publication={row} observations={rows} issueId={issueId} english={english} onUpdated={reloadOperations} />}
         {row.kind === "deploy" && <DeploymentReview operation={row} issueId={issueId} english={english} onUpdated={reloadOperations} />}
         {row.cancel_requested && <p>{english ? "Cancellation requested; waiting for confirmation" : "لغو درخواست شده؛ منتظر تأیید نتیجه"}</p>}

@@ -6,7 +6,7 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
-## Revalidated completion checklist — 2026-11-13
+## Revalidated completion checklist — 2026-11-14
 
 The existing design and execution authorization remain in effect. Work continues on
 `feat/regional-cicd`; no replacement stack or competing admin application is planned.
@@ -1325,3 +1325,26 @@ initial local cached image was the frontend target and lacked pytest, so its fai
 invocation is not application-test failure evidence. The new hosted matrix must pass on the
 exact candidate. Frontend TypeScript/Oxlint checks and nine mobile adapter/logging tests plus
 three release-identity script tests passed. No actual native binary/crash was tested.
+
+### Actionable runtime and automation blockers
+
+Known independent Codex login, protocol-version and isolation-configuration failures now remain
+specific blocked runs through the connector journal, gateway and worker instead of becoming
+an unspecified provider failure. Replaying an acknowledged blocked call does not execute it
+again. Discovery reports only a closed set of failure codes, never raw provider errors, and
+keeps Codex models unavailable when authentication/catalog discovery fails. A new optional
+heartbeat field carries this state to the admin connector view; old connector payloads remain
+valid. A panel connection does not imply model authentication or successful inference.
+
+Conversation, connector and repair/CI views share Persian/English next-action descriptions for
+these states, missing GitHub credentials, stale deployment approval and uncertain dispatch.
+Unknown codes retain their technical identity without a fabricated cause. OpenAPI/shared types
+were regenerated. Focused verification passed 71 backend tests (one explicit pinned-CLI skip)
+and 69 diagnostics/settings UI tests, four-file mypy, Ruff, TypeScript, Oxlint and OpenAPI drift
+checks. No runtime credential or sandbox permission was broadened. Deploy API/contracts before
+the matching connector image because the previous API rejects unknown heartbeat fields.
+
+Independent Germany login instructions were refreshed privately with mode 0600 during this
+continuation. Browser authorization, independent broker credential, production enrollment,
+Iran worker capacity, exact-release CI and live end-to-end acceptance remain separate gates.
+No production application release, database migration or automatic SMS activation occurred.

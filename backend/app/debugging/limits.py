@@ -1,11 +1,21 @@
 """Shared declared limits; reject unsupported settings instead of silently clamping."""
 
-from typing import Any
+from typing import Any, Literal, get_args
 
 MIN_TIMEOUT = 10
 MAX_TIMEOUT = 600
 MIN_API_TOKENS = 128
 MAX_API_TOKENS = 16384
+RuntimeSetupError = Literal[
+    "dedicated_codex_authentication_required",
+    "unsupported_codex_protocol_version",
+    "dedicated_codex_home_must_be_private",
+    "dedicated_codex_home_configuration_not_allowed",
+    "project_runtime_configuration_not_allowed",
+    "codex_discovery_failed",
+    "codex_discovery_timeout",
+]
+RUNTIME_SETUP_ERRORS = frozenset(get_args(RuntimeSetupError))
 CONNECTOR_BLOCKERS = frozenset(
     {
         "workspace_capacity_reached",
@@ -18,6 +28,7 @@ CONNECTOR_BLOCKERS = frozenset(
         "workspace_not_clean",
         "workspace_branch_not_owned",
         "interrupted_call_requires_new_run",
+        *RUNTIME_SETUP_ERRORS,
     }
 )
 

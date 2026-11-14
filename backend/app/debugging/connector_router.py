@@ -26,6 +26,7 @@ from .connector_schemas import (
     ServerEvidenceResponse,
 )
 from .connectors import _authorize_run, authenticate_connector, claim_call, finish_call, update_call
+from .limits import RuntimeSetupError
 from .models import DebugConnector, DebugConnectorCall, DebugRun
 
 router = APIRouter(prefix="/api/v1/debug-connectors", tags=["debug-connectors"])
@@ -56,6 +57,7 @@ class Capabilities(BaseModel):
     supports_tests: bool = False
     supports_github: bool = False
     supports_ci: bool = False
+    runtime_error_code: RuntimeSetupError | None = None
     runtime_revision: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
     repository_head: str = Field(pattern=r"^[a-f0-9]{40}$")
 

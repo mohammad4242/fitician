@@ -88,6 +88,7 @@ class Supervisor:
             "state": phase,
             "connected": connected,
             "authenticated": client.authenticated if client else False,
+            "runtime_error_code": getattr(client, "runtime_error_code", None),
             "auth_cache_present": (self.home / "auth.json").is_file(),
             "cli_version": client.cli_version if client else None,
             "models": client.models if client else [],

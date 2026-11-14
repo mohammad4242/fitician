@@ -8227,6 +8227,8 @@ export type components = {
             models?: string[];
             /** Repository Head */
             repository_head: string;
+            /** Runtime Error Code */
+            runtime_error_code?: ("dedicated_codex_authentication_required" | "unsupported_codex_protocol_version" | "dedicated_codex_home_must_be_private" | "dedicated_codex_home_configuration_not_allowed" | "project_runtime_configuration_not_allowed" | "codex_discovery_failed" | "codex_discovery_timeout") | null;
             /** Runtime Revision */
             runtime_revision?: string | null;
             /**

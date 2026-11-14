@@ -254,6 +254,51 @@ def test_offline_execution_target_blocks_before_any_provider_or_tool_action(
 
 
 @pytest.mark.parametrize(
+    "code",
+    [
+        "dedicated_codex_authentication_required",
+        "unsupported_codex_protocol_version",
+        "dedicated_codex_home_must_be_private",
+        "dedicated_codex_home_configuration_not_allowed",
+        "project_runtime_configuration_not_allowed",
+    ],
+)
+def test_runtime_setup_failure_is_a_specific_blocked_run_without_a_fabricated_reply(
+    db, test_settings, monkeypatch, code
+):
+    import asyncio
+    from datetime import UTC, datetime
+
+    from sqlalchemy import select
+
+    from app.debugging import worker
+    from app.debugging.models import DebugMessage
+    from tests.test_debug_gateway import setup_run
+
+    _, run, connector, _ = setup_run(db)
+    run.config_snapshot = {
+        "enabled": True,
+        "execution_backend": "agent_service",
+        "agent_name": "codex",
+        "agent_model_id": "selected-model",
+        "connector_id": str(connector.id),
+    }
+    connector.last_seen = datetime.now(UTC)
+    db.flush()
+
+    async def unavailable(*args, **kwargs):
+        raise ValueError(code)
+
+    monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
+    monkeypatch.setattr(worker, "call_connector", unavailable)
+    asyncio.run(worker.execute_run(test_settings, run.id, run.lease_token))
+    db.expire_all()
+    assert run.state == "blocked"
+    assert run.error_code == code
+    assert not list(db.scalars(select(DebugMessage).where(DebugMessage.role == "assistant")))
+
+
+@pytest.mark.parametrize(
     "content",
     [
         '{"medical_form": "sensitive-fixture-never-persist"}',

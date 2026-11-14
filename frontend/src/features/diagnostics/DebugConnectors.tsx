@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { request } from "../../shared/apiClient";
+import { explainDebugFailure } from "./debugFailure";
 
-interface Connector { id: string; name: string; environment: string; revoked: boolean; last_seen: string | null; capabilities: { cli_version?: string; models?: string[] } }
+interface Connector { id: string; name: string; environment: string; revoked: boolean; last_seen: string | null; capabilities: { cli_version?: string; models?: string[]; runtime_error_code?: string | null } }
 interface Enrollment { id: string; token: string; environment: string; repository: string }
 const base = "/api/v1/admin/diagnostics/connectors";
 
@@ -48,6 +49,6 @@ export function DebugConnectors({ english, showExecutionTarget = false, selected
     <code dir="ltr" style={{ overflowWrap: "anywhere" }}>python -m app.debugging.connector --config /private/fitician-connector.json</code>
     <p><button type="button" disabled={busy} onClick={() => void enroll()}>{english ? "Enroll and download private configuration" : "ثبت و دریافت فایل خصوصی اتصال"}</button>{" "}<button type="button" onClick={() => void load().catch(() => setError(true))}>{english ? "Refresh connection status" : "تازه‌سازی وضعیت اتصال"}</button></p>
     {error && <p role="alert">{english ? "Connector request failed." : "درخواست اتصال انجام نشد."}</p>}
-    {rows.map(row => <article key={row.id} style={{ overflowWrap: "anywhere" }}><strong>{row.name}</strong><p><code dir="ltr">{row.environment} · {row.capabilities.cli_version ?? "unknown"}</code></p><p>{row.revoked ? (english ? "Revoked" : "لغوشده") : !row.last_seen ? (english ? "Never connected" : "هنوز متصل نشده") : Date.now() - Date.parse(row.last_seen) < 30000 ? (english ? "Connected" : "متصل") : (english ? "Offline" : "آفلاین")}</p>{row.last_seen && <time>{row.last_seen}</time>}{!row.revoked && <p><button type="button" disabled={busy} onClick={() => void revoke(row.id)}>{english ? "Revoke connector" : "لغو دسترسی اتصال"}</button></p>}</article>)}
+    {rows.map(row => <article key={row.id} style={{ overflowWrap: "anywhere" }}><strong>{row.name}</strong><p><code dir="ltr">{row.environment} · {row.capabilities.cli_version ?? "unknown"}</code></p><p>{row.revoked ? (english ? "Revoked" : "لغوشده") : !row.last_seen ? (english ? "Never connected" : "هنوز متصل نشده") : Date.now() - Date.parse(row.last_seen) < 30000 ? (english ? "Connected" : "متصل") : (english ? "Offline" : "آفلاین")}</p>{row.capabilities.runtime_error_code && <p>{explainDebugFailure(row.capabilities.runtime_error_code, english)} <code dir="ltr">{row.capabilities.runtime_error_code}</code></p>}{row.last_seen && <time>{row.last_seen}</time>}{!row.revoked && <p><button type="button" disabled={busy} onClick={() => void revoke(row.id)}>{english ? "Revoke connector" : "لغو دسترسی اتصال"}</button></p>}</article>)}
   </section>;
 }

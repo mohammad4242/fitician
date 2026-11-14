@@ -4,6 +4,12 @@ import { request } from "../../shared/apiClient";
 import { DebugConnectors } from "./DebugConnectors";
 vi.mock("../../shared/apiClient", () => ({ request: vi.fn() }));
 beforeEach(() => vi.mocked(request).mockReset());
+it("shows independent runtime login failure separately from its panel connection", async () => {
+  vi.mocked(request).mockResolvedValue([{ id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: { runtime_error_code: "dedicated_codex_authentication_required" } }]);
+  render(<DebugConnectors english={false} />);
+  expect(await screen.findByText(/ورود مستقل Codex برقرار نیست/)).toBeInTheDocument();
+  expect(screen.getByText("متصل")).toBeInTheDocument();
+});
 it("shows never connected honestly and scopes revocation to the selected connector", async () => {
   vi.mocked(request).mockResolvedValueOnce([{ id: "connector-1", name: "Laptop", environment: "staging", revoked: false, last_seen: null, capabilities: {} }]).mockResolvedValueOnce({ revoked: true }).mockResolvedValue([]);
   render(<DebugConnectors english />);

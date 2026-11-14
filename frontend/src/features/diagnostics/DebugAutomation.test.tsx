@@ -58,3 +58,12 @@ it("shows server observations without labeling them as repair or resolution", as
   expect(await screen.findByText('Read-only server observations')).toBeInTheDocument();
   expect(screen.getByText('Verified workflow evidence; business outcome unverified')).toBeInTheDocument();
 });
+
+it("explains absent GitHub credentials in Persian alongside the exact code", async () => {
+  vi.mocked(request).mockImplementation(async path => path.endsWith('/automation-status') ? { connected: false, configured: false } as never : {
+    operations: [{ id: 'blocked-ci', kind: 'validate', state: 'blocked', profile: 'backend', purpose: 'repair_validation', environment: 'production', occurrence_id: 'selected', error_code: 'github_credential_not_configured', result: {} }],
+  } as never);
+  render(<DebugOperations issueId="ci-issue" occurrenceId="selected" english={false} />);
+  expect(await screen.findByText(/دسترسی مستقل GitHub تنظیم نشده/)).toBeInTheDocument();
+  expect(screen.getByText('github_credential_not_configured')).toBeInTheDocument();
+});

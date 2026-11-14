@@ -9358,6 +9358,26 @@
             "title": "Repository Head",
             "type": "string"
           },
+          "runtime_error_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "dedicated_codex_authentication_required",
+                  "unsupported_codex_protocol_version",
+                  "dedicated_codex_home_must_be_private",
+                  "dedicated_codex_home_configuration_not_allowed",
+                  "project_runtime_configuration_not_allowed",
+                  "codex_discovery_failed",
+                  "codex_discovery_timeout"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Error Code"
+          },
           "runtime_revision": {
             "anyOf": [
               {

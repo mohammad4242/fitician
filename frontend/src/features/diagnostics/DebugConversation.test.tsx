@@ -22,6 +22,15 @@ it("loads persisted replies and submits a real API run with an idempotency ident
   expect(screen.getByLabelText("Your message")).toHaveValue("");
 });
 
+it("explains missing independent runtime login in Persian without implying a model ran", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], runs: [{ id: "auth-blocked", state: "blocked", config: { agent_model_id: "selected-model" }, error_code: "dedicated_codex_authentication_required" }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="auth-issue" english={false} />);
+  expect(await screen.findByText(/ورود مستقل Codex برقرار نیست/)).toBeInTheDocument();
+  expect(screen.getByText("dedicated_codex_authentication_required")).toBeInTheDocument();
+});
+
 it("submits the selected occurrence and binds the retry identity to it", async () => {
   vi.stubGlobal("crypto", webcrypto);
   vi.mocked(request).mockImplementation(async (_path, options) => options?.method === "POST" ? { id: "run-2", state: "queued" } as never : { messages: [], runs: [], next_cursor: null } as never);

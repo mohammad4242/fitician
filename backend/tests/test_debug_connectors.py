@@ -53,3 +53,38 @@ def test_connector_enrollment_requires_admin_csrf_and_scoped_bearer(client, db):
         == 200
     )
     assert client.post(target, json={}, headers=bearer).status_code == 401
+
+
+def test_runtime_heartbeat_exposes_only_closed_setup_codes_to_admins(client, db):
+    from tests.admin.test_ai_task_settings_api import _admin
+
+    _admin(client, db)
+    base = "/api/v1/admin/diagnostics/connectors"
+    row = client.post(
+        base, json={"name": "Germany"}, headers={"Origin": "http://localhost:5173"}
+    ).json()
+    heartbeat = f"/api/v1/debug-connectors/{row['id']}/heartbeat"
+    bearer = {"Authorization": "Bearer " + row["token"]}
+    payload = {
+        "repository_head": "a" * 40,
+        "runtime_error_code": "dedicated_codex_authentication_required",
+    }
+    assert client.post(heartbeat, json=payload).status_code == 401
+    assert client.post(heartbeat, json=payload, headers=bearer).status_code == 200
+    assert (
+        client.get(base).json()[0]["capabilities"]["runtime_error_code"]
+        == payload["runtime_error_code"]
+    )
+    assert (
+        client.post(
+            heartbeat,
+            json={**payload, "runtime_error_code": "arbitrary-secret-error"},
+            headers=bearer,
+        ).status_code
+        == 422
+    )
+    # An older connector does not have to supply the additive health field.
+    assert (
+        client.post(heartbeat, json={"repository_head": "a" * 40}, headers=bearer).status_code
+        == 200
+    )

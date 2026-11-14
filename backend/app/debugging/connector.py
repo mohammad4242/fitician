@@ -23,7 +23,12 @@ from jsonschema import validate
 from .appserver import AppServer
 from .catalog import tool_catalog
 from .github import publish_tested_pr
-from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
+from .limits import (
+    CONNECTOR_BLOCKERS,
+    RUNTIME_SETUP_ERRORS,
+    RuntimeSetupError,
+    validate_runtime_config,
+)
 from .privacy import sanitize_payload, sanitize_text
 from .runtime_storage import ensure_release
 from .tools import RepositoryTools, _git
@@ -96,6 +101,7 @@ class LaptopConnector:
         self.authenticated: bool | None = None
         self.last_contact = 0.0
         self.connection_error: str | None = None
+        self.runtime_error_code: RuntimeSetupError | None = None
         self.github_available = bool(self.config.get("github_enabled", True) and shutil.which("gh"))
         self.ci_available = False
 
@@ -137,23 +143,32 @@ class LaptopConnector:
         self.models = []
         self.cli_version = None
         self.authenticated = None
+        self.runtime_error_code = None
         if home:
             try:
                 async with self.codex_server() as server:
                     account = await server.call("account/read", {"refreshToken": False})
                     self.authenticated = account.get("account") is not None
                     if not self.authenticated:
+                        self.runtime_error_code = "dedicated_codex_authentication_required"
                         return
                     response = await server.call("model/list", {"limit": 100})
                     self.models = [
                         item["model"] for item in response["data"] if not item.get("hidden", False)
                     ][:100]
                     self.cli_version = server.version
-            except (ValueError, OSError, TimeoutError, RuntimeError):
+            except (ValueError, OSError, TimeoutError, RuntimeError) as error:
                 # Repository tools for API models do not require Codex authentication.
                 # Advertise no Codex capability rather than substituting another runtime.
                 self.models = []
                 self.cli_version = None
+                self.runtime_error_code = (
+                    cast(RuntimeSetupError, str(error))
+                    if isinstance(error, ValueError) and str(error) in RUNTIME_SETUP_ERRORS
+                    else "codex_discovery_timeout"
+                    if isinstance(error, TimeoutError)
+                    else "codex_discovery_failed"
+                )
 
     async def heartbeat(self) -> None:
         response = await self.request(
@@ -165,6 +180,7 @@ class LaptopConnector:
                 "supports_tests": bool(self.config.get("test_image")),
                 "supports_github": self.github_available,
                 "supports_ci": bool(self.config.get("ci_enabled")),
+                "runtime_error_code": self.runtime_error_code,
                 "runtime_revision": (
                     os.environ["FITICIAN_RUNTIME_COMMIT"]
                     if re.fullmatch(r"[a-f0-9]{40}", os.environ.get("FITICIAN_RUNTIME_COMMIT", ""))

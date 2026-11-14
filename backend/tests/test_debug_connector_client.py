@@ -136,9 +136,46 @@ def test_unauthenticated_cached_catalog_does_not_advertise_codex(tmp_path, monke
             await connector.discover()
             assert connector.models == []
             assert connector.authenticated is False
+            assert connector.runtime_error_code == "dedicated_codex_authentication_required"
 
     asyncio.run(run())
     assert calls == ["account/read"]
+
+
+@pytest.mark.parametrize(
+    "code,expected",
+    [
+        ("unsupported_codex_protocol_version", "unsupported_codex_protocol_version"),
+        ("dedicated_codex_authentication_required", "dedicated_codex_authentication_required"),
+        ("sensitive arbitrary provider failure", "codex_discovery_failed"),
+    ],
+)
+def test_discovery_exposes_only_closed_runtime_failure_codes(tmp_path, monkeypatch, code, expected):
+    class Runtime:
+        async def __aenter__(self):
+            raise ValueError(code)
+
+        async def __aexit__(self, *args):
+            return None
+
+    async def run():
+        async with httpx.AsyncClient() as client:
+            connector = LaptopConnector(
+                {
+                    "id": str(uuid4()),
+                    "server": "https://fitician.example",
+                    "repository": str(tmp_path),
+                    "workspace_root": str(tmp_path / "runtime"),
+                    "codex_home": str(tmp_path / "auth"),
+                },
+                client,
+            )
+            monkeypatch.setattr(connector, "codex_server", Runtime)
+            await connector.discover()
+            assert connector.runtime_error_code == expected
+            assert connector.models == []
+
+    asyncio.run(run())
 
 
 def test_connector_executes_once_and_recovers_the_ack_without_repeating_action(tmp_path):
@@ -290,6 +327,64 @@ def test_missing_release_is_a_specific_blocker_and_never_becomes_a_paid_turn(tmp
             assert await connector.execute(job) == result
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "dedicated_codex_authentication_required",
+        "unsupported_codex_protocol_version",
+        "dedicated_codex_home_must_be_private",
+        "dedicated_codex_home_configuration_not_allowed",
+        "project_runtime_configuration_not_allowed",
+    ],
+)
+def test_runtime_configuration_blockers_survive_journal_replay_without_a_paid_turn(
+    tmp_path, monkeypatch, code
+):
+    original = tmp_path / "original"
+    commit = repository(original)
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "repository": str(original),
+        "workspace_root": str(tmp_path / "runtime"),
+        "environment": "test",
+    }
+    attempts = []
+
+    def blocked(*args, **kwargs):
+        attempts.append(True)
+        raise ValueError(code)
+
+    def forbidden(request):
+        raise AssertionError("Blocked configuration cannot dispatch progress or model calls")
+
+    monkeypatch.setattr(RepositoryTools, "create", blocked)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(forbidden)) as client:
+            connector = LaptopConnector(config, client)
+            job = {
+                "id": str(uuid4()),
+                "run_id": str(uuid4()),
+                "thread_id": str(uuid4()),
+                "tool": "fitician_codex_turn",
+                "arguments": {},
+                "config": {},
+                "repository": config["repository_name"],
+                "environment": "test",
+                "release_commit": commit,
+                "action": "analyze",
+            }
+            result = await connector.execute(job)
+            assert result == {"error_code": code}
+            assert await connector.execute(job) == result
+
+    asyncio.run(run())
+    assert len(attempts) == 1
 
 
 def test_connector_records_a_finding_through_authenticated_progress_without_a_shell(tmp_path):
