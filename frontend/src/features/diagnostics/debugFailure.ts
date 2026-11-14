@@ -36,6 +36,8 @@ export function explainDebugFailure(code: string | null, english: boolean): stri
       return english ? "The provider did not respond successfully. Check runtime connectivity and this provider's status." : "پاسخ معتبر از سرویس مدل دریافت نشد. اتصال محل اجرا و وضعیت همان سرویس را بررسی کنید.";
     case "provider_rate_limited":
       return english ? "The provider rate-limited this request. Review its limits before retrying." : "درخواست به محدودیت نرخ سرویس مدل رسیده است. پیش از تلاش دوباره محدودیت همان سرویس را بررسی کنید.";
+    case "provider_rejected":
+      return english ? "The model service did not accept the request. Check access and the selected model's settings." : "سرویس مدل درخواست را نپذیرفت. اعتبار دسترسی و تنظیمات مدل منتخب را بررسی کنید.";
     case "repair_executor_not_configured":
     case "interactive_runtime_not_configured":
     case "local_connector_not_configured":

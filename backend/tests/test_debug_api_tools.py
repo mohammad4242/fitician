@@ -7,6 +7,45 @@ import pytest
 from app.debugging.api_runtime import run_api_tools
 
 
+@pytest.mark.parametrize(
+    "status,expected",
+    [(429, "provider_rate_limited"), (401, "provider_rejected"), (503, "provider_rejected")],
+)
+def test_tool_provider_failure_keeps_the_selected_model_and_never_replays_or_exports_body(
+    status, expected
+):
+    requests = []
+
+    def handle(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(status, json={"error": "private-provider-response-fixture"})
+
+    async def forbidden(name, arguments):
+        raise AssertionError("Rejected provider requests cannot execute tools")
+
+    async def progress(kind, payload):
+        assert "private-provider-response-fixture" not in json.dumps(payload)
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            await run_api_tools(
+                client,
+                base_url="https://openrouter.ai/api/v1",
+                api_key="synthetic",
+                config={"primary_model_id": "selected/model", "max_output_tokens": 512},
+                messages=[{"role": "user", "content": "Inspect synthetic evidence"}],
+                tools=[],
+                handler=forbidden,
+                progress=progress,
+            )
+
+    with pytest.raises(ValueError, match="^" + expected + "$"):
+        asyncio.run(run())
+    assert len(requests) == 1
+    assert requests[0]["model"] == "selected/model"
+    assert requests[0]["provider"]["allow_fallbacks"] is False
+
+
 def test_selected_api_model_executes_a_real_tool_loop_without_model_fallback():
     calls, requests = [], []
 

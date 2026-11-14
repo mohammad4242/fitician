@@ -85,8 +85,10 @@ async def run_api_tools(
                 "tool_choice": "auto",
             },
         ) as response:
+            if response.status_code == 429:
+                raise ValueError("provider_rate_limited")
             if response.status_code != 200:
-                raise ValueError("provider_tool_request_failed")
+                raise ValueError("provider_rejected")
             payload = bytearray()
             async for chunk in response.aiter_bytes():
                 payload.extend(chunk)

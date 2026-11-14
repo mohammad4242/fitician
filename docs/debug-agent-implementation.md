@@ -1348,3 +1348,19 @@ Independent Germany login instructions were refreshed privately with mode 0600 d
 continuation. Browser authorization, independent broker credential, production enrollment,
 Iran worker capacity, exact-release CI and live end-to-end acceptance remain separate gates.
 No production application release, database migration or automatic SMS activation occurred.
+
+### API provider failure identity and hosted validation evidence
+
+The selected API tool model now preserves `provider_rate_limited` for HTTP 429 and
+`provider_rejected` for other rejected responses. It does not retry uncertain actions,
+change models or export provider response bodies. Three regression cases first failed
+with the previous generic error; the combined API tools/run selection passed 27 tests.
+Sixteen conversation/automation UI tests, focused Ruff/mypy and Oxlint passed; an existing
+Starlette deprecation warning remains. Persian/English guidance uses the same closed codes.
+
+Hosted CI run `43539769610` passed all four controlled validation profiles. Its backend
+artifact records 56 exercised tests, zero failures/skips, including the actual food photo
+queue and estimation suites. The candidate/policy commit `10aea44f9e8e3610a8289b0d925399bc52ada8b4`
+is GitHub's PR merge candidate, whose tree matches branch commit `41cf61877b2c182a19b304f52720bb90c814e6ea`.
+The overall CI run was still in progress at inspection; this is not deployment or panel
+runtime acceptance. Production remains unchanged.
