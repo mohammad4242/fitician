@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import func, select
 
 from app.observability.diagnostics_models import DiagnosticIssue
@@ -70,3 +71,92 @@ def test_retention_keeps_evidence_and_occurrence_together(db):
     db.flush()
     cleanup_retention(db)
     assert db.get(type(row), row.id) is not None
+
+
+@pytest.mark.parametrize("anchor", ["run", "operation"])
+def test_retention_keeps_chat_selected_occurrence_without_stack_and_expires_unreferenced(
+    db, anchor
+):
+    from datetime import UTC, datetime, timedelta
+
+    from app.debugging.models import (
+        DebugConnector,
+        DebugMessage,
+        DebugOperation,
+        DebugRun,
+        DebugThread,
+    )
+    from app.observability.diagnostics_models import DiagnosticEvent
+    from app.observability.diagnostics_service import cleanup_retention
+
+    events = [
+        record_event(
+            db,
+            EventInput(
+                component="worker",
+                operation="test",
+                stage="run",
+                platform="backend",
+                category="application_bug",
+                severity="error",
+                error_code="UNHANDLED_EXCEPTION",
+                outcome="failure",
+            ),
+        )
+        for _ in range(2)
+    ]
+    for event in events:
+        event.timestamp = datetime.now(UTC) - timedelta(days=40)
+    thread = DebugThread(issue_id=events[0].issue_id, environment="test")
+    db.add(thread)
+    db.flush()
+    # Legacy/null and malformed evidence must not turn NOT IN(NULL) into a global pin.
+    for index, evidence in enumerate(
+        (
+            {"occurrence_id": str(events[0].id)} if anchor == "run" else {},
+            {},
+            {"occurrence_id": "not-a-uuid"},
+        )
+    ):
+        message = DebugMessage(thread_id=thread.id, role="assistant", content="synthetic")
+        db.add(message)
+        db.flush()
+        run = DebugRun(
+            thread_id=thread.id,
+            message_id=message.id,
+            state="completed",
+            evidence=evidence,
+            config_snapshot={},
+        )
+        db.add(run)
+        db.flush()
+        if anchor == "operation" and index == 0:
+            worker = DebugConnector(
+                name="synthetic",
+                environment="test",
+                repository="mohammad4242/fitician",
+                token_hash=uuid4().hex * 2,
+                capabilities={},
+            )
+            db.add(worker)
+            db.flush()
+            db.add(
+                DebugOperation(
+                    run_id=run.id,
+                    occurrence_id=events[0].id,
+                    worker_id=worker.id,
+                    environment="test",
+                    kind="observe",
+                    state="failed",
+                    submission_key="synthetic",
+                    request_hash="a" * 64,
+                    request={},
+                    result={},
+                )
+            )
+    db.flush()
+    selected_id, unreferenced_id = (event.id for event in events)
+    result = cleanup_retention(db)
+    assert result["events"] == 1
+    assert db.get(DiagnosticEvent, selected_id) is not None
+    assert db.get(DiagnosticEvent, unreferenced_id) is None

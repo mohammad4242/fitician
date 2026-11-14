@@ -5,9 +5,10 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import case, delete, func, select, true, update
+from sqlalchemy import String, case, cast, delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.config import Settings
 from app.database.session import isolated_session
@@ -262,11 +263,36 @@ def cleanup_retention(
     db: Session, *, now: datetime | None = None, limit: int = 1000
 ) -> dict[str, int]:
     """Bound each cleanup run and retain only the newest 100k events."""
-    from app.debugging.models import DebugThread
+    from app.debugging.models import DebugOperation, DebugRun, DebugThread
 
     from .evidence_models import DiagnosticEvidenceSnapshot, DiagnosticExternalIssueLink
 
-    unpinned_events = ~DiagnosticEvent.id.in_(select(DiagnosticEvidenceSnapshot.event_id))
+    unpinned_events: ColumnElement[bool] = ~DiagnosticEvent.id.in_(
+        select(DiagnosticEvidenceSnapshot.event_id)
+    )
+    # A conversation can select an occurrence before any stack/Sentry snapshot exists.
+    # Correlated EXISTS handles legacy null/malformed JSON without casting untrusted text
+    # to UUID or accidentally pinning every event through NOT IN(NULL).
+    chat_reference = (
+        select(DebugRun.id)
+        .join(DebugThread, DebugThread.id == DebugRun.thread_id)
+        .where(
+            DebugThread.issue_id == DiagnosticEvent.issue_id,
+            DebugRun.evidence["occurrence_id"].as_string() == cast(DiagnosticEvent.id, String),
+        )
+        .exists()
+    )
+    operation_reference = (
+        select(DebugOperation.id)
+        .join(DebugRun, DebugRun.id == DebugOperation.run_id)
+        .join(DebugThread, DebugThread.id == DebugRun.thread_id)
+        .where(
+            DebugThread.issue_id == DiagnosticEvent.issue_id,
+            DebugOperation.occurrence_id == DiagnosticEvent.id,
+        )
+        .exists()
+    )
+    unpinned_events = unpinned_events & ~chat_reference & ~operation_reference
     unpinned_issues = ~DiagnosticIssue.id.in_(
         select(DiagnosticEvidenceSnapshot.issue_id)
     ) & ~DiagnosticIssue.id.in_(select(DiagnosticExternalIssueLink.issue_id))

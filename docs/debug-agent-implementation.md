@@ -1221,3 +1221,14 @@ resolved before activating the complete worker set. Independent Germany login in
 were freshly saved locally with mode 0600; browser authorization and dedicated broker GitHub
 credential remain external gates. Neither login instructions nor a healthy container prove
 model execution, automatic SMS, production enrollment or end-to-end acceptance.
+
+### Retention of conversation occurrence anchors
+
+Periodic diagnostics cleanup now retains occurrences referenced by any persisted run or durable
+operation, even when that occurrence has no exception/Sentry snapshot. Completed/failed run
+history retains the same protection. References are scoped through the conversation's issue;
+legacy null/malformed JSON references neither cause UUID-cast errors nor pin unrelated events.
+Unreferenced old events remain eligible for bounded cleanup. The regression first demonstrated
+loss of the selected occurrence, then passed with the fix. All 55 evidence/diagnostics/run/
+findings tests passed on isolated PostgreSQL; focused mypy and Ruff passed. No migration,
+production cleanup or deployment was performed by this step.
