@@ -136,12 +136,18 @@ def validate_observation(packet: Any, request: dict[str, Any]) -> dict[str, Any]
             }
         )
         rows = packet["services"]
+        allowed = names | (
+            {"debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"}
+            if request["target_environment"] == "production-iran"
+            else set()
+        )
         if (
             not isinstance(rows, list)
-            or len(rows) != len(names)
-            or {r["service"] for r in rows} != names
+            or not names <= {r["service"] for r in rows} <= allowed
+            or len(rows) != len({r["service"] for r in rows})
         ):
             raise ValueError
+        names = {r["service"] for r in rows}
         safe = []
         total_logs = 0
         for row in rows:

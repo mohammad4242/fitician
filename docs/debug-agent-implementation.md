@@ -1249,3 +1249,20 @@ Focused verification passed 34 backend tests on isolated PostgreSQL, eight findi
 UI tests, two-file mypy and Ruff. The initial regression showed the missing CI evidence ID.
 External Actions execution through the independently enrolled production Germany runtime
 remains unverified; no real provider/runtime execution is claimed from these synthetic tests.
+
+### Scoped diagnostics worker health evidence
+
+The fixed Iran host collector reads only known service names from the private activation
+policy. Activated diagnostics workers are inspected under their separate Compose project;
+container/image/commit/health/restart evidence and trace-scoped sanitized logs use the existing
+limits. Their identities also participate in the deployment baseline hash. Disabled workers
+are not fabricated as running or missing. The API admits only these three additional Iran
+service names and rebuilds the sanitized packet; arbitrary containers remain inaccessible.
+Nine collector tests and 16 host/deployment backend tests passed, with Ruff/mypy checks.
+This is code and scoped operator-read acceptance, not model-initiated production acceptance.
+
+The broader combined debug/diagnostics/Sentry regression invocation exposed three failures
+(270 passed, three skipped): leaked test telemetry environment affected sync/probe and queue
+identity expectations. Investigation identified `test_debug_process` directly changing process
+environment after `monkeypatch.delenv` on previously absent keys. These failures must be corrected
+and the combined invocation rerun; it is not reported as a passing complete regression gate.

@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -19,6 +20,76 @@ def module():
 
 
 class HostEvidenceTests(unittest.TestCase):
+    def test_only_explicit_known_worker_names_are_read_from_private_activation_policy(
+        self,
+    ):
+        host = module()
+        self.assertTrue(
+            hasattr(host, "optional_workers"), "Activated workers must be observable"
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as folder:
+            path = Path(folder) / "diagnostics-workers.json"
+            self.assertEqual(host.optional_workers(path), [])
+            path.write_text(json.dumps({"version": 1, "services": ["debug-worker"]}))
+            path.chmod(0o600)
+            self.assertEqual(host.optional_workers(path), ["debug-worker"])
+            path.write_text(json.dumps({"version": 1, "services": ["db"]}))
+            with self.assertRaisesRegex(
+                ValueError, "observation_worker_policy_invalid"
+            ):
+                host.optional_workers(path)
+
+    def test_worker_evidence_uses_separate_project_and_affects_deployment_baseline(
+        self,
+    ):
+        host = module()
+        self.assertTrue(
+            hasattr(host, "optional_workers"), "Activated workers must be observable"
+        )
+        calls = []
+
+        def command(args, **kwargs):
+            calls.append(args)
+            if args[1] == "ps":
+                return "a" * 12
+            if args[1] == "inspect":
+                return json.dumps(
+                    {
+                        "container_id": "a" * 64,
+                        "image_id": "sha256:" + "b" * 64,
+                        "status": "running",
+                        "health": "healthy",
+                        "restart_count": 0,
+                    }
+                )
+            if args[1] == "exec":
+                return "20261114_185"
+            return "c" * 40
+
+        with (
+            patch.object(host, "optional_workers", return_value=["debug-worker"]),
+            patch.object(host, "command", side_effect=command),
+        ):
+            packet = host.observe("iran")
+        worker = next(
+            row for row in packet["services"] if row["service"] == "debug-worker"
+        )
+        self.assertEqual(worker["commit"], "c" * 40)
+        self.assertTrue(packet["complete"])
+        self.assertTrue(
+            any(
+                "label=com.docker.compose.project=fitician-iran-diagnostics" in call
+                for call in calls
+            )
+        )
+        without = [
+            row for row in packet["services"] if row["service"] != "debug-worker"
+        ]
+        self.assertNotEqual(
+            packet["baseline_sha256"],
+            host.baseline(without, packet["database_revision"]),
+        )
+
     def test_only_correlated_allowlisted_log_fields_leave_the_host(self):
         host = module()
         trace = "a" * 32

@@ -9,6 +9,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import threading
 from datetime import UTC, datetime
@@ -37,6 +38,37 @@ FORMAT = (
     '"status":{{json .State.Status}},"restart_count":{{json .RestartCount}},'
     '"health":{{if index .State "Health"}}{{json (index (index .State "Health") "Status")}}{{else}}null{{end}}}'
 )
+WORKERS = {"debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"}
+
+
+def optional_workers(
+    path: Path = Path("/opt/fitician-iran/diagnostics-workers.json"),
+) -> list[str]:
+    if not path.exists() and not path.is_symlink():
+        return []
+    try:
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or stat.S_IMODE(path.stat().st_mode) != 0o600
+        ):
+            raise ValueError
+        if path.stat().st_size > 4096:
+            raise ValueError
+        value = json.loads(path.read_bytes())
+        names = value["services"]
+        if (
+            set(value) != {"version", "services"}
+            or type(value["version"]) is not int
+            or value["version"] != 1
+            or not isinstance(names, list)
+            or any(not isinstance(name, str) or name not in WORKERS for name in names)
+            or len(set(names)) != len(names)
+        ):
+            raise ValueError
+        return sorted(names)
+    except (ValueError, KeyError, TypeError, OSError):
+        raise ValueError("observation_worker_policy_invalid") from None
 
 
 def command(args: list[str], *, limit: int = 65536) -> str:
@@ -109,6 +141,8 @@ def observe(target: str, trace: str | None = None) -> dict:
     ):
         raise ValueError("observation_target_or_trace_invalid")
     project, names = TARGETS[target]
+    if target == "iran":
+        names += tuple(optional_workers())
     services = []
     revision = []
     missing = []
@@ -127,7 +161,8 @@ def observe(target: str, trace: str | None = None) -> dict:
                     "ps",
                     "-a",
                     "--filter",
-                    "label=com.docker.compose.project=" + project,
+                    "label=com.docker.compose.project="
+                    + (project + "-diagnostics" if service in WORKERS else project),
                     "--filter",
                     "label=com.docker.compose.service=" + service,
                     "--format",

@@ -279,6 +279,51 @@ def test_complete_host_evidence_requires_container_identity_and_retains_only_num
         validate_observation(value, request)
 
 
+def test_optional_iran_workers_are_sanitized_and_bound_to_the_same_host_baseline():
+    import hashlib
+    import json
+
+    from app.debugging.host_operations import validate_observation
+
+    value = packet()
+    value["target_environment"] = "production-iran"
+    value["database_revision"] = ["20261114_185"]
+    template = value["services"][0]
+    names = [
+        "backend",
+        "backend-2",
+        "frontend",
+        "db",
+        "redis",
+        "body-analysis-worker",
+        "food-photo-worker",
+        "notification-worker",
+        "scheduler",
+        "caddy",
+        "debug-worker",
+    ]
+    value["services"] = [{**template, "service": name, "private": "discard"} for name in names]
+    identities = sorted(
+        [
+            {key: row[key] for key in ("service", "container_id", "image_id")}
+            for row in value["services"]
+        ],
+        key=lambda row: row["service"],
+    )
+    value["baseline_sha256"] = hashlib.sha256(
+        json.dumps(
+            [identities, value["database_revision"]], sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+    request = {"target_environment": "production-iran", "trace_id": None}
+    safe = validate_observation(value, request)
+    assert "debug-worker" in {row["service"] for row in safe["services"]}
+    assert "private" not in json.dumps(safe)
+    value["services"].append({**template, "service": "unrelated-container"})
+    with pytest.raises(ValueError, match="invalid_host_observation"):
+        validate_observation(value, request)
+
+
 def test_observation_submission_rejects_other_connectors_expired_leases_and_lost_admin(client, db):
     from datetime import UTC, datetime, timedelta
 
