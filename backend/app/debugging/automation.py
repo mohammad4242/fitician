@@ -198,6 +198,7 @@ def operation_json(row: DebugOperation) -> dict[str, Any]:
         "kind": row.kind,
         "occurrence_id": str(row.occurrence_id) if row.occurrence_id else None,
         "environment": row.environment,
+        "target_environment": row.target_environment or row.request.get("target_environment"),
         "state": row.state,
         "error_code": row.error_code,
         "cancel_requested": row.cancel_requested,
@@ -367,6 +368,10 @@ def record_progress(
     result: dict[str, Any],
 ) -> dict[str, Any]:
     row = leased_operation(db, worker, operation_id, lease, terminal=True)
+    if row.kind == "deploy":
+        from .deployment import record_deployment
+
+        return record_deployment(db, worker, operation_id, lease, stage, result)
     if row.kind == "observe":
         from .host_operations import record_observation
 

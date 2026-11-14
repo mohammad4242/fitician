@@ -57,6 +57,9 @@ class Receipt(BaseModel):
         "prepared",
         "observation_prepared",
         "observation_completed",
+        "deployment_prepared",
+        "deployment_completed",
+        "deployment_verified",
         "dispatch_intent",
         "dispatched",
         "uncertain",
@@ -152,6 +155,10 @@ def authorize(
             and row.state == "dispatching"
             and not cancelled
         )
+        if allowed and row.kind == "deploy" and payload.intent == "dispatch":
+            from .deployment import require_grant
+
+            require_grant(db, row)
         db.commit()
         return {"authorized": bool(allowed), "cancel_requested": cancelled, "state": row.state}
     except ValueError:

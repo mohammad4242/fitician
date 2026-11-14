@@ -23,7 +23,7 @@ and this document are preserved. PR 42 remains a synthetic acceptance PR, never 
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated Germany GitHub credential absent | no | no Germany PR publication proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
 | Native exact release identity/iOS ingestion | implemented | 34 backend, 14 core, 7 mobile tests; native crash pending | EAS Sentry variables absent at last inspection | no | no native release crash proof |
-| Artifact-bound deployment and verification | incomplete | pending | existing regional owner gates retained | no | pending |
+| Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated broker credential absent | no | pending |
 
 Execution order and gates:
 
@@ -84,10 +84,53 @@ Verification of this integration: 62 backend tests on isolated PostgreSQL, 14 co
 automation UI tests, five-file mypy, focused Ruff/Oxlint and frontend TypeScript passed.
 Tests cover expired/foreign credentials, idempotency, restart reconciliation, dispatch order,
 cancellation, target/policy identity, artifact tampering and cross-run evidence rejection.
-Production is still revision 175; the verified full backup rehearsal currently ends at 184,
-so rehearsal through 185 remains required before deployment. Read-only Germany inspection
+Production is still revision 175. A second isolated full-backup rehearsal through 185 now
+passed: all 155 source tables and 11 protected fingerprints matched, 168 target tables remained
+consistent after migration, and the owned networkless tmpfs database was removed. No production
+migration was applied. Read-only Germany inspection
 found no independent runtime auth file or active device-login process. The dedicated broker
 credential file remains empty. These are external blockers, not reasons to stop code work.
+
+### Artifact-bound regional deployment broker — code/integration state
+
+An administrator can request a deployment preview below a published repair using a recent,
+same-occurrence host observation and exact release CI run. The broker requires the selected
+repair PR to be merged into the current main commit, successful canonical CI for that commit/
+attempt, and a hash-verified private immutable release manifest. A preview cannot dispatch.
+Explicit admin authorization is a separate CSRF-protected, issue/environment-scoped action,
+bound to the preview hash, actor, commit, CI run, manifest hash, target baseline and 30-minute
+expiry. Model tools and broker receipts cannot create this authorization. It is journaled
+without credentials. Cancellation also records the administrator actor.
+
+The broker dispatches only the existing `deploy-regional.yml`, on main, preserving the
+`production-owner-approval` environment and regional secrets. Both the database target
+reservation and host `flock` prevent conflicting releases. The server rechecks expiry and
+container/image/DB baseline under that lock, including after backup/image preparation before
+application mutation. Lost acknowledgements, 5xx and malformed mutation responses remain
+uncertain; no repeated dispatch occurs. A later network/authentication failure retains the
+reservation while remote outcome is unknown. Restart reconciliation searches only the exact
+recorded workflow identity. Original branch protections and automatic CD scope are unchanged.
+
+A successful workflow transitions to `verifying`, with deployed=false. A separate private
+readback artifact verifies canonical image digests, actual running container/image identity,
+commit, target, manifest hash and healthy services. Only that bound artifact can record
+deployed=true. It explicitly leaves business outcome/resolution unverified and never changes
+the Fitician issue status. The Persian/English panel separates review, authorization, running
+image verification and unverified business resolution, with retry-safe request identities.
+
+This first broker path deliberately rejects schema-changing/initial deployments: those still
+require the existing separately reviewed migration/bootstrap path and actual restore evidence.
+Extending panel migration review and scenario-specific post-deployment resolution remains
+engineering work; this is not a claim that all deployment acceptance is complete. The current
+feature installation itself needs reviewed migration 175→185 before this panel path is usable.
+The new workflow/broker/UI are not on main or deployed, and no production dispatch was used
+to prove them. Rollback remains the existing regional release script; it retains prior images/
+configuration and treats schema changes separately rather than assuming image rollback undoes
+migrations. Verification: 72 backend tests on isolated PostgreSQL, 61 release/host/workflow tests,
+16 conversation/automation/deployment UI tests, seven-file mypy, focused Ruff/Oxlint,
+OpenAPI consistency, TypeScript and the production web/SSR/prerender build passed. The web
+build emitted its existing chunk-size warning. These are isolated checks, not production
+release acceptance. Current CI also needs to finish for the final pushed candidate.
 
 
 The dedicated Iran backup service/timer is now installed from hash-checked committed helpers.

@@ -84,6 +84,10 @@ async def advance(job: dict[str, Any], github: GitHubAutomation, rpc: Rpc) -> di
         from .host_broker import advance_observation
 
         return await advance_observation(job, github, rpc)
+    if job["kind"] == "deploy":
+        from .deployment_broker import advance_deployment
+
+        return await advance_deployment(job, github, rpc)
     if job["kind"] == "publish_pr":
         state = job["state"]
         if state == "preparing":
@@ -330,6 +334,7 @@ class Broker:
                                     "dispatching",
                                     "uncertain",
                                     "running",
+                                    "verifying",
                                 }:
                                     await rpc(
                                         "/operations/" + job["id"] + "/progress",
@@ -346,7 +351,7 @@ class Broker:
                             except ValueError as error:
                                 code = str(error)
                                 if (
-                                    code.startswith("github_")
+                                    code.startswith(("github_", "deployment_"))
                                     and code != "github_mutation_uncertain"
                                 ):
                                     await rpc(

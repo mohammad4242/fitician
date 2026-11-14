@@ -39,6 +39,25 @@ case "$region:$kind" in
   iran:full|iran:frontend|iran:backend|germany:agent) ;;
   *) fail 'Unsupported regional deployment kind' ;;
 esac
+check_panel_authorization() {
+  if [[ -n "${PANEL_OPERATION_ID:-}" ]]; then
+    [[ "${REQUIRE_RELEASE_MANIFEST:-false}" == true ]] || fail 'Panel release requires exact artifact guard'
+    [[ "${EXPECTED_BASELINE_SHA256:-}" =~ ^[a-f0-9]{64}$ ]] || fail 'Panel target baseline is required'
+    [[ "${AUTHORIZATION_EXPIRES_AT:-}" =~ ^[0-9]{10}$ ]] || fail 'Panel authorization expiry is required'
+    python3 "$release_dir/ops/panel-deployment-guard.py" --operation-id "$PANEL_OPERATION_ID" \
+      --target "$region" --baseline "$EXPECTED_BASELINE_SHA256" --expires "$AUTHORIZATION_EXPIRES_AT" \
+      || fail 'Panel release authorization is stale or target observation is incomplete'
+  elif [[ -n "${EXPECTED_BASELINE_SHA256:-}${AUTHORIZATION_EXPIRES_AT:-}" ]]; then
+    fail 'Incomplete panel deployment authorization'
+  fi
+}
+if [[ "$inspect_only" != true ]]; then
+  # Coordinate protected workflows and direct operator releases on the same host.
+  [[ ! -L "$app_dir/.regional-deploy.lock" ]] || fail 'Deployment lock must not be a symlink'
+  exec 9>"$app_dir/.regional-deploy.lock"
+  flock -n 9 || fail 'Another regional deployment holds the host lock'
+  check_panel_authorization
+fi
 if [[ "$kind" == full || "$kind" == backend || "$kind" == frontend ]]; then
   [[ "$region" == iran ]] || fail 'Database and application releases are restricted to Iran'
 fi
@@ -660,6 +679,8 @@ elif [[ "$region" == iran && "$kind" == backend ]]; then
     fail 'Backend component changes schema; use an approved full Iran release'
 fi
 
+# Backup and image preparation may outlast a grant. Recheck immediately before mutation.
+check_panel_authorization
 if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
   rollback_needed=true
   compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$previous_agent_tag" \

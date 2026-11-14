@@ -964,6 +964,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Deployment */
+        post: operations["preview_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments/{operation_id}/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Deployment */
+        post: operations["approve_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__authorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/issues/{issue_id}/evidence": {
         parameters: {
             query?: never;
@@ -7088,7 +7122,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment";
             /** Repository */
             repository: string;
             /** Request */
@@ -7108,6 +7142,8 @@ export type components = {
             snapshot_digest: string | null;
             /** State */
             state: string;
+            /** Target Environment */
+            target_environment?: ("production-iran" | "production-germany") | null;
             /** Updated At */
             updated_at: string;
         };
@@ -9171,6 +9207,26 @@ export type components = {
             /** Note */
             note?: string | null;
             status: components["schemas"]["NutritionDailyCheckInStatus"];
+        };
+        /** DeploymentAuthorizationInput */
+        DeploymentAuthorizationInput: {
+            /** Preview Sha256 */
+            preview_sha256: string;
+        };
+        /** DeploymentPreviewInput */
+        DeploymentPreviewInput: {
+            /** Ci Run Id */
+            ci_run_id: number;
+            /**
+             * Observation Id
+             * Format: uuid
+             */
+            observation_id: string;
+            /**
+             * Publication Id
+             * Format: uuid
+             */
+            publication_id: string;
         };
         /**
          * DiagnosticHours
@@ -12257,7 +12313,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment";
             /** Result */
             result: {
                 [key: string]: unknown;
@@ -12271,6 +12327,8 @@ export type components = {
             snapshot_digest: string | null;
             /** State */
             state: string;
+            /** Target Environment */
+            target_environment?: ("production-iran" | "production-germany") | null;
             /** Updated At */
             updated_at: string;
         };
@@ -13738,7 +13796,7 @@ export type components = {
              * Stage
              * @enum {string}
              */
-            stage: "prepared" | "observation_prepared" | "observation_completed" | "dispatch_intent" | "dispatched" | "uncertain" | "completed" | "failed" | "waiting" | "cancel_intent" | "publication_intent" | "publication_completed";
+            stage: "prepared" | "observation_prepared" | "observation_completed" | "deployment_prepared" | "deployment_completed" | "deployment_verified" | "dispatch_intent" | "dispatched" | "uncertain" | "completed" | "failed" | "waiting" | "cancel_intent" | "publication_intent" | "publication_completed";
         };
         /** RecentTrainingHistory */
         RecentTrainingHistory: {
@@ -18596,6 +18654,81 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeploymentPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__authorize_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                issue_id: string;
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeploymentAuthorizationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
                 };
             };
             /** @description Validation Error */

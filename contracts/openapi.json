@@ -6260,7 +6260,8 @@
               "connection_check",
               "repair_validation",
               "repair_publication",
-              "server_observation"
+              "server_observation",
+              "repair_deployment"
             ],
             "title": "Purpose",
             "type": "string"
@@ -6298,6 +6299,21 @@
           "state": {
             "title": "State",
             "type": "string"
+          },
+          "target_environment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "production-iran",
+                  "production-germany"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Environment"
           },
           "updated_at": {
             "title": "Updated At",
@@ -12269,6 +12285,48 @@
           "status"
         ],
         "title": "DailyCheckInInput",
+        "type": "object"
+      },
+      "DeploymentAuthorizationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "preview_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_sha256"
+        ],
+        "title": "DeploymentAuthorizationInput",
+        "type": "object"
+      },
+      "DeploymentPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ci_run_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Ci Run Id",
+            "type": "integer"
+          },
+          "observation_id": {
+            "format": "uuid",
+            "title": "Observation Id",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication_id",
+          "observation_id",
+          "ci_run_id"
+        ],
+        "title": "DeploymentPreviewInput",
         "type": "object"
       },
       "DiagnosticHours": {
@@ -20830,7 +20888,8 @@
               "connection_check",
               "repair_validation",
               "repair_publication",
-              "server_observation"
+              "server_observation",
+              "repair_deployment"
             ],
             "title": "Purpose",
             "type": "string"
@@ -20859,6 +20918,21 @@
           "state": {
             "title": "State",
             "type": "string"
+          },
+          "target_environment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "production-iran",
+                  "production-germany"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Environment"
           },
           "updated_at": {
             "title": "Updated At",
@@ -25659,6 +25733,9 @@
               "prepared",
               "observation_prepared",
               "observation_completed",
+              "deployment_prepared",
+              "deployment_completed",
+              "deployment_verified",
               "dispatch_intent",
               "dispatched",
               "uncertain",
@@ -37559,6 +37636,156 @@
           }
         ],
         "summary": "Conversation",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments": {
+      "post": {
+        "operationId": "preview_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Deployment",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments/{operation_id}/authorize": {
+      "post": {
+        "operationId": "approve_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentAuthorizationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve Deployment",
         "tags": [
           "admin-debugging"
         ]

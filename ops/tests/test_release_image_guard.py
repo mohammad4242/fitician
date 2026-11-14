@@ -17,6 +17,21 @@ def module():
 
 
 class ReleaseImageGuardTests(unittest.TestCase):
+    def test_readback_receipt_requires_checked_running_services_and_preserves_exact_images(self):
+        guard = module()
+        packet = release_manifest()
+        observed = {name: "f" * 64 for name in guard.selected_services("germany", "agent")}
+        proof = guard.running_proof(
+            packet, "germany", "agent", "9f91ff9f-6a91-40ac-b57e-66099b5c354e", observed, "a" * 64
+        )
+        self.assertEqual(proof["images"], {"agent": packet["images"]["agent"]})
+        self.assertFalse(proof["business_outcome_verified"])
+        self.assertEqual(proof["services"]["agent-service"]["container_id"], "f" * 64)
+        with self.assertRaises(ValueError):
+            guard.running_proof(
+                packet, "germany", "agent", "9f91ff9f-6a91-40ac-b57e-66099b5c354e", {}, "a" * 64
+            )
+
     def test_mutable_alias_must_match_the_manifest_image_id_and_commit(self):
         guard = module()
         image = {
@@ -31,9 +46,7 @@ class ReleaseImageGuardTests(unittest.TestCase):
         }
         with (
             patch.object(guard, "docker", return_value=json.dumps([metadata])),
-            patch.object(
-                guard, "config_digest_for_image", return_value=image["image_id"]
-            ),
+            patch.object(guard, "config_digest_for_image", return_value=image["image_id"]),
         ):
             guard.verify_alias("backend", image, "c" * 40)
         metadata["Config"]["Labels"]["org.opencontainers.image.revision"] = "d" * 40
@@ -65,9 +78,7 @@ class ReleaseImageGuardTests(unittest.TestCase):
                 create=True,
             ),
         ):
-            self.assertEqual(
-                guard.verify_alias("backend", image, "c" * 40), metadata["Id"]
-            )
+            self.assertEqual(guard.verify_alias("backend", image, "c" * 40), metadata["Id"])
 
     def test_running_container_is_checked_by_actual_image_id_not_its_tag(self):
         guard = module()
@@ -86,9 +97,7 @@ class ReleaseImageGuardTests(unittest.TestCase):
 
     def test_target_mapping_preserves_unrelated_services(self):
         guard = module()
-        self.assertEqual(
-            guard.selected_services("germany", "agent"), {"agent-service": "agent"}
-        )
+        self.assertEqual(guard.selected_services("germany", "agent"), {"agent-service": "agent"})
         self.assertEqual(
             set(guard.selected_services("iran", "full")),
             {
@@ -161,15 +170,11 @@ class OfflineReleaseTests(unittest.TestCase):
                 offline.archive_size(root, manifest_digest, "c" * 40, 123),
                 len(b"isolated-image-archive-fixture"),
             )
-            with self.assertRaisesRegex(
-                ValueError, "offline_release_manifest_mismatch"
-            ):
+            with self.assertRaisesRegex(ValueError, "offline_release_manifest_mismatch"):
                 offline.archive_size(root, "0" * 64, "c" * 40, 123)
             (root / "image.tar.gz").write_bytes(archive + b"tamper")
             with patch.object(offline.subprocess, "Popen") as docker:
-                with self.assertRaisesRegex(
-                    ValueError, "offline_release_archive_mismatch"
-                ):
+                with self.assertRaisesRegex(ValueError, "offline_release_archive_mismatch"):
                     offline.load(root, manifest_digest, "c" * 40, 123)
                 docker.assert_not_called()
 
@@ -190,9 +195,5 @@ class OfflineReleaseTests(unittest.TestCase):
             ):
                 download.return_value.returncode = 0
                 with self.assertRaisesRegex(ValueError, "no longer matches"):
-                    gate.require_release_manifest(
-                        "mohammad4242/fitician", 123, "c" * 40, root
-                    )
-                self.assertIn(
-                    "fitician-release-manifest-" + "c" * 40, download.call_args.args[0]
-                )
+                    gate.require_release_manifest("mohammad4242/fitician", 123, "c" * 40, root)
+                self.assertIn("fitician-release-manifest-" + "c" * 40, download.call_args.args[0])

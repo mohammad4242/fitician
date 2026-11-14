@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { components } from "@fitician/core";
 import { request } from "../../shared/apiClient";
+import { DeploymentRequest, DeploymentReview } from "./DebugDeployment";
 
 type Operation = components["schemas"]["OperationResponse"];
 type Availability = components["schemas"]["AutomationAvailability"];
@@ -58,6 +59,7 @@ export function DebugAutomationSetup({ english }: { english: boolean }) {
 }
 
 function stateText(row: Operation, english: boolean): string {
+  if (row.kind === "deploy" && row.state === "succeeded") return english ? "Deployed; business resolution unverified" : "منتشر شد؛ رفع مسئله هنوز تأیید نشده";
   const labels: Record<string, [string, string]> = {
     queued: ["Queued", "در صف"], preparing: ["Preparing test snapshot", "آماده‌سازی نسخهٔ آزمون"],
     dispatching: ["Dispatching CI request", "ارسال درخواست CI"], uncertain: ["Dispatch confirmation pending", "نتیجهٔ ارسال هنوز مشخص نیست"],
@@ -76,6 +78,10 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const base = `${root}/issues/${encodeURIComponent(issueId)}`;
+  async function reloadOperations() {
+    const page = await request<{ operations: Operation[] }>(`${base}/operations`);
+    setRows(page.operations);
+  }
   useEffect(() => {
     let current = true;
     async function refresh() {
@@ -119,7 +125,7 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
       const validation = row.result.validation;
       const count = validation && typeof validation === "object" && "exercised" in validation && typeof validation.exercised === "number" ? validation.exercised : null;
       return <article key={row.id} style={{ paddingBlock: "1rem", borderBlockEnd: "1px solid var(--border-color, #ddd)", minWidth: 0 }}>
-        <strong>{row.kind === "observe" ? (english ? "Read-only server observations" : "بررسی فقط‌خواندنی سرور") : row.kind === "publish_pr" ? (english ? "GitHub repair proposal" : "پیشنهاد اصلاح در GitHub") : row.purpose === "connection_check" ? (english ? "CI connection check" : "آزمایش اتصال CI") : (english ? "Repair validation" : "آزمون اصلاح")}</strong>
+        <strong>{row.kind === "deploy" ? (english ? "Controlled deployment" : "انتشار کنترل‌شده") : row.kind === "observe" ? (english ? "Read-only server observations" : "بررسی فقط‌خواندنی سرور") : row.kind === "publish_pr" ? (english ? "GitHub repair proposal" : "پیشنهاد اصلاح در GitHub") : row.purpose === "connection_check" ? (english ? "CI connection check" : "آزمایش اتصال CI") : (english ? "Repair validation" : "آزمون اصلاح")}</strong>
         <p>{stateText(row, english)} · <bdi>{row.profile}</bdi> · <bdi>{row.environment}</bdi></p>
         <p>{english ? "Occurrence" : "رخداد"}: <code dir="ltr" style={codeStyle}>{row.occurrence_id ?? "unknown"}</code>{row.occurrence_id === occurrenceId && <> · {english ? "Selected" : "منتخب"}</>}</p>
         {typeof commit === "string" && /^[a-f0-9]{40}$/.test(commit) && <p>{english ? "Tested candidate" : "نسخهٔ آزمون"}: <a href={`https://github.com/mohammad4242/fitician/commit/${commit}`} target="_blank" rel="noreferrer"><code dir="ltr" style={codeStyle}>{commit}</code></a></p>}
@@ -130,8 +136,10 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
           <p>{english ? "This PR does not mean deployed or verified resolved." : "این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست."}</p>
         </>}
         {row.error_code && <p><code dir="ltr" style={codeStyle}>{row.error_code}</code></p>}
+        {row.kind === "publish_pr" && row.state === "succeeded" && row.occurrence_id === occurrenceId && <DeploymentRequest publication={row} observations={rows} issueId={issueId} english={english} onUpdated={reloadOperations} />}
+        {row.kind === "deploy" && <DeploymentReview operation={row} issueId={issueId} english={english} onUpdated={reloadOperations} />}
         {row.cancel_requested && <p>{english ? "Cancellation requested; waiting for confirmation" : "لغو درخواست شده؛ منتظر تأیید نتیجه"}</p>}
-        {active.has(row.state) && <button type="button" disabled={busy || row.cancel_requested} onClick={() => void cancel(row.id)}>{english ? "Cancel operation" : "لغو عملیات"}</button>}
+        {(active.has(row.state) || row.state === "awaiting_authorization") && <button type="button" disabled={busy || row.cancel_requested} onClick={() => void cancel(row.id)}>{english ? "Cancel operation" : "لغو عملیات"}</button>}
         {row.kind === "observe" && row.result.observation !== undefined && <details><summary>{english ? "Verified workflow evidence; business outcome unverified" : "مدرک workflow؛ نتیجهٔ کسب‌وکار هنوز تأیید نشده"}</summary><pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(row.result.observation, null, 2)}</pre></details>}
         {validation !== undefined && <details><summary>{english ? "Technical test evidence" : "مدرک فنی آزمون"}</summary><pre dir="ltr" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(validation, null, 2)}</pre></details>}
       </article>;

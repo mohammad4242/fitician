@@ -21,6 +21,7 @@ from .connector_schemas import (
     OperationResponse,
     StoredServerEvidenceResponse,
 )
+from .deployment_router import router as deployment_router
 from .findings_router import router as findings_router
 from .models import DebugMessage, DebugOperation, DebugRun, DebugRunEvent, DebugThread
 from .service import ACTIVE, cancel_run, submit_message
@@ -32,6 +33,7 @@ router = APIRouter(
 )
 
 router.include_router(findings_router)
+router.include_router(deployment_router)
 
 
 class MessageInput(BaseModel):
@@ -125,7 +127,9 @@ def operations(issue_id: UUID, db: DatabaseSession) -> dict[str, Any]:
     response_model=OperationResponse,
     dependencies=[Depends(require_authenticated_mutation)],
 )
-def cancel_operation(issue_id: UUID, operation_id: UUID, db: DatabaseSession) -> dict[str, Any]:
+def cancel_operation(
+    issue_id: UUID, operation_id: UUID, actor: AdminUser, db: DatabaseSession
+) -> dict[str, Any]:
     from .automation import ACTIVE as OPERATION_ACTIVE
     from .automation import operation_json
     from .service import append_event
@@ -144,11 +148,18 @@ def cancel_operation(issue_id: UUID, operation_id: UUID, db: DatabaseSession) ->
     )
     if row is None:
         raise HTTPException(404, detail={"code": "operation_not_found"})
-    if not row.cancel_requested and row.state in OPERATION_ACTIVE:
+    if not row.cancel_requested and row.state in (*OPERATION_ACTIVE, "awaiting_authorization"):
         row.cancel_requested = True
+        if row.state == "awaiting_authorization":
+            row.state = "cancelled"
         run = db.scalar(select(DebugRun).where(DebugRun.id == row.run_id).with_for_update())
         assert run is not None
-        append_event(db, run, "automation_cancel_requested", {"operation_id": str(row.id)})
+        append_event(
+            db,
+            run,
+            "automation_cancel_requested",
+            {"operation_id": str(row.id), "actor_id": str(actor.id)},
+        )
         db.commit()
     return operation_json(row)
 

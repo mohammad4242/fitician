@@ -108,6 +108,8 @@ class GitHubAutomation:
                     raise ValueError("github_rate_limited")
                 if response.status_code in {401, 403}:
                     raise ValueError("github_authorization_rejected")
+                if response.status_code >= 500 and method != "GET":
+                    raise ValueError("github_mutation_uncertain")
                 if response.status_code not in {200, 201, 202, 204}:
                     raise ValueError("github_request_rejected")
                 if response.status_code in {202, 204}:
@@ -116,11 +118,19 @@ class GitHubAutomation:
                 async for chunk in response.aiter_bytes():
                     data.extend(chunk)
                     if len(data) > 8388608:
-                        raise ValueError("github_response_too_large")
+                        raise ValueError(
+                            "github_response_too_large"
+                            if method == "GET"
+                            else "github_mutation_uncertain"
+                        )
                 try:
                     return json.loads(data)
                 except ValueError:
-                    raise ValueError("github_invalid_response") from None
+                    raise ValueError(
+                        "github_invalid_response"
+                        if method == "GET"
+                        else "github_mutation_uncertain"
+                    ) from None
         except httpx.HTTPError:
             raise ValueError(
                 "github_mutation_uncertain" if method != "GET" else "github_unreachable"
@@ -424,7 +434,7 @@ class GitHubAutomation:
         )
 
     async def _json_artifact(
-        self, run_id: int, name: str, filename: str, field: str
+        self, run_id: int, name: str, filename: str, field: str, *, content_digest: bool = False
     ) -> dict[str, Any]:
         if type(run_id) is not int or run_id < 1:
             raise ValueError("github_invalid_identity")
@@ -494,13 +504,19 @@ class GitHubAutomation:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
                 if archive.namelist() != [filename] or archive.getinfo(filename).file_size > 32000:
                     raise ValueError("github_artifact_invalid")
-                validation = json.loads(archive.read(filename))
+                content = archive.read(filename)
+                validation = json.loads(content)
                 if not isinstance(validation, dict):
                     raise ValueError("github_artifact_invalid")
             return {
                 "artifact_id": artifact["id"],
                 "artifact_digest": artifact["digest"],
                 field: validation,
+                **(
+                    {"content_sha256": hashlib.sha256(content).hexdigest()}
+                    if content_digest
+                    else {}
+                ),
             }
         except (httpx.HTTPError, zipfile.BadZipFile, KeyError, json.JSONDecodeError):
             raise ValueError("github_artifact_invalid") from None
