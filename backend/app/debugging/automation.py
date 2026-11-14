@@ -500,7 +500,7 @@ def record_progress(
     row.result = {**row.result, **safe, "_receipts": {**previous, stage: digest}}
     if row.state not in ACTIVE:
         row.lease_until = None
-    append_event(
+    event = append_event(
         db,
         run,
         "automation_progress",
@@ -513,6 +513,8 @@ def record_progress(
             "error_code": row.error_code,
         },
     )
+    if stage == "completed" and safe.get("artifact_verified") is True:
+        row.result = {**row.result, "evidence_id": str(event.id)}
     db.flush()
     return {"operation": operation_json(row), "disposition": disposition}
 

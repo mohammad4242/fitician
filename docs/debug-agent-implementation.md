@@ -1232,3 +1232,20 @@ Unreferenced old events remain eligible for bounded cleanup. The regression firs
 loss of the selected occurrence, then passed with the fix. All 55 evidence/diagnostics/run/
 findings tests passed on isolated PostgreSQL; focused mypy and Ruff passed. No migration,
 production cleanup or deployment was performed by this step.
+
+### CI-backed finding review
+
+Artifact-verified durable CI completions now expose immutable run-event evidence IDs; receipt
+replay returns the same ID. The agent can cite successful or genuinely test-failing scoped CI
+evidence. The existing findings view lists these receipts alongside local unittest evidence.
+An explicit administrator review can compare failing/passing runs only when profile, selected
+tests, base commit, policy commit and immutable test image match, and the candidate commit/tree
+actually changed. Cancelled, unverified, foreign-occurrence, empty-test or infrastructure-only
+failures cannot establish a regression comparison. Persisted audit includes both CI artifact/
+workflow identities. Current evidence-version and idempotency checks remain. This records a
+reviewed finding; it does not declare the production issue resolved or dispatch deployment.
+
+Focused verification passed 34 backend tests on isolated PostgreSQL, eight findings/automation
+UI tests, two-file mypy and Ruff. The initial regression showed the missing CI evidence ID.
+External Actions execution through the independently enrolled production Germany runtime
+remains unverified; no real provider/runtime execution is claimed from these synthetic tests.

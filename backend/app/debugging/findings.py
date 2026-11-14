@@ -67,6 +67,12 @@ def proposal_payload(db: Session, run: DebugRun, payload: dict[str, Any]) -> dic
                 and operation.result.get("artifact_verified") is True
             ):
                 continue
+        if event is not None and event.run_id == run.id and event.kind == "automation_progress":
+            try:
+                _ci_test_proof(db, run, event, True)
+            except ValueError:
+                _ci_test_proof(db, run, event, False)
+            continue
         if (
             event is None
             or event.run_id != run.id
@@ -102,8 +108,93 @@ def scoped_finding(db: Session, issue_id: UUID, finding_id: UUID) -> tuple[Debug
     return row[0], row[1]
 
 
+def _ci_test_proof(
+    db: Session, run: DebugRun, event: DebugRunEvent, passed: bool
+) -> dict[str, Any]:
+    from .automation import _completion, _preparation
+    from .ci_contract import validate_snapshot
+
+    try:
+        operation = db.get(DebugOperation, UUID(event.payload["operation_id"]))
+        thread = db.get(DebugThread, run.thread_id)
+        if (
+            operation is None
+            or thread is None
+            or operation.environment != thread.environment
+            or event.run_id != run.id
+            or event.kind != "automation_progress"
+            or event.payload.get("kind") != "validate"
+            or event.payload.get("stage") != "completed"
+            or event.payload.get("state") != operation.state
+            or event.payload.get("workflow_run_id") != operation.result.get("workflow_run_id")
+            or operation.kind != "validate"
+            or operation.run_id != run.id
+            or operation.result.get("evidence_id") != str(event.id)
+            or operation.result.get("artifact_verified") is not True
+            or operation.result.get("provenance") != "enrolled_github_broker"
+            or str(operation.occurrence_id) != run.evidence.get("occurrence_id")
+            or operation.state != ("succeeded" if passed else "failed")
+        ):
+            raise ValueError
+        value = operation.result
+        snapshot = validate_snapshot(operation.request["snapshot"])
+        _preparation(
+            operation,
+            {
+                key: value[key]
+                for key in (
+                    "base_commit",
+                    "candidate_commit",
+                    "policy_commit",
+                    "branch",
+                    "policy_ref",
+                    "snapshot_digest",
+                    "tree_digest",
+                )
+            },
+        )
+        _completion(
+            operation,
+            {
+                key: value[key]
+                for key in (
+                    "workflow_run_id",
+                    "workflow_conclusion",
+                    "artifact_id",
+                    "artifact_digest",
+                    "validation",
+                )
+            },
+        )
+        validation = value["validation"]
+        if (
+            validation["passed"] is not passed
+            or value["workflow_conclusion"] != ("success" if passed else "failure")
+            or validation["exercised"] < 1
+            or not passed
+            and (validation["failures"] < 1 or not validation["failed_tests"])
+        ):
+            raise ValueError
+        return {
+            "command": ["GitHub Actions", validation["profile"], *validation["tests"]],
+            "image": validation["image"],
+            "tree_digest": snapshot["tree_digest"],
+            "base_commit": snapshot["base_commit"],
+            "candidate_commit": value["candidate_commit"],
+            "policy_commit": value["policy_commit"],
+            "test_provenance": "github_actions",
+            "operation_id": str(operation.id),
+            "workflow_run_id": value["workflow_run_id"],
+            "artifact_digest": value["artifact_digest"],
+        }
+    except (ValueError, KeyError, TypeError, AttributeError):
+        raise ValueError("regression_evidence_required") from None
+
+
 def _test_proof(db: Session, run: DebugRun, identifier: UUID, passed: bool) -> dict[str, Any]:
     event = db.get(DebugRunEvent, identifier)
+    if event is not None and event.kind == "automation_progress":
+        return _ci_test_proof(db, run, event, passed)
     if (
         event is None
         or event.run_id != run.id
@@ -129,7 +220,7 @@ def _test_proof(db: Session, run: DebugRun, identifier: UUID, passed: bool) -> d
         valid = False
     if not valid:
         raise ValueError("regression_evidence_required")
-    return cast(dict[str, Any], proof)
+    return {**cast(dict[str, Any], proof), "test_provenance": "connector_unittest"}
 
 
 def verify_finding(
@@ -178,6 +269,13 @@ def verify_finding(
         or before["command"] != after["command"]
         or before["image"] != after["image"]
         or before["tree_digest"] == after["tree_digest"]
+        or before["test_provenance"] != after["test_provenance"]
+        or before["test_provenance"] == "github_actions"
+        and (
+            before["base_commit"] != after["base_commit"]
+            or before["policy_commit"] != after["policy_commit"]
+            or before["candidate_commit"] == after["candidate_commit"]
+        )
     ):
         raise ValueError("matching_regression_comparison_required")
     return append_event(
@@ -189,6 +287,10 @@ def verify_finding(
             "finding_id": str(finding_id),
             "actor_id": str(actor_id),
             "method": "reviewed_regression_comparison",
+            "test_provenance": before["test_provenance"],
+            "test_comparison": {"before": before, "after": after}
+            if before["test_provenance"] == "github_actions"
+            else None,
             "submission_key": key,
             "request_hash": digest,
             "provenance": "administrator_review",
@@ -238,16 +340,27 @@ def list_findings(
     tests: dict[UUID, list[dict[str, Any]]] = {}
     for event in db.scalars(
         select(DebugRunEvent)
-        .where(DebugRunEvent.run_id.in_(run_ids), DebugRunEvent.kind == "tool_completed")
+        .where(
+            DebugRunEvent.run_id.in_(run_ids),
+            DebugRunEvent.kind.in_(
+                [
+                    "tool_completed",
+                    "automation_progress",
+                ]
+            ),
+        )
         .order_by(DebugRunEvent.sequence)
         .limit(1280)
     ):
-        if event.payload.get("tool") != "fitician_run_tests":
+        if event.kind == "tool_completed" and event.payload.get("tool") != "fitician_run_tests":
             continue
         run = next(item for _, item in rows[:limit] if item.id == event.run_id)
         try:
-            value = json.loads(event.payload.get("output", ""))
-            passed = value.get("passed")
+            if event.kind == "automation_progress":
+                passed = event.payload.get("state") == "succeeded"
+            else:
+                value = json.loads(event.payload.get("output", ""))
+                passed = value.get("passed")
             if type(passed) is not bool:
                 continue
             proof = _test_proof(db, run, event.id, passed)
