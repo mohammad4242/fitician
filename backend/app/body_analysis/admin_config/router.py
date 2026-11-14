@@ -334,7 +334,6 @@ async def test_agent_service_task(
     settings: AppSettings,
     admin: AdminUser,
 ) -> AgentServiceTaskSmokeResponse:
-    del admin
     checked_at = datetime.now(UTC)
     try:
         result, profile = await run_task_smoke(
@@ -344,6 +343,7 @@ async def test_agent_service_task(
             profile_id=payload.profile_id,
             settings=settings,
             client=_agent_client(request),
+            actor_id=admin.id,
         )
     except AIConfigError as error:
         raise _agent_not_configured(error) from None

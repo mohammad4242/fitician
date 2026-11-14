@@ -31,16 +31,42 @@ COPY packages packages
 COPY mobile/assets/landing/pic_land.jpg mobile/assets/landing/pic_land.jpg
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-data.json frontend/src/seo/exercise-data.json
 COPY --from=public-exercises /workspace/frontend/src/seo/exercise-categories.json frontend/src/seo/exercise-categories.json
+ARG SENTRY_ORG=
+ENV SENTRY_ORG=${SENTRY_ORG}
+ARG SENTRY_PROJECT=
+ENV SENTRY_PROJECT=${SENTRY_PROJECT}
+ARG SENTRY_URL=https://us.sentry.io
+ENV SENTRY_URL=${SENTRY_URL}
+ARG SENTRY_BUILD_ARTIFACTS=0
+ENV SENTRY_BUILD_ARTIFACTS=${SENTRY_BUILD_ARTIFACTS}
+ARG VITE_SENTRY_DSN=
+ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+ARG VITE_SENTRY_ENVIRONMENT=development
+ENV VITE_SENTRY_ENVIRONMENT=${VITE_SENTRY_ENVIRONMENT}
 ARG VITE_APP_BUILD_SHA=
 ENV VITE_APP_BUILD_SHA=${VITE_APP_BUILD_SHA}
-RUN npm run build:core && npm run prepare:mediapipe --workspace frontend && npm exec --workspace frontend -- tsc -b && npm exec --workspace frontend -- vite build && SEO_SERVER=1 npm exec --workspace frontend -- vite build --ssr src/seo/render.tsx --outDir dist-server
+RUN --mount=type=secret,id=sentry_auth_token \
+    npm run build:core \
+    && npm run prepare:mediapipe --workspace frontend \
+    && npm exec --workspace frontend -- tsc -b \
+    && SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+       npm exec --workspace frontend -- vite build \
+    && SEO_SERVER=1 npm exec --workspace frontend -- vite build --ssr src/seo/render.tsx --outDir dist-server
 WORKDIR /workspace/frontend
 RUN node scripts/prerender.mjs
 
+FROM scratch AS sentry-artifacts
+COPY --from=build /workspace/frontend/dist/assets /assets
+
+FROM build AS public-build
+RUN find /workspace/frontend/dist -type f -name '*.map' -delete
+
 FROM nginx:1.27-alpine
+ARG VITE_APP_BUILD_SHA=
+LABEL org.opencontainers.image.revision=${VITE_APP_BUILD_SHA}
 
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /workspace/frontend/dist /usr/share/nginx/html
+COPY --from=public-build /workspace/frontend/dist /usr/share/nginx/html
 
 COPY --from=build /workspace/frontend/dist/nginx-member-routes.conf /etc/nginx/conf.d/member-routes.inc
 

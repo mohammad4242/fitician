@@ -17,7 +17,8 @@
     "braces": "$braces",
     "minimatch@5.1.9": {
       "brace-expansion": "2.1.7"
-    }
+    },
+    "decode-uri-component": "$decode-uri-component"
   },
   "engines": {
     "node": ">=20.19.4"
@@ -45,6 +46,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "braces": "file:vendor/braces-3.0.4-fitician.1.tgz",
-    "node-forge": "file:vendor/node-forge-1.4.1-fitician.1.tgz"
+    "node-forge": "file:vendor/node-forge-1.4.1-fitician.1.tgz",
+    "decode-uri-component": "file:vendor/decode-uri-component-0.5.1-fitician.1.tgz"
   }
 }

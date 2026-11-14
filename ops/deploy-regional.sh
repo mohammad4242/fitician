@@ -39,6 +39,25 @@ case "$region:$kind" in
   iran:full|iran:frontend|iran:backend|germany:agent) ;;
   *) fail 'Unsupported regional deployment kind' ;;
 esac
+check_panel_authorization() {
+  if [[ -n "${PANEL_OPERATION_ID:-}" ]]; then
+    [[ "${REQUIRE_RELEASE_MANIFEST:-false}" == true ]] || fail 'Panel release requires exact artifact guard'
+    [[ "${EXPECTED_BASELINE_SHA256:-}" =~ ^[a-f0-9]{64}$ ]] || fail 'Panel target baseline is required'
+    [[ "${AUTHORIZATION_EXPIRES_AT:-}" =~ ^[0-9]{10}$ ]] || fail 'Panel authorization expiry is required'
+    python3 "$release_dir/ops/panel-deployment-guard.py" --operation-id "$PANEL_OPERATION_ID" \
+      --target "$region" --baseline "$EXPECTED_BASELINE_SHA256" --expires "$AUTHORIZATION_EXPIRES_AT" \
+      || fail 'Panel release authorization is stale or target observation is incomplete'
+  elif [[ -n "${EXPECTED_BASELINE_SHA256:-}${AUTHORIZATION_EXPIRES_AT:-}" ]]; then
+    fail 'Incomplete panel deployment authorization'
+  fi
+}
+if [[ "$inspect_only" != true ]]; then
+  # Coordinate protected workflows and direct operator releases on the same host.
+  [[ ! -L "$app_dir/.regional-deploy.lock" ]] || fail 'Deployment lock must not be a symlink'
+  exec 9>"$app_dir/.regional-deploy.lock"
+  flock -n 9 || fail 'Another regional deployment holds the host lock'
+  check_panel_authorization
+fi
 if [[ "$kind" == full || "$kind" == backend || "$kind" == frontend ]]; then
   [[ "$region" == iran ]] || fail 'Database and application releases are restricted to Iran'
 fi
@@ -119,6 +138,16 @@ compose() {
     BACKEND_API_IMAGE_TAG="$api" WORKER_IMAGE_TAG="$worker" AGENT_IMAGE_TAG="$agent" \
     docker compose -p "$project" --env-file "$env_file" -f "$contract" "$@"
 }
+
+diagnostics() {
+  python3 "$release_dir/ops/diagnostics-release.py" "$1" \
+    --app-dir "$app_dir" --commit "$image_tag" --project "$project"
+}
+# Worker activation is a host-owned private policy, never a model/workflow input.
+# Check before image pulls, backup or any database/application mutation.
+if [[ "$region" == iran && "$kind" == full && "$inspect_only" != true ]]; then
+  diagnostics preflight || fail 'Diagnostics worker configuration or capacity preflight failed'
+fi
 
 volume_keys=(POSTGRES_VOLUME_NAME REDIS_VOLUME_NAME CADDY_DATA_VOLUME_NAME CADDY_CONFIG_VOLUME_NAME)
 if [[ "$region" == germany ]]; then volume_keys=(AGENT_HOME_VOLUME_NAME); fi
@@ -265,14 +294,35 @@ print("\n".join(dict.fromkeys(images)))
   fail 'Candidate Compose images could not be verified'
 fi
 if [[ "$inspect_only" != true ]]; then
+  manifest_guard=false
+  if [[ "${REQUIRE_RELEASE_MANIFEST:-false}" == true && ( "$kind" == full || "$kind" == agent ) ]]; then
+    [[ "${CI_RUN_ID:-}" =~ ^[0-9]+$ ]] || fail 'Exact manifest CI run is required'
+    [[ -f "$release_dir/manifest.json" ]] || fail 'Reviewed release manifest is missing'
+    manifest_guard=true
+  fi
   if [[ "$image_source" == registry ]]; then
-    compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
-      pull "${image_services[@]}" || fail 'Unable to pull regional immutable images'
+    if [[ "$manifest_guard" == true ]]; then
+      python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+        --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+        --mode prepare-registry --project "$project" || fail 'Release image identity check failed'
+      if [[ "$region" == iran ]]; then
+        compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
+          pull db redis caddy || fail 'Unable to pull pinned infrastructure images'
+      fi
+    else
+      compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$image_tag" \
+        pull "${image_services[@]}" || fail 'Unable to pull regional immutable images'
+    fi
   else
     while IFS= read -r image; do
       [[ -n "$image" ]] || continue
       docker image inspect "$image" >/dev/null 2>&1 || fail 'A required preloaded immutable image is missing'
     done <<< "$image_refs"
+  fi
+  if [[ "$manifest_guard" == true ]]; then
+    python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+      --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+      --mode verify-local --project "$project" || fail 'Preloaded release differs from reviewed artifact'
   fi
 fi
 
@@ -530,8 +580,16 @@ rollback() {
     fi
     exit "$status"
   fi
-  if [[ "$rollback_needed" != true ]]; then exit "$status"; fi
+  if [[ "$rollback_needed" != true ]]; then
+    if [[ "${diagnostics_transaction:-false}" == true ]]; then
+      diagnostics rollback || echo 'Previous diagnostics workers need manual reconciliation' >&2
+    fi
+    exit "$status"
+  fi
   if [[ "$schema_changed" == true ]]; then
+    if [[ "${diagnostics_transaction:-false}" == true ]]; then
+      diagnostics quiesce || echo 'Diagnostics worker quiescence needs manual reconciliation' >&2
+    fi
     if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
       stop caddy frontend backend backend-2 scheduler food-photo-worker body-analysis-worker notification-worker; then
       echo 'Application quiescence failed; block Iran ingress manually before recovery' >&2
@@ -574,6 +632,9 @@ rollback() {
       "$previous_worker_tag" "$previous_agent_tag" \
       up -d --pull never --no-deps --wait "${services[@]}" || rollback_status=$?
   fi
+  if [[ "$rollback_status" -eq 0 && "${diagnostics_transaction:-false}" == true ]]; then
+    diagnostics rollback || rollback_status=$?
+  fi
   if [[ "$rollback_status" -eq 0 && "$initial_deploy" != true ]]; then
     REGION="$region" DEPLOY_KIND="$kind" IMAGE_TAG="$image_tag" \
       COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
@@ -613,6 +674,7 @@ if [[ "$region" == iran && "$kind" == full ]]; then
   fi
   COMPOSE_FILE="$backup_contract" COMPOSE_PROJECT_NAME="$project" \
     COMPOSE_ENV_FILES="$env_file" FITICIAN_ENV_FILE="$env_file" \
+    DB_BACKUP_LOCK_FILE="$app_dir/.database-backup.lock" \
     BACKUP_ENV_FILE="$app_dir/backup.env" bash "$release_dir/backup-production.sh"
   if [[ "$initial_deploy" == true ]]; then active_contract=$compose_file; fi
   current_revision=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
@@ -638,6 +700,12 @@ elif [[ "$region" == iran && "$kind" == backend ]]; then
     fail 'Backend component changes schema; use an approved full Iran release'
 fi
 
+# Backup and image preparation may outlast a grant. Recheck immediately before mutation.
+check_panel_authorization
+if [[ "$region" == iran && "$kind" == full ]]; then
+  diagnostics_transaction=true
+  diagnostics pause
+fi
 if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
   rollback_needed=true
   compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$previous_agent_tag" \
@@ -669,6 +737,7 @@ if [[ "$kind" == full ]]; then
     rollback || true
     exit 1
   fi
+  if [[ "$region" == iran ]]; then diagnostics start; fi
 else
   rollback_needed=true
   if [[ "$kind" == backend ]]; then
@@ -712,6 +781,15 @@ if [[ "${backend_rolling_verified:-false}" != true ]] && ! REGION="$region" DEPL
   COMPOSE_FILE="$compose_file" sh "$release_dir/ops/verify-regional.sh"; then
   rollback || true
   exit 1
+fi
+
+if [[ "${manifest_guard:-false}" == true ]]; then
+  if ! python3 "$release_dir/ops/release-image-guard.py" --manifest "$release_dir/manifest.json" \
+    --commit "$image_tag" --ci-run-id "$CI_RUN_ID" --target "$region" --kind "$kind" \
+    --mode verify-running --project "$project" --app-dir "$app_dir"; then
+    rollback || true
+    exit 1
+  fi
 fi
 
 umask 077

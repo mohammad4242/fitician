@@ -1,3 +1,9 @@
+import { DebugOperations } from "./DebugAutomation";
+import { DebugConversation } from "./DebugConversation";
+import { NotificationDeliveries } from "./NotificationDeliveries";
+import { IssueEvidence } from "./IssueEvidence";
+import { IssueFindings } from "./IssueFindings";
+import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -423,6 +429,9 @@ function IssueTable({ issues, onOpen }: { issues: readonly DiagnosticIssue[]; on
 function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSaved: () => void }) {
   const { c, english, locale } = useCopy();
   const { issue, events, status_history: history } = detail;
+  const explanation = explainIssueCode(issue.error_code, english);
+  const [occurrenceId, setOccurrenceId] = useState("");
+  useEffect(() => { setOccurrenceId(""); }, [issue.id]);
   const [status, setStatus] = useState<DiagnosticStatus>(issue.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -436,18 +445,25 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
     }).catch((error: unknown) => setSaveError(error)).finally(() => setSaving(false));
   };
   const versions = [...new Set(events.flatMap((event) => [event.version, event.build].filter((value): value is string => Boolean(value))))];
-  const confidenceDescription = issue.confidence === "unknown" ? c.confidenceUnknown : issue.confidence === "likely" ? c.confidenceLikely : c.confidenceConfirmed;
   return (
     <div className="diagnostics-stack">
       <section className="diagnostics-card diagnostics-issue-hero">
         <div><p className="diagnostics-label">{issue.component} / {issue.operation} / {issue.stage}</p><h2>{categoryLabel(c, issue.category)}</h2><p>{categoryNote(c, issue.category)}</p></div>
         <div className="diagnostics-badge-pair"><StatusBadge value={issue.severity} /><StatusBadge value={issue.status} /></div>
       </section>
+      <section className="diagnostics-card">
+        <h3>{explanation.what}</h3>
+        <p>{english ? "Observed location" : "محل مشاهده خطا"}: <code dir="ltr">{issue.component} / {issue.operation} / {issue.stage}</code></p>
+        <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Affected users" : "کاربران متأثر"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
+        <p>{english ? "Cause assessments and their verification appear in the selected occurrence's investigation findings." : "فرضیه‌ها و نتیجهٔ بررسی علت، همراه با مدرک در یافته‌های رخداد منتخب نمایش داده می‌شوند."}</p>
+        <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
+      </section>
+      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={setOccurrenceId} />
+      <IssueFindings key={`findings-${issue.id}-${occurrenceId}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
           <h3>{c.taxonomy}</h3>
-          <p>{c.confidence}: <StatusBadge value={issue.confidence} /></p>
-          <p>{confidenceDescription}</p><small>{c.confidenceCaution}</small>
+          <small>{c.confidenceCaution}</small>
           <dl className="diagnostics-definition-list">
             <div><dt>{c.code}</dt><dd dir="ltr">{issue.error_code}</dd></div>
             <div><dt>{c.errorType}</dt><dd dir="ltr">{issue.exception_type ?? "—"}</dd></div>
@@ -482,6 +498,9 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
           {item.actor_user_id && <Link to={`/admin/billing/users/${encodeURIComponent(item.actor_user_id)}`}>{c.viewUser}: {item.actor_user_id}</Link>}
         </li>)}</ol>}
       </section>
+      <NotificationDeliveries key={`sms-${issue.id}`} issueId={issue.id} english={english} />
+      <DebugOperations key={`ci-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
+      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );
 }
@@ -635,6 +654,7 @@ function AlertsPanel({ search, setSearch }: { search: URLSearchParams; setSearch
   const move = (nextOffset: number) => { const next = setParam(search, "offset", String(nextOffset)); next.set("tab", "alerts"); setSearch(next); };
   return <div className="diagnostics-stack">
     <div className="diagnostics-card__heading"><div><p className="diagnostics-label">08 / ALERTING</p><h2>{c.alerts}</h2></div></div>
+    <NotificationDeliveries english={english} />
     <StatusMessage loading={result.loading} error={result.error} retry={result.retry} />
     {result.data && result.data.length === 0 && <p className="diagnostics-empty">{c.emptyAlerts}</p>}
     {result.data && result.data.length > 0 && <div className="diagnostics-alert-list">{result.data.map((alert) => (

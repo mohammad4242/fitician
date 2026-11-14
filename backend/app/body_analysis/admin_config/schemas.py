@@ -42,6 +42,7 @@ class AITaskConfigUpdate(BaseModel):
     agent_name: AIAgentName | None = None
     agent_model_id: AgentModelId | None = None
     agent_profile_id: AgentModelId | None = None
+    debug_connector_id: UUID | None = None
     enabled: bool = False
     api_key: SecretStr | None = Field(default=None, repr=False)
     replace_credential: bool = False
@@ -79,6 +80,7 @@ class AITaskConfigDetail(BaseModel):
     agent_name: AIAgentName | None
     agent_model_id: str | None
     agent_profile_id: str | None
+    debug_connector_id: UUID | None = None
     enabled: bool
     primary_model_id: str | None
     fallback_model_ids: list[str]
@@ -178,7 +180,7 @@ class AgentServiceModelProfile(BaseModel):
     display_name: str = Field(min_length=1, max_length=300)
     model_id: AgentModelId
     effort: Literal["low", "medium", "high", "thinking"] | None = None
-    task_kinds: list[AITaskType] = Field(min_length=1, max_length=4)
+    task_kinds: list[AITaskType] = Field(min_length=1, max_length=len(AITaskType))
     fingerprint: str = Field(pattern=r"^[a-f0-9]{16,64}$")
     supports_text_input: bool
     supports_image_input: bool

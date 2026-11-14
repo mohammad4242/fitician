@@ -5,6 +5,12 @@ import { resolve } from "node:path";
 const productionApiConfig = loadModuleSync(
   resolve(__dirname, "config/productionApiConfig.ts"),
 ) as typeof import("./config/productionApiConfig");
+const { diagnosticsRelease } = loadModuleSync(
+  resolve(__dirname, "config/diagnosticsRelease.ts"),
+) as typeof import("./config/diagnosticsRelease");
+const diagnosticBuild = diagnosticsRelease(
+  process.env.EAS_BUILD_GIT_COMMIT_HASH || process.env.EXPO_PUBLIC_APP_BUILD_SHA,
+);
 type MobileRuntimeEnvironment = import("./config/productionApiConfig").MobileRuntimeEnvironment;
 
 const withAndroidHardening = loadModuleSync(
@@ -173,6 +179,7 @@ const config: ExpoConfig = {
   icon: "./assets/branding/fitician-icon.png",
   userInterfaceStyle: "dark",
   plugins: [
+    ["@sentry/react-native/expo", { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT, url: process.env.SENTRY_URL || "https://sentry.io/" }],
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),
     "expo-web-browser",
@@ -254,6 +261,7 @@ const config: ExpoConfig = {
     },
   },
   extra: {
+    diagnosticBuildCommit: diagnosticBuild.commit ?? null,
     environment: appVariant,
     apiBaseUrl: productionApiConfig.resolveApiBaseUrl(
       process.env.EXPO_PUBLIC_API_BASE_URL,

@@ -1,4 +1,5 @@
 name: Deploy Fitician regional production
+run-name: ${{ inputs.operation_id && format('Debug deployment {0}', inputs.operation_id) || format('Regional deployment {0}', github.run_id) }}
 
 on:
   workflow_dispatch:
@@ -20,6 +21,22 @@ on:
       ci_run_id:
         description: Successful exact-SHA validation run (Full CI for full/agent; component CI for frontend/backend)
         required: true
+        type: string
+      expected_manifest_sha256:
+        description: Optional exact release-manifest hash bound to panel authorization
+        required: false
+        type: string
+      operation_id:
+        description: Optional issue-scoped panel operation UUID
+        required: false
+        type: string
+      expected_baseline_sha256:
+        description: Panel-approved target identity and database revision hash
+        required: false
+        type: string
+      authorization_expires_at:
+        description: Panel authorization expiry in UTC epoch seconds
+        required: false
         type: string
       owner_approved:
         description: Explicit owner approval for this regional deployment
@@ -77,10 +94,14 @@ jobs:
       vars.REGIONAL_CD_ENABLED == 'true' && vars.REGIONAL_AUTO_CD_ENABLED == 'true')
     runs-on: ubuntu-latest
     outputs:
+      operation_id: ${{ inputs.operation_id || '' }}
+      expected_baseline_sha256: ${{ inputs.expected_baseline_sha256 || '' }}
+      authorization_expires_at: ${{ inputs.authorization_expires_at || '' }}
       target: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.target || steps.automatic.outputs.target }}
       deploy_kind: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.deploy_kind || steps.automatic.outputs.deploy_kind }}
       image_tag: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.image_tag || steps.automatic.outputs.image_tag }}
       ci_run_id: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.ci_run_id || steps.automatic.outputs.ci_run_id }}
+      expected_manifest_sha256: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_manifest_sha256 || '' }}
       owner_approved: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.owner_approved || steps.automatic.outputs.owner_approved }}
       allow_schema_migrations: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.allow_schema_migrations || steps.automatic.outputs.allow_schema_migrations }}
       initial_deploy: ${{ github.event_name == 'workflow_dispatch' && steps.manual.outputs.initial_deploy || steps.automatic.outputs.initial_deploy }}
@@ -104,6 +125,10 @@ jobs:
           DEPLOY_KIND: ${{ inputs.deploy_kind }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           CI_RUN_ID: ${{ inputs.ci_run_id }}
+          EXPECTED_MANIFEST_SHA256: ${{ inputs.expected_manifest_sha256 }}
+          PANEL_OPERATION_ID: ${{ inputs.operation_id }}
+          EXPECTED_BASELINE_SHA256: ${{ inputs.expected_baseline_sha256 }}
+          AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}
           OWNER_APPROVED: ${{ inputs.owner_approved }}
           ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations }}
           INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
@@ -117,6 +142,17 @@ jobs:
           [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent ]]
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
           [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ -z "$EXPECTED_MANIFEST_SHA256" || "$EXPECTED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          if [[ -n "$PANEL_OPERATION_ID" ]]; then
+            [[ "$PANEL_OPERATION_ID" =~ ^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]
+            [[ "$EXPECTED_BASELINE_SHA256" =~ ^[a-f0-9]{64}$ && "$EXPECTED_MANIFEST_SHA256" =~ ^[a-f0-9]{64}$ ]]
+            [[ "$AUTHORIZATION_EXPIRES_AT" =~ ^[0-9]{10}$ ]]
+            test "$INITIAL_DEPLOY" = false
+            test "$ALLOW_SCHEMA_MIGRATIONS" = false
+            test "$DEPLOY_KIND" = full || test "$DEPLOY_KIND" = agent
+          else
+            test -z "$EXPECTED_BASELINE_SHA256$AUTHORIZATION_EXPIRES_AT"
+          fi
           [[ -z "$SCALABILITY_EVIDENCE_RUN_ID" || "$SCALABILITY_EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$IMAGE_SOURCE" == registry || "$IMAGE_SOURCE" == preloaded ]]
           for flag in "$OWNER_APPROVED" "$ALLOW_SCHEMA_MIGRATIONS" "$INITIAL_DEPLOY" "$FRONTEND_CONTRACT_REFRESH" "$FIRST_SCALABILITY_RELEASE_APPROVED"; do
@@ -150,6 +186,7 @@ jobs:
       backend_tests: ${{ steps.release.outputs.backend_tests }}
       release_path: ${{ steps.release.outputs.release_path }}
       shared_validated: ${{ steps.release.outputs.shared_validated }}
+      manifest_sha256: ${{ steps.release.outputs.manifest_sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -228,6 +265,7 @@ jobs:
           TARGET: ${{ needs.normalize-request.outputs.target }}
           DEPLOY_KIND: ${{ needs.normalize-request.outputs.deploy_kind }}
           FRONTEND_CONTRACT_REFRESH: ${{ needs.normalize-request.outputs.frontend_contract_refresh }}
+          EXPECTED_MANIFEST_SHA256: ${{ needs.normalize-request.outputs.expected_manifest_sha256 }}
         run: |
           set -euo pipefail
           mkdir -p .ci-evidence/regional
@@ -330,6 +368,10 @@ jobs:
       CI_RELEASE_PATH: ${{ needs.verify-release.outputs.release_path }}
       CI_SHARED_VALIDATED: ${{ needs.verify-release.outputs.shared_validated }}
       CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+      EXPECTED_MANIFEST_SHA256: ${{ needs.verify-release.outputs.manifest_sha256 }}
+      PANEL_OPERATION_ID: ${{ needs.normalize-request.outputs.operation_id }}
+      EXPECTED_BASELINE_SHA256: ${{ needs.normalize-request.outputs.expected_baseline_sha256 }}
+      AUTHORIZATION_EXPIRES_AT: ${{ needs.normalize-request.outputs.authorization_expires_at }}
       FRONTEND_CONTRACT_REFRESH: ${{ needs.normalize-request.outputs.frontend_contract_refresh }}
       VPS_USER: ${{ vars.VPS_USER }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
@@ -347,6 +389,31 @@ jobs:
           CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
           IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
         run: python3 ops/ci-auto-release.py --recheck-current-main --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG"
+      - name: Download immutable full release manifest from the verified CI run
+        if: env.DEPLOY_KIND == 'full' || env.DEPLOY_KIND == 'agent'
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-release-manifest-${{ env.IMAGE_TAG }}
+          path: .ci-evidence/regional-release
+          github-token: ${{ github.token }}
+          run-id: ${{ env.CI_RUN_ID }}
+      - name: Recheck the reviewed manifest hash before SSH
+        if: env.DEPLOY_KIND == 'full' || env.DEPLOY_KIND == 'agent'
+        run: |
+          python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          path = Path('.ci-evidence/regional-release/manifest.json')
+          assert hashlib.sha256(path.read_bytes()).hexdigest() == os.environ['EXPECTED_MANIFEST_SHA256'], 'Release artifact changed after approval'
+          PY
+      - name: Download exact Iran offline images from the same verified CI run
+        if: env.TARGET == 'iran' && env.DEPLOY_KIND == 'full' && env.IMAGE_SOURCE == 'preloaded'
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-offline-iran-${{ env.IMAGE_TAG }}
+          path: .ci-evidence/offline-iran
+          github-token: ${{ github.token }}
+          run-id: ${{ env.CI_RUN_ID }}
       - name: Validate regional deployment settings
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -411,11 +478,47 @@ jobs:
           ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/ops/redis'"
           scp -P "$VPS_SSH_PORT" ops/redis/redis.conf "$VPS_USER@$VPS_HOST:$release_dir/ops/redis/redis.conf"
           scp -P "$VPS_SSH_PORT" ops/deploy-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/deploy-regional.sh"
+          scp -P "$VPS_SSH_PORT" compose.debugging.yaml "$VPS_USER@$VPS_HOST:$release_dir/compose.debugging.yaml"
+          scp -P "$VPS_SSH_PORT" ops/diagnostics-release.py "$VPS_USER@$VPS_HOST:$release_dir/ops/diagnostics-release.py"
+          scp -P "$VPS_SSH_PORT" ops/panel-deployment-guard.py ops/debug-server-observation.py "$VPS_USER@$VPS_HOST:$release_dir/ops/"
           scp -P "$VPS_SSH_PORT" ops/verify-regional.sh "$VPS_USER@$VPS_HOST:$release_dir/ops/verify-regional.sh"
           scp -P "$VPS_SSH_PORT" ops/backup-production.sh "$VPS_USER@$VPS_HOST:$release_dir/backup-production.sh"
           scp -P "$VPS_SSH_PORT" ops/check-db-connection-budget.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-db-connection-budget.py"
           scp -P "$VPS_SSH_PORT" ops/check-runtime-capacity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/check-runtime-capacity.py"
           scp -P "$VPS_SSH_PORT" ops/rolling-backend.py "$VPS_USER@$VPS_HOST:$release_dir/ops/rolling-backend.py"
+          if [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == agent ]]; then
+            ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+              "if [ -e '$release_dir/manifest.json' ]; then printf '%s  %s\\n' '$EXPECTED_MANIFEST_SHA256' '$release_dir/manifest.json' | sha256sum --check --status; fi"
+            scp -P "$VPS_SSH_PORT" .ci-evidence/regional-release/manifest.json "$VPS_USER@$VPS_HOST:$release_dir/manifest.json"
+            scp -P "$VPS_SSH_PORT" ops/release-image-guard.py "$VPS_USER@$VPS_HOST:$release_dir/ops/release-image-guard.py"
+            scp -P "$VPS_SSH_PORT" backend/app/debugging/release_contract.py "$VPS_USER@$VPS_HOST:$release_dir/ops/release_contract.py"
+            scp -P "$VPS_SSH_PORT" backend/app/debugging/image_identity.py "$VPS_USER@$VPS_HOST:$release_dir/ops/image_identity.py"
+          fi
+      - name: Verify, transfer and load the exact Iran offline archive
+        if: env.TARGET == 'iran' && env.DEPLOY_KIND == 'full' && env.IMAGE_SOURCE == 'preloaded'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          required=$(python3 - <<'PY'
+          import importlib.util, os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('offline', 'ops/load-offline-release.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          root = Path('.ci-evidence/offline-iran')
+          size = module.archive_size(root, os.environ['EXPECTED_MANIFEST_SHA256'], os.environ['IMAGE_TAG'], int(os.environ['CI_RUN_ID']))
+          print(size + (root / 'image.tar.gz').stat().st_size + 1073741824)
+          PY
+          )
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            "python3 -c 'import shutil; assert shutil.disk_usage(\"$VPS_APP_DIR\").free >= $required, \"Insufficient safe offline-transfer capacity\"'"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "mkdir -p '$release_dir/offline'"
+          scp -P "$VPS_SSH_PORT" .ci-evidence/offline-iran/image.tar.gz .ci-evidence/offline-iran/image.tar.gz.sha256 .ci-evidence/offline-iran/manifest.json "$VPS_USER@$VPS_HOST:$release_dir/offline/"
+          scp -P "$VPS_SSH_PORT" ops/load-offline-release.py "$VPS_USER@$VPS_HOST:$release_dir/ops/load-offline-release.py"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            "python3 '$release_dir/ops/load-offline-release.py' --directory '$release_dir/offline' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID'"
       - name: Authenticate regional Docker client
         if: needs.normalize-request.outputs.image_source == 'registry'
         env:
@@ -505,4 +608,22 @@ jobs:
           # Reviewed target arguments expand locally; remote variables are escaped.
           # shellcheck disable=SC2029
           ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED='$OWNER_APPROVED' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' bash '$release_dir/ops/deploy-regional.sh'"
+            "REGION='$TARGET' DEPLOY_KIND='$DEPLOY_KIND' IMAGE_TAG='$IMAGE_TAG' CI_RUN_ID='$CI_RUN_ID' REQUIRE_RELEASE_MANIFEST=true PANEL_OPERATION_ID='$PANEL_OPERATION_ID' EXPECTED_BASELINE_SHA256='$EXPECTED_BASELINE_SHA256' AUTHORIZATION_EXPIRES_AT='$AUTHORIZATION_EXPIRES_AT' APP_DIR='$VPS_APP_DIR' RELEASE_DIR='$release_dir' COMPOSE_FILE='$release_dir/compose.prod.$TARGET.yaml' COMPOSE_PROJECT_NAME='$COMPOSE_PROJECT_NAME' FITICIAN_ENV_FILE='$VPS_APP_DIR/.env' OWNER_APPROVED='$OWNER_APPROVED' ALLOW_SCHEMA_MIGRATIONS='$ALLOW_SCHEMA_MIGRATIONS' IMAGE_SOURCE='$IMAGE_SOURCE' INITIAL_DEPLOY='$INITIAL_DEPLOY' FIRST_SCALABILITY_RELEASE_APPROVED='$FIRST_SCALABILITY_RELEASE_APPROVED' SCALABILITY_EVIDENCE_RUN_ID='$SCALABILITY_EVIDENCE_RUN_ID' bash '$release_dir/ops/deploy-regional.sh'"
+      - name: Read actual running image evidence for the panel
+        if: needs.normalize-request.outputs.operation_id != ''
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          release_dir="$VPS_APP_DIR/releases/$IMAGE_TAG"
+          mkdir -p .ci-evidence/debug-deployment
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
+            "python3 '$release_dir/ops/release-image-guard.py' --manifest '$release_dir/manifest.json' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --target '$TARGET' --kind '$DEPLOY_KIND' --mode verify-running --project '$COMPOSE_PROJECT_NAME' --app-dir '$VPS_APP_DIR' --operation-id '$PANEL_OPERATION_ID' --evidence-output '$release_dir/panel-$PANEL_OPERATION_ID.json'"
+          scp -P "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST:$release_dir/panel-$PANEL_OPERATION_ID.json" .ci-evidence/debug-deployment/deployment.json
+      - uses: actions/upload-artifact@v4
+        if: needs.normalize-request.outputs.operation_id != ''
+        with:
+          name: fitician-deployment-${{ needs.normalize-request.outputs.operation_id }}
+          path: .ci-evidence/debug-deployment/deployment.json
+          if-no-files-found: error
+          retention-days: 30

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal, Self
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AwareDatetime, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +11,19 @@ class Settings(BaseSettings):
     diagnostics_enabled: bool = True
     diagnostics_success_sample_rate: float = Field(default=1.0, ge=0, le=1)
     diagnostics_slow_request_ms: int = Field(default=2000, ge=1)
+    diagnostics_alert_enabled: bool = False
+    diagnostics_alert_enabled_at: AwareDatetime | None = None
+    diagnostics_alert_phone: SecretStr | None = Field(default=None, repr=False)
+    diagnostics_alert_cooldown_seconds: int = Field(default=3600, ge=300, le=86400)
+    diagnostics_alert_aggregation_seconds: int = Field(default=60, ge=10, le=300)
+    diagnostics_alert_min_interval_seconds: int = Field(default=30, ge=30, le=3600)
+    diagnostics_alert_max_per_hour: int = Field(default=20, ge=1, le=100)
     app_build_sha: str = ""
+
+    @field_validator("diagnostics_alert_phone", "diagnostics_alert_enabled_at", mode="before")
+    @classmethod
+    def normalize_empty_alert_configuration(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
 
     database_url: str = "postgresql+psycopg://fitician:fitician@localhost:5432/fitician"
     db_pool_size: int = Field(default=5, ge=1, le=50)

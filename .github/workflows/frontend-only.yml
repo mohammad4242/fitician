@@ -75,11 +75,14 @@ jobs:
   frontend-image:
     name: Build, verify, and push frontend image
     if: >-
-      always() && !cancelled() &&
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
       needs.frontend-verification.result == 'success' &&
       (inputs.publish_image || (github.event_name == 'workflow_dispatch' && !inputs.called_by_router))
     needs: frontend-verification
     runs-on: ubuntu-latest
+    environment:
+      name: production-iran
+      deployment: false
     permissions:
       contents: read
     steps:
@@ -116,6 +119,16 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Require configured Sentry release credentials
+        env:
+          WEB_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          if [ -n "$WEB_DSN" ]; then
+            test -n "$SENTRY_AUTH_TOKEN" && test -n "$SENTRY_ORG" && test -n "$SENTRY_PROJECT"
+          fi
       - name: Build frontend image for verification
         uses: docker/build-push-action@v6
         with:
@@ -126,6 +139,13 @@ jobs:
             VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
             VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
             VITE_APP_BUILD_SHA=${{ github.sha }}
+            VITE_SENTRY_DSN=${{ vars.VITE_SENTRY_DSN }}
+            VITE_SENTRY_ENVIRONMENT=production-iran
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
+            SENTRY_BUILD_ARTIFACTS=1
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:main
@@ -147,6 +167,13 @@ jobs:
               test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
               grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" /usr/share/nginx/html/assets >/dev/null
             '
+      - name: Verify every public image layer excludes private artifacts and credentials
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_API_TOKEN: ${{ secrets.SENTRY_API_TOKEN }}
+        run: python3 ops/check-private-release-image.py --image "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
       - name: Push verified frontend image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

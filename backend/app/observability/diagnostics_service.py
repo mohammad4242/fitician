@@ -5,15 +5,18 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import case, delete, func, select, update
+from sqlalchemy import String, case, cast, delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.config import Settings
 from app.database.session import isolated_session
 
 from .diagnostics_models import (
     DiagnosticAlert,
+    DiagnosticAlertAttempt,
+    DiagnosticAlertDelivery,
     DiagnosticEvent,
     DiagnosticIssue,
     DiagnosticStatusHistory,
@@ -153,11 +156,8 @@ def record_event(
             error_code=event.error_code,
             exception_type=event.exception_type,
             source_location=event.source_location,
-            confidence=(
-                "confirmed"
-                if trusted and event.exception_type == "ZeroDivisionError" and event.source_location
-                else "unknown"
-            ),
+            # A stack confirms the failure location, not the underlying cause.
+            confidence="unknown",
             title=_TITLES[event.category],
             first_seen=now,
             last_seen=now,
@@ -219,6 +219,12 @@ def record_event(
         issue.last_alert_at = now
     row = db.get(DiagnosticEvent, event_id)
     assert row is not None
+    if trusted and event.exception_evidence is not None:
+        from .evidence import persist_evidence
+
+        persist_evidence(
+            db, row, event.exception_evidence.model_dump(exclude_none=True), event.sentry_event_id
+        )
     return row
 
 
@@ -257,11 +263,100 @@ def cleanup_retention(
     db: Session, *, now: datetime | None = None, limit: int = 1000
 ) -> dict[str, int]:
     """Bound each cleanup run and retain only the newest 100k events."""
+    from app.debugging.models import DebugOperation, DebugRun, DebugThread
+
+    from .evidence_models import DiagnosticEvidenceSnapshot, DiagnosticExternalIssueLink
+
+    unpinned_events: ColumnElement[bool] = ~DiagnosticEvent.id.in_(
+        select(DiagnosticEvidenceSnapshot.event_id)
+    )
+    # A conversation can select an occurrence before any stack/Sentry snapshot exists.
+    # Correlated EXISTS handles legacy null/malformed JSON without casting untrusted text
+    # to UUID or accidentally pinning every event through NOT IN(NULL).
+    chat_reference = (
+        select(DebugRun.id)
+        .join(DebugThread, DebugThread.id == DebugRun.thread_id)
+        .where(
+            DebugThread.issue_id == DiagnosticEvent.issue_id,
+            DebugRun.evidence["occurrence_id"].as_string() == cast(DiagnosticEvent.id, String),
+        )
+        .exists()
+    )
+    operation_reference = (
+        select(DebugOperation.id)
+        .join(DebugRun, DebugRun.id == DebugOperation.run_id)
+        .join(DebugThread, DebugThread.id == DebugRun.thread_id)
+        .where(
+            DebugThread.issue_id == DiagnosticEvent.issue_id,
+            DebugOperation.occurrence_id == DiagnosticEvent.id,
+        )
+        .exists()
+    )
+    unpinned_events = unpinned_events & ~chat_reference & ~operation_reference
+    unpinned_issues = ~DiagnosticIssue.id.in_(
+        select(DiagnosticEvidenceSnapshot.issue_id)
+    ) & ~DiagnosticIssue.id.in_(select(DiagnosticExternalIssueLink.issue_id))
+    unpinned_issues = unpinned_issues & ~DiagnosticIssue.id.in_(select(DebugThread.issue_id))
+    unpinned_issues = unpinned_issues & ~DiagnosticIssue.id.in_(
+        select(DiagnosticAlertDelivery.issue_id)
+    )
     moment = now or datetime.now(UTC)
     batch = min(max(limit, 1), 1000)
+    closed_old_issues = select(DiagnosticIssue.id).where(
+        DiagnosticIssue.status.in_(["resolved", "ignored"]),
+        DiagnosticIssue.last_seen < moment - timedelta(days=90),
+        ~DiagnosticIssue.id.in_(select(DebugThread.issue_id)),
+    )
+    expired_deliveries = (
+        select(DiagnosticAlertDelivery.id)
+        .where(
+            DiagnosticAlertDelivery.issue_id.in_(closed_old_issues),
+            DiagnosticAlertDelivery.updated_at < moment - timedelta(days=90),
+            DiagnosticAlertDelivery.state.not_in(["queued", "retrying", "sending"]),
+        )
+        .limit(batch)
+    )
+    expired_attempts = (
+        select(DiagnosticAlertAttempt.id)
+        .where(DiagnosticAlertAttempt.delivery_id.in_(expired_deliveries))
+        .limit(batch)
+    )
+    db.execute(
+        delete(DiagnosticAlertAttempt).where(DiagnosticAlertAttempt.id.in_(expired_attempts))
+    )
+    db.execute(
+        delete(DiagnosticAlertDelivery).where(
+            DiagnosticAlertDelivery.id.in_(expired_deliveries),
+            ~DiagnosticAlertDelivery.id.in_(select(DiagnosticAlertAttempt.delivery_id)),
+        )
+    )
+    expired_evidence = (
+        select(DiagnosticEvidenceSnapshot.id)
+        .where(
+            DiagnosticEvidenceSnapshot.issue_id.in_(closed_old_issues),
+            DiagnosticEvidenceSnapshot.created_at < moment - timedelta(days=90),
+        )
+        .limit(batch)
+    )
+    db.execute(
+        delete(DiagnosticEvidenceSnapshot).where(
+            DiagnosticEvidenceSnapshot.id.in_(expired_evidence)
+        )
+    )
+    expired_links = (
+        select(DiagnosticExternalIssueLink.id)
+        .where(
+            DiagnosticExternalIssueLink.issue_id.in_(closed_old_issues),
+        )
+        .limit(batch)
+    )
+    db.execute(
+        delete(DiagnosticExternalIssueLink).where(DiagnosticExternalIssueLink.id.in_(expired_links))
+    )
+
     event_ids = (
         select(DiagnosticEvent.id)
-        .where(DiagnosticEvent.timestamp < moment - timedelta(days=30))
+        .where(DiagnosticEvent.timestamp < moment - timedelta(days=30), unpinned_events)
         .order_by(DiagnosticEvent.timestamp)
         .limit(batch)
     )
@@ -270,7 +365,10 @@ def cleanup_retention(
     excess = max((db.scalar(select(func.count()).select_from(DiagnosticEvent)) or 0) - 100_000, 0)
     if excess:
         old_ids = (
-            select(DiagnosticEvent.id).order_by(DiagnosticEvent.timestamp).limit(min(excess, batch))
+            select(DiagnosticEvent.id)
+            .where(unpinned_events)
+            .order_by(DiagnosticEvent.timestamp)
+            .limit(min(excess, batch))
         )
         result = db.execute(delete(DiagnosticEvent).where(DiagnosticEvent.id.in_(old_ids)))
         expired_count += int(getattr(result, "rowcount", 0) or 0)
@@ -280,12 +378,17 @@ def cleanup_retention(
         (DiagnosticStatusHistory, DiagnosticStatusHistory.created_at, "history"),
         (DiagnosticIssue, DiagnosticIssue.last_seen, "issues"),
     ):
-        ids = select(model.id).where(date_field < moment - timedelta(days=90)).limit(batch)
+        eligible = unpinned_issues if model is DiagnosticIssue else true()
+        ids = (
+            select(model.id).where(date_field < moment - timedelta(days=90), eligible).limit(batch)
+        )
         result = db.execute(delete(model).where(model.id.in_(ids)))
         removed[key] = int(getattr(result, "rowcount", 0) or 0)
         excess_rows = max((db.scalar(select(func.count()).select_from(model)) or 0) - 10_000, 0)
         if excess_rows:
-            oldest = select(model.id).order_by(date_field).limit(min(excess_rows, batch))
+            oldest = (
+                select(model.id).where(eligible).order_by(date_field).limit(min(excess_rows, batch))
+            )
             result = db.execute(delete(model).where(model.id.in_(oldest)))
             removed[key] += int(getattr(result, "rowcount", 0) or 0)
     return removed

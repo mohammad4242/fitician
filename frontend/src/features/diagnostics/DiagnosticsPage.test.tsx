@@ -65,7 +65,7 @@ describe("admin diagnostics", () => {
 
   it("shows issue taxonomy, confidence, status history, and records an admin status note", async () => {
     renderAt("/admin/diagnostics?tab=issues&issue=issue-1");
-    expect(await screen.findByText(/not enough evidence/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Cause assessments and their verification/i)).toBeInTheDocument();
     expect(screen.getByText("Reviewed safely")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /admin-1/ })).toHaveAttribute("href", "/admin/billing/users/admin-1");
     fireEvent.change(screen.getByLabelText("Admin note (optional)"), { target: { value: "Checked correlated request" } });

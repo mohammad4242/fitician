@@ -1,3 +1,5 @@
+import "./shared/sentry";
+import { rootErrorHandlers } from "./shared/reactErrorHandlers";
 import "@fontsource/lalezar";
 import "@fontsource-variable/sora";
 import "@fontsource-variable/vazirmatn";
@@ -10,22 +12,10 @@ import "./index.css";
 import "./pwa/pwa.css";
 import { applyDesignSystem } from "./styles/designSystem";
 import { readTheme } from "./theme/ThemeProvider";
-import { installWebRuntimeDiagnostics, reportReactRootError } from "./shared/clientDiagnostics";
+import { installWebRuntimeDiagnostics } from "./shared/clientDiagnostics";
 
 applyDesignSystem(document.documentElement, readTheme());
 installWebRuntimeDiagnostics();
-
-const rootErrorHandlers = {
-  onCaughtError(error: unknown, info: { componentStack?: string | null }) {
-    reportReactRootError("caught", error);
-    console.error(error, info.componentStack);
-  },
-  onUncaughtError(error: unknown) {
-    reportReactRootError("uncaught", error);
-    if (typeof window.reportError === "function") window.reportError(error);
-    else console.error(error);
-  },
-};
 
 const path = window.location.pathname;
 const root = document.getElementById("root")!;

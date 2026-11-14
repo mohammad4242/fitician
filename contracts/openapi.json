@@ -79,6 +79,18 @@
           "credential": {
             "$ref": "#/components/schemas/CredentialStatus"
           },
+          "debug_connector_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Connector Id"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
@@ -269,6 +281,18 @@
             ],
             "title": "Api Key"
           },
+          "debug_connector_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Connector Id"
+          },
           "enabled": {
             "default": false,
             "title": "Enabled",
@@ -368,6 +392,7 @@
       },
       "AITaskType": {
         "enum": [
+          "debug_agent",
           "workout_plan_generation",
           "body_photo_analysis",
           "progress_comparison",
@@ -4366,7 +4391,7 @@
             "items": {
               "$ref": "#/components/schemas/AITaskType"
             },
-            "maxItems": 4,
+            "maxItems": 6,
             "minItems": 1,
             "title": "Task Kinds",
             "type": "array"
@@ -4844,6 +4869,233 @@
           "checked_at"
         ],
         "title": "AgentServiceTestResponse",
+        "type": "object"
+      },
+      "AlertAttemptResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "provider_message_id",
+          "error_code",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "AlertAttemptResponse",
+        "type": "object"
+      },
+      "AlertChannelResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cooldown_seconds": {
+            "title": "Cooldown Seconds",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "max_per_hour": {
+            "title": "Max Per Hour",
+            "type": "integer"
+          },
+          "min_interval_seconds": {
+            "title": "Min Interval Seconds",
+            "type": "integer"
+          },
+          "provider_configured": {
+            "title": "Provider Configured",
+            "type": "boolean"
+          },
+          "recipient_configured": {
+            "title": "Recipient Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "recipient_configured",
+          "provider_configured",
+          "cooldown_seconds",
+          "min_interval_seconds",
+          "max_per_hour"
+        ],
+        "title": "AlertChannelResponse",
+        "type": "object"
+      },
+      "AlertDeliveryPage": {
+        "additionalProperties": false,
+        "properties": {
+          "configuration": {
+            "$ref": "#/components/schemas/AlertChannelResponse"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertDeliveryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "configuration",
+          "next_offset"
+        ],
+        "title": "AlertDeliveryPage",
+        "type": "object"
+      },
+      "AlertDeliveryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/AlertAttemptResponse"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "covered_count": {
+            "title": "Covered Count",
+            "type": "integer"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "last_dispatch_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Dispatch At"
+          },
+          "occurrence_total": {
+            "title": "Occurrence Total",
+            "type": "integer"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_id",
+          "environment",
+          "state",
+          "occurrence_total",
+          "covered_count",
+          "provider_message_id",
+          "error_code",
+          "available_at",
+          "last_dispatch_at",
+          "attempts"
+        ],
+        "title": "AlertDeliveryResponse",
         "type": "object"
       },
       "AlertResponse": {
@@ -5817,6 +6069,338 @@
         ],
         "title": "AthleteStateTrendDirection",
         "type": "string"
+      },
+      "AutomationAuthorizationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized": {
+            "title": "Authorized",
+            "type": "boolean"
+          },
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorized",
+          "cancel_requested",
+          "state"
+        ],
+        "title": "AutomationAuthorizationResponse",
+        "type": "object"
+      },
+      "AutomationAvailability": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "live_validation_verified": {
+            "title": "Live Validation Verified",
+            "type": "boolean"
+          },
+          "policy_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Commit"
+          },
+          "worker_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Id"
+          },
+          "worker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worker Name"
+          }
+        },
+        "required": [
+          "worker_id",
+          "worker_name",
+          "connected",
+          "configured",
+          "live_validation_verified",
+          "policy_commit",
+          "error_code"
+        ],
+        "title": "AutomationAvailability",
+        "type": "object"
+      },
+      "AutomationHeartbeatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "environment"
+        ],
+        "title": "AutomationHeartbeatResponse",
+        "type": "object"
+      },
+      "AutomationJob": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "validate",
+              "publish_pr",
+              "deploy",
+              "observe"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile"
+          },
+          "purpose": {
+            "enum": [
+              "connection_check",
+              "repair_validation",
+              "repair_publication",
+              "server_observation",
+              "repair_deployment"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          },
+          "request": {
+            "additionalProperties": true,
+            "title": "Request",
+            "type": "object"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Digest"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "target_environment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "production-iran",
+                  "production-germany"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Environment"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "occurrence_id",
+          "environment",
+          "kind",
+          "state",
+          "error_code",
+          "cancel_requested",
+          "profile",
+          "purpose",
+          "snapshot_digest",
+          "result",
+          "created_at",
+          "updated_at",
+          "lease_token",
+          "request",
+          "repository"
+        ],
+        "title": "AutomationJob",
+        "type": "object"
+      },
+      "AutomationPollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutomationJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "AutomationPollResponse",
+        "type": "object"
+      },
+      "AutomationProbeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "occurrence_id": {
+            "format": "uuid",
+            "title": "Occurrence Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "occurrence_id"
+        ],
+        "title": "AutomationProbeInput",
+        "type": "object"
+      },
+      "AutomationProgressResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "enum": [
+              "recorded",
+              "reconcile_only",
+              "dispatch_once",
+              "cancel_once",
+              "publish_once"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/OperationResponse"
+          }
+        },
+        "required": [
+          "operation",
+          "disposition"
+        ],
+        "title": "AutomationProgressResponse",
+        "type": "object"
       },
       "BalanceAbility": {
         "enum": [
@@ -8597,6 +9181,40 @@
         "title": "BudgetStyle",
         "type": "string"
       },
+      "CIStatusRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token"
+        ],
+        "title": "CIStatusRequest",
+        "type": "object"
+      },
+      "CallStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cancel_requested",
+          "state"
+        ],
+        "title": "CallStatusResponse",
+        "type": "object"
+      },
       "CaloriePoint": {
         "properties": {
           "actual_kcal": {
@@ -8711,6 +9329,93 @@
         ],
         "title": "CampaignSurface",
         "type": "string"
+      },
+      "Capabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "cli_version": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cli Version"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Models",
+            "type": "array"
+          },
+          "repository_head": {
+            "pattern": "^[a-f0-9]{40}$",
+            "title": "Repository Head",
+            "type": "string"
+          },
+          "runtime_error_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "dedicated_codex_authentication_required",
+                  "unsupported_codex_protocol_version",
+                  "dedicated_codex_home_must_be_private",
+                  "dedicated_codex_home_configuration_not_allowed",
+                  "project_runtime_configuration_not_allowed",
+                  "codex_discovery_failed",
+                  "codex_discovery_timeout"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Error Code"
+          },
+          "runtime_revision": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runtime Revision"
+          },
+          "supports_ci": {
+            "default": false,
+            "title": "Supports Ci",
+            "type": "boolean"
+          },
+          "supports_codex": {
+            "default": false,
+            "title": "Supports Codex",
+            "type": "boolean"
+          },
+          "supports_github": {
+            "default": false,
+            "title": "Supports Github",
+            "type": "boolean"
+          },
+          "supports_tests": {
+            "default": false,
+            "title": "Supports Tests",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "repository_head"
+        ],
+        "title": "Capabilities",
+        "type": "object"
       },
       "CatalogueConsumptionInput": {
         "properties": {
@@ -9794,6 +10499,7 @@
           "platform": {
             "enum": [
               "android",
+              "ios",
               "ios_pwa",
               "web"
             ],
@@ -9812,6 +10518,18 @@
               }
             ],
             "title": "Request Id"
+          },
+          "sentry_event_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentry Event Id"
           },
           "source_location": {
             "anyOf": [
@@ -10077,6 +10795,27 @@
           "all_standardized_views_present"
         ],
         "title": "ComparisonInputQuality",
+        "type": "object"
+      },
+      "Completion": {
+        "additionalProperties": false,
+        "properties": {
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          }
+        },
+        "required": [
+          "lease_token",
+          "result"
+        ],
+        "title": "Completion",
         "type": "object"
       },
       "CompletionFeedbackInput": {
@@ -10372,6 +11111,124 @@
           }
         },
         "title": "CompletionFeedbackInput",
+        "type": "object"
+      },
+      "CompletionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "stored": {
+            "title": "Stored",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stored"
+        ],
+        "title": "CompletionResponse",
+        "type": "object"
+      },
+      "ConnectorEnrollment": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ConnectorEnrollment",
+        "type": "object"
+      },
+      "ConnectorJob": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "analyze",
+              "prepare_fix"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "release_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Commit"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "thread_id": {
+            "format": "uuid",
+            "title": "Thread Id",
+            "type": "string"
+          },
+          "tool": {
+            "pattern": "^fitician_[a-z_]+$",
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "thread_id",
+          "lease_token",
+          "tool",
+          "arguments",
+          "action",
+          "repository",
+          "environment",
+          "release_commit",
+          "config",
+          "evidence"
+        ],
+        "title": "ConnectorJob",
         "type": "object"
       },
       "ConsumptionEntryEditInput": {
@@ -11450,6 +12307,48 @@
         "title": "DailyCheckInInput",
         "type": "object"
       },
+      "DeploymentAuthorizationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "preview_sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview_sha256"
+        ],
+        "title": "DeploymentAuthorizationInput",
+        "type": "object"
+      },
+      "DeploymentPreviewInput": {
+        "additionalProperties": false,
+        "properties": {
+          "ci_run_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Ci Run Id",
+            "type": "integer"
+          },
+          "observation_id": {
+            "format": "uuid",
+            "title": "Observation Id",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication_id",
+          "observation_id",
+          "ci_run_id"
+        ],
+        "title": "DeploymentPreviewInput",
+        "type": "object"
+      },
       "DiagnosticHours": {
         "enum": [
           1,
@@ -11958,6 +12857,27 @@
           "os_version"
         ],
         "title": "EventResponse",
+        "type": "object"
+      },
+      "EvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key"
+        ],
+        "title": "EvidenceRequest",
         "type": "object"
       },
       "ExerciseCategories": {
@@ -12576,6 +13496,190 @@
         ],
         "title": "ExperienceLevel",
         "type": "string"
+      },
+      "FindingResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "can_verify": {
+            "title": "Can Verify",
+            "type": "boolean"
+          },
+          "classification": {
+            "enum": [
+              "observed_fact",
+              "hypothesis",
+              "next_check"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "evidence_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Version"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          },
+          "provenance": {
+            "title": "Provenance",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "test_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/TestProofSummary"
+            },
+            "title": "Test Evidence",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "classification",
+          "text",
+          "evidence_ids",
+          "occurrence_id",
+          "evidence_version",
+          "provenance",
+          "stale",
+          "model",
+          "created_at",
+          "verification",
+          "can_verify",
+          "test_evidence"
+        ],
+        "title": "FindingResponse",
+        "type": "object"
+      },
+      "FindingReview": {
+        "additionalProperties": false,
+        "properties": {
+          "after_test_id": {
+            "format": "uuid",
+            "title": "After Test Id",
+            "type": "string"
+          },
+          "before_test_id": {
+            "format": "uuid",
+            "title": "Before Test Id",
+            "type": "string"
+          },
+          "evidence_version": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Version",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 8,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "before_test_id",
+          "after_test_id",
+          "evidence_version",
+          "note"
+        ],
+        "title": "FindingReview",
+        "type": "object"
+      },
+      "FindingsPage": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResponse"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "findings",
+          "next_offset"
+        ],
+        "title": "FindingsPage",
+        "type": "object"
       },
       "FitnessGoal": {
         "enum": [
@@ -13551,6 +14655,84 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "Heartbeat": {
+        "additionalProperties": false,
+        "properties": {
+          "error_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z_]{3,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "github_authenticated": {
+            "title": "Github Authenticated",
+            "type": "boolean"
+          },
+          "policy_commit": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Commit"
+          },
+          "runtime_revision": {
+            "pattern": "^[a-f0-9]{40}$",
+            "title": "Runtime Revision",
+            "type": "string"
+          },
+          "workflow_installed": {
+            "title": "Workflow Installed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "runtime_revision",
+          "github_authenticated",
+          "workflow_installed"
+        ],
+        "title": "Heartbeat",
+        "type": "object"
+      },
+      "HeartbeatResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "ci_available": {
+            "default": false,
+            "title": "Ci Available",
+            "type": "boolean"
+          },
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "repository": {
+            "title": "Repository",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "environment",
+          "repository"
+        ],
+        "title": "HeartbeatResponse",
+        "type": "object"
+      },
       "HomeTrainingSetup": {
         "enum": [
           "bodyweight_only",
@@ -13560,6 +14742,36 @@
         ],
         "title": "HomeTrainingSetup",
         "type": "string"
+      },
+      "HostObservationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "target_environment": {
+            "enum": [
+              "production-iran",
+              "production-germany"
+            ],
+            "title": "Target Environment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key",
+          "target_environment"
+        ],
+        "title": "HostObservationRequest",
+        "type": "object"
       },
       "ImpactLimit": {
         "enum": [
@@ -13638,6 +14850,33 @@
           "evidence"
         ],
         "title": "InfrastructureSignal",
+        "type": "object"
+      },
+      "Intent": {
+        "additionalProperties": false,
+        "properties": {
+          "intent": {
+            "enum": [
+              "prepare",
+              "dispatch",
+              "cancel",
+              "observe",
+              "publish"
+            ],
+            "title": "Intent",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "intent"
+        ],
+        "title": "Intent",
         "type": "object"
       },
       "IssueDetailResponse": {
@@ -14679,28 +15918,6 @@
           "usage_status"
         ],
         "title": "MemberSummary",
-        "type": "object"
-      },
-      "MessageInput": {
-        "additionalProperties": false,
-        "properties": {
-          "body": {
-            "maxLength": 2000,
-            "minLength": 1,
-            "title": "Body",
-            "type": "string"
-          },
-          "request_id": {
-            "format": "uuid",
-            "title": "Request Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "body",
-          "request_id"
-        ],
-        "title": "MessageInput",
         "type": "object"
       },
       "MessageResponse": {
@@ -19605,6 +20822,162 @@
         "title": "NutritionWeightTrendResponse",
         "type": "object"
       },
+      "OperationPage": {
+        "additionalProperties": false,
+        "properties": {
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/OperationResponse"
+            },
+            "title": "Operations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "title": "OperationPage",
+        "type": "object"
+      },
+      "OperationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "validate",
+              "publish_pr",
+              "deploy",
+              "observe"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile"
+          },
+          "purpose": {
+            "enum": [
+              "connection_check",
+              "repair_validation",
+              "repair_publication",
+              "server_observation",
+              "repair_deployment"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Digest"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "target_environment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "production-iran",
+                  "production-germany"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Environment"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "occurrence_id",
+          "environment",
+          "kind",
+          "state",
+          "error_code",
+          "cancel_requested",
+          "profile",
+          "purpose",
+          "snapshot_digest",
+          "result",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "OperationResponse",
+        "type": "object"
+      },
       "OverviewResponse": {
         "additionalProperties": false,
         "properties": {
@@ -21071,6 +22444,26 @@
         "title": "PlatformCount",
         "type": "object"
       },
+      "PollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConnectorJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "PollResponse",
+        "type": "object"
+      },
       "PreferredVariety": {
         "enum": [
           "low",
@@ -21630,6 +23023,72 @@
           "expires_in_seconds"
         ],
         "title": "PrivateAccessGrantResponse",
+        "type": "object"
+      },
+      "ProbeJob": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "release_commit": {
+            "pattern": "^[a-f0-9]{40}$",
+            "title": "Release Commit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "release_commit",
+          "lease_token"
+        ],
+        "title": "ProbeJob",
+        "type": "object"
+      },
+      "ProbePollResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbeJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "job"
+        ],
+        "title": "ProbePollResponse",
+        "type": "object"
+      },
+      "ProbeStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized": {
+            "title": "Authorized",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "authorized"
+        ],
+        "title": "ProbeStatusResponse",
         "type": "object"
       },
       "ProductCatalogItemResponse": {
@@ -22991,6 +24450,38 @@
         "title": "ProgramTimelineTodayResponse",
         "type": "object"
       },
+      "Progress": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "default": "tool_progress",
+            "maxLength": 32,
+            "title": "Kind",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "sequence": {
+            "minimum": 0.0,
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lease_token",
+          "sequence"
+        ],
+        "title": "Progress",
+        "type": "object"
+      },
       "ProgressBodyMeasurements": {
         "properties": {
           "hip": {
@@ -23404,6 +24895,37 @@
           "context"
         ],
         "title": "ProgressOverview",
+        "type": "object"
+      },
+      "ProgressResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cancel_requested": {
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cancel_requested",
+          "sequence"
+        ],
+        "title": "ProgressResponse",
         "type": "object"
       },
       "ProgressTraining": {
@@ -24079,6 +25601,45 @@
         "title": "PublicSignupCampaignResponse",
         "type": "object"
       },
+      "PublicationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "snapshot_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 140,
+            "title": "Title",
+            "type": "string"
+          },
+          "validation_id": {
+            "format": "uuid",
+            "title": "Validation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key",
+          "validation_id",
+          "snapshot_digest",
+          "title"
+        ],
+        "title": "PublicationRequest",
+        "type": "object"
+      },
       "QuickApproximationInput": {
         "properties": {
           "calories": {
@@ -24172,6 +25733,49 @@
           "message_id"
         ],
         "title": "ReadInput",
+        "type": "object"
+      },
+      "Receipt": {
+        "additionalProperties": false,
+        "properties": {
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "stage": {
+            "enum": [
+              "prepared",
+              "observation_prepared",
+              "observation_completed",
+              "deployment_prepared",
+              "deployment_completed",
+              "deployment_verified",
+              "dispatch_intent",
+              "dispatched",
+              "uncertain",
+              "completed",
+              "failed",
+              "waiting",
+              "cancel_intent",
+              "publication_intent",
+              "publication_completed"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lease_token",
+          "stage",
+          "result"
+        ],
+        "title": "Receipt",
         "type": "object"
       },
       "RecentTrainingHistory": {
@@ -25410,6 +27014,26 @@
         "title": "ReviewProfileSummary",
         "type": "object"
       },
+      "ReviewResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "const": "reviewed_finding",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "ReviewResponse",
+        "type": "object"
+      },
       "RevokeGrantRequest": {
         "additionalProperties": false,
         "properties": {
@@ -25792,6 +27416,27 @@
           "emergency_or_danger_symptoms"
         ],
         "title": "SafetyProfileInput",
+        "type": "object"
+      },
+      "ServerEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "format": "uuid",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "output": {
+            "maxLength": 28000,
+            "title": "Output",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "output"
+        ],
+        "title": "ServerEvidenceResponse",
         "type": "object"
       },
       "Sex": {
@@ -26545,6 +28190,48 @@
         "title": "StatusInput",
         "type": "object"
       },
+      "StoredServerEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "maxLength": 28000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "state": {
+            "enum": [
+              "recorded",
+              "not_collected"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "StoredServerEvidenceResponse",
+        "type": "object"
+      },
       "StructureFamily": {
         "enum": [
           "upper_lower",
@@ -26999,6 +28686,31 @@
         ],
         "title": "TemplateFocusTag",
         "type": "string"
+      },
+      "TestProofSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "passed",
+          "command"
+        ],
+        "title": "TestProofSummary",
+        "type": "object"
       },
       "TicketDetail": {
         "properties": {
@@ -27940,6 +29652,48 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "ValidationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "lease_token": {
+            "format": "uuid",
+            "title": "Lease Token",
+            "type": "string"
+          },
+          "profile": {
+            "maxLength": 32,
+            "title": "Profile",
+            "type": "string"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          },
+          "tests": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Tests",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lease_token",
+          "key",
+          "profile",
+          "tests",
+          "snapshot"
+        ],
+        "title": "ValidationRequest",
+        "type": "object"
+      },
       "ValidationStatus": {
         "enum": [
           "VALID",
@@ -27948,6 +29702,56 @@
         ],
         "title": "ValidationStatus",
         "type": "string"
+      },
+      "VerificationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_id": {
+            "format": "uuid",
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "after_test_id": {
+            "format": "uuid",
+            "title": "After Test Id",
+            "type": "string"
+          },
+          "before_test_id": {
+            "format": "uuid",
+            "title": "Before Test Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "method": {
+            "const": "reviewed_regression_comparison",
+            "title": "Method",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "actor_id",
+          "method",
+          "note",
+          "before_test_id",
+          "after_test_id",
+          "created_at"
+        ],
+        "title": "VerificationResponse",
+        "type": "object"
       },
       "VerifyPaymentRequest": {
         "additionalProperties": false,
@@ -31838,6 +33642,65 @@
         ],
         "title": "WorkoutTimelineState",
         "type": "string"
+      },
+      "app__debugging__router__MessageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "default": "analyze",
+            "enum": [
+              "analyze",
+              "prepare_fix"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "occurrence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurrence Id"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "MessageInput",
+        "type": "object"
+      },
+      "app__program_conversations__router__MessageInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body",
+          "request_id"
+        ],
+        "title": "MessageInput",
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -34755,6 +36618,290 @@
         ]
       }
     },
+    "/api/v1/admin/diagnostics/automation-status": {
+      "get": {
+        "operationId": "automation_status_api_v1_admin_diagnostics_automation_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Automation Status",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/automation-workers": {
+      "get": {
+        "operationId": "list_automation_api_v1_admin_diagnostics_automation_workers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Automation Api V1 Admin Diagnostics Automation Workers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Automation",
+        "tags": [
+          "admin-debugging"
+        ]
+      },
+      "post": {
+        "operationId": "enroll_automation_api_v1_admin_diagnostics_automation_workers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Enroll Automation Api V1 Admin Diagnostics Automation Workers Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Enroll Automation",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/automation-workers/{connector_id}/revoke": {
+      "post": {
+        "operationId": "revoke_laptop_api_v1_admin_diagnostics_automation_workers__connector_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Revoke Laptop Api V1 Admin Diagnostics Automation Workers  Connector Id  Revoke Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Laptop",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/connectors": {
+      "get": {
+        "operationId": "list_laptops_api_v1_admin_diagnostics_connectors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Laptops Api V1 Admin Diagnostics Connectors Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Laptops",
+        "tags": [
+          "admin-debugging"
+        ]
+      },
+      "post": {
+        "operationId": "enroll_laptop_api_v1_admin_diagnostics_connectors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Enroll Laptop Api V1 Admin Diagnostics Connectors Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Enroll Laptop",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/revoke": {
+      "post": {
+        "operationId": "revoke_laptop_api_v1_admin_diagnostics_connectors__connector_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Revoke Laptop Api V1 Admin Diagnostics Connectors  Connector Id  Revoke Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Laptop",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
     "/api/v1/admin/diagnostics/events": {
       "get": {
         "operationId": "list_events_api_v1_admin_diagnostics_events_get",
@@ -35360,6 +37507,1070 @@
           }
         ],
         "summary": "Update Issue",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/automation-probe": {
+      "post": {
+        "operationId": "automation_probe_api_v1_admin_diagnostics_issues__issue_id__automation_probe_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationProbeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Automation Probe",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/conversation": {
+      "get": {
+        "operationId": "conversation_api_v1_admin_diagnostics_issues__issue_id__conversation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Conversation Api V1 Admin Diagnostics Issues  Issue Id  Conversation Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Conversation",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments": {
+      "post": {
+        "operationId": "preview_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Deployment",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments/{operation_id}/authorize": {
+      "post": {
+        "operationId": "approve_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeploymentAuthorizationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve Deployment",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/evidence": {
+      "get": {
+        "operationId": "get_issue_evidence_api_v1_admin_diagnostics_issues__issue_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "occurrence_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurrence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Issue Evidence Api V1 Admin Diagnostics Issues  Issue Id  Evidence Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Issue Evidence",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings": {
+      "get": {
+        "operationId": "findings_api_v1_admin_diagnostics_issues__issue_id__findings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "occurrence_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurrence Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingsPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Findings",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/findings/{finding_id}/verify": {
+      "post": {
+        "operationId": "verify_api_v1_admin_diagnostics_issues__issue_id__findings__finding_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/messages": {
+      "post": {
+        "operationId": "post_message_api_v1_admin_diagnostics_issues__issue_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__debugging__router__MessageInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Post Message Api V1 Admin Diagnostics Issues  Issue Id  Messages Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Post Message",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/operations": {
+      "get": {
+        "operationId": "operations_api_v1_admin_diagnostics_issues__issue_id__operations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Operations",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/operations/{operation_id}/cancel": {
+      "post": {
+        "operationId": "cancel_operation_api_v1_admin_diagnostics_issues__issue_id__operations__operation_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Operation",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Api V1 Admin Diagnostics Issues  Issue Id  Runs  Run Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/events": {
+      "get": {
+        "operationId": "run_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Run Events Api V1 Admin Diagnostics Issues  Issue Id  Runs  Run Id  Events Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Events",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/server-evidence": {
+      "get": {
+        "operationId": "recorded_server_evidence_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__server_evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredServerEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Recorded Server Evidence",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/runs/{run_id}/stream": {
+      "get": {
+        "operationId": "stream_events_api_v1_admin_diagnostics_issues__issue_id__runs__run_id__stream_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "After",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "last-event-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 20,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Stream Events",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/notification-deliveries": {
+      "get": {
+        "operationId": "notification_deliveries_api_v1_admin_diagnostics_notification_deliveries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "issue_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDeliveryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Notification Deliveries",
         "tags": [
           "admin-diagnostics"
         ]
@@ -39415,6 +42626,1130 @@
         "summary": "Submit Review",
         "tags": [
           "coach-workout-reviews"
+        ]
+      }
+    },
+    "/api/v1/debug-automation/{worker_id}/heartbeat": {
+      "post": {
+        "operationId": "heartbeat_api_v1_debug_automation__worker_id__heartbeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Worker Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Heartbeat"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationHeartbeatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Heartbeat",
+        "tags": [
+          "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-automation/{worker_id}/operations/{operation_id}": {
+      "get": {
+        "operationId": "status_api_v1_debug_automation__worker_id__operations__operation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Worker Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Status",
+        "tags": [
+          "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-automation/{worker_id}/operations/{operation_id}/authorize": {
+      "post": {
+        "operationId": "authorize_api_v1_debug_automation__worker_id__operations__operation_id__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Worker Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Intent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationAuthorizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Authorize",
+        "tags": [
+          "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-automation/{worker_id}/operations/{operation_id}/progress": {
+      "post": {
+        "operationId": "progress_api_v1_debug_automation__worker_id__operations__operation_id__progress_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Worker Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Receipt"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationProgressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Progress",
+        "tags": [
+          "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-automation/{worker_id}/poll": {
+      "post": {
+        "operationId": "poll_api_v1_debug_automation__worker_id__poll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "worker_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Worker Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationPollResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Poll",
+        "tags": [
+          "debug-automation"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/ci-status": {
+      "post": {
+        "operationId": "ci_status_api_v1_debug_connectors__connector_id__calls__call_id__ci_status_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CIStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ci Status",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/complete": {
+      "post": {
+        "operationId": "complete_api_v1_debug_connectors__connector_id__calls__call_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Completion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/host-observations": {
+      "post": {
+        "operationId": "queue_host_observation_api_v1_debug_connectors__connector_id__calls__call_id__host_observations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostObservationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Queue Host Observation",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/progress": {
+      "post": {
+        "operationId": "progress_api_v1_debug_connectors__connector_id__calls__call_id__progress_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Progress"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Progress",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/publications": {
+      "post": {
+        "operationId": "queue_publication_api_v1_debug_connectors__connector_id__calls__call_id__publications_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Queue Publication",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/server-evidence": {
+      "post": {
+        "operationId": "server_evidence_api_v1_debug_connectors__connector_id__calls__call_id__server_evidence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Server Evidence",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/status": {
+      "get": {
+        "operationId": "status_api_v1_debug_connectors__connector_id__calls__call_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Status",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/calls/{call_id}/validations": {
+      "post": {
+        "operationId": "queue_validation_api_v1_debug_connectors__connector_id__calls__call_id__validations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Queue Validation",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/heartbeat": {
+      "post": {
+        "operationId": "heartbeat_api_v1_debug_connectors__connector_id__heartbeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Capabilities"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Heartbeat",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/poll": {
+      "post": {
+        "operationId": "poll_api_v1_debug_connectors__connector_id__poll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Poll",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/probes/poll": {
+      "post": {
+        "operationId": "poll_probe_api_v1_debug_connectors__connector_id__probes_poll_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbePollResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Poll Probe",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/probes/{probe_id}/complete": {
+      "post": {
+        "operationId": "complete_probe_api_v1_debug_connectors__connector_id__probes__probe_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "probe_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Probe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Completion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete Probe",
+        "tags": [
+          "debug-connectors"
+        ]
+      }
+    },
+    "/api/v1/debug-connectors/{connector_id}/probes/{probe_id}/status": {
+      "post": {
+        "operationId": "probe_status_api_v1_debug_connectors__connector_id__probes__probe_id__status_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "probe_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Probe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Completion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbeStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Probe Status",
+        "tags": [
+          "debug-connectors"
         ]
       }
     },
@@ -46242,7 +50577,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MessageInput"
+                "$ref": "#/components/schemas/app__program_conversations__router__MessageInput"
               }
             }
           },

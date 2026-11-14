@@ -19,6 +19,7 @@ class AgentName(StrEnum):
 
 
 class AgentTaskKind(StrEnum):
+    DEBUG_AGENT = "debug_agent"
     WORKOUT_PLAN_GENERATION = "workout_plan_generation"
     BODY_PHOTO_ANALYSIS = "body_photo_analysis"
     FOOD_PHOTO_ESTIMATION = "food_photo_estimation"
@@ -40,7 +41,7 @@ class AgentModelProfile(BaseModel):
     display_name: str = Field(min_length=1, max_length=300)
     model_id: str = Field(min_length=1, max_length=300)
     effort: ReasoningEffort | None = None
-    task_kinds: tuple[AgentTaskKind, ...] = Field(min_length=1, max_length=4)
+    task_kinds: tuple[AgentTaskKind, ...] = Field(min_length=1, max_length=len(AgentTaskKind))
     fingerprint: str = Field(pattern=r"^[a-f0-9]{16,64}$")
     supports_text_input: bool = True
     supports_image_input: bool = False

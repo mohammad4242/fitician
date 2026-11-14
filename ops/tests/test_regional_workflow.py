@@ -43,10 +43,21 @@ class RegionalWorkflowTests(unittest.TestCase):
             FIRST_SCALABILITY_RELEASE_APPROVED="false",
             SCALABILITY_EVIDENCE_RUN_ID="",
             IMAGE_SOURCE="registry",
+            EXPECTED_MANIFEST_SHA256="",
+            PANEL_OPERATION_ID="",
+            EXPECTED_BASELINE_SHA256="",
+            AUTHORIZATION_EXPIRES_AT="",
         )
         with tempfile.TemporaryDirectory(dir=ROOT) as temporary:
             output = Path(temporary) / "outputs"
             for key, value in [
+                (
+                    "PANEL_OPERATION_ID",
+                    "00000000-0000-0000-0000-000000000000\nauto_release=true",
+                ),
+                ("EXPECTED_BASELINE_SHA256", "a" * 64 + "\nauto_release=true"),
+                ("AUTHORIZATION_EXPIRES_AT", "1790000000\nauto_release=true"),
+                ("EXPECTED_MANIFEST_SHA256", "0" * 64 + "\nauto_release=true"),
                 ("SCALABILITY_EVIDENCE_RUN_ID", "1' invalid-command '"),
                 ("CI_RUN_ID", "123\nowner_approved=true"),
                 ("IMAGE_TAG", "a" * 40 + "\nauto_release=true"),

@@ -436,18 +436,31 @@ class DiagnosticsRuntime:
                 "timeout",
                 "cancelled",
             }:
-                try:
-                    self._queue.get_nowait()
-                    self._queue.task_done()
-                    self._queue.put_nowait(
-                        (
-                            event.model_copy(update={"dropped_count": event.dropped_count + 1}),
-                            user_id,
-                        )
-                    )
-                    return True
-                except (queue.Empty, queue.Full):
-                    pass
+                # Replace only a low-priority observation under the queue's own lock.
+                # The removed and added item cancel out unfinished_tasks atomically.
+                with self._queue.mutex:
+                    for index, (queued, _) in enumerate(self._queue.queue):
+                        if not (
+                            queued.record_type == "event"
+                            and queued.outcome
+                            in {
+                                "failure",
+                                "blocked",
+                                "timeout",
+                                "cancelled",
+                            }
+                        ):
+                            del self._queue.queue[index]
+                            self._queue.queue.append(
+                                (
+                                    event.model_copy(
+                                        update={"dropped_count": event.dropped_count + 1}
+                                    ),
+                                    user_id,
+                                )
+                            )
+                            self._queue.not_empty.notify()
+                            return True
             return False
         return True
 
@@ -660,6 +673,10 @@ async def diagnostics_middleware(
                 if context.duration_ms is not None
                 else min(max(0, round((time.perf_counter() - started) * 1000)), 86_400_000),
             )
+            if isinstance(exception, Exception):
+                from .evidence import attach_exception
+
+                event = attach_exception(event, exception)
             if context.active_stage is not None:
                 context.active_stage.finish(
                     outcome if context.active_stage.name == context.failure_stage else "success",
@@ -711,6 +728,16 @@ async def diagnostics_middleware(
                     context.trace_dropped += 1
             context.trace_sampled = True
         root.finish("failure" if isinstance(error, Exception) else "cancelled", error)
+        terminal_event_id = uuid4()
+        terminal_evidence = None
+        sentry_event_id = None
+        if isinstance(error, Exception):
+            from .diagnostics_schemas import ExceptionEvidence
+            from .evidence import exception_evidence
+            from .sentry import capture_operational_exception
+
+            sentry_event_id = capture_operational_exception(error, str(terminal_event_id))
+            terminal_evidence = ExceptionEvidence.model_validate(exception_evidence(error))
         # Preserve cancellations and the original exception. Never write nested DB transactions.
         if isinstance(error, SQLAlchemyError):
             log_event(
@@ -725,6 +752,9 @@ async def diagnostics_middleware(
             try:
                 runtime.submit(
                     EventInput(
+                        event_id=terminal_event_id,
+                        exception_evidence=terminal_evidence,
+                        sentry_event_id=sentry_event_id,
                         trace_id=context.trace_id,
                         dropped_count=context.trace_dropped,
                         expected_span_count=context.span_count + 1,

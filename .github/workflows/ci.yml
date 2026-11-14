@@ -137,6 +137,21 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --frozen --extra dev
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install pinned debug protocol verifier
+        run: |
+          npm install --prefix .ci-tools --no-save --ignore-scripts @openai/codex@0.167.2 \
+            @openai/codex-linux-x64@npm:@openai/codex@0.167.2-linux-x64
+          .ci-tools/node_modules/.bin/codex --version
+          echo "$PWD/.ci-tools/node_modules/.bin" >> "$GITHUB_PATH"
+          mkdir -p .ci-tools/codex-home
+          chmod 700 .ci-tools/codex-home
+          echo "CODEX_HOME=$PWD/.ci-tools/codex-home" >> "$GITHUB_ENV"
+          echo "FITICIAN_TEST_CODEX_APP_SERVER=1" >> "$GITHUB_ENV"
+      - name: Prepare isolated debug test image
+        run: |
+          docker pull python:3.12-slim
+          image=$(docker image inspect python:3.12-slim --format '{{.Id}}')
+          echo "FITICIAN_DEBUG_TEST_IMAGE=$image" >> "$GITHUB_ENV"
       - name: Create dedicated benchmark databases
         run: |
           uv run python - <<'PY'
@@ -587,6 +602,60 @@ jobs:
           python-version: "3.12"
       - name: Start isolated networks and test Agent outage recovery
         run: bash ops/split-test.sh
+      - uses: docker/setup-buildx-action@v3
+      - name: Build independent debug runtime
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/debug-runtime/Dockerfile
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+          load: true
+          push: false
+          tags: fitician-debug-runtime:${{ github.sha }}
+          cache-from: type=gha,scope=fitician-debug-runtime
+          cache-to: type=gha,mode=max,scope=fitician-debug-runtime
+      - name: Verify runtime isolation, protocol and restart persistence
+        run: >-
+          python3 ops/smoke-debug-runtime.py
+          --image fitician-debug-runtime:${{ github.sha }} --commit ${{ github.sha }}
+          --output .ci-evidence/debug-runtime/smoke.json
+      - name: Export the exact tested runtime for offline delivery
+        run: |
+          set -euo pipefail
+          docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
+          cd .ci-evidence/debug-runtime
+          sha256sum image.tar.gz > image.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-debug-runtime-${{ github.sha }}
+          path: .ci-evidence/debug-runtime/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  debug-validation:
+    name: Controlled debug validation
+    if: ${{ needs.changes.outputs.full_ci_required == 'true' }}
+    needs: changes
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: backend
+            tests: '["backend/tests/test_debug_ci_contract.py","backend/tests/nutrition/test_food_photo_queue.py","backend/tests/nutrition/test_food_photo_estimation.py"]'
+          - profile: migrations
+            tests: '[]'
+          - profile: frontend
+            tests: '["frontend/src/features/diagnostics/DebugConversation.test.tsx"]'
+          - profile: agent
+            tests: '["agent-service/tests/test_health.py"]'
+    uses: ./.github/workflows/debug-validation.yml
+    with:
+      candidate_sha: ${{ github.sha }}
+      request_id: 00000000-0000-4000-8000-000000000001
+      profile: ${{ matrix.profile }}
+      tests_json: ${{ matrix.tests }}
 
   agent:
     name: Agent complete suite
@@ -622,7 +691,7 @@ jobs:
       needs.dependencies.result == 'success' && needs.production-contract.result == 'success' &&
       needs.scalability-contract.result == 'success' && needs.multi-replica-smoke.result == 'success' &&
       needs.split-region-smoke.result == 'success' &&
-      needs.agent.result == 'success') ||
+      needs.agent.result == 'success' && needs.debug-validation.result == 'success') ||
       (needs.changes.outputs.selective_ci_required == 'true' &&
       needs.production-contract.result == 'success' && needs.dependencies.result == 'success' &&
       needs.split-region-smoke.result == 'success')) &&
@@ -643,7 +712,11 @@ jobs:
       - multi-replica-smoke
       - split-region-smoke
       - agent
+      - debug-validation
     runs-on: ubuntu-latest
+    environment:
+      name: production-iran
+      deployment: false
     permissions:
       contents: read
       actions: read
@@ -696,6 +769,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push backend image
+        id: backend_image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -709,6 +783,16 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-backend:main
           cache-from: type=gha,scope=fitician-backend
           cache-to: type=gha,mode=max,scope=fitician-backend
+      - name: Require configured Sentry release credentials
+        env:
+          WEB_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          if [ -n "$WEB_DSN" ]; then
+            test -n "$SENTRY_AUTH_TOKEN" && test -n "$SENTRY_ORG" && test -n "$SENTRY_PROJECT"
+          fi
       - name: Build frontend image for verification
         uses: docker/build-push-action@v6
         with:
@@ -719,6 +803,13 @@ jobs:
             VITE_MEDIA_PUBLIC_BASE_URL=${{ vars.VITE_MEDIA_PUBLIC_BASE_URL }}
             VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
             VITE_APP_BUILD_SHA=${{ github.sha }}
+            VITE_SENTRY_DSN=${{ vars.VITE_SENTRY_DSN }}
+            VITE_SENTRY_ENVIRONMENT=production-iran
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
+            SENTRY_BUILD_ARTIFACTS=1
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:${{ github.sha }}
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-frontend:main
@@ -738,6 +829,13 @@ jobs:
               test ! -e /usr/share/nginx/html/image\&videos/landing.mp4
               grep -R -F -- "$EXPECTED_GOOGLE_CLIENT_ID" /usr/share/nginx/html/assets >/dev/null
             '
+      - name: Verify every public image layer excludes private artifacts and credentials
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_API_TOKEN: ${{ secrets.SENTRY_API_TOKEN }}
+        run: python3 ops/check-private-release-image.py --image "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
       - name: Push verified frontend image
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
         env:
@@ -747,10 +845,13 @@ jobs:
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:$IMAGE_TAG"
           docker push "$DOCKERHUB_USERNAME/fitician-frontend:main"
       - name: Build and push Agent Service image
+        id: agent_image
         uses: docker/build-push-action@v6
         with:
           context: ./agent-service
           file: ./agent-service/Dockerfile
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
           push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') }}
           load: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full') }}
           tags: |
@@ -758,6 +859,46 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/fitician-agent:main
           cache-from: type=gha,scope=fitician-agent
           cache-to: type=gha,mode=max,scope=fitician-agent
+
+      - name: Download the exact independently tested debug runtime
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-debug-runtime-${{ github.sha }}
+          path: .ci-evidence/debug-runtime-release
+      - name: Bind published image digests and tested runtime to this release
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        env:
+          BACKEND_DIGEST: ${{ steps.backend_image.outputs.digest }}
+          AGENT_DIGEST: ${{ steps.agent_image.outputs.digest }}
+          WEB_SENTRY_ENABLED: ${{ vars.VITE_SENTRY_DSN != '' }}
+        run: >-
+          python3 ops/release-manifest.py
+          --runtime-directory .ci-evidence/debug-runtime-release
+          --output .ci-evidence/release/manifest.json
+      - name: Retain the immutable release manifest
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-release-manifest-${{ github.sha }}
+          path: .ci-evidence/release/manifest.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Export the same tested Iran images for regional offline transfer
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        run: >-
+          python3 ops/export-offline-release.py
+          --manifest .ci-evidence/release/manifest.json
+          --directory .ci-evidence/offline-iran
+      - name: Retain the exact offline Iran release
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-offline-iran-${{ github.sha }}
+          path: .ci-evidence/offline-iran/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
   required-ci:
     name: Required CI
@@ -778,11 +919,12 @@ jobs:
       - multi-replica-smoke
       - split-region-smoke
       - agent
+      - debug-validation
       - container-images
     runs-on: ubuntu-latest
     env:
       CI_JOB_RESULTS: >-
-        {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","container-images":"${{ needs.container-images.result }}"}
+        {"changes":"${{ needs.changes.result }}","backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","backend-component":"${{ needs.backend-component.result }}","frontend-browser":"${{ needs.frontend-browser.result }}","shared":"${{ needs.shared.result }}","mobile":"${{ needs.mobile.result }}","android":"${{ needs.android.result }}","dependencies":"${{ needs.dependencies.result }}","secrets":"${{ needs.secrets.result }}","production-contract":"${{ needs.production-contract.result }}","scalability-contract":"${{ needs.scalability-contract.result }}","multi-replica-smoke":"${{ needs.multi-replica-smoke.result }}","split-region-smoke":"${{ needs.split-region-smoke.result }}","agent":"${{ needs.agent.result }}","debug-validation":"${{ needs.debug-validation.result }}","container-images":"${{ needs.container-images.result }}"}
       IMAGE_REQUIRED: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && (needs.changes.outputs.full_ci_required == 'true' || (needs.changes.outputs.selective_ci_required == 'true' && needs.changes.outputs.deployable == 'true')) }}
     steps:
       - uses: actions/checkout@v4

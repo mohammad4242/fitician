@@ -63,7 +63,26 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ExceptionFrame(StrictModel):
+    filename: Annotated[str, StringConstraints(pattern=r"^app/[A-Za-z0-9_./-]{1,236}$")] | None = (
+        None
+    )
+    function: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.$<>-]{1,160}$")]
+    lineno: int = Field(ge=1, le=10_000_000)
+
+
+class ExceptionValue(StrictModel):
+    type: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.]{1,100}$")]
+    frames: list[ExceptionFrame] = Field(max_length=100)
+
+
+class ExceptionEvidence(StrictModel):
+    values: list[ExceptionValue] = Field(max_length=16)
+
+
 class EventInput(StrictModel):
+    exception_evidence: ExceptionEvidence | None = None
+    sentry_event_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     event_id: UUID | None = None
     request_id: str | None = Field(default=None, max_length=128)
     operation_id: str | None = Field(default=None, max_length=128)
@@ -134,6 +153,7 @@ class EventInput(StrictModel):
 
 
 class ClientEventInput(StrictModel):
+    sentry_event_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     transport_kind: Literal["network", "timeout", "aborted", "offline", "unknown"] | None = None
     trace_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")] | None = None
     span_id: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{16}$")] | None = None
@@ -143,7 +163,7 @@ class ClientEventInput(StrictModel):
     )
     offset_ms: int = Field(default=0, ge=0, le=86_400_000)
     event_id: UUID
-    platform: Literal["android", "ios_pwa", "web"]
+    platform: Literal["android", "ios", "ios_pwa", "web"]
     component: Literal[
         "WebTransport", "Window", "ReactRoot", "NativeTransport", "ReactNativeRuntime"
     ]
@@ -315,6 +335,45 @@ class AlertResponse(StrictModel):
     reason: str
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AlertAttemptResponse(StrictModel):
+    id: UUID
+    state: str
+    provider_message_id: str | None
+    error_code: str | None
+    started_at: datetime
+    finished_at: datetime | None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlertDeliveryResponse(StrictModel):
+    id: UUID
+    issue_id: UUID
+    environment: str
+    state: str
+    occurrence_total: int
+    covered_count: int
+    provider_message_id: str | None
+    error_code: str | None
+    available_at: datetime
+    last_dispatch_at: datetime | None
+    attempts: list[AlertAttemptResponse]
+
+
+class AlertChannelResponse(StrictModel):
+    enabled: bool
+    recipient_configured: bool
+    provider_configured: bool
+    cooldown_seconds: int
+    min_interval_seconds: int
+    max_per_hour: int
+
+
+class AlertDeliveryPage(StrictModel):
+    items: list[AlertDeliveryResponse]
+    configuration: AlertChannelResponse
+    next_offset: int | None
 
 
 class TrendPoint(StrictModel):

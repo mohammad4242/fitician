@@ -16,11 +16,15 @@ from app.body_analysis.admin_config import models as ai_admin_config_models  # n
 from app.body_photos import models as body_photo_models  # noqa: F401
 from app.config import get_settings
 from app.database.base import Base
+from app.debugging import models as debugging_models  # noqa: F401
 from app.entitlements import models as entitlement_models  # noqa: F401
 from app.exercises import models as exercise_models  # noqa: F401
 from app.notifications import models as notification_models  # noqa: F401
 from app.nutrition import models as nutrition_models  # noqa: F401
-from app.observability import diagnostics_models  # noqa: F401
+from app.observability import (
+    diagnostics_models,  # noqa: F401
+    evidence_models,  # noqa: F401
+)
 from app.profile import models as profile_models  # noqa: F401
 from app.program_conversations import models as conversation_models  # noqa: F401
 from app.rate_limits import models as rate_limit_models  # noqa: F401

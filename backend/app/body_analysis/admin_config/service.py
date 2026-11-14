@@ -64,6 +64,7 @@ class AgentServiceAuthError(Exception):
 
 
 _AGENT_SERVICE_TASKS = {
+    AITaskType.DEBUG_AGENT,
     AITaskType.WORKOUT_PLAN_GENERATION,
     AITaskType.BODY_PHOTO_ANALYSIS,
     AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -128,9 +129,7 @@ def _mask_proxy_url(value: str | None) -> str | None:
         host = f"[{hostname}]" if ":" in hostname and not hostname.startswith("[") else hostname
         port = f":{parsed.port}" if parsed.port is not None else ""
         credentials = (
-            "****:****@"
-            if parsed.username is not None or parsed.password is not None
-            else ""
+            "****:****@" if parsed.username is not None or parsed.password is not None else ""
         )
         return f"{parsed.scheme.lower()}://{credentials}{host}{port}"
     except (TypeError, ValueError):
@@ -198,6 +197,7 @@ def config_detail(
         agent_name=config.agent_name,
         agent_model_id=config.agent_model_id,
         agent_profile_id=config.agent_profile_id,
+        debug_connector_id=config.debug_connector_id,
         enabled=config.enabled,
         primary_model_id=config.primary_model_id,
         fallback_model_ids=list(config.fallback_model_ids),
@@ -254,6 +254,7 @@ def save_task_config(
     agent_name = effective("agent_name")
     agent_model_id = effective("agent_model_id")
     agent_profile_id = effective("agent_profile_id")
+    debug_connector_id = effective("debug_connector_id")
     primary_model_id = effective("primary_model_id")
     fallback_model_ids = effective("fallback_model_ids", [])
 
@@ -265,6 +266,34 @@ def save_task_config(
         raise AIConfigError(
             "FOOD_PRICE_SEARCH must use Agent Service for production price research"
         )
+
+    if debug_connector_id is not None:
+        if task_type is not AITaskType.DEBUG_AGENT:
+            raise AIConfigError("Execution targets are only supported for debug_agent")
+        from app.debugging.runtime_profiles import authorized_target
+
+        try:
+            authorized_target(db, debug_connector_id)
+        except ValueError:
+            raise AIConfigError("The selected execution target is not authorized") from None
+
+    if task_type is AITaskType.DEBUG_AGENT:
+        from app.debugging.limits import validate_runtime_config
+
+        try:
+            validate_runtime_config(
+                {
+                    "execution_backend": execution_backend,
+                    "timeout_seconds": payload.timeout_seconds,
+                    "max_output_tokens": payload.max_output_tokens,
+                }
+            )
+        except ValueError:
+            raise AIConfigError("Unsupported debug_agent runtime limits") from None
+        if fallback_model_ids:
+            raise AIConfigError("Automatic model fallback is not supported for debug_agent")
+        if effective("max_cost_per_request") is not None:
+            raise AIConfigError("Per-request cost limits are not supported for debug_agent")
 
     if payload.enabled and execution_backend == AIExecutionBackend.AGENT_SERVICE:
         if task_type not in _AGENT_SERVICE_TASKS:
@@ -282,6 +311,27 @@ def save_task_config(
         )
         if verification is None:
             raise AIConfigError("The selected Agent Service profile must pass its task test first")
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.runtime_profiles import capabilities, connector_for_profile
+
+            connector = connector_for_profile(db, agent_profile_id, agent_model_id)
+            profile = next(
+                (
+                    profile
+                    for runner in capabilities(db).runners
+                    for profile in runner.profiles or []
+                    if profile.profile_id == agent_profile_id
+                ),
+                None,
+            )
+            if (
+                connector is None
+                or profile is None
+                or verification.profile_fingerprint != profile.fingerprint
+            ):
+                raise AIConfigError(
+                    "The selected debug connector must be online with current verified capabilities"
+                )
     elif payload.enabled:
         if credential is None:
             raise AIConfigError("A provider credential is required before enabling this task")
@@ -311,6 +361,7 @@ def save_task_config(
         "agent_name": agent_name,
         "agent_model_id": agent_model_id,
         "agent_profile_id": agent_profile_id,
+        "debug_connector_id": debug_connector_id,
         "enabled": payload.enabled,
         "primary_model_id": primary_model_id,
         "fallback_model_ids": list(fallback_model_ids),
@@ -752,13 +803,18 @@ async def get_agent_service_capabilities(
     db: Session | None = None,
     task_type: AITaskType | None = None,
 ) -> AgentServiceCapabilitiesResponse:
-    payload = await _agent_service_json(
-        client,
-        settings=settings,
-        method="GET",
-        path="/v1/capabilities",
-        timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
-    )
+    if task_type is AITaskType.DEBUG_AGENT and db is not None:
+        from app.debugging.runtime_profiles import capabilities as debug_capabilities
+
+        payload = debug_capabilities(db).model_dump()
+    else:
+        payload = await _agent_service_json(
+            client,
+            settings=settings,
+            method="GET",
+            path="/v1/capabilities",
+            timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
+        )
     try:
         capabilities = AgentServiceCapabilitiesResponse.model_validate(payload)
         if db is None or task_type is None:

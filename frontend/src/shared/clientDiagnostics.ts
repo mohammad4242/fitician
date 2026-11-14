@@ -5,6 +5,7 @@ import {
   type ClientDiagnosticErrorCode,
   type ClientDiagnosticEvent,
 } from "@fitician/core";
+import { captureReactError, onCapturedClientError } from "./sentry";
 
 let authenticated = false;
 
@@ -70,13 +71,14 @@ const queue = new ClientDiagnosticsQueue({ send: (batch) => sendDiagnostics(batc
 export function reportWebClientDiagnostic(
   input: DiagnosticInput,
   errorCode: ClientDiagnosticErrorCode,
+  eventId?: string,
 ): void {
   if (!authenticated) return;
   try {
     // Identify the deployed regional image by its exact build SHA in diagnostics.
     const build = import.meta.env.VITE_APP_BUILD_SHA as unknown;
     const buildFields = typeof build === "string" && /^[a-f0-9]{7,40}$/u.test(build) ? { build } : {};
-    const event = createClientDiagnosticEvent({ ...input, ...buildFields, platform: clientPlatform(), os_version: browserOsVersion(), error_code: errorCode });
+    const event = createClientDiagnosticEvent({ ...input, ...buildFields, platform: clientPlatform(), os_version: browserOsVersion(), error_code: errorCode }, eventId ? () => eventId : undefined);
     if (event !== null) queue.enqueue(event);
   } catch { /* Telemetry cannot alter the original UI or transport result. */ }
 }
@@ -119,26 +121,22 @@ export function reportWebClientRequestSpan(input: {
 
 export function installWebRuntimeDiagnostics(): () => void {
   if (typeof window === "undefined") return () => {};
-  const onError = (event: ErrorEvent) => {
-    reportWebClientDiagnostic({ component: "Window", operation: "error_event", stage: "unhandled", ...safeClientException(event.error) }, "CLIENT_RUNTIME_ERROR");
-  };
-  const onRejection = (event: PromiseRejectionEvent) => {
-    reportWebClientDiagnostic({ component: "Window", operation: "promise_rejection", stage: "unhandled", ...safeClientException(event.reason) }, "CLIENT_UNHANDLED_REJECTION");
-  };
-  window.addEventListener("error", onError);
-  window.addEventListener("unhandledrejection", onRejection);
   const online = () => { void queue.flush(); };
   window.addEventListener("online", online);
   return () => {
-    window.removeEventListener("error", onError);
-    window.removeEventListener("unhandledrejection", onRejection);
     window.removeEventListener("online", online);
   };
 }
 
 export function reportReactRootError(stage: "caught" | "uncaught", error?: unknown): void {
-  reportWebClientDiagnostic({ component: "ReactRoot", operation: "render", stage, ...safeClientException(error) }, "CLIENT_RENDER_ERROR");
+  captureReactError(error, undefined, stage);
 }
+
+onCapturedClientError(value => reportWebClientDiagnostic({
+  component: value.component, operation: value.operation, stage: value.stage,
+  ...safeClientException(value.error),
+  ...(value.sentryEventId ? { sentry_event_id: value.sentryEventId } : {}),
+}, value.component === "ReactRoot" ? "CLIENT_RENDER_ERROR" : value.operation === "promise_rejection" ? "CLIENT_UNHANDLED_REJECTION" : "CLIENT_RUNTIME_ERROR", value.eventId));
 
 export async function flushWebClientDiagnostics(): Promise<void> {
   await queue.flush();

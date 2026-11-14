@@ -1,6 +1,6 @@
 import { CLIENT_EXCEPTION_TYPES, CLIENT_SOURCE_PATTERN } from "./clientException";
 
-export type ClientDiagnosticPlatform = "android" | "ios_pwa" | "web";
+export type ClientDiagnosticPlatform = "android" | "ios" | "ios_pwa" | "web";
 export type ClientTransportKind = "network" | "timeout" | "aborted" | "offline" | "unknown";
 
 export type ClientDiagnosticErrorCode =
@@ -12,6 +12,7 @@ export type ClientDiagnosticErrorCode =
 
 export interface ClientDiagnosticEvent {
   readonly event_id: string;
+  readonly sentry_event_id?: string;
   readonly platform: ClientDiagnosticPlatform;
   readonly component: string;
   readonly operation: string;
@@ -81,11 +82,13 @@ export function isClientDiagnosticEvent(value: unknown): value is ClientDiagnost
     "os_version",
     "exception_type",
     "source_location",
+    "sentry_event_id",
   ]);
   if (Object.keys(event).some((key) => !allowed.has(key))) return false;
   if (required.some((key) => !(key in event))) return false;
   if (typeof event.event_id !== "string" || !UUID.test(event.event_id)) return false;
-  if (event.platform !== "android" && event.platform !== "ios_pwa" && event.platform !== "web") return false;
+  if (event.sentry_event_id !== undefined && (typeof event.sentry_event_id !== "string" || !/^[a-f0-9]{32}$/.test(event.sentry_event_id))) return false;
+  if (event.platform !== "android" && event.platform !== "ios" && event.platform !== "ios_pwa" && event.platform !== "web") return false;
   if (!validToken(event.component, 80) || !validToken(event.operation, 80) || !validToken(event.stage, 80)) return false;
   if (event.error_code !== "CLIENT_REQUEST_OBSERVED" && event.error_code !== "API_REQUEST_FAILED" && event.error_code !== "CLIENT_RENDER_ERROR"
     && event.error_code !== "CLIENT_RUNTIME_ERROR" && event.error_code !== "CLIENT_UNHANDLED_REJECTION") return false;

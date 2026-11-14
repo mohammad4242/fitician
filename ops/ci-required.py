@@ -35,6 +35,7 @@ ALL_JOBS = (
     "multi-replica-smoke",
     "split-region-smoke",
     "agent",
+    "debug-validation",
     "container-images",
 )
 
@@ -49,9 +50,16 @@ def failures(plan: dict, results: dict, *, image_required: bool) -> list[str]:
         plan.get("full_ci_required") is True and agent_result != "success"
     ):
         failed.append("agent")
+    debug_result = results.get("debug-validation")
+    if debug_result in {"failure", "cancelled"} or (
+        plan.get("full_ci_required") is True and debug_result != "success"
+    ):
+        failed.append("debug-validation")
     if results.get("backend-component") in {"failure", "cancelled"}:
         failed.append("backend-component")
-    backend_job = "backend" if plan.get("full_ci_required") is True else "backend-component"
+    backend_job = (
+        "backend" if plan.get("full_ci_required") is True else "backend-component"
+    )
     backend_result = results.get(backend_job)
     if backend_result in {"failure", "cancelled"} or (
         plan.get("run_backend") is True and backend_result != "success"

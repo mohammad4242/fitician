@@ -5,7 +5,7 @@ from __future__ import annotations
 import atexit
 import logging
 import re
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.config import Settings
 from app.observability.diagnostics_runtime import (
@@ -23,7 +23,7 @@ class DiagnosticLogHandler(logging.Handler):
         self.runtime = runtime
 
     def emit(self, record: logging.LogRecord) -> None:
-        if record.name.startswith(("app.observability", "sqlalchemy")):
+        if record.name.startswith(("app.observability", "sqlalchemy", "sentry_sdk")):
             return
         try:
             context = _REQUEST_CONTEXT.get()
@@ -44,26 +44,30 @@ class DiagnosticLogHandler(logging.Handler):
                 resource_id = UUID(str(job_id)) if job_id else None
             except ValueError:
                 resource_id = None
-            self.runtime.submit(
-                EventInput(
-                    trace_id=context.trace_id if context else None,
-                    parent_span_id=context.root_span_id if context else None,
-                    component=component,
-                    operation=context.operation if context else "background_operation",
-                    stage=context.stage_name if context else "execution",
-                    platform="backend" if context else "worker",
-                    request_id=request_id,
-                    operation_id=context.operation_id if context else None,
-                    category=category_for_error(code.upper(), 500) if context else "job_failure",
-                    severity="critical" if record.levelno >= logging.CRITICAL else "error",
-                    error_code=code,
-                    exception_type=type(exception).__name__ if exception else None,
-                    source_location=safe_source_location(exception),
-                    resource_id=resource_id,
-                    outcome="failure",
-                ),
-                context.user_id if context else None,
+            event_id = uuid4()
+            event = EventInput(
+                event_id=event_id,
+                trace_id=context.trace_id if context else None,
+                parent_span_id=context.root_span_id if context else None,
+                component=component,
+                operation=context.operation if context else "background_operation",
+                stage=context.stage_name if context else "execution",
+                platform="backend" if context else "worker",
+                request_id=request_id,
+                operation_id=context.operation_id if context else None,
+                category=category_for_error(code.upper(), 500) if context else "job_failure",
+                severity="critical" if record.levelno >= logging.CRITICAL else "error",
+                error_code=code,
+                exception_type=type(exception).__name__ if exception else None,
+                source_location=safe_source_location(exception),
+                resource_id=resource_id,
+                outcome="failure",
             )
+            if exception is not None:
+                from .evidence import attach_exception
+
+                event = attach_exception(event, exception)
+            self.runtime.submit(event, context.user_id if context else None)
         except Exception:
             # Logging must never recurse or change a business outcome.
             return

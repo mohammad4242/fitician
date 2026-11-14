@@ -22,6 +22,10 @@ const api = vi.hoisted(() => ({
   refreshAdminAiModels: vi.fn(),
   saveAdminAiAgentServiceProxy: vi.fn(),
 }));
+const connectorRequest = vi.hoisted(() => vi.fn());
+vi.mock("../../shared/apiClient", async (original) => ({
+  ...await original<typeof import("../../shared/apiClient")>(), request: connectorRequest,
+}));
 
 vi.mock("./api", () => api);
 vi.mock("../../shared/AuthenticatedHeader", () => ({
@@ -87,6 +91,7 @@ const foodPriceConfig: AdminAiTaskConfig = {
 beforeEach(() => {
   void i18n.changeLanguage("en");
   Object.values(api).forEach((mock) => mock.mockReset());
+  connectorRequest.mockReset().mockResolvedValue([]);
   api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig]);
   api.getAdminAiTaskModels.mockResolvedValue({
     refreshed_at: "2026-08-03T12:00:00Z",
@@ -121,6 +126,36 @@ beforeEach(() => {
     last_apply_error: null,
   });
   api.cancelAdminAiAgentAuthSession.mockResolvedValue(undefined);
+});
+
+it("saves the explicitly selected debug execution target through existing AI settings", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "germany" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  connectorRequest.mockResolvedValue([
+    { id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: null, capabilities: {} },
+    { id: "laptop", name: "Laptop", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: {} },
+  ]);
+  api.saveAdminAiTaskConfig.mockResolvedValue({ ...debugConfig, debug_connector_id: "laptop" });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  const target = await screen.findByRole("combobox", { name: "Tool execution target" });
+  expect(target).toHaveValue("germany");
+  await user.selectOptions(target, "laptop");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(api.saveAdminAiTaskConfig).toHaveBeenCalledWith("debug_agent", expect.objectContaining({ debug_connector_id: "laptop", execution_backend: "api" })));
+});
+
+it("clears the API-only target when an explicit Codex profile becomes the execution backend", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "retired-api-target" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  api.saveAdminAiTaskConfig.mockResolvedValue({ ...debugConfig, execution_backend: "agent_service", debug_connector_id: null });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  await user.click(screen.getByRole("radio", { name: "Enrolled interactive runtime" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(api.saveAdminAiTaskConfig).toHaveBeenCalledWith("debug_agent", expect.objectContaining({ execution_backend: "agent_service", debug_connector_id: null })));
 });
 
 it("shows the settings load error instead of staying on the loading state", async () => {

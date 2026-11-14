@@ -72,7 +72,7 @@ it("sends only allowlisted redacted context through the Sentry-compatible adapte
     },
   );
   const [safeError, context] = captureException.mock.calls[0] ?? [];
-  expect(safeError?.message).toBe("Fitician mobile telemetry exception");
+  expect(safeError?.stack).toContain("Error:");
   expect(context).toEqual({
     correlation_id: "corr-123",
     error_type: "Error",
@@ -163,4 +163,13 @@ it("logs safe development diagnostics without enabling production diagnostics", 
   expect(output).not.toContain("access_token");
   expect(output).not.toContain("secret");
   expect(info).toHaveBeenCalledTimes(1);
+});
+
+it("preserves the original exception and stack for the capture adapter", () => {
+  const captureException = vi.fn<SentryCompatibleAdapter["captureException"]>();
+  const logger = new MobileTelemetryLogger({ captureException, captureMessage: vi.fn() });
+  const original = new TypeError("sensitive original message");
+  logger.captureException("native_request_failed", original);
+  expect(captureException.mock.calls[0]?.[0]).toBe(original);
+  expect(captureException.mock.calls[0]?.[0].stack).toBe(original.stack);
 });

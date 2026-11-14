@@ -14,7 +14,7 @@ import * as releasePlan from "./release-build-plan.mjs";
 
 test("EAS builds the shared core package before app bundling", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-  assert.equal(packageJson.scripts["eas-build-post-install"], "npm --prefix .. run build:core");
+  assert.equal(packageJson.scripts["eas-build-post-install"], "npm --prefix .. run build:core && node scripts/sentryRelease.mjs");
 });
 
 test("release CLI accepts the standard Expo token and preserves legacy CI secrets", () => {

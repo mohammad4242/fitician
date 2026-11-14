@@ -1,0 +1,99 @@
+name: Fitician controlled debug validation
+run-name: Debug validation ${{ inputs.request_id }}
+
+on:
+  workflow_call:
+    inputs:
+      candidate_sha: {type: string, required: true}
+      request_id: {type: string, required: true}
+      profile: {type: string, required: true}
+      tests_json: {type: string, required: true}
+  workflow_dispatch:
+    inputs:
+      candidate_sha: {type: string, required: true, description: Exact isolated candidate commit}
+      request_id: {type: string, required: true, description: Durable broker operation UUID}
+      profile:
+        type: choice
+        options: [backend, migrations, frontend, frontend_build, agent]
+        required: true
+      tests_json: {type: string, required: true, description: JSON array of scoped test file paths}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: debug-validation-${{ inputs.request_id }}-${{ inputs.profile }}-${{ github.workflow == 'Fitician CI' && github.run_id || 'broker' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: policy
+          persist-credentials: false
+      - name: Validate fixed profile and exact candidate identity
+        id: request
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          REQUEST_ID: ${{ inputs.request_id }}
+          PROFILE: ${{ inputs.profile }}
+          TESTS_JSON: ${{ inputs.tests_json }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, sys
+          from uuid import UUID
+          sys.path.insert(0, 'policy/backend')
+          from app.debugging.ci_contract import validation_spec
+          sha = os.environ['CANDIDATE_SHA']
+          assert re.fullmatch('[a-f0-9]{40}', sha), 'Exact candidate SHA required'
+          assert str(UUID(os.environ['REQUEST_ID'])) == os.environ['REQUEST_ID']
+          spec = validation_spec(os.environ['PROFILE'], json.loads(os.environ['TESTS_JSON']))
+          target = 'frontend' if spec['cwd'] == 'frontend' else 'python'
+          policy = subprocess.check_output(['git', '-C', 'policy', 'rev-parse', 'HEAD'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('target=' + target + '\npolicy_sha=' + policy + '\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          path: candidate
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Build trusted dependencies and sandbox policy
+        uses: docker/build-push-action@v6
+        with:
+          context: policy
+          file: policy/docker/debug-validation/Dockerfile
+          target: ${{ steps.request.outputs.target }}
+          build-args: POLICY_SHA=${{ steps.request.outputs.policy_sha }}
+          load: true
+          push: false
+          tags: fitician-debug-validation:${{ github.run_id }}-${{ inputs.profile }}
+          cache-from: type=gha,scope=debug-validation-${{ steps.request.outputs.target }}
+          cache-to: type=gha,mode=max,scope=debug-validation-${{ steps.request.outputs.target }}
+      - name: Pull pinned isolated database image
+        if: inputs.profile == 'backend' || inputs.profile == 'migrations'
+        run: docker pull postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+      - name: Execute candidate with fixed commands and no production credentials
+        env:
+          PROFILE: ${{ inputs.profile }}
+          TESTS_JSON: ${{ inputs.tests_json }}
+          POLICY_SHA: ${{ steps.request.outputs.policy_sha }}
+          IMAGE: fitician-debug-validation:${{ github.run_id }}-${{ inputs.profile }}
+        run: |
+          set -euo pipefail
+          image=$(docker image inspect "$IMAGE" --format '{{.Id}}')
+          python3 policy/ops/debug-validation.py --candidate "$PWD/candidate" --image "$image" \
+            --profile "$PROFILE" --tests-json "$TESTS_JSON" --policy-sha "$POLICY_SHA" \
+            --output "$PWD/results/validation.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: debug-validation-${{ inputs.request_id }}-${{ inputs.profile }}
+          path: results/validation.json
+          if-no-files-found: error
+          retention-days: 30

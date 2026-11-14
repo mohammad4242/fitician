@@ -1,0 +1,352 @@
+"""Explicit laptop enrollment and durable outbound tool delivery; no inbound remote shell."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import secrets
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from uuid import UUID, uuid4
+
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
+
+from app.auth.models import User
+from app.observability.environment import diagnostics_environment
+
+from .models import (
+    DebugConnector,
+    DebugConnectorCall,
+    DebugMessage,
+    DebugRun,
+    DebugRunEvent,
+    DebugThread,
+)
+from .privacy import sanitize_payload, sanitize_text
+from .service import ACTIVE
+
+REPOSITORY = "mohammad4242/fitician"
+TOOLS = frozenset(
+    {
+        "fitician_read_file",
+        "fitician_search_code",
+        "fitician_write_file",
+        "fitician_diff",
+        "fitician_run_tests",
+        "fitician_commit",
+        "fitician_create_pr",
+        "fitician_codex_turn",
+        "fitician_record_finding",
+        "fitician_server_evidence",
+        "fitician_ci_validate",
+        "fitician_ci_status",
+        "fitician_observe_server",
+        "fitician_ci_publish_pr",
+    }
+)
+MUTATIONS = frozenset(
+    {"fitician_write_file", "fitician_commit", "fitician_create_pr", "fitician_ci_publish_pr"}
+)
+
+
+def enroll_connector(
+    db: Session, actor_id: UUID, name: str, *, kind: str = "runtime"
+) -> tuple[DebugConnector, str]:
+    actor = db.get(User, actor_id)
+    if actor is None or not actor.is_admin:
+        raise ValueError("connector_not_authorized")
+    if kind not in {"runtime", "automation"}:
+        raise ValueError("connector_kind_not_authorized")
+    if kind == "automation" and db.scalar(
+        select(DebugConnector.id).where(
+            DebugConnector.kind == "automation",
+            DebugConnector.revoked.is_(False),
+            DebugConnector.environment == diagnostics_environment(),
+        )
+    ):
+        raise ValueError("automation_worker_already_enrolled")
+    token = secrets.token_urlsafe(48)
+    row = DebugConnector(
+        actor_id=actor_id,
+        name=sanitize_text(name)[:80],
+        kind=kind,
+        environment=diagnostics_environment(),
+        repository=REPOSITORY,
+        token_hash=hashlib.sha256(token.encode()).hexdigest(),
+    )
+    db.add(row)
+    db.flush()
+    audit_connector(db, actor_id, row.id, "enrolled")
+    return row, token
+
+
+def authenticate_connector(
+    db: Session, connector_id: UUID, token: str, *, kind: str = "runtime"
+) -> DebugConnector:
+    row = db.get(DebugConnector, connector_id)
+    actor = db.get(User, row.actor_id) if row and row.actor_id else None
+    if (
+        actor is None
+        or not actor.is_admin
+        or row is None
+        or row.revoked
+        or row.kind != kind
+        or row.environment != diagnostics_environment()
+        or not secrets.compare_digest(row.token_hash, hashlib.sha256(token.encode()).hexdigest())
+    ):
+        raise ValueError("connector_not_authorized")
+    return row
+
+
+def enqueue_call(
+    db: Session,
+    run: DebugRun,
+    connector: DebugConnector,
+    call_key: str,
+    tool: str,
+    arguments: dict[str, Any],
+) -> DebugConnectorCall:
+    _authorize_run(db, run)
+    thread = db.get(DebugThread, run.thread_id)
+    if (
+        connector.revoked
+        or thread is None
+        or connector.environment != thread.environment
+        or connector.repository != REPOSITORY
+        or (
+            run.config_snapshot.get("connector_id") is not None
+            and run.config_snapshot["connector_id"] != str(connector.id)
+        )
+    ):
+        raise ValueError("connector_scope_mismatch")
+    if run.state not in ACTIVE or run.cancel_requested or tool not in TOOLS:
+        raise ValueError("tool_not_authorized")
+    if tool in MUTATIONS and run.action != "prepare_fix":
+        raise ValueError("mutation_not_authorized")
+    encoded = json.dumps(arguments, sort_keys=True)
+    if len(encoded.encode()) > 131072:
+        raise ValueError("tool_request_too_large")
+    # Reject rather than silently changing a patch or storing a secret in a tool request.
+    if sanitize_text(encoded) != encoded:
+        raise ValueError("sensitive_tool_request_rejected")
+    digest = hashlib.sha256((tool + encoded).encode()).hexdigest()
+    existing = db.scalar(
+        select(DebugConnectorCall).where(
+            DebugConnectorCall.run_id == run.id, DebugConnectorCall.call_key == call_key
+        )
+    )
+    if existing:
+        if existing.request_hash != digest:
+            raise ValueError("tool_idempotency_conflict")
+        return existing
+    row = DebugConnectorCall(
+        run_id=run.id,
+        connector_id=connector.id,
+        call_key=call_key,
+        tool=tool,
+        arguments=arguments,
+        request_hash=digest,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def claim_call(db: Session, connector: DebugConnector) -> dict[str, Any] | None:
+    now = datetime.now(UTC)
+    row = db.scalar(
+        select(DebugConnectorCall)
+        .join(DebugRun)
+        .where(
+            DebugConnectorCall.connector_id == connector.id,
+            or_(
+                DebugConnectorCall.state == "queued",
+                (DebugConnectorCall.state == "running") & (DebugConnectorCall.lease_until < now),
+            ),
+            DebugRun.state.in_(ACTIVE),
+            DebugRun.cancel_requested.is_(False),
+        )
+        .order_by(DebugConnectorCall.created_at)
+        .with_for_update(skip_locked=True, of=DebugConnectorCall)
+        .limit(1)
+    )
+    if row is None:
+        return None
+    run = db.get(DebugRun, row.run_id)
+    assert run is not None
+    _authorize_run(db, run)
+    row.state = "running"
+    row.lease_token = uuid4()
+    row.lease_until = now + timedelta(seconds=180)
+    snapshot = run.evidence.get("snapshot") or {}
+    return {
+        "id": str(row.id),
+        "run_id": str(run.id),
+        "thread_id": str(run.thread_id),
+        "lease_token": str(row.lease_token),
+        "tool": row.tool,
+        "arguments": row.arguments,
+        "action": run.action,
+        "repository": connector.repository,
+        "environment": connector.environment,
+        "release_commit": snapshot.get("release_commit"),
+        "config": run.config_snapshot,
+        "evidence": run.evidence,
+    }
+
+
+def finish_call(
+    db: Session, connector: DebugConnector, call_id: UUID, lease_token: UUID, result: dict[str, Any]
+) -> None:
+    row = db.scalar(
+        select(DebugConnectorCall)
+        .where(DebugConnectorCall.id == call_id, DebugConnectorCall.connector_id == connector.id)
+        .with_for_update()
+    )
+    if row is None or row.lease_token != lease_token:
+        raise ValueError("connector_lease_lost")
+    if row.state == "completed":
+        return
+    run = db.get(DebugRun, row.run_id)
+    if run is None:
+        raise ValueError("run_no_longer_authorized")
+    _authorize_run(db, run)
+    if len(json.dumps(result).encode()) > 131072:
+        raise ValueError("tool_result_too_large")
+    row.result = json.loads(json.dumps(sanitize_payload(result)))
+    row.state = "completed"
+    row.lease_until = None
+
+
+def _authorize_run(db: Session, run: DebugRun) -> None:
+    message = db.get(DebugMessage, run.message_id)
+    actor = db.get(User, message.actor_id) if message and message.actor_id else None
+    thread = db.get(DebugThread, run.thread_id)
+    if (
+        actor is None
+        or not actor.is_admin
+        or run.cancel_requested
+        or run.state not in ACTIVE
+        or thread is None
+        or thread.environment != diagnostics_environment()
+    ):
+        raise ValueError("run_no_longer_authorized")
+    expected = run.config_snapshot.get("connector_capabilities")
+    if expected is not None and run.config_snapshot.get("connector_id"):
+        from .runtime_profiles import authorized_target, execution_capabilities
+
+        target = authorized_target(db, run.config_snapshot["connector_id"])
+        if execution_capabilities(target) != expected:
+            raise ValueError("execution_target_changed")
+
+
+def update_call(
+    db: Session,
+    connector: DebugConnector,
+    call_id: UUID,
+    lease_token: UUID,
+    sequence: int,
+    kind: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    from .service import append_event
+
+    row = db.scalar(
+        select(DebugConnectorCall)
+        .where(
+            DebugConnectorCall.id == call_id,
+            DebugConnectorCall.connector_id == connector.id,
+        )
+        .with_for_update()
+    )
+    if row is None or row.lease_token != lease_token or row.state != "running":
+        raise ValueError("connector_lease_lost")
+    run = db.scalar(select(DebugRun).where(DebugRun.id == row.run_id).with_for_update())
+    if run is None:
+        raise ValueError("run_no_longer_authorized")
+    _authorize_run(db, run)
+    row.lease_until = datetime.now(UTC) + timedelta(seconds=180)
+    connector.last_seen = datetime.now(UTC)
+    safe = {
+        key: value
+        for key, value in payload.items()
+        if key in {"tool", "status", "model", "commit", "branch", "pr_url"}
+    }
+    if kind == "finding_proposed":
+        from .findings import proposal_payload
+
+        safe = proposal_payload(db, run, payload)
+    if kind == "tool_completed" and "output" in payload:
+        tool = payload.get("tool")
+        output = payload["output"]
+        if (
+            tool not in TOOLS - {"fitician_codex_turn"}
+            or (tool in MUTATIONS and run.action != "prepare_fix")
+            or not isinstance(output, str)
+            or len(output.encode()) > 32000
+        ):
+            raise ValueError("invalid_tool_evidence")
+        safe.update(output=output, provenance="connector_tool")
+    event_payload = {
+        **json.loads(json.dumps(sanitize_payload(safe))),
+        "call_id": str(row.id),
+        "connector_sequence": sequence,
+    }
+    evidence_id: str | None = None
+    if sequence > row.progress_sequence:
+        if sequence != row.progress_sequence + 1 or kind not in {
+            "tool_started",
+            "tool_completed",
+            "tool_failed",
+            "runtime_started",
+            "runtime_completed",
+            "tool_progress",
+            "finding_proposed",
+        }:
+            raise ValueError("invalid_progress_sequence")
+        row.progress_sequence = sequence
+        if kind == "tool_started":
+            if payload.get("tool") == "fitician_run_tests":
+                run.state = "testing"
+            elif payload.get("tool") in MUTATIONS:
+                run.state = "editing"
+        # Only instrumented tool output is retained. Hidden model reasoning is never accepted.
+        event = append_event(db, run, kind, event_payload)
+        evidence_id = str(event.id) if "output" in safe or kind == "finding_proposed" else None
+    elif "output" in safe or kind == "finding_proposed":
+        previous_event = next(
+            (
+                item
+                for item in db.scalars(
+                    select(DebugRunEvent).where(
+                        DebugRunEvent.run_id == run.id, DebugRunEvent.kind == kind
+                    )
+                )
+                if item.payload.get("call_id") == str(row.id)
+                and item.payload.get("connector_sequence") == sequence
+            ),
+            None,
+        )
+        if previous_event is None or previous_event.payload != event_payload:
+            raise ValueError("tool_progress_conflict")
+        evidence_id = str(previous_event.id)
+    return {
+        "cancel_requested": False,
+        "sequence": row.progress_sequence,
+        "evidence_id": evidence_id,
+    }
+
+
+def audit_connector(db: Session, actor_id: UUID, connector_id: UUID, operation: str) -> None:
+    from app.body_analysis.admin_config.enums import AIAuditAction, AITaskType
+    from app.body_analysis.admin_config.models import AIAuditEvent
+
+    db.add(
+        AIAuditEvent(
+            actor_user_id=actor_id,
+            action=AIAuditAction.CONFIG_UPDATED,
+            task_type=AITaskType.DEBUG_AGENT,
+            changed_fields=[f"debug_connector_{operation}", str(connector_id)],
+        )
+    )

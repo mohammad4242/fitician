@@ -319,12 +319,12 @@ def test_telemetry_rejects_oversized_body_before_json_validation(client):
     )
 
 
-def test_confirmed_cause_requires_trusted_deterministic_exception_and_location(db):
+def test_exception_type_and_location_do_not_confirm_underlying_cause(db):
     evidence = _event().model_copy(
         update={"exception_type": "ZeroDivisionError", "source_location": "engine.py:42"}
     )
     known = record_event(db, evidence)
-    assert db.get(DiagnosticIssue, known.issue_id).confidence == "confirmed"
+    assert db.get(DiagnosticIssue, known.issue_id).confidence == "unknown"
     unknown = record_event(
         db, evidence.model_copy(update={"source_location": "engine.py:43"}), trusted=False
     )
@@ -424,3 +424,61 @@ def test_safe_client_exception_location_is_persisted_without_confirming_cause(cl
             ).status_code
             == 422
         )
+
+
+@pytest.mark.parametrize(
+    ("platform", "project"),
+    [
+        ("web", "fitician-web"),
+        ("ios_pwa", "fitician-web"),
+        ("android", "fitician-mobile"),
+        ("ios", "fitician-mobile"),
+    ],
+)
+def test_client_sentry_reference_is_pending_scoped_and_does_not_change_counts(
+    client, db, monkeypatch, platform, project
+):
+    from app.observability.evidence_models import (
+        DiagnosticEvidenceSnapshot,
+        DiagnosticExternalEvent,
+    )
+
+    monkeypatch.setenv("SENTRY_WEB_PROJECT", "fitician-web")
+    monkeypatch.setenv("SENTRY_MOBILE_PROJECT", "fitician-mobile")
+    email = f"sentry-fixture-{uuid4()}@example.com"
+    headers = {"Origin": "http://localhost:5173"}
+    assert (
+        client.post(
+            "/api/v1/auth/register",
+            headers=headers,
+            json={"email": email, "password": "long test password"},
+        ).status_code
+        == 201
+    )
+    identifier = uuid4()
+    payload = {
+        "event_id": str(identifier),
+        "platform": platform,
+        "component": "ReactRoot",
+        "operation": "render",
+        "stage": "uncaught",
+        "error_code": "CLIENT_RENDER_ERROR",
+        "build": "b" * 40,
+        "sentry_event_id": "a" * 32,
+    }
+    for _ in range(2):
+        assert (
+            client.post(
+                "/api/v1/diagnostics/client", headers=headers, json={"events": [payload]}
+            ).status_code
+            == 202
+        )
+    reference = db.scalar(select(DiagnosticExternalEvent))
+    assert reference.project_id == project
+    assert reference.local_event_id == identifier
+    assert reference.sync_state == "pending" and reference.observed_at is None
+    snapshot = db.scalar(select(DiagnosticEvidenceSnapshot))
+    assert snapshot.payload["provenance"] == "client_reference"
+    assert snapshot.payload["exception"] == {"values": []}
+    assert snapshot.payload["release_commit"] == "b" * 40
+    assert db.get(DiagnosticIssue, db.get(DiagnosticEvent, identifier).issue_id).count == 1

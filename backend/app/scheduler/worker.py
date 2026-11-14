@@ -80,4 +80,7 @@ async def run_scheduler(
 
 
 if __name__ == "__main__":
+    from app.observability.sentry import initialize_sentry
+
+    initialize_sentry("scheduler-worker")
     asyncio.run(run_scheduler(get_settings()))

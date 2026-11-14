@@ -104,6 +104,10 @@ class AIAgentServiceProxySetting(Base):
 class AITaskConfig(Base):
     __tablename__ = "ai_task_configs"
     __table_args__ = (
+        CheckConstraint(
+            "debug_connector_id IS NULL OR task_type = 'debug_agent'",
+            name="ck_ai_task_configs_debug_connector_task",
+        ),
         CheckConstraint("temperature >= 0 AND temperature <= 2", name="ck_ai_task_temp_range"),
         CheckConstraint("max_output_tokens > 0", name="ck_ai_task_tokens_positive"),
         CheckConstraint("timeout_seconds > 0", name="ck_ai_task_timeout_positive"),
@@ -166,6 +170,11 @@ class AITaskConfig(Base):
     )
     agent_model_id: Mapped[str | None] = mapped_column(String(300))
     agent_profile_id: Mapped[str | None] = mapped_column(String(200))
+    debug_connector_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey(
+            "debug_connectors.id", ondelete="RESTRICT", name="fk_ai_task_configs_debug_connector"
+        )
+    )
     primary_model_id: Mapped[str | None] = mapped_column(String(300))
     fallback_model_ids: Mapped[list[str]] = mapped_column(
         JSON, default=list, server_default=text("'[]'::json"), nullable=False

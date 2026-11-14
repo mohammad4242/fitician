@@ -1,0 +1,60 @@
+name: Debug server observation
+run-name: Debug observation ${{ inputs.operation_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        required: true
+        type: choice
+        options: [iran, germany]
+      operation_id:
+        required: true
+        type: string
+      policy_commit:
+        required: true
+        type: string
+      trace_id:
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  observe:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Verify immutable read-only request
+        env:
+          POLICY: ${{ inputs.policy_commit }}
+          OPERATION_ID: ${{ inputs.operation_id }}
+          OBSERVATION_TARGET: ${{ inputs.target }}
+          TRACE_ID: ${{ inputs.trace_id }}
+        run: |
+          python3 - <<'PY'
+          import os,re,uuid
+          assert os.environ['POLICY']==os.environ['GITHUB_SHA']
+          assert str(uuid.UUID(os.environ['OPERATION_ID']))==os.environ['OPERATION_ID']
+          assert os.environ['OBSERVATION_TARGET'] in ('iran','germany')
+          assert not os.environ['TRACE_ID'] or re.fullmatch('[a-f0-9]{32}',os.environ['TRACE_ID'])
+          PY
+      - name: Read fixed scoped regional evidence
+        env:
+          OBSERVATION_TARGET: ${{ inputs.target }}
+          OBSERVATION_TRACE_ID: ${{ inputs.trace_id }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: bash ops/debug-observe-remote.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-server-observation-${{ inputs.operation_id }}
+          path: .ci-evidence/debug-observation/observation.json
+          if-no-files-found: error
+          retention-days: 7
