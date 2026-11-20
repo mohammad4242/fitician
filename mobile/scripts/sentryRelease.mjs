@@ -1,5 +1,22 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
+
+const productionApi = JSON.parse(readFileSync(new URL("../config/productionApiEndpoints.json", import.meta.url), "utf8")).apiBaseUrl;
+
+export function validateSentryTargetEnvironment(env) {
+  if (!env.EXPO_PUBLIC_SENTRY_DSN) return;
+  const environment = env.EXPO_PUBLIC_SENTRY_ENVIRONMENT;
+  if (typeof environment !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(environment)) {
+    throw new Error("explicit_mobile_diagnostics_environment_required");
+  }
+  const productionProfile = ["production", "production-device"].includes(env.EAS_BUILD_PROFILE)
+    || env.APP_VARIANT === "production";
+  const api = env.EXPO_PUBLIC_API_BASE_URL?.trim() || (productionProfile ? productionApi : null);
+  if (api?.replace(/\/+$/u, "") === productionApi && environment !== "production-iran") {
+    throw new Error("mobile_diagnostics_environment_mismatch");
+  }
+}
 
 export function sentryReleaseEnvironment(env) {
   if (!env.EXPO_PUBLIC_SENTRY_DSN) return { SENTRY_DISABLE_AUTO_UPLOAD: "1" };
@@ -14,6 +31,7 @@ export function sentryReleaseEnvironment(env) {
   if (!env.SENTRY_AUTH_TOKEN || !env.SENTRY_ORG || !env.SENTRY_PROJECT) {
     throw new Error("private_mobile_artifact_upload_not_configured");
   }
+  validateSentryTargetEnvironment(env);
   return { SENTRY_RELEASE: `fitician-mobile@${commit}`, EXPO_PUBLIC_APP_BUILD_SHA: commit };
 }
 

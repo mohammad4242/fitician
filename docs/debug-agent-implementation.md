@@ -1487,3 +1487,50 @@ Production enrollment, independent Codex login, dedicated publication credential
 capacity, initial schema-changing rollout, scenario-specific resolution verification,
 automatic incident SMS and native release crash acceptance remain open gates. The production
 panel/laptop-offline end-to-end repair/deployment path is not claimed complete.
+
+### Live staging evidence, offline behavior and native environment correction
+
+The same controlled backend event was retrieved from the real Sentry project with HTTP 200,
+matching event identity, a real external group ID and release
+`fitician-backend@679b71ec43af8baf5bca10d0acb2f87a466bcb93`. The actual exact-event synchronization
+code then used the existing authenticated Germany proxy through a temporary pinned-SSH
+forward from Iran; TLS verification stayed enabled. It persisted `observed` and matching
+source release evidence in the isolated staging database. No mock response was substituted.
+The forward was removed afterward. Browser readback showed the Sentry link and observed
+delivery in the same issue. This proves staging ingestion/correlation, not production rollout.
+
+With the explicitly selected staging connector stopped, run
+`d8318be8-0184-4026-ae84-664b91a96893` became `blocked/execution_target_offline`, retained its
+selected model and made zero provider requests/tool starts. The Persian blocked explanation
+was visible in the panel. Restoring that connector did not resubmit the blocked run.
+Public SSH on Germany's current address and the private route both executed successfully
+and matched the same host identity with strict host-key verification. Independent runtime
+Codex login and its dedicated GitHub credential were still absent.
+
+Real selected-model run `b8b032c6-f542-4c7c-99fa-eefdbbeb4ec7` also persisted an evidence-cited
+Persian `observed_fact` through `fitician_record_finding`. The finding remained unconfirmed
+and current after refresh; no model statement established a confirmed cause. Its source read
+and finding calls were actual connector executions. The complete deployed Germany/laptop-offline
+repair/PR/deployment path remains unverified.
+
+The scheduled Iran backup job last fired November 20 and reported `Result=success` with exit
+0; its timer is active for the next scheduled run. This does not replace the required fresh
+isolated restore rehearsal before a production migration.
+
+An internal Android build was dispatched once for `27039cbd` (Actions `44720916917`, EAS
+`a3a5f87d-1352-4c04-99b5-7f1629aa0149`). Configuration inspection found that the earlier EAS
+setup incorrectly used profile names as Sentry environments. The production API expects
+`production-iran`, so the owned in-progress build was cancelled rather than accepted as a
+usable diagnostic release. No store submission or server release occurred.
+
+Production EAS now uses `production-iran`; preview uses `staging` but has no configured API
+endpoint and is not claimed build-ready. Upload credentials remain SECRET and unchanged.
+The backend host now also has the verified web/mobile project-name mappings needed for
+client-event correlation; its running application was not restarted. New build guards reject
+missing environments or a production API paired with a profile-name environment, before
+cloud submission and again during cloud post-install. Unconfigured Sentry builds remain
+independent. All 84 mobile foundation tests passed after three new cases failed first.
+
+Full CI `44719573067` for `27039cbd` exposed a failure in the complete backend suite; it is
+under investigation. Earlier passing focused tests and CI `43542622750` do not override this
+new failure. Do not merge/deploy until the exact corrected candidate passes required gates.
