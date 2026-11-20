@@ -405,3 +405,163 @@ def test_history_pages_retain_the_runs_for_their_messages_and_current_active_run
         str(runs[-1].id)
     }
     assert all(item["message_id"] for item in second["runs"])
+
+
+def test_reply_only_history_page_preserves_its_run_and_never_binds_foreign_threads(client, db):
+    from datetime import UTC, datetime, timedelta
+
+    from app.debugging.models import DebugMessage, DebugRun, DebugThread
+    from app.observability.environment import diagnostics_environment
+    from tests.admin.test_ai_task_settings_api import _admin
+
+    _admin(client, db)
+    issue = record_event(
+        db,
+        EventInput(
+            component="api",
+            operation="reply-provenance",
+            stage="test",
+            platform="backend",
+            category="application_bug",
+            severity="error",
+            error_code="UNHANDLED_EXCEPTION",
+            outcome="failure",
+        ),
+    )
+    thread = DebugThread(issue_id=issue.issue_id, environment=diagnostics_environment())
+    db.add(thread)
+    db.flush()
+    started = datetime(2026, 11, 1, tzinfo=UTC)
+    message = DebugMessage(
+        thread_id=thread.id, role="user", content="Inspect selected occurrence", created_at=started
+    )
+    db.add(message)
+    db.flush()
+    run = DebugRun(
+        thread_id=thread.id,
+        message_id=message.id,
+        state="completed",
+        action="analyze",
+        evidence={"occurrence_id": str(issue.id)},
+        config_snapshot={"primary_model_id": "selected/model"},
+    )
+    db.add(run)
+    db.flush()
+    answer = DebugMessage(
+        thread_id=thread.id,
+        role="assistant",
+        content="Observed evidence",
+        submission_key="assistant:" + str(run.id),
+        created_at=started + timedelta(seconds=1),
+    )
+    db.add(answer)
+    db.flush()
+    base = f"/api/v1/admin/diagnostics/issues/{issue.issue_id}/conversation"
+    page = client.get(base + "?limit=1").json()
+    assert page["messages"][0].get("run_id") == str(run.id)
+    assert [item["id"] for item in page["runs"]] == [str(run.id)]
+    assert page["runs"][0]["occurrence_id"] == str(issue.id)
+    # A forged/cross-thread reference and historic unbound replies are never inferred from time.
+    answer.submission_key = "assistant:" + str(uuid4())
+    db.flush()
+    page = client.get(base + "?limit=1").json()
+    assert page["messages"][0].get("run_id") is None and page["runs"] == []
+    other_issue = record_event(
+        db,
+        EventInput(
+            component="api",
+            operation="other-reply",
+            stage="test",
+            platform="backend",
+            category="application_bug",
+            severity="error",
+            error_code="UNHANDLED_EXCEPTION",
+            outcome="failure",
+        ),
+    )
+    foreign_thread = DebugThread(
+        issue_id=other_issue.issue_id, environment=diagnostics_environment()
+    )
+    db.add(foreign_thread)
+    db.flush()
+    foreign_message = DebugMessage(
+        thread_id=foreign_thread.id, role="user", content="Foreign issue"
+    )
+    db.add(foreign_message)
+    db.flush()
+    foreign_run = DebugRun(
+        thread_id=foreign_thread.id,
+        message_id=foreign_message.id,
+        state="completed",
+        config_snapshot={},
+        evidence={},
+    )
+    db.add(foreign_run)
+    db.flush()
+    answer.submission_key = "assistant:" + str(foreign_run.id)
+    db.flush()
+    page = client.get(base + "?limit=1").json()
+    assert page["messages"][0].get("run_id") is None and page["runs"] == []
+    answer.submission_key = "assistant:not-a-uuid"
+    db.flush()
+    assert client.get(base + "?limit=1").json()["messages"][0].get("run_id") is None
+    answer.submission_key = None
+    db.flush()
+    assert client.get(base + "?limit=1").json()["messages"][0].get("run_id") is None
+
+
+def test_completed_worker_atomically_links_one_reply_to_its_run(db, test_settings, monkeypatch):
+    import asyncio
+
+    from sqlalchemy import select
+
+    from app.debugging import worker
+    from app.debugging.models import DebugMessage, DebugRunEvent
+    from tests.test_debug_gateway import setup_run
+
+    _, run, connector, _ = setup_run(db)
+    from datetime import UTC, datetime
+
+    connector.last_seen = datetime.now(UTC)
+    run.config_snapshot = {
+        "enabled": True,
+        "execution_backend": "agent_service",
+        "agent_name": "codex",
+        "agent_model_id": "selected-model",
+        "connector_id": str(connector.id),
+    }
+    db.flush()
+
+    async def completed(*args, **kwargs):
+        return {"output": "Observed synthetic evidence"}
+
+    monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
+    monkeypatch.setattr(worker, "call_connector", completed)
+    lease = run.lease_token
+    asyncio.run(worker.execute_run(test_settings, run.id, lease))
+    db.expire_all()
+    answer = db.scalar(
+        select(DebugMessage).where(
+            DebugMessage.role == "assistant", DebugMessage.thread_id == run.thread_id
+        )
+    )
+    assert answer is not None and answer.submission_key == "assistant:" + str(run.id)
+    event = db.scalar(
+        select(DebugRunEvent).where(
+            DebugRunEvent.run_id == run.id, DebugRunEvent.kind == "completed"
+        )
+    )
+    assert event.payload["message_id"] == str(answer.id)
+    asyncio.run(worker.execute_run(test_settings, run.id, lease))
+    assert (
+        len(
+            list(
+                db.scalars(
+                    select(DebugMessage).where(
+                        DebugMessage.role == "assistant", DebugMessage.thread_id == run.thread_id
+                    )
+                )
+            )
+        )
+        == 1
+    )

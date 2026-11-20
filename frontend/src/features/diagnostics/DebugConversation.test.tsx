@@ -6,6 +6,20 @@ import { request } from "../../shared/apiClient";
 vi.mock("../../shared/apiClient", () => ({ request: vi.fn() }));
 afterEach(() => { vi.clearAllMocks(); sessionStorage.clear(); vi.unstubAllGlobals(); });
 
+it("keeps the model and occurrence beside the reply after refresh", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [{ id: "linked-reply", run_id: "linked-run", role: "assistant", content: "Checked synthetic source", created_at: "2026-11-20" }],
+    runs: [{ id: "linked-run", state: "completed", error_code: null, config: { primary_model_id: "selected/model" }, occurrence_id: "selected-occurrence", evidence_id: null }], next_cursor: null,
+  } as never);
+  const { unmount } = render(<DebugConversation issueId="linked-issue" english />);
+  const answer = await screen.findByText("Checked synthetic source");
+  expect(answer.closest("article")).toHaveTextContent("selected/model");
+  expect(answer.closest("article")).toHaveTextContent("selected-occurrence");
+  unmount();
+  render(<DebugConversation issueId="linked-issue" english />);
+  expect((await screen.findByText("Checked synthetic source")).closest("article")).toHaveTextContent("selected/model");
+});
+
 it("loads persisted replies and submits a real API run with an idempotency identity", async () => {
   vi.stubGlobal("crypto", webcrypto);
   const mocked = vi.mocked(request);

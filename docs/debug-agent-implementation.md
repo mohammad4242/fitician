@@ -6,20 +6,21 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
-## Revalidated completion checklist — 2026-11-14
+## Revalidated completion checklist — 2026-11-20
 
 The existing design and execution authorization remain in effect. Work continues on
 `feat/regional-cicd`; no replacement stack or competing admin application is planned.
-At baseline HEAD `16a7b637`, remote branch and draft PR 41 match. `origin/main` remains
-`7c03e50d`; feature work is not merged or deployed. Local mobile release-identity changes
-and this document are preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
+The November 20 continuation started at `679b71ec`, matching the pushed branch and draft
+PR 41. Full CI run `43542622750` passed for that exact commit. Feature work remains unmerged
+and no production application release is claimed. Unrelated local documentation remains
+preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 
 | Capability | Code | Tested | External configuration | Deployed | Live verified |
 | --- | --- | --- | --- | --- | --- |
 | SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
 | Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | own login and production enrollment pending | commissioning service on Germany | health/limits/image yes; inference/panel no |
-| API model tool loop | committed | mocked provider protocol | production selection/probe pending | no | actual API tool call pending |
+| API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated Germany GitHub credential absent | no | no Germany PR publication proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
 | Native exact release identity/iOS ingestion | implemented | adapter/release/privacy tests; native crash pending | EAS preview/production Sentry settings installed; upload credential is SECRET | no | no native release crash proof |
@@ -1431,3 +1432,58 @@ files and signing-key formats are now excluded at every depth while app assets a
 source remain included. Twelve focused release/privacy tests passed. No signing key was
 read, moved, uploaded or replaced by this change.
 The complete `npm run test:mobile:foundation` invocation passed all 81 tests with no skips.
+
+### November 20: restored key, real API tools and durable reply provenance
+
+The previous encryption-key blocker was resolved using the existing private checkout key.
+A read-only check decrypted both existing encrypted server values; a second check preceded
+secure restoration of the same key to the Iran host configuration. No key was generated or
+credential rotated. `debug-worker.env` was prepared with only its DB/encryption/telemetry
+configuration. All three dedicated worker files have mode 0600, unique keys and no upload
+token/GitHub credential. No application restart, activation policy, worker start or SMS send
+occurred. Older missing-key notes above describe the preceding inspection, not current state.
+
+Fresh private SSH inspection found the independent Germany service healthy, but its own
+Codex auth file and dedicated GitHub broker credential remain absent. Germany has one CPU,
+1967 MiB total RAM and about 2474 MiB disk free. Iran remains two CPUs/3916 MiB RAM; the
+existing diagnostics activation resource gate is still unsatisfied. A fresh device challenge
+was written only to the private local instructions file. Challenge creation is not login.
+
+The existing OpenRouter credential was transferred only over authenticated SSH/in-process
+memory into the isolated staging settings API, where it was stored encrypted. The real
+catalog returned 442 models. `openai/gpt-4.1-mini` was explicitly selected for the bounded
+staging test with fallback disabled. Actual issue-scoped tool execution completed, performed
+one connector file read, named the observed source function and cited that run's immutable
+tool-evidence event. The tool citation is valid independently of the package's separate ID;
+an initial test-harness assertion that accepted only the package ID was corrected. Duplicate
+submission returned the same run. This is actual API-model execution, not a mocked provider
+result, and it does not establish production acceptance or Germany execution.
+
+Browser acceptance then selected the occurrence and submitted the read-only request through
+the actual Persian diagnostics page at 390px. Run `db8fc9e9-6993-4eb8-a23f-da4c757df0c8`
+completed with the selected model/occurrence, one real connector tool completion and valid
+evidence citation. A refresh retained the reply/model and no horizontal page overflow was
+observed. Scoped API readback and the private screenshot/result files support this staging
+result. No production user or medical data was used. Early browser-harness failures were
+locator/visibility assumptions; they were not treated as successful acceptance.
+
+This acceptance exposed a history gap: an assistant-only page did not retain its run when
+the user message fell outside that page. New replies now use an internal per-run submission
+identity, written atomically with the completion event's reply ID. Conversation pages return
+the explicit same-thread run reference and include the matching snapshotted model/occurrence.
+The UI shows that provenance beside each reply. Foreign/malformed references are rejected;
+historical replies without a recorded link remain visibly unknown, without inferred backfill.
+No migration or generation-runner permission change is required.
+
+The regression failed first in backend and UI, then passed 39 backend tests across debug
+runs/gateway/findings/API tools, 18 conversation/automation/evidence UI tests, focused Ruff,
+three-file mypy, frontend TypeScript and Oxlint. Existing Starlette deprecation remains.
+An additional 13-file business selection passed 228 tests (811 existing deprecation warnings)
+on isolated PostgreSQL: body API/runtime/provider normalization, nutrition start/weekly/
+estimate/security, workout service/signatures/dependencies and job runtime. These results
+supplement the earlier 221-test selection; neither establishes the full live outcome matrix.
+
+Production enrollment, independent Codex login, dedicated publication credential, Iran
+capacity, initial schema-changing rollout, scenario-specific resolution verification,
+automatic incident SMS and native release crash acceptance remain open gates. The production
+panel/laptop-offline end-to-end repair/deployment path is not claimed complete.

@@ -182,6 +182,23 @@ def submit_message(
     return run
 
 
+def assistant_submission_key(run_id: UUID) -> str:
+    return "assistant:" + str(run_id)
+
+
+def assistant_run_id(message: DebugMessage) -> UUID | None:
+    if message.role != "assistant" or not message.submission_key:
+        return None
+    prefix = "assistant:"
+    if not message.submission_key.startswith(prefix):
+        return None
+    try:
+        identifier = UUID(message.submission_key[len(prefix) :])
+    except ValueError:
+        return None
+    return identifier if message.submission_key == assistant_submission_key(identifier) else None
+
+
 def claim_run(db: Session) -> DebugRun | None:
     now = datetime.now(UTC)
     run = db.scalar(

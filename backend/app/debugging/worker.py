@@ -28,7 +28,7 @@ from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
 from .models import DebugMessage, DebugRun
 from .privacy import sanitize_text
 from .runtime_profiles import authorized_target, execution_capabilities
-from .service import append_event, claim_run
+from .service import append_event, assistant_submission_key, claim_run
 
 
 async def request_analysis(
@@ -345,6 +345,7 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
         run = db.scalar(select(DebugRun).where(DebugRun.id == run_id).with_for_update())
         if run is None or run.lease_token != lease_token:
             return
+        reply_id = None
         if run.cancel_requested or failure == "cancelled":
             run.state = "cancelled"
         elif failure:
@@ -365,16 +366,24 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                 else "failed"
             )
         else:
-            db.add(
-                DebugMessage(
-                    thread_id=run.thread_id, role="assistant", content=content or "", actor_id=None
-                )
+            reply = DebugMessage(
+                thread_id=run.thread_id,
+                role="assistant",
+                content=content or "",
+                actor_id=None,
+                submission_key=assistant_submission_key(run.id),
             )
+            db.add(reply)
+            db.flush()
+            reply_id = str(reply.id)
             run.state = "completed"
         run.error_code = failure
         run.lease_until = None
         run.lease_token = None
-        append_event(db, run, run.state, {"error_code": failure, "mode": mode})
+        payload: dict[str, Any] = {"error_code": failure, "mode": mode}
+        if reply_id:
+            payload["message_id"] = reply_id
+        append_event(db, run, run.state, payload)
         db.commit()
 
 

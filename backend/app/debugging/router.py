@@ -24,7 +24,7 @@ from .connector_schemas import (
 from .deployment_router import router as deployment_router
 from .findings_router import router as findings_router
 from .models import DebugMessage, DebugOperation, DebugRun, DebugRunEvent, DebugThread
-from .service import ACTIVE, cancel_run, submit_message
+from .service import ACTIVE, assistant_run_id, cancel_run, submit_message
 
 router = APIRouter(
     prefix="/api/v1/admin/diagnostics",
@@ -236,16 +236,27 @@ def conversation(
     )
     more = len(messages) > limit
     messages = messages[:limit]
+    reply_runs = {message.id: assistant_run_id(message) for message in messages}
     runs = list(
         db.scalars(
             select(DebugRun)
             .where(
                 DebugRun.thread_id == thread.id,
                 (DebugRun.message_id.in_([message.id for message in messages]))
+                | DebugRun.id.in_([identifier for identifier in reply_runs.values() if identifier])
                 | DebugRun.state.in_(ACTIVE),
             )
             .order_by(DebugRun.created_at.desc(), DebugRun.id.desc())
         )
+    )
+    linked_messages = {run.message_id: str(run.id) for run in runs}
+    scoped_ids = {run.id for run in runs}
+    linked_messages.update(
+        {
+            message_id: str(identifier)
+            for message_id, identifier in reply_runs.items()
+            if identifier in scoped_ids
+        }
     )
     return {
         "thread_id": str(thread.id),
@@ -253,6 +264,7 @@ def conversation(
             {
                 "id": str(message.id),
                 "role": message.role,
+                "run_id": linked_messages.get(message.id),
                 "content": message.content,
                 "created_at": message.created_at.isoformat(),
             }
