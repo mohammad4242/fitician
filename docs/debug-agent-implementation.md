@@ -1531,6 +1531,24 @@ missing environments or a production API paired with a profile-name environment,
 cloud submission and again during cloud post-install. Unconfigured Sentry builds remain
 independent. All 84 mobile foundation tests passed after three new cases failed first.
 
-Full CI `44719573067` for `27039cbd` exposed a failure in the complete backend suite; it is
-under investigation. Earlier passing focused tests and CI `43542622750` do not override this
-new failure. Do not merge/deploy until the exact corrected candidate passes required gates.
+Full CI `44719573067` for `27039cbd` exposed a failure in the complete backend suite, investigated
+below. Earlier passing focused tests and CI `43542622750` do not override this failure.
+Do not merge/deploy until the exact corrected candidate passes required gates.
+
+### Quota concurrency regression found by complete CI
+
+The failing shard reported 1179 passing tests and one failure:
+`tests/entitlements/test_quota.py::test_concurrent_generation_consumption_is_serialized[False]`.
+Two distinct resources were both consumed when only one quota slot remained. This was not
+treated as an irrelevant flaky test. `consume_quota` captured its default reference time
+before the user row lock. A competing request could commit a newer usage event before that
+lock was acquired; the waiting request's upper timestamp bound then excluded the committed
+event despite correct SQL locking.
+
+Two deterministic PostgreSQL regressions force that exact interleaving for workout and
+nutrition generation with a controlled clock and real committed sessions, without sleeps
+or retries. Both failed before the fix. Default reference time is now captured after acquiring
+the lock. Explicit caller timestamps, resource idempotency, rolling boundaries, admin
+exemptions and caller transaction ownership are unchanged. All 50 entitlements/jobs tests,
+focused Ruff and service mypy passed. This is locally verified code, not a production fix
+or a completed run of the entire CI suite. Required CI must pass again on the corrected SHA.
