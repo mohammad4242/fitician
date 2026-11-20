@@ -626,6 +626,15 @@ jobs:
           docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
           cd .ci-evidence/debug-runtime
           sha256sum image.tar.gz > image.tar.gz.sha256
+      - name: Retain bounded runtime health failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitician-debug-runtime-failure-${{ github.sha }}
+          path: .ci-evidence/debug-runtime/health-failure.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: fitician-debug-runtime-${{ github.sha }}

@@ -17,9 +17,7 @@ from app.debugging.image_identity import config_digest_for_image
 
 
 def command(*args: str) -> str:
-    result = subprocess.run(
-        args, capture_output=True, text=True, timeout=60, check=False
-    )
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
     if result.returncode:
         raise RuntimeError("isolated_runtime_smoke_command_failed")
     return result.stdout.strip()
@@ -29,8 +27,15 @@ def inspect(name: str) -> dict:
     return json.loads(command("docker", "inspect", name))[0]
 
 
+class RuntimeLivenessFailure(RuntimeError):
+    def __init__(self, details: dict) -> None:
+        self.details = details
+        super().__init__("isolated_runtime_liveness_failed")
+
+
 def wait_healthy(name: str) -> None:
     deadline = time.monotonic() + 35
+    value = {}
     while time.monotonic() < deadline:
         value = inspect(name)
         if value["State"].get("Health", {}).get("Status") == "healthy":
@@ -38,7 +43,24 @@ def wait_healthy(name: str) -> None:
         if not value["State"]["Running"]:
             break
         time.sleep(1)
-    raise RuntimeError("isolated_runtime_liveness_failed")
+    state = value.get("State", {})
+    health = state.get("Health", {})
+    details = {
+        "running": state.get("Running") is True,
+        "exit_code": state.get("ExitCode") if type(state.get("ExitCode")) is int else None,
+        "oom_killed": state.get("OOMKilled") is True,
+        "health_status": health.get("Status")
+        if health.get("Status") in {"healthy", "unhealthy", "starting"}
+        else "unknown",
+        "probe_exit_codes": [
+            item.get("ExitCode")
+            for item in health.get("Log", [])[-3:]
+            if type(item.get("ExitCode")) is int
+        ],
+    }
+    # No State.Error, probe Output, environment or private status-file content.
+    print(json.dumps({"runtime_health_failure": details}), flush=True)
+    raise RuntimeLivenessFailure(details)
 
 
 def run_automation(image: str, commit: str) -> dict:
@@ -66,7 +88,7 @@ def run_automation(image: str, commit: str) -> dict:
             f"type=volume,src={name},dst=/state",
             "--tmpfs=/tmp:uid=10001,gid=10001,mode=0700,size=16m",
             "--health-cmd",
-            "python -m app.debugging.automation_client health",
+            "python -m app.debugging.healthcheck",
             "--health-interval=1s",
             "--health-timeout=3s",
             "--entrypoint=python",
@@ -94,9 +116,7 @@ def run_automation(image: str, commit: str) -> dict:
             )
         )
         assert status["state"] == "awaiting_enrollment" and not status["connected"]
-        assert (
-            status["runtime_revision"] == commit and status["telemetry"] == "disabled"
-        )
+        assert status["runtime_revision"] == commit and status["telemetry"] == "disabled"
         command(
             "docker",
             "exec",
@@ -106,9 +126,7 @@ def run_automation(image: str, commit: str) -> dict:
             "from pathlib import Path; Path('/state/restart-proof').write_text('retained')",
         )
         command("docker", "stop", "-t", "10", name)
-        assert inspect(name)["State"]["ExitCode"] == 0, (
-            "Broker must stop without SIGKILL"
-        )
+        assert inspect(name)["State"]["ExitCode"] == 0, "Broker must stop without SIGKILL"
         command("docker", "start", name)
         wait_healthy(name)
         assert (
@@ -130,9 +148,7 @@ def run_automation(image: str, commit: str) -> dict:
             "github_connected": False,
         }
     finally:
-        subprocess.run(
-            ["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False
-        )
+        subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False)
         command("docker", "volume", "rm", name)
 
 
@@ -140,10 +156,7 @@ def run(image: str, commit: str) -> dict:
     if not re.fullmatch(r"[a-f0-9]{40}", commit):
         raise ValueError("exact_commit_required")
     metadata = json.loads(command("docker", "image", "inspect", image))[0]
-    if (
-        metadata["Config"].get("Labels", {}).get("org.opencontainers.image.revision")
-        != commit
-    ):
+    if metadata["Config"].get("Labels", {}).get("org.opencontainers.image.revision") != commit:
         raise ValueError("runtime_image_revision_mismatch")
     name = "fitician-debug-runtime-test-" + str(uuid4())
     command("docker", "volume", "create", name)
@@ -177,7 +190,7 @@ def run(image: str, commit: str) -> dict:
             "--tmpfs",
             "/tmp:uid=10001,gid=10001,mode=0700,size=32m",
             "--health-cmd",
-            "python -m app.debugging.server_runtime health",
+            "python -m app.debugging.healthcheck",
             "--health-interval",
             "1s",
             "--health-timeout",
@@ -249,9 +262,7 @@ def run(image: str, commit: str) -> dict:
             "automation": run_automation(metadata["Id"], commit),
         }
     finally:
-        subprocess.run(
-            ["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False
-        )
+        subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False)
         command("docker", "volume", "rm", name)
 
 
@@ -261,12 +272,17 @@ def main() -> None:
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    evidence = run(args.image, args.commit)
+    try:
+        evidence = run(args.image, args.commit)
+    except RuntimeLivenessFailure as error:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        failure = args.output.with_name("health-failure.json")
+        failure.write_text(json.dumps(error.details, indent=2) + "\n")
+        failure.chmod(0o600)
+        raise
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(evidence, indent=2) + "\n")
-    print(
-        "Independent runtime: isolation, protocol, liveness and restart persistence passed"
-    )
+    print("Independent runtime: isolation, protocol, liveness and restart persistence passed")
 
 
 if __name__ == "__main__":

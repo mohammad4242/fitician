@@ -1552,3 +1552,30 @@ the lock. Explicit caller timestamps, resource idempotency, rolling boundaries, 
 exemptions and caller transaction ownership are unchanged. All 50 entitlements/jobs tests,
 focused Ruff and service mypy passed. This is locally verified code, not a production fix
 or a completed run of the entire CI suite. Required CI must pass again on the corrected SHA.
+
+### Runtime liveness gate hardening — container acceptance still pending
+
+CI `44722946530` reached the separate broker's `wait_healthy` call and failed its 35-second
+liveness budget. Existing failure output did not establish OOM, probe timeout, startup error
+or the underlying cause. It is not labelled a confirmed quota-related or provider failure.
+The previous health command imported the complete orchestration/provider modules to read
+one heartbeat. Both isolated services and the smoke now use a standalone standard-library
+probe instead, checking the same 45-second freshness window without network/configuration
+imports. It rejects malformed, future/stale, oversized, non-private and symlink status files
+without printing their content. The existing 3-second probe timeout, 35-second smoke budget,
+CPU/RAM limits, sandbox and authentication/readiness distinction remain unchanged.
+
+On a repeated liveness failure, the smoke emits and retains only running/exit/OOM/health
+facts and the last three probe exit codes. It excludes environment values, raw probe output,
+State.Error and private runtime status. A private failure artifact survives container cleanup
+and required CI stays failed. Four regressions failed first, then all 370 ops tests passed,
+including a real `python -S` probe invocation without installed provider packages. Ruff and
+health-module mypy passed. No successful resource-constrained container run or production
+healthcheck replacement is claimed from these checks; the next exact-image CI gate is required.
+
+The corrected internal Android build was dispatched for `8f848ce7` (Actions `44723402846`)
+after the previous owned build was confirmed cancelled. It has no store submission step.
+Local Android SDK/emulator/KVM tooling exists, but the shared system-image directory contained
+only an incomplete installer. It was preserved. A separate SDK/image download and test AVD
+workspace is being prepared under `.codex-tmp/native-sentry-acceptance`; no physical device is
+connected and no native crash has yet been tested.

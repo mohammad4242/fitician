@@ -22,7 +22,7 @@ services:
     networks: [debug-runtime]
     healthcheck:
       # Liveness only. Read status.json for enrollment/authentication/readiness.
-      test: [CMD, python, -m, app.debugging.server_runtime, health]
+      test: [CMD, python, -m, app.debugging.healthcheck]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -55,7 +55,7 @@ services:
       - '${FITICIAN_DEBUG_RUNTIME_ROOT}/automation-private:/run/fitician-automation:ro'
     networks: [debug-runtime]
     healthcheck:
-      test: [CMD, python, -m, app.debugging.automation_client, health]
+      test: [CMD, python, -m, app.debugging.healthcheck]
       interval: 10s
       timeout: 3s
       retries: 3

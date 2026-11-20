@@ -39,7 +39,7 @@ COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
      backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \
      backend/app/debugging/workspaces.py backend/app/debugging/ci_contract.py \
      backend/app/debugging/github_automation.py backend/app/debugging/automation_client.py \
-     backend/app/debugging/process_lifecycle.py /app/app/debugging/
+     backend/app/debugging/process_lifecycle.py backend/app/debugging/healthcheck.py /app/app/debugging/
 COPY backend/app/observability/__init__.py backend/app/observability/sentry.py /app/app/observability/
 ARG APP_BUILD_SHA
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOME=/state CODEX_HOME=/state/codex \
