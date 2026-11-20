@@ -15,6 +15,28 @@ assert digest.hexdigest() == '8246e846c550ea21197fcc4067bc270dca895e94ea42ed6a28
 PY
 RUN python -c "import os,pathlib,tarfile; t=tarfile.open('/build/codex.tar.gz'); p=pathlib.Path('/usr/local/bin/codex'); p.write_bytes(t.extractfile('codex-x86_64-unknown-linux-musl').read()); p.chmod(0o755); os.utime(p,(0,0))" \
     && python -c "import subprocess; assert subprocess.check_output(['/usr/local/bin/codex','--version'],text=True).strip() == 'codex-cli 0.167.2'"
+RUN python - <<'PY'
+import hashlib, os, pathlib, subprocess, tarfile, urllib.request
+url = 'https://github.com/openai/codex/releases/download/rust-v0.167.2/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz'
+archive = pathlib.Path('/build/code-mode-host.tar.gz')
+digest = hashlib.sha256()
+size = 0
+with urllib.request.urlopen(url, timeout=60) as response, archive.open('wb') as output:
+    while chunk := response.read(1048576):
+        size += len(chunk)
+        assert size <= 35000000, 'Code mode host artifact exceeds size limit'
+        digest.update(chunk)
+        output.write(chunk)
+assert digest.hexdigest() == '189475a654d82ca776e08dfef22734106d3e5b2cf21da6e84ec3d974d02c39a6', 'Code mode host checksum mismatch'
+with tarfile.open(archive) as source:
+    member = source.getmember('codex-code-mode-host-x86_64-unknown-linux-musl')
+    assert member.isfile() and member.size <= 150000000
+    target = pathlib.Path('/usr/local/bin/codex-code-mode-host')
+    target.write_bytes(source.extractfile(member).read())
+    target.chmod(0o755)
+    os.utime(target, (0, 0))
+assert '--listen' in subprocess.check_output([str(target), '--help'], text=True, timeout=10)
+PY
 
 FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
@@ -30,6 +52,7 @@ COPY docker/debug-runtime/requirements.lock /build/requirements.lock
 RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r /build/requirements.lock \
     && rm -rf /build
 COPY --from=codex /usr/local/bin/codex /usr/local/bin/codex
+COPY --from=codex /usr/local/bin/codex-code-mode-host /usr/local/bin/codex-code-mode-host
 WORKDIR /app
 COPY backend/app/__init__.py /app/app/__init__.py
 COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
@@ -39,6 +62,8 @@ COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
      backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \
      backend/app/debugging/workspaces.py backend/app/debugging/ci_contract.py \
      backend/app/debugging/github_automation.py backend/app/debugging/automation_client.py \
+     backend/app/debugging/host_broker.py backend/app/debugging/deployment_broker.py \
+     backend/app/debugging/github_deployment.py backend/app/debugging/release_contract.py \
      backend/app/debugging/process_lifecycle.py backend/app/debugging/healthcheck.py /app/app/debugging/
 COPY backend/app/observability/__init__.py backend/app/observability/sentry.py /app/app/observability/
 ARG APP_BUILD_SHA

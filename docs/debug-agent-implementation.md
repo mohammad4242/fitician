@@ -1,6 +1,7 @@
 # Diagnostics and debug-agent implementation status
 
-Production deployment is owner-authorized after the approved verification gates pass.
+Current operator boundary: do not deploy to production or change paid VPS capacity without
+new explicit owner approval. Existing verification gates and GitHub Environment gates remain.
 The current regional CD flags are enabled; manual full/Agent releases retain their owner
 environment gate and automatic delivery is limited to eligible main CI/component paths.
 No external delivery, symbolication, native crash acceptance,
@@ -19,12 +20,12 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | --- | --- | --- | --- | --- | --- |
 | SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
-| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | own login and production enrollment pending | commissioning service on Germany | health/limits/image yes; inference/panel no |
+| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | independent free-account login verified; production enrollment pending | commissioning service on Germany | health/limits/image and model reply yes; supervised tool execution/panel pending |
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
-| Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated Germany GitHub credential absent | no | no Germany PR publication proof |
+| Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated local token reads verified; Actions dispatch 403; Germany broker enrollment pending | no | no Germany PR publication proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
 | Native exact release identity/iOS ingestion | implemented | adapter/release/privacy tests; native crash pending | EAS preview/production Sentry settings installed; upload credential is SECRET | no | no native release crash proof |
-| Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated broker credential absent | no | pending |
+| Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated credential read-validated locally | no | pending |
 
 Execution order and gates:
 
@@ -1589,3 +1590,39 @@ performs no thirteenth request. An unexpired lease, another project and another 
 remain untouched. This does not establish ingestion or change issue counts/status.
 The PostgreSQL restart regression failed first, then all 11 synchronization/evidence tests
 passed, with focused Ruff and sync-module mypy. No migration is required; not deployed.
+
+### Dedicated authentication acceptance and runtime distribution repair
+
+The owner confirmed secure token storage and Germany browser authorization. The private
+fine-grained credential was read using the existing server-side credential parser, without
+printing it. Repository identity, Contents, Actions workflow listing and PR listing each
+returned HTTP 200. Repository selection and write grants are not inferred from those reads.
+A single attempt to dispatch the existing read-only regional SSH diagnostic with this token
+returned HTTP 403; no workflow ran from that request. No broader credential was substituted.
+Actions Read/Write must be checked before dispatch acceptance can continue; Workflows
+permission was not requested or added. The token has not been copied into a server broker.
+
+Germany's own private auth file now exists with mode 0600. The pinned 0.167.2 App Server
+authenticated the independent free account and listed `gpt-6-luna` (default),
+`gpt-5.6-terra` and `gpt-5.6-luna`. A bounded read-only smoke explicitly used the advertised
+default without changing application AI settings. It returned a real model response, but
+performed zero gateway reads. The owned session's tool output established the concrete
+cause: `/usr/local/bin/codex-code-mode-host` was absent. Authentication/catalog/model response
+therefore do not establish working tools, sufficient future quota or production enrollment.
+
+The runtime image now adds the matching official 0.167.2 helper, with its published SHA-256,
+compressed/extracted size bounds, exact-member extraction and executable launch check.
+A second distribution gap was also found: conditional host-observation and deployment
+broker modules were absent from COPY. Their pure-runtime transitive imports are now included;
+no database/application router or generation authority is added. CI smoke checks both helper
+launch and the actual broker imports inside the isolated, networkless image. Two regressions
+failed first, then all 372 ops tests and focused Ruff passed. The separate backend selection
+passed 45 tests with one explicitly uninstalled local-CLI test skipped.
+
+A temporary acceptance container is being prepared with the pinned helper mounted read-only,
+the same independent server account and bounded CPU/RAM. The supervised connector and
+generation service are not replaced. The initial private-route artifact transfer timed out
+before extraction or inference; its owned partial file was reconciled before retrying only
+that public artifact over the pinned updated public address. No success is claimed until
+its private journal confirms a real gateway tool call. No production rollout, migration,
+paid capacity change, automatic SMS activation or live panel enrollment occurred.

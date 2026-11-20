@@ -1,5 +1,7 @@
+import ast
 import json
 import os
+import shlex
 import subprocess
 import unittest
 from pathlib import Path
@@ -10,6 +12,45 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class DebugServerRuntimeTests(unittest.TestCase):
+    def test_runtime_packages_the_matching_code_mode_host(self):
+        dockerfile = (ROOT / "docker/debug-runtime/Dockerfile").read_text()
+        self.assertIn(
+            "rust-v0.167.2/codex-code-mode-host-x86_64-unknown-linux-musl.tar.gz",
+            dockerfile,
+        )
+        self.assertIn(
+            "189475a654d82ca776e08dfef22734106d3e5b2cf21da6e84ec3d974d02c39a6",
+            dockerfile,
+        )
+        self.assertIn(
+            "COPY --from=codex /usr/local/bin/codex-code-mode-host /usr/local/bin/codex-code-mode-host",
+            dockerfile,
+        )
+
+    def test_runtime_distribution_contains_transitive_enrolled_job_imports(self):
+        dockerfile = (ROOT / "docker/debug-runtime/Dockerfile").read_text()
+        modules = set()
+        for line in dockerfile.replace("\\\n", " ").splitlines():
+            if not line.startswith("COPY backend/app/"):
+                continue
+            for source in shlex.split(line)[1:-1]:
+                if source.startswith("backend/app/debugging/") and source.endswith(".py"):
+                    modules.add(Path(source).stem)
+        pending = ["server_runtime", "automation_client"]
+        visited = set()
+        while pending:
+            name = pending.pop()
+            if name in visited:
+                continue
+            visited.add(name)
+            self.assertIn(name, modules, f"Enrolled runtime job requires missing module: {name}")
+            tree = ast.parse((ROOT / "backend/app/debugging" / (name + ".py")).read_text())
+            pending.extend(
+                node.module.split(".")[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.level == 1 and node.module
+            )
+
     def test_automation_service_has_separate_private_configuration_and_bounded_resources(
         self,
     ):

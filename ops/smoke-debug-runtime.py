@@ -220,7 +220,11 @@ def run(image: str, commit: str) -> dict:
         assert not status["auth_cache_present"] and status["authenticated"] is False
         protocol = (
             "from app.debugging.workspaces import prepare_workspace\n"
-            "import asyncio; from app.debugging.appserver import AppServer\n"
+            "from app.debugging.host_broker import advance_observation\n"
+            "from app.debugging.deployment_broker import advance_deployment\n"
+            "import asyncio, subprocess; from app.debugging.appserver import AppServer\n"
+            "assert '--listen' in subprocess.check_output("
+            "['/usr/local/bin/codex-code-mode-host', '--help'], text=True, timeout=10)\n"
             "async def run():\n"
             " async with AppServer() as server:\n"
             "  assert server.version == '0.167.2'\n"
@@ -253,6 +257,8 @@ def run(image: str, commit: str) -> dict:
             "commit": commit,
             "image_id": config_digest_for_image(metadata["Id"]),
             "cli_version": "0.167.2",
+            "code_mode_host_executable": True,
+            "enrolled_job_imports": True,
             "isolated": True,
             "liveness": True,
             "persistent_state_after_restart": True,
