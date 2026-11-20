@@ -70,7 +70,6 @@ def synchronize_one(
             DiagnosticExternalEvent.project_id == project,
             DiagnosticExternalEvent.environment == environment,
             DiagnosticExternalEvent.sync_state.in_(["pending", "retrying", "syncing"]),
-            DiagnosticExternalEvent.attempts < 12,
             or_(
                 DiagnosticExternalEvent.next_attempt_at.is_(None),
                 DiagnosticExternalEvent.next_attempt_at <= now,
@@ -82,6 +81,19 @@ def synchronize_one(
     )
     if row is None:
         return False
+    if row.attempts >= 12:
+        # A process can stop after committing its final lease, before recording
+        # the response. Expiry is not proof of ingestion or permission to retry.
+        row.last_error_code = (
+            "sync_lease_expired"
+            if row.sync_state == "syncing"
+            else row.last_error_code or "retry_budget_exhausted"
+        )
+        row.sync_state = "exhausted"
+        row.lease_token = None
+        row.next_attempt_at = None
+        db.commit()
+        return True
     row_id = row.id
     token = uuid4()
     row.lease_token = token

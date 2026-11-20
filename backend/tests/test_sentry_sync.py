@@ -134,3 +134,45 @@ def test_remote_evidence_keeps_source_coordinates_without_remote_user_content():
         )["release_match"]
         is False
     )
+
+
+@pytest.mark.parametrize("expired", [True, False])
+def test_last_attempt_interrupted_by_restart_is_recovered_only_after_lease_expiry(db, expired):
+    from datetime import UTC, datetime, timedelta
+    from uuid import uuid4
+
+    from sqlalchemy.orm import Session
+
+    from app.observability.evidence_models import DiagnosticExternalEvent
+    from app.observability.sentry_sync import synchronize_one
+
+    lease = uuid4()
+    row = DiagnosticExternalEvent(
+        project_id="backend",
+        external_event_id="b" * 32,
+        environment="test",
+        sync_state="syncing",
+        attempts=12,
+        lease_token=lease,
+        next_attempt_at=datetime.now(UTC) + timedelta(minutes=-1 if expired else 5),
+    )
+    db.add(row)
+    db.flush()
+    requests = []
+    with Session(db.bind, join_transaction_mode="create_savepoint") as worker:
+        with httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: requests.append(request) or httpx.Response(500)
+            )
+        ) as client:
+            # A different project/environment must never recover this lease.
+            assert not synchronize_one(worker, client, "org", "other", "test")
+            assert not synchronize_one(worker, client, "org", "backend", "other")
+            assert synchronize_one(worker, client, "org", "backend", "test") is expired
+            recovered = worker.get(DiagnosticExternalEvent, row.id)
+            assert recovered.attempts == 12
+            assert recovered.sync_state == ("exhausted" if expired else "syncing")
+            assert recovered.lease_token == (None if expired else lease)
+            assert recovered.last_error_code == ("sync_lease_expired" if expired else None)
+            assert not synchronize_one(worker, client, "org", "backend", "test")
+        assert requests == []  # Recovery must not create a thirteenth external request.

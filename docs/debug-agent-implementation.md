@@ -1579,3 +1579,13 @@ Local Android SDK/emulator/KVM tooling exists, but the shared system-image direc
 only an incomplete installer. It was preserved. A separate SDK/image download and test AVD
 workspace is being prepared under `.codex-tmp/native-sentry-acceptance`; no physical device is
 connected and no native crash has yet been tested.
+
+### Final Sentry sync lease recovery
+
+A restart after the twelfth committed polling lease could leave an external reference in
+`syncing` indefinitely: selection excluded every row whose attempt budget was exhausted.
+An expired final lease now becomes `exhausted/sync_lease_expired`, clears its lease, and
+performs no thirteenth request. An unexpired lease, another project and another environment
+remain untouched. This does not establish ingestion or change issue counts/status.
+The PostgreSQL restart regression failed first, then all 11 synchronization/evidence tests
+passed, with focused Ruff and sync-module mypy. No migration is required; not deployed.
