@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    diagnostics_maintenance_enabled: bool = False
     diagnostics_enabled: bool = True
     diagnostics_success_sample_rate: float = Field(default=1.0, ge=0, le=1)
     diagnostics_slow_request_ms: int = Field(default=2000, ge=1)

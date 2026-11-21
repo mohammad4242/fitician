@@ -19,6 +19,7 @@ from app.nutrition.price_scheduler import scheduler_loop
 from app.nutrition.retention_scheduler import retention_scheduler_loop
 from app.observability.diagnostics_logs import install_diagnostic_log_bridge
 from app.observability.logging import configure_structured_logging
+from app.observability.maintenance import diagnostics_maintenance_loop
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,12 @@ async def run_scheduler(
             ),
             asyncio.create_task(retention_scheduler_loop(settings, stop_event=requested_stop)),
         ]
+        if settings.diagnostics_maintenance_enabled:
+            loops.append(
+                asyncio.create_task(
+                    diagnostics_maintenance_loop(settings, stop_event=requested_stop)
+                )
+            )
         if settings.account_deletion_enabled:
             loops.append(
                 asyncio.create_task(

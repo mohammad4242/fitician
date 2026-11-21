@@ -588,7 +588,6 @@ class DiagnosticsRuntime:
         if factory is None:
             return
         next_cleanup = time.monotonic()
-        written = 0
         while not self._stop.is_set() or not self._queue.empty():
             if self._shutdown_deadline is not None and time.monotonic() >= self._shutdown_deadline:
                 while True:
@@ -604,7 +603,7 @@ class DiagnosticsRuntime:
             except queue.Empty:
                 if time.monotonic() >= next_cleanup:
                     self._maintenance(factory)
-                    next_cleanup = time.monotonic() + 3600
+                    next_cleanup = time.monotonic() + 60
                 continue
             items = [item]
             for _ in range(31):
@@ -616,11 +615,9 @@ class DiagnosticsRuntime:
                 self._counts["in_flight"] = len(items)
             try:
                 self._write_batch(factory, items)
-                written += len(items)
-                if time.monotonic() >= next_cleanup or written >= 100:
+                if time.monotonic() >= next_cleanup:
                     self._maintenance(factory)
-                    next_cleanup = time.monotonic() + 3600
-                    written %= 100
+                    next_cleanup = time.monotonic() + 60
             finally:
                 with self._health_lock:
                     self._counts["in_flight"] = 0

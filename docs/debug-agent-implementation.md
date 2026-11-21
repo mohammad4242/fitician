@@ -11,6 +11,22 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ### Writer reliability implementation — November 21 continuation
 
+The existing scheduler now has opt-in shared Sentry synchronization and alert/receipt loops
+(`DIAGNOSTICS_MAINTENANCE_ENABLED=false` by default). One bounded tick runs at a time,
+using a one-connection, two-second-statement-timeout pool and separate Sentry/SMS HTTP
+clients. Round-robin sync fetches one project/action per tick. Each role writes its own
+heartbeat only after work succeeds; invalid configuration, external failure or heartbeat
+file failure does not terminate existing business loops. Seven scheduler/isolation tests
+and module mypy passed after observed failures. No model/repository execution moved into
+the scheduler. Remote debug dispatch and release-policy integration remain separate work;
+this flag does not yet establish a complete shared-control-plane production rollout.
+
+Housekeeping is now bounded by a sixty-second clock instead of every hundred observations.
+The failing regression showed that capture volume itself multiplied retention/reconciliation
+work. Retention rules and the existing cleanup batch size remain unchanged. The queue,
+failure priority and successful-trace sampling remain unchanged. A constrained load rerun
+is still required for this cadence change. Production flags and resources remain untouched.
+
 The backlog prototype is now implemented in application code: batches contain at most
 32 observations, spans use PostgreSQL bulk UUID upserts, and actionable events retain
 the existing grouping/privacy/status path. UUIDs are assigned before enqueue so an

@@ -192,3 +192,17 @@ def test_successful_stage_events_are_batched_without_creating_issues(db):
         assert db.scalar(select(func.count()).select_from(DiagnosticIssue)) == 0
     finally:
         sqlalchemy_event.remove(connection, "before_cursor_execute", observe)
+
+
+def test_capture_volume_does_not_trigger_maintenance_per_hundred_rows(monkeypatch):
+    from app.observability import diagnostics_runtime
+
+    runtime = writer(lambda: None)
+    maintenance_calls = []
+    runtime._maintenance = lambda _: maintenance_calls.append(1)
+    runtime._write_batch = lambda factory, items: True
+    monkeypatch.setattr(diagnostics_runtime.time, "monotonic", lambda: 0)
+    for _ in range(256):
+        runtime.submit(observation())
+    drain(runtime)
+    assert maintenance_calls == [1]
