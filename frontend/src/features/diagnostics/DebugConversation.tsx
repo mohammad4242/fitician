@@ -78,7 +78,7 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
   }
   const messages = [...older, ...(conversation?.messages ?? [])].filter((message, index, all) => all.findIndex(other => other.id === message.id) === index);
   const runs = [...(conversation?.runs ?? []), ...olderRuns].filter((run, index, all) => all.findIndex(other => other.id === run.id) === index);
-  return <section className="diagnostics-card">
+  return <section className="diagnostics-card diagnostics-status-form">
     <h3>{english ? "Conversation with debug_agent" : "گفت‌وگو با debug_agent"}</h3>
     <p>{english ? "Analysis uses the configured model and selected evidence. Model statements do not establish a confirmed cause. Execution and deployment require configured capabilities." : "تحلیل با مدل تنظیم‌شده و شواهد این issue انجام می‌شود. گفته مدل به‌تنهایی علت قطعی را اثبات نمی‌کند. اجرا و استقرار به قابلیت متصل و مجوز مشخص نیاز دارند."}</p>
     <p>{english ? "Selected occurrence" : "رخداد منتخب"}: <code dir="ltr">{occurrenceId || (english ? "Latest available evidence" : "آخرین شواهد موجود")}</code></p>
@@ -101,10 +101,10 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
     {error && <p role="alert">{privatePayloadRejected ? (english ? "Remove private payloads and reference evidence IDs. This message was not stored or sent to the model." : "اطلاعات خصوصی را حذف کنید و شناسهٔ شواهد را بنویسید. این پیام ذخیره یا برای مدل ارسال نشد.") : (english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود.")}</p>}
     <form onSubmit={event => void submit(event)}>
       <label>{english ? "Requested action" : "درخواست مجاز"}<select value={action} onChange={event => setAction(event.target.value)}><option value="analyze">{english ? "Investigate, read only" : "بررسی فقط‌خواندنی"}</option><option value="prepare_fix">{english ? "Prepare and test a fix in an isolated branch" : "آماده‌سازی و آزمون اصلاح در شاخهٔ جدا"}</option></select></label>
-      <label>{english ? "Your message" : "پیام شما"}<textarea value={content} onChange={event => setContent(event.target.value)} maxLength={8000} rows={4} /></label>
+      <label>{english ? "Your message" : "پیام شما"}<textarea dir="auto" value={content} onChange={event => setContent(event.target.value)} maxLength={8000} rows={4} /></label>
       <p>{english ? "Use evidence IDs. Do not paste medical forms, photos, credentials, raw requests or AI prompts." : "شناسهٔ شواهد را بنویسید؛ فرم پزشکی، عکس، رمز، درخواست خام یا متن ورودی هوش مصنوعی را اینجا نگذارید."}</p>
-      <button type="submit" disabled={sending || Boolean(active) || !content.trim()}>{english ? "Send for analysis" : "ارسال برای بررسی"}</button>
-      {active && <button type="button" onClick={() => void cancel()}>{english ? "Cancel run" : "لغو اجرا"}</button>}
+      <button className="diagnostics-button" type="submit" disabled={sending || Boolean(active) || !content.trim()}>{english ? "Send for analysis" : "ارسال برای بررسی"}</button>
+      {active && <button className="diagnostics-button diagnostics-button--quiet" type="button" onClick={() => void cancel()}>{english ? "Cancel run" : "لغو اجرا"}</button>}
     </form>
   </section>;
 }

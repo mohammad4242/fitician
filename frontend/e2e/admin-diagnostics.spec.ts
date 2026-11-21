@@ -38,6 +38,12 @@ for (const language of ["fa", "en"] as const) {
       await page.screenshot({path: testInfo.outputPath("overview-1440.png"), fullPage: true});
       await page.goto(`/admin/diagnostics?tab=issues&issue=${issueId}`);
       await expect(page.getByText("API_REQUEST_FAILED", {exact: true}).first()).toBeVisible();
+      await page.setViewportSize({width: 390, height: 1000});
+      const message = page.getByRole("textbox", {name: language === "fa" ? "پیام شما" : "Your message", exact: true});
+      await expect(message).toBeVisible();
+      expect((await message.boundingBox())!.width).toBeGreaterThan(290);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      await page.setViewportSize({width: 1440, height: 1000});
       const status = page.getByRole("combobox", {name: language === "fa" ? "وضعیت" : "Status", exact: true});
       await status.selectOption("investigating");
       await page.getByRole("button", {name: language === "fa" ? "ثبت" : "Save", exact: true}).click();

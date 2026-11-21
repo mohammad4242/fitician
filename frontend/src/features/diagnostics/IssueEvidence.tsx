@@ -46,7 +46,7 @@ export function IssueEvidence({ issueId, events, english, occurrenceId: occurren
   const snapshot = evidence?.snapshot;
   return <section className="diagnostics-card">
     <h3>{english ? "Technical evidence" : "شواهد فنی"}</h3>
-    <label>{english ? "Occurrence" : "رخداد منتخب"}<select value={occurrence} onChange={event => onOccurrenceChange(event.target.value)}>
+    <label className="diagnostics-field">{english ? "Occurrence" : "رخداد منتخب"}<select value={occurrence} onChange={event => onOccurrenceChange(event.target.value)}>
       <option value="">{english ? "Latest available evidence" : "آخرین شواهد موجود"}</option>
       {events.map(event => <option key={event.event_id} value={event.event_id}>{event.timestamp} · {event.stage}</option>)}
     </select></label>
