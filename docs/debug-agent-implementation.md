@@ -94,6 +94,15 @@ stopping them or weakening the production capacity guard for this test. The upda
 passed 382 tests; Ruff, actionlint and shellcheck passed. The actual rollout smoke is not yet
 reported as passed. No production application, runtime, generation service or volume was replaced.
 
+Hosted run `44905929402` passed runtime image construction and the existing protocol/isolation/
+restart smoke, then failed inside teardown of the new release smoke. The retained stack identifies
+the privileged ownership-cleanup command; its raw stderr was intentionally not exported. An
+independent read-only-container fixture reproduced an unsafe behavior: cleanup followed a runtime
+symlink outside its mount and exited 1. The corrected no-follow cleanup exited 0, preserved the
+link and external target, and did not modify any existing service. A filesystem regression failed
+first; 26 targeted runtime/release/workflow tests and Ruff/actionlint/shellcheck passed afterward.
+This verifies the cleanup defect and fix; the hosted rerun remains the release acceptance gate.
+
 Execution order and gates:
 
 - [x] Phase 0: reconcile Git/PR/runtime evidence, preserve local changes, identify latest CI failure.

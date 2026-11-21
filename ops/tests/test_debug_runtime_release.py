@@ -5,6 +5,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -62,6 +63,37 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_fixture_cleanup_does_not_follow_runtime_symlinks_outside_the_fixture(self):
+        spec = importlib.util.spec_from_file_location(
+            "runtime_smoke", ROOT / "ops/smoke-debug-runtime-release.py"
+        )
+        smoke = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(smoke)
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            parent = Path(name)
+            fixture = parent / "fixture"
+            fixture.mkdir()
+            outside = parent / "outside"
+            outside.write_text("must remain untouched")
+            link = fixture / "runtime-link"
+            link.symlink_to(outside)
+            before = outside.stat().st_ctime_ns
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    smoke.ownership_script(
+                        os.getuid(),
+                        os.getgid(),
+                        str(fixture),
+                    ),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            self.assertEqual(outside.stat().st_ctime_ns, before)
+            self.assertTrue(link.is_symlink())
+
     def test_ci_runs_actual_runtime_rollout_and_rollback_before_export_is_publishable(
         self,
     ):

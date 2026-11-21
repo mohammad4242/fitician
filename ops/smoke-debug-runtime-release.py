@@ -15,6 +15,18 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def ownership_script(uid: int, gid: int, root: str = "/fixture") -> str:
+    # Runtime-created links must never redirect privileged fixture cleanup outside its mount.
+    return (
+        "import os\n"
+        "def failed(error):\n raise error\n"
+        f"for path, directories, files in os.walk({root!r}, followlinks=False, onerror=failed):\n"
+        f" os.chown(path, {uid}, {gid}, follow_symlinks=False)\n"
+        " for name in directories + files:\n"
+        f"  os.chown(os.path.join(path, name), {uid}, {gid}, follow_symlinks=False)\n"
+    )
+
+
 def run(directory: Path, commit: str, output: Path) -> dict:
     spec = importlib.util.spec_from_file_location(
         "runtime_release", ROOT / "ops/deploy-debug-runtime.py"
@@ -239,8 +251,7 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                 "--entrypoint=python",
                 image,
                 "-c",
-                "import os; "
-                f"[(os.chown(p,{os.getuid()},{os.getgid()}),[os.chown(os.path.join(p,n),{os.getuid()},{os.getgid()}) for n in d+f]) for p,d,f in os.walk('/fixture')]",
+                ownership_script(os.getuid(), os.getgid()),
             )
             release.PROJECT = original_project
     output.parent.mkdir(parents=True, exist_ok=True)
