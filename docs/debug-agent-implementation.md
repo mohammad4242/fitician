@@ -24,8 +24,46 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated token branch/commit/draft-PR writes verified; Actions dispatch 403; server enrollment pending | no | transport acceptance PR 43 verified; no permanent broker repair PR proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
-| Native exact release identity/iOS ingestion | implemented | adapter/release/privacy tests; native crash pending | EAS preview/production Sentry settings installed; upload credential is SECRET | no | no native release crash proof |
+| Native capture/discovery and release identity | implemented; Android upload plugin and migration 186 added | actual internal Android x86_64 crash → authenticated Sentry read → local panel; ARM/iOS and application symbolication pending | EAS Sentry secrets present; new internal symbol-upload build running | no feature rollout | Android capture and isolated panel yes; production linkage/iOS no |
 | Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated credential read-validated locally | no | pending |
+
+Latest reviewed migration head is `20261121_186`; production remains `20261018_175`.
+Historical 185 rehearsal entries below retain their original scope. November 21's fresh
+snapshot was separately restored and rehearsed through 186: 155 source tables and 11 protected
+fingerprints matched; 169 target tables and existing counts/FKs remained consistent. The owned
+networkless tmpfs restore container was removed. No production migration was performed.
+
+Native SDK discovery now runs inside the existing sync worker, for the configured mobile
+project/environment only. A durable fenced cursor scans fixed time windows, persists each page
+atomically with imported occurrences and resumes across restarts/rate limits. Requests use the
+fixed regional Sentry endpoint, ten full events per page and a 2 MiB response cap. Pagination
+URLs are never followed; foreign hosts/projects/cursors are rejected. Initial discovery is
+limited to the preceding 24 hours; subsequent windows overlap by two minutes. This is bounded
+coverage, not unlimited historical recovery or proof of zero loss. Only recognized native fatal
+exceptions without a pre-existing diagnostics tag are imported; other SDK-only events remain
+a coverage limitation. No attachments, user data, message bodies, source context or local values
+are persisted or forwarded. Remote grouping/status never changes local issue counts/status.
+Confirmed ingestion can await external grouping; exact-event retry links the group later
+without another local occurrence. Conflicting release fields stay unknown.
+
+The real native event `1d798e4e593e4f2f72fd4e4f1a2266e7` was discovered using the existing
+authenticated Iran→Germany restricted proxy into a separate local acceptance database, without
+altering its source environment/release. Issue `884f5a45-003d-41ae-bd49-446b3d2c801e` and occurrence
+`feeb1b89-7a99-5a1f-9e1b-621cdf956d10` retain source commit `8f848ce7` and Sentry group `7860182430`.
+A real Chromium session at 390 px verified the Persian native description, matching occurrence,
+Sentry link, evidence after refresh and scoped synchronization health, without horizontal overflow.
+This is the actual Fitician UI in isolated local acceptance, not the production panel. A first
+registration timed out client-side; its committed user was reconciled and logged in, without
+registering a duplicate. No real customer or provider data was used as a fixture.
+
+Verification: 73 PostgreSQL diagnostics/discovery/sync/alert tests, 22 UI tests, 30 focused ops
+tests, all-observability mypy, focused Ruff/Oxlint, frontend TypeScript and generated-contract
+consistency passed. New discovery/privacy/pagination/pending-group/scope regressions failed first.
+The CI backend/frontend validation profiles now include these regressions. APK user-field
+readback found no email, phone, name or IP; an opaque identifier remains. Complete minidump
+privacy, app-native symbolication, ARM hardware and iOS acceptance remain unverified. Internal
+Android build `d957da3c-32cb-4bcf-b284-3673712f74f4` is running for `9e7f2b9a`; upload success is
+not inferred from build submission. Automatic production SMS stays disabled.
 
 Execution order and gates:
 

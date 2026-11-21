@@ -2,6 +2,7 @@ import { DebugOperations } from "./DebugAutomation";
 import { DebugConversation } from "./DebugConversation";
 import { NotificationDeliveries } from "./NotificationDeliveries";
 import { IssueEvidence } from "./IssueEvidence";
+import { SentryHealth } from "./SentryHealth";
 import { IssueFindings } from "./IssueFindings";
 import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
@@ -626,6 +627,7 @@ function InfrastructurePanel({ search, setSearch }: { search: URLSearchParams; s
   const events = useRemote<DiagnosticEvent[]>(eventsLoad, `infrastructure-events-${offset}`);
   const move = (nextOffset: number) => { const next = setParam(search, "offset", String(nextOffset)); next.set("tab", "infrastructure"); setSearch(next); };
   return <div className="diagnostics-stack">
+    <SentryHealth english={english} />
     <section className="diagnostics-card diagnostics-infra-status">
       <div><p className="diagnostics-label">07 / INFRASTRUCTURE SIGNAL</p><h2>{c.infrastructure}</h2><p>{c.infraNote}</p></div>
       <strong className="diagnostics-unknown"><i aria-hidden="true" />{c.statusUnknown}</strong>

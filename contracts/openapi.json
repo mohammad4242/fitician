@@ -16523,6 +16523,78 @@
         "title": "MuscleGroup",
         "type": "string"
       },
+      "NativeDiscoveryHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "imported_count": {
+            "title": "Imported Count",
+            "type": "integer"
+          },
+          "last_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error Code"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "stale",
+              "catching_up",
+              "observed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "watermark": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Watermark"
+          }
+        },
+        "required": [
+          "project",
+          "environment",
+          "state",
+          "last_error_code",
+          "last_success_at",
+          "watermark",
+          "imported_count"
+        ],
+        "title": "NativeDiscoveryHealth",
+        "type": "object"
+      },
       "NormalizedBodyAnalysis": {
         "additionalProperties": false,
         "properties": {
@@ -27416,6 +27488,31 @@
           "emergency_or_danger_symptoms"
         ],
         "title": "SafetyProfileInput",
+        "type": "object"
+      },
+      "SentryHealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "external_states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "External States",
+            "type": "object"
+          },
+          "native_discovery": {
+            "items": {
+              "$ref": "#/components/schemas/NativeDiscoveryHealth"
+            },
+            "title": "Native Discovery",
+            "type": "array"
+          }
+        },
+        "required": [
+          "external_states",
+          "native_discovery"
+        ],
+        "title": "SentryHealthResponse",
         "type": "object"
       },
       "ServerEvidenceResponse": {
@@ -38618,6 +38715,32 @@
           }
         ],
         "summary": "Overview",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/sentry-health": {
+      "get": {
+        "operationId": "sentry_health_api_v1_admin_diagnostics_sentry_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentryHealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sentry Health",
         "tags": [
           "admin-diagnostics"
         ]

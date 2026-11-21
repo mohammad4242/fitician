@@ -1202,6 +1202,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/sentry-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sentry Health */
+        get: operations["sentry_health_api_v1_admin_diagnostics_sentry_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/trace-analytics": {
         parameters: {
             query?: never;
@@ -10671,6 +10688,26 @@ export type components = {
          * @enum {string}
          */
         MuscleGroup: "chest" | "back" | "shoulders" | "biceps" | "triceps" | "traps" | "forearms" | "neck" | "glutes" | "quadriceps" | "hamstrings" | "adductors" | "abductors" | "legs" | "calves" | "abs" | "obliques" | "lower_back";
+        /** NativeDiscoveryHealth */
+        NativeDiscoveryHealth: {
+            /** Environment */
+            environment: string;
+            /** Imported Count */
+            imported_count: number;
+            /** Last Error Code */
+            last_error_code: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            /** Project */
+            project: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "stale" | "catching_up" | "observed";
+            /** Watermark */
+            watermark: string | null;
+        };
         /** NormalizedBodyAnalysis */
         NormalizedBodyAnalysis: {
             /** Findings */
@@ -14345,6 +14382,15 @@ export type components = {
             title_en: string;
             /** Title Fa */
             title_fa: string;
+        };
+        /** SentryHealthResponse */
+        SentryHealthResponse: {
+            /** External States */
+            external_states: {
+                [key: string]: number;
+            };
+            /** Native Discovery */
+            native_discovery: components["schemas"]["NativeDiscoveryHealth"][];
         };
         /** ServerEvidenceResponse */
         ServerEvidenceResponse: {
@@ -19152,6 +19198,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sentry_health_api_v1_admin_diagnostics_sentry_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SentryHealthResponse"];
                 };
             };
         };

@@ -74,3 +74,30 @@ class DiagnosticExternalIssueLink(Base):
     observed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class DiagnosticDiscoveryCursor(Base):
+    """One fenced, resumable native event scan per configured project/environment."""
+
+    __tablename__ = "diagnostic_discovery_cursors"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization", "project_id", "environment", name="uq_diagnostic_discovery_scope"
+        ),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    organization: Mapped[str] = mapped_column(String(100))
+    project_id: Mapped[str] = mapped_column(String(100))
+    environment: Mapped[str] = mapped_column(String(64))
+    watermark: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    scan_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    scan_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cursor: Mapped[str | None] = mapped_column(String(256))
+    lease_token: Mapped[UUID | None] = mapped_column()
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    failures: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    imported_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

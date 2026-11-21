@@ -50,6 +50,7 @@ from .diagnostics_schemas import (
     IssueResponse,
     IssueStatusUpdate,
     OverviewResponse,
+    SentryHealthResponse,
     StatusHistoryResponse,
 )
 from .diagnostics_service import (
@@ -91,6 +92,75 @@ class BoundedTelemetryRoute(APIRoute):
 client_router = APIRouter(
     prefix="/api/v1/diagnostics", tags=["diagnostics"], route_class=BoundedTelemetryRoute
 )
+
+
+@router.get("/sentry-health", response_model=SentryHealthResponse)
+def sentry_health(db: DatabaseSession) -> dict[str, Any]:
+    import os
+
+    from .environment import diagnostics_environment
+    from .evidence_models import DiagnosticDiscoveryCursor, DiagnosticExternalEvent
+
+    environment = diagnostics_environment()
+    organization = os.environ.get("SENTRY_ORG", "")
+    projects = {
+        os.environ.get(name, "")
+        for name in (
+            "SENTRY_PROJECT",
+            "SENTRY_WEB_PROJECT",
+            "SENTRY_MOBILE_PROJECT",
+        )
+    } - {""}
+    states = {
+        state: count
+        for state, count in db.execute(
+            select(
+                DiagnosticExternalEvent.sync_state,
+                func.count(),
+            )
+            .where(
+                DiagnosticExternalEvent.environment == environment,
+                DiagnosticExternalEvent.project_id.in_(projects),
+            )
+            .group_by(
+                DiagnosticExternalEvent.sync_state,
+            )
+        ).all()
+    }
+    now = datetime.now(UTC)
+    scopes = db.scalars(
+        select(DiagnosticDiscoveryCursor)
+        .where(
+            DiagnosticDiscoveryCursor.environment == environment,
+            DiagnosticDiscoveryCursor.organization == organization,
+            DiagnosticDiscoveryCursor.project_id.in_(projects),
+        )
+        .order_by(DiagnosticDiscoveryCursor.project_id)
+        .limit(20)
+    )
+    return {
+        "external_states": states,
+        "native_discovery": [
+            {
+                "project": row.project_id,
+                "environment": row.environment,
+                "state": "stale"
+                if (
+                    row.last_error_code
+                    or not row.last_success_at
+                    or row.last_success_at < now - timedelta(minutes=5)
+                )
+                else "catching_up"
+                if row.cursor
+                else "observed",
+                "last_error_code": row.last_error_code,
+                "last_success_at": row.last_success_at,
+                "watermark": row.watermark,
+                "imported_count": row.imported_count,
+            }
+            for row in scopes
+        ],
+    }
 
 
 @client_router.post("/client", status_code=202)

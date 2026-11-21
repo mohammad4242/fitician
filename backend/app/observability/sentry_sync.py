@@ -17,7 +17,11 @@ from sqlalchemy.orm import Session
 from app.observability.environment import diagnostics_environment
 
 from .diagnostics_models import DiagnosticEvent
-from .evidence_models import DiagnosticExternalEvent, DiagnosticExternalIssueLink
+from .evidence_models import (
+    DiagnosticEvidenceSnapshot,
+    DiagnosticExternalEvent,
+    DiagnosticExternalIssueLink,
+)
 
 
 class SyncFailure(Exception):
@@ -101,6 +105,14 @@ def synchronize_one(
     row.attempts += 1
     row.next_attempt_at = now + timedelta(seconds=60)
     event_id = row.external_event_id
+    snapshot = db.scalar(
+        select(DiagnosticEvidenceSnapshot).where(
+            DiagnosticEvidenceSnapshot.event_id == row.local_event_id,
+        )
+    )
+    native_reference = bool(
+        snapshot and snapshot.payload.get("provenance") == "sentry_native_capture"
+    )
     db.commit()  # No DB lock/transaction spans the external request.
     retry_after = 0
     try:
@@ -113,7 +125,11 @@ def synchronize_one(
         if (
             str(remote.get("eventID", remote.get("id", ""))) != event_id
             or tags.get("environment") != environment
-            or tags.get("diagnostic_event_id") != str(row.local_event_id)
+            or (
+                remote.get("platform") != "native"
+                if native_reference
+                else tags.get("diagnostic_event_id") != str(row.local_event_id)
+            )
         ):
             raise SyncFailure("scope_mismatch")
         external_issue_id = str(remote.get("groupID", ""))
@@ -174,6 +190,15 @@ def sanitize_remote_evidence(
 
     release = remote.get("release")
     version = record(release).get("version") if isinstance(release, dict) else release
+    tag_versions = {
+        tag.get("value")
+        for tag in items(remote.get("tags"))
+        if isinstance(tag, dict)
+        and tag.get("key") == "release"
+        and isinstance(tag.get("value"), str)
+    }
+    versions = tag_versions | ({version} if isinstance(version, str) else set())
+    version = next(iter(versions)) if len(versions) == 1 else None
     match = re.search(r"@([a-f0-9]{40})$", version) if isinstance(version, str) else None
     commit = match[1] if match else None
     exceptions = []
@@ -278,6 +303,17 @@ def main() -> None:
                         with Session(get_engine(settings)) as db:
                             worked = (
                                 synchronize_one(db, client, organization, target, environment)
+                                or worked
+                            )
+                    mobile_project = os.environ.get("SENTRY_MOBILE_PROJECT", "")
+                    if mobile_project:
+                        from .sentry_discovery import discover_native_page
+
+                        with Session(get_engine(settings)) as db:
+                            worked = (
+                                discover_native_page(
+                                    db, client, organization, mobile_project, environment
+                                )
                                 or worked
                             )
                 except Exception:

@@ -158,7 +158,8 @@ def test_safe_record_swallows_database_failure(test_settings, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "path", ["overview", "issues", "events", "alerts", "generations", "infrastructure"]
+    "path",
+    ["overview", "issues", "events", "alerts", "generations", "infrastructure", "sentry-health"],
 )
 def test_diagnostic_reads_require_admin(client, db, path):
     assert client.get(f"/api/v1/admin/diagnostics/{path}").status_code == 401

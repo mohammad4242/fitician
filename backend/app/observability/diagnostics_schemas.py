@@ -438,3 +438,18 @@ class InfrastructureSignal(StrictModel):
 class InfrastructureResponse(StrictModel):
     signals: list[InfrastructureSignal]
     queues: dict[str, dict[str, int]]
+
+
+class NativeDiscoveryHealth(StrictModel):
+    project: str
+    environment: str
+    state: Literal["stale", "catching_up", "observed"]
+    last_error_code: str | None
+    last_success_at: datetime | None
+    watermark: datetime | None
+    imported_count: int
+
+
+class SentryHealthResponse(StrictModel):
+    external_states: dict[str, int]
+    native_discovery: list[NativeDiscoveryHealth]
