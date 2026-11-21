@@ -137,7 +137,8 @@ def test_sentry_egress_uses_its_own_proxy_without_changing_provider_routing(monk
     monkeypatch.setattr(sentry_sdk, "init", lambda **options: captured.update(options))
     monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
     assert sentry.initialize_sentry("test")
-    assert captured["https_proxy"] == proxy
+    assert captured["https_proxy"] == "http://100.108.24.126:3188"
+    assert captured["proxy_headers"].get("Proxy-Authorization", "").startswith("Basic ")
     assert "fixture-password" not in str(sentry.sanitize_event({"extra": {"proxy": proxy}}, {}))
 
 
@@ -166,3 +167,45 @@ def test_headless_runtime_initializes_without_importing_web_frameworks(monkeypat
     assert captured[0]["release"] == "fitician-debug-runtime@" + "a" * 40
     assert captured[0]["default_integrations"] is False
     assert not captured[0]["include_local_variables"]
+
+
+def test_authenticated_proxy_uses_connect_headers_without_url_credentials(monkeypatch):
+    import base64
+
+    import sentry_sdk
+
+    from app.observability import sentry
+
+    captured = {}
+    monkeypatch.setattr(sentry, "_INITIALIZED", False)
+    monkeypatch.setenv("SENTRY_DSN", "https://public@example.invalid/1")
+    monkeypatch.setenv(
+        "SENTRY_HTTPS_PROXY", "http://fixture-user:p%40ss%3Aword@100.108.24.126:3188"
+    )
+    monkeypatch.setattr(sentry_sdk, "init", lambda **options: captured.update(options))
+    monkeypatch.setattr(sentry_sdk, "set_tag", lambda *args: None)
+    assert sentry.initialize_sentry("backend")
+    assert captured["https_proxy"] == "http://100.108.24.126:3188"
+    assert captured["proxy_headers"] == {
+        "Proxy-Authorization": "Basic " + base64.b64encode(b"fixture-user:p@ss:word").decode()
+    }
+
+
+def test_proxy_credentials_stay_in_proxy_manager_not_origin_headers(monkeypatch):
+    import sentry_sdk
+    from sentry_sdk.transport import HttpTransport
+
+    from app.observability import sentry
+
+    monkeypatch.setenv("SENTRY_HTTPS_PROXY", "http://fixture-user:fixture-password@127.0.0.1:3188")
+    options = sentry_sdk.Client(
+        transport=lambda _: None, dsn="https://public@example.invalid/1"
+    ).options
+    options.update(sentry._proxy_options())
+    transport = HttpTransport(options)
+    try:
+        assert transport._pool.proxy_headers.get("Proxy-Authorization", "").startswith("Basic ")
+        assert "Proxy-Authorization" not in transport._pool.headers
+        assert transport._pool.proxy.auth is None
+    finally:
+        transport.kill()

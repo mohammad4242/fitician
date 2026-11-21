@@ -5,7 +5,9 @@ from __future__ import annotations
 import atexit
 import os
 import re
+from base64 import b64encode
 from typing import Any, cast
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 from sentry_sdk.types import Event
 
@@ -95,6 +97,33 @@ def _before_send(event: Event, hint: dict[str, Any]) -> Event:
     return cast(Event, sanitize_event(cast(dict[str, Any], event), hint))
 
 
+def _proxy_options() -> dict[str, Any]:
+    proxy = os.environ.get("SENTRY_HTTPS_PROXY")
+    if not proxy:
+        return {"https_proxy": None}
+    target = urlsplit(proxy)
+    if (
+        target.scheme not in {"http", "https"}
+        or not target.hostname
+        or target.query
+        or target.fragment
+        or target.path not in {"", "/"}
+    ):
+        raise ValueError("invalid_sentry_proxy")
+    # urllib3 ProxyManager does not turn URL userinfo into CONNECT authentication.
+    # Keep credentials in proxy-only headers, never the pool URL/origin request.
+    headers = None
+    if target.username is not None:
+        if target.password is None:
+            raise ValueError("invalid_sentry_proxy")
+        credentials = unquote(target.username) + ":" + unquote(target.password)
+        headers = {"Proxy-Authorization": "Basic " + b64encode(credentials.encode()).decode()}
+    return {
+        "https_proxy": urlunsplit((target.scheme, target.netloc.rsplit("@", 1)[-1], "", "", "")),
+        "proxy_headers": headers,
+    }
+
+
 def initialize_sentry(service: str, *, http_server: bool = True) -> bool:
     global _INITIALIZED
     if _INITIALIZED or not os.environ.get("SENTRY_DSN"):
@@ -139,7 +168,7 @@ def initialize_sentry(service: str, *, http_server: bool = True) -> bool:
             before_breadcrumb=lambda breadcrumb, hint: None,
             transport_queue_size=256,
             shutdown_timeout=2,
-            https_proxy=os.environ.get("SENTRY_HTTPS_PROXY") or None,
+            **_proxy_options(),
             enable_logs=False,
         )
         sentry_sdk.set_tag("service", service)

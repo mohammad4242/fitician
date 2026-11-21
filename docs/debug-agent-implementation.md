@@ -9,6 +9,21 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### SDK proxy authentication — November 21 UTC continuation
+
+A fresh real staging capture failed with HTTP 407 through the existing restricted egress,
+while authenticated httpx API retrieval used a different proxy implementation. The pinned
+Python SDK passes `proxy_headers` to urllib3 but does not derive CONNECT authentication from
+URL userinfo. Backend and Agent Service now separate the decoded proxy credentials into
+proxy-only headers and remove userinfo from the proxy pool URL. TLS verification remains
+required; provider HTTP clients and production secrets/configuration are unchanged.
+
+The new credential/percent-encoding regression failed first. All 87 Sentry/privacy/sync/
+delivery tests passed, including a real pinned SDK ProxyManager check that authentication
+is absent from origin headers; focused lint and mypy passed. The first live occurrence
+remains unconfirmed and is retained honestly. A fresh live capture after the fix is a
+separate acceptance gate. This operator probe does not prove business-flow or panel E2E.
+
 ### Bounded repository fetch recovery — November 21 UTC continuation
 
 A real public-main source fetch exceeded the old 30-second budget and left pack helpers/
