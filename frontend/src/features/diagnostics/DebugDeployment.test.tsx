@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import type { components } from "@fitician/core";
 
 import { request } from "../../shared/apiClient";
-import { DeploymentReview, DeploymentRequest } from "./DebugDeployment";
+import { DeploymentReview, DeploymentRequest, ReleaseReplayRequest } from "./DebugDeployment";
 
 vi.mock("../../shared/apiClient", () => ({ request: vi.fn() }));
 type Operation = components["schemas"]["OperationResponse"];
@@ -48,4 +48,29 @@ it("requests a preview using only the selected occurrence's host observation", a
   const [path, options] = vi.mocked(request).mock.calls[0];
   expect(path.endsWith("/deployments")).toBe(true);
   expect(JSON.parse(options?.body as string)).toEqual({ publication_id: "pr", observation_id: "matching", ci_run_id: 123 });
+});
+
+it("replays a deployed regression using matching environment evidence and a stable request identity", async () => {
+  const refresh = vi.fn();
+  const deployment = { id: "deploy", kind: "deploy", state: "succeeded", occurrence_id: "selected",
+    target_environment: "production-germany", result: { deployed: true } } as unknown as Operation;
+  const observations = [
+    { id: "same", kind: "observe", state: "succeeded", occurrence_id: "selected", target_environment: "production-germany", result: { observation: { complete: true } } },
+    { id: "wrong-region", kind: "observe", state: "succeeded", occurrence_id: "selected", target_environment: "production-iran", result: { observation: { complete: true } } },
+    { id: "wrong-occurrence", kind: "observe", state: "succeeded", occurrence_id: "other", target_environment: "production-germany", result: { observation: { complete: true } } },
+  ] as unknown as Operation[];
+  vi.mocked(request).mockRejectedValueOnce(new Error("disconnect")).mockResolvedValueOnce({});
+  render(<ReleaseReplayRequest deployment={deployment} observations={observations} issueId="issue" english onUpdated={refresh} />);
+  fireEvent.click(screen.getByText("Replay the deployed commit's regression tests"));
+  expect(screen.getAllByRole("option")).toHaveLength(2);
+  fireEvent.change(screen.getByLabelText("Matching fresh server evidence"), { target: { value: "same" } });
+  fireEvent.click(screen.getByRole("button", { name: "Run isolated replay in GitHub Actions" }));
+  await screen.findByRole("alert");
+  fireEvent.click(screen.getByRole("button", { name: "Run isolated replay in GitHub Actions" }));
+  await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+  const calls = vi.mocked(request).mock.calls;
+  expect(calls[0][0]).toBe("/api/v1/admin/diagnostics/issues/issue/deployments/deploy/replay");
+  expect(calls[0][1]?.headers).toEqual(calls[1][1]?.headers);
+  expect(JSON.parse(calls[0][1]?.body as string)).toEqual({ observation_id: "same" });
+  expect(screen.getByText(/does not prove the production business outcome/)).toBeVisible();
 });

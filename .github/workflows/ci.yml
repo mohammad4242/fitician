@@ -659,11 +659,11 @@ jobs:
       matrix:
         include:
           - profile: backend
-            tests: '["backend/tests/test_debug_ci_contract.py","backend/tests/nutrition/test_food_photo_queue.py","backend/tests/nutrition/test_food_photo_estimation.py","backend/tests/observability/test_native_discovery.py","backend/tests/test_sentry_sync.py","backend/tests/test_sentry_discovery.py","backend/tests/test_diagnostics.py"]'
+            tests: '["backend/tests/test_debug_ci_contract.py","backend/tests/test_debug_replay.py","backend/tests/nutrition/test_food_photo_queue.py","backend/tests/nutrition/test_food_photo_estimation.py","backend/tests/observability/test_native_discovery.py","backend/tests/test_sentry_sync.py","backend/tests/test_sentry_discovery.py","backend/tests/test_diagnostics.py"]'
           - profile: migrations
             tests: '[]'
           - profile: frontend
-            tests: '["frontend/src/features/diagnostics/DebugConversation.test.tsx","frontend/src/features/diagnostics/SentryHealth.test.tsx","frontend/src/features/diagnostics/issueExplanation.test.ts"]'
+            tests: '["frontend/src/features/diagnostics/DebugConversation.test.tsx","frontend/src/features/diagnostics/DebugDeployment.test.tsx","frontend/src/features/diagnostics/SentryHealth.test.tsx","frontend/src/features/diagnostics/issueExplanation.test.ts"]'
           - profile: agent
             tests: '["agent-service/tests/test_health.py"]'
     uses: ./.github/workflows/debug-validation.yml

@@ -85,7 +85,7 @@ class OperationResponse(StrictResponse):
     occurrence_id: UUID | None
     environment: str
     target_environment: Literal["production-iran", "production-germany"] | None = None
-    kind: Literal["validate", "publish_pr", "deploy", "observe"]
+    kind: Literal["validate", "publish_pr", "deploy", "observe", "replay"]
     state: str
     error_code: str | None
     cancel_requested: bool
@@ -96,6 +96,7 @@ class OperationResponse(StrictResponse):
         "repair_publication",
         "server_observation",
         "repair_deployment",
+        "controlled_release_replay",
     ]
     snapshot_digest: str | None
     result: dict[str, Any]

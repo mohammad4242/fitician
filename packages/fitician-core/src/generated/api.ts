@@ -998,6 +998,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments/{operation_id}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replay Deployment */
+        post: operations["replay_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__replay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/issues/{issue_id}/evidence": {
         parameters: {
             query?: never;
@@ -7125,7 +7142,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "validate" | "publish_pr" | "deploy" | "observe";
+            kind: "validate" | "publish_pr" | "deploy" | "observe" | "replay";
             /**
              * Lease Token
              * Format: uuid
@@ -7139,7 +7156,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment" | "controlled_release_replay";
             /** Repository */
             repository: string;
             /** Request */
@@ -12343,7 +12360,7 @@ export type components = {
              * Kind
              * @enum {string}
              */
-            kind: "validate" | "publish_pr" | "deploy" | "observe";
+            kind: "validate" | "publish_pr" | "deploy" | "observe" | "replay";
             /** Occurrence Id */
             occurrence_id: string | null;
             /** Profile */
@@ -12352,7 +12369,7 @@ export type components = {
              * Purpose
              * @enum {string}
              */
-            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment";
+            purpose: "connection_check" | "repair_validation" | "repair_publication" | "server_observation" | "repair_deployment" | "controlled_release_replay";
             /** Result */
             result: {
                 [key: string]: unknown;
@@ -13972,6 +13989,14 @@ export type components = {
              * Format: uuid
              */
             replacement_meal_id: string;
+        };
+        /** ReplayInput */
+        ReplayInput: {
+            /**
+             * Observation Id
+             * Format: uuid
+             */
+            observation_id: string;
         };
         /** ReplyInput */
         ReplyInput: {
@@ -18767,6 +18792,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DeploymentAuthorizationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replay_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__replay_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path: {
+                issue_id: string;
+                operation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplayInput"];
             };
         };
         responses: {

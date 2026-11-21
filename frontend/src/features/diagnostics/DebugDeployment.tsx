@@ -85,3 +85,40 @@ export function DeploymentReview({ operation, issueId, english, onUpdated }: {
     {operation.result.deployed === true && <p>{english ? "Running images verified. The failing business scenario still needs verification." : "تصاویر در حال اجرا بررسی شدند؛ سناریوی خطادار هنوز نیازمند بازآزمایی است."}</p>}
   </section>;
 }
+
+export function ReleaseReplayRequest({ deployment, observations, issueId, english, onUpdated }: {
+  deployment: Operation; observations: Operation[]; issueId: string; english: boolean; onUpdated: Updated;
+}) {
+  const [observation, setObservation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const eligible = observations.filter(row => row.kind === "observe" && row.state === "succeeded"
+    && row.occurrence_id === deployment.occurrence_id && row.target_environment === deployment.target_environment
+    && object(row.result.observation).complete === true);
+  if (deployment.state !== "succeeded" || deployment.result.deployed !== true) return null;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy || !eligible.some(row => row.id === observation)) return;
+    setBusy(true); setFailed(false);
+    const body = JSON.stringify({ observation_id: observation });
+    try {
+      const key = identity(`debug-release-replay:${issueId}:${deployment.id}`, body);
+      await request(`${root}${encodeURIComponent(issueId)}/deployments/${encodeURIComponent(deployment.id)}/replay`, {
+        method: "POST", headers: { "Idempotency-Key": key }, body,
+      });
+      await onUpdated();
+    } catch { setFailed(true); } finally { setBusy(false); }
+  }
+  return <details>
+    <summary>{english ? "Replay the deployed commit's regression tests" : "بازآزمایی تست‌های اصلاح روی commit منتشرشده"}</summary>
+    <p>{english ? "Runs the published repair's test scope in isolated GitHub Actions at the deployed source commit. This does not prove the production business outcome, execute production requests or resolve this issue." : "همان تست‌های اصلاح در GitHub Actions جداگانه و روی commit منتشرشده اجرا می‌شوند. این نتیجه، تأیید رفتار واقعی تولید یا رفع مسئله نیست؛ در تولید درخواستی اجرا نمی‌شود."}</p>
+    <form onSubmit={event => void submit(event)} className="diagnostics-stack">
+      <label>{english ? "Matching fresh server evidence" : "مدرک تازهٔ همان محیط"}<select required value={observation} onChange={event => setObservation(event.target.value)}>
+        <option value="">{english ? "Select evidence" : "انتخاب مدرک"}</option>
+        {eligible.map(row => <option key={row.id} value={row.id}>{row.target_environment} · {row.created_at}</option>)}
+      </select></label>
+      <button type="submit" disabled={busy || !observation}>{english ? "Run isolated replay in GitHub Actions" : "اجرای بازآزمایی جدا در GitHub Actions"}</button>
+      {failed && <p role="alert">{english ? "Replay could not be queued. Check fresh matching images and broker access; retry keeps the request identity." : "بازآزمایی ثبت نشد؛ مدرک تازهٔ تصاویر و دسترسی broker را بررسی کنید. تکرار درخواست شناسه را حفظ می‌کند."}</p>}
+    </form>
+  </details>;
+}

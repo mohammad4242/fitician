@@ -351,6 +351,55 @@ class GitHubAutomation:
             "tree_digest": snapshot["tree_digest"],
         }
 
+    async def prepare_replay(self, release: str) -> dict[str, str]:
+        """Read trusted policy and deployed source; create no branch, tag, commit or PR."""
+        policy = await self.main_commit()
+        workflow = await self._api("GET", "/actions/workflows/" + WORKFLOW, missing=True)
+        source = await self._api(
+            "GET", "/contents/.github/workflows/" + WORKFLOW + "?ref=" + policy, missing=True
+        )
+        if (
+            not workflow
+            or workflow.get("state") != "active"
+            or workflow.get("path") != ".github/workflows/" + WORKFLOW
+            or not source
+        ):
+            raise ValueError("github_request_rejected")
+        comparison = await self._api("GET", "/compare/" + sha(release) + "..." + policy)
+        if (
+            comparison.get("status") not in {"identical", "ahead"}
+            or comparison.get("merge_base_commit", {}).get("sha") != release
+        ):
+            raise ValueError("github_invalid_identity")
+        return {"candidate_commit": release, "policy_commit": policy}
+
+    async def dispatch_replay(
+        self, operation_id: UUID, policy: str, candidate: str, profile: str, tests: list[str]
+    ) -> int | None:
+        spec = validation_spec(profile, tests)
+        if await self.main_commit() != sha(policy):
+            raise ValueError("github_invalid_identity")
+        response = await self._api(
+            "POST",
+            f"/actions/workflows/{WORKFLOW}/dispatches",
+            {
+                "ref": "main",
+                "return_run_details": True,
+                "inputs": {
+                    "candidate_sha": sha(candidate),
+                    "request_id": str(UUID(str(operation_id))),
+                    "profile": spec["profile"],
+                    "tests_json": json.dumps(spec["tests"]),
+                },
+            },
+        )
+        if response is None:
+            return None
+        value = response.get("workflow_run_id")
+        if type(value) is not int or value < 1:
+            raise ValueError("github_mutation_uncertain")
+        return value
+
     async def dispatch_validation(
         self, operation_id: UUID, policy: str, candidate: str, profile: str, tests: list[str]
     ) -> int | None:

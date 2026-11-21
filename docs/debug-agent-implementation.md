@@ -24,14 +24,69 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated token branch/commit/draft-PR writes verified; Actions dispatch 403; server enrollment pending | no | transport acceptance PR 43 verified; no permanent broker repair PR proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
-| Native capture/discovery and release identity | implemented; Android upload plugin and migration 186 added | actual internal Android x86_64 crash → authenticated Sentry read → local panel; ARM/iOS and application symbolication pending | EAS Sentry secrets present; new internal symbol-upload build FINISHED, upload verification pending | no feature rollout | Android capture and isolated panel yes; production linkage/iOS no |
-| Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated credential read-validated locally | no | pending |
+| Native capture/discovery and release identity | implemented; Android upload plugin and migration 186 added | actual internal Android x86_64 crash → authenticated Sentry read → local panel; matching private mapping/native DIF readback verified; ARM/iOS and application frame symbolication pending | EAS secrets and matching Android artifact uploads verified | no feature rollout | Android capture and isolated panel yes; production linkage/iOS no |
+| Artifact-bound deployment and verification | full/Agent broker, explicit review UI and isolated deployed-source regression replay implemented; production scenario resolution remains open | isolated broker/API/host-gate/replay tests | owner gates retained; exact scoped credential provisioned/read-validated on Germany; Actions dispatch still 403 | no | pending |
 
-Latest reviewed migration head is `20261121_186`; production remains `20261018_175`.
+Latest reviewed migration head is `20261121_187`; production remains `20261018_175`.
 Historical 185 rehearsal entries below retain their original scope. November 21's fresh
 snapshot was separately restored and rehearsed through 186: 155 source tables and 11 protected
 fingerprints matched; 169 target tables and existing counts/FKs remained consistent. The owned
 networkless tmpfs restore container was removed. No production migration was performed.
+
+### Owner decisions and controlled replay — November 21 continuation
+
+The owner selected controlled GitHub Actions replay and retained all production gates.
+The exact dedicated credential is now in the existing Germany automation secret store,
+mode 0600, UID 10001, and repository authentication from that server returned 200. No
+different credential was overwritten and no service restarted. Local and Germany dispatch
+attempts both still returned 403 requiring `actions=write`, without exhausted rate limits.
+Germany `worker.json` and production runtime `connector.json` remain absent. This is not a
+stale running broker credential: the service has not been production-enrolled. No connected
+GitHub Settings browser was available to inspect/edit the personal token's actual grant.
+The minimum external action is to save Actions read/write on this exact repository-only PAT,
+or securely replace the local file if the edited token is different. No token is in Git.
+
+New durable `replay` operations reuse `debug-validation.yml` on protected main, without
+creating another candidate branch, tag or PR. The admin action binds issue/occurrence,
+verified deployment artifact, exact source commit/manifest, fresh matching host-image
+evidence and the published repair's profile/test selection. Restart after uncertain dispatch
+reconciles the existing workflow; repeated submissions retain identity. Requester revocation,
+foreign issue/environment, changed target images and injected command fields are rejected.
+The panel exposes persisted replay progress/results below the same issue. This is isolated
+source regression with a separately recorded policy/test image: it does not execute production
+requests or establish production business resolution. `verified_resolved` remains false.
+
+Four initial PostgreSQL regressions and the new UI regression failed before implementation.
+The expanded selected backend/broker suite passed 52 tests, deployment/automation UI passed
+9 tests, and all 383 ops tests passed. Ruff, mypy, TypeScript and actionlint passed; generated
+contracts were refreshed. Migration 187 expands only the operation-kind check and refuses
+audit-destructive downgrade. Fresh encrypted snapshot `6289b51d-7d0f-4401-9f24-7c2829983102`
+was separately restored and rehearsed 175→187: all 155 source table counts, 11 protected
+fingerprints and FKs matched; 169 target tables; owned networkless tmpfs container removed.
+Production stayed at 175. The old AI enum was separately demonstrated to reject `debug_agent`;
+additive schema changes are not proof that blindly restoring the old image is compatible.
+
+The full local debugging selection then passed 213 tests with three explicit opt-in skips.
+Both container repair/cancellation tests were rerun with an existing immutable Python image:
+both passed, including failing-before/passing-after behavior and cancellation of the owned
+test container. Only the local pinned App Server opt-in remained unexecuted in that selection;
+the installed interactive laptop CLI is 0.171.0 and was not replaced or reauthenticated.
+The separate pinned 0.167.2 hosted runtime protocol smoke is its own evidence. No local
+interactive-account access was used as production runtime authentication.
+
+Hosted run 44907651271 passed the actual independent runtime rollout/idempotency/failure/
+rollback smoke. Its runtime artifact ZIP, inner archive and canonical image were read back
+and digest-verified. This artifact identifies PR merge candidate `316ab34e`, not source head
+`e3b8bc30` or main. The full backend job was still running at this checkpoint; no full-CI or
+production release success is inferred. New replay changes require their own candidate CI.
+
+Read-only Iran inspection plus reverse DNS identified likely ParsVDS hosting and the current
+hostname. The live official qualifying listed plan is 4 CPU/10 GB at 1,880,000 toman/month;
+6 GB has only 2 CPU. Existing billing/proration and downtime remain unverified. No upgrade,
+payment, production migration/release or automatic SMS activation occurred. Germany's
+approximately 2.27 GiB free disk still fails the guarded rollout requirement. Full details,
+price sources, enrollment status and approval boundaries:
+[readiness record](debug-agent-readiness-2026-11-21.md).
 
 Native SDK discovery now runs inside the existing sync worker, for the configured mobile
 project/environment only. A durable fenced cursor scans fixed time windows, persists each page

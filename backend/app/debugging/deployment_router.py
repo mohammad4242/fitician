@@ -30,6 +30,34 @@ class DeploymentAuthorizationInput(BaseModel):
     preview_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
+class ReplayInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    observation_id: UUID
+
+
+@router.post(
+    "/issues/{issue_id}/deployments/{operation_id}/replay", response_model=OperationResponse
+)
+def replay_deployment(
+    issue_id: UUID,
+    operation_id: UUID,
+    payload: ReplayInput,
+    actor: AdminUser,
+    db: DatabaseSession,
+    idempotency_key: Key,
+) -> dict[str, Any]:
+    from .replay import queue_replay
+
+    try:
+        row = queue_replay(
+            db, issue_id, operation_id, payload.observation_id, actor.id, idempotency_key
+        )
+        db.commit()
+        return operation_json(row)
+    except (ValueError, IntegrityError) as error:
+        raise failure(db, error) from None
+
+
 def failure(db: DatabaseSession, error: ValueError | IntegrityError) -> HTTPException:
     db.rollback()
     if isinstance(error, IntegrityError):

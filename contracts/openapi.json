@@ -6222,7 +6222,8 @@
               "validate",
               "publish_pr",
               "deploy",
-              "observe"
+              "observe",
+              "replay"
             ],
             "title": "Kind",
             "type": "string"
@@ -6261,7 +6262,8 @@
               "repair_validation",
               "repair_publication",
               "server_observation",
-              "repair_deployment"
+              "repair_deployment",
+              "controlled_release_replay"
             ],
             "title": "Purpose",
             "type": "string"
@@ -20947,7 +20949,8 @@
               "validate",
               "publish_pr",
               "deploy",
-              "observe"
+              "observe",
+              "replay"
             ],
             "title": "Kind",
             "type": "string"
@@ -20981,7 +20984,8 @@
               "repair_validation",
               "repair_publication",
               "server_observation",
-              "repair_deployment"
+              "repair_deployment",
+              "controlled_release_replay"
             ],
             "title": "Purpose",
             "type": "string"
@@ -26119,6 +26123,21 @@
           "replacement_meal_id"
         ],
         "title": "ReplaceMealInput",
+        "type": "object"
+      },
+      "ReplayInput": {
+        "additionalProperties": false,
+        "properties": {
+          "observation_id": {
+            "format": "uuid",
+            "title": "Observation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "observation_id"
+        ],
+        "title": "ReplayInput",
         "type": "object"
       },
       "ReplyInput": {
@@ -37903,6 +37922,86 @@
           }
         ],
         "summary": "Approve Deployment",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/deployments/{operation_id}/replay": {
+      "post": {
+        "operationId": "replay_deployment_api_v1_admin_diagnostics_issues__issue_id__deployments__operation_id__replay_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "operation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Operation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplayInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Replay Deployment",
         "tags": [
           "admin-debugging"
         ]

@@ -37,6 +37,10 @@ def authorize_operation(db: Session, operation: DebugOperation) -> DebugRun:
         or operation.environment != thread.environment
     ):
         raise ValueError("automation_not_authorized")
+    if operation.kind == "replay":
+        requester = db.get(User, UUID(operation.request["requested_by"]))
+        if requester is None or not requester.is_admin:
+            raise ValueError("automation_not_authorized")
     return run
 
 
@@ -380,7 +384,7 @@ def record_progress(
         from .publication import record_publication
 
         return record_publication(db, worker, operation_id, lease, stage, result)
-    if row.kind != "validate" or len(json.dumps(result).encode()) > 32000:
+    if row.kind not in {"validate", "replay"} or len(json.dumps(result).encode()) > 32000:
         raise ValueError("invalid_automation_receipt")
     if stage == "waiting":
         if (
@@ -418,7 +422,12 @@ def record_progress(
     if stage == "prepared":
         if row.state != "preparing" or cancelled:
             raise ValueError("automation_state_conflict")
-        safe = _preparation(row, result)
+        if row.kind == "replay":
+            from .replay import preparation
+
+            safe = preparation(row, result)
+        else:
+            safe = _preparation(row, result)
     elif stage == "dispatch_intent":
         if (
             result
@@ -451,6 +460,14 @@ def record_progress(
         if row.state != "running":
             raise ValueError("automation_state_conflict")
         safe = _completion(row, result)
+        if row.kind == "replay":
+            safe = {
+                **safe,
+                "controlled_replay_passed": safe["workflow_conclusion"] == "success",
+                "verified_resolved": False,
+                "production_business_outcome_verified": False,
+                "scope": "isolated_source_regression_at_deployed_commit",
+            }
         row.state = (
             "cancelled"
             if safe["workflow_conclusion"] == "cancelled"

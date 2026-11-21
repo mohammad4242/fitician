@@ -114,7 +114,7 @@ async def advance(job: dict[str, Any], github: GitHubAutomation, rpc: Rpc) -> di
             if result:
                 job, _ = await receipt("publication_completed", result)
         return job
-    if job["kind"] != "validate":
+    if job["kind"] not in {"validate", "replay"}:
         raise ValueError("automation_execution_failed")
     state = job["state"]
     if state == "preparing":
@@ -122,15 +122,23 @@ async def advance(job: dict[str, Any], github: GitHubAutomation, rpc: Rpc) -> di
             job, _ = await receipt("failed", {"code": "automation_cancelled_before_dispatch"})
             return job
         if not job["result"].get("candidate_commit"):
-            preparation = await github.prepare_candidate(
-                identifier, job["request"]["snapshot"], datetime.fromisoformat(job["created_at"])
-            )
+            if job["kind"] == "replay":
+                preparation = await github.prepare_replay(job["request"]["release_commit"])
+            else:
+                preparation = await github.prepare_candidate(
+                    identifier,
+                    job["request"]["snapshot"],
+                    datetime.fromisoformat(job["created_at"]),
+                )
             job, _ = await receipt("prepared", preparation)
         job, disposition = await receipt("dispatch_intent", {})
         if disposition != "dispatch_once":
             return job
         try:
-            run_id = await github.dispatch_validation(
+            dispatch = (
+                github.dispatch_replay if job["kind"] == "replay" else github.dispatch_validation
+            )
+            run_id = await dispatch(
                 identifier,
                 job["result"]["policy_commit"],
                 job["result"]["candidate_commit"],
