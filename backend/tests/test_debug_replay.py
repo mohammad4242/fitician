@@ -337,3 +337,26 @@ def test_replay_restart_reconciles_uncertain_dispatch_without_preparing_a_branch
 
     assert asyncio.run(advance(job, Github(), rpc))["state"] == "running"
     assert calls == ["dispatched"]
+
+
+def test_migration_downgrade_refuses_to_remove_persisted_replay_audit(db):
+    import importlib.util
+    from pathlib import Path
+
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+    from sqlalchemy.exc import DBAPIError
+
+    from app.debugging.replay import queue_replay
+
+    actor, occurrence, _, deployment, observation = deployed_case(db)
+    row = queue_replay(db, occurrence.issue_id, deployment.id, observation.id, actor.id, "replay-1")
+    path = Path(__file__).parents[1] / "alembic/versions/20261121_187_controlled_replay.py"
+    spec = importlib.util.spec_from_file_location("controlled_replay_migration", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(DBAPIError, match="Retain replay audit"):
+        with db.begin_nested(), Operations.context(MigrationContext.configure(db.connection())):
+            module.downgrade()
+    db.refresh(row)
+    assert row.kind == "replay" and row.occurrence_id == occurrence.id

@@ -88,6 +88,16 @@ approximately 2.27 GiB free disk still fails the guarded rollout requirement. Fu
 price sources, enrollment status and approval boundaries:
 [readiness record](debug-agent-readiness-2026-11-21.md).
 
+Completion update: full CI run [44907651271](https://github.com/mohammad4242/fitician/actions/runs/44907651271)
+completed successfully for source head `e3b8bc30`; later replay changes need their own CI.
+Fresh read-only checks confirmed the production debug tables are absent at 175. Germany's
+actual CPU/RAM budget passes with automation enabled (1344 MiB / 1.2 CPU total service
+limits plus reserve); its disk guard still fails. No service was changed by these checks.
+All ten replay tests passed, including real PostgreSQL rejection of an audit-destructive
+downgrade while retaining the original occurrence-bound operation. A root-directory mypy
+invocation missed the backend configuration and reported imported-module errors; the required
+backend-directory invocation passed all five changed modules. No production approval is implied.
+
 Native SDK discovery now runs inside the existing sync worker, for the configured mobile
 project/environment only. A durable fenced cursor scans fixed time windows, persists each page
 atomically with imported occurrences and resumes across restarts/rate limits. Requests use the

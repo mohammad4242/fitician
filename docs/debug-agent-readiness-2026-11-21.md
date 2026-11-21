@@ -75,6 +75,11 @@ Germany host. Iran addressing/keys were preserved. About 2.27 GiB disk remains; 
 release needs at least 3 GiB plus the staged archive. It must fail until approved safe
 space recovery or added capacity is available; do not prune unrelated images/previous
 artifacts/volumes or weaken the guard. The existing generation Agent remains separate.
+Fresh read-only sizing of all running non-runtime services passed the actual release
+CPU/RAM calculation with automation enabled: total limits 1344 MiB / 1.2 CPU, plus the
+required reserve. This does not waive the separate failed disk gate. Read-only Iran SQL
+also confirmed `debug_threads`, `debug_connectors`, `debug_operations` are absent at 175;
+production enrollment cannot succeed before the separately approved application/schema rollout.
 
 The already downloaded CI runtime artifact from run 44907651271 passed GitHub ZIP digest,
 inner archive SHA-256 and canonical image identity verification. It identifies tested PR
@@ -82,6 +87,8 @@ merge candidate `316ab34e6befe4e9afca434bd940a546293db378`, not source head `e3b
 Actual isolated hosted rollout, idempotent replay, failure rollback and retained state passed.
 Production requires approved main integration, successful full main CI and its own exact
 artifact; this PR artifact is not a production release authorization.
+The full source-`e3b8bc30` CI run 44907651271 subsequently completed successfully. This
+does not cover later replay commits, which require a new CI run.
 
 ## Controlled replay and resolution boundary
 
