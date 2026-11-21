@@ -9,6 +9,14 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Browser CI stability — November 21 UTC continuation
+
+The hosted WebKit check failed when navigation canceled the public exercise detail refresh
+before its mocked response completed. The browser test now awaits that response, while
+retaining page-error/overflow assertions. Three WebKit repetitions and the complete
+Chromium/Firefox/WebKit selection passed (60 tests) against the locally built nginx release
+image. This is local browser evidence; the next hosted run remains a separate gate.
+
 ### Repair base and protected policy — November 21 UTC continuation
 
 Germany repairs now pin the trusted current main SHA once per run, preserving newer unrelated

@@ -58,7 +58,14 @@ test("premium discovery, dedicated pages and public shell fit five widths", asyn
   for (const width of [360, 390, 430, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["/workout-program", "/nutrition", "/body-analysis", "/learn", "/about", "/exercise-library", "/exercise-library/dumbbell-bench-press"]) {
+      // The heading is build-rendered before its live refresh finishes. Let the mock
+      // response finish before the next navigation cancels it (WebKit reports that
+      // cancellation as an access-control page error).
+      const detailRefresh = path === "/exercise-library/dumbbell-bench-press"
+        ? page.waitForResponse(response => response.url().endsWith("/api/v1/public/exercises/dumbbell-bench-press"))
+        : undefined;
       await page.goto(path);
+      if (detailRefresh) expect(await (await detailRefresh).finished()).toBeNull();
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("footer")).toHaveCount(1);
       await expect(page.locator(".fitician-brand-logo").first()).toBeVisible();
