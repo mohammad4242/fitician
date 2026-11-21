@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, true
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -199,19 +199,27 @@ def assistant_run_id(message: DebugMessage) -> UUID | None:
     return identifier if message.submission_key == assistant_submission_key(identifier) else None
 
 
-def claim_run(db: Session) -> DebugRun | None:
+def claim_run(db: Session, *, execution_backend: str | None = None) -> DebugRun | None:
     now = datetime.now(UTC)
+    backend_filter = (
+        DebugRun.config_snapshot["execution_backend"].as_string() == execution_backend
+        if execution_backend is not None
+        else true()
+    )
     run = db.scalar(
         select(DebugRun)
+        .join(DebugThread)
         .where(
+            DebugThread.environment == diagnostics_environment(),
+            backend_filter,
             or_(
                 DebugRun.state == "queued",
                 DebugRun.state.in_(("investigating", "editing", "testing"))
                 & (DebugRun.lease_until < now),
-            )
+            ),
         )
         .order_by(DebugRun.created_at)
-        .with_for_update(skip_locked=True)
+        .with_for_update(skip_locked=True, of=DebugRun)
         .limit(1)
     )
     if run is None:

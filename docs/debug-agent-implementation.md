@@ -9,6 +9,21 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Shared remote Codex dispatch — November 21 UTC continuation
+
+`DEBUG_REMOTE_DISPATCH_ENABLED=false` adds an opt-in, serial dispatch loop to the existing
+scheduler. It uses a one-connection/two-second-statement-timeout pool and claims only
+`agent_service` jobs in the local environment. Existing connector calls, authorization,
+cancellation, durable journals and run timeouts remain authoritative; models/tools run on
+the selected remote connector. An independent heartbeat is removed on stop/failure, and
+DB/network failures back off without terminating business scheduling. No new Iran container.
+
+The first three regressions failed, then the dispatch/environment/scheduler selection passed
+31 tests; focused Ruff and three source modules' mypy passed. This is code/local integration,
+not a production activation. API-model remote orchestration and the deployment-policy wiring
+remain incomplete. The dedicated worker must not run alongside shared dispatch. Provider
+credential placement awaits the owner's explicit selection; no provider key was moved.
+
 ### Browser CI stability — November 21 UTC continuation
 
 The hosted WebKit check failed when navigation canceled the public exercise detail refresh

@@ -13,6 +13,7 @@ from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.service import sync_agent_service_proxy
 from app.config import Settings, get_settings
 from app.database.session import get_engine
+from app.debugging.dispatch import remote_dispatch_loop
 from app.jobs.heartbeat import async_heartbeat
 from app.jobs.runtime import cancel_tasks, install_async_signal_handlers
 from app.nutrition.price_scheduler import scheduler_loop
@@ -73,6 +74,10 @@ async def run_scheduler(
                 asyncio.create_task(
                     diagnostics_maintenance_loop(settings, stop_event=requested_stop)
                 )
+            )
+        if settings.debug_remote_dispatch_enabled:
+            loops.append(
+                asyncio.create_task(remote_dispatch_loop(settings, stop_event=requested_stop))
             )
         if settings.account_deletion_enabled:
             loops.append(
