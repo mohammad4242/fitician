@@ -1679,3 +1679,41 @@ and stop polling without a thirteenth lookup or another billable SMS. An unexpir
 and another environment remain untouched. Both PostgreSQL regressions failed first; all
 32 alert-delivery/provider/sync tests, focused Ruff and delivery-module mypy then passed.
 Automatic production alerts remain disabled; these tests did not send a live SMS.
+
+### Fresh restore, workflow regressions and actual Android native capture
+
+November 21 snapshot `6289b51d-7d0f-4401-9f24-7c2829983102` was downloaded only as verified
+ciphertext and restored into an owned PostgreSQL 18 tmpfs container with no network, no
+application execution and no plaintext dump on disk. All 155 source tables, 11 protected
+fingerprints and FK validity matched the exported snapshot. Upgrade from 175 to 185 on that
+isolated restore produced 168 tables while preserving existing counts/fingerprints. The
+owned container was removed. Production remained at 175. This rehearsal must be refreshed
+if migrations or the approved release materially change. A 12-file business/diagnostics
+selection passed 241 tests with 307 existing deprecation warnings on isolated test databases.
+
+The actual internally signed Android release APK (0.1.3 / 19, commit `8f848ce7`) was installed
+in an explicitly owned x86_64 Android 36 Google APIs AVD. Shared SDK images and personal AVDs
+were preserved. A single root-authorized SIGSEGV targeted only `com.fitician.app`; its process
+exited and the app restarted. Sentry authenticated readback returned native event
+`1d798e4e593e4f2f72fd4e4f1a2266e7`, group `7860182430`, matching project, exact release and
+`production-iran` environment. This API represents release in tags; the acceptance parser was
+corrected to read that field. Four frames were present, only one named and no source lines
+or in-app frames. Empty symbolication errors are not proof that application symbols mapped.
+This establishes actual Android x86_64 release native capture, not ARM-device or iOS proof,
+complete native privacy or automatic linkage to a local Fitician occurrence.
+
+The native event has no `diagnostic_event_id`; the existing exact-reference sync cannot
+discover it. A bounded SDK-only/native discovery path remains engineering work, not merely
+a production activation task. The observed user context also still requires field-level
+review; no raw values were exported in the acceptance report.
+
+Android build inspection found a separate configuration gap: minification generated mapping
+files, but the installed SDK's Android Gradle upload plugin was not enabled. Configured builds
+now enable the SDK-bundled pinned plugin for mapping/native-symbol upload, with native source
+and source-context collection disabled. The vendor-generated Gradle configuration verified
+that uploads use `shouldSentryAutoUpload()`, automatic tracing instrumentation and SDK
+auto-installation stay disabled, and unconfigured builds do not add this plugin. Upload
+credentials never enter Expo config. Two config regressions failed first, then all 86 mobile
+foundation tests and mobile TypeScript passed. A new native build/upload acceptance is still
+required; the already-built APK cannot gain missing build artifacts retroactively. No store
+submission or production service deployment was performed.

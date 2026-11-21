@@ -22,6 +22,9 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
       appLinkHost: config.extra.appLinkHost,
       googleAndroidClientId: config.extra.googleAndroidClientId,
       googleWebClientId: config.extra.googleWebClientId,
+      ...(process.env.FITICIAN_TEST_EXPORT_SENTRY_OPTIONS === "1" ? {
+        sentry: config.plugins.find(plugin => Array.isArray(plugin) && plugin[0] === "@sentry/react-native/expo")?.[1],
+      } : {}),
     }));
   `], {
     cwd: new URL("../", import.meta.url),
@@ -41,6 +44,35 @@ function loadConfig(platform, variant, googleIosClientId = "", overrides = {}) {
     },
   });
 }
+
+test("configured Android diagnostics upload mapping and native symbols without source collection", () => {
+  const result = loadConfig("android", "development", "", {
+    EXPO_PUBLIC_SENTRY_DSN: "https://public@example.invalid/1",
+    SENTRY_AUTH_TOKEN: "private-build-only-fixture",
+    FITICIAN_TEST_EXPORT_SENTRY_OPTIONS: "1",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const options = JSON.parse(result.stdout).sentry;
+  assert.deepEqual(options.experimental_android, {
+    enableAndroidGradlePlugin: true,
+    includeProguardMapping: true,
+    autoUploadProguardMapping: true,
+    uploadNativeSymbols: true,
+    autoUploadNativeSymbols: true,
+    includeNativeSources: false,
+    includeSourceContext: false,
+  });
+  assert.equal(options.authToken, undefined);
+  assert.ok(!result.stdout.includes("private-build-only-fixture"));
+});
+
+test("unconfigured diagnostics do not add the native artifact upload plugin", () => {
+  const result = loadConfig("android", "development", "", {
+    EXPO_PUBLIC_SENTRY_DSN: "", FITICIAN_TEST_EXPORT_SENTRY_OPTIONS: "1",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).sentry.experimental_android?.enableAndroidGradlePlugin, false);
+});
 
 function loadNativeConfig(variant) {
   return spawnSync(process.execPath, ["--input-type=module", "-e", `

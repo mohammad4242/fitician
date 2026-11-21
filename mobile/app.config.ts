@@ -179,7 +179,20 @@ const config: ExpoConfig = {
   icon: "./assets/branding/fitician-icon.png",
   userInterfaceStyle: "dark",
   plugins: [
-    ["@sentry/react-native/expo", { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT, url: process.env.SENTRY_URL || "https://sentry.io/" }],
+    ["@sentry/react-native/expo", {
+      organization: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      url: process.env.SENTRY_URL || "https://sentry.io/",
+      experimental_android: {
+        enableAndroidGradlePlugin: Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN),
+        includeProguardMapping: true,
+        autoUploadProguardMapping: true,
+        uploadNativeSymbols: true,
+        autoUploadNativeSymbols: true,
+        includeNativeSources: false,
+        includeSourceContext: false,
+      },
+    }],
     "expo-router",
     ...(appVariant === "development" ? ["expo-dev-client"] : []),
     "expo-web-browser",
