@@ -102,7 +102,7 @@ def test_exact_release_fetch_is_fixed_origin_and_refuses_model_remote_or_ref(tmp
     root.mkdir()
     calls = []
 
-    def command(path, *arguments):
+    def command(path, *arguments, **kwargs):
         calls.append(arguments)
         if arguments[:2] == ("cat-file", "-e"):
             raise ValueError("missing")

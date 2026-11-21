@@ -9,6 +9,17 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Bounded repository fetch recovery — November 21 UTC continuation
+
+A real public-main source fetch exceeded the old 30-second budget and left pack helpers/
+locks in the owned test repository. Git operations now terminate their private process group
+on timeout, allow five seconds for lock cleanup, then force-reap only that group. Exact-source
+fetches have a bounded 120-second budget; local Git operations retain thirty seconds. No
+credential helper or arbitrary origin is enabled. The regression failed first; 52 repository,
+connector and real Docker tests, focused lint and source mypy passed. A real fixed-origin
+fetch then read `7c03e50d` with primary HEAD unchanged and no credential. This was a local
+owned repository, not a production fetch or runtime rollout.
+
 ### Shared remote Codex dispatch — November 21 UTC continuation
 
 `DEBUG_REMOTE_DISPATCH_ENABLED=false` adds an opt-in, serial dispatch loop to the existing

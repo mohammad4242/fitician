@@ -143,7 +143,7 @@ def test_main_fetch_uses_fixed_origin_and_does_not_checkout_primary(monkeypatch,
 
     calls = []
 
-    def git(root, *args):
+    def git(root, *args, **kwargs):
         calls.append(args)
         return "a" * 40 if args[0] == "rev-parse" else ""
 
@@ -154,3 +154,34 @@ def test_main_fetch_uses_fixed_origin_and_does_not_checkout_primary(monkeypatch,
     assert runtime_storage.current_main_commit(tmp_path) == "a" * 40
     assert runtime_storage.ORIGIN in calls[0] and calls[0][-1] == "refs/heads/main"
     assert not any("checkout" in call or "reset" in call or "update-ref" in call for call in calls)
+
+
+def test_timed_out_git_fetch_reaps_its_helper_process(tmp_path, monkeypatch):
+    import os
+    import sys
+    from pathlib import Path
+
+    from app.debugging.tools import _git
+
+    binary = tmp_path / "git"
+    child = tmp_path / "helper.pid"
+    binary.write_text(
+        "#!"
+        + sys.executable
+        + '\nimport subprocess,sys,time\n'
+        + 'p=subprocess.Popen([sys.executable,"-c","import time;time.sleep(60)"])\nopen('
+        + repr(str(child))
+        + ',"w").write(str(p.pid))\ntime.sleep(60)\n'
+    )
+    binary.chmod(0o700)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    try:
+        with pytest.raises(ValueError, match="repository_operation_timed_out"):
+            _git(tmp_path, "fetch", timeout_seconds=0.5)
+    finally:
+        if child.exists():
+            pid = int(child.read_text())
+            status = Path("/proc") / str(pid) / "stat"
+            if status.exists() and status.read_text().split()[2] != "Z":
+                os.kill(pid, 9)
+                pytest.fail("Git helper survived timeout")

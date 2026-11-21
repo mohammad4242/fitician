@@ -30,6 +30,7 @@ def current_main_commit(repository: Path) -> str:
             "--no-recurse-submodules",
             ORIGIN,
             "refs/heads/main",
+            timeout_seconds=120,
         )
         commit = _git(repository, "rev-parse", "--verify", "FETCH_HEAD^{commit}").strip()
         if not re.fullmatch(r"[a-f0-9]{40}", commit):
@@ -65,6 +66,7 @@ def ensure_release(repository: Path, commit: str) -> None:
         "--no-recurse-submodules",
         ORIGIN,
         commit,
+        timeout_seconds=120,
     )
     if _git(repository, "rev-parse", "--verify", commit + "^{commit}").strip() != commit:
         raise ValueError("release_commit_mismatch")

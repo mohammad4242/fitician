@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import tempfile
 import threading
@@ -40,11 +41,11 @@ _SECRET = re.compile(
 )
 
 
-def _git(root: Path, *arguments: str) -> str:
+def _git(root: Path, *arguments: str, timeout_seconds: float = 30) -> str:
     environment = dict(
         os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null", GIT_TERMINAL_PROMPT="0"
     )
-    result = subprocess.run(
+    process = subprocess.Popen(
         [
             "git",
             "-c",
@@ -56,13 +57,32 @@ def _git(root: Path, *arguments: str) -> str:
             *arguments,
         ],
         env=environment,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=30,
+        start_new_session=True,
     )
-    if result.returncode:
+    try:
+        output, _ = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        # Reap HTTPS/pack helpers too. SIGTERM gives Git time to release its locks;
+        # a bounded fallback kills the private process group, never another run.
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+        try:
+            process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate()
+        raise ValueError("repository_operation_timed_out") from None
+    if process.returncode:
         raise ValueError("repository_operation_failed")
-    return result.stdout
+    return output
 
 
 class RepositoryTools:
