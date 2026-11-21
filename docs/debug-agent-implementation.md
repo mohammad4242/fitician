@@ -9,6 +9,38 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Current-VPS capacity reassessment — November 21
+
+The owner retained the current 2-vCPU/4-GB Iran application/data host and selected Germany
+for debugging/model/repair/GitHub execution. The new measured
+[capacity report](diagnostics-current-vps-capacity-2026-11-21.md) supersedes any inference
+below that the old 4654-MiB three-worker budget proves a paid Iran upgrade is necessary.
+No production configuration, service, database, SMS activation or paid capacity changed.
+
+- [x] Fresh five-minute cgroup/host measurements and approximately 40 hours of existing
+  sysstat history; limits distinguished from working sets, swap and lifetime peaks.
+- [x] Private TLS checks from all five Iran Agent consumers, reverse Germany-to-Iran HTTPS,
+  direct DB/Redis TCP refusal and unchanged production container identities.
+- [x] Isolated ten-service/two-CPU load with current limits: 1200 requests at 10 RPS all
+  returned 200, p95 246 ms; 30 fake body jobs each produced one review-pending result.
+- [x] Captured a failed readiness gate: the existing writer lost 843 observations during
+  another 600-request/10-RPS test, despite successful HTTP responses. Burst concurrency
+  10/20 also exceeded the existing 750-ms latency SLO. These are not successful capture tests.
+- [x] Private batch prototype, same sampling/queue/limits: 600/600 HTTP 200 and zero new
+  drops, p95 495 ms; PostgreSQL UUID/grouping invariants passed. This is not shipped code.
+- [ ] Shared scheduler control plane and remote API-model adapter remain implementation
+  work; the bounded mock capacity experiment does not establish production operation.
+- [ ] Germany disk release gate still fails at about 2.27 GiB free. No image/log cleanup
+  or guard reduction was performed. Real simultaneous debug/generation and durable disk-I/O
+  peaks remain unverified; production enrollment and release approvals remain separate.
+
+Proposed reservations, not applied: Iran scheduler 256 MiB (other live limits unchanged),
+2944 MiB total plus 750 MiB reserve; Germany connector/broker and existing services total
+1344 MiB plus 384 MiB reserve. Transient migrations need their own capacity rehearsal.
+Base-source CI `44914007967` succeeded for `de626ca6`; it does not validate the private
+prototype or deployment. Full methods, allocation tables, caveats and remaining work are
+in the capacity report. Historical implementation/acceptance records below retain scope.
+
 The existing design and execution authorization remain in effect. Work continues on
 `feat/regional-cicd`; no replacement stack or competing admin application is planned.
 The November 20 continuation started at `679b71ec`, matching the pushed branch and draft

@@ -40,7 +40,14 @@ customer panel is [my.parsvds.com](https://my.parsvds.com/).
 
 Observed capacity remains 2 CPU / 3916 MiB RAM; approximately 1409 MiB available.
 Existing service limits plus planned diagnostics workers and 750 MiB reserve require
-4654 MiB. The current activation budget fails. Existing workers were not squeezed.
+4654 MiB. That **three-standalone-worker** activation budget fails; it does not establish
+actual consumption or an unavoidable paid upgrade. Existing workers were not squeezed.
+The later owner-directed [current-VPS reassessment](diagnostics-current-vps-capacity-2026-11-21.md)
+measured live/historical use and isolated load, proposes keeping heavy debugging in Germany
+and sharing bounded Iran control jobs with the existing scheduler, and identifies telemetry
+backpressure and Germany disk space as concrete remaining gates. That integration is not
+implemented/deployed by the capacity experiment. The prices below are retained historical
+context, not a current recommendation to buy or resize.
 
 Public list prices read November 21, 2026, from the
 [current official NVMe table](https://parsvds.com/virtual-server/iran-ssd/):
@@ -127,8 +134,11 @@ data-loss window. No automatic production rollback is claimed from this rehearsa
 
 ## Next approval boundary
 
-First repair the actual PAT grant and complete safe CI/isolated acceptance. Then present
-the actual provider upgrade quote before asking for a paid resize/maintenance approval.
+First repair the actual PAT grant and complete safe CI/isolated acceptance. The owner now
+prefers the current infrastructure: follow the measured shared-control-plane proposal and
+remaining engineering gates in the capacity report; do not seek a paid resize merely because
+the old standalone-worker profile fails. Only a remaining measured bottleneck could justify
+revisiting a provider quote and separate paid resize/maintenance approval.
 Separately prepare the exact protected-main release command, fresh backup identity,
 compatible recovery artifact, resources and service impact before asking for merge,
 production migration/runtime/application release or automatic SMS activation. None of
