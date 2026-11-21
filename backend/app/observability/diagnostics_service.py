@@ -5,7 +5,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import String, case, cast, delete, func, select, true, update
+from sqlalchemy import String, and_, case, cast, delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
@@ -72,9 +72,19 @@ def record_event(
     *,
     user_id: UUID | None = None,
     trusted: bool = True,
+    occurred_at: datetime | None = None,
 ) -> DiagnosticEvent:
     """Deduplicate, append, and group only actionable failures; caller owns commit."""
     now = datetime.now(UTC)
+    if occurred_at is not None:
+        if (
+            not trusted
+            or occurred_at.tzinfo is None
+            or occurred_at.utcoffset() is None
+            or occurred_at > now + timedelta(minutes=5)
+        ):
+            raise ValueError("trusted_occurrence_time_required")
+        now = occurred_at.astimezone(UTC)
     event_id = event.event_id or uuid4()
     event_values = {
         **{
@@ -143,6 +153,19 @@ def record_event(
         return row
 
     fingerprint = _fingerprint(event)
+    recurs = DiagnosticIssue.status == "resolved"
+    if occurred_at is not None:
+        # A delayed external delivery is not evidence of a post-resolution regression.
+        resolved_at = (
+            select(func.max(DiagnosticStatusHistory.created_at))
+            .where(
+                DiagnosticStatusHistory.issue_id == DiagnosticIssue.id,
+                DiagnosticStatusHistory.new_status == "resolved",
+            )
+            .correlate(DiagnosticIssue)
+            .scalar_subquery()
+        )
+        recurs = and_(recurs, resolved_at.is_not(None), resolved_at <= now)
     upsert_stmt = (
         insert(DiagnosticIssue)
         .values(
@@ -168,17 +191,18 @@ def record_event(
         .on_conflict_do_update(
             index_elements=[DiagnosticIssue.fingerprint],
             set_={
-                "last_seen": now,
+                "first_seen": func.least(DiagnosticIssue.first_seen, now),
+                "last_seen": func.greatest(DiagnosticIssue.last_seen, now),
                 "severity": case(
                     (DiagnosticIssue.severity == "critical", "critical"), else_=event.severity
                 ),
                 "count": DiagnosticIssue.count + 1,
                 "regression_count": case(
-                    (DiagnosticIssue.status == "resolved", DiagnosticIssue.regression_count + 1),
+                    (recurs, DiagnosticIssue.regression_count + 1),
                     else_=DiagnosticIssue.regression_count,
                 ),
                 "status": case(
-                    (DiagnosticIssue.status == "resolved", "new"),
+                    (recurs, "new"),
                     else_=DiagnosticIssue.status,
                 ),
             },

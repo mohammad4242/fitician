@@ -1717,3 +1717,15 @@ credentials never enter Expo config. Two config regressions failed first, then a
 foundation tests and mobile TypeScript passed. A new native build/upload acceptance is still
 required; the already-built APK cannot gain missing build artifacts retroactively. No store
 submission or production service deployment was performed.
+
+### Delayed external occurrence timestamps
+
+External capture needs the original occurrence time, rather than discovery time. The trusted
+internal recording path now accepts an aware, non-future source timestamp; public client
+ingestion cannot supply it. Out-of-order deliveries preserve earliest/latest occurrence times.
+A delayed occurrence reopens a resolved issue only when it is later than a recorded resolution;
+missing resolution history stays conservatively resolved. Event UUID retries remain deduplicated.
+Three PostgreSQL regressions failed first, then all 47 selected diagnostics tests passed.
+This is groundwork for SDK-native discovery; it does not itself import the observed native crash.
+Internal Android symbol-upload build `d957da3c-32cb-4bcf-b284-3673712f74f4` was accepted for
+commit `9e7f2b9a`; its completion and upload results remain separate gates.
