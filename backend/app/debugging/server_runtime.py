@@ -40,6 +40,7 @@ def configuration(path: Path, state: Path) -> dict[str, Any]:
         workspace_min_free_bytes=1_610_612_736,
         fetch_missing_releases=True,
         evict_readonly=True,
+        persistent_codex=True,
         test_image="",
         github_enabled=False,
         ci_enabled=True,

@@ -25,6 +25,7 @@ def thread_parameters(model: str, workspace: Path, tools: list[dict[str, Any]]) 
         "approvalPolicy": "untrusted",
         "sandbox": "read-only",
         "config": {
+            "thread_unload_delay_secs": 0,
             "features.apps": False,
             "features.shell_snapshot": False,
             "features.shell_tool": False,
@@ -245,9 +246,28 @@ class AppServer:
                     raise RuntimeError("runtime_disconnected") from self.failure
                 message = await asyncio.wait_for(self.notifications.get(), timeout=120)
                 method, params = message.get("method", ""), message.get("params", {})
-                if params.get("threadId") not in (None, self.thread_id):
-                    continue
-                if params.get("turnId") not in (None, self.turn_id):
+                wrong_scope = (
+                    params.get("threadId") not in (None, self.thread_id)
+                    or params.get("turnId") not in (None, self.turn_id)
+                    or (
+                        method == "item/tool/call"
+                        and (
+                            params.get("threadId") != self.thread_id
+                            or params.get("turnId") != self.turn_id
+                        )
+                    )
+                )
+                if wrong_scope:
+                    if "id" in message:
+                        await self._send(
+                            {
+                                "id": message["id"],
+                                "error": {
+                                    "code": -32601,
+                                    "message": "Tool or permission not authorized",
+                                },
+                            }
+                        )
                     continue
                 if "id" in message:
                     if method == "item/tool/call":
@@ -292,6 +312,13 @@ class AppServer:
     async def interrupt(self) -> None:
         if self.thread_id and self.turn_id and self.process and self.process.returncode is None:
             await self.call("turn/interrupt", {"threadId": self.thread_id, "turnId": self.turn_id})
+
+    async def release_thread(self) -> None:
+        """Unload idle subscriptions while retaining the durable conversation on disk."""
+        if self.thread_id:
+            await self.call("thread/unsubscribe", {"threadId": self.thread_id})
+        self.thread_id = None
+        self.turn_id = None
 
     async def close(self) -> None:
         if self.process and self.process.returncode is None:

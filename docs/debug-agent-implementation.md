@@ -9,6 +9,25 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Persistent Codex process — November 21 UTC continuation
+
+Germany's existing runtime configuration now forces one serialized persistent App Server
+connection. Successful turns unsubscribe their thread immediately with the pinned protocol's
+`thread_unload_delay_secs=0`, preserving disk history without retaining idle thread state.
+Exceptions/cancellation close the process; the durable call journal still forbids replaying
+an interrupted mutation. Service shutdown reaps the process. Requests missing the selected
+thread/turn scope, including stale tool requests from another issue, receive a denial.
+Generation-runner sandboxing is unchanged; laptop persistence remains opt-in.
+
+The 0.167.2 upstream schemas were inspected for unsubscribe, immediate unload and dynamic
+tool thread/turn IDs. Connector/runtime/protocol tests passed 42 with one installed-CLI
+test skipped. A separate real 0.167.2 binary test, extracted from the already digest-verified
+CI artifact, ran networkless at 512 MiB / 0.25 CPU: three contexts reused one process,
+unsubscribe was supported and shutdown reaped it. Only a synthetic API-key fixture was
+mounted: this proves protocol lifecycle, not real authentication/model/tool execution.
+No laptop/server auth was copied, no production runtime restarted or enrolled. Production
+model execution and panel acceptance still require the separately approved rollout.
+
 ### Writer reliability implementation — November 21 continuation
 
 The existing scheduler now has opt-in shared Sentry synchronization and alert/receipt loops

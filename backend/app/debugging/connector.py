@@ -11,7 +11,8 @@ import re
 import shutil
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -104,12 +105,49 @@ class LaptopConnector:
         self.runtime_error_code: RuntimeSetupError | None = None
         self.github_available = bool(self.config.get("github_enabled", True) and shutil.which("gh"))
         self.ci_available = False
+        self._codex: AppServer | None = None
+        self._codex_lock = asyncio.Lock()
 
-    def codex_server(self) -> AppServer:
+    def _new_codex_server(self) -> AppServer:
         executable = self.config.get("codex_executable")
         if not executable:
             raise ValueError("pinned_codex_executable_required")
         return AppServer(executable=executable, codex_home=Path(self.config["codex_home"]))
+
+    async def _close_codex(self) -> None:
+        server, self._codex = self._codex, None
+        if server is not None:
+            await server.close()
+
+    async def close_runtime(self) -> None:
+        async with self._codex_lock:
+            await self._close_codex()
+
+    @asynccontextmanager
+    async def codex_server(self) -> AsyncIterator[AppServer]:
+        async with self._codex_lock:
+            if not self.config.get("persistent_codex", False):
+                async with self._new_codex_server() as server:
+                    yield server
+                return
+            current = self._codex
+            if (
+                current is None
+                or current.failure
+                or current.process is None
+                or current.process.returncode is not None
+            ):
+                await self._close_codex()
+                self._codex = await self._new_codex_server().__aenter__()
+            assert self._codex is not None
+            try:
+                yield self._codex
+                await self._codex.release_thread()
+            except BaseException:
+                # Never automatically replay an interrupted mutation. The durable call
+                # journal remains authoritative; only a later explicit run may restart.
+                await self._close_codex()
+                raise
 
     async def request(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         async with self.client.stream(
@@ -517,6 +555,12 @@ class LaptopConnector:
         return result
 
     async def run(self) -> None:
+        try:
+            await self._run()
+        finally:
+            await self.close_runtime()
+
+    async def _run(self) -> None:
         await self.discover()
         discovered_at = time.monotonic()
         while True:
