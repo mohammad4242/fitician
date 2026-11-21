@@ -6,6 +6,22 @@ PR 41 stays Draft and unmerged. Historical acceptance PRs 42/43 must not be merg
 
 ## Dedicated GitHub credential
 
+**Fresh verification, November 21 19:50 UTC:** the dedicated token dispatched the reviewed
+read-only main workflow successfully; both regional jobs passed
+[44943052893](https://github.com/mohammad4242/fitician/actions/runs/44943052893).
+The Germany credential matched the local secure credential and authenticated workflow
+reads returned 200. Thus the earlier Actions 403 is historical, not a current blocker.
+No production credential or service was changed by this verification.
+
+The broker now verifies the workflow file at the exact protected-main commit, in addition
+to GitHub's workflow registry (which can list feature-branch workflows). A regression failed
+before this correction; 26 selected broker/publication tests passed afterward. Actual
+read-only preflight returned `github_authenticated=true`, `workflow_installed=false`,
+`github_workflow_not_installed` on main `7c03e50d0355d3f28b87559af4c6f5d46d5ff7e2`.
+This is a separate policy-installation gate; do not bypass it using an unreviewed ref.
+Runtime and automation production enrollment remain absent. The rejection details below
+retain their historical timestamps and no longer request another PAT grant change.
+
 The existing local secure store is `.codex-tmp/sentry-setup/github-automation-credential.json`.
 It is excluded from Git, mode 0600. The exact same credential was provisioned, without
 overwriting another credential, at the existing Germany runtime's
@@ -22,7 +38,7 @@ limits were not exhausted. This rules out a stale credential in an already runni
 Germany broker: no enrolled broker exists yet. It does not prove which token was
 edited in the owner's GitHub Settings. No broader credential was substituted.
 
-The owner must save **Actions: Read and write** on the specific fine-grained PAT
+The earlier required owner action was to save **Actions: Read and write** on the specific PAT
 represented by this secure file, resource owner `mohammad4242`, selected repository
 **only `fitician`**. If a different token was edited, replace only this secure credential
 file locally; never paste it in chat. Repository-selection details cannot be established
@@ -134,7 +150,8 @@ data-loss window. No automatic production rollback is claimed from this rehearsa
 
 ## Next approval boundary
 
-First repair the actual PAT grant and complete safe CI/isolated acceptance. The owner now
+The PAT dispatch gate is now passed; complete safe CI/isolated acceptance and the reviewed
+main workflow-installation gate. The owner now
 prefers the current infrastructure: follow the measured shared-control-plane proposal and
 remaining engineering gates in the capacity report; do not seek a paid resize merely because
 the old standalone-worker profile fails. Only a remaining measured bottleneck could justify

@@ -248,10 +248,18 @@ class GitHubAutomation:
     async def preflight(self) -> dict[str, Any]:
         policy = await self.main_commit()
         workflow = await self._api("GET", f"/actions/workflows/{WORKFLOW}", missing=True)
+        # GitHub's registry can expose workflows from a feature branch. That does not
+        # install the reviewed policy on protected main or authorize executing that branch.
+        document = await self._api(
+            "GET", f"/contents/.github/workflows/{WORKFLOW}?ref={policy}", missing=True
+        )
         installed = bool(
             workflow
             and workflow.get("state") == "active"
             and workflow.get("path") == ".github/workflows/" + WORKFLOW
+            and isinstance(document, dict)
+            and document.get("type") == "file"
+            and document.get("path") == ".github/workflows/" + WORKFLOW
         )
         return {
             "github_authenticated": True,

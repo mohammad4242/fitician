@@ -368,3 +368,28 @@ def test_pr_publication_is_exact_tested_candidate_and_reuses_an_existing_draft()
 
     asyncio.run(run())
     assert len(created) == 1
+
+
+def test_preflight_does_not_trust_workflow_registry_without_protected_main_file():
+    paths = []
+
+    def handle(request):
+        paths.append(str(request.url))
+        if request.url.path.endswith("/git/ref/heads/main"):
+            return httpx.Response(200, json={"object": {"sha": "a" * 40}})
+        if "/contents/" in request.url.path:
+            assert request.url.params["ref"] == "a" * 40
+            return httpx.Response(404)
+        return httpx.Response(
+            200, json={"state": "active", "path": ".github/workflows/debug-validation.yml"}
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            result = await GitHubAutomation(client, "test-credential").preflight()
+            assert result["github_authenticated"]
+            assert result["workflow_installed"] is False
+            assert result["error_code"] == "github_workflow_not_installed"
+
+    asyncio.run(run())
+    assert any("/contents/" in path for path in paths)
