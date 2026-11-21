@@ -7,7 +7,7 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
-## Revalidated completion checklist — 2026-11-20
+## Revalidated completion checklist — 2026-11-21
 
 The existing design and execution authorization remain in effect. Work continues on
 `feat/regional-cicd`; no replacement stack or competing admin application is planned.
@@ -20,9 +20,9 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | --- | --- | --- | --- | --- | --- |
 | SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
-| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | independent free-account login verified; production enrollment pending | commissioning service on Germany | health/limits/image and model reply yes; supervised tool execution/panel pending |
+| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | independent free-account login verified; production enrollment pending | commissioning service on Germany | temporary Germany tool execution yes; permanent updated image/panel pending |
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
-| Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated local token reads verified; Actions dispatch 403; Germany broker enrollment pending | no | no Germany PR publication proof |
+| Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated token branch/commit/draft-PR writes verified; Actions dispatch 403; server enrollment pending | no | transport acceptance PR 43 verified; no permanent broker repair PR proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
 | Native exact release identity/iOS ingestion | implemented | adapter/release/privacy tests; native crash pending | EAS preview/production Sentry settings installed; upload credential is SECRET | no | no native release crash proof |
 | Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated credential read-validated locally | no | pending |
@@ -1626,3 +1626,56 @@ before extraction or inference; its owned partial file was reconciled before ret
 that public artifact over the pinned updated public address. No success is claimed until
 its private journal confirms a real gateway tool call. No production rollout, migration,
 paid capacity change, automatic SMS activation or live panel enrollment occurred.
+
+### November 21 execution audit and scoped GitHub acceptance
+
+PR 41 remains draft/unmerged at `175afb0a7b61afe9a186c914b89652d4fc5d5ccc`; protected
+main remains `7c03e50d0355d3f28b87559af4c6f5d46d5ff7e2`. Its complete 263-file diff was
+retrieved privately (with local full-diff fallback for API-truncated generated/lock/binary
+patches). CI 44733952149 succeeded. Important identity distinction: its PR merge-candidate
+artifacts identify `e362a87c576bb1957736f42c9e927fec18b46fe9`, not the PR head itself.
+Those artifacts must not be deployed under a fabricated `175afb0a` image/release identity.
+Backend (56), frontend (11), Agent (3) and migration (108) controlled validation artifact
+records were retrieved with the dedicated token and their GitHub ZIP digests verified.
+These are existing CI results, not a new dispatch or a full production outcome matrix.
+
+The temporary Germany acceptance journal now confirms `gpt-6-luna` completed one real
+gateway read with the separately mounted, matching pinned code-mode helper. It was removed
+after the test; generation and supervised connector identities/start times were unchanged.
+The permanent service is still the older `4a70812f` commissioning image, with its own auth
+file but no production panel enrollment or enrolled GitHub broker. No production upgrade
+was inferred from the successful temporary test.
+
+The updated fine-grained token passed authentication and contents/branches/PR/Actions reads.
+Actual immutable blob/tree/commit and unique acceptance-branch creation succeeded; content
+was read back byte-for-byte and its Git blob hash matched. Documentation-only Draft PR 43
+https://github.com/mohammad4242/fitician/pull/43 targets `feat/regional-cicd`, must stay
+unmerged and is not a broker repair demonstration. Its exact commit is
+`3e04f47a453ce1a34f3de5a715724d39823b83de`. A separately journaled attempt to dispatch
+`diagnose-regional-ssh.yml` still returned HTTP 403 with required permission `actions=write`.
+No broader credential or alternative workflow was used to circumvent that rejection.
+Both debug-validation and debug-server-observation workflow files remain absent from main.
+
+Fresh Iran inspection found 2 CPUs, 3916 MiB total/1462 MiB available RAM, 8.5% sampled CPU
+usage and 9924 MiB free disk. Existing services were running; notification worker memory
+was about 182/192 MiB. Current quiet CPU use is not proof of peak worker capacity. The
+configured diagnostics activation budget still fails; no limit or safeguard was reduced.
+The November 21 backup snapshot `6289b51d-7d0f-4401-9f24-7c2829983102` completed a read-only
+consistent 155-table capture, age encryption, private S3 upload and ciphertext readback.
+Restore/migration rehearsal for this new snapshot is a separate pending gate.
+
+The internal Android build `0217fdfa-ae2b-4291-a9ea-02f029d9065b` is FINISHED for exact
+commit `8f848ce7af5bb3d7c2686009697d39cc6dbca65a`. The downloaded APK ZIP passed integrity
+checks, contains x86_64 as well as ARM ABIs, no public .map files and none of the exact
+private upload/sync credential values. This does not establish native crash privacy,
+symbolication, release symbol uploads or store readiness. No mobile release was submitted.
+
+### Interrupted final SMS receipt lookup
+
+A worker stop after committing its twelfth receipt lookup could leave `next_receipt_at`
+pending forever. Expired final lookup claims now use the existing receipt finalization
+path: retain accepted/uncertain dispatch state, expose `receipt_verification_exhausted`,
+and stop polling without a thirteenth lookup or another billable SMS. An unexpired lease
+and another environment remain untouched. Both PostgreSQL regressions failed first; all
+32 alert-delivery/provider/sync tests, focused Ruff and delivery-module mypy then passed.
+Automatic production alerts remain disabled; these tests did not send a live SMS.

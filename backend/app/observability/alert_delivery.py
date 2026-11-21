@@ -222,13 +222,22 @@ def claim_receipt(db: Session, *, now: datetime) -> UUID | None:
             DiagnosticAlertDelivery.environment == diagnostics_environment(),
             DiagnosticAlertAttempt.state.in_(["accepted", "uncertain"]),
             DiagnosticAlertAttempt.next_receipt_at <= now,
-            DiagnosticAlertAttempt.receipt_attempts < 12,
         )
         .order_by(DiagnosticAlertAttempt.next_receipt_at)
         .limit(1)
         .with_for_update(skip_locked=True, of=DiagnosticAlertAttempt)
     )
     if attempt is None:
+        return None
+    if attempt.receipt_attempts >= 12:
+        # A restart can lose the final lookup acknowledgment. Once its lease
+        # expires, finish polling without another lookup or a billable resend.
+        record_receipt(
+            db,
+            attempt.id,
+            SmsReceipt("uncertain", error_code="receipt_verification_exhausted"),
+            now=now,
+        )
         return None
     attempt.receipt_attempts += 1
     attempt.next_receipt_at = now + timedelta(seconds=60)

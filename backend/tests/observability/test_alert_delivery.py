@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy import select
 
 from app.config import Settings
@@ -8,6 +9,46 @@ from app.observability.alert_sms import SmsReceipt
 from app.observability.diagnostics_models import DiagnosticAlertAttempt, DiagnosticAlertDelivery
 from app.observability.diagnostics_schemas import EventInput
 from app.observability.diagnostics_service import record_event
+
+
+@pytest.mark.parametrize("dispatch_state", ["accepted", "uncertain"])
+def test_restart_after_final_receipt_claim_exhausts_lookup_without_resending(
+    db, monkeypatch, dispatch_state
+):
+    from app.observability.alert_delivery import claim_receipt
+
+    now = datetime.now(UTC)
+    config = settings(now)
+    occurrence(db)
+    enqueue_alerts(db, config, now=now)
+    job = claim_alert(db, config, now=now + timedelta(seconds=61))
+    complete_alert(
+        db, job["attempt_id"], SmsReceipt(dispatch_state), now=now + timedelta(seconds=62)
+    )
+    attempt = db.get(DiagnosticAlertAttempt, job["attempt_id"])
+    attempt.receipt_attempts = 11
+    due = now + timedelta(seconds=95)
+    assert claim_receipt(db, now=due) == attempt.id
+    assert attempt.receipt_attempts == 12
+    # The worker commits the claim and stops before recording its provider response.
+    db.commit()
+    db.expire_all()
+    attempt = db.get(DiagnosticAlertAttempt, job["attempt_id"])
+    assert claim_receipt(db, now=due + timedelta(seconds=30)) is None
+    assert attempt.next_receipt_at is not None
+    with monkeypatch.context() as scope:
+        scope.setenv("DIAGNOSTICS_ENVIRONMENT", "another-environment")
+        assert claim_receipt(db, now=due + timedelta(minutes=2)) is None
+        assert attempt.next_receipt_at is not None
+    assert claim_receipt(db, now=due + timedelta(minutes=2)) is None
+    db.flush()
+    delivery = db.get(DiagnosticAlertDelivery, attempt.delivery_id)
+    assert attempt.next_receipt_at is None
+    assert attempt.receipt_attempts == 12
+    assert attempt.error_code == delivery.error_code == "receipt_verification_exhausted"
+    assert attempt.state == delivery.state == dispatch_state
+    assert claim_alert(db, config, now=due + timedelta(hours=2)) is None
+    assert len(list(db.scalars(select(DiagnosticAlertAttempt)))) == 1
 
 
 def settings(now):
