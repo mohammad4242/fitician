@@ -43,6 +43,7 @@ export interface ClientDiagnosticsQueueOptions {
   readonly now?: () => number;
   readonly schedule?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
   readonly cancel?: (timer: ReturnType<typeof setTimeout>) => void;
+  readonly flushDelayMs?: number;
 }
 
 const TOKEN = /^[A-Za-z0-9_.:-]+$/u;
@@ -221,7 +222,17 @@ export class ClientDiagnosticsQueue {
     if (this.queue.length === 30) this.queue.splice(this.inFlightCount, 1);
     this.queue.push(event);
     if (this.retries >= 3) this.retries = 0;
-    void this.flush();
+    const delay = this.options.flushDelayMs ?? 0;
+    if (delay > 0) {
+      if (this.timer === null && this.flushing === null) {
+        this.timer = this.schedule(() => {
+          this.timer = null;
+          void this.flush();
+        }, delay);
+      }
+    } else {
+      void this.flush();
+    }
     return true;
   }
 

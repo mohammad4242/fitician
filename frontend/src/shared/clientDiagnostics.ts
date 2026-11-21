@@ -66,7 +66,10 @@ async function sendDiagnostics(events: readonly ClientDiagnosticEvent[]): Promis
   } finally { clearTimeout(timeout); }
 }
 
-const queue = new ClientDiagnosticsQueue({ send: (batch) => sendDiagnostics(batch.events) });
+const queue = new ClientDiagnosticsQueue({
+  send: (batch) => sendDiagnostics(batch.events),
+  flushDelayMs: 250,
+});
 
 export function reportWebClientDiagnostic(
   input: DiagnosticInput,
